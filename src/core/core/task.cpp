@@ -122,16 +122,10 @@ __thread uint16_t tls_dsn_lower32_task_id_mask = 0;
     }
 }
 
-task::task(dsn::task_code code,
-           void *context,
-           dsn_task_cancelled_handler_t on_cancel,
-           int hash,
-           service_node *node)
+task::task(dsn::task_code code, int hash, service_node *node)
     : _state(TASK_STATE_READY), _wait_event(nullptr)
 {
     _spec = task_spec::get(code);
-    _context = context;
-    _on_cancel = on_cancel;
     _hash = hash;
     _delay_milliseconds = 0;
     _wait_for_cancel = false;
@@ -341,14 +335,6 @@ bool task::cancel(bool wait_until_finished, /*out*/ bool *finished /*= nullptr*/
     }
 
     if (succ) {
-        //
-        // TODO: pros and cons of executing on_cancel here
-        // or in exec_internal
-        //
-        if (_on_cancel) {
-            _on_cancel(_context);
-        }
-
         spec().on_task_cancelled.execute(this);
         signal_waiters();
     }
@@ -448,15 +434,24 @@ void task::enqueue(task_worker_pool *pool)
 }
 
 timer_task::timer_task(dsn::task_code code,
-                       dsn_task_handler_t cb,
-                       void *context,
-                       dsn_task_cancelled_handler_t on_cancel,
+                       const task_handler &cb,
                        uint32_t interval_milliseconds,
                        int hash,
                        service_node *node)
-    : task(code, context, on_cancel, hash, node),
-      _interval_milliseconds(interval_milliseconds),
-      _cb(cb)
+    : task(code, hash, node), _interval_milliseconds(interval_milliseconds), _cb(cb)
+{
+    dassert(
+        TASK_TYPE_COMPUTE == spec().type,
+        "%s is not a computation type task, please use DEFINE_TASK_CODE to define the task code",
+        spec().name.c_str());
+}
+
+timer_task::timer_task(dsn::task_code code,
+                       task_handler &&cb,
+                       uint32_t interval_milliseconds,
+                       int hash,
+                       service_node *node)
+    : task(code, hash, node), _interval_milliseconds(interval_milliseconds), _cb(std::move(cb))
 {
     dassert(
         TASK_TYPE_COMPUTE == spec().type,
@@ -476,22 +471,17 @@ void timer_task::enqueue()
 
 void timer_task::exec()
 {
-    _cb(_context);
-
+    if (_cb != nullptr) {
+        _cb();
+    }
     if (_interval_milliseconds > 0) {
         set_retry();
         set_delay(_interval_milliseconds);
     }
 }
 
-rpc_request_task::rpc_request_task(message_ex *request,
-                                   dsn_rpc_request_handler_t &&h,
-                                   service_node *node)
-    : task(dsn::task_code(request->rpc_code()),
-           nullptr,
-           [](void *) { dassert(false, "rpc request task cannot be cancelled"); },
-           request->header->client.thread_hash,
-           node),
+rpc_request_task::rpc_request_task(message_ex *request, rpc_request_handler &&h, service_node *node)
+    : task(request->rpc_code(), request->header->client.thread_hash, node),
       _request(request),
       _handler(std::move(h)),
       _enqueue_ts_ns(0)
@@ -517,18 +507,22 @@ void rpc_request_task::enqueue()
 }
 
 rpc_response_task::rpc_response_task(message_ex *request,
-                                     dsn_rpc_response_handler_t cb,
-                                     void *context,
-                                     dsn_task_cancelled_handler_t on_cancel,
+                                     const rpc_response_handler &cb,
+                                     int hash,
+                                     service_node *node)
+    : rpc_response_task(request, rpc_response_handler(cb), hash, node)
+{
+}
+
+rpc_response_task::rpc_response_task(message_ex *request,
+                                     rpc_response_handler &&cb,
                                      int hash,
                                      service_node *node)
     : task(task_spec::get(request->local_rpc_code)->rpc_paired_code,
-           context,
-           on_cancel,
            hash == 0 ? request->header->client.thread_hash : hash,
-           node)
+           node),
+      _cb(std::move(cb))
 {
-    _cb = cb;
     _is_null = (_cb == nullptr);
 
     set_error_code(ERR_IO_PENDING);
@@ -589,83 +583,21 @@ void rpc_response_task::enqueue()
     }
 }
 
-struct hook_context : public transient_object
+void rpc_response_task::reset_callback(const rpc_response_handler &cb)
 {
-    dsn_rpc_response_handler_t old_callback;
-    dsn_task_cancelled_handler_t old_on_cancel;
-    void *old_context;
-
-    dsn_rpc_response_handler_replace_t new_callback;
-    uint64_t new_context;
-};
-
-static void rpc_response_task_hook_callback(dsn::error_code err,
-                                            dsn_message_t req,
-                                            dsn_message_t resp,
-                                            void *ctx)
-{
-    auto nc = (hook_context *)ctx;
-    nc->new_callback(nc->old_callback, err, req, resp, nc->old_context, nc->new_context);
-    delete nc;
-};
-
-static void rpc_response_task_hook_on_cancel(void *ctx)
-{
-    auto nc = (hook_context *)ctx;
-    if (nc->old_on_cancel != nullptr) {
-        nc->old_on_cancel(nc->old_context);
-    }
-    delete nc;
+    reset_callback(rpc_response_handler(cb));
 }
 
-void rpc_response_task::replace_callback(dsn_rpc_response_handler_replace_t callback,
-                                         uint64_t context)
-{
-    hook_context *nc = new hook_context();
-    nc->old_callback = _cb;
-    nc->old_context = _context;
-    nc->old_on_cancel = _on_cancel;
-    nc->new_callback = callback;
-    nc->new_context = context;
+void rpc_response_task::reset_callback(rpc_response_handler &&cb) { _cb = std::move(cb); }
 
-    _context = nc;
-    _cb = rpc_response_task_hook_callback;
-    _on_cancel = rpc_response_task_hook_on_cancel;
-    _is_null = false;
+aio_task::aio_task(dsn::task_code code, const aio_handler &cb, int hash, service_node *node)
+    : aio_task(code, aio_handler(cb), hash, node)
+{
 }
 
-bool rpc_response_task::reset_callback()
+aio_task::aio_task(dsn::task_code code, aio_handler &&cb, int hash, service_node *node)
+    : task(code, hash, node), _cb(std::move(cb))
 {
-    if (_cb == rpc_response_task_hook_callback && _on_cancel == rpc_response_task_hook_on_cancel) {
-        if (state() != TASK_STATE_READY && state() != TASK_STATE_RUNNING)
-            return false;
-
-        // ready or running
-        auto nc = (hook_context *)_context;
-        _context = nc->old_context;
-        _cb = nc->old_callback;
-        _on_cancel = nc->old_on_cancel;
-        _is_null = (_cb == nullptr);
-
-        if (state() != TASK_STATE_RUNNING) {
-            delete nc;
-        }
-
-        return true;
-    } else {
-        return false;
-    }
-}
-
-aio_task::aio_task(dsn::task_code code,
-                   dsn_aio_handler_t cb,
-                   void *context,
-                   dsn_task_cancelled_handler_t on_cancel,
-                   int hash,
-                   service_node *node)
-    : task(code, context, on_cancel, hash, node)
-{
-    _cb = cb;
     _is_null = (_cb == nullptr);
 
     dassert(TASK_TYPE_AIO == spec().type,
@@ -685,7 +617,7 @@ aio_task::~aio_task()
     _aio = nullptr;
 }
 
-void aio_task::enqueue(error_code err, size_t transferred_size)
+void aio_task::enqueue_aio(error_code err, size_t transferred_size)
 {
     set_error_code(err);
     _transferred_size = transferred_size;

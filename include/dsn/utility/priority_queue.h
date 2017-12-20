@@ -130,7 +130,7 @@ public:
         return r;
     }
 
-    virtual T dequeue(/*out*/ long &ct, int millieseconds = 0xffffffff)
+    T dequeue_wait(/*out*/ long &ct, int millieseconds)
     {
         if (!_sema.wait(millieseconds)) {
             ct = 0;
@@ -139,6 +139,7 @@ public:
         return priority_queue<T, priority_count, TQueue>::dequeue(ct);
     }
 
+    virtual T dequeue(/*out*/ long &ct) override { return dequeue_wait(ct, 0xffffffff); }
 private:
     semaphore _sema;
 };

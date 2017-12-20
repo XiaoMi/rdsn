@@ -36,6 +36,7 @@
 
 #pragma once
 
+#include <functional>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/extensible_object.h>
 #include <dsn/utility/callocator.h>
@@ -92,15 +93,10 @@ struct __tls_dsn__
 extern __thread struct __tls_dsn__ tls_dsn;
 
 //----------------- common task -------------------------------------------------------
-
 class task : public ref_counter, public extensible_object<task, 4>
 {
 public:
-    DSN_API task(dsn::task_code code,
-                 void *context,
-                 dsn_task_cancelled_handler_t on_cancel,
-                 int hash = 0,
-                 service_node *node = nullptr);
+    DSN_API task(dsn::task_code code, int hash = 0, service_node *node = nullptr);
     DSN_API virtual ~task();
 
     virtual void exec() = 0;
@@ -110,6 +106,11 @@ public:
     // for timers, even return value is false, the further timer execs are cancelled
     DSN_API bool cancel(bool wait_until_finished, /*out*/ bool *finished = nullptr);
     DSN_API bool wait(int timeout_milliseconds = TIME_MS_MAX, bool on_cancel = false);
+    DSN_API void enqueue(std::chrono::milliseconds delay)
+    {
+        set_delay(static_cast<int>(delay.count()));
+        enqueue();
+    }
     DSN_API virtual void enqueue();
     DSN_API bool set_retry(
         bool enqueue_immediately = true); // return true when called inside exec(), false otherwise
@@ -157,8 +158,6 @@ protected:
 
     bool _is_null;
     error_code _error;
-    void *_context; // the context for the task/on_cancel callbacks
-    dsn_task_cancelled_handler_t _on_cancel;
 
 private:
     task(const task &);
@@ -179,25 +178,32 @@ public:
     // used by task queue only
     task *next;
 };
+typedef dsn::ref_ptr<dsn::task> task_ptr;
 
-class task_c : public task, public transient_object
+class raw_task : public task, public transient_object
 {
 public:
-    task_c(dsn::task_code code,
-           dsn_task_handler_t cb,
-           void *context,
-           dsn_task_cancelled_handler_t on_cancel,
-           int hash = 0,
-           service_node *node = nullptr)
-        : task(code, context, on_cancel, hash, node)
+    raw_task(dsn::task_code code,
+             const task_handler &cb,
+             int hash = 0,
+             service_node *node = nullptr)
+        : task(code, hash, node), _cb(cb)
     {
-        _cb = cb;
+    }
+    raw_task(dsn::task_code code, task_handler &&cb, int hash = 0, service_node *node = nullptr)
+        : task(code, hash, node), _cb(std::move(cb))
+    {
+    }
+    void exec() override
+    {
+        if (_cb != nullptr) {
+            _cb();
+            _cb = nullptr;
+        }
     }
 
-    void exec() override { _cb(_context); }
-
-private:
-    dsn_task_handler_t _cb;
+protected:
+    task_handler _cb;
 };
 
 //----------------- timer task -------------------------------------------------------
@@ -206,9 +212,12 @@ class timer_task : public task
 {
 public:
     timer_task(dsn::task_code code,
-               dsn_task_handler_t cb,
-               void *context,
-               dsn_task_cancelled_handler_t on_cancel,
+               const task_handler &cb,
+               uint32_t interval_milliseconds,
+               int hash = 0,
+               service_node *node = nullptr);
+    timer_task(dsn::task_code code,
+               task_handler &&cb,
                uint32_t interval_milliseconds,
                int hash = 0,
                service_node *node = nullptr);
@@ -219,14 +228,40 @@ public:
 
 private:
     uint32_t _interval_milliseconds;
-    dsn_task_handler_t _cb;
+    task_handler _cb;
 };
 
-class service_node;
+template <typename TCallback>
+class safe_late_task : public raw_task
+{
+public:
+    typedef std::function<task_handler(TCallback &)> currying;
+    safe_late_task(task_code code, const TCallback &cb, int hash = 0, service_node *node = nullptr)
+        : raw_task(code, nullptr, hash, node), _user_cb(cb)
+    {
+    }
+    safe_late_task(task_code code, TCallback &&cb, int hash = 0, service_node *node = nullptr)
+        : raw_task(code, nullptr, hash, node), _user_cb(std::move(cb))
+    {
+    }
+
+    void bind_and_enqueue(const currying &c, int delay_ms = 0)
+    {
+        if (_user_cb != nullptr) {
+            raw_task::_cb = c(_user_cb);
+        }
+        set_delay(delay_ms);
+        enqueue();
+    }
+
+private:
+    TCallback _user_cb;
+};
+
 class rpc_request_task : public task, public transient_object
 {
 public:
-    rpc_request_task(message_ex *request, dsn_rpc_request_handler_t &&h, service_node *node);
+    rpc_request_task(message_ex *request, rpc_request_handler &&h, service_node *node);
     ~rpc_request_task();
 
     message_ex *get_request() const { return _request; }
@@ -250,24 +285,21 @@ public:
 
 protected:
     message_ex *_request;
-    dsn_rpc_request_handler_t _handler;
+    rpc_request_handler _handler;
     uint64_t _enqueue_ts_ns;
 };
+typedef dsn::ref_ptr<rpc_request_task> rpc_request_task_ptr;
 
-typedef void (*dsn_rpc_response_handler_replace_t)(dsn_rpc_response_handler_t callback,
-                                                   dsn::error_code err,
-                                                   dsn_message_t req,
-                                                   dsn_message_t resp,
-                                                   void *context,
-                                                   uint64_t replace_context);
 class rpc_response_task : public task, public transient_object
 {
 public:
     DSN_API rpc_response_task(message_ex *request,
-                              dsn_rpc_response_handler_t cb,
-                              void *context,
-                              dsn_task_cancelled_handler_t on_cancel,
+                              const rpc_response_handler &cb,
                               int hash = 0,
+                              service_node *node = nullptr);
+    DSN_API rpc_response_task(message_ex *request,
+                              rpc_response_handler &&cb,
+                              int hash,
                               service_node *node = nullptr);
     DSN_API ~rpc_response_task();
 
@@ -276,17 +308,19 @@ public:
     DSN_API void enqueue() override; // re-enqueue after above enqueue, e.g., after delay
     message_ex *get_request() const { return _request; }
     message_ex *get_response() const { return _response; }
-    DSN_API void replace_callback(dsn_rpc_response_handler_replace_t callback,
-                                  uint64_t context); // not thread-safe
-    DSN_API bool
-    reset_callback(); // used only when replace_callback is called before, not thread-safe
+
+    // used only when replace_callback is called before, not thread-safe
+    DSN_API const rpc_response_handler &current_handler() const { return _cb; }
+    DSN_API void reset_callback(const rpc_response_handler &cb);
+    DSN_API void reset_callback(rpc_response_handler &&cb);
+
     task_worker_pool *caller_pool() const { return _caller_pool; }
     void set_caller_pool(task_worker_pool *pl) { _caller_pool = pl; }
 
     void exec() override
     {
         if (_cb) {
-            _cb(_error, _request, _response, _context);
+            _cb(_error, _request, _response);
         }
     }
 
@@ -294,10 +328,11 @@ private:
     message_ex *_request;
     message_ex *_response;
     task_worker_pool *_caller_pool;
-    dsn_rpc_response_handler_t _cb;
+    rpc_response_handler _cb;
 
     friend class rpc_engine;
 };
+typedef dsn::ref_ptr<rpc_response_task> rpc_response_task_ptr;
 
 //------------------------- disk AIO task ---------------------------------------------------
 
@@ -340,14 +375,14 @@ class aio_task : public task, public transient_object
 {
 public:
     DSN_API aio_task(dsn::task_code code,
-                     dsn_aio_handler_t cb,
-                     void *context,
-                     dsn_task_cancelled_handler_t on_cancel,
+                     const aio_handler &cb,
                      int hash = 0,
                      service_node *node = nullptr);
+    DSN_API
+    aio_task(dsn::task_code code, aio_handler &&cb, int hash = 0, service_node *node = nullptr);
     DSN_API ~aio_task();
 
-    DSN_API void enqueue(error_code err, size_t transferred_size);
+    DSN_API void enqueue_aio(error_code err, size_t transferred_size);
     size_t get_transferred_size() const { return _transferred_size; }
     disk_aio *aio() { return _aio; }
 
@@ -376,7 +411,7 @@ public:
     virtual void exec() override // aio completed
     {
         if (nullptr != _cb) {
-            _cb(_error, _transferred_size, _context);
+            _cb(_error, _transferred_size);
         }
     }
 
@@ -386,8 +421,9 @@ public:
 protected:
     disk_aio *_aio;
     size_t _transferred_size;
-    dsn_aio_handler_t _cb;
+    aio_handler _cb;
 };
+typedef dsn::ref_ptr<aio_task> aio_task_ptr;
 
 // ------------------------ inline implementations --------------------
 __inline /*static*/ void task::check_tls_dsn()
