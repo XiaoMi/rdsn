@@ -262,10 +262,9 @@ public:
     static nfs_node *get_current_nfs();
     static timer_service *get_current_tsvc();
 
-    static void set_tls_dsn_context(
-        service_node *node,  // cannot be null
-        task_worker *worker, // null for io or timer threads if they are not worker threads
-        task_queue *queue    // owner queue if io_mode == IOE_PER_QUEUE
+    DSN_API static void set_tls_dsn_context(
+        service_node *node, // cannot be null
+        task_worker *worker // null for io or timer threads if they are not worker threads
         );
 
 protected:
