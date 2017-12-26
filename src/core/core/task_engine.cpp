@@ -45,7 +45,7 @@ task_worker_pool::task_worker_pool(const threadpool_spec &opts, task_engine *own
     : _spec(opts), _owner(owner), _node(owner->node())
 {
     _is_running = false;
-    _per_node_timer_svc = nullptr;
+    _timer_svc = nullptr;
 }
 
 void task_worker_pool::create()
@@ -113,16 +113,7 @@ void task_worker_pool::start()
            _spec.partitioned ? "true" : "false");
 
     // setup cached ptrs for fast timer service access
-    if (service_engine::fast_instance().spec().timer_io_mode == IOE_PER_QUEUE) {
-        for (size_t i = 0; i < _queues.size(); i++) {
-            auto svc = node()->tsvc(_queues[i]);
-            dassert(svc, "per queue timer service must be present");
-            _per_queue_timer_svcs.push_back(svc);
-        }
-    } else {
-        _per_node_timer_svc = node()->tsvc(nullptr);
-    }
-
+    _timer_svc = node()->tsvc();
     _is_running = true;
 }
 
@@ -131,15 +122,7 @@ void task_worker_pool::add_timer(task *t)
     dassert(t->delay_milliseconds() > 0,
             "task delayed should be dispatched to timer service first");
 
-    if (_per_node_timer_svc)
-        _per_node_timer_svc->add_timer(t);
-    else {
-        unsigned int idx =
-            (_spec.partitioned
-                 ? static_cast<unsigned int>(t->hash()) % static_cast<unsigned int>(_queues.size())
-                 : 0);
-        _per_queue_timer_svcs[idx]->add_timer(t);
-    }
+    _timer_svc->add_timer(t);
 }
 
 void task_worker_pool::enqueue(task *t)
