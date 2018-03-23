@@ -187,12 +187,15 @@ void task::exec_internal()
         _spec->on_task_begin.execute(this);
 
         exec();
+        // after exec(), timer task's state is READY_STATE, normal task's state is RUNNING_STATE
         if (_state.compare_exchange_strong(RUNNING_STATE,
                                            TASK_STATE_FINISHED,
                                            std::memory_order_release,
                                            std::memory_order_relaxed)) {
+            // normal task
             _spec->on_task_end.execute(this);
         } else {
+            // timer task
             if (!_wait_for_cancel) {
                 // for retried tasks such as timer or rpc_response_task
                 notify_if_necessary = false;
@@ -294,40 +297,38 @@ bool task::cancel(bool wait_until_finished, /*out*/ bool *finished /*= nullptr*/
     bool finish = false;
     bool succ = false;
 
-    if (current_tsk == this) {
-        // make sure timers are cancelled
-        _wait_for_cancel = true;
-
-        if (finished)
-            *finished = false;
-
-        return false;
-    }
-
-    if (_state.compare_exchange_strong(
-            READY_STATE, TASK_STATE_CANCELLED, std::memory_order_relaxed)) {
-        succ = true;
-        finish = true;
-    } else {
-        task_state old_state = READY_STATE;
-        if (old_state == TASK_STATE_CANCELLED) {
-            succ = false; // this cancellation fails
-            finish = true;
-        } else if (old_state == TASK_STATE_FINISHED) {
-            succ = false;
-            finish = true;
-        } else if (wait_until_finished) {
-            _wait_for_cancel = true;
-            bool r = wait(TIME_MS_MAX, true);
-            dassert(r,
-                    "wait failed, it is only possible when task runs for more than 0x0fffffff ms");
-
-            succ = false;
+    if (current_tsk != this) {
+        if (_state.compare_exchange_strong(
+                READY_STATE, TASK_STATE_CANCELLED, std::memory_order_relaxed)) {
+            succ = true;
             finish = true;
         } else {
-            succ = false;
-            finish = false;
+            task_state old_state = READY_STATE;
+            if (old_state == TASK_STATE_CANCELLED) {
+                succ = false; // this cancellation fails
+                finish = true;
+            } else if (old_state == TASK_STATE_FINISHED) {
+                succ = false;
+                finish = true;
+            } else if (wait_until_finished) {
+                _wait_for_cancel = true;
+                bool r = wait(TIME_MS_MAX, true);
+                dassert(
+                    r,
+                    "wait failed, it is only possible when task runs for more than 0x0fffffff ms");
+
+                succ = false;
+                finish = true;
+            } else {
+                succ = false;
+                finish = false;
+            }
         }
+    } else {
+        // task cancel itself
+        // for timer task, we should set _wait_for_cancel flag true to prevent timer task enqueue
+        // again
+        _wait_for_cancel = true;
     }
 
     if (current_tsk != nullptr) {
@@ -338,6 +339,8 @@ bool task::cancel(bool wait_until_finished, /*out*/ bool *finished /*= nullptr*/
         spec().on_task_cancelled.execute(this);
         signal_waiters();
     }
+
+    cancel_callback(succ, finish);
 
     if (finished)
         *finished = finish;
@@ -356,6 +359,8 @@ void task::enqueue()
     dassert(_node != nullptr, "service node unknown for this task");
     dassert(_spec->type != TASK_TYPE_RPC_RESPONSE,
             "tasks with TASK_TYPE_RPC_RESPONSE type use task::enqueue(caller_pool()) instead");
+    dassert(_error != ERR_IO_PENDING, "task is waiting for IO, can not be enqueue");
+
     auto pool = node()->computation()->get_pool(spec().pool_code);
     enqueue(pool);
 }
@@ -474,8 +479,11 @@ void timer_task::exec()
     if (_cb != nullptr) {
         _cb();
     }
+    // valid interval, we reset task state to READY
     if (_interval_milliseconds > 0) {
-        set_retry();
+        dassert(set_retry(true),
+                "timer task set retry failed, with state = %s",
+                enum_to_string(state()));
         set_delay(_interval_milliseconds);
     }
 }
@@ -582,13 +590,6 @@ void rpc_response_task::enqueue()
         task::enqueue(pool);
     }
 }
-
-void rpc_response_task::reset_callback(const rpc_response_handler &cb)
-{
-    reset_callback(rpc_response_handler(cb));
-}
-
-void rpc_response_task::reset_callback(rpc_response_handler &&cb) { _cb = std::move(cb); }
 
 aio_task::aio_task(dsn::task_code code, const aio_handler &cb, int hash, service_node *node)
     : aio_task(code, aio_handler(cb), hash, node)

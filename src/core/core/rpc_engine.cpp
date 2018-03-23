@@ -70,6 +70,9 @@ public:
 
     virtual void exec() { _matcher->on_rpc_timeout(_id); }
 
+protected:
+    void cancel_callback(bool task_cancelled, bool task_finished) {}
+
 private:
     // use the following if the matcher is per rpc session
     // rpc_client_matcher_ptr _matcher;
@@ -704,10 +707,16 @@ void rpc_engine::call_uri(rpc_address addr, message_ex *request, const rpc_respo
                             req2->send_retry_count++;
                             req2->header->client.timeout_ms =
                                 static_cast<int>(deadline_ms - nms - gap);
+                            // current task must be rpc_response_task, and now we are in it's body
                             rpc_response_task_ptr ctask =
                                 dynamic_cast<rpc_response_task *>(task::get_current_task());
-                            ctask->reset_callback(std::move(old_callback));
-                            ctask->set_retry(false);
+                            ctask->replace_callback(std::move(old_callback));
+                            dassert(ctask->set_retry(false),
+                                    "rpc_response_task set retry failed, state = %s",
+                                    enum_to_string(ctask->state()));
+                            // We want use this rpc_response_task again, so we should prevent reset
+                            // handler to nullptr after exec()
+                            ctask->set_reset_handler_after_exec(false);
 
                             // sleep gap milliseconds before retry
                             tasking::enqueue(LPC_RPC_DELAY_CALL,
@@ -733,7 +742,7 @@ void rpc_engine::call_uri(rpc_address addr, message_ex *request, const rpc_respo
                     old_callback(err, req, resp);
             };
 
-            call->reset_callback(std::move(new_callback));
+            call->replace_callback(std::move(new_callback));
         }
 
         resolver->resolve(hdr.client.partition_hash,

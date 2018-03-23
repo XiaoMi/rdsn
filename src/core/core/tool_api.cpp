@@ -68,6 +68,9 @@ public:
         }
     }
 
+protected:
+    void cancel_callback(bool task_cancelled, bool task_finished) override {}
+
 private:
     service_node *_node;
     bool _start;   // false for stop

@@ -104,7 +104,7 @@ public:
     DSN_API void exec_internal();
     // return whether *this* cancel success,
     // for timers, even return value is false, the further timer execs are cancelled
-    DSN_API bool cancel(bool wait_until_finished, /*out*/ bool *finished = nullptr);
+    DSN_API virtual bool cancel(bool wait_until_finished, /*out*/ bool *finished = nullptr);
     DSN_API bool wait(int timeout_milliseconds = TIME_MS_MAX, bool on_cancel = false);
     DSN_API void enqueue(std::chrono::milliseconds delay)
     {
@@ -112,6 +112,12 @@ public:
         enqueue();
     }
     DSN_API virtual void enqueue();
+    // only call this function when task is running
+    // @param enqueue_immediately
+    //      whether we should enqueue right now
+    // return:
+    //      true : change task state from TASK_STATE_RUNNING to TASK_STATE_READY succeed
+    //      false : change task state failed
     DSN_API bool set_retry(
         bool enqueue_immediately = true); // return true when called inside exec(), false otherwise
     void set_error_code(error_code err) { _error = err; }
@@ -155,6 +161,10 @@ protected:
     DSN_API void signal_waiters();
     DSN_API void enqueue(task_worker_pool *pool);
     void set_task_id(uint64_t tid) { _task_id = tid; }
+
+    // this function will be called automaticly by cancel()
+    // for example, user can override this function to do something when task is cancelled
+    virtual void cancel_callback(bool task_cancelled, bool task_finished) = 0;
 
     bool _is_null;
     error_code _error;
@@ -203,6 +213,16 @@ public:
     }
 
 protected:
+    void cancel_callback(bool task_cancelled, bool task_finished) override
+    {
+        if (task_cancelled || task_finished) {
+            // if task is cancelled succeed or task is finished, we can reset task_handler(_cb),
+            // otherwise, task is running and will be task_handler(_cb) will be reset after exec
+            _cb = nullptr;
+        }
+    }
+
+protected:
     task_handler _cb;
 };
 
@@ -222,11 +242,24 @@ public:
                int hash = 0,
                service_node *node = nullptr);
 
+    // for timer task, we will reset its state to TASK_READY after exec
     DSN_API void exec() override;
 
     DSN_API void enqueue() override;
 
+protected:
+    void cancel_callback(bool task_cancelled, bool task_finished) override
+    {
+        if (task_cancelled || task_finished) {
+            // if task is cancelled succeed or task is finished, we can reset task_handler(_cb),
+            // otherwise, task is running and will be task_handler(_cb) will be reset after exec
+            _cb = nullptr;
+        }
+    }
+
 private:
+    // ATTENTION: if _interval_milliseconds <= 0, then timer task just be executed once;
+    // otherwise, timer task will be executed periodically(period = _interval_milliseconds)
     uint32_t _interval_milliseconds;
     task_handler _cb;
 };
@@ -245,6 +278,17 @@ public:
     {
     }
 
+    void exec() override
+    {
+        raw_task::exec();
+        // reset _user_cb to release the resoure that be taken over by _user_cb
+        // such as:
+        //      task_ptr tsk = xxx;
+        //      _user_cb = [tsk]() {}
+        // if we don't reset _user_cb, then tsk will not be released
+        _user_cb = nullptr;
+    }
+
     void bind_and_enqueue(const currying &c, int delay_ms = 0)
     {
         if (_user_cb != nullptr) {
@@ -252,6 +296,18 @@ public:
         }
         set_delay(delay_ms);
         enqueue();
+    }
+
+protected:
+    void cancel_callback(bool task_cancelled, bool task_finished) override
+    {
+        if (task_cancelled || task_finished) {
+            // if task is cancelled succeed or task is finished, we can reset task_handler(_cb and
+            // _user_cb), otherwise, task is running and will be task_handler(_cb and _user_cb) will
+            // be reset after exec
+            _user_cb = nullptr;
+            _cb = nullptr;
+        }
     }
 
 private:
@@ -284,6 +340,17 @@ public:
     }
 
 protected:
+    void cancel_callback(bool task_cancelled, bool task_finished) override
+    {
+        if (task_cancelled || task_finished) {
+            // if task is cancelled succeed or task is finished, we can reset
+            // task_handler(_handler), otherwise, task is running and will be task_handler(_handler)
+            // will be reset after exec
+            _handler = nullptr;
+        }
+    }
+
+protected:
     message_ex *_request;
     rpc_request_handler _handler;
     uint64_t _enqueue_ts_ns;
@@ -311,8 +378,28 @@ public:
 
     // used only when replace_callback is called before, not thread-safe
     DSN_API const rpc_response_handler &current_handler() const { return _cb; }
-    DSN_API void reset_callback(const rpc_response_handler &cb);
-    DSN_API void reset_callback(rpc_response_handler &&cb);
+
+    // rpc_response_task::replace_callback()
+    //      replace the _cb with new callback(cb)
+    // NOTICE:
+    //      this function can only be called when task's state is TASK_STATE_READY or
+    //      TASK_STATE_RUNNING
+    DSN_API void replace_callback(rpc_response_handler &&cb)
+    {
+        task_state cur_state = state();
+        dassert(cur_state == TASK_STATE_READY || cur_state == TASK_STATE_RUNNING,
+                "invalid task_state: %s",
+                enum_to_string(cur_state));
+
+        _cb = std::move(cb);
+    }
+    // override replace_callback
+    DSN_API void replace_callback(const rpc_response_handler &cb)
+    {
+        replace_callback(rpc_response_handler(cb));
+    }
+
+    void set_reset_handler_after_exec(bool val) { _reset_handler_after_exec = val; }
 
     task_worker_pool *caller_pool() const { return _caller_pool; }
     void set_caller_pool(task_worker_pool *pl) { _caller_pool = pl; }
@@ -321,6 +408,21 @@ public:
     {
         if (_cb) {
             _cb(_error, _request, _response);
+            if (_reset_handler_after_exec) {
+                _cb = nullptr;
+            } else {
+                _reset_handler_after_exec = true;
+            }
+        }
+    }
+
+protected:
+    void cancel_callback(bool task_cancelled, bool task_finished) override
+    {
+        if (task_cancelled || task_finished) {
+            // if task is cancelled succeed or task is finished, we can reset task_handler(_cb),
+            // otherwise, task is running and will be task_handler(_cb) will be reset after exec
+            _cb = nullptr;
         }
     }
 
@@ -329,6 +431,13 @@ private:
     message_ex *_response;
     task_worker_pool *_caller_pool;
     rpc_response_handler _cb;
+
+    // flag to represent whether reset _cb = nullptr after exec()
+    // normally, if we call replace_callback when task is running, we should set
+    // _reset_handler_after_exec = fasle to prevent reset _cb after exec();
+    //
+    // Attention: after exec will set flag _reset_handler_after_exec = true autoly
+    bool _reset_handler_after_exec{true};
 
     friend class rpc_engine;
 };
@@ -417,6 +526,16 @@ public:
 
     std::vector<dsn_file_buffer_t> _unmerged_write_buffers;
     blob _merged_write_buffer_holder;
+
+protected:
+    void cancel_callback(bool task_cancelled, bool task_finished) override
+    {
+        if (task_cancelled || task_finished) {
+            // if task is cancelled succeed or task is finished, we can reset task_handler(_cb),
+            // otherwise, task is running and will be task_handler(_cb) will be reset after exec
+            _cb = nullptr;
+        }
+    }
 
 protected:
     disk_aio *_aio;
