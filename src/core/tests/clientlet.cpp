@@ -159,6 +159,12 @@ public:
     static int allocate_count;
 };
 
+class simple_task_container : public dsn::ref_counter
+{
+public:
+    dsn::task_ptr t;
+};
+
 class simple_rpc_response_task : public dsn::rpc_response_task
 {
 public:
@@ -202,17 +208,33 @@ TEST(dev_cpp, task_destructor)
 
     {
         dsn::rpc_response_task_ptr t(new simple_rpc_response_task(req.get(), nullptr));
-        t->replace_callback([t](dsn::error_code, dsn::message_ex *, dsn::message_ex *) mutable {
+        t->replace_callback([t](dsn::error_code, dsn_message_t, dsn_message_t) {
             ddebug("the pointer of t is (%p), count(%d)", t.get(), t->get_count());
             // ref_ptr out of callback + ref_ptr in callback + ref_added_in_enqueue
             ASSERT_EQ(3, t->get_count());
-
-            // we need to break the ref cycle manually
-            t = nullptr;
         });
 
         t->enqueue(dsn::ERR_OK, nullptr);
         t->wait();
     }
     ASSERT_EQ(0, simple_rpc_response_task::allocate_count);
+
+    {
+        dsn::ref_ptr<simple_task_container> c(new simple_task_container());
+        c->t = new simple_task(LPC_TEST_CLIENTLET, [c]() { ddebug("cycle link reference test"); });
+
+        c->t->enqueue();
+        c->t->wait();
+        ASSERT_EQ(1, simple_task::allocate_count);
+    }
+    ASSERT_EQ(0, simple_task::allocate_count);
+
+    {
+        dsn::ref_ptr<simple_task_container> c(new simple_task_container());
+        c->t = new simple_task(LPC_TEST_CLIENTLET, [c]() { ddebug("cycle link reference test"); });
+
+        ASSERT_TRUE(c->t->cancel(false));
+        ASSERT_EQ(1, simple_task::allocate_count);
+    }
+    ASSERT_EQ(0, simple_task::allocate_count);
 }

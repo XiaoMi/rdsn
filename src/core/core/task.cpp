@@ -187,15 +187,17 @@ void task::exec_internal()
         _spec->on_task_begin.execute(this);
 
         exec();
-        // after exec(), timer task's state is READY_STATE, normal task's state is RUNNING_STATE
+
+        // after exec(), one shot tasks are still in "running".
+        // other tasks may call "set_retry" to reset tasks to "ready",
+        // like timers and rpc_response_tasks
         if (_state.compare_exchange_strong(RUNNING_STATE,
                                            TASK_STATE_FINISHED,
                                            std::memory_order_release,
                                            std::memory_order_relaxed)) {
-            // normal task
             _spec->on_task_end.execute(this);
+            clear_callback();
         } else {
-            // timer task
             if (!_wait_for_cancel) {
                 // for retried tasks such as timer or rpc_response_task
                 notify_if_necessary = false;
@@ -214,23 +216,21 @@ void task::exec_internal()
 
                 // always call on_task_end()
                 _spec->on_task_end.execute(this);
+
+                // for timer task, we must call reset_callback after cancelled, because we don't
+                // reset callback after exec()
+                clear_callback();
             }
         }
 
         tls_dsn.current_task = parent_task;
     }
 
-    // signal_waiters(); [
-    // inline for performance
     if (notify_if_necessary) {
-        void *evt = _wait_event.load();
-        if (evt != nullptr) {
-            auto nevt = (utils::notify_event *)evt;
-            nevt->notify();
+        if (signal_waiters()) {
             spec().on_task_wait_notified.execute(this);
         }
     }
-    // ]
 
     if (!_spec->allow_inline && !_is_null) {
         lock_checker::check_dangling_lock();
@@ -239,24 +239,28 @@ void task::exec_internal()
     this->release_ref(); // added in enqueue(pool)
 }
 
-void task::signal_waiters()
+bool task::signal_waiters()
 {
     void *evt = _wait_event.load();
     if (evt != nullptr) {
         auto nevt = (utils::notify_event *)evt;
         nevt->notify();
+        return true;
     }
+    return false;
 }
 
-// multiple callers may wait on this
-bool task::wait(int timeout_milliseconds, bool on_cancel)
+bool task::wait_on_cancel()
+{
+    lock_checker::check_wait_task(this);
+    return wait(TIME_MS_MAX);
+}
+
+bool task::wait(int timeout_milliseconds)
 {
     dassert(this != task::get_current_task(), "task cannot wait itself");
 
     auto cs = state();
-    if (!on_cancel) {
-        lock_checker::check_wait_task(this);
-    }
 
     if (cs >= TASK_STATE_FINISHED) {
         spec().on_task_wait_post.execute(get_current_task(), this, true);
@@ -287,9 +291,6 @@ bool task::wait(int timeout_milliseconds, bool on_cancel)
     return ret;
 }
 
-//
-// return - whether this cancel succeed
-//
 bool task::cancel(bool wait_until_finished, /*out*/ bool *finished /*= nullptr*/)
 {
     task_state READY_STATE = TASK_STATE_READY;
@@ -312,7 +313,7 @@ bool task::cancel(bool wait_until_finished, /*out*/ bool *finished /*= nullptr*/
                 finish = true;
             } else if (wait_until_finished) {
                 _wait_for_cancel = true;
-                bool r = wait(TIME_MS_MAX, true);
+                bool r = wait_on_cancel();
                 dassert(
                     r,
                     "wait failed, it is only possible when task runs for more than 0x0fffffff ms");
@@ -326,8 +327,8 @@ bool task::cancel(bool wait_until_finished, /*out*/ bool *finished /*= nullptr*/
         }
     } else {
         // task cancel itself
-        // for timer task, we should set _wait_for_cancel flag true to prevent timer task enqueue
-        // again
+        // for timer task, we should set _wait_for_cancel flag to
+        // prevent timer task from enqueueing again
         _wait_for_cancel = true;
     }
 
@@ -338,9 +339,12 @@ bool task::cancel(bool wait_until_finished, /*out*/ bool *finished /*= nullptr*/
     if (succ) {
         spec().on_task_cancelled.execute(this);
         signal_waiters();
-    }
 
-    cancel_callback(succ, finish);
+        // we call clear_callback only cancelling succeed.
+        // otherwise, task will successfully exececuted and clear_callback will be called
+        // in "exec_internal".
+        clear_callback();
+    }
 
     if (finished)
         *finished = finish;
@@ -409,29 +413,6 @@ void task::enqueue(task_worker_pool *pool)
             exec_internal();
             return;
         }
-
-        // if (_spec->type == TASK_TYPE_COMPUTE)
-        //{
-        //    if (_node != get_current_node())
-        //    {
-        //        tools::node_scoper ns(_node);
-        //        exec_internal();
-        //        return;
-        //    }
-        //    else
-        //    {
-        //        exec_internal();
-        //        return;
-        //    }
-        //}
-
-        //// io tasks only inlined in io threads
-        // if (get_current_worker2() == nullptr)
-        //{
-        //    dassert(_node == task::get_current_node(), "");
-        //    exec_internal();
-        //    return;
-        //}
     }
 
     // normal path
@@ -476,11 +457,11 @@ void timer_task::enqueue()
 
 void timer_task::exec()
 {
-    if (_cb != nullptr) {
+    if (dsn_likely(_cb != nullptr)) {
         _cb();
     }
     // valid interval, we reset task state to READY
-    if (_interval_milliseconds > 0) {
+    if (dsn_likely(_interval_milliseconds > 0)) {
         dassert(set_retry(true),
                 "timer task set retry failed, with state = %s",
                 enum_to_string(state()));
@@ -503,6 +484,7 @@ rpc_request_task::rpc_request_task(message_ex *request, rpc_request_handler &&h,
 
 rpc_request_task::~rpc_request_task()
 {
+    clear_callback();
     _request->release_ref(); // added in ctor
 }
 
@@ -550,6 +532,7 @@ rpc_response_task::rpc_response_task(message_ex *request,
 
 rpc_response_task::~rpc_response_task()
 {
+    clear_callback();
     _request->release_ref(); // added in ctor
 
     if (_response != nullptr)
@@ -614,6 +597,7 @@ aio_task::aio_task(dsn::task_code code, aio_handler &&cb, int hash, service_node
 
 aio_task::~aio_task()
 {
+    clear_callback();
     delete _aio;
     _aio = nullptr;
 }

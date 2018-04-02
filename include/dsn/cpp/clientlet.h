@@ -148,7 +148,7 @@ void call_safe_late_task(const dsn::task_ptr &t, TResponse &&response)
 {
     typedef std::function<void(const TResponse &)> TCallback;
     typedef dsn::safe_late_task<TCallback> task_type;
-    task_type *real_task = dynamic_cast<task_type *>(t.get());
+    task_type *real_task = reinterpret_cast<task_type *>(t.get());
     real_task->bind_and_enqueue([r = std::move(response)](TCallback & callback) {
         return std::bind(callback, std::move(r));
     });

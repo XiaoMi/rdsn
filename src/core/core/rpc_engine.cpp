@@ -71,7 +71,7 @@ public:
     virtual void exec() { _matcher->on_rpc_timeout(_id); }
 
 protected:
-    void cancel_callback(bool task_cancelled, bool task_finished) {}
+    void clear_callback() {}
 
 private:
     // use the following if the matcher is per rpc session
@@ -714,9 +714,6 @@ void rpc_engine::call_uri(rpc_address addr, message_ex *request, const rpc_respo
                             dassert(ctask->set_retry(false),
                                     "rpc_response_task set retry failed, state = %s",
                                     enum_to_string(ctask->state()));
-                            // We want use this rpc_response_task again, so we should prevent reset
-                            // handler to nullptr after exec()
-                            ctask->set_reset_handler_after_exec(false);
 
                             // sleep gap milliseconds before retry
                             tasking::enqueue(LPC_RPC_DELAY_CALL,
@@ -737,7 +734,6 @@ void rpc_engine::call_uri(rpc_address addr, message_ex *request, const rpc_respo
                     }
                 }
 
-                // any other cases (except return above)
                 if (old_callback)
                     old_callback(err, req, resp);
             };
