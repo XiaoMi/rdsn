@@ -562,6 +562,47 @@ struct configuration_query_restore_response
     3:list<i32>             restore_progress;
 }
 
+enum app_env_operation
+{
+    APP_ENV_OP_INVALID,
+    APP_ENV_OP_SET,
+    APP_ENV_OP_DEL,
+    APP_ENV_OP_CLEAR
+}
+
+struct app_env_set_request {
+    1:string key;
+    2:string value;
+}
+
+struct app_env_del_request {
+    1:list<string> keys;
+}
+
+struct app_env_clear_request {
+    // only support two way to clear env
+    //  -- clear_all = true : clear all envs
+    //  -- clear_all = false : clear all envs which key = prefix.xxx if prefix is not null;
+    //     And do nothing if prefix is empty
+    1:bool  clear_all;
+    2:string prefix;
+}
+
+struct configuration_update_app_env_request
+{
+    1:app_env_operation op = app_env_operation.APP_ENV_OP_INVALID;
+    2:string    app_name;
+    3:optional app_env_set_request      set_req;
+    4:optional app_env_del_request      del_req;
+    5:optional app_env_clear_request    clear_req;
+}
+
+struct configuration_update_app_env_response
+{
+    1:dsn.error_code err;
+    2:string hint_message;
+}
+
 /*
 service replica_s
 {
