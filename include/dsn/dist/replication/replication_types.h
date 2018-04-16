@@ -4246,12 +4246,11 @@ inline std::ostream& operator<<(std::ostream& out, const configuration_query_res
 }
 
 typedef struct _configuration_update_app_env_request__isset {
-  _configuration_update_app_env_request__isset() : app_name(false), op(true), keys(false), values(false), clear_all(false), clear_prefix(false) {}
+  _configuration_update_app_env_request__isset() : app_name(false), op(true), keys(false), values(false), clear_prefix(false) {}
   bool app_name :1;
   bool op :1;
   bool keys :1;
   bool values :1;
-  bool clear_all :1;
   bool clear_prefix :1;
 } _configuration_update_app_env_request__isset;
 
@@ -4262,7 +4261,7 @@ class configuration_update_app_env_request {
   configuration_update_app_env_request(configuration_update_app_env_request&&);
   configuration_update_app_env_request& operator=(const configuration_update_app_env_request&);
   configuration_update_app_env_request& operator=(configuration_update_app_env_request&&);
-  configuration_update_app_env_request() : app_name(), op((app_env_operation::type)0), clear_all(0), clear_prefix() {
+  configuration_update_app_env_request() : app_name(), op((app_env_operation::type)0), clear_prefix() {
     op = (app_env_operation::type)0;
 
   }
@@ -4272,7 +4271,6 @@ class configuration_update_app_env_request {
   app_env_operation::type op;
   std::vector<std::string>  keys;
   std::vector<std::string>  values;
-  bool clear_all;
   std::string clear_prefix;
 
   _configuration_update_app_env_request__isset __isset;
@@ -4284,8 +4282,6 @@ class configuration_update_app_env_request {
   void __set_keys(const std::vector<std::string> & val);
 
   void __set_values(const std::vector<std::string> & val);
-
-  void __set_clear_all(const bool val);
 
   void __set_clear_prefix(const std::string& val);
 
@@ -4302,10 +4298,6 @@ class configuration_update_app_env_request {
     if (__isset.values != rhs.__isset.values)
       return false;
     else if (__isset.values && !(values == rhs.values))
-      return false;
-    if (__isset.clear_all != rhs.__isset.clear_all)
-      return false;
-    else if (__isset.clear_all && !(clear_all == rhs.clear_all))
       return false;
     if (__isset.clear_prefix != rhs.__isset.clear_prefix)
       return false;

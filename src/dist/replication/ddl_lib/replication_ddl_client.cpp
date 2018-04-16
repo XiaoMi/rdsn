@@ -1401,8 +1401,9 @@ void replication_ddl_client::end_meta_request(
     req->__set_app_name(app_name);
     req->__set_op(app_env_operation::type::APP_ENV_OP_CLEAR);
     if (clear_all) {
-        req->__set_clear_all(clear_all);
+        req->__set_clear_prefix("");
     } else {
+        dassert(!prefix.empty(), "prefix can not be empty");
         req->__set_clear_prefix(prefix);
     }
 

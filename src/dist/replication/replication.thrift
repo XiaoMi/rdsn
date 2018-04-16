@@ -576,12 +576,9 @@ struct configuration_update_app_env_request
     2:app_env_operation op = app_env_operation.APP_ENV_OP_INVALID;
     3:optional list<string> keys;           // used for set and del
     4:optional list<string> values;         // only used for set
-    5:optional bool clear_all;              // only used for clear;
-                                            //  -- if true, clear all envs
-    6:optional string clear_prefix;         // only used for clear
-                                            //   -- if clear_all = false, then we will delete the env
-                                            //      that it's key = "clear_prefix.xxx"
-                                            //   -- if clear_all = true, we will ignore this para
+    5:optional string clear_prefix;         // only used for clear
+                                            // if clear_prefix is empty then we clear all envs
+                                            // else clear the env that key = "clear_prefix.xxx"
 }
 
 struct configuration_update_app_env_response

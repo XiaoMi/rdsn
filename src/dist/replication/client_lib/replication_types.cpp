@@ -9981,11 +9981,6 @@ void configuration_update_app_env_request::__set_values(const std::vector<std::s
 __isset.values = true;
 }
 
-void configuration_update_app_env_request::__set_clear_all(const bool val) {
-  this->clear_all = val;
-__isset.clear_all = true;
-}
-
 void configuration_update_app_env_request::__set_clear_prefix(const std::string& val) {
   this->clear_prefix = val;
 __isset.clear_prefix = true;
@@ -10071,14 +10066,6 @@ uint32_t configuration_update_app_env_request::read(::apache::thrift::protocol::
         }
         break;
       case 5:
-        if (ftype == ::apache::thrift::protocol::T_BOOL) {
-          xfer += iprot->readBool(this->clear_all);
-          this->__isset.clear_all = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 6:
         if (ftype == ::apache::thrift::protocol::T_STRING) {
           xfer += iprot->readString(this->clear_prefix);
           this->__isset.clear_prefix = true;
@@ -10137,13 +10124,8 @@ uint32_t configuration_update_app_env_request::write(::apache::thrift::protocol:
     }
     xfer += oprot->writeFieldEnd();
   }
-  if (this->__isset.clear_all) {
-    xfer += oprot->writeFieldBegin("clear_all", ::apache::thrift::protocol::T_BOOL, 5);
-    xfer += oprot->writeBool(this->clear_all);
-    xfer += oprot->writeFieldEnd();
-  }
   if (this->__isset.clear_prefix) {
-    xfer += oprot->writeFieldBegin("clear_prefix", ::apache::thrift::protocol::T_STRING, 6);
+    xfer += oprot->writeFieldBegin("clear_prefix", ::apache::thrift::protocol::T_STRING, 5);
     xfer += oprot->writeString(this->clear_prefix);
     xfer += oprot->writeFieldEnd();
   }
@@ -10158,7 +10140,6 @@ void swap(configuration_update_app_env_request &a, configuration_update_app_env_
   swap(a.op, b.op);
   swap(a.keys, b.keys);
   swap(a.values, b.values);
-  swap(a.clear_all, b.clear_all);
   swap(a.clear_prefix, b.clear_prefix);
   swap(a.__isset, b.__isset);
 }
@@ -10168,7 +10149,6 @@ configuration_update_app_env_request::configuration_update_app_env_request(const
   op = other447.op;
   keys = other447.keys;
   values = other447.values;
-  clear_all = other447.clear_all;
   clear_prefix = other447.clear_prefix;
   __isset = other447.__isset;
 }
@@ -10177,7 +10157,6 @@ configuration_update_app_env_request::configuration_update_app_env_request( conf
   op = std::move(other448.op);
   keys = std::move(other448.keys);
   values = std::move(other448.values);
-  clear_all = std::move(other448.clear_all);
   clear_prefix = std::move(other448.clear_prefix);
   __isset = std::move(other448.__isset);
 }
@@ -10186,7 +10165,6 @@ configuration_update_app_env_request& configuration_update_app_env_request::oper
   op = other449.op;
   keys = other449.keys;
   values = other449.values;
-  clear_all = other449.clear_all;
   clear_prefix = other449.clear_prefix;
   __isset = other449.__isset;
   return *this;
@@ -10196,7 +10174,6 @@ configuration_update_app_env_request& configuration_update_app_env_request::oper
   op = std::move(other450.op);
   keys = std::move(other450.keys);
   values = std::move(other450.values);
-  clear_all = std::move(other450.clear_all);
   clear_prefix = std::move(other450.clear_prefix);
   __isset = std::move(other450.__isset);
   return *this;
@@ -10208,7 +10185,6 @@ void configuration_update_app_env_request::printTo(std::ostream& out) const {
   out << ", " << "op=" << to_string(op);
   out << ", " << "keys="; (__isset.keys ? (out << to_string(keys)) : (out << "<null>"));
   out << ", " << "values="; (__isset.values ? (out << to_string(values)) : (out << "<null>"));
-  out << ", " << "clear_all="; (__isset.clear_all ? (out << to_string(clear_all)) : (out << "<null>"));
   out << ", " << "clear_prefix="; (__isset.clear_prefix ? (out << to_string(clear_prefix)) : (out << "<null>"));
   out << ")";
 }

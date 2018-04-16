@@ -160,10 +160,9 @@ public:
                                  const std::vector<std::string> &keys,
                                  const std::vector<std::string> &values);
     dsn::error_code del_app_envs(const std::string &app_name, const std::vector<std::string> &keys);
-    // clear_app_envs():
-    // only support two way to clear app envs
-    //  -- clear_all = true, then we delete all the envs
-    //  -- clear_all = false, then we will delete the env that it's key = "prefix.xxx"
+    // precondition:
+    //  -- if clear_all = true, just ignore prefix
+    //  -- if clear_all = false, then prefix must not be empty
     dsn::error_code
     clear_app_envs(const std::string &app_name, bool clear_all, const std::string &prefix);
 

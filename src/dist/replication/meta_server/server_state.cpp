@@ -2582,6 +2582,8 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
         std::shared_ptr<app_state> app = get_app(app_name);
         if (app == nullptr) {
             dwarn("set_app_env failed with invalid app_name(%s)", app_name.c_str());
+            env_rpc.response().err = ERR_INVALID_PARAMETERS;
+            env_rpc.response().hint_message = "invalid app name";
             return;
         } else {
             ainfo = *(reinterpret_cast<app_info *>(app.get()));
@@ -2620,6 +2622,8 @@ void server_state::del_app_envs(const app_env_rpc &env_rpc)
         std::shared_ptr<app_state> app = get_app(app_name);
         if (app == nullptr) {
             dwarn("del_app_env failed with invalid app_name(%s)", app_name.c_str());
+            env_rpc.response().err = ERR_INVALID_PARAMETERS;
+            env_rpc.response().hint_message = "invalid app name";
             return;
         } else {
             ainfo = *(reinterpret_cast<app_info *>(app.get()));
@@ -2643,18 +2647,13 @@ void server_state::del_app_envs(const app_env_rpc &env_rpc)
 void server_state::clear_app_envs(const app_env_rpc &env_rpc)
 {
     const configuration_update_app_env_request &request = env_rpc.request();
-    if (!request.__isset.clear_all && !request.__isset.clear_prefix) {
+    if (!request.__isset.clear_prefix) {
         env_rpc.response().err = ERR_INVALID_PARAMETERS;
         dwarn("clear_app_envs failed with invalid request");
         return;
     }
-    bool clear_all = false;
-    std::string prefix;
-    if (request.__isset.clear_all) {
-        clear_all = request.clear_all;
-    } else {
-        prefix = request.clear_prefix;
-    }
+
+    const std::string &prefix = request.clear_prefix;
     const std::string &app_name = request.app_name;
 
     app_info ainfo;
@@ -2664,6 +2663,8 @@ void server_state::clear_app_envs(const app_env_rpc &env_rpc)
         std::shared_ptr<app_state> app = get_app(app_name);
         if (app == nullptr) {
             dwarn("del_app_env failed with invalid app_name(%s)", app_name.c_str());
+            env_rpc.response().err = ERR_INVALID_PARAMETERS;
+            env_rpc.response().hint_message = "invalid app name";
             return;
         } else {
             ainfo = *(reinterpret_cast<app_info *>(app.get()));
@@ -2673,7 +2674,7 @@ void server_state::clear_app_envs(const app_env_rpc &env_rpc)
 
     std::unordered_set<std::string> erase_keys;
 
-    if (clear_all) {
+    if (prefix.empty()) {
         // ignore prefix
         ainfo.envs.clear();
     } else {
@@ -2692,20 +2693,20 @@ void server_state::clear_app_envs(const app_env_rpc &env_rpc)
             ainfo.envs.erase(key);
         }
     }
-    if (!clear_all && erase_keys.empty()) {
+    if (!prefix.empty() && erase_keys.empty()) {
         // no need update app_info
         return;
     }
 
     do_update_app_info(
-        app_path, ainfo, [this, app_name, clear_all, erase_keys, env_rpc](error_code ec) {
+        app_path, ainfo, [this, app_name, prefix, erase_keys, env_rpc](error_code ec) {
             dassert(ec == ERR_OK,
                     "update app_info to remote storage failed with err = %s",
                     ec.to_string());
 
             zauto_write_lock l(_lock);
             std::shared_ptr<app_state> app = get_app(app_name);
-            if (clear_all) {
+            if (prefix.empty()) {
                 app->envs.clear();
             } else {
                 for (const auto &key : erase_keys) {
