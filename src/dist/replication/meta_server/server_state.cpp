@@ -2549,7 +2549,7 @@ void server_state::do_update_app_info(const std::string &app_path,
                   info.app_name.c_str());
             tasking::enqueue(
                 LPC_META_STATE_NORMAL,
-                nullptr,
+                tracker(),
                 std::bind(
                     &server_state::do_update_app_info, this, app_path, info, std::move(user_cb)),
                 0,
@@ -2559,7 +2559,7 @@ void server_state::do_update_app_info(const std::string &app_path,
         }
     };
     _meta_svc->get_remote_storage()->set_data(
-        app_path, value, LPC_META_STATE_NORMAL, std::move(new_cb));
+        app_path, value, LPC_META_STATE_NORMAL, std::move(new_cb), tracker());
 }
 
 void server_state::set_app_envs(const app_env_rpc &env_rpc)

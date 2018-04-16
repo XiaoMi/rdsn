@@ -186,6 +186,9 @@ public:
     void set_config_change_subscriber_for_test(config_change_subscriber subscriber);
     void set_replica_migration_subscriber_for_test(replica_migration_subscriber subscriber);
 
+    clientlet *tracker() { return &_tracker; }
+    void wait_all_task() { dsn_task_tracker_wait_all(_tracker.tracker()); }
+
 private:
     //-1 means waiting forever
     bool spin_wait_staging(int timeout_seconds = -1);
@@ -295,6 +298,10 @@ private:
     friend class replication_checker;
     friend class test::test_checker;
     friend class ::meta_service_test_app;
+
+    // ATTENTION:
+    //  DO NOT use this tracker to track timer task
+    clientlet _tracker;
 
     meta_service *_meta_svc;
     std::string _apps_root;
