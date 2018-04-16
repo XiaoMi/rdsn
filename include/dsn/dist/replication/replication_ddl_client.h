@@ -156,9 +156,14 @@ public:
                                          int32_t backup_history_count_to_keep = 0,
                                          const std::string &start_time = std::string());
 
-    dsn::error_code
-    set_app_env(const std::string &app_name, const std::string &key, const std::string &vlaue);
+    dsn::error_code set_app_envs(const std::string &app_name,
+                                 const std::vector<std::string> &keys,
+                                 const std::vector<std::string> &values);
     dsn::error_code del_app_envs(const std::string &app_name, const std::vector<std::string> &keys);
+    // clear_app_envs():
+    // only support two way to clear app envs
+    //  -- clear_all = true, then we delete all the envs
+    //  -- clear_all = false, then we will delete the env that it's key = "prefix.xxx"
     dsn::error_code
     clear_app_envs(const std::string &app_name, bool clear_all, const std::string &prefix);
 

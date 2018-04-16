@@ -570,31 +570,18 @@ enum app_env_operation
     APP_ENV_OP_CLEAR
 }
 
-struct app_env_set_request {
-    1:string key;
-    2:string value;
-}
-
-struct app_env_del_request {
-    1:list<string> keys;
-}
-
-struct app_env_clear_request {
-    // only support two way to clear env
-    //  -- clear_all = true : clear all envs
-    //  -- clear_all = false : clear all envs which key = prefix.xxx if prefix is not null;
-    //     And do nothing if prefix is empty
-    1:bool  clear_all;
-    2:string prefix;
-}
-
 struct configuration_update_app_env_request
 {
-    1:app_env_operation op = app_env_operation.APP_ENV_OP_INVALID;
-    2:string    app_name;
-    3:optional app_env_set_request      set_req;
-    4:optional app_env_del_request      del_req;
-    5:optional app_env_clear_request    clear_req;
+    1:string app_name;
+    2:app_env_operation op = app_env_operation.APP_ENV_OP_INVALID;
+    3:optional list<string> keys;           // used for set and del
+    4:optional list<string> values;         // only used for set
+    5:optional bool clear_all;              // only used for clear;
+                                            //  -- if true, clear all envs
+    6:optional string clear_prefix;         // only used for clear
+                                            //   -- if clear_all = false, then we will delete the env
+                                            //      that it's key = "clear_prefix.xxx"
+                                            //   -- if clear_all = true, we will ignore this para
 }
 
 struct configuration_update_app_env_response

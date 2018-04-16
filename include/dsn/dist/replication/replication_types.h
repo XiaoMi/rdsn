@@ -250,12 +250,6 @@ class configuration_query_restore_request;
 
 class configuration_query_restore_response;
 
-class app_env_set_request;
-
-class app_env_del_request;
-
-class app_env_clear_request;
-
 class configuration_update_app_env_request;
 
 class configuration_update_app_env_response;
@@ -4251,169 +4245,14 @@ inline std::ostream& operator<<(std::ostream& out, const configuration_query_res
   return out;
 }
 
-typedef struct _app_env_set_request__isset {
-  _app_env_set_request__isset() : key(false), value(false) {}
-  bool key :1;
-  bool value :1;
-} _app_env_set_request__isset;
-
-class app_env_set_request {
- public:
-
-  app_env_set_request(const app_env_set_request&);
-  app_env_set_request(app_env_set_request&&);
-  app_env_set_request& operator=(const app_env_set_request&);
-  app_env_set_request& operator=(app_env_set_request&&);
-  app_env_set_request() : key(), value() {
-  }
-
-  virtual ~app_env_set_request() throw();
-  std::string key;
-  std::string value;
-
-  _app_env_set_request__isset __isset;
-
-  void __set_key(const std::string& val);
-
-  void __set_value(const std::string& val);
-
-  bool operator == (const app_env_set_request & rhs) const
-  {
-    if (!(key == rhs.key))
-      return false;
-    if (!(value == rhs.value))
-      return false;
-    return true;
-  }
-  bool operator != (const app_env_set_request &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const app_env_set_request & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
-};
-
-void swap(app_env_set_request &a, app_env_set_request &b);
-
-inline std::ostream& operator<<(std::ostream& out, const app_env_set_request& obj)
-{
-  obj.printTo(out);
-  return out;
-}
-
-typedef struct _app_env_del_request__isset {
-  _app_env_del_request__isset() : keys(false) {}
-  bool keys :1;
-} _app_env_del_request__isset;
-
-class app_env_del_request {
- public:
-
-  app_env_del_request(const app_env_del_request&);
-  app_env_del_request(app_env_del_request&&);
-  app_env_del_request& operator=(const app_env_del_request&);
-  app_env_del_request& operator=(app_env_del_request&&);
-  app_env_del_request() {
-  }
-
-  virtual ~app_env_del_request() throw();
-  std::vector<std::string>  keys;
-
-  _app_env_del_request__isset __isset;
-
-  void __set_keys(const std::vector<std::string> & val);
-
-  bool operator == (const app_env_del_request & rhs) const
-  {
-    if (!(keys == rhs.keys))
-      return false;
-    return true;
-  }
-  bool operator != (const app_env_del_request &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const app_env_del_request & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
-};
-
-void swap(app_env_del_request &a, app_env_del_request &b);
-
-inline std::ostream& operator<<(std::ostream& out, const app_env_del_request& obj)
-{
-  obj.printTo(out);
-  return out;
-}
-
-typedef struct _app_env_clear_request__isset {
-  _app_env_clear_request__isset() : clear_all(false), prefix(false) {}
-  bool clear_all :1;
-  bool prefix :1;
-} _app_env_clear_request__isset;
-
-class app_env_clear_request {
- public:
-
-  app_env_clear_request(const app_env_clear_request&);
-  app_env_clear_request(app_env_clear_request&&);
-  app_env_clear_request& operator=(const app_env_clear_request&);
-  app_env_clear_request& operator=(app_env_clear_request&&);
-  app_env_clear_request() : clear_all(0), prefix() {
-  }
-
-  virtual ~app_env_clear_request() throw();
-  bool clear_all;
-  std::string prefix;
-
-  _app_env_clear_request__isset __isset;
-
-  void __set_clear_all(const bool val);
-
-  void __set_prefix(const std::string& val);
-
-  bool operator == (const app_env_clear_request & rhs) const
-  {
-    if (!(clear_all == rhs.clear_all))
-      return false;
-    if (!(prefix == rhs.prefix))
-      return false;
-    return true;
-  }
-  bool operator != (const app_env_clear_request &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const app_env_clear_request & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
-};
-
-void swap(app_env_clear_request &a, app_env_clear_request &b);
-
-inline std::ostream& operator<<(std::ostream& out, const app_env_clear_request& obj)
-{
-  obj.printTo(out);
-  return out;
-}
-
 typedef struct _configuration_update_app_env_request__isset {
-  _configuration_update_app_env_request__isset() : op(true), app_name(false), set_req(false), del_req(false), clear_req(false) {}
-  bool op :1;
+  _configuration_update_app_env_request__isset() : app_name(false), op(true), keys(false), values(false), clear_all(false), clear_prefix(false) {}
   bool app_name :1;
-  bool set_req :1;
-  bool del_req :1;
-  bool clear_req :1;
+  bool op :1;
+  bool keys :1;
+  bool values :1;
+  bool clear_all :1;
+  bool clear_prefix :1;
 } _configuration_update_app_env_request__isset;
 
 class configuration_update_app_env_request {
@@ -4423,47 +4262,54 @@ class configuration_update_app_env_request {
   configuration_update_app_env_request(configuration_update_app_env_request&&);
   configuration_update_app_env_request& operator=(const configuration_update_app_env_request&);
   configuration_update_app_env_request& operator=(configuration_update_app_env_request&&);
-  configuration_update_app_env_request() : op((app_env_operation::type)0), app_name() {
+  configuration_update_app_env_request() : app_name(), op((app_env_operation::type)0), clear_all(0), clear_prefix() {
     op = (app_env_operation::type)0;
 
   }
 
   virtual ~configuration_update_app_env_request() throw();
-  app_env_operation::type op;
   std::string app_name;
-  app_env_set_request set_req;
-  app_env_del_request del_req;
-  app_env_clear_request clear_req;
+  app_env_operation::type op;
+  std::vector<std::string>  keys;
+  std::vector<std::string>  values;
+  bool clear_all;
+  std::string clear_prefix;
 
   _configuration_update_app_env_request__isset __isset;
 
-  void __set_op(const app_env_operation::type val);
-
   void __set_app_name(const std::string& val);
 
-  void __set_set_req(const app_env_set_request& val);
+  void __set_op(const app_env_operation::type val);
 
-  void __set_del_req(const app_env_del_request& val);
+  void __set_keys(const std::vector<std::string> & val);
 
-  void __set_clear_req(const app_env_clear_request& val);
+  void __set_values(const std::vector<std::string> & val);
+
+  void __set_clear_all(const bool val);
+
+  void __set_clear_prefix(const std::string& val);
 
   bool operator == (const configuration_update_app_env_request & rhs) const
   {
-    if (!(op == rhs.op))
-      return false;
     if (!(app_name == rhs.app_name))
       return false;
-    if (__isset.set_req != rhs.__isset.set_req)
+    if (!(op == rhs.op))
       return false;
-    else if (__isset.set_req && !(set_req == rhs.set_req))
+    if (__isset.keys != rhs.__isset.keys)
       return false;
-    if (__isset.del_req != rhs.__isset.del_req)
+    else if (__isset.keys && !(keys == rhs.keys))
       return false;
-    else if (__isset.del_req && !(del_req == rhs.del_req))
+    if (__isset.values != rhs.__isset.values)
       return false;
-    if (__isset.clear_req != rhs.__isset.clear_req)
+    else if (__isset.values && !(values == rhs.values))
       return false;
-    else if (__isset.clear_req && !(clear_req == rhs.clear_req))
+    if (__isset.clear_all != rhs.__isset.clear_all)
+      return false;
+    else if (__isset.clear_all && !(clear_all == rhs.clear_all))
+      return false;
+    if (__isset.clear_prefix != rhs.__isset.clear_prefix)
+      return false;
+    else if (__isset.clear_prefix && !(clear_prefix == rhs.clear_prefix))
       return false;
     return true;
   }

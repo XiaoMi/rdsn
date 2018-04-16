@@ -693,9 +693,9 @@ void meta_service::on_query_restore_status(dsn_message_t req)
                      std::bind(&server_state::on_query_restore_status, _state.get(), req));
 }
 
-void meta_service::update_app_env(const app_env_rpc &env_rpc)
+void meta_service::update_app_env(app_env_rpc env_rpc)
 {
-    configuration_update_app_env_response response;
+    auto &response = env_rpc.response();
     RPC_CHECK_STATUS(env_rpc.dsn_request(), response);
 
     app_env_operation::type op = env_rpc.request().op;
@@ -703,7 +703,7 @@ void meta_service::update_app_env(const app_env_rpc &env_rpc)
     case app_env_operation::type::APP_ENV_OP_SET:
         tasking::enqueue(LPC_META_STATE_NORMAL,
                          nullptr,
-                         std::bind(&server_state::set_app_env, _state.get(), env_rpc));
+                         std::bind(&server_state::set_app_envs, _state.get(), env_rpc));
         break;
     case app_env_operation::type::APP_ENV_OP_DEL:
         tasking::enqueue(LPC_META_STATE_NORMAL,

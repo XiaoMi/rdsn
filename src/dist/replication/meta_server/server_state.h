@@ -155,7 +155,7 @@ public:
     void restore_app(dsn_message_t msg);
 
     // app env operations
-    void set_app_env(const app_env_rpc &env_rpc);
+    void set_app_envs(const app_env_rpc &env_rpc);
     void del_app_envs(const app_env_rpc &env_rpc);
     void clear_app_envs(const app_env_rpc &env_rpc);
 

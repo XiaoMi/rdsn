@@ -135,7 +135,7 @@ private:
     void on_list_nodes(dsn_message_t req);
 
     // app env operations
-    void update_app_env(const app_env_rpc &env_rpc);
+    void update_app_env(app_env_rpc env_rpc);
 
     // cluster info
     void on_query_cluster_info(dsn_message_t req);

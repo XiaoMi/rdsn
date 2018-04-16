@@ -1330,18 +1330,16 @@ void replication_ddl_client::end_meta_request(
     }
 }
 
-::dsn::error_code replication_ddl_client::set_app_env(const std::string &app_name,
-                                                      const std::string &key,
-                                                      const std::string &value)
+::dsn::error_code replication_ddl_client::set_app_envs(const std::string &app_name,
+                                                       const std::vector<std::string> &keys,
+                                                       const std::vector<std::string> &values)
 {
     std::shared_ptr<configuration_update_app_env_request> req =
         std::make_shared<configuration_update_app_env_request>();
-    app_env_set_request set_req;
-    set_req.key = key;
-    set_req.value = value;
-    req->op = app_env_operation::type::APP_ENV_OP_SET;
-    req->app_name = app_name;
-    req->__set_set_req(set_req);
+    req->__set_app_name(app_name);
+    req->__set_op(app_env_operation::type::APP_ENV_OP_SET);
+    req->__set_keys(keys);
+    req->__set_values(values);
 
     auto resp_task = request_meta<configuration_update_app_env_request>(RPC_CM_UPDATE_APP_ENV, req);
     resp_task->wait();
@@ -1369,11 +1367,9 @@ void replication_ddl_client::end_meta_request(
 {
     std::shared_ptr<configuration_update_app_env_request> req =
         std::make_shared<configuration_update_app_env_request>();
-    app_env_del_request del_req;
-    del_req.keys = keys;
-    req->op = app_env_operation::type::APP_ENV_OP_DEL;
-    req->app_name = app_name;
-    req->__set_del_req(del_req);
+    req->__set_app_name(app_name);
+    req->__set_op(app_env_operation::type::APP_ENV_OP_DEL);
+    req->__set_keys(keys);
 
     auto resp_task = request_meta<configuration_update_app_env_request>(RPC_CM_UPDATE_APP_ENV, req);
     resp_task->wait();
@@ -1402,12 +1398,13 @@ void replication_ddl_client::end_meta_request(
 {
     std::shared_ptr<configuration_update_app_env_request> req =
         std::make_shared<configuration_update_app_env_request>();
-    app_env_clear_request clear_req;
-    clear_req.clear_all = clear_all;
-    clear_req.prefix = prefix;
-    req->op = app_env_operation::type::APP_ENV_OP_CLEAR;
-    req->app_name = app_name;
-    req->__set_clear_req(clear_req);
+    req->__set_app_name(app_name);
+    req->__set_op(app_env_operation::type::APP_ENV_OP_CLEAR);
+    if (clear_all) {
+        req->__set_clear_all(clear_all);
+    } else {
+        req->__set_clear_prefix(prefix);
+    }
 
     auto resp_task = request_meta<configuration_update_app_env_request>(RPC_CM_UPDATE_APP_ENV, req);
     resp_task->wait();
