@@ -9,10 +9,12 @@ function check_and_download()
 {
     package_name=$1
     url=$2
+    correct_md5sum=$3
+    extracted_folder_name=$4
     if [ -f $package_name ]; then
         echo "$package_name has already downloaded, skip it"
 
-        if [ -d $4 ]; then
+        if [ -d $extracted_folder_name ]; then
             echo "$package_name has been extracted"
             return 1
         else
@@ -29,7 +31,7 @@ function check_and_download()
         echo "download package $package_name"
         curl $url > $package_name
         md5=`md5sum $1 | cut -d ' ' -f1`
-        if [ "$md5"x != "$3"x ]; then
+        if [ "$md5"x != "$correct_md5sum"x ]; then
             rm $1
             echo "package $package_name is broken, already deleted"
             return -1
