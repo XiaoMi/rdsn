@@ -1951,8 +1951,8 @@ void replica_stub::open_service()
 
     _manual_compact_command = ::dsn::command_manager::instance().register_app_command(
         {"manual-compact"},
-        "manual-compact <app_id,app_id.partition_id,...>",
-        "manual-compact - full compact on rocksdb",
+        "manual-compact <id1,id2,...> (where id is 'app_id' or 'app_id.partition_id')",
+        "manual-compact - do full compact on the underlying storage engine",
         [this](const std::vector<std::string> &args) {
             if (args.empty()) {
                 return std::string("invalid arguments");
@@ -2032,8 +2032,8 @@ void replica_stub::open_service()
 
     _query_compact_command = ::dsn::command_manager::instance().register_app_command(
         {"query-compact"},
-        "query-compact [app_id,app_id.partition_id,...]",
-        "query-compact - query full compact state on rocksdb",
+        "query-compact [id1,id2,...] (where id is 'app_id' or 'app_id.partition_id')",
+        "query-compact - query full compact status on the underlying storage engine",
         [this](const std::vector<std::string> &args) {
             replicas rs;
             {
@@ -2111,8 +2111,8 @@ void replica_stub::open_service()
 
     _query_app_envs_command = ::dsn::command_manager::instance().register_app_command(
         {"query-app-envs"},
-        "query-app-envs [app_id,app_id.partition_id,...]",
-        "query-app-envs - query app envs on rocksdb",
+        "query-app-envs [id1,id2,...] (where id is 'app_id' or 'app_id.partition_id')",
+        "query-app-envs - query app envs on the underlying storage engine",
         [this](const std::vector<std::string> &args) {
             replicas rs;
             {
