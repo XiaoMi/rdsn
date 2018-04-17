@@ -139,7 +139,7 @@ else
 fi
 
 # fmtlib
-check_and_download "fmt-4.0.0.tar.gz" "https://codeload.github.com/fmtlib/fmt/tar.gz/4.0.0"
+check_and_download "fmt-4.0.0.tar.gz" "https://codeload.github.com/fmtlib/fmt/tar.gz/4.0.0" "c9be9a37bc85493d1116b0af59a25eba" "fmt-4.0.0"
 exit_if_fail $?
 
 cd $TP_DIR
