@@ -1344,7 +1344,7 @@ void replication_ddl_client::end_meta_request(
     if (response.err != ERR_OK) {
         return response.err;
     } else {
-        std::cout << "set app env succeed" << std::endl;
+        std::cout << "set app envs succeed" << std::endl;
         if (!response.hint_message.empty()) {
             std::cout << "=============================" << std::endl;
             std::cout << response.hint_message << std::endl;
