@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# check_and_download package_name url md5sum folder_name_after_extraction
+# check_and_download package_name url md5sum extracted_folder_name
 # return:
 #   1 if already downloaded
 #   0 if download and extract ok
@@ -11,12 +11,12 @@ function check_and_download()
     url=$2
     if [ -f $package_name ]; then
         echo "$package_name has already downloaded, skip it"
-        #check unzip
-        if [ -f $4 ]; then
-            echo "already extracted"
+
+        if [ -d $4 ]; then
+            echo "$package_name has been extracted"
             return 1
         else
-            echo "skip download and extract"
+            echo "extract package $package_name"
             extract_package $package_name
             local ret_code=$?
             if [ $ret_code -ne 0 ]; then
@@ -29,9 +29,7 @@ function check_and_download()
         echo "download package $package_name"
         curl $url > $package_name
         md5=`md5sum $1 | cut -d ' ' -f1`
-        if [ "$md5"x = "$3"x ]; then
-            :
-        else
+        if [ "$md5"x != "$3"x ]; then
             rm $1
             echo "package $package_name is broken, already deleted"
             return -1
