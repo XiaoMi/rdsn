@@ -47,6 +47,7 @@
 #include "replica.h"
 #include <dsn/cpp/perf_counter_wrapper.h>
 #include <dsn/dist/failure_detector_multimaster.h>
+#include <functional>
 
 namespace dsn {
 namespace replication {
@@ -142,6 +143,11 @@ public:
     bool is_connected() const { return NS_Connected == _state; }
 
     std::string get_replica_dir(const char *app_type, gpid gpid, bool create_new = true);
+
+    // helper methods
+    std::string remote_command_helper(const std::vector<std::string> &args,
+                                      bool allow_empty_args,
+                                      std::function<std::string(const replica_ptr &rep)> func);
 
 private:
     enum replica_node_state
