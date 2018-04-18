@@ -1954,7 +1954,7 @@ void replica_stub::open_service()
         "manual-compact <id1,id2,...> (where id is 'app_id' or 'app_id.partition_id')",
         "manual-compact - do full compact on the underlying storage engine",
         [this](const std::vector<std::string> &args) {
-            return remote_command_helper(args, false, [this](const replica_ptr &rep) {
+            return exec_command_on_replica(args, false, [this](const replica_ptr &rep) {
                 if (rep->could_start_manual_compact()) {
                     tasking::enqueue(
                         LPC_MANUAL_COMPACT,
@@ -1972,7 +1972,7 @@ void replica_stub::open_service()
         "query-compact [id1,id2,...] (where id is 'app_id' or 'app_id.partition_id')",
         "query-compact - query full compact status on the underlying storage engine",
         [this](const std::vector<std::string> &args) {
-            return remote_command_helper(
+            return exec_command_on_replica(
                 args, true, [](const replica_ptr &rep) { return rep->get_compact_state(); });
         });
 
@@ -1981,7 +1981,7 @@ void replica_stub::open_service()
         "query-app-envs [id1,id2,...] (where id is 'app_id' or 'app_id.partition_id')",
         "query-app-envs - query app envs on the underlying storage engine",
         [this](const std::vector<std::string> &args) {
-            return remote_command_helper(args, true, [](const replica_ptr &rep) {
+            return exec_command_on_replica(args, true, [](const replica_ptr &rep) {
                 std::map<std::string, std::string> kv_map;
                 if (rep->query_app_envs(kv_map)) {
                     return dsn::utils::kv_map_to_string(kv_map, ',', '=');
@@ -1993,9 +1993,9 @@ void replica_stub::open_service()
 }
 
 std::string
-replica_stub::remote_command_helper(const std::vector<std::string> &args,
-                                    bool allow_empty_args,
-                                    std::function<std::string(const replica_ptr &rep)> func)
+replica_stub::exec_command_on_replica(const std::vector<std::string> &args,
+                                      bool allow_empty_args,
+                                      std::function<std::string(const replica_ptr &rep)> func)
 {
     if (!allow_empty_args && args.empty()) {
         return std::string("invalid arguments");
@@ -2009,32 +2009,34 @@ replica_stub::remote_command_helper(const std::vector<std::string> &args,
 
     std::map<gpid, bool> ids; // gpid -> found in rs
     if (!args.empty()) {
-        std::vector<std::string> arg_strs;
-        utils::split_args(args[0].c_str(), arg_strs, ',');
-        if (arg_strs.empty()) {
-            return std::string("invalid arguments");
-        }
-
-        for (const std::string &arg : arg_strs) {
-            if (arg.empty())
-                continue;
-            gpid id;
-            int pid;
-            if (id.parse_from(arg.c_str())) {
-                if (rs.count(id) > 0) {
-                    ids[id] = true;
-                } else {
-                    ids[id] = false;
-                }
-            } else if (sscanf(arg.c_str(), "%d", &pid) == 1) {
-                for (auto r : rs) {
-                    id = r.second->get_gpid();
-                    if (id.get_app_id() == pid) {
-                        ids[id] = true;
-                    }
-                }
-            } else {
+        for (int i = 0; i < args.size(); i++) {
+            std::vector<std::string> arg_strs;
+            utils::split_args(args[i].c_str(), arg_strs, ',');
+            if (arg_strs.empty()) {
                 return std::string("invalid arguments");
+            }
+
+            for (const std::string &arg : arg_strs) {
+                if (arg.empty())
+                    continue;
+                gpid id;
+                int pid;
+                if (id.parse_from(arg.c_str())) {
+                    if (rs.count(id) > 0) {
+                        ids[id] = true;
+                    } else {
+                        ids[id] = false;
+                    }
+                } else if (sscanf(arg.c_str(), "%d", &pid) == 1) {
+                    for (auto r : rs) {
+                        id = r.second->get_gpid();
+                        if (id.get_app_id() == pid) {
+                            ids[id] = true;
+                        }
+                    }
+                } else {
+                    return std::string("invalid arguments");
+                }
             }
         }
     } else {

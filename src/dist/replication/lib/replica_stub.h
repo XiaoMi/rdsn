@@ -144,10 +144,18 @@ public:
 
     std::string get_replica_dir(const char *app_type, gpid gpid, bool create_new = true);
 
+    //
     // helper methods
-    std::string remote_command_helper(const std::vector<std::string> &args,
-                                      bool allow_empty_args,
-                                      std::function<std::string(const replica_ptr &rep)> func);
+    //
+
+    // execute command function on specified or all replicas.
+    //   - if allow_empty_args = true and args is empty, then apply on all replicas.
+    //   - if allow_empty_args = false, you should specify at least one argument.
+    // each argument should be in format of:
+    //     id1,id2... (where id is 'app_id' or 'app_id.partition_id')
+    std::string exec_command_on_replica(const std::vector<std::string> &args,
+                                        bool allow_empty_args,
+                                        std::function<std::string(const replica_ptr &rep)> func);
 
 private:
     enum replica_node_state
