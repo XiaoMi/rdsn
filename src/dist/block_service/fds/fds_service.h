@@ -36,7 +36,10 @@ public:
                                       dsn::task_code code,
                                       const create_file_callback &cb,
                                       clientlet *tracker) override;
-
+    //
+    // Attention:
+    //  delete file directly on fds, will not enter trash
+    //
     virtual dsn::task_ptr delete_file(const delete_file_request &req,
                                       dsn::task_code code,
                                       const delete_file_callback &cb,
@@ -47,6 +50,11 @@ public:
                                 const exist_callback &cb,
                                 clientlet *tracker) override;
 
+    //
+    // Attention：
+    //   -- if req.path is a directory, this may consume much time, such as many file under dir
+    //   -- remove the path directly on fds, will not enter trash
+    //
     virtual dsn::task_ptr remove_path(const remove_path_request &req,
                                       dsn::task_code code,
                                       const remove_path_callback &cb,
