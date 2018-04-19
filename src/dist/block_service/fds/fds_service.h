@@ -52,8 +52,9 @@ public:
 
     //
     // Attention：
-    //   -- if req.path is a directory, this may consume much time, such as many file under dir
     //   -- remove the path directly on fds, will not enter trash
+    //   -- when req.path is a directory, this operation may consume much time if there are many
+    //      files under this directory
     //
     virtual dsn::task_ptr remove_path(const remove_path_request &req,
                                       dsn::task_code code,
