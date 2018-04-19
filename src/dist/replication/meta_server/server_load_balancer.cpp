@@ -786,7 +786,7 @@ void simple_load_balancer::register_ctrl_commands()
 
     _ctrl_assign_secondary_black_list = dsn::command_manager::instance().register_app_command(
         {"lb.assign_secondary_black_list"},
-        "lb.assign_secondary_black_list [ip_list|clear]",
+        "lb.assign_secondary_black_list [<ip:port,ip:port,ip:port>|clear]",
         "control the assign secondary black list",
         [this](const std::vector<std::string> &args) {
             return ctrl_assign_secondary_black_list(args);
@@ -824,7 +824,7 @@ std::string simple_load_balancer::ctrl_assign_delay_ms(const std::vector<std::st
 std::string
 simple_load_balancer::ctrl_assign_secondary_black_list(const std::vector<std::string> &args)
 {
-    std::string invalid_arguments("invalid_arguments");
+    std::string invalid_arguments("invalid arguments");
     std::stringstream oss;
     if (args.size() <= 0) {
         oss << "get ok: ";
@@ -836,33 +836,33 @@ simple_load_balancer::ctrl_assign_secondary_black_list(const std::vector<std::st
             oss << iter->to_string();
         }
         return oss.str();
-    } else {
-        if (args.size() != 1) {
-            return invalid_arguments;
-        } else {
-            if (args[0] == "clear") {
-                _assign_secondary_black_list.clear();
-                return "clear ok";
-            } else {
-                std::vector<std::string> ip_ports;
-                dsn::utils::split_args(args[0].c_str(), ip_ports, ',');
-                if (args.size() == 0) {
-                    return invalid_arguments;
-                } else {
-                    std::set<dsn::rpc_address> addr_list;
-                    for (const std::string &s : ip_ports) {
-                        dsn::rpc_address addr;
-                        if (!addr.from_string_ipv4(s.c_str())) {
-                            return invalid_arguments;
-                        }
-                        addr_list.insert(addr);
-                    }
-                    _assign_secondary_black_list = std::move(addr_list);
-                    return "set ok";
-                }
-            }
-        }
     }
+
+    if (args.size() != 1) {
+        return invalid_arguments;
+    }
+
+    if (args[0] == "clear") {
+        _assign_secondary_black_list.clear();
+        return "clear ok";
+    }
+
+    std::vector<std::string> ip_ports;
+    dsn::utils::split_args(args[0].c_str(), ip_ports, ',');
+    if (args.size() == 0) {
+        return invalid_arguments;
+    }
+
+    std::set<dsn::rpc_address> addr_list;
+    for (const std::string &s : ip_ports) {
+        dsn::rpc_address addr;
+        if (!addr.from_string_ipv4(s.c_str())) {
+            return invalid_arguments;
+        }
+        addr_list.insert(addr);
+    }
+    _assign_secondary_black_list = std::move(addr_list);
+    return "set ok";
 }
 
 pc_status simple_load_balancer::cure(meta_view view,
