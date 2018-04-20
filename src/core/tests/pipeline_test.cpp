@@ -67,7 +67,6 @@ TEST(pipeline_test, link_pipe)
     };
 
     {
-
         pipeline::base base1;
         pipeline::do_when<> s1([&s1]() { s1.repeat(1_s); });
         base1.thread_pool(LPC_MUTATION_LOG_PENDING_TIMER).task_tracker(&tracker).from(s1);
