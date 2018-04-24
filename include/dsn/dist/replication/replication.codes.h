@@ -44,9 +44,9 @@ DEFINE_THREAD_POOL_CODE(THREAD_POOL_LOCAL_APP)
 DEFINE_THREAD_POOL_CODE(THREAD_POOL_REPLICATION_LONG)
 DEFINE_THREAD_POOL_CODE(THREAD_POOL_COMPACT)
 
-#define STORAGE_WRITE(x, allow_batch)                                                              \
+#define DEFINE_STORAGE_WRITE_RPC_CODE(x, allow_batch)                                              \
     DEFINE_STORAGE_RPC_CODE(x, TASK_PRIORITY_LOW, THREAD_POOL_REPLICATION, true, allow_batch)
-#define STORAGE_READ(x)                                                                            \
+#define DEFINE_STORAGE_READ_RPC_CODE(x)                                                            \
     DEFINE_STORAGE_RPC_CODE(x, TASK_PRIORITY_COMMON, THREAD_POOL_LOCAL_APP, false, true)
 
 #define MAKE_EVENT_CODE(x, pri) DEFINE_TASK_CODE(x, pri, CURRENT_THREAD_POOL)
