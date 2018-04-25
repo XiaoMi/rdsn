@@ -127,11 +127,17 @@ private:
         dsn_rpc_request_handler_t h;
     };
 
-    typedef std::unordered_map<std::string, handler_entry *> rpc_handlers;
-    rpc_handlers _handlers;
     mutable utils::rw_lock_nr _handlers_lock;
+    // there are 2 pairs for each rpc handler: code_name->hander_entry*, extra_name->hander_entry*
+    // the hander_entry pointers are the same for these 2 pairs, and the pointer is owned by
+    // _vhandlers[code_index]->first
+    //
+    // we support an extra name for compatibility to
+    // rpc client of other framework like thrift or grpc
+    std::unordered_map<std::string, handler_entry *> _handlers;
 
-    std::vector<std::pair<handler_entry *, utils::rw_lock_nr> *> _vhandlers;
+    // there is one entry for each rpc code
+    std::vector<std::pair<std::unique_ptr<handler_entry>, utils::rw_lock_nr> *> _vhandlers;
 };
 
 class rpc_engine

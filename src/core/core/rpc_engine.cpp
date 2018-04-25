@@ -347,8 +347,7 @@ rpc_server_dispatcher::rpc_server_dispatcher()
 {
     _vhandlers.resize(dsn::task_code::max() + 1);
     for (auto &h : _vhandlers) {
-        h = new std::pair<handler_entry *, utils::rw_lock_nr>();
-        h->first = nullptr;
+        h = new std::pair<std::unique_ptr<handler_entry>, utils::rw_lock_nr>();
     }
     _handlers.clear();
 }
@@ -368,22 +367,21 @@ bool rpc_server_dispatcher::register_rpc_handler(dsn::task_code code,
                                                  const char *extra_name,
                                                  const dsn_rpc_request_handler_t &h)
 {
-    handler_entry *ctx = new handler_entry{code, extra_name, h};
+    std::unique_ptr<handler_entry> ctx(new handler_entry{code, extra_name, h});
 
     utils::auto_write_lock l(_handlers_lock);
     auto it = _handlers.find(code.to_string());
     auto it2 = _handlers.find(extra_name);
     if (it == _handlers.end() && it2 == _handlers.end()) {
-        _handlers[code.to_string()] = ctx;
-        _handlers[ctx->extra_name] = ctx;
+        _handlers[code.to_string()] = ctx.get();
+        _handlers[ctx->extra_name] = ctx.get();
 
         {
             utils::auto_write_lock l(_vhandlers[code.code()]->second);
-            _vhandlers[code.code()]->first = ctx;
+            _vhandlers[code.code()]->first = std::move(ctx);
         }
         return true;
     } else {
-        delete ctx;
         dassert(false, "rpc registration confliction for '%s' '%s'", code.to_string(), extra_name);
         return false;
     }
@@ -403,10 +401,8 @@ bool rpc_server_dispatcher::unregister_rpc_handler(dsn::task_code rpc_code)
 
         {
             utils::auto_write_lock l(_vhandlers[rpc_code]->second);
-            _vhandlers[rpc_code]->first = nullptr;
+            _vhandlers[rpc_code]->first.reset();
         }
-
-        delete ctx;
     }
 
     return true;
@@ -418,7 +414,7 @@ rpc_request_task *rpc_server_dispatcher::on_request(message_ex *msg, service_nod
 
     if (TASK_CODE_INVALID != msg->local_rpc_code) {
         utils::auto_read_lock l(_vhandlers[msg->local_rpc_code]->second);
-        handler_entry *ctx = _vhandlers[msg->local_rpc_code]->first;
+        handler_entry *ctx = _vhandlers[msg->local_rpc_code]->first.get();
         if (ctx != nullptr) {
             handler = ctx->h;
         }
