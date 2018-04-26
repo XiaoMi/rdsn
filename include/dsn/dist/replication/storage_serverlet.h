@@ -15,7 +15,6 @@ protected:
     typedef std::function<void(T *, dsn_message_t req)> rpc_handler;
     static std::unordered_map<std::string, rpc_handler> s_handlers;
     static std::vector<rpc_handler> s_vhandlers;
-    static __thread char s_from_address[256];
 
     template <typename TReq, typename TResp>
     static bool
@@ -78,7 +77,6 @@ protected:
         dsn::task_code t = dsn_msg_task_code(request);
         const rpc_handler *ptr = find_handler(t);
         if (ptr != nullptr) {
-            strcpy(s_from_address, dsn_msg_from_address(request).to_string());
             (*ptr)(static_cast<T *>(this), request);
         } else {
             dassert(false,
@@ -98,8 +96,5 @@ std::unordered_map<std::string, typename storage_serverlet<T>::rpc_handler>
 
 template <typename T>
 std::vector<typename storage_serverlet<T>::rpc_handler> storage_serverlet<T>::s_vhandlers;
-
-template <typename T>
-__thread char storage_serverlet<T>::s_from_address[256];
 }
 }

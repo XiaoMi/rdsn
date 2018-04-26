@@ -91,6 +91,12 @@ public:
 
     bool is_empty() const { return _response == nullptr; }
 
+    rpc_address remote_address() const
+    {
+        return _response != nullptr ? dsn_msg_to_address(_response)
+                                    : rpc_address::s_invalid_address;
+    }
+
 private:
     void release()
     {
