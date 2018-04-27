@@ -289,17 +289,7 @@ void replica::on_copy_checkpoint_file_completed(error_code err,
 // run in background thread
 void replica::background_checkpoint()
 {
-    auto err = _app->sync_checkpoint();
-    if (err == ERR_OK || err == ERR_NO_NEED_OPERATE) {
-        ddebug("%s: call app.sync_checkpoint() succeed, return_code = %s, "
-               "app_last_committed_decree = %" PRId64 ", app_last_durable_decree = %" PRId64,
-               name(),
-               err.to_string(),
-               _app->last_committed_decree(),
-               _app->last_durable_decree());
-    } else {
-        derror("%s: call app.sync_checkpoint() failed, err = %s", name(), err.to_string());
-    }
+    auto err = sync_checkpoint();
     _secondary_states.checkpoint_completed_task =
         tasking::enqueue(LPC_CHECKPOINT_REPLICA_COMPLETED,
                          this,
@@ -311,17 +301,19 @@ void replica::background_checkpoint()
 void replica::background_async_checkpoint(bool is_emergency)
 {
     uint64_t start_time = dsn_now_ns();
+    decree old_durable = _app->last_durable_decree();
     auto err = _app->async_checkpoint(is_emergency);
     uint64_t used_time = dsn_now_ns() - start_time;
     dassert(err != ERR_NOT_IMPLEMENTED, "err == ERR_NOT_IMPLEMENTED");
-    if (err == ERR_OK || err == ERR_NO_NEED_OPERATE) {
-        ddebug("%s: call app.async_checkpoint() succeed, "
-               "return_code = %s, time_used_ns = %" PRIu64 ", "
-               "app_last_committed_decree = %" PRId64 ", app_last_durable_decree = %" PRId64,
+    if (err == ERR_OK) {
+        ddebug("%s: call app.async_checkpoint() succeed, time_used_ns = %" PRIu64 ", "
+               "app_last_committed_decree = %" PRId64 ", app_last_durable_decree = (%" PRId64
+               " => %" PRId64 ")",
                name(),
                err.to_string(),
                used_time,
                _app->last_committed_decree(),
+               old_durable,
                _app->last_durable_decree());
         _last_checkpoint_generate_time_ms = now_ms();
     } else if (err == ERR_TRY_AGAIN) {
@@ -337,9 +329,9 @@ void replica::background_async_checkpoint(bool is_emergency)
                          std::chrono::seconds(10));
     } else if (err == ERR_WRONG_TIMING) {
         // do nothing
-        ddebug("%s: call app.async_checkpoint() returns %s, time_used_ns = %" PRIu64 ", ignore",
+        ddebug("%s: call app.async_checkpoint() returns ERR_WRONG_TIMING, time_used_ns = %" PRIu64
+               ", just ignore",
                name(),
-               err.to_string(),
                used_time);
     } else {
         derror("%s: call app.async_checkpoint() failed, time_used_ns = %" PRIu64 ", err = %s",
@@ -350,19 +342,36 @@ void replica::background_async_checkpoint(bool is_emergency)
 }
 
 // run in init thread
-void replica::sync_checkpoint()
+error_code replica::sync_checkpoint()
 {
+    uint64_t start_time = dsn_now_ns();
+    decree old_durable = _app->last_durable_decree();
     auto err = _app->sync_checkpoint();
-    if (err == ERR_OK || err == ERR_NO_NEED_OPERATE) {
-        ddebug("%s: call app.sync_checkpoint() succeed, return_code = %s, "
-               "app_last_committed_decree = %" PRId64 ", app_last_durable_decree = %" PRId64,
+    uint64_t used_time = dsn_now_ns() - start_time;
+    dassert(err != ERR_NOT_IMPLEMENTED, "err == ERR_NOT_IMPLEMENTED");
+    if (err == ERR_OK) {
+        ddebug("%s: call app.sync_checkpoint() succeed, time_used_ns = %" PRIu64 ", "
+               "app_last_committed_decree = %" PRId64 ", app_last_durable_decree = (%" PRId64
+               " => %" PRId64 ")",
                name(),
                err.to_string(),
+               used_time,
                _app->last_committed_decree(),
+               old_durable,
                _app->last_durable_decree());
+    } else if (err == ERR_WRONG_TIMING) {
+        // do nothing
+        ddebug("%s: call app.sync_checkpoint() returns ERR_WRONG_TIMING, time_used_ns = %" PRIu64
+               ", just ignore",
+               name(),
+               used_time);
     } else {
-        derror("%s: call app.sync_checkpoint() failed, err = %s", name(), err.to_string());
+        derror("%s: call app.sync_checkpoint() failed, time_used_ns = %" PRIu64 ", err = %s",
+               name(),
+               used_time,
+               err.to_string());
     }
+    return err;
 }
 
 // in non-replication thread
@@ -394,9 +403,8 @@ void replica::on_checkpoint_completed(error_code err)
 {
     check_hashed_access();
 
-    // closing or wrong timing or no need operate
-    if (partition_status::PS_SECONDARY != status() || err == ERR_WRONG_TIMING ||
-        err == ERR_NO_NEED_OPERATE) {
+    // closing or wrong timing
+    if (partition_status::PS_SECONDARY != status() || err == ERR_WRONG_TIMING) {
         _secondary_states.checkpoint_is_running = false;
         return;
     }
