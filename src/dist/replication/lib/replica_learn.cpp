@@ -1092,15 +1092,15 @@ void replica::on_copy_remote_state_completed(error_code err,
                _app->last_committed_decree(),
                _app->last_durable_decree());
 
+        if (err == ERR_NO_NEED_OPERATE)
+            err = ERR_OK;
+
         if (err == ERR_OK) {
             dassert(_app->last_committed_decree() == _app->last_durable_decree(),
                     "%" PRId64 " VS %" PRId64 "",
                     _app->last_committed_decree(),
                     _app->last_durable_decree());
         }
-
-        if (err == ERR_NO_NEED_OPERATE)
-            err = ERR_OK;
     }
 
     // it is possible that the _potential_secondary_states.learn_remote_files_task is still running
