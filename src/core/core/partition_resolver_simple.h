@@ -36,15 +36,15 @@
 #pragma once
 
 #include <dsn/tool-api/partition_resolver.h>
+#include <dsn/tool-api/task_tracker.h>
 #include <dsn/service_api_c.h>
 #include <dsn/cpp/zlocks.h>
-#include <dsn/cpp/clientlet.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2.types.h>
 
 namespace dsn {
 namespace dist {
 #pragma pack(push, 4)
-class partition_resolver_simple : public partition_resolver, public virtual clientlet
+class partition_resolver_simple : public partition_resolver
 {
 public:
     partition_resolver_simple(rpc_address meta_server, const char *app_path);
@@ -125,6 +125,8 @@ private:
                             dsn_message_t request,
                             dsn_message_t response,
                             int partition_index);
+
+    dsn::task_tracker _tracker;
 };
 #pragma pack(pop)
 }

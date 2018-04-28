@@ -38,7 +38,7 @@
 #include <iostream>
 
 namespace dsn {
-class cli_client : public virtual ::dsn::clientlet
+class cli_client
 {
 public:
     cli_client(::dsn::rpc_address server) { _server = server; }
@@ -78,7 +78,7 @@ public:
         return ::dsn::rpc::call(server_addr.unwrap_or(_server),
                                 RPC_CLI_CLI_CALL,
                                 args,
-                                this,
+                                nullptr,
                                 std::forward<TCallback>(callback),
                                 timeout,
                                 thread_hash,

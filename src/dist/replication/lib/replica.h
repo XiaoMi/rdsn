@@ -384,6 +384,8 @@ private:
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
+
+    dsn::task_tracker _tracker;
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
 }
