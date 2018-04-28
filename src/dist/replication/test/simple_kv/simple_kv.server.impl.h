@@ -66,7 +66,7 @@ public:
 
     virtual ::dsn::error_code prepare_get_checkpoint(blob &learn_req) { return dsn::ERR_OK; }
 
-    virtual ::dsn::error_code async_checkpoint(bool is_emergency) override;
+    virtual ::dsn::error_code async_checkpoint(bool flush_memtable) override;
 
     virtual ::dsn::error_code copy_checkpoint_to_dir(const char *checkpoint_dir,
                                                      int64_t *last_decree) override
@@ -81,7 +81,7 @@ public:
     virtual ::dsn::error_code storage_apply_checkpoint(chkpt_apply_mode mode,
                                                        const learn_state &state) override;
 
-    virtual void manual_compact() {}
+    virtual void manual_compact(const std::map<std::string, std::string> &opts) {}
 
     virtual void update_app_envs(const std::map<std::string, std::string> &envs) {}
 

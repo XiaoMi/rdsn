@@ -48,18 +48,18 @@ void task_spec::register_task_code(task_code code,
                                    dsn_task_priority_t pri,
                                    dsn::threadpool_code pool)
 {
-    dassert(pool != THREAD_POOL_INVALID,
-            "registered pool cannot be THREAD_POOL_INVALID for task %s, "
-            "make sure it is registered AFTER the pool is registered",
-            code.to_string());
-
     if (!dsn::utils::singleton_vector_store<task_spec *, nullptr>::instance().contains(code)) {
         task_spec *spec = new task_spec(code, code.to_string(), type, pri, pool);
         dsn::utils::singleton_vector_store<task_spec *, nullptr>::instance().put(code, spec);
 
         if (type == TASK_TYPE_RPC_REQUEST) {
             std::string ack_name = std::string(code.to_string()) + std::string("_ACK");
-            dsn::task_code ack_code(ack_name.c_str(), TASK_TYPE_RPC_RESPONSE, pri, pool);
+            // for a rpc request, we firstly register it's ack code to invalid threadpool,
+            // then the response code's definition will reassign a proper valid threadpool code.
+            // please refer to the DEFINE_TASK_CODE_RPC/DEFINE_STORAGE_RPC_CODE in task_code.h
+            // for more details.
+            dsn::task_code ack_code(
+                ack_name.c_str(), TASK_TYPE_RPC_RESPONSE, pri, THREAD_POOL_INVALID);
             spec->rpc_paired_code = ack_code;
             task_spec::get(ack_code.code())->rpc_paired_code = code;
         }
@@ -84,13 +84,29 @@ void task_spec::register_task_code(task_code code,
         }
 
         if (spec->pool_code != pool) {
-            dwarn("overwrite default thread pool for task %s from %s to %s",
-                  code.to_string(),
-                  spec->pool_code.to_string(),
-                  pool.to_string());
+            if (spec->pool_code != THREAD_POOL_INVALID) {
+                dwarn("overwrite default thread pool for task %s from %s to %s",
+                      code.to_string(),
+                      spec->pool_code.to_string(),
+                      pool.to_string());
+            }
             spec->pool_code = pool;
         }
     }
+}
+
+void task_spec::register_storage_task_code(task_code code,
+                                           dsn_task_type_t type,
+                                           dsn_task_priority_t pri,
+                                           threadpool_code pool,
+                                           bool is_write_operation,
+                                           bool allow_batch)
+{
+    register_task_code(code, type, pri, pool);
+    task_spec *spec = task_spec::get(code);
+    spec->rpc_request_for_storage = true;
+    spec->rpc_request_is_write_operation = is_write_operation;
+    spec->rpc_request_is_write_allow_batch = allow_batch;
 }
 
 task_spec *task_spec::get(int code)
@@ -107,6 +123,9 @@ task_spec::task_spec(int code,
       type(type),
       name(name),
       rpc_paired_code(TASK_CODE_INVALID),
+      rpc_request_for_storage(false),
+      rpc_request_is_write_operation(false),
+      rpc_request_is_write_allow_batch(false),
       priority(pri),
       pool_code(pool),
       rpc_call_header_format(NET_HDR_DSN),

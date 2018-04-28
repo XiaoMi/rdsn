@@ -468,7 +468,9 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
 
     bool is_log_complete = true;
     for (auto it = rps.begin(); it != rps.end(); ++it) {
-        it->second->sync_checkpoint();
+        auto err = it->second->sync_checkpoint();
+        dassert(err == ERR_OK, "sync checkpoint failed, err = %s", err.to_string());
+
         it->second->reset_prepare_list_after_replay();
 
         decree smax = _log->max_decree(it->first);
@@ -1844,11 +1846,11 @@ void replica_stub::trigger_checkpoint(replica_ptr r, bool is_emergency)
     r->init_checkpoint(is_emergency);
 }
 
-void replica_stub::manual_compact(gpid pid)
+void replica_stub::manual_compact(gpid pid, const std::map<std::string, std::string> &opts)
 {
     replica_ptr r = get_replica(pid);
     if (r != nullptr) {
-        r->manual_compact();
+        r->manual_compact(opts);
     }
 }
 
@@ -1927,39 +1929,47 @@ void replica_stub::open_service()
 
     _trigger_chkpt_command = ::dsn::command_manager::instance().register_app_command(
         {"trigger-checkpoint"},
-        "trigger-checkpoint",
-        "trigger-checkpoint - trigger all replicas to do checkpoints",
+        "trigger-checkpoint [id1,id2,...] (where id is 'app_id' or 'app_id.partition_id')",
+        "trigger-checkpoint - trigger replicas to do checkpoint",
         [this](const std::vector<std::string> &args) {
-            ddebug("start to trigger checkpoint by remote command");
-            replicas rs;
-            {
-                zauto_read_lock l(_replicas_lock);
-                rs = _replicas;
-            }
-            for (auto it = rs.begin(); it != rs.end(); ++it) {
-                tasking::enqueue(
-                    LPC_PER_REPLICA_CHECKPOINT_TIMER,
-                    this,
-                    std::bind(&replica_stub::trigger_checkpoint, this, it->second, true),
-                    it->first.thread_hash(),
-                    std::chrono::milliseconds(
-                        dsn_random32(0, 3000)) // delay random to avoid write compete
-                    );
-            }
-            return "OK";
+            return exec_command_on_replica(args, true, [this](const replica_ptr &rep) {
+                tasking::enqueue(LPC_PER_REPLICA_CHECKPOINT_TIMER,
+                                 this,
+                                 std::bind(&replica_stub::trigger_checkpoint, this, rep, true),
+                                 rep->get_gpid().thread_hash());
+                return std::string("triggered");
+            });
         });
 
     _manual_compact_command = ::dsn::command_manager::instance().register_app_command(
         {"manual-compact"},
-        "manual-compact <id1,id2,...> (where id is 'app_id' or 'app_id.partition_id')",
+        "manual-compact [opts:k1=v1,k2=v2] <id1,id2,...> (where id is 'app_id' or "
+        "'app_id.partition_id')",
         "manual-compact - do full compact on the underlying storage engine",
         [this](const std::vector<std::string> &args) {
-            return exec_command_on_replica(args, false, [this](const replica_ptr &rep) {
+            // extract opts from args
+            std::map<std::string, std::string> opts;
+            std::vector<std::string> new_args;
+            std::string prefix("opts:");
+            for (int i = 0; i < args.size(); i++) {
+                if (args[i].find(prefix) == 0) {
+                    if (!opts.empty()) {
+                        return std::string("invalid arguments: duplicate opts provided");
+                    }
+                    const std::string &opts_str = args[i].substr(prefix.size());
+                    if (!dsn::utils::parse_kv_map(opts_str.c_str(), opts, ',', '=')) {
+                        return std::string("invalid arguments: bad opts: ") + opts_str;
+                    }
+                } else {
+                    new_args.push_back(args[i]);
+                }
+            }
+            return exec_command_on_replica(new_args, false, [this, opts](const replica_ptr &rep) {
                 if (rep->could_start_manual_compact()) {
                     tasking::enqueue(
                         LPC_MANUAL_COMPACT,
                         this,
-                        std::bind(&replica_stub::manual_compact, this, rep->get_gpid()));
+                        std::bind(&replica_stub::manual_compact, this, rep->get_gpid(), opts));
                     return std::string("started");
                 } else {
                     return std::string("ignored because too frequently");
