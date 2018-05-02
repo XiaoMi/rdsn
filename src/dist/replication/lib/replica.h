@@ -322,7 +322,7 @@ private:
     dsn::task_ptr _checkpoint_timer;
 
     // background async checkpoint task.
-    ::dsn::utils::ex_lock _async_checkpoint_lock;
+    mutable ::dsn::service::zlock _async_checkpoint_lock;
     dsn::task_ptr _async_checkpoint_task;
 
     // application

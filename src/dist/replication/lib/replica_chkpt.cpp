@@ -90,7 +90,7 @@ void replica::on_checkpoint_timer()
 // run in replica thread
 void replica::init_checkpoint(bool is_emergency)
 {
-    ::dsn::utils::auto_lock<::dsn::utils::ex_lock> l(_async_checkpoint_lock);
+    ::dsn::service::zauto_lock l(_async_checkpoint_lock);
 
     // only applicable to primary and secondary replicas
     if (status() != partition_status::PS_PRIMARY && status() != partition_status::PS_SECONDARY) {
@@ -110,78 +110,16 @@ void replica::init_checkpoint(bool is_emergency)
 
     // here we demand that async_checkpoint() is implemented.
     // we delay some time to run background_async_checkpoint() to pass unit test dsn.rep_tests.
-    _async_checkpoint_task = tasking::enqueue(LPC_CHECKPOINT_REPLICA,
-                                              this,
-                                              [this, is_emergency] {
-                                                  background_async_checkpoint(is_emergency);
-                                                  ::dsn::utils::auto_lock<::dsn::utils::ex_lock> l(
-                                                      _async_checkpoint_lock);
-                                                  _async_checkpoint_task = nullptr;
-                                              },
-                                              0,
-                                              10_ms);
-
-    return;
-
-    // disable the following codes
-    /*
-    //// no need to checkpoint
-    // if (_app->is_delta_state_learning_supported())
-    //    return;
-
-    // private log must be enabled to make sure commits
-    // are not lost during checkpinting
-    if (!is_emergency &&
-        last_committed_decree() - last_durable_decree() < _options->checkpoint_min_decree_gap)
-        return;
-
-    // primary cannot checkpoint (TODO: test if async checkpoint is supported)
-    // therefore we have to copy checkpoints from secondaries
-    if (partition_status::PS_PRIMARY == status()) {
-        // only one running instance
-        if (nullptr == _primary_states.checkpoint_task) {
-            if (_primary_states.membership.secondaries.size() == 0)
-                return;
-
-            std::shared_ptr<replica_configuration> rc(new replica_configuration);
-            _primary_states.get_replica_config(partition_status::PS_SECONDARY, *rc);
-
-            rpc_address sd = _primary_states.membership.secondaries[dsn_random32(
-                0, (int)_primary_states.membership.secondaries.size() - 1)];
-
-            _primary_states.checkpoint_task =
-                rpc::call(sd,
-                          RPC_REPLICA_COPY_LAST_CHECKPOINT,
-                          *rc,
-                          this,
-                          [=](error_code err_local, learn_response &&response) {
-                              auto response_alloc =
-                                  std::make_shared<learn_response>(std::move(response));
-                              on_copy_checkpoint_ack(err_local, rc, response_alloc);
-                          },
-                          std::chrono::milliseconds(0),
-                          get_gpid().thread_hash());
-        }
-    }
-
-    // secondary can start checkpint in the long running thread pool
-    else {
-        dassert(partition_status::PS_SECONDARY == status(),
-                "invalid partition_status, status = %s",
-                enum_to_string(status()));
-
-        // only one running instance
-        if (!_secondary_states.checkpoint_is_running) {
-            _secondary_states.checkpoint_is_running = true;
-            _secondary_states.checkpoint_task =
-                tasking::create_task(LPC_CHECKPOINT_REPLICA,
-                                     this,
-                                     [this] { background_checkpoint(); },
-                                     get_gpid().thread_hash());
-            _secondary_states.checkpoint_task->enqueue();
-        }
-    }
-    */
+    _async_checkpoint_task =
+        tasking::enqueue(LPC_CHECKPOINT_REPLICA,
+                         this,
+                         [this, is_emergency] {
+                             background_async_checkpoint(is_emergency);
+                             ::dsn::service::zauto_lock l(_async_checkpoint_lock);
+                             _async_checkpoint_task = nullptr;
+                         },
+                         0,
+                         10_ms);
 }
 
 // @ secondary
