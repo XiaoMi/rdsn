@@ -300,9 +300,6 @@ private:
     friend class test::test_checker;
     friend class ::meta_service_test_app;
 
-    // ATTENTION:
-    // when use tracker to track timer task, please make sure not to wait the timer task.
-    // coz waiting operation on timer task will never finish
     dsn::task_tracker _tracker;
 
     meta_service *_meta_svc;

@@ -103,6 +103,9 @@ private:
     std::deque<request_context_ptr> _pending_requests_before_partition_count_unknown;
     task_ptr _query_config_task;
 
+    dsn::task_tracker _tracker;
+
+private:
     // local routines
     rpc_address get_address(const partition_configuration &config) const;
     error_code get_address(int partition_index, /*out*/ rpc_address &addr);
@@ -125,8 +128,6 @@ private:
                             dsn_message_t request,
                             dsn_message_t response,
                             int partition_index);
-
-    dsn::task_tracker _tracker;
 };
 #pragma pack(pop)
 }

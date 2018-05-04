@@ -70,7 +70,6 @@ public:
     virtual ::dsn::error_code stop(bool cleanup = false)
     {
         _tracker.cancel_outstanding_tasks();
-        _timer->cancel(true);
 
         _simple_kv_client.reset();
 

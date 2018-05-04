@@ -99,26 +99,16 @@ void replica::init_checkpoint(bool is_emergency)
         return;
     }
 
-    ::dsn::service::zauto_lock l(_async_checkpoint_lock);
-    if (_async_checkpoint_task != nullptr) {
-        ddebug("%s: ignore doing checkpoint for an old checkpoint is running, is_emergency = %s",
-               name(),
-               (is_emergency ? "true" : "false"));
-        return;
-    }
-
     // here we demand that async_checkpoint() is implemented.
     // we delay some time to run background_async_checkpoint() to pass unit test dsn.rep_tests.
-    _async_checkpoint_task =
-        tasking::enqueue(LPC_CHECKPOINT_REPLICA,
-                         &_tracker,
-                         [this, is_emergency] {
-                             background_async_checkpoint(is_emergency);
-                             ::dsn::service::zauto_lock l(_async_checkpoint_lock);
-                             _async_checkpoint_task = nullptr;
-                         },
-                         0,
-                         10_ms);
+    //
+    // we may issue a new task to do backgroup_async_checkpoint
+    // even if the old one hasn't finished yet
+    tasking::enqueue(LPC_CHECKPOINT_REPLICA,
+                     &_tracker,
+                     [this, is_emergency] { background_async_checkpoint(is_emergency); },
+                     0,
+                     10_ms);
 }
 
 // @ secondary
