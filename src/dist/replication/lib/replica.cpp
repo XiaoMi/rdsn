@@ -382,9 +382,16 @@ void replica::close()
 
     _tracker.cancel_outstanding_tasks();
 
-    dassert(!_checkpoint_timer->cancel(false), "checkpoint timer should already been cancelled");
-    dassert(!_collect_info_timer->cancel(false),
-            "collect info timer should already been cancelled");
+    if (_checkpoint_timer != nullptr) {
+        dassert(!_checkpoint_timer->cancel(false),
+                "checkpoint timer should already been cancelled");
+        _checkpoint_timer = nullptr;
+    }
+    if (_collect_info_timer != nullptr) {
+        dassert(!_collect_info_timer->cancel(false),
+                "collect info timer should already been cancelled");
+        _collect_info_timer = nullptr;
+    }
 
     cleanup_preparing_mutations(true);
     dassert(_primary_states.is_cleaned(), "primary context is not cleared");
