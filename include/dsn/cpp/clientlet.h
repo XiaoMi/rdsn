@@ -275,7 +275,7 @@ template <typename TRequest, typename TCallback>
 task_ptr call(::dsn::rpc_address server,
               dsn::task_code code,
               TRequest &&req,
-              dsn::task_tracker *owner,
+              dsn::task_tracker *tracker,
               TCallback &&callback,
               std::chrono::milliseconds timeout = std::chrono::milliseconds(0),
               int thread_hash = 0, ///< if thread_hash == 0 && partition_hash != 0, thread_hash is
@@ -286,7 +286,7 @@ task_ptr call(::dsn::rpc_address server,
     dsn_message_t msg = dsn_msg_create_request(
         code, static_cast<int>(timeout.count()), thread_hash, partition_hash);
     ::dsn::marshall(msg, std::forward<TRequest>(req));
-    return call(server, msg, owner, std::forward<TCallback>(callback), reply_thread_hash);
+    return call(server, msg, tracker, std::forward<TCallback>(callback), reply_thread_hash);
 }
 
 struct rpc_message_helper
@@ -295,12 +295,12 @@ public:
     explicit rpc_message_helper(dsn_message_t request) : request(request) {}
     template <typename TCallback>
     task_ptr call(::dsn::rpc_address server,
-                  dsn::task_tracker *owner,
+                  dsn::task_tracker *tracker,
                   TCallback &&callback,
                   int reply_thread_hash = 0)
     {
         return ::dsn::rpc::call(
-            server, request, owner, std::forward<TCallback>(callback), reply_thread_hash);
+            server, request, tracker, std::forward<TCallback>(callback), reply_thread_hash);
     }
 
 private:

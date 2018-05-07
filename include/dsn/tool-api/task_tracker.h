@@ -84,10 +84,10 @@ private:
 };
 
 //
-// task_tracker is used to track one ore more unfinished tasks, you may use it to
+// task_tracker is used to track one or more unfinished tasks, you may use it to
 // wait or cancel the tasks tracked by the tracker.
 //
-// A classical situation is use tracker to prevent a task from visiting a delete object.
+// A classical situation is use tracker to prevent a task from visiting a deleted object.
 //
 // for example:
 // class A
