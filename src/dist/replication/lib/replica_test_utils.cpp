@@ -24,6 +24,10 @@
  * THE SOFTWARE.
  */
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 #include <dsn/dist/replication/replica_test_utils.h>
 
 #include "dist/replication/lib/replica.h"
