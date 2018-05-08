@@ -24,10 +24,8 @@
  * THE SOFTWARE.
  */
 
-#include <dsn/tool-api/rpc_message.h>
 #include <dsn/cpp/message_utils.h>
 #include <dsn/dist/replication/replication.codes.h>
-#include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
 #include <dsn/cpp/rpc_holder.h>
 #include <gtest/gtest.h>
 

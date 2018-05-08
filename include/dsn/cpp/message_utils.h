@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include <dsn/utility/blob.h>
-#include <dsn/c/api_common.h>
 #include <dsn/tool/cli.h>
 #include <dsn/utility/string_view.h>
 

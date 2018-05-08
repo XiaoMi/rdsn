@@ -24,8 +24,6 @@
  * THE SOFTWARE.
  */
 
-#include <dsn/c/api_layer1.h>
-#include <dsn/utility/binary_reader.h>
 #include <dsn/cpp/message_utils.h>
 
 // Header file: dsn/utility/message_utils.h

@@ -27,7 +27,6 @@
 /// This file contains utilities for upper level applications (pegasus) which
 /// needs the hidden abstraction of rDSN in order to make unit test.
 
-#include <dsn/tool-api/auto_codes.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
 
 namespace dsn {
