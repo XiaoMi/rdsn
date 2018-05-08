@@ -59,7 +59,11 @@ inline error_with<dupid_t> convert_str_to_dupid(const std::string &str)
 
 inline const char *duplication_status_to_string(const duplication_status::type &status)
 {
-    return _duplication_status_VALUES_TO_NAMES.find(status)->second;
+    auto it = _duplication_status_VALUES_TO_NAMES.find(status);
+    dassert(it != _duplication_status_VALUES_TO_NAMES.end(),
+            "unexpected type of duplication_status: %d",
+            status);
+    return it->second;
 }
 
 inline void json_encode(std::stringstream &out, const duplication_status::type &s)
