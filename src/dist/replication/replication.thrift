@@ -684,7 +684,6 @@ struct duplication_sync_request
     // TODO(wutao1): remove this field and get the source address by dsn_msg_from_address
     1:dsn.rpc_address                                   node;
 
-    //
     2:map<dsn.gpid, list<duplication_confirm_entry>>    confirm_list;
 }
 

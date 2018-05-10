@@ -26,8 +26,6 @@
 
 #include <dsn/cpp/message_utils.h>
 
-// Header file: dsn/utility/message_utils.h
-
 namespace dsn {
 
 /*extern*/ dsn_message_t from_blob_to_received_msg(dsn::task_code rpc_code,
