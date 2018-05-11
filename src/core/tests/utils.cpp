@@ -208,3 +208,49 @@ TEST(core, ref_ptr)
     z = std::move(foo_ptr());
     EXPECT_TRUE(count == 0);
 }
+
+TEST(core, hm_of_day_to_sec)
+{
+    ASSERT_EQ(hm_of_day_to_sec("00:00"), 0);
+    ASSERT_EQ(hm_of_day_to_sec("23:59"), 86340);
+    ASSERT_EQ(hm_of_day_to_sec("1:1"), 3660);
+    ASSERT_EQ(hm_of_day_to_sec("01:1"), 3660);
+    ASSERT_EQ(hm_of_day_to_sec("1:01"), 3660);
+    ASSERT_EQ(hm_of_day_to_sec("01:01"), 3660);
+
+    ASSERT_EQ(hm_of_day_to_sec("23"), -1);
+    ASSERT_EQ(hm_of_day_to_sec("23:"), -1);
+    ASSERT_EQ(hm_of_day_to_sec(":59"), -1);
+    ASSERT_EQ(hm_of_day_to_sec("-1:00"), -1);
+    ASSERT_EQ(hm_of_day_to_sec("24:00"), -1);
+    ASSERT_EQ(hm_of_day_to_sec("01:-1"), -1);
+    ASSERT_EQ(hm_of_day_to_sec("01:60"), -1);
+    ASSERT_EQ(hm_of_day_to_sec("a:00"), -1);
+    ASSERT_EQ(hm_of_day_to_sec("01:b"), -1);
+    ASSERT_EQ(hm_of_day_to_sec("01b"), -1);
+}
+
+TEST(core, get_morning_time)
+{
+    ASSERT_LT(0, get_morning_time());
+    ASSERT_LE(get_morning_time(), time(nullptr));
+    ASSERT_GE(time(nullptr) - get_morning_time(), 0);
+    ASSERT_LT(time(nullptr) - get_morning_time(), 86400);
+}
+
+TEST(core, hm_of_day_to_time_s)
+{
+    ASSERT_EQ(get_morning_time() + hm_of_day_to_sec("0:0"), hm_of_day_to_time_s("0:0"));
+    ASSERT_EQ(get_morning_time() + hm_of_day_to_sec("23:59"), hm_of_day_to_time_s("23:59"));
+
+    ASSERT_EQ(hm_of_day_to_time_s("23"), -1);
+    ASSERT_EQ(hm_of_day_to_time_s("23:"), -1);
+    ASSERT_EQ(hm_of_day_to_time_s(":59"), -1);
+    ASSERT_EQ(hm_of_day_to_time_s("-1:00"), -1);
+    ASSERT_EQ(hm_of_day_to_time_s("24:00"), -1);
+    ASSERT_EQ(hm_of_day_to_time_s("01:-1"), -1);
+    ASSERT_EQ(hm_of_day_to_time_s("01:60"), -1);
+    ASSERT_EQ(hm_of_day_to_time_s("a:00"), -1);
+    ASSERT_EQ(hm_of_day_to_time_s("01:b"), -1);
+    ASSERT_EQ(hm_of_day_to_time_s("01b"), -1);
+}
