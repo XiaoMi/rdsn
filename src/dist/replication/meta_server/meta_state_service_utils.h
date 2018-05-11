@@ -38,9 +38,10 @@ struct node_creator
     ~node_creator();
 
     /// Asynchronously create nodes recursively from top down.
-    /// NOTICE: Currently this function runs infinitely until all nodes created.
-    // TODO(wutao1): Configurable retry policy. see
-    // https://github.com/Netflix/curator/wiki/Client#retry-policies.
+    /// NOTICE: Currently this function runs infinitely until all nodes are created,
+    /// and for each failure it delays 1 sec for next retry.
+    /// TODO(wutao1): Configurable retry policy. see
+    /// https://github.com/Netflix/curator/wiki/Client#retry-policies.
     void create_node_recursively(std::deque<std::string> &&nodes, dsn::blob &&value);
 
 private:

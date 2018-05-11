@@ -35,10 +35,11 @@ namespace dsn {
 namespace replication {
 namespace meta {
 
+// TODO(wutao1): implement using future_task, which will makes it more simpler.
 struct create_node : pipeline::when<>
 {
     create_node(dist::meta_state_service *remote_storage, task_tracker *tracker)
-        : _remote(remote_storage), _tracker(tracker)
+            :_remote(remote_storage), _tracker(tracker)
     {
     }
 
@@ -51,22 +52,22 @@ struct create_node : pipeline::when<>
         _nodes.pop_front();
 
         _remote->create_node(
-            _cur_path,
-            LPC_META_STATE_HIGH,
-            [this](error_code ec) {
-                if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
-                    repeat();
-                    return;
-                }
-                if (ec == ERR_TIMEOUT) {
-                    dwarn_f("request on path({}) was timeout, retry after 1 second", _cur_path);
-                    repeat(1_s);
-                    return;
-                }
-                dfatal_f("we can't handle this error({})", ec);
-            },
-            _val,
-            _tracker);
+                _cur_path,
+                LPC_META_STATE_HIGH,
+                [this](error_code ec) {
+                  if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
+                      repeat();
+                      return;
+                  }
+                  if (ec == ERR_TIMEOUT) {
+                      dwarn_f("request on path({}) was timeout, retry after 1 second", _cur_path);
+                      repeat(1_s);
+                      return;
+                  }
+                  dfatal_f("we can't handle this error({})", ec);
+                },
+                _val,
+                _tracker);
     }
 
     void assign_path_and_value(std::deque<std::string> &&nodes, dsn::blob &&val)
@@ -87,6 +88,7 @@ private:
 void node_creator::create_node_recursively(std::deque<std::string> &&nodes, dsn::blob &&value)
 {
     _create->assign_path_and_value(std::move(nodes), std::move(value));
+    _pipeline->run_pipeline();
 }
 
 node_creator::node_creator(dist::meta_state_service *remote_storage, task_tracker *tracker)
@@ -94,7 +96,7 @@ node_creator::node_creator(dist::meta_state_service *remote_storage, task_tracke
     dassert(tracker != nullptr, "must set task tracker");
 
     _create = dsn::make_unique<create_node>(remote_storage, tracker);
-    _pipeline->from(*_create);
+    _pipeline->thread_pool().task_tracker(tracker).from(*_create);
 }
 
 node_creator::~node_creator() = default;
