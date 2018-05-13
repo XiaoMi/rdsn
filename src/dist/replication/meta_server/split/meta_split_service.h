@@ -25,6 +25,7 @@
  */
 
 #include "dist/replication/meta_server/meta_service.h"
+#include "dist/replication/meta_server/server_state.h"
 
 namespace dsn {
 namespace replication {
@@ -32,7 +33,27 @@ namespace replication {
 class meta_split_service
 {
 public:
+    explicit meta_split_service(meta_service *svc, server_state *state)
+        : _meta_svc(svc), _state(state)
+    {
+    }
+
     void app_partition_split(app_partition_split_rpc rpc);
+
+    /// ========== Implementation ========== ///
+
+private:
+    // get lock to protect access of tables
+    zrwlock_nr &app_lock() const { return _state->_lock; }
+
+    task_tracker *tracker() { return &_tracker; }
+    void wait_all() { tracker()->cancel_outstanding_tasks(); }
+
+private:
+    meta_service *_meta_svc;
+    server_state *_state;
+
+    task_tracker _tracker;
 };
 
 } // namespace replication
