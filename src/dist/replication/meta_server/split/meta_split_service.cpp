@@ -31,6 +31,7 @@
 namespace dsn {
 namespace replication {
 
+// ThreadPool(WRITE): LPC_META_STATE_NORMAL
 void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
 {
     const auto &request = rpc.request();
@@ -42,32 +43,38 @@ void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
     response.err = ERR_OK;
 
     { // validate rpc parameters
-        zauto_write_lock l();
+        zauto_write_lock l(app_lock());
+
+        // if app is not available
         std::shared_ptr<app_state> app = _state->get_app(request.app_name);
         if (!app || app->status != app_status::AS_AVAILABLE) {
             response.err = ERR_APP_NOT_EXIST;
-        } else if (request.new_partition_count != app->partition_count * 2) {
-            response.appid = app->app_id;
-            response.partition_count = app->partition_count;
+            return;
+        }
+
+        response.appid = app->app_id;
+        response.partition_count = app->partition_count;
+
+        // if new_partition_count != old_partition_count*2
+        if (request.new_partition_count != app->partition_count * 2) {
             response.err = ERR_INVALID_PARAMETERS;
-        } else {
-            // if there's ongoing split already.
-            for (const auto &partition_config : app->partitions) {
-                if (partition_config.ballot < 0) {
-                    response.err = ERR_BUSY;
-                    break;
-                }
+            return;
+        }
+
+        // if there's ongoing split already.
+        for (const auto &partition_config : app->partitions) {
+            if (partition_config.ballot < 0) {
+                response.err = ERR_BUSY;
+                dwarn_f("client({}) sent repeated split request: app({}), new_partition_count({})",
+                        ((message_ex *)rpc.dsn_request())->header->from_address.to_string(),
+                        request.app_name,
+                        request.new_partition_count);
+                return;
             }
-            dwarn_f("client({}) sent repeated split request: app({}), new_partition_count({})",
-                    ((message_ex *)rpc.dsn_request())->header->from_address.to_string(),
-                    request.app_name,
-                    request.new_partition_count);
         }
     }
 
-    if (response.err == ERR_OK) {
-        ///
-    }
+    // validation passed
 }
 
 } // namespace replication

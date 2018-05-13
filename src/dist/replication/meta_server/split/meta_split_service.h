@@ -30,6 +30,7 @@
 namespace dsn {
 namespace replication {
 
+/// Handles split-related requests on meta server.
 class meta_split_service
 {
 public:
