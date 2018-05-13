@@ -46,6 +46,7 @@
 #include "server_state.h"
 #include "meta_server_failure_detector.h"
 #include "server_load_balancer.h"
+#include "split/meta_split_service.h"
 
 namespace dsn {
 namespace replication {
@@ -723,5 +724,23 @@ void meta_service::update_app_env(app_env_rpc env_rpc)
         break;
     }
 }
+
+/// ==================================== ///
+/// ============== split =============== ///
+/// ==================================== ///
+
+void meta_service::on_app_partition_split(app_partition_split_rpc rpc)
+{
+    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     tracker(),
+                     [this, rpc]() {
+                         dassert(_split_svc, "meta_split_service is uninitialized");
+                         _split_svc->app_partition_split(std::move(rpc));
+                     },
+                     server_state::sStateHash);
 }
-}
+
+} // namespace replication
+} // namespace dsn
