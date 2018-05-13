@@ -25,31 +25,42 @@
  */
 
 #include <dsn/dist/meta_state_service.h>
-#include <dsn/cpp/pipeline.h>
 
 namespace dsn {
 namespace replication {
-namespace meta {
+namespace mss { // abbreviation of meta_state_service
 
-struct node_creator
+/// This class provides convenience utilities to make meta_state_service more
+/// easier to use.
+///
+/// TODO(wutao1): Supports configurable retry policy. see
+/// https://github.com/Netflix/curator/wiki/Client#retry-policies.
+/// Currently it retries for every operation infinitely if they fail,
+/// and delays for 1sec for each attempt.
+struct helper
 {
-    node_creator(dist::meta_state_service *remote_storage, task_tracker *tracker);
+    helper(dist::meta_state_service *remote_storage, task_tracker *tracker);
 
-    ~node_creator();
+    ~helper();
 
     /// Asynchronously create nodes recursively from top down.
-    /// NOTICE: Currently this function runs infinitely until all nodes are created,
-    /// and for each failure it delays 1 sec for next retry.
-    /// TODO(wutao1): Configurable retry policy. see
-    /// https://github.com/Netflix/curator/wiki/Client#retry-policies.
-    void create_node_recursively(std::deque<std::string> &&nodes, dsn::blob &&value);
+    void create_node_recursively(std::deque<std::string> &&nodes,
+                                 dsn::blob &&value,
+                                 std::function<error_code> &&cb);
+
+    void create_node(std::string &&node, blob &&value, std::function<void(error_code)> &&cb);
+
+    void delete_node(std::string &&node, std::function<void(error_code)> &&cb);
+
+    void set_data(std::string &&node, blob &&value, std::function<void(error_code)> &&cb);
+
+    void get_data(std::string &&node, std::function<void(error_code, std::string)> &&cb);
 
 private:
-    class create_node;
-    std::unique_ptr<create_node> _create;
-    pipeline::base *_pipeline;
+    class impl;
+    std::unique_ptr<impl> _impl;
 };
 
-} // namespace meta
+} // namespace mss
 } // namespace replication
 } // namespace dsn

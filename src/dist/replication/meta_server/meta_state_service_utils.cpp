@@ -25,24 +25,17 @@
  */
 
 #include <dsn/cpp/pipeline.h>
-#include <dsn/dist/meta_state_service.h>
-#include <dsn/dist/replication.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/tool-api/task_tracker.h>
+#include <dsn/dist/replication.h>
+
 #include "meta_state_service_utils.h"
 
 namespace dsn {
 namespace replication {
-namespace meta {
+namespace mss {
 
-// TODO(wutao1): implement using future_task, which will makes it more simpler.
-struct create_node : pipeline::when<>
+struct on_create_node : pipeline::when<>
 {
-    create_node(dist::meta_state_service *remote_storage, task_tracker *tracker)
-            :_remote(remote_storage), _tracker(tracker)
-    {
-    }
-
     void run() override
     {
         if (_nodes.empty()) {
@@ -51,7 +44,7 @@ struct create_node : pipeline::when<>
         _cur_path = std::move(_nodes.front());
         _nodes.pop_front();
 
-        _remote->create_node(
+        auto task = _remote->create_node(
                 _cur_path,
                 LPC_META_STATE_HIGH,
                 [this](error_code ec) {
@@ -70,37 +63,46 @@ struct create_node : pipeline::when<>
                 _tracker);
     }
 
-    void assign_path_and_value(std::deque<std::string> &&nodes, dsn::blob &&val)
-    {
-        _nodes = std::move(nodes);
-        _val = std::move(val);
-    }
-
 private:
-    dist::meta_state_service *_remote;
-    task_tracker *_tracker;
-
     std::deque<std::string> _nodes;
     dsn::blob _val;
+    std::function<void(error_code)> _cb;
+
     std::string _cur_path;
 };
 
-void node_creator::create_node_recursively(std::deque<std::string> &&nodes, dsn::blob &&value)
+struct helper::impl : pipeline::base
 {
-    _create->assign_path_and_value(std::move(nodes), std::move(value));
-    _pipeline->run_pipeline();
+    impl(dist::meta_state_service *remote_storage, task_tracker *tracker)
+    {
+        task_tracker(tracker).thread_pool(LPC_META_STATE_HIGH);
+    }
+
+    ~impl()
+    {
+        wait_all();
+    }
+
+private:
+
+};
+
+void helper::create_node_recursively(std::deque<std::string> &&nodes,
+                                     dsn::blob &&value,
+                                     std::function<error_code> &&cb)
+{
+
 }
 
-node_creator::node_creator(dist::meta_state_service *remote_storage, task_tracker *tracker)
+helper::helper(dist::meta_state_service *remote_storage, task_tracker *tracker)
 {
     dassert(tracker != nullptr, "must set task tracker");
 
-    _create = dsn::make_unique<create_node>(remote_storage, tracker);
-    _pipeline->thread_pool().task_tracker(tracker).from(*_create);
+    _impl = dsn::make_unique<impl>(remote_storage, tracker);
 }
 
-node_creator::~node_creator() = default;
+helper::~helper() = default;
 
-} // namespace meta
+} // namespace mss
 } // namespace replication
 } // namespace dsn

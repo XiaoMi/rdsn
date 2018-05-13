@@ -28,5 +28,5 @@
 
 TEST(meta_state_service_utils, create_recursively)
 {
-    node_creator creator();
+
 }
