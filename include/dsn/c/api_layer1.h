@@ -442,7 +442,7 @@ Server-Side RPC Primitives
 /*! register callback to handle RPC request */
 extern DSN_API bool dsn_rpc_register_handler(dsn::task_code code,
                                              const char *extra_name,
-                                             const rpc_request_handler &cb);
+                                             const dsn::rpc_request_handler &cb);
 
 /*! unregister callback to handle RPC request, returns true if unregister ok, false if no handler
     was registered */

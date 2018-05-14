@@ -212,9 +212,11 @@ public:
 
     bool operator!=(T *r) const { return _obj != r; }
 
-public:
-    // users shouldn't access this field directly
+private:
     T *_obj;
+
+    template <typename U>
+    friend class ref_ptr;
 };
 
 } // end namespace dsn

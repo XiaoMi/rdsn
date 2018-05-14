@@ -459,8 +459,8 @@ void replica::on_update_configuration_on_meta_server_reply(
                                 err, request, response, std::move(req2));
                         },
                         get_gpid().thread_hash());
-                    dsn_rpc_call(target, t.get());
                     _primary_states.reconfiguration_task = t;
+                    dsn_rpc_call(target, t.get());
                     dsn_msg_release_ref(request);
                 },
                 get_gpid().thread_hash(),
@@ -660,6 +660,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
         if (config.status != partition_status::PS_SECONDARY &&
             config.status != partition_status::PS_ERROR) {
             if (!_secondary_states.cleanup(false)) {
+                // TODO(sunweijie): totally remove this
                 dsn::task *native_handle;
                 if (_secondary_states.checkpoint_task)
                     native_handle = _secondary_states.checkpoint_task.get();

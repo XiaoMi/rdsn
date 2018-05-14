@@ -108,9 +108,8 @@ public:
     rpc_server_dispatcher();
     ~rpc_server_dispatcher();
 
-    bool
-    register_rpc_handler(dsn::task_code code, const char *extra_name, const rpc_request_handler &h);
-    bool unregister_rpc_handler(dsn::task_code rpc_code);
+    bool register_rpc_handler(task_code code, const char *extra_name, const rpc_request_handler &h);
+    bool unregister_rpc_handler(task_code rpc_code);
     rpc_request_task *on_request(message_ex *msg, service_node *node);
     int handler_count() const
     {

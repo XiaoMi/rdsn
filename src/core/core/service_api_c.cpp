@@ -350,8 +350,9 @@ DSN_API dsn::rpc_address dsn_primary_address()
     return ::dsn::task::get_current_rpc()->primary_address();
 }
 
-DSN_API bool
-dsn_rpc_register_handler(dsn::task_code code, const char *extra_name, const rpc_request_handler &cb)
+DSN_API bool dsn_rpc_register_handler(dsn::task_code code,
+                                      const char *extra_name,
+                                      const dsn::rpc_request_handler &cb)
 {
     return ::dsn::task::get_current_node()->rpc_register_handler(code, extra_name, cb);
 }

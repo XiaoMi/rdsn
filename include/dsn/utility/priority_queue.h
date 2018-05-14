@@ -123,23 +123,24 @@ public:
     {
     }
 
-    virtual long enqueue(T obj, uint32_t priority)
+    virtual long enqueue(T obj, uint32_t priority) override
     {
         auto r = priority_queue<T, priority_count, TQueue>::enqueue(obj, priority);
         _sema.signal();
         return r;
     }
 
-    T dequeue_wait(/*out*/ long &ct, int millieseconds)
+    T dequeue_with_timeout(/*out*/ long &ct, int milliseconds)
     {
-        if (!_sema.wait(millieseconds)) {
+        if (!_sema.wait(milliseconds)) {
             ct = 0;
             return nullptr;
         }
         return priority_queue<T, priority_count, TQueue>::dequeue(ct);
     }
 
-    virtual T dequeue(/*out*/ long &ct) override { return dequeue_wait(ct, 0xffffffff); }
+    virtual T dequeue(/*out*/ long &ct) override { return dequeue_with_timeout(ct, 0xffffffff); }
+
 private:
     semaphore _sema;
 };

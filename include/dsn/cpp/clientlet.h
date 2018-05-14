@@ -58,7 +58,7 @@ private:
     bool _access_thread_id_inited;
 };
 
-inline void empty_rpc_handler(dsn::error_code, dsn_message_t, dsn_message_t) {}
+inline void empty_rpc_handler(error_code, dsn_message_t, dsn_message_t) {}
 
 // callback(error_code, TResponse&& response)
 template <typename TFunction, class Enable = void>
@@ -73,7 +73,7 @@ struct is_typed_rpc_callback<TFunction,
     // todo: check if response_t is marshallable
     using inspect_t = function_traits<TFunction>;
     constexpr static bool const value =
-        std::is_same<typename inspect_t::template arg_t<0>, dsn::error_code>::value &&
+        std::is_same<typename inspect_t::template arg_t<0>, error_code>::value &&
         std::is_default_constructible<
             typename std::decay<typename inspect_t::template arg_t<1>>::type>::value;
     using response_t = typename std::decay<typename inspect_t::template arg_t<1>>::type;
@@ -86,28 +86,27 @@ struct is_typed_rpc_callback<TFunction,
 
 namespace tasking {
 inline task_ptr
-create_task(dsn::task_code code, dsn::task_tracker *tracker, task_handler &&cb, int hash = 0)
+create_task(task_code code, task_tracker *tracker, task_handler &&callback, int hash = 0)
 {
-    dsn::task_ptr t(new dsn::raw_task(code, std::move(cb), hash, nullptr));
+    task_ptr t(new raw_task(code, std::move(callback), hash, nullptr));
     t->set_tracker(tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
+    t->spec().on_task_create.execute(task::get_current_task(), t);
     return t;
 }
 
-inline task_ptr create_timer_task(dsn::task_code code,
-                                  dsn::task_tracker *tracker,
-                                  task_handler &&cb,
+inline task_ptr create_timer_task(task_code code,
+                                  task_tracker *tracker,
+                                  task_handler &&callback,
                                   std::chrono::milliseconds interval,
                                   int hash = 0)
 {
-    dsn::task_ptr t(new dsn::timer_task(
-        code, std::move(cb), static_cast<uint32_t>(interval.count()), hash, nullptr));
+    task_ptr t(new timer_task(code, std::move(callback), interval.count(), hash, nullptr));
     t->set_tracker(tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
+    t->spec().on_task_create.execute(task::get_current_task(), t);
     return t;
 }
 
-inline task_ptr enqueue(dsn::task_code code,
+inline task_ptr enqueue(task_code code,
                         task_tracker *tracker,
                         task_handler &&callback,
                         int hash = 0,
@@ -119,14 +118,14 @@ inline task_ptr enqueue(dsn::task_code code,
     return tsk;
 }
 
-inline task_ptr enqueue_timer(dsn::task_code evt,
+inline task_ptr enqueue_timer(task_code evt,
                               task_tracker *tracker,
-                              task_handler &&cb,
+                              task_handler &&callback,
                               std::chrono::milliseconds timer_interval,
                               int hash = 0,
                               std::chrono::milliseconds delay = std::chrono::milliseconds(0))
 {
-    auto tsk = create_timer_task(evt, tracker, std::move(cb), timer_interval, hash);
+    auto tsk = create_timer_task(evt, tracker, std::move(callback), timer_interval, hash);
     tsk->set_delay(static_cast<int>(delay.count()));
     tsk->enqueue();
     return tsk;
@@ -134,10 +133,11 @@ inline task_ptr enqueue_timer(dsn::task_code evt,
 
 template <typename TCallback>
 inline dsn::ref_ptr<dsn::safe_late_task<TCallback>> create_late_task(
-    dsn::task_code code, const TCallback &cb, int hash = 0, task_tracker *tracker = nullptr)
+    dsn::task_code code, const TCallback &callback, int hash = 0, task_tracker *tracker = nullptr)
 {
     using result_task_type = safe_late_task<typename std::remove_cv<TCallback>::type>;
-    dsn::ref_ptr<result_task_type> ptr(new result_task_type(code, std::move(cb), hash, nullptr));
+    dsn::ref_ptr<result_task_type> ptr(
+        new result_task_type(code, std::move(callback), hash, nullptr));
     ptr->set_tracker(tracker);
     ptr->spec().on_task_create.execute(::dsn::task::get_current_task(), ptr);
     return ptr;
@@ -170,7 +170,7 @@ inline rpc_response_task_ptr create_rpc_response_task(dsn_message_t req,
     rpc_response_task_ptr t(
         new rpc_response_task((message_ex *)req, std::move(callback), reply_thread_hash, nullptr));
     t->set_tracker(tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
+    t->spec().on_task_create.execute(task::get_current_task(), t);
     return t;
 }
 
@@ -186,8 +186,8 @@ create_rpc_response_task(dsn_message_t req,
         tracker,
         [cb_fwd = std::move(cb)](error_code err, dsn_message_t req, dsn_message_t resp) mutable {
             typename is_typed_rpc_callback<TCallback>::response_t response = {};
-            if (err == dsn::ERR_OK) {
-                dsn::unmarshall(resp, response);
+            if (err == ERR_OK) {
+                unmarshall(resp, response);
             }
             cb_fwd(err, std::move(response));
         },
@@ -195,7 +195,7 @@ create_rpc_response_task(dsn_message_t req,
 }
 
 template <typename TCallback>
-rpc_response_task_ptr call(::dsn::rpc_address server,
+rpc_response_task_ptr call(rpc_address server,
                            dsn_message_t request,
                            task_tracker *tracker,
                            TCallback &&callback,
@@ -211,17 +211,17 @@ rpc_response_task_ptr call(::dsn::rpc_address server,
 // for TRequest/TResponse, we assume that the following routines are defined:
 //    marshall(binary_writer& writer, const T& val);
 //    unmarshall(binary_reader& reader, /*out*/ T& val);
-// either in the namespace of ::dsn::utils or T
+// either in the namespace of utils or T
 // developers may write these helper functions by their own, or use tools
 // such as protocol-buffer, thrift, or bond to generate these functions automatically
 // for their TRequest and TResponse
 //
 template <typename TRequest, typename TCallback>
 rpc_response_task_ptr
-call(dsn::rpc_address server,
-     dsn::task_code code,
+call(rpc_address server,
+     task_code code,
      TRequest &&req,
-     dsn::task_tracker *owner,
+     task_tracker *tracker,
      TCallback &&callback,
      std::chrono::milliseconds timeout = std::chrono::milliseconds(0),
      int thread_hash = 0, ///< if thread_hash == 0 && partition_hash != 0, thread_hash is
@@ -231,40 +231,40 @@ call(dsn::rpc_address server,
 {
     dsn_message_t msg = dsn_msg_create_request(
         code, static_cast<int>(timeout.count()), thread_hash, partition_hash);
-    ::dsn::marshall(msg, std::forward<TRequest>(req));
-    return call(server, msg, owner, std::forward<TCallback>(callback), reply_thread_hash);
+    marshall(msg, std::forward<TRequest>(req));
+    return call(server, msg, tracker, std::forward<TCallback>(callback), reply_thread_hash);
 }
 
 // no callback
 template <typename TRequest>
-void call_one_way_typed(::dsn::rpc_address server,
-                        dsn::task_code code,
+void call_one_way_typed(rpc_address server,
+                        task_code code,
                         const TRequest &req,
                         int thread_hash = 0, ///< if thread_hash == 0 && partition_hash != 0,
                                              /// thread_hash is computed from partition_hash
                         uint64_t partition_hash = 0)
 {
     dsn_message_t msg = dsn_msg_create_request(code, 0, thread_hash, partition_hash);
-    ::dsn::marshall(msg, req);
+    marshall(msg, req);
     dsn_rpc_call_one_way(server, msg);
 }
 
 template <typename TResponse>
-std::pair<::dsn::error_code, TResponse> wait_and_unwrap(rpc_response_task_ptr tsk)
+std::pair<error_code, TResponse> wait_and_unwrap(const rpc_response_task_ptr &tsk)
 {
     tsk->wait();
-    std::pair<::dsn::error_code, TResponse> result;
+    std::pair<error_code, TResponse> result;
     result.first = tsk->error();
-    if (tsk->error() == ::dsn::ERR_OK) {
-        ::dsn::unmarshall(tsk->get_response(), result.second);
+    if (tsk->error() == ERR_OK) {
+        unmarshall(tsk->get_response(), result.second);
     }
     return result;
 }
 
 template <typename TResponse, typename TRequest>
-std::pair<::dsn::error_code, TResponse>
-call_wait(::dsn::rpc_address server,
-          dsn::task_code code,
+std::pair<error_code, TResponse>
+call_wait(rpc_address server,
+          task_code code,
           TRequest &&req,
           std::chrono::milliseconds timeout = std::chrono::milliseconds(0),
           int thread_hash = 0,
@@ -289,11 +289,11 @@ call_wait(::dsn::rpc_address server,
 namespace file {
 
 inline aio_task_ptr
-create_aio_task(dsn::task_code code, task_tracker *tracker, aio_handler &&callback, int hash)
+create_aio_task(task_code code, task_tracker *tracker, aio_handler &&callback, int hash = 0)
 {
     aio_task_ptr t(new aio_task(code, std::move(callback), hash));
-    t->set_tracker((dsn::task_tracker *)tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
+    t->set_tracker((task_tracker *)tracker);
+    t->spec().on_task_create.execute(task::get_current_task(), t);
     return t;
 }
 
@@ -301,7 +301,7 @@ inline aio_task_ptr read(dsn_handle_t fh,
                          char *buffer,
                          int count,
                          uint64_t offset,
-                         dsn::task_code callback_code,
+                         task_code callback_code,
                          task_tracker *tracker,
                          aio_handler &&callback,
                          int hash = 0)
@@ -315,7 +315,7 @@ inline aio_task_ptr write(dsn_handle_t fh,
                           const char *buffer,
                           int count,
                           uint64_t offset,
-                          dsn::task_code callback_code,
+                          task_code callback_code,
                           task_tracker *tracker,
                           aio_handler &&callback,
                           int hash = 0)
@@ -329,7 +329,7 @@ inline aio_task_ptr write_vector(dsn_handle_t fh,
                                  const dsn_file_buffer_t *buffers,
                                  int buffer_count,
                                  uint64_t offset,
-                                 dsn::task_code callback_code,
+                                 task_code callback_code,
                                  task_tracker *tracker,
                                  aio_handler &&callback,
                                  int hash = 0)
@@ -339,21 +339,21 @@ inline aio_task_ptr write_vector(dsn_handle_t fh,
     return tsk;
 }
 
-void copy_remote_files_impl(::dsn::rpc_address remote,
+void copy_remote_files_impl(rpc_address remote,
                             const std::string &source_dir,
                             const std::vector<std::string> &files, // empty for all
                             const std::string &dest_dir,
                             bool overwrite,
                             bool high_priority,
-                            dsn::aio_task *tsk);
+                            aio_task *tsk);
 
-inline aio_task_ptr copy_remote_files(::dsn::rpc_address remote,
+inline aio_task_ptr copy_remote_files(rpc_address remote,
                                       const std::string &source_dir,
                                       const std::vector<std::string> &files, // empty for all
                                       const std::string &dest_dir,
                                       bool overwrite,
                                       bool high_priority,
-                                      dsn::task_code callback_code,
+                                      task_code callback_code,
                                       task_tracker *tracker,
                                       aio_handler &&callback,
                                       int hash = 0)
@@ -364,12 +364,12 @@ inline aio_task_ptr copy_remote_files(::dsn::rpc_address remote,
     return tsk;
 }
 
-inline aio_task_ptr copy_remote_directory(::dsn::rpc_address remote,
+inline aio_task_ptr copy_remote_directory(rpc_address remote,
                                           const std::string &source_dir,
                                           const std::string &dest_dir,
                                           bool overwrite,
                                           bool high_priority,
-                                          dsn::task_code callback_code,
+                                          task_code callback_code,
                                           task_tracker *tracker,
                                           aio_handler &&callback,
                                           int hash = 0)

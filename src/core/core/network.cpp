@@ -220,7 +220,7 @@ void rpc_session::start_read_next(int read_next)
                 start_read_next();
                 this->release_ref();
             }));
-            delay_task->enqueue();
+            delay_task->enqueue(std::chrono::milliseconds(delay_ms));
         } else {
             do_read(read_next);
         }

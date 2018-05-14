@@ -93,61 +93,110 @@ struct __tls_dsn__
 extern __thread struct __tls_dsn__ tls_dsn;
 
 ///
-/// Task is the asynchronous programming model in rDSN.
+/// Task is a component to support the asynchronous programming model in rDSN.
 ///
 /// Generally speaking, it's a mixture of "future" and "promise": when a task is created,
 /// "data provider" can use "promise"-like semantics to store value in it;
 /// on the other hand, "data consumer" can also use "future"-like semantics to:
 ///     1. wait a value to be ready
-///     2. assigining a callback when the value is ready
+///     2. assigining a callback, and execute the callback when the value is ready
 ///     3. cancel the execution of callback
 ///
-/// In order to support these features, a state called "task_state" is kept in each task,
+/// When creating the task, user must use several parameters to specify in which thread the
+/// callback should run. This is why you need 3 parameters to create the task:
+///
+///     1. node: specifies the computation engine of the callback, i.e, the "pool" of "thread_pool"
+///     2. task_code: a index to the "task_spec". task_spec specifies which thread pool of
+///        the computation engine to run the callback. some other task informations are also
+///        recorded in task_spec. please refer to @task_code, @task_spec, @thread_pool_code
+///        for more details.
+///     3. hash: specifies which thread in the thread pool to execute the callback. (This is
+///        somewhat not accurate, coz "hash" will work together with thread_pool's "partition"
+///        option. Please refer to @task_worker_pool for more details).
+///
+/// So the running thread of callback will be determined hierarchically:
+///
+///        |<---determined by "hash"
+///        |        |<-----determined by "code"
+///        |        |            |--------determined by "node"
+///        |        |            |
+/// |------|--------|------------V----------------------|     |--------------|
+/// | |----|--------V-------------|     |-------------| |     |              |
+/// | | |--V-----|     |--------| |     |             | |     |              |
+/// | | | thread | ... | thread | |     |             | |     |              |
+/// | | |--------|     |--------| |     |             | |     |              |
+/// | |       thread pool         | ... | thread pool | |     |              |
+/// | |---------------------------|     |-------------| |     |              |
+/// |                 service node                      | ... | service node |
+/// |---------------------------------------------------|     |--------------|
+///
+/// A status value called "task_state" is kept in each task to indicate the task running state,
 /// the transition among different states are:
 ///
-///                     |
+///                      |
 ///              (new created task)
-///                     |
-///                     V
-///     |-----------> ready------------|
-///     |               |              |
-/// (timer task)    (execute)       (cancel)
-///     |               |              |
-///     |               V              V
-///     |------------ running      cancelled
-///                     |
-///               (one shot tasks)
-///                     |
-///                     V
-///                  finished
+///                      |
+///                      V
+///      |-----------> ready------------|
+///      |               |              |
+/// (timer task)     (execute)       (cancel)
+///      |               |              |
+///      |               V              V
+///      |------------ running      cancelled
+///                      |
+///                (one shot task)
+///                      |
+///                      V
+///                   finished
 ///
-/// As shown above, a new created task will be in "ready" state. After data is got(like a rpc
-/// gets the response, or a disk io succeeds), the data provider module will store proper value
-/// into the task and dispatch it to some worker to execute the task with "enqueue".
+/// As shown above, a new created task will be in "ready" state. After obtaining the data
+/// (like a rpc gets the response, or a disk io succeeds), the data provider module will store
+/// proper value into the task and dispatch it to some thread to execute the task with "enqueue".
 ///
-/// After a task is "dequeued" from worker, it will be in "running" state.
+/// After a task is "dequeued" from thread, it will be in "running" state.
 ///
 /// For one shot tasks(in which callback can ONLY be executed ONCE),  the task will be in
 /// "finished" state after running of callbacks.
 ///
 /// But for timer tasks, the state will transit to "ready" again after "running"
-/// as the callback are executed periodically.
+/// as the callback need to be executed periodically.
 ///
-/// "Data consumer" can cancel the executation of "ready" tasks with "cancel". However, if a task
-/// is in not in "ready" state, the cancel will fail.
+/// "Data consumer" can cancel the executation of "ready" tasks with method "cancel". However,
+/// if a task is in not in "ready" state, the cancel will fail (returning false).
+///
+/// So from the perspective of task user, a created task can only be controlled by "enqueue" or
+/// "cancel". An "enqueue" operation will make the callback to execute at some time in the future,
+/// and an "cancel" operation will prevent the callback from executing.
+///
+/// So please take care when you call cancel. Memory leak may occur if you don't pay attention.
+/// For example:
+///
+/// int a = new int(5);
+/// raw_task t = new raw_task(code, [a](){ std::cout << *a << std::endl; delete a; }, hash, node);
+/// t->enqueue(10_seconds_latey);
+/// if (t->cancel()) {
+///    std::cout << "cancel succeed, the callback will not execute and a won't be deleted"
+///               << std::endl;
+/// }
+///
+/// In order to prevent this, we recommend you to pass RAII objects to callback:
+///
+/// std::shared_ptr<int> a = std::make_shared<int>(5);
+/// raw_task t = new raw_task(code, [a]() { std::cout << *a << std::endl; }, hash, node);
+///
+/// In this case, the callback object will be destructed if t is cancelled.
 ///
 /// Another key design in rDSN is that we add some "hook points" when the state is in transition,
-/// like "on_task_create", "on_task_enqueue", "on_task_dequeue". We can execute different functions
-/// for different purposes on these hook points, you may want to refer to
+/// like "on_task_create", "on_task_enqueue", "on_task_dequeue", etc. We can execute different
+/// functions for different purposes on these hook points, you may want to refer to
 /// "tracer", "profiler" and "fault_injector" for details.
 ///
-class task : public ref_counter, public extensible_object<task, 4>
+class task : public ref_counter, public extensible_object<task, 4>, public transient_object
 {
 public:
     task(dsn::task_code code, int hash = 0, service_node *node = nullptr);
 
     virtual ~task();
-    virtual void exec() = 0;
     virtual void enqueue();
 
     //
@@ -158,20 +207,23 @@ public:
     //
     // if finished isn't nullptr, it will be used to indicate
     // whether the task is finished/cancelled, that is to say:
-    //    *finished == true <- the task has been finished/cancelled after the function return
+    //    *finished == true <- the task has been finished/cancelled when this method returns
     //    *finished == false <- the task may still be running or ready(timer tasks)
     //
     bool cancel(bool wait_until_finished, /*out*/ bool *finished = nullptr);
 
-    // wait until a task to finished/cancelled
+    // wait until a task to finished/cancelled or timeout
     bool wait(int timeout_milliseconds = TIME_MS_MAX);
 
-    void exec_internal();
+    // TODO: modify delay from chrono to int, keep in consistency with other API
     void enqueue(std::chrono::milliseconds delay)
     {
         set_delay(static_cast<int>(delay.count()));
         enqueue();
     }
+
+    // used for task_worker to execute the task
+    void exec_internal();
 
     // only call this function when task is running
     //
@@ -223,6 +275,7 @@ protected:
     void enqueue(task_worker_pool *pool);
     void set_task_id(uint64_t tid) { _task_id = tid; }
 
+    virtual void exec() = 0;
     //
     // this function is used for clearing the callback assigned to this task.
     // as the callback is usually a functor, circular reference may occur if
@@ -247,8 +300,8 @@ protected:
     // we may call this function in "exec_internal" or "cancel". however, it's still subclass's
     // duty to define "how to clear the callback".
     //
-    // don't declare this as pure virtual function, coz it is used non-virtual function
-    // exec_internal & cancel
+    // don't declare this as pure virtual function, coz it is not necessary for every subclass
+    // to have a callback to clear.
     //
     virtual void clear_callback() {}
 
@@ -259,7 +312,7 @@ private:
     task(const task &);
     bool wait_on_cancel();
 
-    // return true there is any waiter been notified
+    // return true if some waiters have been notified
     bool signal_waiters();
 
     static void check_tls_dsn();
@@ -281,21 +334,17 @@ public:
 };
 typedef dsn::ref_ptr<dsn::task> task_ptr;
 
-class raw_task : public task, public transient_object
+class raw_task : public task
 {
 public:
-    raw_task(dsn::task_code code,
-             const task_handler &cb,
-             int hash = 0,
-             service_node *node = nullptr)
+    raw_task(task_code code, const task_handler &cb, int hash = 0, service_node *node = nullptr)
         : task(code, hash, node), _cb(cb)
     {
     }
-    raw_task(dsn::task_code code, task_handler &&cb, int hash = 0, service_node *node = nullptr)
+    raw_task(task_code code, task_handler &&cb, int hash = 0, service_node *node = nullptr)
         : task(code, hash, node), _cb(std::move(cb))
     {
     }
-    virtual ~raw_task() override { clear_callback(); }
 
     void exec() override
     {
@@ -316,17 +365,16 @@ protected:
 class timer_task : public task
 {
 public:
-    timer_task(dsn::task_code code,
+    timer_task(task_code code,
                const task_handler &cb,
-               uint32_t interval_milliseconds,
+               int interval_milliseconds,
                int hash = 0,
                service_node *node = nullptr);
-    timer_task(dsn::task_code code,
+    timer_task(task_code code,
                task_handler &&cb,
-               uint32_t interval_milliseconds,
+               int interval_milliseconds,
                int hash = 0,
                service_node *node = nullptr);
-    virtual ~timer_task() override { clear_callback(); }
 
     // for timer task, we will reset its state to TASK_READY after exec
     void exec() override;
@@ -338,51 +386,8 @@ protected:
 private:
     // ATTENTION: if _interval_milliseconds <= 0, then timer task will just be executed once;
     // otherwise, timer task will be executed periodically(period = _interval_milliseconds)
-    uint32_t _interval_milliseconds;
+    int _interval_milliseconds;
     task_handler _cb;
-};
-
-// Callack = std::funtion<void (const Type&)>
-template <typename Type, typename Callback>
-class future_task : public raw_task
-{
-public:
-    future_task(task_code code, const Callback &cb, int hash, service_node *node = nullptr)
-        : raw_task(code, nullptr, hash, node), _user_cb(cb)
-    {
-    }
-    future_task(task_code code, Callback &&cb, int hash, service_node *node = nullptr)
-        : raw_task(code, nullptr, 0, node), _user_cb(std::move(cb))
-    {
-    }
-    virtual ~future_task() override { clear_callback(); }
-
-    void enqueue_value(const Type &value, int delay_ms = 0)
-    {
-        if (dsn_likely(_user_cb != nullptr)) {
-            raw_task::_cb = [this, value]() { _user_cb(value); };
-        }
-        set_delay(delay_ms);
-        enqueue();
-    }
-    void enqueue_value(Type &&value, int delay_ms = 0)
-    {
-        if (dsn_likely(_user_cb != nullptr)) {
-            raw_task::_cb = [ this, v = std::forward<Type>(value) ]() { _user_cb(v); };
-        }
-        set_delay(delay_ms);
-        enqueue();
-    }
-
-protected:
-    void clear_callback() override
-    {
-        _cb = nullptr;
-        _user_cb = nullptr;
-    }
-
-private:
-    Callback _user_cb;
 };
 
 template <typename TCallback>
@@ -398,7 +403,6 @@ public:
         : raw_task(code, nullptr, hash, node), _user_cb(std::move(cb))
     {
     }
-    virtual ~safe_late_task() override { clear_callback(); }
 
     void bind_and_enqueue(const currying &c, int delay_ms = 0)
     {
@@ -420,7 +424,7 @@ private:
     TCallback _user_cb;
 };
 
-class rpc_request_task : public task, public transient_object
+class rpc_request_task : public task
 {
 public:
     rpc_request_task(message_ex *request, rpc_request_handler &&h, service_node *node);
@@ -456,7 +460,7 @@ protected:
 };
 typedef dsn::ref_ptr<rpc_request_task> rpc_request_task_ptr;
 
-class rpc_response_task : public task, public transient_object
+class rpc_response_task : public task
 {
 public:
     rpc_response_task(message_ex *request,
@@ -571,7 +575,7 @@ public:
     virtual ~disk_aio() {}
 };
 
-class aio_task : public task, public transient_object
+class aio_task : public task
 {
 public:
     aio_task(dsn::task_code code,

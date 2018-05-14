@@ -419,11 +419,8 @@ void task::enqueue(task_worker_pool *pool)
     pool->enqueue(this);
 }
 
-timer_task::timer_task(dsn::task_code code,
-                       const task_handler &cb,
-                       uint32_t interval_milliseconds,
-                       int hash,
-                       service_node *node)
+timer_task::timer_task(
+    task_code code, const task_handler &cb, int interval_milliseconds, int hash, service_node *node)
     : task(code, hash, node), _interval_milliseconds(interval_milliseconds), _cb(cb)
 {
     dassert(
@@ -432,11 +429,8 @@ timer_task::timer_task(dsn::task_code code,
         spec().name.c_str());
 }
 
-timer_task::timer_task(dsn::task_code code,
-                       task_handler &&cb,
-                       uint32_t interval_milliseconds,
-                       int hash,
-                       service_node *node)
+timer_task::timer_task(
+    task_code code, task_handler &&cb, int interval_milliseconds, int hash, service_node *node)
     : task(code, hash, node), _interval_milliseconds(interval_milliseconds), _cb(std::move(cb))
 {
     dassert(
@@ -484,7 +478,6 @@ rpc_request_task::rpc_request_task(message_ex *request, rpc_request_handler &&h,
 
 rpc_request_task::~rpc_request_task()
 {
-    clear_callback();
     _request->release_ref(); // added in ctor
 }
 
@@ -532,7 +525,6 @@ rpc_response_task::rpc_response_task(message_ex *request,
 
 rpc_response_task::~rpc_response_task()
 {
-    clear_callback();
     _request->release_ref(); // added in ctor
 
     if (_response != nullptr)
@@ -597,7 +589,6 @@ aio_task::aio_task(dsn::task_code code, aio_handler &&cb, int hash, service_node
 
 aio_task::~aio_task()
 {
-    clear_callback();
     delete _aio;
     _aio = nullptr;
 }

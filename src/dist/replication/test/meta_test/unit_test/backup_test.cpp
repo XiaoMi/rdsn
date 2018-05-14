@@ -133,8 +133,9 @@ class progress_liar : public meta_service
 {
 public:
     // req is held by callback, we don't need to handle the life-time of it
-    virtual void
-    send_request(dsn_message_t req, const rpc_address &target, rpc_response_task_ptr callback)
+    virtual void send_request(dsn_message_t req,
+                              const rpc_address &target,
+                              const rpc_response_task_ptr &callback)
     {
         // need to handle life-time manually
         dsn_message_t recved_req = create_corresponding_receive(req);

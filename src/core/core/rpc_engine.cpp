@@ -58,7 +58,7 @@ namespace dsn {
 
 DEFINE_TASK_CODE(LPC_RPC_TIMEOUT, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
 
-class rpc_timeout_task : public task, public transient_object
+class rpc_timeout_task : public task
 {
 public:
     rpc_timeout_task(rpc_client_matcher *matcher, uint64_t id, service_node *node)
@@ -69,10 +69,6 @@ public:
     }
 
     virtual void exec() { _matcher->on_rpc_timeout(_id); }
-
-protected:
-    void clear_callback() {}
-
 private:
     // use the following if the matcher is per rpc session
     // rpc_client_matcher_ptr _matcher;
@@ -707,9 +703,10 @@ void rpc_engine::call_uri(rpc_address addr, message_ex *request, const rpc_respo
                             req2->send_retry_count++;
                             req2->header->client.timeout_ms =
                                 static_cast<int>(deadline_ms - nms - gap);
-                            // current task must be rpc_response_task, and now we are in it's body
+
                             rpc_response_task_ptr ctask =
                                 dynamic_cast<rpc_response_task *>(task::get_current_task());
+                            dassert(ctask != nullptr, "current task must be rpc_response_task");
                             ctask->replace_callback(std::move(old_callback));
                             dassert(ctask->set_retry(false),
                                     "rpc_response_task set retry failed, state = %s",

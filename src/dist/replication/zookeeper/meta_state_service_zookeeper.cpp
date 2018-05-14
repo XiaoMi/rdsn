@@ -203,7 +203,7 @@ task_ptr meta_state_service_zookeeper::create_node(const std::string &node,
                                                    const blob &value,
                                                    dsn::task_tracker *tracker)
 {
-    task_ptr tsk = tasking::create_late_task<err_callback>(cb_code, cb_create, 0, tracker);
+    task_ptr tsk = tasking::create_late_task(cb_code, cb_create, 0, tracker);
     dinfo("call create, node(%s)", node.c_str());
     VISIT_INIT(tsk, zookeeper_session::ZOO_OPERATION::ZOO_CREATE, node);
     input->_value = value;

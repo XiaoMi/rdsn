@@ -239,14 +239,13 @@ TEST(core, dsn_file)
     uint64_t offset = 0;
     while (true) {
         aio_result rin;
-        dsn::aio_task *tin = new dsn::aio_task(LPC_AIO_TEST_READ,
-                                               [&rin](dsn::error_code err, size_t sz) {
-                                                   rin.err = err;
-                                                   rin.sz = sz;
-                                               },
-                                               0);
+        dsn::aio_task_ptr tin = new dsn::aio_task(LPC_AIO_TEST_READ,
+                                                  [&rin](dsn::error_code err, size_t sz) {
+                                                      rin.err = err;
+                                                      rin.sz = sz;
+                                                  },
+                                                  0);
         ASSERT_NE(nullptr, tin);
-        tin->add_ref();
         ASSERT_EQ(1, tin->get_count());
         dsn_file_read(fin, buffer, 1024, offset, tin);
         tin->wait();
@@ -261,17 +260,15 @@ TEST(core, dsn_file)
         if (dsn::tools::get_current_tool()->name() == "simulator") {
             ASSERT_EQ(1, tin->get_count());
         }
-        tin->release_ref();
 
         aio_result rout;
-        dsn::aio_task *tout = new dsn::aio_task(LPC_AIO_TEST_WRITE,
-                                                [&rout](dsn::error_code err, size_t sz) {
-                                                    rout.err = err;
-                                                    rout.sz = sz;
-                                                },
-                                                0);
+        dsn::aio_task_ptr tout = new dsn::aio_task(LPC_AIO_TEST_WRITE,
+                                                   [&rout](dsn::error_code err, size_t sz) {
+                                                       rout.err = err;
+                                                       rout.sz = sz;
+                                                   },
+                                                   0);
         ASSERT_NE(nullptr, tout);
-        tout->add_ref();
         dsn_file_write(fout, buffer, rin.sz, offset, tout);
         tout->wait();
         ASSERT_EQ(ERR_OK, rout.err);
@@ -282,7 +279,6 @@ TEST(core, dsn_file)
         if (dsn::tools::get_current_tool()->name() == "simulator") {
             ASSERT_EQ(1, tout->get_count());
         }
-        tout->release_ref();
 
         ASSERT_EQ(ERR_OK, dsn_file_flush(fout));
 
@@ -321,13 +317,12 @@ TEST(core, dsn_nfs)
         const char *files[] = {"nfs_test_file1", "nfs_test_file2", nullptr};
 
         aio_result r;
-        dsn::aio_task *t = new dsn::aio_task(LPC_AIO_TEST_NFS,
-                                             [&r](dsn::error_code err, size_t sz) {
-                                                 r.err = err;
-                                                 r.sz = sz;
-                                             },
-                                             0);
-        t->add_ref();
+        dsn::aio_task_ptr t = new dsn::aio_task(LPC_AIO_TEST_NFS,
+                                                [&r](dsn::error_code err, size_t sz) {
+                                                    r.err = err;
+                                                    r.sz = sz;
+                                                },
+                                                0);
         ASSERT_NE(nullptr, t);
         dsn_file_copy_remote_files(
             dsn::rpc_address("localhost", 20101), ".", files, "nfs_test_dir", false, false, t);
@@ -339,7 +334,6 @@ TEST(core, dsn_nfs)
         if (dsn::tools::get_current_tool()->name() == "simulator") {
             ASSERT_EQ(1, t->get_count());
         }
-        t->release_ref();
 
         ASSERT_TRUE(utils::filesystem::file_exists("nfs_test_dir/nfs_test_file1"));
         ASSERT_TRUE(utils::filesystem::file_exists("nfs_test_dir/nfs_test_file2"));
@@ -360,14 +354,13 @@ TEST(core, dsn_nfs)
         const char *files[] = {"nfs_test_file1", "nfs_test_file2", nullptr};
 
         aio_result r;
-        dsn::aio_task *t = new dsn::aio_task(LPC_AIO_TEST_NFS,
-                                             [&r](dsn::error_code err, size_t sz) {
-                                                 r.err = err;
-                                                 r.sz = sz;
-                                             },
-                                             0);
+        dsn::aio_task_ptr t = new dsn::aio_task(LPC_AIO_TEST_NFS,
+                                                [&r](dsn::error_code err, size_t sz) {
+                                                    r.err = err;
+                                                    r.sz = sz;
+                                                },
+                                                0);
         ASSERT_NE(nullptr, t);
-        t->add_ref();
         dsn_file_copy_remote_files(
             dsn::rpc_address("localhost", 20101), ".", files, "nfs_test_dir", true, false, t);
         ASSERT_TRUE(t->wait(20000));
@@ -378,20 +371,18 @@ TEST(core, dsn_nfs)
         if (dsn::tools::get_current_tool()->name() == "simulator") {
             ASSERT_EQ(1, t->get_count());
         }
-        t->release_ref();
     }
 
     { // copy nfs_test_dir nfs_test_dir_copy
         ASSERT_FALSE(utils::filesystem::directory_exists("nfs_test_dir_copy"));
 
         aio_result r;
-        dsn::aio_task *t = new dsn::aio_task(LPC_AIO_TEST_NFS,
-                                             [&r](dsn::error_code err, size_t sz) {
-                                                 r.err = err;
-                                                 r.sz = sz;
-                                             },
-                                             0);
-        t->add_ref();
+        dsn::aio_task_ptr t = new dsn::aio_task(LPC_AIO_TEST_NFS,
+                                                [&r](dsn::error_code err, size_t sz) {
+                                                    r.err = err;
+                                                    r.sz = sz;
+                                                },
+                                                0);
         ASSERT_NE(nullptr, t);
         dsn_file_copy_remote_directory(dsn::rpc_address("localhost", 20101),
                                        "nfs_test_dir",
@@ -407,7 +398,6 @@ TEST(core, dsn_nfs)
         if (dsn::tools::get_current_tool()->name() == "simulator") {
             ASSERT_EQ(1, t->get_count());
         }
-        t->release_ref();
 
         ASSERT_TRUE(utils::filesystem::directory_exists("nfs_test_dir_copy"));
         ASSERT_TRUE(utils::filesystem::file_exists("nfs_test_dir_copy/nfs_test_file1"));
