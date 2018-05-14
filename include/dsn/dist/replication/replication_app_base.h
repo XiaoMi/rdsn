@@ -219,8 +219,10 @@ public:
     // query compact state.
     virtual std::string query_compact_state() const = 0;
 
+    // check whether a manual compact task is enqueued.
     virtual bool manual_compact_enqueued() const = 0;
 
+    // check whether a manual compact task is executing.
     virtual bool manual_compact_executing() const = 0;
 
     // update app envs.
