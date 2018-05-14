@@ -299,7 +299,6 @@ private:
     friend class replication_checker;
     friend class test::test_checker;
     friend class ::meta_service_test_app;
-    friend class meta_split_service;
 
     dsn::task_tracker _tracker;
 

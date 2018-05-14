@@ -587,27 +587,6 @@ struct configuration_update_app_env_response
     2:string hint_message;
 }
 
-// Request to split the table. It is sent from client to meta.
-struct app_partition_split_request
-{
-    1:string                 app_name;
-    2:i32                    new_partition_count;
-}
-
-struct app_partition_split_response
-{
-    // Possible errors:
-    // - ERR_INVALID_PARAMETERS:
-    //   if the given new_partition_count != old_partition_count * 2
-    // - ERR_APP_NOT_EXIST
-    //   if the specified table is not available.
-    // - ERR_BUSY:
-    //   if there's ongoing split already.
-    1:dsn.error_code         err;
-    2:i32                    appid;
-    3:i32                    partition_count;
-}
-
 /*
 service replica_s
 {
