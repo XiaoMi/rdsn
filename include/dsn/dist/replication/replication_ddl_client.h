@@ -167,8 +167,6 @@ public:
     dsn::error_code
     clear_app_envs(const std::string &app_name, bool clear_all, const std::string &prefix);
 
-    dsn::error_code app_partition_split(const std::string &app_name, int partition_count);
-
 private:
     bool static valid_app_char(int c);
 
