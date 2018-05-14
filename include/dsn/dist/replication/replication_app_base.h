@@ -219,6 +219,10 @@ public:
     // query compact state.
     virtual std::string query_compact_state() const = 0;
 
+    virtual bool manual_compact_enqueued() const = 0;
+
+    virtual bool manual_compact_executing() const = 0;
+
     // update app envs.
     virtual void update_app_envs(const std::map<std::string, std::string> &envs) = 0;
 

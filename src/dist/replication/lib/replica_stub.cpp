@@ -59,7 +59,6 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _verbose_client_log_command(nullptr),
       _verbose_commit_log_command(nullptr),
       _trigger_chkpt_command(nullptr),
-      _manual_compact_command(nullptr),
       _query_compact_command(nullptr),
       _query_app_envs_command(nullptr),
       _deny_client(false),
@@ -254,6 +253,15 @@ void replica_stub::install_perf_counters()
         "cold.backup.max.upload.file.size",
         COUNTER_TYPE_NUMBER,
         "current cold backup max upload file size");
+
+    _counter_manual_compact_running_count.init_app_counter("eon.replica_stub",
+                                                           "manual.compact.running.count",
+                                                           COUNTER_TYPE_NUMBER,
+                                                           "current manual compact running count");
+    _counter_manual_compact_queue_count.init_app_counter("eon.replica_stub",
+                                                         "manual.compact.queue.count",
+                                                         COUNTER_TYPE_NUMBER,
+                                                         "current manual compact in queue count");
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
@@ -1393,8 +1401,10 @@ void replica_stub::on_gc()
     uint64_t cold_backup_running_count = 0;
     uint64_t cold_backup_max_duration_time_ms = 0;
     uint64_t cold_backup_max_upload_file_size = 0;
-    for (auto it = rs.begin(); it != rs.end(); ++it) {
-        replica_ptr &r = it->second;
+    uint64_t manual_compact_running_count = 0;
+    uint64_t manual_compact_queue_count = 0;
+    for (auto &it : rs) {
+        replica_ptr &r = it.second;
         if (r->status() == partition_status::PS_POTENTIAL_SECONDARY) {
             learning_count++;
             learning_max_duration_time_ms = std::max(learning_max_duration_time_ms,
@@ -1411,6 +1421,8 @@ void replica_stub::on_gc()
             cold_backup_max_upload_file_size = std::max(
                 cold_backup_max_upload_file_size, r->_cold_backup_max_upload_file_size.load());
         }
+        manual_compact_queue_count += r->manual_compact_enqueued();
+        manual_compact_running_count += r->manual_compact_executing();
     }
 
     _counter_replicas_learning_count->set(learning_count);
@@ -1419,6 +1431,8 @@ void replica_stub::on_gc()
     _counter_cold_backup_running_count->set(cold_backup_running_count);
     _counter_cold_backup_max_duration_time_ms->set(cold_backup_max_duration_time_ms);
     _counter_cold_backup_max_upload_file_size->set(cold_backup_max_upload_file_size);
+    _counter_manual_compact_running_count->set(manual_compact_running_count);
+    _counter_manual_compact_queue_count->set(manual_compact_queue_count);
 
     // gc shared prepare log
     //
@@ -2036,7 +2050,6 @@ void replica_stub::close()
     dsn::command_manager::instance().deregister_command(_verbose_client_log_command);
     dsn::command_manager::instance().deregister_command(_verbose_commit_log_command);
     dsn::command_manager::instance().deregister_command(_trigger_chkpt_command);
-    dsn::command_manager::instance().deregister_command(_manual_compact_command);
     dsn::command_manager::instance().deregister_command(_query_compact_command);
     dsn::command_manager::instance().deregister_command(_query_app_envs_command);
 
@@ -2045,7 +2058,6 @@ void replica_stub::close()
     _verbose_client_log_command = nullptr;
     _verbose_commit_log_command = nullptr;
     _trigger_chkpt_command = nullptr;
-    _manual_compact_command = nullptr;
     _query_compact_command = nullptr;
     _query_app_envs_command = nullptr;
 

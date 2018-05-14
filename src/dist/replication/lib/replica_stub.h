@@ -236,7 +236,6 @@ private:
     dsn_handle_t _verbose_client_log_command;
     dsn_handle_t _verbose_commit_log_command;
     dsn_handle_t _trigger_chkpt_command;
-    dsn_handle_t _manual_compact_command;
     dsn_handle_t _query_compact_command;
     dsn_handle_t _query_app_envs_command;
 
@@ -296,6 +295,9 @@ private:
     perf_counter_wrapper _counter_cold_backup_recent_upload_file_size;
     perf_counter_wrapper _counter_cold_backup_max_duration_time_ms;
     perf_counter_wrapper _counter_cold_backup_max_upload_file_size;
+
+    perf_counter_wrapper _counter_manual_compact_running_count;
+    perf_counter_wrapper _counter_manual_compact_queue_count;
 
     dsn::task_tracker _tracker;
 

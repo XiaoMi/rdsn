@@ -86,6 +86,10 @@ public:
 
     std::string query_compact_state() const override { return ""; }
 
+    bool manual_compact_enqueued() const override { return false; }
+
+    bool manual_compact_executing() const override { return false; }
+
     virtual void update_app_envs(const std::map<std::string, std::string> &envs) {}
 
     virtual void query_app_envs(/*out*/ std::map<std::string, std::string> &envs) {}
