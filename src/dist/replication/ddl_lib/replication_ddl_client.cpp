@@ -1427,35 +1427,5 @@ void replication_ddl_client::end_meta_request(
     }
     return ERR_OK;
 }
-
-error_code replication_ddl_client::app_partition_split(const std::string &app_name,
-                                                       int new_partition_count)
-{
-    if (app_name.empty() || new_partition_count == 0 || new_partition_count > 4096) {
-        return ERR_INVALID_PARAMETERS;
-    }
-
-    auto req = std::make_shared<app_partition_split_request>();
-    req->app_name = app_name;
-    req->new_partition_count = new_partition_count;
-
-    auto resp_task = request_meta<app_partition_split_request>(RPC_CM_APP_PARTITION_SPLIT, req);
-    resp_task->wait();
-    if (resp_task->error() != dsn::ERR_OK) {
-        return resp_task->error();
-    }
-
-    app_partition_split_response resp;
-    dsn::unmarshall(resp_task->response(), resp);
-    if (resp.err == ERR_INVALID_PARAMETERS && new_partition_count != resp.partition_count * 2) {
-        fmt::print("there are {} partitions in {}, new_partition_count should be {}\n",
-                   resp.partition_count,
-                   app_name,
-                   resp.partition_count * 2);
-    } else {
-        fmt::print("failed to split: {}", resp.err.to_string());
-    }
-    return resp.err;
-}
 }
 } // namespace

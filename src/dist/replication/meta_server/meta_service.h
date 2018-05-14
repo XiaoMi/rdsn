@@ -64,9 +64,6 @@ DEFINE_TASK_CODE(LPC_DEFAULT_CALLBACK, TASK_PRIORITY_COMMON, dsn::THREAD_POOL_DE
 typedef rpc_holder<configuration_update_app_env_request, configuration_update_app_env_response>
     app_env_rpc;
 
-typedef rpc_holder<app_partition_split_request, app_partition_split_response>
-    app_partition_split_rpc;
-
 class meta_service : public serverlet<meta_service>
 {
 public:
@@ -145,9 +142,6 @@ private:
 
     // cluster info
     void on_query_cluster_info(dsn_message_t req);
-
-    // split
-    void on_app_partition_split(app_partition_split_rpc rpc);
 
     // meta control
     void on_control_meta_level(dsn_message_t req);
