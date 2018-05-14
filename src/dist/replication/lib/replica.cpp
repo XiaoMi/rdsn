@@ -433,15 +433,12 @@ std::string replica::query_compact_state() const
 
 bool replica::manual_compact_enqueued()
 {
-    return _app != nullptr &&
-           _app->manual_compact_enqueued();
+    return _app != nullptr && _app->manual_compact_enqueued();
 }
 
 bool replica::manual_compact_executing()
 {
-    return _app != nullptr &&
-           _app->manual_compact_executing();
+    return _app != nullptr && _app->manual_compact_executing();
 }
-
 }
 } // namespace

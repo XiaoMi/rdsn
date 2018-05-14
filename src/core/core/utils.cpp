@@ -138,8 +138,7 @@ int64_t get_morning_time()
 int hm_of_day_to_sec(dsn::string_view hm)
 {
     int hour = 0, min = 0, sec = -1;
-    if (::sscanf(hm.data(), "%d:%d", &hour, &min) == 2 &&
-        (0 <= hour && hour <= 23) &&
+    if (::sscanf(hm.data(), "%d:%d", &hour, &min) == 2 && (0 <= hour && hour <= 23) &&
         (0 <= min && min <= 59)) {
         sec = 3600 * hour + 60 * min;
     }
