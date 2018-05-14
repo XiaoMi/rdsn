@@ -48,10 +48,26 @@ struct environment
                          delay_ms);
     }
 
+    environment &thread_pool(task_code tc)
+    {
+        __conf.thread_pool_code = tc;
+        return *this;
+    }
+    environment &thread_hash(int hash)
+    {
+        __conf.thread_hash = hash;
+        return *this;
+    }
+    environment &task_tracker(dsn::task_tracker *tracker)
+    {
+        __conf.tracker = tracker;
+        return *this;
+    }
+
     struct
     {
         task_code thread_pool_code;
-        task_tracker *tracker{nullptr};
+        dsn::task_tracker *tracker{nullptr};
         int thread_hash{0};
     } __conf;
 };
@@ -140,24 +156,6 @@ struct base : environment
 
     // Await for all running tasks to complete.
     void wait_all() { __conf.tracker->wait_outstanding_tasks(); }
-
-    /// === Environment Configuration === ///
-
-    base &thread_pool(task_code tc)
-    {
-        __conf.thread_pool_code = tc;
-        return *this;
-    }
-    base &thread_hash(int hash)
-    {
-        __conf.thread_hash = hash;
-        return *this;
-    }
-    base &task_tracker(task_tracker *tracker)
-    {
-        __conf.tracker = tracker;
-        return *this;
-    }
 
     /// === Pipeline Declaration === ///
     /// Declaration of pipeline is not thread-safe.
@@ -268,17 +266,6 @@ struct when : environment
     base *__pipeline{nullptr};
 };
 
-template <typename... Args>
-struct do_when : when<Args...>
-{
-    explicit do_when(std::function<void(Args &&... args)> &&func) : _cb(std::move(func)) {}
-
-    void run(Args &&... args) override { _cb(std::forward<Args>(args)...); }
-
-private:
-    std::function<void(Args &&...)> _cb;
-};
-
 inline void base::run_pipeline()
 {
     dassert(__conf.tracker != nullptr, "must configure task tracker");
@@ -290,6 +277,16 @@ inline void base::run_pipeline()
         stage->run();
     });
 }
+
+struct repeatable : environment
+{
+    virtual void run() = 0;
+
+    void repeat(std::chrono::milliseconds delay_ms = 0_ms)
+    {
+        schedule([this]() mutable { run(); }, delay_ms);
+    }
+};
 
 } // namespace pipeline
 } // namespace dsn

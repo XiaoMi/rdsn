@@ -29,79 +29,159 @@
 #include <dsn/dist/replication.h>
 
 #include "meta_state_service_utils.h"
+#include "meta_state_service_utils_impl.h"
 
 namespace dsn {
 namespace replication {
 namespace mss {
 
-struct on_create_node : pipeline::when<>
+void on_create_recursively::run()
 {
-    void run() override
-    {
-        if (_nodes.empty()) {
-            return;
-        }
-        _cur_path = std::move(_nodes.front());
-        _nodes.pop_front();
-
-        auto task = _remote->create_node(
-                _cur_path,
-                LPC_META_STATE_HIGH,
-                [this](error_code ec) {
-                  if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
-                      repeat();
-                      return;
-                  }
-                  if (ec == ERR_TIMEOUT) {
-                      dwarn_f("request on path({}) was timeout, retry after 1 second", _cur_path);
-                      repeat(1_s);
-                      return;
-                  }
-                  dfatal_f("we can't handle this error({})", ec);
-                },
-                _val,
-                _tracker);
+    if (_cur_path.empty()) {
+        _cur_path = std::move(nodes.front());
+        nodes.pop();
     }
 
-private:
-    std::deque<std::string> _nodes;
-    dsn::blob _val;
-    std::function<void(error_code)> _cb;
+    _impl->remote_storage()->create_node(_cur_path,
+                                         LPC_META_STATE_HIGH,
+                                         [this](error_code ec) {
+                                             if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
+                                                 if (nodes.empty()) {
+                                                     cb();
+                                                     return;
+                                                 }
 
-    std::string _cur_path;
-};
-
-struct helper::impl : pipeline::base
-{
-    impl(dist::meta_state_service *remote_storage, task_tracker *tracker)
-    {
-        task_tracker(tracker).thread_pool(LPC_META_STATE_HIGH);
-    }
-
-    ~impl()
-    {
-        wait_all();
-    }
-
-private:
-
-};
-
-void helper::create_node_recursively(std::deque<std::string> &&nodes,
-                                     dsn::blob &&value,
-                                     std::function<error_code> &&cb)
-{
-
+                                                 _cur_path.clear();
+                                                 repeat();
+                                                 return;
+                                             }
+                                             on_error(
+                                                 op_type::OP_CREATE_RECURSIVELY, ec, _cur_path);
+                                         },
+                                         val,
+                                         _impl->tracker());
 }
 
-helper::helper(dist::meta_state_service *remote_storage, task_tracker *tracker)
+void on_create::run()
+{
+    _impl->remote_storage()->create_node(node,
+                                         LPC_META_STATE_HIGH,
+                                         [this](error_code ec) {
+                                             if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
+                                                 cb();
+                                                 return;
+                                             }
+
+                                             on_error(op_type::OP_CREATE, ec, node);
+                                         },
+                                         val,
+                                         _impl->tracker());
+}
+
+void on_delete::run()
+{
+    _impl->remote_storage()->delete_node(node,
+                                         is_recursively_delete,
+                                         LPC_META_STATE_HIGH,
+                                         [this](error_code ec) {
+                                             if (ec == ERR_OK || ec == ERR_OBJECT_NOT_FOUND) {
+                                                 cb();
+                                                 return;
+                                             }
+
+                                             auto type = is_recursively_delete
+                                                             ? op_type::OP_DELETE_RECURSIVELY
+                                                             : op_type::OP_DELETE;
+                                             on_error(type, ec, node);
+                                         },
+                                         _impl->tracker());
+}
+
+void on_set_data::run()
+{
+    _impl->remote_storage()->set_data(node,
+                                      val,
+                                      LPC_META_STATE_HIGH,
+                                      [this](error_code ec) {
+                                          if (ec == ERR_OK) {
+                                              cb();
+                                              return;
+                                          }
+
+                                          on_error(op_type::OP_SET_DATA, ec, node);
+                                      },
+                                      _impl->tracker());
+}
+
+void on_get_data::run()
+{
+    _impl->remote_storage()->get_data(node,
+                                      LPC_META_STATE_HIGH,
+                                      [this](error_code ec, const blob &val) {
+                                          if (ec == ERR_OK) {
+                                              cb(val);
+                                              return;
+                                          }
+
+                                          on_error(op_type::OP_GET_DATA, ec, node);
+                                      },
+                                      _impl->tracker());
+}
+
+meta_storage::meta_storage(dist::meta_state_service *remote_storage, task_tracker *tracker)
 {
     dassert(tracker != nullptr, "must set task tracker");
 
-    _impl = dsn::make_unique<impl>(remote_storage, tracker);
+    _i = dsn::make_unique<impl>(remote_storage, tracker);
 }
 
-helper::~helper() = default;
+meta_storage::~meta_storage() = default;
+
+void meta_storage::create_node_recursively(std::queue<std::string> &&nodes,
+                                           blob &&value,
+                                           std::function<void()> &&cb)
+{
+    _i->_create_recursively.cb = std::move(cb);
+    _i->_create_recursively.val = std::move(value);
+    _i->_create_recursively.nodes = std::move(nodes);
+    _i->_create_recursively.run();
+}
+
+void meta_storage::create_node(std::string &&node, blob &&value, std::function<void()> &&cb)
+{
+    _i->_create.cb = std::move(cb);
+    _i->_create.node = std::move(node);
+    _i->_create.val = std::move(value);
+    _i->_create.run();
+}
+
+void meta_storage::delete_node_recursively(std::string &&node, std::function<void()> &&cb)
+{
+    _i->_delete.is_recursively_delete = true;
+    delete_node(std::move(node), std::move(cb));
+}
+
+void meta_storage::delete_node(std::string &&node, std::function<void()> &&cb)
+{
+    _i->_delete.cb = std::move(cb);
+    _i->_delete.node = std::move(node);
+    _i->_delete.run();
+}
+
+void meta_storage::set_data(std::string &&node, blob &&value, std::function<void()> &&cb)
+{
+    _i->_set.cb = std::move(cb);
+    _i->_set.node = std::move(node);
+    _i->_set.val = std::move(value);
+    _i->_set.run();
+}
+
+void meta_storage::get_data(std::string &&node, std::function<void(const blob&)> &&cb)
+{
+    _i->_get.cb = std::move(cb);
+    _i->_get.node = std::move(node);
+    _i->_get.run();
+}
 
 } // namespace mss
 } // namespace replication

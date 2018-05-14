@@ -30,35 +30,42 @@ namespace dsn {
 namespace replication {
 namespace mss { // abbreviation of meta_state_service
 
-/// This class provides convenience utilities to make meta_state_service more
-/// easier to use.
+/// This class is a convenience wrapper over meta_state_service.
+/// It wraps every operation in a error handling mechanism, and provides utilities
+/// like recursive node creation.
 ///
-/// TODO(wutao1): Supports configurable retry policy. see
-/// https://github.com/Netflix/curator/wiki/Client#retry-policies.
-/// Currently it retries for every operation infinitely if they fail,
-/// and delays for 1sec for each attempt.
-struct helper
+/// ERROR HANDLING:
+/// Currently it retries for every timeout(ERR_TIMEOUT) operation infinitely,
+/// and delays 1sec for each attempt. For unexpected failures it will terminate
+/// the program.
+/// \see meta_state_service_utils_impl.h # error_handling
+struct meta_storage
 {
-    helper(dist::meta_state_service *remote_storage, task_tracker *tracker);
+    meta_storage(dist::meta_state_service *remote_storage, task_tracker *tracker);
 
-    ~helper();
+    ~meta_storage();
 
     /// Asynchronously create nodes recursively from top down.
-    void create_node_recursively(std::deque<std::string> &&nodes,
-                                 dsn::blob &&value,
-                                 std::function<error_code> &&cb);
+    void create_node_recursively(std::queue<std::string> &&nodes,
+                                 blob &&value,
+                                 std::function<void()> &&cb);
 
-    void create_node(std::string &&node, blob &&value, std::function<void(error_code)> &&cb);
+    void create_node(std::string &&node, blob &&value, std::function<void()> &&cb);
 
-    void delete_node(std::string &&node, std::function<void(error_code)> &&cb);
+    void delete_node_recursively(std::string &&node, std::function<void()> &&cb);
 
-    void set_data(std::string &&node, blob &&value, std::function<void(error_code)> &&cb);
+    void delete_node(std::string &&node, std::function<void()> &&cb);
 
-    void get_data(std::string &&node, std::function<void(error_code, std::string)> &&cb);
+    void set_data(std::string &&node, blob &&value, std::function<void()> &&cb);
+
+    void get_data(std::string &&node, std::function<void(const blob &)> &&cb);
+
+    // TODO(wutao1): get_children_data: retrieve data of all children into a vector.
+
+    struct impl;
 
 private:
-    class impl;
-    std::unique_ptr<impl> _impl;
+    std::unique_ptr<impl> _i;
 };
 
 } // namespace mss
