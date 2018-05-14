@@ -54,7 +54,6 @@ class server_state;
 class meta_server_failure_detector;
 class server_load_balancer;
 class replication_checker;
-class meta_split_service;
 namespace test {
 class test_checker;
 }
@@ -175,7 +174,6 @@ private:
     std::shared_ptr<dist::meta_state_service> _storage;
     std::shared_ptr<server_load_balancer> _balancer;
     std::shared_ptr<backup_service> _backup_handler;
-    std::unique_ptr<meta_split_service> _split_svc;
 
     // handle all the block filesystems for current meta service
     // (in other words, current service node)
