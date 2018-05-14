@@ -24,9 +24,12 @@
  * THE SOFTWARE.
  */
 
+#pragma once
+
 #include <dsn/cpp/pipeline.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication.h>
+#include <dsn/utility/blob.h>
 
 #include "meta_state_service_utils.h"
 
@@ -74,7 +77,10 @@ struct error_handling : pipeline::repeatable
             repeat(1_s);
             return;
         }
-        dfatal_f("request({}) encountered an unexpected error({})", op_type::to_string(type), ec);
+        dfatal_f("request({}) on path({}) encountered an unexpected error({})",
+                 op_type::to_string(type),
+                 path,
+                 ec.to_string());
     }
 };
 
@@ -120,7 +126,7 @@ struct on_get_data : error_handling
     void run() override;
 
     // Arguments
-    std::function<void(const blob&)> cb;
+    std::function<void(const blob &)> cb;
     std::string node;
 
     meta_storage::impl *_impl{nullptr};

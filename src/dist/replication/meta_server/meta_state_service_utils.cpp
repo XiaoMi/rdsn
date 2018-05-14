@@ -37,21 +37,22 @@ namespace mss {
 
 void on_create_recursively::run()
 {
-    if (_cur_path.empty()) {
-        _cur_path = std::move(nodes.front());
-        nodes.pop();
+    if (nodes.empty()) {
+        cb();
+        _cur_path.clear();
+        return;
     }
+
+    if (!_cur_path.empty()) { // first node requires leading '/'
+        _cur_path += "/";
+    }
+    _cur_path += std::move(nodes.front());
+    nodes.pop();
 
     _impl->remote_storage()->create_node(_cur_path,
                                          LPC_META_STATE_HIGH,
                                          [this](error_code ec) {
                                              if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
-                                                 if (nodes.empty()) {
-                                                     cb();
-                                                     return;
-                                                 }
-
-                                                 _cur_path.clear();
                                                  repeat();
                                                  return;
                                              }
@@ -118,7 +119,7 @@ void on_get_data::run()
     _impl->remote_storage()->get_data(node,
                                       LPC_META_STATE_HIGH,
                                       [this](error_code ec, const blob &val) {
-                                          if (ec == ERR_OK) {
+                                          if (ec == ERR_OK || ec == ERR_OBJECT_NOT_FOUND) {
                                               cb(val);
                                               return;
                                           }
@@ -176,7 +177,7 @@ void meta_storage::set_data(std::string &&node, blob &&value, std::function<void
     _i->_set.run();
 }
 
-void meta_storage::get_data(std::string &&node, std::function<void(const blob&)> &&cb)
+void meta_storage::get_data(std::string &&node, std::function<void(const blob &)> &&cb)
 {
     _i->_get.cb = std::move(cb);
     _i->_get.node = std::move(node);

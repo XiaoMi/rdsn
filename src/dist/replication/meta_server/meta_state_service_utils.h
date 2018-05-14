@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#pragma once
+
 #include <dsn/dist/meta_state_service.h>
 
 namespace dsn {
@@ -58,6 +60,7 @@ struct meta_storage
 
     void set_data(std::string &&node, blob &&value, std::function<void()> &&cb);
 
+    /// If node does not exist, cb will receive an empty blob.
     void get_data(std::string &&node, std::function<void(const blob &)> &&cb);
 
     // TODO(wutao1): get_children_data: retrieve data of all children into a vector.
