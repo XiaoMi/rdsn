@@ -191,7 +191,7 @@ void mutation_log_shared::write_pending_mutations(bool release_lock_required)
             // notify the callbacks
             // ATTENTION: callback may be called before this code block executed done.
             for (auto &c : *callbacks) {
-                c->enqueue_aio(err, sz);
+                c->enqueue(err, sz);
             }
 
             // start to write next if possible

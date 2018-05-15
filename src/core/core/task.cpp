@@ -593,7 +593,7 @@ aio_task::~aio_task()
     _aio = nullptr;
 }
 
-void aio_task::enqueue_aio(error_code err, size_t transferred_size)
+void aio_task::enqueue(error_code err, size_t transferred_size)
 {
     set_error_code(err);
     _transferred_size = transferred_size;

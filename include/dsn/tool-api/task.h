@@ -116,13 +116,13 @@ extern __thread struct __tls_dsn__ tls_dsn;
 ///
 /// So the running thread of callback will be determined hierarchically:
 ///
-///        |<---determined by "hash"
+///        |<---determined by "node"
 ///        |        |<-----determined by "code"
-///        |        |            |--------determined by "node"
-///        |        |            |
-/// |------|--------|------------V----------------------|     |--------------|
-/// | |----|--------V-------------|     |-------------| |     |              |
-/// | | |--V-----|     |--------| |     |             | |     |              |
+///        |        |       |-------------determined by "hash"
+///        |        |       |
+/// |------V--------|-------|---------------------------|     |--------------|
+/// | |-------------V-------|-----|     |-------------| |     |              |
+/// | | |--------|     |----V---| |     |             | |     |              |
 /// | | | thread | ... | thread | |     |             | |     |              |
 /// | | |--------|     |--------| |     |             | |     |              |
 /// | |       thread pool         | ... | thread pool | |     |              |
@@ -586,7 +586,7 @@ public:
     aio_task(dsn::task_code code, aio_handler &&cb, int hash = 0, service_node *node = nullptr);
     ~aio_task();
 
-    void enqueue_aio(error_code err, size_t transferred_size);
+    void enqueue(error_code err, size_t transferred_size);
     size_t get_transferred_size() const { return _transferred_size; }
     disk_aio *aio() { return _aio; }
 

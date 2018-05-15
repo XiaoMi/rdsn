@@ -111,7 +111,7 @@ aio_task *disk_file::on_read_completed(aio_task *wk, error_code err, size_t size
 {
     dassert(wk->next == nullptr, "");
     auto ret = _read_queue.on_work_completed(wk, nullptr);
-    wk->enqueue_aio(err, size);
+    wk->enqueue(err, size);
     wk->release_ref(); // added in above read
 
     return ret;
@@ -132,10 +132,10 @@ aio_task *disk_file::on_write_completed(aio_task *wk, void *ctx, error_code err,
                     (int)size,
                     (int)this_size);
 
-            wk->enqueue_aio(err, this_size);
+            wk->enqueue(err, this_size);
             size -= this_size;
         } else {
-            wk->enqueue_aio(err, size);
+            wk->enqueue(err, size);
         }
 
         wk->release_ref(); // added in above write
@@ -214,12 +214,12 @@ error_code disk_engine::flush(dsn_handle_t fh)
 void disk_engine::read(aio_task *aio)
 {
     if (!_is_running) {
-        aio->enqueue_aio(ERR_SERVICE_NOT_FOUND, 0);
+        aio->enqueue(ERR_SERVICE_NOT_FOUND, 0);
         return;
     }
 
     if (!aio->spec().on_aio_call.execute(task::get_current_task(), aio, true)) {
-        aio->enqueue_aio(ERR_FILE_OPERATION_FAILED, 0);
+        aio->enqueue(ERR_FILE_OPERATION_FAILED, 0);
         return;
     }
 
@@ -263,12 +263,12 @@ public:
 void disk_engine::write(aio_task *aio)
 {
     if (!_is_running) {
-        aio->enqueue_aio(ERR_SERVICE_NOT_FOUND, 0);
+        aio->enqueue(ERR_SERVICE_NOT_FOUND, 0);
         return;
     }
 
     if (!aio->spec().on_aio_call.execute(task::get_current_task(), aio, true)) {
-        aio->enqueue_aio(ERR_FILE_OPERATION_FAILED, 0);
+        aio->enqueue(ERR_FILE_OPERATION_FAILED, 0);
         return;
     }
 
@@ -340,7 +340,7 @@ void disk_engine::complete_io(aio_task *aio, error_code err, uint32_t bytes, int
 
     // batching
     if (aio->code() == LPC_AIO_BATCH_WRITE) {
-        aio->enqueue_aio(err, (size_t)bytes);
+        aio->enqueue(err, (size_t)bytes);
         aio->release_ref(); // added in process_write
     }
 
