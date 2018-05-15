@@ -30,7 +30,7 @@
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/cpp/rpc_holder.h>
 #include <dsn/cpp/json_helper.h>
-#include <dsn/utility/errors.h>
+#include <dsn/utility/string_conv.h>
 
 namespace dsn {
 namespace replication {
@@ -43,19 +43,7 @@ typedef rpc_holder<duplication_sync_request, duplication_sync_response> duplicat
 
 typedef int32_t dupid_t;
 
-// TODO(wutao1): use boost::lexical_cast
-inline error_with<dupid_t> convert_str_to_dupid(const std::string &str)
-{
-    long val = strtol(str.data(), nullptr, 10);
-    int err_num = errno;
-    if (err_num == ERANGE || val > std::numeric_limits<int>::max()) {
-        return error_s::make(dsn::ERR_INVALID_PARAMETERS, "exceed the range of int");
-    }
-    if (val < 0) {
-        return error_s::make(dsn::ERR_INVALID_PARAMETERS, "value is not positive");
-    }
-    return static_cast<dupid_t>(val);
-}
+inline bool convert_str_to_dupid(string_view str, dupid_t *dupid) { return buf2int32(str, *dupid); }
 
 inline const char *duplication_status_to_string(const duplication_status::type &status)
 {

@@ -5,26 +5,19 @@
 #pragma once
 
 #include <cstdint>
-#include <cstddef>
-#include <cstring>
 #include <endian.h>
 #include <dsn/service_api_c.h>
+#include <dsn/utility/string_view.h>
 
-#include "string_view.h"
-
-namespace pegasus {
+namespace dsn {
 
 namespace endian {
-
-inline void hton() {}
 
 inline uint16_t hton(uint16_t v) { return htobe16(v); }
 
 inline uint32_t hton(uint32_t v) { return htobe32(v); }
 
 inline uint64_t hton(uint64_t v) { return htobe64(v); }
-
-inline void ntoh() {}
 
 inline uint16_t ntoh(uint16_t v) { return be16toh(v); }
 
@@ -76,7 +69,7 @@ private:
 class data_input
 {
 public:
-    explicit data_input(dsn::string_view s) : _p(s.data()), _size(s.size()) {}
+    explicit data_input(string_view s) : _p(s.data()), _size(s.size()) {}
 
     uint16_t read_u16() { return read_unsigned<uint16_t>(); }
 
@@ -84,7 +77,7 @@ public:
 
     uint64_t read_u64() { return read_unsigned<uint64_t>(); }
 
-    dsn::string_view read_str() { return {_p, _size}; }
+    string_view read_str() { return {_p, _size}; }
 
     void skip(size_t sz)
     {
@@ -124,4 +117,4 @@ private:
     size_t _size{0};
 };
 
-} // namespace pegasus
+} // namespace dsn
