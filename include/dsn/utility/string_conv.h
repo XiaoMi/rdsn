@@ -39,7 +39,7 @@ bool buf2signed(string_view buf, T &result)
 {
     static_assert(std::is_signed<T>::value, "buf2signed works only with signed integer");
 
-    if (buf.length() <= 0) {
+    if (buf.empty()) {
         return false;
     }
 
