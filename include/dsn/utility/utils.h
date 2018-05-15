@@ -66,12 +66,12 @@ uint64_t get_current_physical_time_ns();
 
 // get unix timestamp of current day's zero o'clock.
 // eg. `1525881600` returned when called on May 10, 2018, CST
-int64_t get_morning_time();
+int64_t get_morning_time_s();
 
 // `hh:mm` (range in [00:00, 23:59]) to seconds since 00:00:00
 // eg. `01:00` => `3600`
 // Return: -1 when invalid
-int hm_of_day_to_sec(dsn::string_view hm);
+int hm_of_day_to_seconds(dsn::string_view hm);
 
 // local time `hh:mm` to unix timestamp.
 // eg. `18:10` => `1525947000` when called on May 10, 2018, CST

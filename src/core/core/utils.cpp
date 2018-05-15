@@ -125,7 +125,7 @@ void time_ms_to_date_time(uint64_t ts_ms, int32_t &hour, int32_t &min, int32_t &
     sec = ret->tm_sec;
 }
 
-int64_t get_morning_time()
+int64_t get_morning_time_s()
 {
     time_t t = time(nullptr);
     struct tm *tm = localtime(&t);
@@ -135,7 +135,7 @@ int64_t get_morning_time()
     return static_cast<int64_t>(mktime(tm));
 }
 
-int hm_of_day_to_sec(dsn::string_view hm)
+int hm_of_day_to_seconds(dsn::string_view hm)
 {
     int hour = 0, min = 0, sec = -1;
     if (::sscanf(hm.data(), "%d:%d", &hour, &min) == 2 && (0 <= hour && hour <= 23) &&
@@ -147,12 +147,12 @@ int hm_of_day_to_sec(dsn::string_view hm)
 
 int64_t hm_of_day_to_time_s(string_view hm_of_day)
 {
-    int sec_of_day = hm_of_day_to_sec(hm_of_day);
+    int sec_of_day = hm_of_day_to_seconds(hm_of_day);
     if (sec_of_day == -1) {
         return -1;
     }
 
-    return get_morning_time() + sec_of_day;
+    return get_morning_time_s() + sec_of_day;
 }
 
 int pipe_execute(const char *command, std::ostream &output)
