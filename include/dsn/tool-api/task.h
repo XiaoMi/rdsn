@@ -194,7 +194,7 @@ extern __thread struct __tls_dsn__ tls_dsn;
 class task : public ref_counter, public extensible_object<task, 4>, public transient_object
 {
 public:
-    task(dsn::task_code code, int hash = 0, service_node *node = nullptr);
+    task(task_code code, int hash = 0, service_node *node = nullptr);
 
     virtual ~task();
     virtual void enqueue();
@@ -240,7 +240,7 @@ public:
 
     uint64_t id() const { return _task_id; }
     task_state state() const { return _state.load(std::memory_order_acquire); }
-    dsn::task_code code() const { return _spec->code; }
+    task_code code() const { return _spec->code; }
     task_spec &spec() const { return *_spec; }
     int hash() const { return _hash; }
     int delay_milliseconds() const { return _delay_milliseconds; }
@@ -578,12 +578,8 @@ public:
 class aio_task : public task
 {
 public:
-    aio_task(dsn::task_code code,
-             const aio_handler &cb,
-             int hash = 0,
-             service_node *node = nullptr);
-
-    aio_task(dsn::task_code code, aio_handler &&cb, int hash = 0, service_node *node = nullptr);
+    aio_task(task_code code, const aio_handler &cb, int hash = 0, service_node *node = nullptr);
+    aio_task(task_code code, aio_handler &&cb, int hash = 0, service_node *node = nullptr);
     ~aio_task();
 
     void enqueue(error_code err, size_t transferred_size);
