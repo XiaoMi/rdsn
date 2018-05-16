@@ -178,13 +178,14 @@ template <typename TCallback>
 typename std::enable_if<is_typed_rpc_callback<TCallback>::value, rpc_response_task_ptr>::type
 create_rpc_response_task(dsn_message_t req,
                          task_tracker *tracker,
-                         TCallback &&cb,
+                         TCallback &&callback,
                          int reply_thread_hash = 0)
 {
     return create_rpc_response_task(
         req,
         tracker,
-        [cb_fwd = std::move(cb)](error_code err, dsn_message_t req, dsn_message_t resp) mutable {
+        [cb_fwd =
+             std::move(callback)](error_code err, dsn_message_t req, dsn_message_t resp) mutable {
             typename is_typed_rpc_callback<TCallback>::response_t response = {};
             if (err == ERR_OK) {
                 unmarshall(resp, response);

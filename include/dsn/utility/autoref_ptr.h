@@ -180,6 +180,10 @@ public:
 
     ref_ptr<T> &operator=(ref_ptr<T> &&obj)
     {
+        if (this == &obj) {
+            return *this;
+        }
+
         if (nullptr != _obj) {
             _obj->release_ref();
         }

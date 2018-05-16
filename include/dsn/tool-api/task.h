@@ -93,21 +93,16 @@ struct __tls_dsn__
 extern __thread struct __tls_dsn__ tls_dsn;
 
 ///
-/// Task is a component to support the asynchronous programming model in rDSN.
+/// Task is a thread-like execution piece that is much lighter than a normal thread.
+/// Huge number of tasks may be hosted by a small number of actual threads run within
+/// a thread pool.
 ///
-/// Generally speaking, it's a mixture of "future" and "promise": when a task is created,
-/// "data provider" can use "promise"-like semantics to store value in it;
-/// on the other hand, "data consumer" can also use "future"-like semantics to:
-///     1. wait a value to be ready
-///     2. assigining a callback, and execute the callback when the value is ready
-///     3. cancel the execution of callback
-///
-/// When creating the task, user must use several parameters to specify in which thread the
-/// callback should run. This is why you need 3 parameters to create the task:
+/// When creating the task, user must use 3 parameters to specify in which thread the
+/// callback should run:
 ///
 ///     1. node: specifies the computation engine of the callback, i.e, the "pool" of "thread_pool"
 ///     2. task_code: a index to the "task_spec". task_spec specifies which thread pool of
-///        the computation engine to run the callback. some other task informations are also
+///        the computation engine to run the callback. some other task information is also
 ///        recorded in task_spec. please refer to @task_code, @task_spec, @thread_pool_code
 ///        for more details.
 ///     3. hash: specifies which thread in the thread pool to execute the callback. (This is
@@ -116,19 +111,19 @@ extern __thread struct __tls_dsn__ tls_dsn;
 ///
 /// So the running thread of callback will be determined hierarchically:
 ///
-///        |<---determined by "node"
-///        |        |<-----determined by "code"
-///        |        |       |-------------determined by "hash"
-///        |        |       |
-/// |------V--------|-------|---------------------------|     |--------------|
-/// | |-------------V-------|-----|     |-------------| |     |              |
-/// | | |--------|     |----V---| |     |             | |     |              |
-/// | | | thread | ... | thread | |     |             | |     |              |
-/// | | |--------|     |--------| |     |             | |     |              |
-/// | |       thread pool         | ... | thread pool | |     |              |
-/// | |---------------------------|     |-------------| |     |              |
-/// |                 service node                      | ... | service node |
-/// |---------------------------------------------------|     |--------------|
+///         |<---determined by "node"
+///         |        |<-----determined by "code"
+///         |        |       |-------------determined by "hash"
+///         |        |       |
+///  |------V--------|-------|---------------------------|     |--------------|
+///  | |-------------V-------|-----|     |-------------| |     |              |
+///  | | |--------|     |----V---| |     |             | |     |              |
+///  | | | thread | ... | thread | |     |             | |     |              |
+///  | | |--------|     |--------| |     |             | |     |              |
+///  | |       thread pool         | ... | thread pool | |     |              |
+///  | |---------------------------|     |-------------| |     |              |
+///  |                 service node                      | ... | service node |
+///  |---------------------------------------------------|     |--------------|
 ///
 /// A status value called "task_state" is kept in each task to indicate the task running state,
 /// the transition among different states are:
@@ -161,7 +156,7 @@ extern __thread struct __tls_dsn__ tls_dsn;
 /// But for timer tasks, the state will transit to "ready" again after "running"
 /// as the callback need to be executed periodically.
 ///
-/// "Data consumer" can cancel the executation of "ready" tasks with method "cancel". However,
+/// The callers can cancel the execution of "ready" tasks with method "cancel". However,
 /// if a task is in not in "ready" state, the cancel will fail (returning false).
 ///
 /// So from the perspective of task user, a created task can only be controlled by "enqueue" or
@@ -171,7 +166,7 @@ extern __thread struct __tls_dsn__ tls_dsn;
 /// So please take care when you call cancel. Memory leak may occur if you don't pay attention.
 /// For example:
 ///
-/// int a = new int(5);
+/// int *a = new int(5);
 /// raw_task t = new raw_task(code, [a](){ std::cout << *a << std::endl; delete a; }, hash, node);
 /// t->enqueue(10_seconds_latey);
 /// if (t->cancel()) {

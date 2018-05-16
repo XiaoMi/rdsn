@@ -47,8 +47,24 @@
 
 namespace dsn {
 typedef std::function<void()> task_handler;
+
+/// A callback to handle rpc requests.
+///
+/// Parameters:
+///  - dsn_message_t: the received rpc request
 typedef std::function<void(dsn_message_t)> rpc_request_handler;
+
+/// A callback to handle rpc responses.
+///
+/// Parameters:
+///  - error_code
+///  - dsn_message_t: the sent rpc request
+///  - dsn_message_t: the received rpc response
 typedef std::function<void(dsn::error_code, dsn_message_t, dsn_message_t)> rpc_response_handler;
+
+/// Parameters:
+///  - error_code
+///  - size_t: the read or written size of bytes from file.
 typedef std::function<void(dsn::error_code, size_t)> aio_handler;
 
 class task;
