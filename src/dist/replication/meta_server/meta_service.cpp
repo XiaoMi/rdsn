@@ -46,7 +46,6 @@
 #include "server_state.h"
 #include "meta_server_failure_detector.h"
 #include "server_load_balancer.h"
-#include "split/meta_split_service.h"
 
 namespace dsn {
 namespace replication {

@@ -43,6 +43,8 @@ struct error_handling : pipeline::repeatable
     {
         enum type
         {
+            OP_NONE,
+
             OP_CREATE_RECURSIVELY,
             OP_CREATE,
             OP_DELETE_RECURSIVELY,
@@ -62,8 +64,10 @@ struct error_handling : pipeline::repeatable
                 "OP_GET_DATA",
             };
 
-            dassert_f(v < sizeof(op_type_to_string_map), "invalid type: {}", v);
-            return op_type_to_string_map[v];
+            dassert_f(v != OP_NONE && v <= (sizeof(op_type_to_string_map) / sizeof(char *)),
+                      "invalid type: {}",
+                      v);
+            return op_type_to_string_map[v - 1];
         }
     };
 

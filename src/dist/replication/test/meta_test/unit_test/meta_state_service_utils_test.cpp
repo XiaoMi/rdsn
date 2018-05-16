@@ -60,9 +60,9 @@ protected:
 TEST_F(meta_state_service_utils_test, create_recursively)
 {
     _storage->create_node_recursively(
-        std::queue<std::string>({"/1", "2", "3", "4"}), dsn::blob("1", 0, 1), [&]() {
+        std::queue<std::string>({"/1", "2", "3", "4"}), dsn::blob("a", 0, 1), [&]() {
             _storage->get_data("/1/2/3/4",
-                               [](const blob &val) { ASSERT_EQ(val.to_string(), "1"); });
+                               [](const blob &val) { ASSERT_EQ(val.to_string(), "a"); });
         });
     _tracker.wait_outstanding_tasks();
 
@@ -74,7 +74,7 @@ TEST_F(meta_state_service_utils_test, delete_and_get)
 {
     // create and delete
     _storage->create_node(
-        "/2", dsn::blob("2", 0, 1), [&]() { _storage->delete_node("/2", []() {}); });
+        "/2", dsn::blob("b", 0, 1), [&]() { _storage->delete_node("/2", []() {}); });
     _tracker.wait_outstanding_tasks();
 
     // try get
@@ -85,9 +85,9 @@ TEST_F(meta_state_service_utils_test, delete_and_get)
 TEST_F(meta_state_service_utils_test, delete_recursively)
 {
     _storage->create_node_recursively(
-        std::queue<std::string>({"/1", "2", "3", "4"}), dsn::blob("1", 0, 1), [&]() {
-            _storage->set_data("/1", dsn::blob("1", 0, 1), [&]() {
-                _storage->get_data("/1", [](const blob &val) { ASSERT_EQ(val.to_string(), "1"); });
+        std::queue<std::string>({"/1", "2", "3", "4"}), dsn::blob("c", 0, 1), [&]() {
+            _storage->set_data("/1", dsn::blob("c", 0, 1), [&]() {
+                _storage->get_data("/1", [](const blob &val) { ASSERT_EQ(val.to_string(), "c"); });
             });
         });
     _tracker.wait_outstanding_tasks();
