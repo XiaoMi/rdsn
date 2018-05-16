@@ -100,6 +100,7 @@ public:
         copy,
         learn
     };
+
     template <typename T>
     static replication_app_base *create(replica *r)
     {
@@ -218,12 +219,6 @@ public:
 
     // query compact state.
     virtual std::string query_compact_state() const = 0;
-
-    // check whether a manual compact task is enqueued.
-    virtual bool manual_compact_enqueued() const = 0;
-
-    // check whether a manual compact task is executing.
-    virtual bool manual_compact_executing() const = 0;
 
     // update app envs.
     virtual void update_app_envs(const std::map<std::string, std::string> &envs) = 0;

@@ -253,15 +253,6 @@ void replica_stub::install_perf_counters()
         "cold.backup.max.upload.file.size",
         COUNTER_TYPE_NUMBER,
         "current cold backup max upload file size");
-
-    _counter_manual_compact_running_count.init_app_counter("eon.replica_stub",
-                                                           "manual.compact.running.count",
-                                                           COUNTER_TYPE_NUMBER,
-                                                           "current manual compact running count");
-    _counter_manual_compact_queue_count.init_app_counter("eon.replica_stub",
-                                                         "manual.compact.queue.count",
-                                                         COUNTER_TYPE_NUMBER,
-                                                         "current manual compact in queue count");
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
@@ -1401,8 +1392,6 @@ void replica_stub::on_gc()
     uint64_t cold_backup_running_count = 0;
     uint64_t cold_backup_max_duration_time_ms = 0;
     uint64_t cold_backup_max_upload_file_size = 0;
-    uint64_t manual_compact_running_count = 0;
-    uint64_t manual_compact_queue_count = 0;
     for (auto &it : rs) {
         replica_ptr &r = it.second;
         if (r->status() == partition_status::PS_POTENTIAL_SECONDARY) {
@@ -1421,8 +1410,6 @@ void replica_stub::on_gc()
             cold_backup_max_upload_file_size = std::max(
                 cold_backup_max_upload_file_size, r->_cold_backup_max_upload_file_size.load());
         }
-        manual_compact_queue_count += r->manual_compact_enqueued();
-        manual_compact_running_count += r->manual_compact_executing();
     }
 
     _counter_replicas_learning_count->set(learning_count);
@@ -1431,8 +1418,6 @@ void replica_stub::on_gc()
     _counter_cold_backup_running_count->set(cold_backup_running_count);
     _counter_cold_backup_max_duration_time_ms->set(cold_backup_max_duration_time_ms);
     _counter_cold_backup_max_upload_file_size->set(cold_backup_max_upload_file_size);
-    _counter_manual_compact_running_count->set(manual_compact_running_count);
-    _counter_manual_compact_queue_count->set(manual_compact_queue_count);
 
     // gc shared prepare log
     //
