@@ -424,11 +424,8 @@ void replica::close()
 
 std::string replica::query_compact_state() const
 {
-    if (_app != nullptr) {
-        return _app->query_compact_state();
-    }
-
-    return "app is not initialized";
+    dassert_replica(_app != nullptr, "");
+    return _app->query_compact_state();
 }
 }
 } // namespace

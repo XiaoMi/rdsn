@@ -209,48 +209,48 @@ TEST(core, ref_ptr)
     EXPECT_TRUE(count == 0);
 }
 
-TEST(core, hm_of_day_to_seconds)
+TEST(core, hh_mm_to_seconds)
 {
-    ASSERT_EQ(hm_of_day_to_seconds("00:00"), 0);
-    ASSERT_EQ(hm_of_day_to_seconds("23:59"), 86340);
-    ASSERT_EQ(hm_of_day_to_seconds("1:1"), 3660);
-    ASSERT_EQ(hm_of_day_to_seconds("01:1"), 3660);
-    ASSERT_EQ(hm_of_day_to_seconds("1:01"), 3660);
-    ASSERT_EQ(hm_of_day_to_seconds("01:01"), 3660);
+    ASSERT_EQ(hh_mm_to_seconds("00:00"), 0);
+    ASSERT_EQ(hh_mm_to_seconds("23:59"), 86340);
+    ASSERT_EQ(hh_mm_to_seconds("1:1"), 3660);
+    ASSERT_EQ(hh_mm_to_seconds("01:1"), 3660);
+    ASSERT_EQ(hh_mm_to_seconds("1:01"), 3660);
+    ASSERT_EQ(hh_mm_to_seconds("01:01"), 3660);
 
-    ASSERT_EQ(hm_of_day_to_seconds("23"), -1);
-    ASSERT_EQ(hm_of_day_to_seconds("23:"), -1);
-    ASSERT_EQ(hm_of_day_to_seconds(":59"), -1);
-    ASSERT_EQ(hm_of_day_to_seconds("-1:00"), -1);
-    ASSERT_EQ(hm_of_day_to_seconds("24:00"), -1);
-    ASSERT_EQ(hm_of_day_to_seconds("01:-1"), -1);
-    ASSERT_EQ(hm_of_day_to_seconds("01:60"), -1);
-    ASSERT_EQ(hm_of_day_to_seconds("a:00"), -1);
-    ASSERT_EQ(hm_of_day_to_seconds("01:b"), -1);
-    ASSERT_EQ(hm_of_day_to_seconds("01b"), -1);
+    ASSERT_EQ(hh_mm_to_seconds("23"), -1);
+    ASSERT_EQ(hh_mm_to_seconds("23:"), -1);
+    ASSERT_EQ(hh_mm_to_seconds(":59"), -1);
+    ASSERT_EQ(hh_mm_to_seconds("-1:00"), -1);
+    ASSERT_EQ(hh_mm_to_seconds("24:00"), -1);
+    ASSERT_EQ(hh_mm_to_seconds("01:-1"), -1);
+    ASSERT_EQ(hh_mm_to_seconds("01:60"), -1);
+    ASSERT_EQ(hh_mm_to_seconds("a:00"), -1);
+    ASSERT_EQ(hh_mm_to_seconds("01:b"), -1);
+    ASSERT_EQ(hh_mm_to_seconds("01b"), -1);
 }
 
-TEST(core, get_morning_time_s)
+TEST(core, get_unix_sec_today_midnight)
 {
-    ASSERT_LT(0, get_morning_time_s());
-    ASSERT_LE(get_morning_time_s(), time(nullptr));
-    ASSERT_GE(time(nullptr) - get_morning_time_s(), 0);
-    ASSERT_LT(time(nullptr) - get_morning_time_s(), 86400);
+    ASSERT_LT(0, get_unix_sec_today_midnight());
+    ASSERT_LE(get_unix_sec_today_midnight(), time(nullptr));
+    ASSERT_GE(time(nullptr) - get_unix_sec_today_midnight(), 0);
+    ASSERT_LT(time(nullptr) - get_unix_sec_today_midnight(), 86400);
 }
 
-TEST(core, hm_of_day_to_time_s)
+TEST(core, hh_mm_today_to_unix_sec)
 {
-    ASSERT_EQ(get_morning_time_s() + hm_of_day_to_seconds("0:0"), hm_of_day_to_time_s("0:0"));
-    ASSERT_EQ(get_morning_time_s() + hm_of_day_to_seconds("23:59"), hm_of_day_to_time_s("23:59"));
+    ASSERT_EQ(get_unix_sec_today_midnight() + hh_mm_to_seconds("0:0"), hh_mm_today_to_unix_sec("0:0"));
+    ASSERT_EQ(get_unix_sec_today_midnight() + hh_mm_to_seconds("23:59"), hh_mm_today_to_unix_sec("23:59"));
 
-    ASSERT_EQ(hm_of_day_to_time_s("23"), -1);
-    ASSERT_EQ(hm_of_day_to_time_s("23:"), -1);
-    ASSERT_EQ(hm_of_day_to_time_s(":59"), -1);
-    ASSERT_EQ(hm_of_day_to_time_s("-1:00"), -1);
-    ASSERT_EQ(hm_of_day_to_time_s("24:00"), -1);
-    ASSERT_EQ(hm_of_day_to_time_s("01:-1"), -1);
-    ASSERT_EQ(hm_of_day_to_time_s("01:60"), -1);
-    ASSERT_EQ(hm_of_day_to_time_s("a:00"), -1);
-    ASSERT_EQ(hm_of_day_to_time_s("01:b"), -1);
-    ASSERT_EQ(hm_of_day_to_time_s("01b"), -1);
+    ASSERT_EQ(hh_mm_today_to_unix_sec("23"), -1);
+    ASSERT_EQ(hh_mm_today_to_unix_sec("23:"), -1);
+    ASSERT_EQ(hh_mm_today_to_unix_sec(":59"), -1);
+    ASSERT_EQ(hh_mm_today_to_unix_sec("-1:00"), -1);
+    ASSERT_EQ(hh_mm_today_to_unix_sec("24:00"), -1);
+    ASSERT_EQ(hh_mm_today_to_unix_sec("01:-1"), -1);
+    ASSERT_EQ(hh_mm_today_to_unix_sec("01:60"), -1);
+    ASSERT_EQ(hh_mm_today_to_unix_sec("a:00"), -1);
+    ASSERT_EQ(hh_mm_today_to_unix_sec("01:b"), -1);
+    ASSERT_EQ(hh_mm_today_to_unix_sec("01b"), -1);
 }
