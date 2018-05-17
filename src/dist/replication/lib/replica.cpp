@@ -354,7 +354,11 @@ bool replica::group_configuration(/*out*/ partition_configuration &config) const
     return true;
 }
 
-decree replica::last_durable_decree() const { return _app->last_durable_decree(); }
+decree replica::last_durable_decree() const
+{
+    std::shared_ptr<replication_app_base> app = _app;
+    return app ? app->last_durable_decree() : invalid_decree;
+}
 
 decree replica::last_prepared_decree() const
 {
@@ -372,6 +376,22 @@ decree replica::last_prepared_decree() const
 }
 
 bool replica::verbose_commit_log() const { return _stub->_verbose_commit_log; }
+
+bool replica::prepare_close()
+{
+    dassert(status() == partition_status::PS_ERROR || status() == partition_status::PS_INACTIVE,
+            "%s: invalid state %s when calling replica::close",
+            name(),
+            enum_to_string(status()));
+
+    int not_finished = _tracker.cancel_but_not_wait_outstanding_tasks();
+    if (not_finished > 0) {
+        ddebug("%s: still %d tasks not finished", name(), not_finished);
+        return false;
+    } else {
+        return true;
+    }
+}
 
 void replica::close()
 {
@@ -417,10 +437,10 @@ void replica::close()
     }
 
     if (_app != nullptr) {
-        error_code err = _app->close(false);
+        std::shared_ptr<replication_app_base> app = std::move(_app);
+        error_code err = app->close(false);
         if (err != dsn::ERR_OK)
             ddebug("app close result: %s", err.to_string());
-        _app.reset();
     }
 
     _counter_private_log_size.clear();
@@ -442,6 +462,12 @@ bool replica::could_start_manual_compact()
 
 void replica::manual_compact(const std::map<std::string, std::string> &opts)
 {
+    // only applicable to primary and secondary replicas
+    if (status() != partition_status::PS_PRIMARY && status() != partition_status::PS_SECONDARY) {
+        ddebug("%s: ignore doing manual compact for status = %s", name(), enum_to_string(status()));
+        return;
+    }
+
     if (_app != nullptr) {
         ddebug("%s: start to execute manual compaction", name());
         uint64_t start = dsn_now_ms();
