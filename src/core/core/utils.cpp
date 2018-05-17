@@ -128,11 +128,12 @@ void time_ms_to_date_time(uint64_t ts_ms, int32_t &hour, int32_t &min, int32_t &
 int64_t get_unix_sec_today_midnight()
 {
     time_t t = time(nullptr);
-    struct tm *tm = localtime(&t);
-    tm->tm_hour = 0;
-    tm->tm_min = 0;
-    tm->tm_sec = 0;
-    return static_cast<int64_t>(mktime(tm));
+    struct tm tmp;
+    auto ret = localtime_r(&t, &tmp);
+    ret->tm_hour = 0;
+    ret->tm_min = 0;
+    ret->tm_sec = 0;
+    return static_cast<int64_t>(mktime(ret));
 }
 
 int hh_mm_to_seconds(dsn::string_view hhmm)
