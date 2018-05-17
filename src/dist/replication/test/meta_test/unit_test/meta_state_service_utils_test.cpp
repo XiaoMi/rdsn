@@ -26,6 +26,7 @@
 
 #include <gtest/gtest.h>
 #include <dsn/dist/meta_state_service.h>
+#include <fmt/format.h>
 
 #include "dist/replication/meta_server/meta_state_service_utils.h"
 
@@ -95,5 +96,20 @@ TEST_F(meta_state_service_utils_test, delete_recursively)
     _storage->delete_node_recursively("/1", [&]() {
         _storage->get_data("/1", [](const blob &val) { ASSERT_EQ(val.data(), nullptr); });
     });
+    _tracker.wait_outstanding_tasks();
+}
+
+TEST_F(meta_state_service_utils_test, concurrent_create)
+{
+    for (int i = 1; i <= 100; i++) {
+        _storage->create_node(
+            fmt::format("/{}", i), dsn::blob(fmt::format("{}", i).c_str(), 0, 1), [&]() {});
+    }
+    _tracker.wait_outstanding_tasks();
+
+    for (int i = 1; i <= 100; i++) {
+        _storage->get_data(fmt::format("/{}", i),
+                           [](const blob &val) { ASSERT_EQ(val.to_string(), std::to_string(i)); });
+    }
     _tracker.wait_outstanding_tasks();
 }

@@ -142,46 +142,32 @@ void meta_storage::create_node_recursively(std::queue<std::string> &&nodes,
                                            blob &&value,
                                            std::function<void()> &&cb)
 {
-    _i->_create_recursively.cb = std::move(cb);
-    _i->_create_recursively.val = std::move(value);
-    _i->_create_recursively.nodes = std::move(nodes);
-    _i->_create_recursively.run();
+    _i->create_node_recursively(std::move(nodes), std::move(value), std::move(cb));
 }
 
 void meta_storage::create_node(std::string &&node, blob &&value, std::function<void()> &&cb)
 {
-    _i->_create.cb = std::move(cb);
-    _i->_create.node = std::move(node);
-    _i->_create.val = std::move(value);
-    _i->_create.run();
+    _i->create_node(std::move(node), std::move(value), std::move(cb));
 }
 
 void meta_storage::delete_node_recursively(std::string &&node, std::function<void()> &&cb)
 {
-    _i->_delete.is_recursively_delete = true;
-    delete_node(std::move(node), std::move(cb));
+    _i->delete_node(std::move(node), std::move(cb), true);
 }
 
 void meta_storage::delete_node(std::string &&node, std::function<void()> &&cb)
 {
-    _i->_delete.cb = std::move(cb);
-    _i->_delete.node = std::move(node);
-    _i->_delete.run();
+    _i->delete_node(std::move(node), std::move(cb), false);
 }
 
 void meta_storage::set_data(std::string &&node, blob &&value, std::function<void()> &&cb)
 {
-    _i->_set.cb = std::move(cb);
-    _i->_set.node = std::move(node);
-    _i->_set.val = std::move(value);
-    _i->_set.run();
+    _i->set_data(std::move(node), std::move(value), std::move(cb));
 }
 
 void meta_storage::get_data(std::string &&node, std::function<void(const blob &)> &&cb)
 {
-    _i->_get.cb = std::move(cb);
-    _i->_get.node = std::move(node);
-    _i->_get.run();
+    _i->get_data(std::move(node), std::move(cb));
 }
 
 } // namespace mss

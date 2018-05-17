@@ -155,6 +155,64 @@ struct meta_storage::impl
         initialize(_get);
     }
 
+    /// Asynchronously create nodes recursively from top down.
+    void create_node_recursively(std::queue<std::string> &&nodes,
+                                 blob &&value,
+                                 std::function<void()> &&cb)
+    {
+        on_create_recursively op;
+        initialize(op);
+
+        op.cb = std::move(cb);
+        op.val = std::move(value);
+        op.nodes = std::move(nodes);
+        op.run();
+    }
+
+    void create_node(std::string &&node, blob &&value, std::function<void()> &&cb)
+    {
+        on_create op;
+        initialize(op);
+
+        op.cb = std::move(cb);
+        op.node = std::move(node);
+        op.val = std::move(value);
+        op.run();
+    }
+
+    void delete_node(std::string &&node, std::function<void()> &&cb, bool is_recursive)
+    {
+        on_delete op;
+        initialize(op);
+
+        op.is_recursively_delete = is_recursive;
+        op.cb = std::move(cb);
+        op.node = std::move(node);
+        op.run();
+    }
+
+    void set_data(std::string &&node, blob &&value, std::function<void()> &&cb)
+    {
+        on_set_data op;
+        initialize(op);
+
+        op.cb = std::move(cb);
+        op.node = std::move(node);
+        op.val = std::move(value);
+        op.run();
+    }
+
+    /// If node does not exist, cb will receive an empty blob.
+    void get_data(std::string &&node, std::function<void(const blob &)> &&cb)
+    {
+        on_get_data op;
+        initialize(op);
+
+        op.cb = std::move(cb);
+        op.node = std::move(node);
+        op.run();
+    }
+
     dist::meta_state_service *remote_storage() const { return _remote; }
 
     dsn::task_tracker *tracker() const { return _tracker; }
