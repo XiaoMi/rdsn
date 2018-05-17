@@ -34,9 +34,9 @@
 #pragma once
 
 #include <dsn/utility/autoref_ptr.h>
+#include <dsn/tool-api/auto_codes.h>
 #include <dsn/cpp/clientlet.h>
 #include <dsn/dist/distributed_lock_service.h>
-#include <dsn/tool-api/auto_codes.h>
 
 namespace dsn {
 namespace dist {
@@ -48,8 +48,5 @@ class distributed_lock_service_zookeeper;
 class lock_struct;
 typedef ref_ptr<distributed_lock_service_zookeeper> lock_srv_ptr;
 typedef ref_ptr<lock_struct> lock_struct_ptr;
-
-typedef ref_ptr<safe_late_task<distributed_lock_service::lock_callback>> lock_task_t;
-typedef ref_ptr<safe_late_task<distributed_lock_service::err_callback>> unlock_task_t;
 }
 }
