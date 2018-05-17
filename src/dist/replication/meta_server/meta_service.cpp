@@ -99,6 +99,7 @@ error_code meta_service::remote_storage_initialize()
         return err;
     }
     _storage.reset(storage);
+    _meta_storage = dsn::make_unique<mss::meta_storage>(_storage.get(), &_tracker);
 
     std::vector<std::string> slices;
     utils::split_args(_meta_opts.cluster_root.c_str(), slices, '/');

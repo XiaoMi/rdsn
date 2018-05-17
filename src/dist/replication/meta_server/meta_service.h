@@ -58,6 +58,9 @@ class meta_split_service;
 namespace test {
 class test_checker;
 }
+namespace mss {
+class meta_storage;
+} // namespace mss
 
 DEFINE_TASK_CODE(LPC_DEFAULT_CALLBACK, TASK_PRIORITY_COMMON, dsn::THREAD_POOL_DEFAULT)
 
@@ -77,7 +80,11 @@ public:
 
     const replication_options &get_options() const { return _opts; }
     const meta_options &get_meta_options() const { return _meta_opts; }
-    dist::meta_state_service *get_remote_storage() { return _storage.get(); }
+
+    /// DEPRECATE: use mss::meta_storage instead.
+    dist::meta_state_service *get_remote_storage() const { return _storage.get(); }
+    mss::meta_storage *get_meta_storage() const { return _meta_storage.get(); }
+
     server_state *get_server_state() { return _state.get(); }
     server_load_balancer *get_balancer() { return _balancer.get(); }
     block_service_manager &get_block_service_manager() { return _block_service_manager; }
@@ -178,7 +185,10 @@ private:
 
     std::shared_ptr<server_state> _state;
     std::shared_ptr<meta_server_failure_detector> _failure_detector;
+
     std::shared_ptr<dist::meta_state_service> _storage;
+    std::unique_ptr<mss::meta_storage> _meta_storage;
+
     std::shared_ptr<server_load_balancer> _balancer;
     std::shared_ptr<backup_service> _backup_handler;
     std::unique_ptr<meta_split_service> _split_svc;

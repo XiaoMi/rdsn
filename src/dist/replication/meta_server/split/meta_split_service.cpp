@@ -27,6 +27,7 @@
 #include <dsn/dist/fmt_logging.h>
 
 #include "dist/replication/meta_server/split/meta_split_service.h"
+#include "dist/replication/meta_server/meta_state_service_utils.h"
 
 namespace dsn {
 namespace replication {
@@ -35,18 +36,18 @@ namespace replication {
 void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
 {
     const auto &request = rpc.request();
-    ddebug_f("split partition for app(%s), new_partition_count=%d",
+    ddebug_f("split partition for app({}), new_partition_count={}",
              request.app_name,
              request.new_partition_count);
 
     auto &response = rpc.response();
     response.err = ERR_OK;
 
+    std::shared_ptr<app_state> app;
     { // validate rpc parameters
-        zauto_write_lock l(app_lock());
 
         // if app is not available
-        std::shared_ptr<app_state> app = _state->get_app(request.app_name);
+        app = _state->get_app(request.app_name);
         if (!app || app->status != app_status::AS_AVAILABLE) {
             response.err = ERR_APP_NOT_EXIST;
             return;
@@ -75,6 +76,27 @@ void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
     }
 
     // validation passed
+    do_app_partition_split(std::move(app), std::move(rpc));
+}
+
+void meta_split_service::do_app_partition_split(std::shared_ptr<app_state> app,
+                                                app_partition_split_rpc rpc)
+{
+    auto copy = *app;
+    copy.partition_count *= 2;
+    blob value = dsn::json::json_forwarder<app_info>::encode(copy);
+
+    _meta_svc->get_meta_storage()->set_data(
+        _state->get_app_path(*app), std::move(value), [app, rpc]() {
+            zauto_write_lock l(app_lock());
+            app->partition_count *= 2;
+            app->partitions.resize(static_cast<size_t>(app->partition_count));
+            for (int i = app->partition_count / 2; i < app->partition_count; i++) {
+                app->partitions[i].ballot = -1;
+                app->partitions[i].pid = gpid(app->app_id, i);
+            }
+            rpc.response().partition_count = app->partition_count;
+        });
 }
 
 } // namespace replication

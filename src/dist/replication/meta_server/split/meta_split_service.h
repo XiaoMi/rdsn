@@ -39,22 +39,21 @@ public:
     {
     }
 
+    /// 1. validation of rpc request
+    /// 2. record new partition configuration into meta store
     void app_partition_split(app_partition_split_rpc rpc);
 
     /// ========== Implementation ========== ///
+
+    void do_app_partition_split(std::shared_ptr<app_state> app, app_partition_split_rpc rpc);
 
 private:
     // get lock to protect access of tables
     zrwlock_nr &app_lock() const { return _state->_lock; }
 
-    task_tracker *tracker() { return &_tracker; }
-    void wait_all() { tracker()->cancel_outstanding_tasks(); }
-
 private:
     meta_service *_meta_svc;
     server_state *_state;
-
-    task_tracker _tracker;
 };
 
 } // namespace replication
