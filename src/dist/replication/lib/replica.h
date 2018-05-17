@@ -62,6 +62,7 @@ class replication_checker;
 namespace test {
 class test_checker;
 }
+class replica_split;
 
 using namespace ::dsn::service;
 
@@ -305,6 +306,7 @@ private:
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::mutation_queue;
     friend class ::dsn::replication::replica_stub;
+    friend class replica_split;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -377,6 +379,8 @@ private:
 
     bool _inactive_is_transient; // upgrade to P/S is allowed only iff true
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
+
+    std::unique_ptr<replica_split> _split;
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
