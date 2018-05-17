@@ -59,7 +59,7 @@
 /// dsn_config_xxx function works
 ///
 /// the function is not thread safe.
-bool load_config(const char *file, const char *arguments);
+bool dsn_config_load(const char *file, const char *arguments);
 
 /// the section format:
 /// [section]

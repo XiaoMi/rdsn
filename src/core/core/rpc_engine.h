@@ -140,7 +140,7 @@ private:
 class rpc_engine
 {
 public:
-    rpc_engine(service_node *node);
+    explicit rpc_engine(service_node *node);
 
     //
     // management routines

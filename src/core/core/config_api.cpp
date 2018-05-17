@@ -4,7 +4,10 @@
 
 dsn::configuration g_config;
 
-bool load_config(const char *file, const char *arguments) { return g_config.load(file, arguments); }
+bool dsn_config_load(const char *file, const char *arguments)
+{
+    return g_config.load(file, arguments);
+}
 
 const char *dsn_config_get_value_string(const char *section,
                                         const char *key,

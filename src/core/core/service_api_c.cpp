@@ -692,7 +692,7 @@ bool run(const char *config_file,
     dsn_all.memory = nullptr;
     dsn_all.magic = 0xdeadbeef;
 
-    if (!load_config(config_file, config_arguments)) {
+    if (!dsn_config_load(config_file, config_arguments)) {
         printf("Fail to load config file %s\n", config_file);
         return false;
     }
