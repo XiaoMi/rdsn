@@ -23,42 +23,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#pragma once
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
+#include <functional>
+#include <dsn/utility/error_code.h>
+#include <dsn/tool-api/task.h>
 
-// apps
-#include "simple_kv.app.example.h"
-#include "simple_kv.server.impl.h"
-
-// framework specific tools
-#include <dsn/utility/optional.h>
-#include <dsn/dist/replication/meta_service_app.h>
-#include <dsn/dist/replication/replication_service_app.h>
-#include <dsn/dist/replication/replication.global_check.h>
-
-static void dsn_app_registration_simple_kv()
-{
-    dsn::replication::application::simple_kv_service_impl::register_service();
-
-    dsn_meta_server_bridge(0, nullptr);
-    dsn_layer2_stateful_type1_bridge(0, nullptr);
-
-    dsn::service_app::register_factory<dsn::replication::application::simple_kv_client_app>(
-        "client");
-    dsn::service_app::register_factory<
-        ::dsn::replication::application::simple_kv_perf_test_client_app>("client.perf.test");
-}
-
-int main(int argc, char **argv)
-{
-    dsn_app_registration_simple_kv();
-    dsn_run(argc, argv, true);
-    return 0;
+namespace dsn {
+typedef std::function<void(dsn::error_code)> err_callback;
+typedef future_task<dsn::error_code> error_code_future;
+typedef dsn::ref_ptr<error_code_future> error_code_future_ptr;
 }
