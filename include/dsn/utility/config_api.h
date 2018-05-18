@@ -109,6 +109,10 @@ void dsn_config_get_all_sections(/*out*/ std::vector<const char *> &sections);
 
 /// get all keys in some specific section
 /// this function is not thread safe if dsn_config_set is concurrently called
+void dsn_config_get_all_keys(const char *section, /*out*/ std::vector<std::string> &keys);
+
+/// get all keys in some specific section
+/// this function is not thread safe if dsn_config_set is concurrently called
 void dsn_config_get_all_keys(const char *section, /*out*/ std::vector<const char *> &keys);
 
 /// set value for a key of some section.

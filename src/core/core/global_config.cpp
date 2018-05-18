@@ -55,8 +55,8 @@ static bool build_client_network_confs(const char *section,
     std::vector<const char *> keys;
     dsn_config_get_all_keys(section, keys);
 
-    for (unsigned int i = 0; i < keys.size(); i++) {
-        std::string k = keys[i];
+    for (const char *item : keys) {
+        std::string k(item);
         if (k.length() <= strlen("network.client."))
             continue;
 
@@ -127,8 +127,8 @@ static bool build_server_network_confs(const char *section,
     std::vector<const char *> keys;
     dsn_config_get_all_keys(section, keys);
 
-    for (unsigned int i = 0; i < keys.size(); i++) {
-        std::string k = keys[i];
+    for (const char *item : keys) {
+        std::string k(item);
         if (k.length() <= strlen("network.server."))
             continue;
 
