@@ -87,6 +87,7 @@ public:
     void check_state_completeness();
     // error_code check_and_fix_private_log_completeness();
 
+    // try to cancal all tracked tasks which depends on this object, but not wait.
     // return true if all tracked tasks have been finished
     bool prepare_close();
 
@@ -173,7 +174,6 @@ private:
     error_code initialize_on_new();
     error_code initialize_on_load();
     error_code init_app_and_prepare_list(bool create_new);
-    void init_timer_task();
 
     /////////////////////////////////////////////////////////////////
     // 2pc

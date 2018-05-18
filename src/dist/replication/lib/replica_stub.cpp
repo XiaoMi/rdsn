@@ -1654,67 +1654,33 @@ void replica_stub::on_disk_stat()
         return nullptr;
     }
 
-    auto it = _opening_replicas.find(gpid);
-    if (it != _opening_replicas.end()) {
+    if (_opening_replicas.find(gpid) != _opening_replicas.end()) {
         _replicas_lock.unlock_write();
         ddebug("open replica '%s.%d.%d' failed coz replica is under opening",
                app.app_type.c_str(),
                gpid.get_app_id(),
                gpid.get_partition_index());
         return nullptr;
-    } else {
-        auto it2 = _closing_replicas.find(gpid);
-        if (it2 != _closing_replicas.end()) {
-            if (it2->second.second->status() == partition_status::PS_INACTIVE &&
-                it2->second.first->cancel(false)) {
-                replica_ptr r = it2->second.second;
-                _closing_replicas.erase(it2);
-                _counter_replicas_closing_count->decrement();
-
-                auto pr = _replicas.insert(replicas::value_type(gpid, r));
-                dassert(pr.second, "replica %s is already in the collection", r->name());
-                _counter_replicas_count->increment();
-
-                _closed_replicas.erase(gpid);
-
-                // need to init timer tasks because they may have been canceled by prepare_close()
-                r->init_timer_task();
-
-                // unlock here to avoid dead lock
-                _replicas_lock.unlock_write();
-
-                ddebug("open replica '%s.%d.%d' which is to be closed",
-                       app.app_type.c_str(),
-                       gpid.get_app_id(),
-                       gpid.get_partition_index());
-
-                // open by add learner
-                if (req != nullptr) {
-                    on_add_learner(*req);
-                }
-
-                return nullptr;
-            } else {
-                _replicas_lock.unlock_write();
-                ddebug("open replica '%s.%d.%d' failed coz replica is under closing",
-                       app.app_type.c_str(),
-                       gpid.get_app_id(),
-                       gpid.get_partition_index());
-                return nullptr;
-            }
-        } else {
-            task_ptr task = tasking::enqueue(
-                LPC_OPEN_REPLICA,
-                &_tracker,
-                std::bind(&replica_stub::open_replica, this, app, gpid, req, req2));
-
-            _opening_replicas[gpid] = task;
-            _counter_replicas_opening_count->increment();
-            _closed_replicas.erase(gpid);
-            _replicas_lock.unlock_write();
-            return task;
-        }
     }
+
+    if (_closing_replicas.find(gpid) != _closing_replicas.end()) {
+        _replicas_lock.unlock_write();
+        ddebug("open replica '%s.%d.%d' failed coz replica is under closing",
+               app.app_type.c_str(),
+               gpid.get_app_id(),
+               gpid.get_partition_index());
+        return nullptr;
+    }
+
+    task_ptr task =
+        tasking::enqueue(LPC_OPEN_REPLICA,
+                         &_tracker,
+                         std::bind(&replica_stub::open_replica, this, app, gpid, req, req2));
+    _opening_replicas[gpid] = task;
+    _counter_replicas_opening_count->increment();
+    _closed_replicas.erase(gpid);
+    _replicas_lock.unlock_write();
+    return task;
 }
 
 void replica_stub::open_replica(const app_info &app,

@@ -380,6 +380,9 @@ bool replica::prepare_close()
             name(),
             enum_to_string(status()));
 
+    if (_app && !_app->prepare_close())
+        return false;
+
     if (_checkpoint_timer != nullptr) {
         _checkpoint_timer->cancel(true);
         _checkpoint_timer = nullptr;
@@ -391,7 +394,11 @@ bool replica::prepare_close()
     }
 
     int not_finished = _tracker.cancel_but_not_wait_outstanding_tasks();
-    ddebug("%s: still %d tracked tasks not finished", name(), not_finished);
+    if (not_finished != 0) {
+        ddebug("%s: still %d tracked tasks depending on this replica not finished",
+               name(),
+               not_finished);
+    }
     return not_finished == 0;
 }
 
@@ -401,8 +408,6 @@ void replica::close()
             "%s: invalid state %s when calling replica::close",
             name(),
             enum_to_string(status()));
-
-    prepare_close();
 
     _tracker.cancel_outstanding_tasks();
 
