@@ -330,7 +330,7 @@ private:
     dsn::task_ptr _checkpoint_timer;
 
     // application
-    std::shared_ptr<replication_app_base> _app;
+    std::unique_ptr<replication_app_base> _app;
 
     // constants
     replica_stub *_stub;

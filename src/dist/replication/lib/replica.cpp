@@ -354,11 +354,7 @@ bool replica::group_configuration(/*out*/ partition_configuration &config) const
     return true;
 }
 
-decree replica::last_durable_decree() const
-{
-    std::shared_ptr<replication_app_base> app = _app;
-    return app ? app->last_durable_decree() : invalid_decree;
-}
+decree replica::last_durable_decree() const { return _app->last_durable_decree(); }
 
 decree replica::last_prepared_decree() const
 {
@@ -434,10 +430,11 @@ void replica::close()
     }
 
     if (_app != nullptr) {
-        std::shared_ptr<replication_app_base> app = std::move(_app);
-        error_code err = app->close(false);
-        if (err != dsn::ERR_OK)
-            ddebug("app close result: %s", err.to_string());
+        std::unique_ptr<replication_app_base> tmp_app = std::move(_app);
+        error_code err = tmp_app->close(false);
+        if (err != dsn::ERR_OK) {
+            dwarn("%s: close app failed, err = %s", name(), err.to_string());
+        }
     }
 
     _counter_private_log_size.clear();

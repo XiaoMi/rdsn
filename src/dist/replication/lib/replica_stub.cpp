@@ -1388,57 +1388,32 @@ void replica_stub::on_gc_replica(replica_stub_ptr this_, gpid pid)
 void replica_stub::on_gc()
 {
     uint64_t start = dsn_now_ns();
-    replicas rs;
+
+    struct gc_info
+    {
+        replica_ptr rep;
+        partition_status::type status;
+        mutation_log_ptr plog;
+        decree last_durable_decree;
+        int64_t init_offset_in_shared_log;
+    };
+
+    std::unordered_map<gpid, gc_info> rs;
     {
         zauto_read_lock l(_replicas_lock);
-        rs = _replicas;
+        // collect info in lock to prevent the case that the replica is closed in replica::close()
+        for (auto &kv : _replicas) {
+            const replica_ptr &rep = kv.second;
+            gc_info &info = rs[kv.first];
+            info.rep = rep;
+            info.status = rep->status();
+            info.plog = rep->private_log();
+            info.last_durable_decree = rep->last_durable_decree();
+            info.init_offset_in_shared_log = rep->get_app()->init_info().init_offset_in_shared_log;
+        }
     }
+
     ddebug("start to garbage collection, replica_count = %d", (int)rs.size());
-
-    // statistic learning info
-    uint64_t learning_count = 0;
-    uint64_t learning_max_duration_time_ms = 0;
-    uint64_t learning_max_copy_file_size = 0;
-    uint64_t cold_backup_running_count = 0;
-    uint64_t cold_backup_max_duration_time_ms = 0;
-    uint64_t cold_backup_max_upload_file_size = 0;
-    uint64_t manual_compact_running_count = 0;
-    uint64_t manual_compact_queue_count = 0;
-    for (auto it = rs.begin(); it != rs.end(); ++it) {
-        replica_ptr &r = it->second;
-        if (r->status() == partition_status::PS_POTENTIAL_SECONDARY) {
-            learning_count++;
-            learning_max_duration_time_ms = std::max(learning_max_duration_time_ms,
-                                                     r->_potential_secondary_states.duration_ms());
-            learning_max_copy_file_size =
-                std::max(learning_max_copy_file_size,
-                         r->_potential_secondary_states.learning_copy_file_size);
-        }
-        if (r->status() == partition_status::PS_PRIMARY ||
-            r->status() == partition_status::PS_SECONDARY) {
-            cold_backup_running_count += r->_cold_backup_running_count.load();
-            cold_backup_max_duration_time_ms = std::max(
-                cold_backup_max_duration_time_ms, r->_cold_backup_max_duration_time_ms.load());
-            cold_backup_max_upload_file_size = std::max(
-                cold_backup_max_upload_file_size, r->_cold_backup_max_upload_file_size.load());
-        }
-        if (r->_manual_compact_enqueue_time_ms.load() > 0) {
-            if (r->_manual_compact_start_time_ms.load() > 0) {
-                manual_compact_running_count++;
-            } else {
-                manual_compact_queue_count++;
-            }
-        }
-    }
-
-    _counter_replicas_learning_count->set(learning_count);
-    _counter_replicas_learning_max_duration_time_ms->set(learning_max_duration_time_ms);
-    _counter_replicas_learning_max_copy_file_size->set(learning_max_copy_file_size);
-    _counter_cold_backup_running_count->set(cold_backup_running_count);
-    _counter_cold_backup_max_duration_time_ms->set(cold_backup_max_duration_time_ms);
-    _counter_cold_backup_max_upload_file_size->set(cold_backup_max_upload_file_size);
-    _counter_manual_compact_running_count->set(manual_compact_running_count);
-    _counter_manual_compact_queue_count->set(manual_compact_queue_count);
 
     // gc shared prepare log
     //
@@ -1466,37 +1441,35 @@ void replica_stub::on_gc()
     //
     if (_log != nullptr) {
         replica_log_info_map gc_condition;
-        for (auto it = rs.begin(); it != rs.end(); ++it) {
+        for (auto &kv : rs) {
             replica_log_info ri;
-            replica_ptr &r = it->second;
-            mutation_log_ptr plog = r->private_log();
-            decree last_durable_decree = r->last_durable_decree();
+            replica_ptr &rep = kv.second.rep;
+            mutation_log_ptr &plog = kv.second.plog;
             if (plog) {
                 // flush private log to update plog_max_commit_on_disk,
                 // and just flush once to avoid flushing infinitely
                 plog->flush_once();
 
-                ri.max_decree = std::min(last_durable_decree, plog->max_commit_on_disk());
+                decree plog_max_commit_on_disk = plog->max_commit_on_disk();
+                ri.max_decree = std::min(kv.second.last_durable_decree, plog_max_commit_on_disk);
                 ddebug("gc_shared: gc condition for %s, status = %s, garbage_max_decree = %" PRId64
-                       ", "
-                       "last_durable_decree= %" PRId64 ", plog_max_commit_on_disk = %" PRId64 "",
-                       r->name(),
-                       enum_to_string(r->status()),
+                       ", last_durable_decree= %" PRId64 ", plog_max_commit_on_disk = %" PRId64 "",
+                       rep->name(),
+                       enum_to_string(kv.second.status),
                        ri.max_decree,
-                       last_durable_decree,
-                       plog->max_commit_on_disk());
+                       kv.second.last_durable_decree,
+                       plog_max_commit_on_disk);
             } else {
-                ri.max_decree = last_durable_decree;
+                ri.max_decree = kv.second.last_durable_decree;
                 ddebug("gc_shared: gc condition for %s, status = %s, garbage_max_decree = %" PRId64
-                       ", "
-                       "last_durable_decree = %" PRId64 "",
-                       r->name(),
-                       enum_to_string(r->status()),
+                       ", last_durable_decree = %" PRId64 "",
+                       rep->name(),
+                       enum_to_string(kv.second.status),
                        ri.max_decree,
-                       last_durable_decree);
+                       kv.second.last_durable_decree);
             }
-            ri.valid_start_offset = r->get_app()->init_info().init_offset_in_shared_log;
-            gc_condition[it->first] = ri;
+            ri.valid_start_offset = kv.second.init_offset_in_shared_log;
+            gc_condition[kv.first] = ri;
         }
 
         std::set<gpid> prevent_gc_replicas;
@@ -1508,12 +1481,12 @@ void replica_stub::on_gc()
                    "checkpoint",
                    _options.log_shared_file_count_limit,
                    reserved_log_count);
-            for (auto it = rs.begin(); it != rs.end(); ++it) {
+            for (auto &kv : rs) {
                 tasking::enqueue(
                     LPC_PER_REPLICA_CHECKPOINT_TIMER,
-                    &_tracker,
-                    std::bind(&replica_stub::trigger_checkpoint, this, it->second, true),
-                    it->first.thread_hash(),
+                    kv.second.rep->tracker(),
+                    std::bind(&replica_stub::trigger_checkpoint, this, kv.second.rep, true),
+                    kv.first.thread_hash(),
                     std::chrono::milliseconds(
                         dsn_random32(0, 3000)) // delay random to avoid write compete
                     );
@@ -1539,8 +1512,8 @@ void replica_stub::on_gc()
                 if (find != rs.end()) {
                     tasking::enqueue(
                         LPC_PER_REPLICA_CHECKPOINT_TIMER,
-                        &_tracker,
-                        std::bind(&replica_stub::trigger_checkpoint, this, find->second, true),
+                        find->second.rep->tracker(),
+                        std::bind(&replica_stub::trigger_checkpoint, this, find->second.rep, true),
                         id.thread_hash(),
                         std::chrono::milliseconds(
                             dsn_random32(0, 3000)) // delay random to avoid write compete
@@ -1551,6 +1524,51 @@ void replica_stub::on_gc()
 
         _counter_shared_log_size->set(_log->size() / (1024 * 1024));
     }
+
+    // statistic learning info
+    uint64_t learning_count = 0;
+    uint64_t learning_max_duration_time_ms = 0;
+    uint64_t learning_max_copy_file_size = 0;
+    uint64_t cold_backup_running_count = 0;
+    uint64_t cold_backup_max_duration_time_ms = 0;
+    uint64_t cold_backup_max_upload_file_size = 0;
+    uint64_t manual_compact_running_count = 0;
+    uint64_t manual_compact_queue_count = 0;
+    for (auto &kv : rs) {
+        replica_ptr &rep = kv.second.rep;
+        if (rep->status() == partition_status::PS_POTENTIAL_SECONDARY) {
+            learning_count++;
+            learning_max_duration_time_ms = std::max(
+                learning_max_duration_time_ms, rep->_potential_secondary_states.duration_ms());
+            learning_max_copy_file_size =
+                std::max(learning_max_copy_file_size,
+                         rep->_potential_secondary_states.learning_copy_file_size);
+        }
+        if (rep->status() == partition_status::PS_PRIMARY ||
+            rep->status() == partition_status::PS_SECONDARY) {
+            cold_backup_running_count += rep->_cold_backup_running_count.load();
+            cold_backup_max_duration_time_ms = std::max(
+                cold_backup_max_duration_time_ms, rep->_cold_backup_max_duration_time_ms.load());
+            cold_backup_max_upload_file_size = std::max(
+                cold_backup_max_upload_file_size, rep->_cold_backup_max_upload_file_size.load());
+        }
+        if (rep->_manual_compact_enqueue_time_ms.load() > 0) {
+            if (rep->_manual_compact_start_time_ms.load() > 0) {
+                manual_compact_running_count++;
+            } else {
+                manual_compact_queue_count++;
+            }
+        }
+    }
+
+    _counter_replicas_learning_count->set(learning_count);
+    _counter_replicas_learning_max_duration_time_ms->set(learning_max_duration_time_ms);
+    _counter_replicas_learning_max_copy_file_size->set(learning_max_copy_file_size);
+    _counter_cold_backup_running_count->set(cold_backup_running_count);
+    _counter_cold_backup_max_duration_time_ms->set(cold_backup_max_duration_time_ms);
+    _counter_cold_backup_max_upload_file_size->set(cold_backup_max_upload_file_size);
+    _counter_manual_compact_running_count->set(manual_compact_running_count);
+    _counter_manual_compact_queue_count->set(manual_compact_queue_count);
 
     ddebug("finish to garbage collection, time_used_ns = %" PRIu64, dsn_now_ns() - start);
 }
