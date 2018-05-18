@@ -87,7 +87,7 @@ public:
     void check_state_completeness();
     // error_code check_and_fix_private_log_completeness();
 
-    // return true if all traced tasks have been finished
+    // return true if all tracked tasks have been finished
     bool prepare_close();
 
     // close() will wait all traced tasks to finish

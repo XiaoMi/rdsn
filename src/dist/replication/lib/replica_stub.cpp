@@ -2092,23 +2092,22 @@ replica_stub::exec_command_on_replica(const std::vector<std::string> &args,
     }
 
     std::vector<task_ptr> tasks;
-    ::dsn::utils::ex_lock_nr results_lock;
+    ::dsn::service::zlock results_lock;
     std::map<gpid, std::string> results; // id => result
     for (auto kv : choosed_rs) {
         const replica_ptr &rep = kv.second;
-        task_ptr tsk =
-            tasking::enqueue(LPC_EXEC_COMMAND_ON_REPLICA,
-                             rep->tracker(),
-                             [&]() {
-                                 partition_status::type status = rep->status();
-                                 if (status != partition_status::PS_PRIMARY &&
-                                     status != partition_status::PS_SECONDARY)
-                                     return;
-                                 std::string result = func(rep);
-                                 ::dsn::utils::auto_lock<::dsn::utils::ex_lock_nr> l(results_lock);
-                                 results[rep->get_gpid()] = result;
-                             },
-                             rep->get_gpid().thread_hash());
+        task_ptr tsk = tasking::enqueue(LPC_EXEC_COMMAND_ON_REPLICA,
+                                        rep->tracker(),
+                                        [&]() {
+                                            partition_status::type status = rep->status();
+                                            if (status != partition_status::PS_PRIMARY &&
+                                                status != partition_status::PS_SECONDARY)
+                                                return;
+                                            std::string result = func(rep);
+                                            ::dsn::service::zauto_lock l(results_lock);
+                                            results[rep->get_gpid()] = result;
+                                        },
+                                        rep->get_gpid().thread_hash());
         tasks.emplace_back(std::move(tsk));
     }
 
