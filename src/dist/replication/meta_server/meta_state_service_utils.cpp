@@ -35,105 +35,10 @@ namespace dsn {
 namespace replication {
 namespace mss {
 
-void on_create_recursively::run()
-{
-    if (nodes.empty()) {
-        cb();
-        _cur_path.clear();
-        return;
-    }
-
-    if (!_cur_path.empty()) { // first node requires leading '/'
-        _cur_path += "/";
-    }
-    _cur_path += std::move(nodes.front());
-    nodes.pop();
-
-    _impl->remote_storage()->create_node(_cur_path,
-                                         LPC_META_STATE_HIGH,
-                                         [this](error_code ec) {
-                                             if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
-                                                 repeat();
-                                                 return;
-                                             }
-                                             on_error(
-                                                 op_type::OP_CREATE_RECURSIVELY, ec, _cur_path);
-                                         },
-                                         val,
-                                         _impl->tracker());
-}
-
-void on_create::run()
-{
-    _impl->remote_storage()->create_node(node,
-                                         LPC_META_STATE_HIGH,
-                                         [this](error_code ec) {
-                                             if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
-                                                 cb();
-                                                 return;
-                                             }
-
-                                             on_error(op_type::OP_CREATE, ec, node);
-                                         },
-                                         val,
-                                         _impl->tracker());
-}
-
-void on_delete::run()
-{
-    _impl->remote_storage()->delete_node(node,
-                                         is_recursively_delete,
-                                         LPC_META_STATE_HIGH,
-                                         [this](error_code ec) {
-                                             if (ec == ERR_OK || ec == ERR_OBJECT_NOT_FOUND) {
-                                                 cb();
-                                                 return;
-                                             }
-
-                                             auto type = is_recursively_delete
-                                                             ? op_type::OP_DELETE_RECURSIVELY
-                                                             : op_type::OP_DELETE;
-                                             on_error(type, ec, node);
-                                         },
-                                         _impl->tracker());
-}
-
-void on_set_data::run()
-{
-    _impl->remote_storage()->set_data(node,
-                                      val,
-                                      LPC_META_STATE_HIGH,
-                                      [this](error_code ec) {
-                                          if (ec == ERR_OK) {
-                                              cb();
-                                              return;
-                                          }
-
-                                          on_error(op_type::OP_SET_DATA, ec, node);
-                                      },
-                                      _impl->tracker());
-}
-
-void on_get_data::run()
-{
-    _impl->remote_storage()->get_data(node,
-                                      LPC_META_STATE_HIGH,
-                                      [this](error_code ec, const blob &val) {
-                                          if (ec == ERR_OK || ec == ERR_OBJECT_NOT_FOUND) {
-                                              cb(val);
-                                              return;
-                                          }
-
-                                          on_error(op_type::OP_GET_DATA, ec, node);
-                                      },
-                                      _impl->tracker());
-}
-
 meta_storage::meta_storage(dist::meta_state_service *remote_storage, task_tracker *tracker)
+    : _remote(remote_storage), _tracker(tracker)
 {
     dassert(tracker != nullptr, "must set task tracker");
-
-    _i = dsn::make_unique<impl>(remote_storage, tracker);
 }
 
 meta_storage::~meta_storage() = default;
@@ -142,46 +47,58 @@ void meta_storage::create_node_recursively(std::queue<std::string> &&nodes,
                                            blob &&value,
                                            std::function<void()> &&cb)
 {
-    _i->_create_recursively.cb = std::move(cb);
-    _i->_create_recursively.val = std::move(value);
-    _i->_create_recursively.nodes = std::move(nodes);
-    _i->_create_recursively.run();
+    on_create_recursively op;
+    op.initialize(this);
+    op.args.reset(
+        new on_create_recursively::arguments{std::move(cb), std::move(value), std::move(nodes)});
+    op.run();
 }
 
 void meta_storage::create_node(std::string &&node, blob &&value, std::function<void()> &&cb)
 {
-    _i->_create.cb = std::move(cb);
-    _i->_create.node = std::move(node);
-    _i->_create.val = std::move(value);
-    _i->_create.run();
+    on_create op;
+    op.initialize(this);
+    op.args.reset(new on_create::arguments{std::move(cb), std::move(value), std::move(node)});
+    op.run();
 }
 
 void meta_storage::delete_node_recursively(std::string &&node, std::function<void()> &&cb)
 {
-    _i->_delete.is_recursively_delete = true;
-    delete_node(std::move(node), std::move(cb));
+    delete_node_impl(std::move(node), std::move(cb), true);
 }
 
 void meta_storage::delete_node(std::string &&node, std::function<void()> &&cb)
 {
-    _i->_delete.cb = std::move(cb);
-    _i->_delete.node = std::move(node);
-    _i->_delete.run();
+    delete_node_impl(std::move(node), std::move(cb), false);
+}
+
+void meta_storage::delete_node_impl(std::string &&node,
+                                    std::function<void()> &&cb,
+                                    bool is_recursive)
+{
+    on_delete op;
+    op.initialize(this);
+    op.args.reset(new on_delete::arguments);
+    op.args->cb = std::move(cb);
+    op.args->node = std::move(node);
+    op.args->is_recursively_delete = is_recursive;
+    op.run();
 }
 
 void meta_storage::set_data(std::string &&node, blob &&value, std::function<void()> &&cb)
 {
-    _i->_set.cb = std::move(cb);
-    _i->_set.node = std::move(node);
-    _i->_set.val = std::move(value);
-    _i->_set.run();
+    on_set_data op;
+    op.initialize(this);
+    op.args.reset(new on_set_data::arguments{std::move(cb), std::move(node), std::move(value)});
+    op.run();
 }
 
 void meta_storage::get_data(std::string &&node, std::function<void(const blob &)> &&cb)
 {
-    _i->_get.cb = std::move(cb);
-    _i->_get.node = std::move(node);
-    _i->_get.run();
+    on_get_data op;
+    op.initialize(this);
+    op.args.reset(new on_get_data::arguments{std::move(cb), std::move(node)});
+    op.run();
 }
 
 } // namespace mss

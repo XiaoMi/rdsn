@@ -26,6 +26,8 @@
 
 #include <gtest/gtest.h>
 #include <dsn/dist/meta_state_service.h>
+#include <fmt/format.h>
+#include <dsn/dist/replication.h>
 
 #include "dist/replication/meta_server/meta_state_service_utils.h"
 
@@ -95,5 +97,36 @@ TEST_F(meta_state_service_utils_test, delete_recursively)
     _storage->delete_node_recursively("/1", [&]() {
         _storage->get_data("/1", [](const blob &val) { ASSERT_EQ(val.data(), nullptr); });
     });
+    _tracker.wait_outstanding_tasks();
+}
+
+TEST_F(meta_state_service_utils_test, concurrent)
+{
+    for (int i = 1; i <= 100; i++) {
+        binary_writer w;
+        w.write(std::to_string(i));
+
+        _storage->create_node(fmt::format("/{}", i), w.get_buffer(), [&]() {});
+    }
+    _tracker.wait_outstanding_tasks();
+
+    for (int i = 1; i <= 100; i++) {
+        _storage->get_data(fmt::format("/{}", i), [i](const blob &val) {
+            binary_reader rd(val);
+
+            std::string value_str;
+            rd.read(value_str);
+            ASSERT_EQ(value_str, std::to_string(i));
+        });
+    }
+    _tracker.wait_outstanding_tasks();
+
+    // ensure everything is cleared
+    for (int i = 1; i <= 100; i++) {
+        _storage->delete_node(fmt::format("/{}", i), [&]() {
+            _storage->get_data(fmt::format("/{}", i),
+                               [](const blob &val) { ASSERT_EQ(val.data(), nullptr); });
+        });
+    }
     _tracker.wait_outstanding_tasks();
 }
