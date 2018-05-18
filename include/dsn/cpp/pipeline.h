@@ -39,7 +39,7 @@ namespace pipeline {
 struct environment
 {
     template <typename F>
-    void schedule(F &&f, std::chrono::milliseconds delay_ms = 0_ms)
+    void schedule(F &&f, std::chrono::milliseconds delay_ms = 0_ms) const
     {
         tasking::enqueue(__conf.thread_pool_code,
                          __conf.tracker,
@@ -48,6 +48,7 @@ struct environment
                          delay_ms);
     }
 
+    /// Fluent APIs to specify the environment configuration.
     environment &thread_pool(task_code tc)
     {
         __conf.thread_pool_code = tc;
@@ -278,15 +279,13 @@ inline void base::run_pipeline()
     });
 }
 
-struct repeatable : environment
+/// Runnable must extend from pipeline::environment and implement
+/// a public method: `void run();`
+template <typename Runnable>
+static void repeat(Runnable *runnable, std::chrono::milliseconds delay_ms = 0_ms)
 {
-    virtual void run() = 0;
-
-    void repeat(std::chrono::milliseconds delay_ms = 0_ms)
-    {
-        schedule([this]() mutable { run(); }, delay_ms);
-    }
-};
+    runnable->schedule([r = std::move(*runnable)]() mutable { r.run(); }, delay_ms);
+}
 
 } // namespace pipeline
 } // namespace dsn

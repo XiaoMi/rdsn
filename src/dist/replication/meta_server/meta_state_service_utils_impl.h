@@ -28,8 +28,6 @@
 
 #include <dsn/cpp/pipeline.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/dist/replication.h>
-#include <dsn/utility/blob.h>
 
 #include "meta_state_service_utils.h"
 
@@ -37,44 +35,57 @@ namespace dsn {
 namespace replication {
 namespace mss {
 
-struct error_handling : pipeline::repeatable
+struct op_type
 {
-    struct op_type
+    enum type
     {
-        enum type
-        {
-            OP_CREATE_RECURSIVELY,
-            OP_CREATE,
-            OP_DELETE_RECURSIVELY,
-            OP_DELETE,
-            OP_SET_DATA,
-            OP_GET_DATA,
-        };
+        OP_NONE,
 
-        static const char *to_string(type v)
-        {
-            static const char *op_type_to_string_map[] = {
-                "OP_CREATE_RECURSIVELY",
-                "OP_CREATE",
-                "OP_DELETE_RECURSIVELY",
-                "OP_DELETE",
-                "OP_SET_DATA",
-                "OP_GET_DATA",
-            };
-
-            dassert_f(v < sizeof(op_type_to_string_map), "invalid type: {}", v);
-            return op_type_to_string_map[v];
-        }
+        OP_CREATE_RECURSIVELY,
+        OP_CREATE,
+        OP_DELETE_RECURSIVELY,
+        OP_DELETE,
+        OP_SET_DATA,
+        OP_GET_DATA,
     };
 
-    // Retry after 1 sec if timeout, or terminate.
-    void on_error(op_type::type type, error_code ec, const std::string &path)
+    static const char *to_string(type v)
+    {
+        static const char *op_type_to_string_map[] = {
+            "OP_CREATE_RECURSIVELY",
+            "OP_CREATE",
+            "OP_DELETE_RECURSIVELY",
+            "OP_DELETE",
+            "OP_SET_DATA",
+            "OP_GET_DATA",
+        };
+
+        dassert_f(v != OP_NONE && v <= (sizeof(op_type_to_string_map) / sizeof(char *)),
+                  "invalid type: {}",
+                  v);
+        return op_type_to_string_map[v - 1];
+    }
+};
+
+/// Base class for all operations.
+struct operation : pipeline::environment
+{
+    void initialize(meta_storage *storage)
+    {
+        _ms = storage;
+        task_tracker(storage->_tracker).thread_pool(LPC_META_STATE_HIGH);
+    }
+
+    // The common strategy for error handling:
+    // retry after 1 sec if timeout, or terminate.
+    template <typename T>
+    void on_error(T *this_instance, op_type::type type, error_code ec, const std::string &path)
     {
         if (ec == ERR_TIMEOUT) {
             dwarn_f("request({}) on path({}) was timeout, retry after 1 second",
                     op_type::to_string(type),
                     path);
-            repeat(1_s);
+            pipeline::repeat(this_instance, 1_s);
             return;
         }
         dfatal_f("request({}) on path({}) encountered an unexpected error({})",
@@ -82,160 +93,189 @@ struct error_handling : pipeline::repeatable
                  path,
                  ec.to_string());
     }
+
+    dist::meta_state_service *remote_storage() const { return _ms->_remote; }
+
+    dsn::task_tracker *tracker() const { return _ms->_tracker; }
+
+private:
+    meta_storage *_ms{nullptr};
 };
 
-struct on_create_recursively : error_handling
+// Developer Notes:
+//
+// As a concern of performance, arguments are wrapped into a shared_ptr to be used
+// in callback of meta_state_service without copying.
+//
+// To be able to repeat the internal task using pipeline::repeat, the operations must
+// implement `void run()` method.
+//
+
+struct on_create_recursively : operation
 {
-    void run() override;
+    struct arguments
+    {
+        std::function<void()> cb;
+        dsn::blob val;
+        std::queue<std::string> nodes;
+    };
+    std::shared_ptr<arguments> args;
 
-    // Arguments
-    std::function<void()> cb;
-    dsn::blob val;
-    std::queue<std::string> nodes;
+    void run()
+    {
+        auto &nodes = args->nodes;
 
+        if (nodes.empty()) {
+            args->cb();
+            _cur_path.clear();
+            return;
+        }
+
+        if (!_cur_path.empty()) { // first node requires leading '/'
+            _cur_path += "/";
+        }
+        _cur_path += std::move(nodes.front());
+        nodes.pop();
+
+        remote_storage()->create_node(_cur_path,
+                                      LPC_META_STATE_HIGH,
+                                      [op = *this](error_code ec) mutable { op.on_error(ec); },
+                                      args->val,
+                                      tracker());
+    }
+
+    void on_error(error_code ec)
+    {
+        if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
+            // create next node
+            pipeline::repeat(this);
+            return;
+        }
+        operation::on_error(this, op_type::OP_CREATE_RECURSIVELY, ec, _cur_path);
+    }
+
+private:
     std::string _cur_path;
-    meta_storage::impl *_impl{nullptr};
 };
 
-struct on_create : error_handling
+struct on_create : operation
 {
-    void run() override;
+    struct arguments
+    {
+        std::function<void()> cb;
+        dsn::blob val;
+        std::string node;
+    };
+    std::shared_ptr<arguments> args;
 
-    // Arguments
-    std::function<void()> cb;
-    dsn::blob val;
-    std::string node;
+    void run()
+    {
+        remote_storage()->create_node(args->node,
+                                      LPC_META_STATE_HIGH,
+                                      [op = *this](error_code ec) mutable { op.on_error(ec); },
+                                      args->val,
+                                      tracker());
+    }
 
-    meta_storage::impl *_impl{nullptr};
+    void on_error(error_code ec)
+    {
+        if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
+            args->cb();
+            return;
+        }
+
+        operation::on_error(this, op_type::OP_CREATE, ec, args->node);
+    }
 };
 
-struct on_delete : error_handling
+struct on_delete : operation
 {
-    void run() override;
+    struct arguments
+    {
+        std::function<void()> cb;
+        std::string node;
+        bool is_recursively_delete{false};
+    };
+    std::shared_ptr<arguments> args;
 
-    // Arguments
-    std::function<void()> cb;
-    std::string node;
-    bool is_recursively_delete{false};
+    void run()
+    {
+        remote_storage()->delete_node(args->node,
+                                      args->is_recursively_delete,
+                                      LPC_META_STATE_HIGH,
+                                      [op = *this](error_code ec) mutable { op.on_error(ec); },
+                                      tracker());
+    }
 
-    meta_storage::impl *_impl{nullptr};
+    void on_error(error_code ec)
+    {
+        if (ec == ERR_OK || ec == ERR_OBJECT_NOT_FOUND) {
+            args->cb();
+            return;
+        }
+
+        auto type =
+            args->is_recursively_delete ? op_type::OP_DELETE_RECURSIVELY : op_type::OP_DELETE;
+        operation::on_error(this, type, ec, args->node);
+    }
 };
 
-struct on_get_data : error_handling
+struct on_get_data : operation
 {
-    void run() override;
+    struct arguments
+    {
+        std::function<void(const blob &)> cb;
+        std::string node;
+    };
+    std::shared_ptr<arguments> args;
 
-    // Arguments
-    std::function<void(const blob &)> cb;
-    std::string node;
+    void run()
+    {
+        remote_storage()->get_data(
+            args->node,
+            LPC_META_STATE_HIGH,
+            [op = *this](error_code ec, const blob &val) mutable { op.on_error(ec, val); },
+            tracker());
+    }
 
-    meta_storage::impl *_impl{nullptr};
+    void on_error(error_code ec, const blob &val)
+    {
+        if (ec == ERR_OK || ec == ERR_OBJECT_NOT_FOUND) {
+            args->cb(val);
+            return;
+        }
+        operation::on_error(this, op_type::OP_GET_DATA, ec, args->node);
+    }
 };
 
-struct on_set_data : error_handling
+struct on_set_data : operation
 {
-    void run() override;
-
-    // Arguments
-    std::function<void()> cb;
-    dsn::blob val;
-    std::string node;
-
-    meta_storage::impl *_impl{nullptr};
-};
-
-struct meta_storage::impl
-{
-    impl(dist::meta_state_service *r, dsn::task_tracker *t) : _remote(r), _tracker(t)
+    struct arguments
     {
-        initialize(_create_recursively);
-        initialize(_create);
-        initialize(_delete);
-        initialize(_set);
-        initialize(_get);
+        std::function<void()> cb;
+        std::string node;
+        dsn::blob val;
+    };
+    std::shared_ptr<arguments> args;
+
+    void run()
+    {
+        remote_storage()->set_data(args->node,
+                                   args->val,
+                                   LPC_META_STATE_HIGH,
+                                   [op = *this](error_code ec) mutable { op.on_error(ec); },
+                                   tracker());
     }
 
-    /// Asynchronously create nodes recursively from top down.
-    void create_node_recursively(std::queue<std::string> &&nodes,
-                                 blob &&value,
-                                 std::function<void()> &&cb)
+    void on_error(error_code ec)
     {
-        on_create_recursively op;
-        initialize(op);
+        if (ec == ERR_OK) {
+            args->cb();
+            return;
+        }
 
-        op.cb = std::move(cb);
-        op.val = std::move(value);
-        op.nodes = std::move(nodes);
-        op.run();
+        operation::on_error(this, op_type::OP_SET_DATA, ec, args->node);
     }
-
-    void create_node(std::string &&node, blob &&value, std::function<void()> &&cb)
-    {
-        on_create op;
-        initialize(op);
-
-        op.cb = std::move(cb);
-        op.node = std::move(node);
-        op.val = std::move(value);
-        op.run();
-    }
-
-    void delete_node(std::string &&node, std::function<void()> &&cb, bool is_recursive)
-    {
-        on_delete op;
-        initialize(op);
-
-        op.is_recursively_delete = is_recursive;
-        op.cb = std::move(cb);
-        op.node = std::move(node);
-        op.run();
-    }
-
-    void set_data(std::string &&node, blob &&value, std::function<void()> &&cb)
-    {
-        on_set_data op;
-        initialize(op);
-
-        op.cb = std::move(cb);
-        op.node = std::move(node);
-        op.val = std::move(value);
-        op.run();
-    }
-
-    /// If node does not exist, cb will receive an empty blob.
-    void get_data(std::string &&node, std::function<void(const blob &)> &&cb)
-    {
-        on_get_data op;
-        initialize(op);
-
-        op.cb = std::move(cb);
-        op.node = std::move(node);
-        op.run();
-    }
-
-    dist::meta_state_service *remote_storage() const { return _remote; }
-
-    dsn::task_tracker *tracker() const { return _tracker; }
-
-private:
-    template <typename T>
-    void initialize(T &op)
-    {
-        op._impl = this;
-        op.task_tracker(tracker()).thread_pool(LPC_META_STATE_HIGH);
-    }
-
-private:
-    friend class meta_storage;
-
-    dist::meta_state_service *_remote;
-    dsn::task_tracker *_tracker;
-
-    on_create_recursively _create_recursively;
-    on_create _create;
-    on_delete _delete;
-    on_set_data _set;
-    on_get_data _get;
 };
 
 } // namespace mss

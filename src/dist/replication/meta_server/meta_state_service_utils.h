@@ -65,10 +65,14 @@ struct meta_storage
 
     // TODO(wutao1): get_children_data: retrieve data of all children into a vector.
 
-    struct impl;
+private:
+    void delete_node_impl(std::string &&node, std::function<void()> &&cb, bool is_recursive);
 
 private:
-    std::unique_ptr<impl> _i;
+    friend class operation;
+
+    dist::meta_state_service *_remote;
+    dsn::task_tracker *_tracker;
 };
 
 } // namespace mss

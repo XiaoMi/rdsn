@@ -27,6 +27,7 @@
 #include <gtest/gtest.h>
 #include <dsn/dist/meta_state_service.h>
 #include <fmt/format.h>
+#include <dsn/dist/replication.h>
 
 #include "dist/replication/meta_server/meta_state_service_utils.h"
 
@@ -61,9 +62,9 @@ protected:
 TEST_F(meta_state_service_utils_test, create_recursively)
 {
     _storage->create_node_recursively(
-        std::queue<std::string>({"/1", "2", "3", "4"}), dsn::blob("1", 0, 1), [&]() {
+        std::queue<std::string>({"/1", "2", "3", "4"}), dsn::blob("a", 0, 1), [&]() {
             _storage->get_data("/1/2/3/4",
-                               [](const blob &val) { ASSERT_EQ(val.to_string(), "1"); });
+                               [](const blob &val) { ASSERT_EQ(val.to_string(), "a"); });
         });
     _tracker.wait_outstanding_tasks();
 
@@ -75,7 +76,7 @@ TEST_F(meta_state_service_utils_test, delete_and_get)
 {
     // create and delete
     _storage->create_node(
-        "/2", dsn::blob("2", 0, 1), [&]() { _storage->delete_node("/2", []() {}); });
+        "/2", dsn::blob("b", 0, 1), [&]() { _storage->delete_node("/2", []() {}); });
     _tracker.wait_outstanding_tasks();
 
     // try get
@@ -86,9 +87,9 @@ TEST_F(meta_state_service_utils_test, delete_and_get)
 TEST_F(meta_state_service_utils_test, delete_recursively)
 {
     _storage->create_node_recursively(
-        std::queue<std::string>({"/1", "2", "3", "4"}), dsn::blob("1", 0, 1), [&]() {
-            _storage->set_data("/1", dsn::blob("1", 0, 1), [&]() {
-                _storage->get_data("/1", [](const blob &val) { ASSERT_EQ(val.to_string(), "1"); });
+        std::queue<std::string>({"/1", "2", "3", "4"}), dsn::blob("c", 0, 1), [&]() {
+            _storage->set_data("/1", dsn::blob("c", 0, 1), [&]() {
+                _storage->get_data("/1", [](const blob &val) { ASSERT_EQ(val.to_string(), "c"); });
             });
         });
     _tracker.wait_outstanding_tasks();
@@ -99,17 +100,33 @@ TEST_F(meta_state_service_utils_test, delete_recursively)
     _tracker.wait_outstanding_tasks();
 }
 
-TEST_F(meta_state_service_utils_test, concurrent_create)
+TEST_F(meta_state_service_utils_test, concurrent)
 {
     for (int i = 1; i <= 100; i++) {
-        _storage->create_node(
-            fmt::format("/{}", i), dsn::blob(fmt::format("{}", i).c_str(), 0, 1), [&]() {});
+        binary_writer w;
+        w.write(std::to_string(i));
+
+        _storage->create_node(fmt::format("/{}", i), w.get_buffer(), [&]() {});
     }
     _tracker.wait_outstanding_tasks();
 
     for (int i = 1; i <= 100; i++) {
-        _storage->get_data(fmt::format("/{}", i),
-                           [](const blob &val) { ASSERT_EQ(val.to_string(), std::to_string(i)); });
+        _storage->get_data(fmt::format("/{}", i), [i](const blob &val) {
+            binary_reader rd(val);
+
+            std::string value_str;
+            rd.read(value_str);
+            ASSERT_EQ(value_str, std::to_string(i));
+        });
+    }
+    _tracker.wait_outstanding_tasks();
+
+    // ensure everything is cleared
+    for (int i = 1; i <= 100; i++) {
+        _storage->delete_node(fmt::format("/{}", i), [&]() {
+            _storage->get_data(fmt::format("/{}", i),
+                               [](const blob &val) { ASSERT_EQ(val.data(), nullptr); });
+        });
     }
     _tracker.wait_outstanding_tasks();
 }
