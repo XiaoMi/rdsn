@@ -173,6 +173,7 @@ private:
     error_code initialize_on_new();
     error_code initialize_on_load();
     error_code init_app_and_prepare_list(bool create_new);
+    void init_timer_task();
 
     /////////////////////////////////////////////////////////////////
     // 2pc

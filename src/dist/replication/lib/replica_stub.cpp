@@ -1659,6 +1659,9 @@ void replica_stub::on_disk_stat()
 
                 _closed_replicas.erase(gpid);
 
+                // need to init timer tasks because they may have been canceled by prepare_close()
+                r->init_timer_task();
+
                 // unlock here to avoid dead lock
                 _replicas_lock.unlock_write();
 
@@ -1815,6 +1818,8 @@ void replica_stub::close_replica(replica_ptr r)
     replica_info r_info;
     get_replica_info(r_info, r);
 
+    // we need call prepare_close() because some tasks (for example munual compact) may run for
+    // a long time, we don't want to block this thread on waiting.
     if (!r->prepare_close()) {
         ddebug("%s: replica not closed, need to wait traced tasks to finish", r->name());
         zauto_write_lock l(_replicas_lock);

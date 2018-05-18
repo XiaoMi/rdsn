@@ -384,6 +384,16 @@ bool replica::prepare_close()
             name(),
             enum_to_string(status()));
 
+    if (_checkpoint_timer != nullptr) {
+        _checkpoint_timer->cancel(true);
+        _checkpoint_timer = nullptr;
+    }
+
+    if (_collect_info_timer != nullptr) {
+        _checkpoint_timer->cancel(true);
+        _collect_info_timer = nullptr;
+    }
+
     int not_finished = _tracker.cancel_but_not_wait_outstanding_tasks();
     if (not_finished > 0) {
         ddebug("%s: still %d tasks not finished", name(), not_finished);
@@ -400,18 +410,9 @@ void replica::close()
             name(),
             enum_to_string(status()));
 
-    _tracker.cancel_outstanding_tasks();
+    prepare_close();
 
-    if (_checkpoint_timer != nullptr) {
-        dassert(!_checkpoint_timer->cancel(false),
-                "checkpoint timer should already been cancelled");
-        _checkpoint_timer = nullptr;
-    }
-    if (_collect_info_timer != nullptr) {
-        dassert(!_collect_info_timer->cancel(false),
-                "collect info timer should already been cancelled");
-        _collect_info_timer = nullptr;
-    }
+    _tracker.cancel_outstanding_tasks();
 
     cleanup_preparing_mutations(true);
     dassert(_primary_states.is_cleaned(), "primary context is not cleared");
