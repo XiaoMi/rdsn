@@ -390,17 +390,13 @@ bool replica::prepare_close()
     }
 
     if (_collect_info_timer != nullptr) {
-        _checkpoint_timer->cancel(true);
+        _collect_info_timer->cancel(true);
         _collect_info_timer = nullptr;
     }
 
     int not_finished = _tracker.cancel_but_not_wait_outstanding_tasks();
-    if (not_finished > 0) {
-        ddebug("%s: still %d tasks not finished", name(), not_finished);
-        return false;
-    } else {
-        return true;
-    }
+    ddebug("%s: still %d tracked tasks not finished", name(), not_finished);
+    return not_finished == 0;
 }
 
 void replica::close()
@@ -445,6 +441,8 @@ void replica::close()
     }
 
     _counter_private_log_size.clear();
+
+    ddebug("%s: replica closed", name());
 }
 
 bool replica::could_start_manual_compact()
