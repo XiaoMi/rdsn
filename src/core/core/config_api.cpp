@@ -9,6 +9,8 @@ bool dsn_config_load(const char *file, const char *arguments)
     return g_config.load(file, arguments);
 }
 
+void dsn_config_dump(std::ostream &os) { g_config.dump(os); }
+
 const char *dsn_config_get_value_string(const char *section,
                                         const char *key,
                                         const char *default_value,

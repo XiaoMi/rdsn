@@ -811,8 +811,8 @@ bool run(const char *config_file,
 
         bool create_it = false;
 
-        if (app_list == "") // create all apps
-        {
+        // create all apps
+        if (app_list == "") {
             create_it = true;
         } else {
             for (auto &kv : applistkvs) {
@@ -848,13 +848,31 @@ bool run(const char *config_file,
         ::dsn::command_manager::instance().start_remote_cli();
     }
 
+    dsn::command_manager::instance().register_command({"config-dump"},
+                                                      "config-dump - dump configuration",
+                                                      "config-dump [to-this-config-file]",
+                                                      [](const std::vector<std::string> &args) {
+                                                          std::ostringstream oss;
+                                                          std::ofstream off;
+                                                          std::ostream *os = &oss;
+                                                          if (args.size() > 0) {
+                                                              off.open(args[0]);
+                                                              os = &off;
+
+                                                              oss << "config dump to file "
+                                                                  << args[0] << std::endl;
+                                                          }
+
+                                                          dsn_config_dump(*os);
+                                                          return oss.str();
+                                                      });
+
     // invoke customized init after apps are created
     dsn::tools::sys_init_after_app_created.execute();
 
     // start the tool
     dsn_all.tool->run();
 
-    //
     if (sleep_after_init) {
         while (true) {
             std::this_thread::sleep_for(std::chrono::hours(1));

@@ -61,6 +61,9 @@
 /// the function is not thread safe.
 bool dsn_config_load(const char *file, const char *arguments);
 
+/// dump the global configuration
+void dsn_config_dump(std::ostream &os);
+
 /// the section format:
 /// [section]
 /// key = value
