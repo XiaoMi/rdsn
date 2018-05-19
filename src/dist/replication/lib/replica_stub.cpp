@@ -760,7 +760,7 @@ void replica_stub::on_query_replica_info(const query_replica_info_request &req,
     {
         zauto_read_lock l(_replicas_lock);
         for (auto it = _replicas.begin(); it != _replicas.end(); ++it) {
-            replica_ptr r = it->second;
+            replica_ptr &r = it->second;
             replica_info info;
             get_replica_info(info, r);
             if (visited_replicas.find(info.pid) == visited_replicas.end()) {
@@ -769,12 +769,10 @@ void replica_stub::on_query_replica_info(const query_replica_info_request &req,
             }
         }
         for (auto it = _closing_replicas.begin(); it != _closing_replicas.end(); ++it) {
-            replica_ptr r = it->second.second;
-            replica_info info;
-            get_replica_info(info, r);
+            const replica_info &info = std::get<3>(it->second);
             if (visited_replicas.find(info.pid) == visited_replicas.end()) {
                 visited_replicas.insert(info.pid);
-                resp.replicas.push_back(std::move(info));
+                resp.replicas.push_back(info);
             }
         }
         for (auto it = _closed_replicas.begin(); it != _closed_replicas.end(); ++it) {
@@ -797,7 +795,7 @@ void replica_stub::on_query_app_info(const query_app_info_request &req,
     {
         zauto_read_lock l(_replicas_lock);
         for (auto it = _replicas.begin(); it != _replicas.end(); ++it) {
-            replica_ptr r = it->second;
+            replica_ptr &r = it->second;
             const app_info &info = *r->get_app_info();
             if (visited_apps.find(info.app_id) == visited_apps.end()) {
                 resp.apps.push_back(info);
@@ -805,8 +803,7 @@ void replica_stub::on_query_app_info(const query_app_info_request &req,
             }
         }
         for (auto it = _closing_replicas.begin(); it != _closing_replicas.end(); ++it) {
-            replica_ptr r = it->second.second;
-            const app_info &info = *r->get_app_info();
+            const app_info &info = std::get<2>(it->second);
             if (visited_apps.find(info.app_id) == visited_apps.end()) {
                 resp.apps.push_back(info);
                 visited_apps.insert(info.app_id);
@@ -1010,18 +1007,16 @@ void replica_stub::get_local_replicas(std::vector<replica_info> &replicas)
     // local_replicas = replicas + closing_replicas + closed_replicas
     int total_replicas = _replicas.size() + _closing_replicas.size() + _closed_replicas.size();
     replicas.reserve(total_replicas);
-    replica_info info;
 
     for (auto &pairs : _replicas) {
         replica_ptr &rep = pairs.second;
+        replica_info info;
         get_replica_info(info, rep);
-        replicas.push_back(info);
+        replicas.push_back(std::move(info));
     }
 
     for (auto &pairs : _closing_replicas) {
-        replica_ptr &rep = pairs.second.second;
-        get_replica_info(info, rep);
-        replicas.push_back(info);
+        replicas.push_back(std::get<3>(pairs.second));
     }
 
     for (auto &pairs : _closed_replicas) {
@@ -1769,9 +1764,11 @@ void replica_stub::open_replica(const app_info &app,
             r->name(),
             enum_to_string(r->status()));
 
+    gpid id = r->get_gpid();
+
     zauto_write_lock l(_replicas_lock);
 
-    if (_replicas.erase(r->get_gpid()) > 0) {
+    if (_replicas.erase(id) > 0) {
         _counter_replicas_count->decrement();
 
         int delay_ms = 0;
@@ -1782,12 +1779,15 @@ void replica_stub::open_replica(const app_info &app,
                    delay_ms);
         }
 
+        app_info a_info = *(r->get_app_info());
+        replica_info r_info;
+        get_replica_info(r_info, r);
         task_ptr task = tasking::enqueue(LPC_CLOSE_REPLICA,
                                          &_tracker,
                                          [=]() { close_replica(r); },
                                          0,
                                          std::chrono::milliseconds(delay_ms));
-        _closing_replicas[r->get_gpid()] = std::make_pair(task, r);
+        _closing_replicas[id] = std::make_tuple(task, r, std::move(a_info), std::move(r_info));
         _counter_replicas_closing_count->increment();
         return task;
     } else {
@@ -1799,32 +1799,39 @@ void replica_stub::close_replica(replica_ptr r)
 {
     ddebug("%s: start to close replica", r->name());
 
-    replica_info r_info;
-    get_replica_info(r_info, r);
+    gpid id = r->get_gpid();
+    std::string name = r->name();
 
     // we need call prepare_close() because some tasks (for example munual compact) may run for
     // a long time, we don't want to block this thread on waiting.
     if (!r->prepare_close()) {
-        ddebug("%s: replica not closed, need to wait traced tasks to finish", r->name());
+        ddebug("%s: prepare close replica failed, need to wait traced tasks to finish",
+               name.c_str());
         zauto_write_lock l(_replicas_lock);
-        task_ptr task = tasking::enqueue(
+        auto find = _closing_replicas.find(id);
+        dassert(find != _closing_replicas.end(),
+                "replica %s is not in _closing_replicas",
+                name.c_str());
+        std::get<0>(find->second) = tasking::enqueue(
             LPC_CLOSE_REPLICA, &_tracker, [=]() { close_replica(r); }, 0, std::chrono::seconds(5));
-        _closing_replicas[r->get_gpid()] = std::make_pair(task, r);
         return;
     }
 
-    app_info a_info = *(r->get_app_info());
     r->close();
 
     {
         zauto_write_lock l(_replicas_lock);
-        auto ret = _closing_replicas.erase(r->get_gpid());
-        dassert(ret > 0, "replica %s is not in _closing_replicas", r->name());
+        auto find = _closing_replicas.find(id);
+        dassert(find != _closing_replicas.end(),
+                "replica %s is not in _closing_replicas",
+                name.c_str());
+        _closed_replicas.emplace(
+            id, std::make_pair(std::get<2>(find->second), std::get<3>(find->second)));
+        _closing_replicas.erase(find);
         _counter_replicas_closing_count->decrement();
-        _closed_replicas.emplace(r_info.pid, std::make_pair(std::move(a_info), std::move(r_info)));
     }
 
-    ddebug("%s: replica closed", r->name());
+    ddebug("%s: replica closed", name.c_str());
 }
 
 void replica_stub::notify_replica_state_update(const replica_configuration &config, bool is_closing)
@@ -2153,7 +2160,7 @@ void replica_stub::close()
     {
         zauto_write_lock l(_replicas_lock);
         while (_closing_replicas.empty() == false) {
-            task_ptr task = _closing_replicas.begin()->second.first;
+            task_ptr task = std::get<0>(_closing_replicas.begin()->second);
             gpid tmp_gpid = _closing_replicas.begin()->first;
             _replicas_lock.unlock_write();
 
