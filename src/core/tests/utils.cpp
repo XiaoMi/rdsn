@@ -240,8 +240,10 @@ TEST(core, get_unix_sec_today_midnight)
 
 TEST(core, hh_mm_today_to_unix_sec)
 {
-    ASSERT_EQ(get_unix_sec_today_midnight() + hh_mm_to_seconds("0:0"), hh_mm_today_to_unix_sec("0:0"));
-    ASSERT_EQ(get_unix_sec_today_midnight() + hh_mm_to_seconds("23:59"), hh_mm_today_to_unix_sec("23:59"));
+    ASSERT_EQ(get_unix_sec_today_midnight() + hh_mm_to_seconds("0:0"),
+              hh_mm_today_to_unix_sec("0:0"));
+    ASSERT_EQ(get_unix_sec_today_midnight() + hh_mm_to_seconds("23:59"),
+              hh_mm_today_to_unix_sec("23:59"));
 
     ASSERT_EQ(hh_mm_today_to_unix_sec("23"), -1);
     ASSERT_EQ(hh_mm_today_to_unix_sec("23:"), -1);
