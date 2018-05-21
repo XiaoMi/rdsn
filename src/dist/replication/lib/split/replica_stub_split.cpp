@@ -24,28 +24,4 @@
  * THE SOFTWARE.
  */
 
-#pragma once
-
-#include "dist/replication/lib/replica.h"
-
-namespace dsn {
-namespace replication {
-
-class replica_split : public replica_base
-{
-public:
-    explicit replica_split(replica *r);
-
-    /// \see replica::on_config_sync
-    void start_splitting_if_needed(const app_info &info, const partition_configuration &config);
-
-    /// ==== Implementation ==== ///
-
-    void start_2pc_for_partition_split();
-
-private:
-    replica *_r;
-};
-
-} // namespace replication
-} // namespace dsn
+#include "replica_stub_split.h"

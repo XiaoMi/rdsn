@@ -698,6 +698,10 @@ struct duplication_sync_response
     2:map<i32, list<duplication_entry>>                dup_map;
 }
 
+
+/////////////////// split-related structs ////////////////////
+
+
 // Request to split the table. It is sent from client to meta.
 struct app_partition_split_request
 {

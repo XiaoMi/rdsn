@@ -31,11 +31,14 @@
 namespace dsn {
 namespace replication {
 
+DEFINE_TASK_CODE_RPC(RPC_PARTITION_SPLIT_2PC, TASK_PRIORITY_COMMON, THREAD_POOL_REPLICATION);
+
 void replica_split::start_splitting_if_needed(const app_info &info,
                                               const partition_configuration &config)
 {
     // don't split during reconfiguration
-    if (_r->_primary_states.reconfiguration_task != nullptr) {
+    if (_r->_primary_states.reconfiguration_task != nullptr ||
+        _r->_primary_states.membership.secondaries.size() < 2) {
         return;
     }
 
@@ -50,11 +53,18 @@ void replica_split::start_splitting_if_needed(const app_info &info,
                         _r->_app_info.partition_count,
                         info.partition_count);
 
-        // start splitting
+        // start splitting if new_partition_count = old_partition_count * 2
+        start_2pc_for_partition_split();
     }
 }
 
 replica_split::replica_split(replica *r) : replica_base(*r), _r(r) {}
+
+void replica_split::start_2pc_for_partition_split()
+{
+    auto msg = dsn_msg_create_request(RPC_PARTITION_SPLIT_2PC, 1000, );
+    _r->on_client_write(RPC_PARTITION_SPLIT_2PC, msg);
+}
 
 } // namespace replication
 } // namespace dsn
