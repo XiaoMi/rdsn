@@ -373,6 +373,35 @@ decree replica::last_prepared_decree() const
 
 bool replica::verbose_commit_log() const { return _stub->_verbose_commit_log; }
 
+bool replica::prepare_close()
+{
+    dassert(status() == partition_status::PS_ERROR || status() == partition_status::PS_INACTIVE,
+            "%s: invalid state %s when calling replica::close",
+            name(),
+            enum_to_string(status()));
+
+    if (_app && !_app->prepare_close())
+        return false;
+
+    if (_checkpoint_timer != nullptr) {
+        _checkpoint_timer->cancel(true);
+        _checkpoint_timer = nullptr;
+    }
+
+    if (_collect_info_timer != nullptr) {
+        _collect_info_timer->cancel(true);
+        _collect_info_timer = nullptr;
+    }
+
+    int not_finished = _tracker.cancel_but_not_wait_outstanding_tasks();
+    if (not_finished != 0) {
+        ddebug("%s: still %d tracked tasks depending on this replica not finished",
+               name(),
+               not_finished);
+    }
+    return not_finished == 0;
+}
+
 void replica::close()
 {
     dassert(status() == partition_status::PS_ERROR || status() == partition_status::PS_INACTIVE,
@@ -381,17 +410,6 @@ void replica::close()
             enum_to_string(status()));
 
     _tracker.cancel_outstanding_tasks();
-
-    if (_checkpoint_timer != nullptr) {
-        dassert(!_checkpoint_timer->cancel(false),
-                "checkpoint timer should already been cancelled");
-        _checkpoint_timer = nullptr;
-    }
-    if (_collect_info_timer != nullptr) {
-        dassert(!_collect_info_timer->cancel(false),
-                "collect info timer should already been cancelled");
-        _collect_info_timer = nullptr;
-    }
 
     cleanup_preparing_mutations(true);
     dassert(_primary_states.is_cleaned(), "primary context is not cleared");
@@ -417,13 +435,16 @@ void replica::close()
     }
 
     if (_app != nullptr) {
-        error_code err = _app->close(false);
-        if (err != dsn::ERR_OK)
-            ddebug("app close result: %s", err.to_string());
-        _app.reset();
+        std::unique_ptr<replication_app_base> tmp_app = std::move(_app);
+        error_code err = tmp_app->close(false);
+        if (err != dsn::ERR_OK) {
+            dwarn("%s: close app failed, err = %s", name(), err.to_string());
+        }
     }
 
     _counter_private_log_size.clear();
+
+    ddebug("%s: replica closed", name());
 }
 
 bool replica::could_start_manual_compact()
@@ -442,6 +463,12 @@ bool replica::could_start_manual_compact()
 
 void replica::manual_compact(const std::map<std::string, std::string> &opts)
 {
+    // only applicable to primary and secondary replicas
+    if (status() != partition_status::PS_PRIMARY && status() != partition_status::PS_SECONDARY) {
+        ddebug("%s: ignore doing manual compact for status = %s", name(), enum_to_string(status()));
+        return;
+    }
+
     if (_app != nullptr) {
         ddebug("%s: start to execute manual compaction", name());
         uint64_t start = dsn_now_ms();

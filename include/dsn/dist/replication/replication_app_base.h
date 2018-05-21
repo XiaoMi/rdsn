@@ -115,6 +115,14 @@ public:
     // Open the app.
     //
     ::dsn::error_code open();
+
+    // Prepare to close the app.
+    //
+    // try to cancal all tracked tasks which depends on this object, but not wait.
+    // return true if all tracked tasks have been finished
+    //
+    virtual bool prepare_close() { return true; }
+
     //
     // Close the app.
     // If `clear_state' is true, means clear the app state after close it.
@@ -122,6 +130,7 @@ public:
     // Must be thread safe.
     //
     ::dsn::error_code close(bool clear_state);
+
     ::dsn::error_code apply_checkpoint(chkpt_apply_mode mode, const learn_state &state);
     ::dsn::error_code apply_mutation(const mutation *mu);
 
