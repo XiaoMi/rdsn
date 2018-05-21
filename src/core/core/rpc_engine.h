@@ -35,11 +35,10 @@
 
 #pragma once
 
+#include <dsn/utility/synchronize.h>
 #include <dsn/tool-api/task.h>
 #include <dsn/tool-api/network.h>
-#include <dsn/utility/synchronize.h>
 #include <dsn/tool-api/global_config.h>
-#include <dsn/utility/configuration.h>
 
 namespace dsn {
 
@@ -73,7 +72,7 @@ public:
     // when a two-way RPC call is made, register the requst id and the callback
     // which also registers a timer for timeout tracking
     //
-    void on_call(message_ex *request, rpc_response_task *call);
+    void on_call(message_ex *request, const rpc_response_task_ptr &call);
 
     //
     // when a RPC response is received, call this function to trigger calback
@@ -93,8 +92,8 @@ private:
     rpc_engine *_engine;
     struct match_entry
     {
-        rpc_response_task *resp_task;
-        task *timeout_task;
+        rpc_response_task_ptr resp_task;
+        task_ptr timeout_task;
         uint64_t timeout_ts_ms; // > 0 for auto-resent msgs
     };
     typedef std::unordered_map<uint64_t, match_entry> rpc_requests;
@@ -108,10 +107,8 @@ public:
     rpc_server_dispatcher();
     ~rpc_server_dispatcher();
 
-    bool register_rpc_handler(dsn::task_code code,
-                              const char *extra_name,
-                              const dsn_rpc_request_handler_t &h);
-    bool unregister_rpc_handler(dsn::task_code rpc_code);
+    bool register_rpc_handler(task_code code, const char *extra_name, const rpc_request_handler &h);
+    bool unregister_rpc_handler(task_code rpc_code);
     rpc_request_task *on_request(message_ex *msg, service_node *node);
     int handler_count() const
     {
@@ -124,7 +121,7 @@ private:
     {
         task_code code;
         std::string extra_name;
-        dsn_rpc_request_handler_t h;
+        rpc_request_handler h;
     };
 
     mutable utils::rw_lock_nr _handlers_lock;
@@ -143,7 +140,7 @@ private:
 class rpc_engine
 {
 public:
-    rpc_engine(configuration_ptr config, service_node *node);
+    explicit rpc_engine(service_node *node);
 
     //
     // management routines
@@ -154,15 +151,14 @@ public:
     //
     // rpc registrations
     //
-    bool register_rpc_handler(dsn::task_code code,
-                              const char *extra_name,
-                              const dsn_rpc_request_handler_t &h);
+    bool
+    register_rpc_handler(dsn::task_code code, const char *extra_name, const rpc_request_handler &h);
     bool unregister_rpc_handler(dsn::task_code rpc_code);
 
     //
     // rpc routines
     //
-    void call(message_ex *request, rpc_response_task *call);
+    void call(message_ex *request, const rpc_response_task_ptr &call);
     void on_recv_request(network *net, message_ex *msg, int delay_ms);
     void reply(message_ex *response, error_code err = ERR_OK);
     void forward(message_ex *request, rpc_address address);
@@ -176,20 +172,20 @@ public:
     uri_resolver_manager *uri_resolver_mgr() { return _uri_resolver_mgr.get(); }
 
     // call with URI address only
-    void call_uri(rpc_address addr, message_ex *request, rpc_response_task *call);
+    void call_uri(rpc_address addr, message_ex *request, const rpc_response_task_ptr &call);
 
     // call with group address only
-    void call_group(rpc_address addr, message_ex *request, rpc_response_task *call);
+    void call_group(rpc_address addr, message_ex *request, const rpc_response_task_ptr &call);
 
     // call with ip address only
     void call_ip(rpc_address addr,
                  message_ex *request,
-                 rpc_response_task *call,
+                 const rpc_response_task_ptr &call,
                  bool reset_request_id = false,
                  bool set_forwarded = false);
 
     // call with explicit address
-    void call_address(rpc_address addr, message_ex *request, rpc_response_task *call);
+    void call_address(rpc_address addr, message_ex *request, const rpc_response_task_ptr &call);
 
 private:
     network *create_network(const network_server_config &netcs,
@@ -198,7 +194,6 @@ private:
                             io_modifer &ctx);
 
 private:
-    configuration_ptr _config;
     service_node *_node;
     std::vector<std::vector<network *>> _client_nets;             // <format, <CHANNEL, network*>>
     std::unordered_map<int, std::vector<network *>> _server_nets; // <port, <CHANNEL, network*>>
@@ -214,7 +209,8 @@ private:
 
 // ------------------------ inline implementations --------------------
 
-inline void rpc_engine::call_address(rpc_address addr, message_ex *request, rpc_response_task *call)
+inline void
+rpc_engine::call_address(rpc_address addr, message_ex *request, const rpc_response_task_ptr &call)
 {
     switch (addr.type()) {
     case HOST_TYPE_IPV4:

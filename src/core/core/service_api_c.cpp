@@ -47,7 +47,7 @@
 #include <dsn/utility/singleton_store.h>
 #include <dsn/utility/utils.h>
 
-#include <dsn/utility/configuration.h>
+#include <dsn/utility/config_api.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/transient_memory.h>
 #include <dsn/tool-api/command_manager.h>
@@ -74,7 +74,6 @@ static struct _all_info_
     bool engine_ready;
     bool config_completed;
     ::dsn::tools::tool_app *tool;
-    ::dsn::configuration_ptr config;
     ::dsn::service_engine *engine;
     std::vector<::dsn::task_spec *> task_specs;
     ::dsn::memory_provider *memory;
@@ -91,91 +90,9 @@ DSN_API volatile int *dsn_task_queue_virtual_length_ptr(dsn::task_code code, int
                                                                                            hash);
 }
 
-DSN_API bool dsn_task_is_running_inside(dsn_task_t t)
+DSN_API bool dsn_task_is_running_inside(dsn::task *t)
 {
-    return ::dsn::task::get_current_task() == (::dsn::task *)(t);
-}
-
-DSN_API const char *dsn_config_get_value_string(const char *section,
-                                                const char *key,
-                                                const char *default_value,
-                                                const char *dsptr)
-{
-    return dsn_all.config->get_string_value(section, key, default_value, dsptr);
-}
-
-DSN_API bool dsn_config_get_value_bool(const char *section,
-                                       const char *key,
-                                       bool default_value,
-                                       const char *dsptr)
-{
-    return dsn_all.config->get_value<bool>(section, key, default_value, dsptr);
-}
-
-DSN_API uint64_t dsn_config_get_value_uint64(const char *section,
-                                             const char *key,
-                                             uint64_t default_value,
-                                             const char *dsptr)
-{
-    return dsn_all.config->get_value<uint64_t>(section, key, default_value, dsptr);
-}
-
-DSN_API int64_t dsn_config_get_value_int64(const char *section,
-                                           const char *key,
-                                           int64_t default_value,
-                                           const char *dsptr)
-{
-    return dsn_all.config->get_value<int64_t>(section, key, default_value, dsptr);
-}
-
-DSN_API double dsn_config_get_value_double(const char *section,
-                                           const char *key,
-                                           double default_value,
-                                           const char *dsptr)
-{
-    return dsn_all.config->get_value<double>(section, key, default_value, dsptr);
-}
-
-DSN_API int dsn_config_get_all_sections(const char **buffers, /*inout*/ int *buffer_count)
-{
-    std::vector<const char *> sections;
-    dsn_all.config->get_all_section_ptrs(sections);
-    int scount = (int)sections.size();
-
-    if (*buffer_count > scount)
-        *buffer_count = scount;
-
-    for (int i = 0; i < *buffer_count; i++) {
-        buffers[i] = sections[i];
-    }
-
-    return scount;
-}
-
-DSN_API int dsn_config_get_all_keys(
-    const char *section,
-    const char **buffers,
-    /*inout*/ int *buffer_count) // return all key count (may greater than buffer_count)
-{
-    std::vector<const char *> keys;
-    dsn_all.config->get_all_keys(section, keys);
-    int kcount = (int)keys.size();
-
-    if (*buffer_count > kcount)
-        *buffer_count = kcount;
-
-    for (int i = 0; i < *buffer_count; i++) {
-        buffers[i] = keys[i];
-    }
-
-    return kcount;
-}
-
-DSN_API void dsn_config_dump(const char *file)
-{
-    std::ofstream os(file, std::ios::out);
-    dsn_all.config->dump(os);
-    os.close();
+    return ::dsn::task::get_current_task() == t;
 }
 
 DSN_API void dsn_coredump()
@@ -183,108 +100,6 @@ DSN_API void dsn_coredump()
     ::dsn::utils::coredump::write();
     ::abort();
 }
-
-DSN_API dsn_task_t dsn_task_create(
-    dsn::task_code code, dsn_task_handler_t cb, void *context, int hash, dsn::task_tracker *tracker)
-{
-    auto t = new ::dsn::task_c(code, cb, context, nullptr, hash);
-    t->set_tracker((dsn::task_tracker *)tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
-    return t;
-}
-
-DSN_API dsn_task_t dsn_task_create_timer(dsn::task_code code,
-                                         dsn_task_handler_t cb,
-                                         void *context,
-                                         int hash,
-                                         int interval_milliseconds,
-                                         dsn::task_tracker *tracker)
-{
-    auto t = new ::dsn::timer_task(code, cb, context, nullptr, interval_milliseconds, hash);
-    t->set_tracker((dsn::task_tracker *)tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
-    return t;
-}
-
-DSN_API dsn_task_t dsn_task_create_ex(dsn::task_code code,
-                                      dsn_task_handler_t cb,
-                                      dsn_task_cancelled_handler_t on_cancel,
-                                      void *context,
-                                      int hash,
-                                      dsn::task_tracker *tracker)
-{
-    auto t = new ::dsn::task_c(code, cb, context, on_cancel, hash);
-    t->set_tracker((dsn::task_tracker *)tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
-    return t;
-}
-
-DSN_API dsn_task_t dsn_task_create_timer_ex(dsn::task_code code,
-                                            dsn_task_handler_t cb,
-                                            dsn_task_cancelled_handler_t on_cancel,
-                                            void *context,
-                                            int hash,
-                                            int interval_milliseconds,
-                                            dsn::task_tracker *tracker)
-{
-    auto t = new ::dsn::timer_task(code, cb, context, on_cancel, interval_milliseconds, hash);
-    t->set_tracker((dsn::task_tracker *)tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
-    return t;
-}
-
-DSN_API void dsn_task_call(dsn_task_t task, int delay_milliseconds)
-{
-    auto t = ((::dsn::task *)(task));
-    dassert(t->spec().type == TASK_TYPE_COMPUTE, "must be common or timer task");
-
-    t->set_delay(delay_milliseconds);
-    t->enqueue();
-}
-
-DSN_API void dsn_task_add_ref(dsn_task_t task) { ((::dsn::task *)(task))->add_ref(); }
-
-DSN_API void dsn_task_release_ref(dsn_task_t task) { ((::dsn::task *)(task))->release_ref(); }
-
-DSN_API int dsn_task_get_ref(dsn_task_t task) { return ((::dsn::task *)(task))->get_count(); }
-
-DSN_API bool dsn_task_cancel(dsn_task_t task, bool wait_until_finished)
-{
-    return ((::dsn::task *)(task))->cancel(wait_until_finished);
-}
-
-DSN_API void dsn_task_set_delay(dsn_task_t task, int delay_ms)
-{
-    ((::dsn::task *)(task))->set_delay(delay_ms);
-}
-
-DSN_API bool dsn_task_cancel2(dsn_task_t task, bool wait_until_finished, bool *finished)
-{
-    return ((::dsn::task *)(task))->cancel(wait_until_finished, finished);
-}
-
-DSN_API void dsn_task_cancel_current_timer()
-{
-    ::dsn::task *t = ::dsn::task::get_current_task();
-    if (nullptr != t) {
-        t->cancel(false);
-    }
-}
-
-DSN_API void dsn_task_wait(dsn_task_t task)
-{
-    auto r = ((::dsn::task *)(task))->wait();
-    dassert(r,
-            "task wait without timeout must succeeds (task_id = %016" PRIx64 ")",
-            ((::dsn::task *)(task))->id());
-}
-
-DSN_API bool dsn_task_wait_timeout(dsn_task_t task, int timeout_milliseconds)
-{
-    return ((::dsn::task *)(task))->wait(timeout_milliseconds);
-}
-
-DSN_API dsn::error_code dsn_task_error(dsn_task_t task) { return ((::dsn::task *)(task))->error(); }
 
 //------------------------------------------------------------------------------
 //
@@ -454,7 +269,7 @@ DSN_API dsn::rpc_address dsn_primary_address()
 
 DSN_API bool dsn_rpc_register_handler(dsn::task_code code,
                                       const char *extra_name,
-                                      const dsn_rpc_request_handler_t &cb)
+                                      const dsn::rpc_request_handler &cb)
 {
     return ::dsn::task::get_current_node()->rpc_register_handler(code, extra_name, cb);
 }
@@ -464,43 +279,15 @@ DSN_API bool dsn_rpc_unregiser_handler(dsn::task_code code)
     return ::dsn::task::get_current_node()->rpc_unregister_handler(code);
 }
 
-DSN_API dsn_task_t dsn_rpc_create_response_task(dsn_message_t request,
-                                                dsn_rpc_response_handler_t cb,
-                                                void *context,
-                                                int reply_thread_hash,
-                                                dsn::task_tracker *tracker)
+DSN_API void dsn_rpc_call(dsn::rpc_address server, dsn::rpc_response_task *rpc_call)
 {
-    auto msg = ((::dsn::message_ex *)request);
-    auto t = new ::dsn::rpc_response_task(msg, cb, context, nullptr, reply_thread_hash);
-    t->set_tracker((dsn::task_tracker *)tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
-    return t;
-}
-
-DSN_API dsn_task_t dsn_rpc_create_response_task_ex(dsn_message_t request,
-                                                   dsn_rpc_response_handler_t cb,
-                                                   dsn_task_cancelled_handler_t on_cancel,
-                                                   void *context,
-                                                   int reply_thread_hash,
-                                                   dsn::task_tracker *tracker)
-{
-    auto msg = ((::dsn::message_ex *)request);
-    auto t = new ::dsn::rpc_response_task(msg, cb, context, on_cancel, reply_thread_hash);
-    t->set_tracker((dsn::task_tracker *)tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
-    return t;
-}
-
-DSN_API void dsn_rpc_call(dsn::rpc_address server, dsn_task_t rpc_call)
-{
-    ::dsn::rpc_response_task *task = (::dsn::rpc_response_task *)rpc_call;
-    dassert(task->spec().type == TASK_TYPE_RPC_RESPONSE,
+    dassert(rpc_call->spec().type == TASK_TYPE_RPC_RESPONSE,
             "invalid task_type, type = %s",
-            enum_to_string(task->spec().type));
+            enum_to_string(rpc_call->spec().type));
 
-    auto msg = task->get_request();
+    auto msg = rpc_call->get_request();
     msg->server_address = server;
-    ::dsn::task::get_current_rpc()->call(msg, task);
+    ::dsn::task::get_current_rpc()->call(msg, dsn::rpc_response_task_ptr(rpc_call));
 }
 
 DSN_API dsn_message_t dsn_rpc_call_wait(dsn::rpc_address server, dsn_message_t request)
@@ -508,9 +295,9 @@ DSN_API dsn_message_t dsn_rpc_call_wait(dsn::rpc_address server, dsn_message_t r
     auto msg = ((::dsn::message_ex *)request);
     msg->server_address = server;
 
-    ::dsn::rpc_response_task *rtask = new ::dsn::rpc_response_task(msg, nullptr, nullptr, 0);
+    ::dsn::rpc_response_task *rtask = new ::dsn::rpc_response_task(msg, nullptr, 0);
     rtask->add_ref();
-    ::dsn::task::get_current_rpc()->call(msg, rtask);
+    ::dsn::task::get_current_rpc()->call(msg, dsn::rpc_response_task_ptr(rtask));
     rtask->wait();
     if (rtask->error() == ::dsn::ERR_OK) {
         auto msg = rtask->get_response();
@@ -543,29 +330,15 @@ DSN_API void dsn_rpc_forward(dsn_message_t request, dsn::rpc_address addr)
                                             ::dsn::rpc_address(addr));
 }
 
-DSN_API dsn_message_t dsn_rpc_get_response(dsn_task_t rpc_call)
+DSN_API void dsn_rpc_enqueue_response(dsn::rpc_response_task *rpc_call,
+                                      dsn::error_code err,
+                                      dsn_message_t response)
 {
-    ::dsn::rpc_response_task *task = (::dsn::rpc_response_task *)rpc_call;
-    dassert(task->spec().type == TASK_TYPE_RPC_RESPONSE,
+    dassert(rpc_call->spec().type == TASK_TYPE_RPC_RESPONSE,
             "invalid task_type, type = %s",
-            enum_to_string(task->spec().type));
-    auto msg = task->get_response();
-    if (nullptr != msg) {
-        msg->add_ref(); // released by callers
-        return msg;
-    } else
-        return nullptr;
-}
-
-DSN_API void
-dsn_rpc_enqueue_response(dsn_task_t rpc_call, dsn::error_code err, dsn_message_t response)
-{
-    ::dsn::rpc_response_task *task = (::dsn::rpc_response_task *)rpc_call;
-    dassert(task->spec().type == TASK_TYPE_RPC_RESPONSE,
-            "invalid task_type, type = %s",
-            enum_to_string(task->spec().type));
+            enum_to_string(rpc_call->spec().type));
     auto resp = ((::dsn::message_ex *)response);
-    task->enqueue(err, resp);
+    rpc_call->enqueue(err, resp);
 }
 
 //------------------------------------------------------------------------------
@@ -596,77 +369,52 @@ DSN_API void *dsn_file_native_handle(dsn_handle_t file)
     return dfile->native_handle();
 }
 
-DSN_API dsn_task_t dsn_file_create_aio_task(
-    dsn::task_code code, dsn_aio_handler_t cb, void *context, int hash, dsn::task_tracker *tracker)
+DSN_API void
+dsn_file_read(dsn_handle_t file, char *buffer, int count, uint64_t offset, dsn::aio_task *cb)
 {
-    auto t = new ::dsn::aio_task(code, cb, context, nullptr, hash);
-    t->set_tracker((dsn::task_tracker *)tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
-    return t;
-}
+    cb->aio()->buffer = buffer;
+    cb->aio()->buffer_size = count;
+    cb->aio()->engine = nullptr;
+    cb->aio()->file = file;
+    cb->aio()->file_offset = offset;
+    cb->aio()->type = ::dsn::AIO_Read;
 
-DSN_API dsn_task_t dsn_file_create_aio_task_ex(dsn::task_code code,
-                                               dsn_aio_handler_t cb,
-                                               dsn_task_cancelled_handler_t on_cancel,
-                                               void *context,
-                                               int hash,
-                                               dsn::task_tracker *tracker)
-{
-    auto t = new ::dsn::aio_task(code, cb, context, on_cancel, hash);
-    t->set_tracker((dsn::task_tracker *)tracker);
-    t->spec().on_task_create.execute(::dsn::task::get_current_task(), t);
-    return t;
+    ::dsn::task::get_current_disk()->read(cb);
 }
 
 DSN_API void
-dsn_file_read(dsn_handle_t file, char *buffer, int count, uint64_t offset, dsn_task_t cb)
+dsn_file_write(dsn_handle_t file, const char *buffer, int count, uint64_t offset, dsn::aio_task *cb)
 {
-    ::dsn::aio_task *callback((::dsn::aio_task *)cb);
-    callback->aio()->buffer = buffer;
-    callback->aio()->buffer_size = count;
-    callback->aio()->engine = nullptr;
-    callback->aio()->file = file;
-    callback->aio()->file_offset = offset;
-    callback->aio()->type = ::dsn::AIO_Read;
+    cb->aio()->buffer = (char *)buffer;
+    cb->aio()->buffer_size = count;
+    cb->aio()->engine = nullptr;
+    cb->aio()->file = file;
+    cb->aio()->file_offset = offset;
+    cb->aio()->type = ::dsn::AIO_Write;
 
-    ::dsn::task::get_current_disk()->read(callback);
-}
-
-DSN_API void
-dsn_file_write(dsn_handle_t file, const char *buffer, int count, uint64_t offset, dsn_task_t cb)
-{
-    ::dsn::aio_task *callback((::dsn::aio_task *)cb);
-    callback->aio()->buffer = (char *)buffer;
-    callback->aio()->buffer_size = count;
-    callback->aio()->engine = nullptr;
-    callback->aio()->file = file;
-    callback->aio()->file_offset = offset;
-    callback->aio()->type = ::dsn::AIO_Write;
-
-    ::dsn::task::get_current_disk()->write(callback);
+    ::dsn::task::get_current_disk()->write(cb);
 }
 
 DSN_API void dsn_file_write_vector(dsn_handle_t file,
                                    const dsn_file_buffer_t *buffers,
                                    int buffer_count,
                                    uint64_t offset,
-                                   dsn_task_t cb)
+                                   dsn::aio_task *cb)
 {
-    ::dsn::aio_task *callback((::dsn::aio_task *)cb);
-    callback->aio()->buffer = nullptr;
-    callback->aio()->buffer_size = 0;
-    callback->aio()->engine = nullptr;
-    callback->aio()->file = file;
-    callback->aio()->file_offset = offset;
-    callback->aio()->type = ::dsn::AIO_Write;
+    cb->aio()->buffer = nullptr;
+    cb->aio()->buffer_size = 0;
+    cb->aio()->engine = nullptr;
+    cb->aio()->file = file;
+    cb->aio()->file_offset = offset;
+    cb->aio()->type = ::dsn::AIO_Write;
     for (int i = 0; i < buffer_count; i++) {
         if (buffers[i].size > 0) {
-            callback->_unmerged_write_buffers.push_back(buffers[i]);
-            callback->aio()->buffer_size += buffers[i].size;
+            cb->_unmerged_write_buffers.push_back(buffers[i]);
+            cb->aio()->buffer_size += buffers[i].size;
         }
     }
 
-    ::dsn::task::get_current_disk()->write(callback);
+    ::dsn::task::get_current_disk()->write(cb);
 }
 
 DSN_API void dsn_file_copy_remote_directory(dsn::rpc_address remote,
@@ -674,7 +422,7 @@ DSN_API void dsn_file_copy_remote_directory(dsn::rpc_address remote,
                                             const char *dest_dir,
                                             bool overwrite,
                                             bool high_priority,
-                                            dsn_task_t cb)
+                                            dsn::aio_task *cb)
 {
     std::shared_ptr<::dsn::remote_copy_request> rci(new ::dsn::remote_copy_request());
     rci->source = remote;
@@ -684,9 +432,7 @@ DSN_API void dsn_file_copy_remote_directory(dsn::rpc_address remote,
     rci->overwrite = overwrite;
     rci->high_priority = high_priority;
 
-    ::dsn::aio_task *callback((::dsn::aio_task *)cb);
-
-    ::dsn::task::get_current_nfs()->call(rci, callback);
+    ::dsn::task::get_current_nfs()->call(rci, cb);
 }
 
 DSN_API void dsn_file_copy_remote_files(dsn::rpc_address remote,
@@ -695,7 +441,7 @@ DSN_API void dsn_file_copy_remote_files(dsn::rpc_address remote,
                                         const char *dest_dir,
                                         bool overwrite,
                                         bool high_priority,
-                                        dsn_task_t cb)
+                                        dsn::aio_task *cb)
 {
     std::shared_ptr<::dsn::remote_copy_request> rci(new ::dsn::remote_copy_request());
     rci->source = remote;
@@ -714,28 +460,7 @@ DSN_API void dsn_file_copy_remote_files(dsn::rpc_address remote,
     rci->overwrite = overwrite;
     rci->high_priority = high_priority;
 
-    ::dsn::aio_task *callback((::dsn::aio_task *)cb);
-
-    ::dsn::task::get_current_nfs()->call(rci, callback);
-}
-
-DSN_API size_t dsn_file_get_io_size(dsn_task_t cb_task)
-{
-    ::dsn::task *task = (::dsn::task *)cb_task;
-    dassert(task->spec().type == TASK_TYPE_AIO,
-            "invalid task_type, type = %s",
-            enum_to_string(task->spec().type));
-    return ((::dsn::aio_task *)task)->get_transferred_size();
-}
-
-DSN_API void dsn_file_task_enqueue(dsn_task_t cb_task, dsn::error_code err, size_t size)
-{
-    ::dsn::task *task = (::dsn::task *)cb_task;
-    dassert(task->spec().type == TASK_TYPE_AIO,
-            "invalid task_type, type = %s",
-            enum_to_string(task->spec().type));
-
-    ((::dsn::aio_task *)task)->enqueue(err, size);
+    ::dsn::task::get_current_nfs()->call(rci, cb);
 }
 
 //------------------------------------------------------------------------------
@@ -964,20 +689,19 @@ bool run(const char *config_file,
     dsn_all.config_completed = false;
     dsn_all.tool = nullptr;
     dsn_all.engine = &::dsn::service_engine::instance();
-    dsn_all.config.reset(new ::dsn::configuration());
     dsn_all.memory = nullptr;
     dsn_all.magic = 0xdeadbeef;
 
-    if (!dsn_all.config->load(config_file, config_arguments)) {
+    if (!dsn_config_load(config_file, config_arguments)) {
         printf("Fail to load config file %s\n", config_file);
         return false;
     }
 
     // pause when necessary
-    if (dsn_all.config->get_value<bool>("core",
-                                        "pause_on_start",
-                                        false,
-                                        "whether to pause at startup time for easier debugging")) {
+    if (dsn_config_get_value_bool("core",
+                                  "pause_on_start",
+                                  false,
+                                  "whether to pause at startup time for easier debugging")) {
 #if defined(_WIN32)
         printf("\nPause for debugging (pid = %d)...\n", static_cast<int>(::GetCurrentProcessId()));
 #else
@@ -1036,7 +760,7 @@ bool run(const char *config_file,
     }
 
     // init tool memory
-    auto tls_trans_memory_KB = (size_t)dsn_all.config->get_value<int>(
+    size_t tls_trans_memory_KB = (size_t)dsn_config_get_value_uint64(
         "core",
         "tls_trans_memory_KB",
         1024, // 1 MB
@@ -1087,8 +811,8 @@ bool run(const char *config_file,
 
         bool create_it = false;
 
-        if (app_list == "") // create all apps
-        {
+        // create all apps
+        if (app_list == "") {
             create_it = true;
         } else {
             for (auto &kv : applistkvs) {
@@ -1116,7 +840,7 @@ bool run(const char *config_file,
         exit(1);
     }
 
-    if (dsn_all.config->get_value<bool>(
+    if (dsn_config_get_value_bool(
             "core",
             "cli_remote",
             true,
@@ -1124,25 +848,24 @@ bool run(const char *config_file,
         ::dsn::command_manager::instance().start_remote_cli();
     }
 
-    // register local cli commands
-    ::dsn::command_manager::instance().register_command({"config-dump"},
-                                                        "config-dump - dump configuration",
-                                                        "config-dump [to-this-config-file]",
-                                                        [](const std::vector<std::string> &args) {
-                                                            std::ostringstream oss;
-                                                            std::ofstream off;
-                                                            std::ostream *os = &oss;
-                                                            if (args.size() > 0) {
-                                                                off.open(args[0]);
-                                                                os = &off;
+    dsn::command_manager::instance().register_command({"config-dump"},
+                                                      "config-dump - dump configuration",
+                                                      "config-dump [to-this-config-file]",
+                                                      [](const std::vector<std::string> &args) {
+                                                          std::ostringstream oss;
+                                                          std::ofstream off;
+                                                          std::ostream *os = &oss;
+                                                          if (args.size() > 0) {
+                                                              off.open(args[0]);
+                                                              os = &off;
 
-                                                                oss << "config dump to file "
-                                                                    << args[0] << std::endl;
-                                                            }
+                                                              oss << "config dump to file "
+                                                                  << args[0] << std::endl;
+                                                          }
 
-                                                            dsn_all.config->dump(*os);
-                                                            return oss.str();
-                                                        });
+                                                          dsn_config_dump(*os);
+                                                          return oss.str();
+                                                      });
 
     // invoke customized init after apps are created
     dsn::tools::sys_init_after_app_created.execute();
@@ -1150,7 +873,6 @@ bool run(const char *config_file,
     // start the tool
     dsn_all.tool->run();
 
-    //
     if (sleep_after_init) {
         while (true) {
             std::this_thread::sleep_for(std::chrono::hours(1));
@@ -1161,10 +883,6 @@ bool run(const char *config_file,
     memset((void *)&dsn::tls_dsn, 0, sizeof(dsn::tls_dsn));
 
     return true;
-}
-
-namespace dsn {
-configuration_ptr get_main_config() { return dsn_all.config; }
 }
 
 namespace dsn {

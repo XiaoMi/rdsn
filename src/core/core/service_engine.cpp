@@ -61,7 +61,7 @@ service_node::service_node(service_app_spec &app_spec)
 
 bool service_node::rpc_register_handler(task_code code,
                                         const char *extra_name,
-                                        const dsn_rpc_request_handler_t &h)
+                                        const rpc_request_handler &h)
 {
     for (auto &io : _ios) {
         if (io.rpc) {
@@ -129,7 +129,7 @@ error_code service_node::init_io_engine(io_engine &io, ioe_mode mode)
             ctx.port_shift_value =
                 spec.get_ports_delta(_app_spec.id, io.pool->spec().pool_code, io.q->index());
         }
-        io.rpc = new rpc_engine(get_main_config(), this);
+        io.rpc = new rpc_engine(this);
     } else
         io.rpc = nullptr;
 
@@ -452,7 +452,7 @@ void service_engine::init_after_toollets()
 // port == -1 for all node
 void service_engine::register_system_rpc_handler(dsn::task_code code,
                                                  const char *name,
-                                                 const dsn_rpc_request_handler_t &cb,
+                                                 const rpc_request_handler &cb,
                                                  int port /*= -1*/
                                                  )
 {
@@ -547,7 +547,5 @@ std::string service_engine::get_queue_info(const std::vector<std::string> &args)
     ss << "]";
     return ss.str();
 }
-
-void service_engine::configuration_changed() { task_spec::init(); }
 
 } // end namespace

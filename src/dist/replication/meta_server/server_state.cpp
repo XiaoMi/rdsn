@@ -417,15 +417,12 @@ error_code server_state::restore_from_local_storage(const char *local_path)
 
 error_code server_state::initialize_default_apps()
 {
-    const char *sections[10240];
-    int total_sections;
-    int used_sections = sizeof(sections) / sizeof(const char *);
-    total_sections = dsn_config_get_all_sections(sections, &used_sections);
-    dassert(total_sections == used_sections, "too many sections (>10240) defined in config files");
+    std::vector<const char *> sections;
+    dsn_config_get_all_sections(sections);
     ddebug("start to do initialize");
 
     app_info default_app;
-    for (int i = 0; i < used_sections; i++) {
+    for (int i = 0; i < sections.size(); i++) {
         if (strstr(sections[i], "meta_server.apps") == sections[i] ||
             strcmp(sections[i], "replication.app") == 0) {
             const char *s = sections[i];
@@ -606,7 +603,7 @@ dsn::error_code server_state::sync_apps_from_remote_storage()
         storage->get_data(
             app_path,
             LPC_META_CALLBACK,
-            [this, app_path, &err, &tracker, &sync_partition](error_code ec, const blob &value) {
+            [this, app_path, &err, &sync_partition](error_code ec, const blob &value) {
                 if (ec == ERR_OK) {
                     app_info info;
                     dassert(dsn::json::json_forwarder<app_info>::decode(value, info),
@@ -650,7 +647,7 @@ dsn::error_code server_state::sync_apps_from_remote_storage()
     storage
         ->get_data(_apps_root,
                    LPC_META_CALLBACK,
-                   [this, &err, &transaction_state](error_code ec, const blob &value) {
+                   [&err, &transaction_state](error_code ec, const blob &value) {
                        err = ec;
                        if (ec == dsn::ERR_OK) {
                            transaction_state.assign(value.data(), value.length());
@@ -2128,7 +2125,7 @@ server_state::sync_apps_from_replica_nodes(const std::vector<dsn::rpc_address> &
                   RPC_QUERY_APP_INFO,
                   app_query,
                   &tracker,
-                  [this, i, &replica_nodes, &query_app_errors, &query_app_responses](
+                  [i, &replica_nodes, &query_app_errors, &query_app_responses](
                       dsn::error_code err, query_app_info_response &&resp) mutable {
                       ddebug("received query app response from node(%s), err(%s), apps_count(%d)",
                              replica_nodes[i].to_string(),
@@ -2147,7 +2144,7 @@ server_state::sync_apps_from_replica_nodes(const std::vector<dsn::rpc_address> &
             RPC_QUERY_REPLICA_INFO,
             replica_query,
             &tracker,
-            [this, i, &replica_nodes, &query_replica_errors, &query_replica_responses](
+            [i, &replica_nodes, &query_replica_errors, &query_replica_responses](
                 dsn::error_code err, query_replica_info_response &&resp) mutable {
                 ddebug("received query replica response from node(%s), err(%s), replicas_count(%d)",
                        replica_nodes[i].to_string(),
