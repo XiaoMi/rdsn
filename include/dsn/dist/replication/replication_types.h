@@ -279,6 +279,10 @@ class configuration_query_restore_request;
 
 class configuration_query_restore_response;
 
+class configuration_update_app_env_request;
+
+class configuration_update_app_env_response;
+
 class duplication_add_request;
 
 class duplication_add_response;
@@ -298,6 +302,10 @@ class duplication_confirm_entry;
 class duplication_sync_request;
 
 class duplication_sync_response;
+
+class app_partition_split_request;
+
+class app_partition_split_response;
 
 typedef struct _mutation_header__isset
 {
@@ -4439,6 +4447,147 @@ inline std::ostream &operator<<(std::ostream &out, const configuration_query_res
     return out;
 }
 
+typedef struct _configuration_update_app_env_request__isset
+{
+    _configuration_update_app_env_request__isset()
+        : app_name(false), op(true), keys(false), values(false), clear_prefix(false)
+    {
+    }
+    bool app_name : 1;
+    bool op : 1;
+    bool keys : 1;
+    bool values : 1;
+    bool clear_prefix : 1;
+} _configuration_update_app_env_request__isset;
+
+class configuration_update_app_env_request
+{
+public:
+    configuration_update_app_env_request(const configuration_update_app_env_request &);
+    configuration_update_app_env_request(configuration_update_app_env_request &&);
+    configuration_update_app_env_request &operator=(const configuration_update_app_env_request &);
+    configuration_update_app_env_request &operator=(configuration_update_app_env_request &&);
+    configuration_update_app_env_request()
+        : app_name(), op((app_env_operation::type)0), clear_prefix()
+    {
+        op = (app_env_operation::type)0;
+    }
+
+    virtual ~configuration_update_app_env_request() throw();
+    std::string app_name;
+    app_env_operation::type op;
+    std::vector<std::string> keys;
+    std::vector<std::string> values;
+    std::string clear_prefix;
+
+    _configuration_update_app_env_request__isset __isset;
+
+    void __set_app_name(const std::string &val);
+
+    void __set_op(const app_env_operation::type val);
+
+    void __set_keys(const std::vector<std::string> &val);
+
+    void __set_values(const std::vector<std::string> &val);
+
+    void __set_clear_prefix(const std::string &val);
+
+    bool operator==(const configuration_update_app_env_request &rhs) const
+    {
+        if (!(app_name == rhs.app_name))
+            return false;
+        if (!(op == rhs.op))
+            return false;
+        if (__isset.keys != rhs.__isset.keys)
+            return false;
+        else if (__isset.keys && !(keys == rhs.keys))
+            return false;
+        if (__isset.values != rhs.__isset.values)
+            return false;
+        else if (__isset.values && !(values == rhs.values))
+            return false;
+        if (__isset.clear_prefix != rhs.__isset.clear_prefix)
+            return false;
+        else if (__isset.clear_prefix && !(clear_prefix == rhs.clear_prefix))
+            return false;
+        return true;
+    }
+    bool operator!=(const configuration_update_app_env_request &rhs) const
+    {
+        return !(*this == rhs);
+    }
+
+    bool operator<(const configuration_update_app_env_request &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(configuration_update_app_env_request &a, configuration_update_app_env_request &b);
+
+inline std::ostream &operator<<(std::ostream &out, const configuration_update_app_env_request &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _configuration_update_app_env_response__isset
+{
+    _configuration_update_app_env_response__isset() : err(false), hint_message(false) {}
+    bool err : 1;
+    bool hint_message : 1;
+} _configuration_update_app_env_response__isset;
+
+class configuration_update_app_env_response
+{
+public:
+    configuration_update_app_env_response(const configuration_update_app_env_response &);
+    configuration_update_app_env_response(configuration_update_app_env_response &&);
+    configuration_update_app_env_response &operator=(const configuration_update_app_env_response &);
+    configuration_update_app_env_response &operator=(configuration_update_app_env_response &&);
+    configuration_update_app_env_response() : hint_message() {}
+
+    virtual ~configuration_update_app_env_response() throw();
+    ::dsn::error_code err;
+    std::string hint_message;
+
+    _configuration_update_app_env_response__isset __isset;
+
+    void __set_err(const ::dsn::error_code &val);
+
+    void __set_hint_message(const std::string &val);
+
+    bool operator==(const configuration_update_app_env_response &rhs) const
+    {
+        if (!(err == rhs.err))
+            return false;
+        if (!(hint_message == rhs.hint_message))
+            return false;
+        return true;
+    }
+    bool operator!=(const configuration_update_app_env_response &rhs) const
+    {
+        return !(*this == rhs);
+    }
+
+    bool operator<(const configuration_update_app_env_response &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(configuration_update_app_env_response &a, configuration_update_app_env_response &b);
+
+inline std::ostream &operator<<(std::ostream &out, const configuration_update_app_env_response &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
 typedef struct _duplication_add_request__isset
 {
     _duplication_add_request__isset() : app_name(false), remote_cluster_address(false) {}
@@ -4998,77 +5147,43 @@ inline std::ostream &operator<<(std::ostream &out, const duplication_sync_respon
     return out;
 }
 
-typedef struct _configuration_update_app_env_request__isset
+typedef struct _app_partition_split_request__isset
 {
-    _configuration_update_app_env_request__isset()
-        : app_name(false), op(true), keys(false), values(false), clear_prefix(false)
-    {
-    }
+    _app_partition_split_request__isset() : app_name(false), new_partition_count(false) {}
     bool app_name : 1;
-    bool op : 1;
-    bool keys : 1;
-    bool values : 1;
-    bool clear_prefix : 1;
-} _configuration_update_app_env_request__isset;
+    bool new_partition_count : 1;
+} _app_partition_split_request__isset;
 
-class configuration_update_app_env_request
+class app_partition_split_request
 {
 public:
-    configuration_update_app_env_request(const configuration_update_app_env_request &);
-    configuration_update_app_env_request(configuration_update_app_env_request &&);
-    configuration_update_app_env_request &operator=(const configuration_update_app_env_request &);
-    configuration_update_app_env_request &operator=(configuration_update_app_env_request &&);
-    configuration_update_app_env_request()
-        : app_name(), op((app_env_operation::type)0), clear_prefix()
-    {
-        op = (app_env_operation::type)0;
-    }
+    app_partition_split_request(const app_partition_split_request &);
+    app_partition_split_request(app_partition_split_request &&);
+    app_partition_split_request &operator=(const app_partition_split_request &);
+    app_partition_split_request &operator=(app_partition_split_request &&);
+    app_partition_split_request() : app_name(), new_partition_count(0) {}
 
-    virtual ~configuration_update_app_env_request() throw();
+    virtual ~app_partition_split_request() throw();
     std::string app_name;
-    app_env_operation::type op;
-    std::vector<std::string> keys;
-    std::vector<std::string> values;
-    std::string clear_prefix;
+    int32_t new_partition_count;
 
-    _configuration_update_app_env_request__isset __isset;
+    _app_partition_split_request__isset __isset;
 
     void __set_app_name(const std::string &val);
 
-    void __set_op(const app_env_operation::type val);
+    void __set_new_partition_count(const int32_t val);
 
-    void __set_keys(const std::vector<std::string> &val);
-
-    void __set_values(const std::vector<std::string> &val);
-
-    void __set_clear_prefix(const std::string &val);
-
-    bool operator==(const configuration_update_app_env_request &rhs) const
+    bool operator==(const app_partition_split_request &rhs) const
     {
         if (!(app_name == rhs.app_name))
             return false;
-        if (!(op == rhs.op))
-            return false;
-        if (__isset.keys != rhs.__isset.keys)
-            return false;
-        else if (__isset.keys && !(keys == rhs.keys))
-            return false;
-        if (__isset.values != rhs.__isset.values)
-            return false;
-        else if (__isset.values && !(values == rhs.values))
-            return false;
-        if (__isset.clear_prefix != rhs.__isset.clear_prefix)
-            return false;
-        else if (__isset.clear_prefix && !(clear_prefix == rhs.clear_prefix))
+        if (!(new_partition_count == rhs.new_partition_count))
             return false;
         return true;
     }
-    bool operator!=(const configuration_update_app_env_request &rhs) const
-    {
-        return !(*this == rhs);
-    }
+    bool operator!=(const app_partition_split_request &rhs) const { return !(*this == rhs); }
 
-    bool operator<(const configuration_update_app_env_request &) const;
+    bool operator<(const app_partition_split_request &) const;
 
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
@@ -5076,54 +5191,57 @@ public:
     virtual void printTo(std::ostream &out) const;
 };
 
-void swap(configuration_update_app_env_request &a, configuration_update_app_env_request &b);
+void swap(app_partition_split_request &a, app_partition_split_request &b);
 
-inline std::ostream &operator<<(std::ostream &out, const configuration_update_app_env_request &obj)
+inline std::ostream &operator<<(std::ostream &out, const app_partition_split_request &obj)
 {
     obj.printTo(out);
     return out;
 }
 
-typedef struct _configuration_update_app_env_response__isset
+typedef struct _app_partition_split_response__isset
 {
-    _configuration_update_app_env_response__isset() : err(false), hint_message(false) {}
+    _app_partition_split_response__isset() : err(false), appid(false), partition_count(false) {}
     bool err : 1;
-    bool hint_message : 1;
-} _configuration_update_app_env_response__isset;
+    bool appid : 1;
+    bool partition_count : 1;
+} _app_partition_split_response__isset;
 
-class configuration_update_app_env_response
+class app_partition_split_response
 {
 public:
-    configuration_update_app_env_response(const configuration_update_app_env_response &);
-    configuration_update_app_env_response(configuration_update_app_env_response &&);
-    configuration_update_app_env_response &operator=(const configuration_update_app_env_response &);
-    configuration_update_app_env_response &operator=(configuration_update_app_env_response &&);
-    configuration_update_app_env_response() : hint_message() {}
+    app_partition_split_response(const app_partition_split_response &);
+    app_partition_split_response(app_partition_split_response &&);
+    app_partition_split_response &operator=(const app_partition_split_response &);
+    app_partition_split_response &operator=(app_partition_split_response &&);
+    app_partition_split_response() : appid(0), partition_count(0) {}
 
-    virtual ~configuration_update_app_env_response() throw();
+    virtual ~app_partition_split_response() throw();
     ::dsn::error_code err;
-    std::string hint_message;
+    int32_t appid;
+    int32_t partition_count;
 
-    _configuration_update_app_env_response__isset __isset;
+    _app_partition_split_response__isset __isset;
 
     void __set_err(const ::dsn::error_code &val);
 
-    void __set_hint_message(const std::string &val);
+    void __set_appid(const int32_t val);
 
-    bool operator==(const configuration_update_app_env_response &rhs) const
+    void __set_partition_count(const int32_t val);
+
+    bool operator==(const app_partition_split_response &rhs) const
     {
         if (!(err == rhs.err))
             return false;
-        if (!(hint_message == rhs.hint_message))
+        if (!(appid == rhs.appid))
+            return false;
+        if (!(partition_count == rhs.partition_count))
             return false;
         return true;
     }
-    bool operator!=(const configuration_update_app_env_response &rhs) const
-    {
-        return !(*this == rhs);
-    }
+    bool operator!=(const app_partition_split_response &rhs) const { return !(*this == rhs); }
 
-    bool operator<(const configuration_update_app_env_response &) const;
+    bool operator<(const app_partition_split_response &) const;
 
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
@@ -5131,9 +5249,9 @@ public:
     virtual void printTo(std::ostream &out) const;
 };
 
-void swap(configuration_update_app_env_response &a, configuration_update_app_env_response &b);
+void swap(app_partition_split_response &a, app_partition_split_response &b);
 
-inline std::ostream &operator<<(std::ostream &out, const configuration_update_app_env_response &obj)
+inline std::ostream &operator<<(std::ostream &out, const app_partition_split_response &obj)
 {
     obj.printTo(out);
     return out;
