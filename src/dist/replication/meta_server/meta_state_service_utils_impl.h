@@ -85,7 +85,7 @@ struct operation : pipeline::environment
             dwarn_f("request({}) on path({}) was timeout, retry after 1 second",
                     op_type::to_string(type),
                     path);
-            pipeline::repeat(this_instance, 1_s);
+            pipeline::repeat(std::move(*this_instance), 1_s);
             return;
         }
         dfatal_f("request({}) on path({}) encountered an unexpected error({})",
@@ -121,26 +121,19 @@ struct on_create_recursively : operation
     };
     std::shared_ptr<arguments> args;
 
+    // ASSERTED: !args->nodes.empty
     void run()
     {
-        auto &nodes = args->nodes;
-
-        if (nodes.empty()) {
-            args->cb();
-            _cur_path.clear();
-            return;
+        // first node
+        if (_cur_path.empty()) { // first node requires leading '/'
+            _cur_path += args->nodes.front();
+            args->nodes.pop();
         }
-
-        if (!_cur_path.empty()) { // first node requires leading '/'
-            _cur_path += "/";
-        }
-        _cur_path += std::move(nodes.front());
-        nodes.pop();
 
         remote_storage()->create_node(_cur_path,
                                       LPC_META_STATE_HIGH,
                                       [op = *this](error_code ec) mutable { op.on_error(ec); },
-                                      args->val,
+                                      args->nodes.empty() ? args->val : blob(),
                                       tracker());
     }
 
@@ -148,7 +141,14 @@ struct on_create_recursively : operation
     {
         if (ec == ERR_OK || ec == ERR_NODE_ALREADY_EXIST) {
             // create next node
-            pipeline::repeat(this);
+            if (!args->nodes.empty()) {
+                _cur_path += "/" + args->nodes.front();
+                args->nodes.pop();
+                pipeline::repeat(std::move(*this));
+            } else {
+                args->cb();
+                _cur_path.clear();
+            }
             return;
         }
         operation::on_error(this, op_type::OP_CREATE_RECURSIVELY, ec, _cur_path);

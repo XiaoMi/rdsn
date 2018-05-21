@@ -63,9 +63,20 @@ TEST_F(meta_state_service_utils_test, create_recursively)
 {
     _storage->create_node_recursively(
         std::queue<std::string>({"/1", "2", "3", "4"}), dsn::blob("a", 0, 1), [&]() {
+            _storage->get_data("/1", [](const blob &val) { ASSERT_EQ(val.data(), nullptr); });
+
+            _storage->get_data("/1/2", [](const blob &val) { ASSERT_EQ(val.data(), nullptr); });
+
+            _storage->get_data("/1/2/3", [](const blob &val) { ASSERT_EQ(val.data(), nullptr); });
+
             _storage->get_data("/1/2/3/4",
                                [](const blob &val) { ASSERT_EQ(val.to_string(), "a"); });
         });
+    _tracker.wait_outstanding_tasks();
+
+    _storage->create_node_recursively(std::queue<std::string>({"/1"}), dsn::blob("a", 0, 1), [&]() {
+        _storage->get_data("/1", [](const blob &val) { ASSERT_EQ(val.data(), nullptr); });
+    });
     _tracker.wait_outstanding_tasks();
 
     _storage->delete_node_recursively("/1", []() {});
@@ -123,7 +134,7 @@ TEST_F(meta_state_service_utils_test, concurrent)
 
     // ensure everything is cleared
     for (int i = 1; i <= 100; i++) {
-        _storage->delete_node(fmt::format("/{}", i), [&]() {
+        _storage->delete_node(fmt::format("/{}", i), [i, this]() {
             _storage->get_data(fmt::format("/{}", i),
                                [](const blob &val) { ASSERT_EQ(val.data(), nullptr); });
         });
