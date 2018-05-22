@@ -1622,19 +1622,17 @@ void replica_stub::on_disk_stat()
 
     if (_replicas.find(id) != _replicas.end()) {
         _replicas_lock.unlock_write();
-        ddebug("open replica '%s.%d.%d' failed coz replica is already opened",
+        ddebug("open replica '%s.%s' failed coz replica is already opened",
                app.app_type.c_str(),
-               id.get_app_id(),
-               id.get_partition_index());
+               id.to_string());
         return nullptr;
     }
 
     if (_opening_replicas.find(id) != _opening_replicas.end()) {
         _replicas_lock.unlock_write();
-        ddebug("open replica '%s.%d.%d' failed coz replica is under opening",
+        ddebug("open replica '%s.%s' failed coz replica is under opening",
                app.app_type.c_str(),
-               id.get_app_id(),
-               id.get_partition_index());
+               id.to_string());
         return nullptr;
     }
 
@@ -1655,10 +1653,8 @@ void replica_stub::on_disk_stat()
             // unlock here to avoid dead lock
             _replicas_lock.unlock_write();
 
-            ddebug("open replica '%s.%d.%d' which is to be closed",
-                   app.app_type.c_str(),
-                   id.get_app_id(),
-                   id.get_partition_index());
+            ddebug(
+                "open replica '%s.%s' which is to be closed", app.app_type.c_str(), id.to_string());
 
             // open by add learner
             if (req != nullptr) {
@@ -1666,10 +1662,9 @@ void replica_stub::on_disk_stat()
             }
         } else {
             _replicas_lock.unlock_write();
-            ddebug("open replica '%s.%d.%d' failed coz replica is under closing",
+            ddebug("open replica '%s.%s' failed coz replica is under closing",
                    app.app_type.c_str(),
-                   id.get_app_id(),
-                   id.get_partition_index());
+                   id.to_string());
         }
         return nullptr;
     }
@@ -2018,10 +2013,10 @@ replica_stub::exec_command_on_replica(const std::vector<std::string> &args,
     ::dsn::service::zlock results_lock;
     std::map<gpid, std::string> results; // id => result
     for (auto kv : choosed_rs) {
-        const replica_ptr &rep = kv.second;
+        replica_ptr rep = kv.second;
         task_ptr tsk = tasking::enqueue(LPC_EXEC_COMMAND_ON_REPLICA,
                                         rep->tracker(),
-                                        [&]() {
+                                        [rep, &func, &results_lock, &results]() {
                                             partition_status::type status = rep->status();
                                             if (status != partition_status::PS_PRIMARY &&
                                                 status != partition_status::PS_SECONDARY)
