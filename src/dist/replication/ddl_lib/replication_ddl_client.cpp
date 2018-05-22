@@ -1450,7 +1450,7 @@ error_code replication_ddl_client::app_partition_split(const std::string &app_na
     }
 
     app_partition_split_response resp;
-    dsn::unmarshall(resp_task->response(), resp);
+    dsn::unmarshall(resp_task->get_response(), resp);
     if (resp.err == ERR_INVALID_PARAMETERS && new_partition_count != resp.partition_count * 2) {
         fmt::print("there are {} partitions in {}, new_partition_count should be {}\n",
                    resp.partition_count,

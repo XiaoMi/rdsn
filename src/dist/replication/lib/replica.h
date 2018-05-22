@@ -149,6 +149,7 @@ public:
     const replication_options *options() const { return _options; }
     replica_stub *get_replica_stub() { return _stub; }
     bool verbose_commit_log() const;
+    replica_split *get_parent_split_impl() const { return _split.get(); }
 
     // void json_state(std::stringstream& out) const;
     void update_commit_statistics(int count);
@@ -306,6 +307,7 @@ private:
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::mutation_queue;
     friend class ::dsn::replication::replica_stub;
+    friend class mock_replica;
     friend class replica_split;
 
     // replica configuration, updated by update_local_configuration ONLY

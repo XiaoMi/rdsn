@@ -11,7 +11,7 @@ set(MY_SRC_SEARCH_MODE "GLOB")
 
 set(MY_PROJ_INC_PATH "")
 
-set(MY_PROJ_LIBS "")
+set(MY_PROJ_LIBS "fmt")
 
 set(MY_PROJ_LIB_PATH "")
 

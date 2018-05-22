@@ -165,8 +165,12 @@ private:
 #define DEFINE_STORAGE_RPC_CODE(x, pri, pool, is_write, allow_batch)                               \
     __selectany const ::dsn::task_code x(                                                          \
         #x, TASK_TYPE_RPC_REQUEST, pri, pool, is_write, allow_batch);                              \
-    __selectany const ::dsn::task_code x##_ACK(                                                    \
-        #x "_ACK", TASK_TYPE_RPC_RESPONSE, pri, THREAD_POOL_DEFAULT, is_write, allow_batch);
+    __selectany const ::dsn::task_code x##_ACK(#x "_ACK",                                          \
+                                               TASK_TYPE_RPC_RESPONSE,                             \
+                                               pri,                                                \
+                                               ::dsn::THREAD_POOL_DEFAULT,                         \
+                                               is_write,                                           \
+                                               allow_batch);
 
 // define a default task code "task_code_invalid", it's mainly used for representing
 // some error status when you want to return task_code in some functions.

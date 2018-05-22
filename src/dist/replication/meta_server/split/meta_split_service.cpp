@@ -87,7 +87,7 @@ void meta_split_service::do_app_partition_split(std::shared_ptr<app_state> app,
     blob value = dsn::json::json_forwarder<app_info>::encode(copy);
 
     _meta_svc->get_meta_storage()->set_data(
-        _state->get_app_path(*app), std::move(value), [app, rpc]() {
+        _state->get_app_path(*app), std::move(value), [app, rpc, this]() {
             zauto_write_lock l(app_lock());
             app->partition_count *= 2;
             app->partitions.resize(static_cast<size_t>(app->partition_count));

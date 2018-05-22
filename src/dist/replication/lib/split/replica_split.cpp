@@ -25,13 +25,12 @@
  */
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/dist/replication/replication_app_base.h>
 
 #include "dist/replication/lib/split/replica_split.h"
 
 namespace dsn {
 namespace replication {
-
-DEFINE_TASK_CODE_RPC(RPC_PARTITION_SPLIT_2PC, TASK_PRIORITY_COMMON, THREAD_POOL_REPLICATION);
 
 void replica_split::start_splitting_if_needed(const app_info &info,
                                               const partition_configuration &config)
@@ -47,6 +46,11 @@ void replica_split::start_splitting_if_needed(const app_info &info,
         return;
     }
 
+    // ignore if there's ongoing split task
+    if (_started) {
+        return;
+    }
+
     if (info.partition_count != _r->_app_info.partition_count) {
         dassert_replica(info.partition_count == _r->_app_info.partition_count * 2,
                         "invalid partition update: partition_count({} => {})",
@@ -54,6 +58,9 @@ void replica_split::start_splitting_if_needed(const app_info &info,
                         info.partition_count);
 
         // start splitting if new_partition_count = old_partition_count * 2
+
+        _started = true;
+        const_cast<app_info &>(_r->_app_info) = info; // TODO(wutao1): is it safe to update?
         start_2pc_for_partition_split();
     }
 }
@@ -62,8 +69,21 @@ replica_split::replica_split(replica *r) : replica_base(*r), _r(r) {}
 
 void replica_split::start_2pc_for_partition_split()
 {
-    auto msg = dsn_msg_create_request(RPC_PARTITION_SPLIT_2PC, 1000, );
+    auto msg = dsn_msg_create_request(RPC_PARTITION_SPLIT_2PC);
     _r->on_client_write(RPC_PARTITION_SPLIT_2PC, msg);
+}
+
+void replica_split::on_partition_split_2pc_committed()
+{
+    auto new_gpid = get_gpid();
+    new_gpid.set_partition_index(new_gpid.get_partition_index() +
+                                 _r->_app_info.partition_count / 2);
+    auto child = replica::newr(_r->_stub, new_gpid, _r->_app_info, false);
+
+    int64_t dumb_last_decree;
+    _r->_app->copy_checkpoint_to_dir(child->dir().c_str(), &dumb_last_decree);
+
+    //
 }
 
 } // namespace replication

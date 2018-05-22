@@ -39,12 +39,16 @@ public:
     /// \see replica::on_config_sync
     void start_splitting_if_needed(const app_info &info, const partition_configuration &config);
 
+    /// \see replication_app_base::apply_mutation
+    void on_partition_split_2pc_committed();
+
     /// ==== Implementation ==== ///
 
     void start_2pc_for_partition_split();
 
 private:
     replica *_r;
+    bool _started{false};
 };
 
 } // namespace replication
