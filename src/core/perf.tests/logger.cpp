@@ -70,7 +70,7 @@ void logger_test(int thread_count, int record_count)
 
     for (int i = 0; i < thread_count; ++i) {
         threads.push_back(new std::thread([&, i] {
-            task::set_tls_dsn_context(task::get_current_node2(), nullptr, nullptr);
+            task::set_tls_dsn_context(task::get_current_node2(), nullptr);
             for (int j = 0; j < record_count; j++) {
                 logv(&logger, str, j, i);
             }
