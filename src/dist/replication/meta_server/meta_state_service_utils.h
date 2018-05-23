@@ -35,6 +35,7 @@ namespace mss { // abbreviation of meta_state_service
 /// This class is a convenience wrapper over meta_state_service.
 /// It wraps every operation in a error handling mechanism, and provides utilities
 /// like recursive node creation.
+/// Notice: The operations always run in THREAD_POOL_META_STATE: LPC_META_STATE_HIGH.
 ///
 /// ERROR HANDLING:
 /// Currently it retries for every timeout(ERR_TIMEOUT) operation infinitely,
