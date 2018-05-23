@@ -723,6 +723,13 @@ struct app_partition_split_response
     3:i32                    partition_count;
 }
 
+// Request from replica to meta to report partition split completed successfully.
+struct report_partition_split_request
+{
+    1:dsn.gpid  parent;
+    2:dsn.gpid  child;
+}
+
 /*
 service replica_s
 {

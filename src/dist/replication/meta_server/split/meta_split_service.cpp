@@ -32,7 +32,7 @@
 namespace dsn {
 namespace replication {
 
-// ThreadPool(WRITE): LPC_META_STATE_NORMAL
+// ThreadPool(THREAD_POOL_META_STATE): LPC_META_STATE_NORMAL
 void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
 {
     const auto &request = rpc.request();
@@ -79,6 +79,7 @@ void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
     do_app_partition_split(std::move(app), std::move(rpc));
 }
 
+// ThreadPool(THREAD_POOL_META_STATE): LPC_META_STATE_NORMAL
 void meta_split_service::do_app_partition_split(std::shared_ptr<app_state> app,
                                                 app_partition_split_rpc rpc)
 {

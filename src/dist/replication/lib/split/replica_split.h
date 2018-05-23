@@ -36,15 +36,19 @@ class replica_split : public replica_base
 public:
     explicit replica_split(replica *r);
 
+    /// ThreadPool(THREAD_POOL_REPLICATION): LPC_QUERY_NODE_CONFIGURATION_SCATTER
     /// \see replica::on_config_sync
     void start_splitting_if_needed(const app_info &info, const partition_configuration &config);
 
+    /// ThreadPool(THREAD_POOL_REPLICATION)
     /// \see replication_app_base::apply_mutation
     void on_partition_split_2pc_committed();
 
     /// ==== Implementation ==== ///
 
-    void start_2pc_for_partition_split();
+    void start_partition_split_2pc();
+
+    error_code create_child_replica();
 
 private:
     replica *_r;

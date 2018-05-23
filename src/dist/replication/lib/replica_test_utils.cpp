@@ -32,6 +32,7 @@
 
 #include "dist/replication/lib/replica.h"
 #include "dist/replication/lib/replica_stub.h"
+#include "dist/replication/lib/split/replica_split.h"
 
 namespace dsn {
 namespace replication {
@@ -49,17 +50,28 @@ public:
     }
 };
 
+class mock_replica_stub : public replica_stub
+{
+public:
+    mock_replica_stub() { initialize(true); }
+};
+
 replica *create_test_replica(
     replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool restore_if_necessary)
 {
     return new mock_replica(stub, gpid, app, dir, restore_if_necessary);
 }
 
-replica_stub *create_test_replica_stub() { return new replica_stub(); }
+replica_stub *create_test_replica_stub() { return new mock_replica_stub; }
 
 void destroy_replica(replica *r) { delete r; }
 
 void destroy_replica_stub(replica_stub *rs) { delete rs; }
+
+error_code replica_split_create_child(replica *r)
+{
+    return r->get_parent_split_impl()->create_child_replica();
+}
 
 } // namespace replication
 } // namespace dsn

@@ -307,6 +307,8 @@ class app_partition_split_request;
 
 class app_partition_split_response;
 
+class report_partition_split_request;
+
 typedef struct _mutation_header__isset
 {
     _mutation_header__isset()
@@ -5252,6 +5254,58 @@ public:
 void swap(app_partition_split_response &a, app_partition_split_response &b);
 
 inline std::ostream &operator<<(std::ostream &out, const app_partition_split_response &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _report_partition_split_request__isset
+{
+    _report_partition_split_request__isset() : parent(false), child(false) {}
+    bool parent : 1;
+    bool child : 1;
+} _report_partition_split_request__isset;
+
+class report_partition_split_request
+{
+public:
+    report_partition_split_request(const report_partition_split_request &);
+    report_partition_split_request(report_partition_split_request &&);
+    report_partition_split_request &operator=(const report_partition_split_request &);
+    report_partition_split_request &operator=(report_partition_split_request &&);
+    report_partition_split_request() {}
+
+    virtual ~report_partition_split_request() throw();
+    ::dsn::gpid parent;
+    ::dsn::gpid child;
+
+    _report_partition_split_request__isset __isset;
+
+    void __set_parent(const ::dsn::gpid &val);
+
+    void __set_child(const ::dsn::gpid &val);
+
+    bool operator==(const report_partition_split_request &rhs) const
+    {
+        if (!(parent == rhs.parent))
+            return false;
+        if (!(child == rhs.child))
+            return false;
+        return true;
+    }
+    bool operator!=(const report_partition_split_request &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const report_partition_split_request &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(report_partition_split_request &a, report_partition_split_request &b);
+
+inline std::ostream &operator<<(std::ostream &out, const report_partition_split_request &obj)
 {
     obj.printTo(out);
     return out;

@@ -24,4 +24,15 @@
  * THE SOFTWARE.
  */
 
-#include "replica_stub_split.h"
+#include <gtest/gtest.h>
+
+#include "dist/replication/lib/split/replica_split.h"
+
+struct replica_split_test : ::testing::Test
+{
+    replica_split_test() {}
+};
+
+TEST_F(replica_split_test, create_child) {
+
+}

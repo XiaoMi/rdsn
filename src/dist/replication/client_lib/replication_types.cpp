@@ -12406,5 +12406,125 @@ void app_partition_split_response::printTo(std::ostream &out) const
         << "partition_count=" << to_string(partition_count);
     out << ")";
 }
+
+report_partition_split_request::~report_partition_split_request() throw() {}
+
+void report_partition_split_request::__set_parent(const ::dsn::gpid &val) { this->parent = val; }
+
+void report_partition_split_request::__set_child(const ::dsn::gpid &val) { this->child = val; }
+
+uint32_t report_partition_split_request::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->parent.read(iprot);
+                this->__isset.parent = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->child.read(iprot);
+                this->__isset.child = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t report_partition_split_request::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("report_partition_split_request");
+
+    xfer += oprot->writeFieldBegin("parent", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->parent.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("child", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += this->child.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(report_partition_split_request &a, report_partition_split_request &b)
+{
+    using ::std::swap;
+    swap(a.parent, b.parent);
+    swap(a.child, b.child);
+    swap(a.__isset, b.__isset);
+}
+
+report_partition_split_request::report_partition_split_request(
+    const report_partition_split_request &other547)
+{
+    parent = other547.parent;
+    child = other547.child;
+    __isset = other547.__isset;
+}
+report_partition_split_request::report_partition_split_request(
+    report_partition_split_request &&other548)
+{
+    parent = std::move(other548.parent);
+    child = std::move(other548.child);
+    __isset = std::move(other548.__isset);
+}
+report_partition_split_request &report_partition_split_request::
+operator=(const report_partition_split_request &other549)
+{
+    parent = other549.parent;
+    child = other549.child;
+    __isset = other549.__isset;
+    return *this;
+}
+report_partition_split_request &report_partition_split_request::
+operator=(report_partition_split_request &&other550)
+{
+    parent = std::move(other550.parent);
+    child = std::move(other550.child);
+    __isset = std::move(other550.__isset);
+    return *this;
+}
+void report_partition_split_request::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "report_partition_split_request(";
+    out << "parent=" << to_string(parent);
+    out << ", "
+        << "child=" << to_string(child);
+    out << ")";
+}
 }
 } // namespace

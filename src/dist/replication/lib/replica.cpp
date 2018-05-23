@@ -63,6 +63,7 @@ replica::replica(
     _options = &stub->options();
     init_state();
     _config.pid = gpid;
+    _split = dsn::make_unique<replica_split>(this);
 
     std::stringstream ss;
     ss << "private.log.size(MB)"

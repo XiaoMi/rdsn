@@ -61,13 +61,13 @@ void replica_split::start_splitting_if_needed(const app_info &info,
 
         _started = true;
         const_cast<app_info &>(_r->_app_info) = info; // TODO(wutao1): is it safe to update?
-        start_2pc_for_partition_split();
+        start_partition_split_2pc();
     }
 }
 
-replica_split::replica_split(replica *r) : replica_base(*r), _r(r) {}
+replica_split::replica_split(replica *r) : replica_base(r), _r(r) {}
 
-void replica_split::start_2pc_for_partition_split()
+void replica_split::start_partition_split_2pc()
 {
     auto msg = dsn_msg_create_request(RPC_PARTITION_SPLIT_2PC);
     _r->on_client_write(RPC_PARTITION_SPLIT_2PC, msg);
@@ -75,15 +75,46 @@ void replica_split::start_2pc_for_partition_split()
 
 void replica_split::on_partition_split_2pc_committed()
 {
+    while (true) {
+        if (create_child_replica() == ERR_OK) {
+            break;
+        }
+    }
+    _started = false;
+}
+
+error_code replica_split::create_child_replica()
+{
     auto new_gpid = get_gpid();
     new_gpid.set_partition_index(new_gpid.get_partition_index() +
                                  _r->_app_info.partition_count / 2);
-    auto child = replica::newr(_r->_stub, new_gpid, _r->_app_info, false);
+    ddebug_f("creating child replica [{}], parent replica is [{}]", new_gpid, get_gpid());
+    replica *child = replica::newr(_r->_stub, new_gpid, _r->_app_info, false);
+    if (child == nullptr) {
+        return ERR_FILE_OPERATION_FAILED;
+    }
 
+    ddebug_f("copying checkpoint from parent (path: {}) to child (path: {})",
+             _r->_app->data_dir(),
+             child->_app->data_dir());
     int64_t dumb_last_decree;
-    _r->_app->copy_checkpoint_to_dir(child->dir().c_str(), &dumb_last_decree);
+    error_code err =
+        _r->_app->copy_checkpoint_to_dir(child->_app->data_dir().c_str(), &dumb_last_decree);
+    if (err != ERR_OK) {
+        return err;
+    }
 
-    //
+    // Close and reload database from checkpoint
+    err = child->_app->close(true);
+    if (err != ERR_OK) {
+        return err;
+    }
+    err = child->_app->open();
+    if (err != ERR_OK) {
+        return err;
+    }
+
+    return ERR_OK;
 }
 
 } // namespace replication

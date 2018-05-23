@@ -24,16 +24,41 @@
  * THE SOFTWARE.
  */
 
-#pragma once
+#include <gtest/gtest.h>
 
-namespace dsn {
-namespace replication {
+#include <dsn/service_api_cpp.h>
+#include <dsn/dist/replication/replication_service_app.h>
 
-class replica_stub_split
+int g_test_count = 0;
+int g_test_ret = 0;
+
+class replication_service_test_app : public dsn::service_app
 {
 public:
+    replication_service_test_app(const dsn::service_app_info *info) : ::dsn::service_app(info) {}
 
+    dsn::error_code start(const std::vector<std::string> &args) override
+    {
+        g_test_ret = RUN_ALL_TESTS();
+        g_test_count = 1;
+        return dsn::ERR_OK;
+    }
+
+    dsn::error_code stop(bool) override { return dsn::ERR_OK; }
 };
 
-} // namespace replication
-} // namespace dsn
+GTEST_API_ int main(int argc, char **argv)
+{
+    testing::InitGoogleTest(&argc, argv);
+
+    // register all possible services
+    dsn::service_app::register_factory<replication_service_test_app>("replica");
+
+    // specify what services and tools will run in config file, then run
+    dsn_run_config("config-test.ini", false);
+    while (g_test_count == 0) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    dsn_exit(g_test_ret);
+}

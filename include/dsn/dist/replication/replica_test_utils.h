@@ -44,5 +44,7 @@ extern void destroy_replica(replica *r);
 
 extern void destroy_replica_stub(replica_stub *rs);
 
+extern error_code replica_split_create_child(replica *r);
+
 } // namespace replication
 } // namespace dsn
