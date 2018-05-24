@@ -466,8 +466,6 @@ void mutation_log::init_states()
     _private_max_commit_on_disk = 0;
 }
 
-mutation_log::~mutation_log() { close(); }
-
 error_code mutation_log::open(replay_callback read_callback,
                               io_failure_callback write_error_callback)
 {

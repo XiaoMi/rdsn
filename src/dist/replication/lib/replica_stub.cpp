@@ -1695,6 +1695,7 @@ void replica_stub::on_disk_stat()
     }
 }
 
+// ThreadPool(THREAD_POOL_REPLICATION_LONG): LPC_OPEN_REPLICA
 void replica_stub::open_replica(const app_info &app,
                                 gpid gpid,
                                 std::shared_ptr<group_check_request> req,
@@ -2086,6 +2087,7 @@ replica_stub::exec_command_on_replica(const std::vector<std::string> &args,
 
 void replica_stub::close()
 {
+    ddebug("closing replica_stub");
     _tracker.cancel_outstanding_tasks();
 
     // this replica may not be opened
@@ -2186,22 +2188,12 @@ void replica_stub::close()
 
 std::string replica_stub::get_replica_dir(const char *app_type, gpid gpid, bool create_new)
 {
-    char buffer[256];
-    sprintf(buffer, "%d.%d.%s", gpid.get_app_id(), gpid.get_partition_index(), app_type);
+    if (!create_new) {
+        return _fs_manager.find_replica(gpid, app_type);
+    }
+
     std::string ret_dir;
-    for (auto &dir : _options.data_dirs) {
-        std::string cur_dir = utils::filesystem::path_combine(dir, buffer);
-        if (utils::filesystem::directory_exists(cur_dir)) {
-            if (!ret_dir.empty()) {
-                dassert(
-                    false, "replica dir conflict: %s <--> %s", cur_dir.c_str(), ret_dir.c_str());
-            }
-            ret_dir = cur_dir;
-        }
-    }
-    if (ret_dir.empty() && create_new) {
-        _fs_manager.allocate_dir(gpid, app_type, ret_dir);
-    }
+    _fs_manager.allocate_dir(gpid, app_type, ret_dir);
     return ret_dir;
 }
 }

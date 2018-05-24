@@ -38,11 +38,9 @@ class replica_stub;
 extern replica *create_test_replica(
     replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool restore_if_necessary);
 
-extern replica_stub *create_test_replica_stub();
+extern replica_stub *get_global_test_replica_stub();
 
 extern void destroy_replica(replica *r);
-
-extern void destroy_replica_stub(replica_stub *rs);
 
 extern error_code replica_split_create_child(replica *r);
 

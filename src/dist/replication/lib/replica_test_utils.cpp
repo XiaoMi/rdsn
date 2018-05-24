@@ -37,9 +37,10 @@
 namespace dsn {
 namespace replication {
 
-class mock_replica : public replica
+/// -- replica -- ///
+
+struct mock_replica : replica
 {
-public:
     mock_replica(replica_stub *stub,
                  const gpid &gpid,
                  const app_info &app,
@@ -50,27 +51,30 @@ public:
     }
 };
 
-class mock_replica_stub : public replica_stub
-{
-public:
-    mock_replica_stub() { initialize(true); }
-};
-
 replica *create_test_replica(
     replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool restore_if_necessary)
 {
     return new mock_replica(stub, gpid, app, dir, restore_if_necessary);
 }
 
-replica_stub *create_test_replica_stub() { return new mock_replica_stub; }
-
 void destroy_replica(replica *r) { delete r; }
-
-void destroy_replica_stub(replica_stub *rs) { delete rs; }
 
 error_code replica_split_create_child(replica *r)
 {
     return r->get_parent_split_impl()->create_child_replica();
+}
+
+/// -- replica_stub -- ///
+
+struct mock_replica_stub : replica_stub
+{
+    mock_replica_stub() { initialize(true); }
+};
+
+replica_stub *get_global_test_replica_stub()
+{
+    static mock_replica_stub rs;
+    return &rs;
 }
 
 } // namespace replication
