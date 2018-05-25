@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     Unit-test for configuration.
- *
- * Revision history:
- *     Nov., 2015, @qinzuoyan (Zuoyan Qin), first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #include <algorithm>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -167,28 +158,52 @@ TEST(core, configuration)
               c->get_value<std::string>("apps.client", "unexist_key", "unexist_value", ""));
     ASSERT_EQ(1.0, c->get_value<double>("apps.client", "count", 2.0, "client count"));
     ASSERT_EQ(2.0, c->get_value<double>("apps.client", "unexist_double_key", 2.0, ""));
-    ASSERT_EQ(1, c->get_value<long long>("apps.client", "count", 100, "client count"));
-    ASSERT_EQ(100, c->get_value<long long>("apps.client", "unexist_long_long_key", 100, ""));
-    ASSERT_EQ(0xdeadbeef, c->get_value<long long>("apps.server", "hex_data", 100, ""));
-    ASSERT_EQ(1u, c->get_value<unsigned long long>("apps.client", "count", 100, "client count"));
-    ASSERT_EQ(
-        100u,
-        c->get_value<unsigned long long>("apps.client", "unexist_unsigned_long_long_key", 100, ""));
-    ASSERT_EQ(1, c->get_value<long>("apps.client", "count", 100, "client count"));
-    ASSERT_EQ(100, c->get_value<long>("apps.client", "unexist_long_key", 100, ""));
-    ASSERT_EQ(0xdeadbeef, c->get_value<long>("apps.server", "hex_data", 100, ""));
-    ASSERT_EQ(1u, c->get_value<unsigned long>("apps.client", "count", 100, "client count"));
+
+    // int64_t
+    int64_t int64_t_default = 1LL << 60;
+    ASSERT_EQ(123, c->get_value<int64_t>("apps.client", "int64_t_ok1", int64_t_default, ""));
+    ASSERT_EQ(0xdeadbeef, c->get_value<int64_t>("apps.client", "int64_t_ok2", int64_t_default, ""));
+    ASSERT_EQ(std::numeric_limits<int64_t>::max(), c->get_value<int64_t>("apps.client", "int64_t_ok3", int64_t_default, ""));
+    ASSERT_EQ(std::numeric_limits<int64_t>::min(), c->get_value<int64_t>("apps.client", "int64_t_ok4", int64_t_default, ""));
+    ASSERT_EQ(std::numeric_limits<int64_t>::max(), c->get_value<int64_t>("apps.client", "int64_t_ok5", int64_t_default, ""));
+
+    ASSERT_EQ(int64_t_default, c->get_value<int64_t>("apps.client", "unexist_int64_t_key", int64_t_default, ""));
+    ASSERT_EQ(int64_t_default, c->get_value<int64_t>("apps.client", "int64_t_bad1", int64_t_default, ""));
+    ASSERT_EQ(int64_t_default, c->get_value<int64_t>("apps.client", "int64_t_bad2", int64_t_default, ""));
+    ASSERT_EQ(int64_t_default, c->get_value<int64_t>("apps.client", "int64_t_bad3", int64_t_default, ""));
+    ASSERT_EQ(int64_t_default, c->get_value<int64_t>("apps.client", "int64_t_bad4", int64_t_default, ""));
+
+    // uint64_t
+    uint64_t uint64_t_default = 1ULL << 60;
+    ASSERT_EQ(123, c->get_value<uint64_t>("apps.client", "uint64_t_ok1", uint64_t_default, ""));
+    ASSERT_EQ(0xdeadbeef, c->get_value<uint64_t>("apps.client", "uint64_t_ok2", uint64_t_default, ""));
+    ASSERT_EQ(std::numeric_limits<uint64_t>::max(), c->get_value<uint64_t>("apps.client", "uint64_t_ok3", uint64_t_default, ""));
+    ASSERT_EQ(std::numeric_limits<uint64_t>::min(), c->get_value<uint64_t>("apps.client", "uint64_t_ok4", uint64_t_default, ""));
+    ASSERT_EQ(std::numeric_limits<uint64_t>::max(), c->get_value<uint64_t>("apps.client", "uint64_t_ok5", uint64_t_default, ""));
+
+    
+    ASSERT_EQ(uint64_t_default, c->get_value<uint64_t>("apps.client", "unexist_uint64_t_key", uint64_t_default, ""));
+    ASSERT_EQ(uint64_t_default, c->get_value<uint64_t>("apps.client", "uint64_t_bad1", uint64_t_default, ""));
+    ASSERT_EQ(uint64_t_default, c->get_value<uint64_t>("apps.client", "uint64_t_bad2", uint64_t_default, ""));
+    ASSERT_EQ(uint64_t_default, c->get_value<uint64_t>("apps.client", "uint64_t_bad3", uint64_t_default, ""));
+    ASSERT_EQ(uint64_t_default, c->get_value<uint64_t>("apps.client", "uint64_t_bad4", uint64_t_default, ""));
+
+    ASSERT_EQ(1u, c->get_value<uint64_t>("apps.client", "count", 100, "client count"));
     ASSERT_EQ(100u,
-              c->get_value<unsigned long>("apps.client", "unexist_unsigned_long_key", 100, ""));
-    ASSERT_EQ(1, c->get_value<int>("apps.client", "count", 100, "client count"));
-    ASSERT_EQ(100, c->get_value<int>("apps.client", "unexist_int_key", 100, ""));
-    ASSERT_EQ(1u, c->get_value<unsigned int>("apps.client", "count", 100, "client count"));
-    ASSERT_EQ(100u, c->get_value<unsigned int>("apps.client", "unexist_unsigned_int_key", 100, ""));
-    ASSERT_EQ(1, c->get_value<short>("apps.client", "count", 100, "client count"));
-    ASSERT_EQ(100, c->get_value<short>("apps.client", "unexist_short_key", 100, ""));
-    ASSERT_EQ(1u, c->get_value<unsigned short>("apps.client", "count", 100, "client count"));
-    ASSERT_EQ(100u,
-              c->get_value<unsigned short>("apps.client", "unexist_unsigned_short_key", 100, ""));
+              c->get_value<uint64_t>("apps.client", "unexist_unsigned_long_long_key", 100, ""));
+    ASSERT_EQ(1, c->get_value<int32_t>("apps.client", "count", 100, "client count"));
+    ASSERT_EQ(100, c->get_value<int32_t>("apps.client", "unexist_long_key", 100, ""));
+    ASSERT_EQ(0xdeadbeef, c->get_value<int32_t>("apps.server", "hex_data", 100, ""));
+    ASSERT_EQ(1u, c->get_value<uint32_t>("apps.client", "count", 100, "client count"));
+    ASSERT_EQ(100u, c->get_value<uint32_t>("apps.client", "unexist_unsigned_long_key", 100, ""));
+    ASSERT_EQ(1, c->get_value<int32_t>("apps.client", "count", 100, "client count"));
+    ASSERT_EQ(100, c->get_value<int32_t>("apps.client", "unexist_int_key", 100, ""));
+    ASSERT_EQ(1u, c->get_value<uint32_t>("apps.client", "count", 100, "client count"));
+    ASSERT_EQ(100u, c->get_value<uint32_t>("apps.client", "unexist_unsigned_int_key", 100, ""));
+    ASSERT_EQ(1, c->get_value<int16_t>("apps.client", "count", 100, "client count"));
+    ASSERT_EQ(100, c->get_value<int16_t>("apps.client", "unexist_short_key", 100, ""));
+    ASSERT_EQ(1u, c->get_value<uint16_t>("apps.client", "count", 100, "client count"));
+    ASSERT_EQ(100u, c->get_value<uint16_t>("apps.client", "unexist_unsigned_short_key", 100, ""));
     ASSERT_TRUE(c->get_value<bool>("apps.client", "run", false, "client run"));
     ASSERT_FALSE(c->get_value<bool>("apps.client", "unexist_bool_key", false, ""));
 
