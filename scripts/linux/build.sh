@@ -217,11 +217,13 @@ fi
 for MODULE in `echo $TEST_MODULE | sed 's/,/ /g'`; do
     echo "====================== run $MODULE =========================="
     MODULE_DIR=$BUILD_DIR/bin/$MODULE
-    if [ ! -d "$MODULE_DIR" ]; then
+    if [ ! -d "$MODULE_DIR" ]
+    then
         echo "ERROR: module dir $MODULE_DIR not exist"
         exit -1
     fi
-    if [ ! -f "$MODULE_DIR/run.sh" ]; then
+    if [ ! -f "$MODULE_DIR/run.sh" ]
+    then
         echo "ERROR: module test entrance script $MODULE_DIR/run.sh not exist"
         exit -1
     fi
