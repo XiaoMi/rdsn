@@ -27,7 +27,6 @@
 #pragma once
 
 #include <climits>
-#include <iostream>
 
 #include <dsn/utility/string_view.h>
 
@@ -52,7 +51,6 @@ bool buf2signed(string_view buf, T &result)
     if (p - buf.data() != buf.length()) {
         return false;
     }
-
 
     if (v > std::numeric_limits<T>::max() || v < std::numeric_limits<T>::min() || errno != 0) {
         return false;
@@ -92,7 +90,6 @@ bool buf2unsigned(string_view buf, T &result)
         errno = saved_errno;
     }
 
-    // it's tricky, but I have no better idea
     if (v != 0 && std::string(buf.data(), buf.length()).find('-') != std::string::npos) {
         return false;
     }

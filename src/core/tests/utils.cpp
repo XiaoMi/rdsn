@@ -40,7 +40,6 @@
 #include <dsn/utility/link.h>
 #include <dsn/utility/crc.h>
 #include <dsn/utility/autoref_ptr.h>
-#include <dsn/utility/config_api.h>
 #include <dsn/c/api_layer1.h>
 #include <gtest/gtest.h>
 

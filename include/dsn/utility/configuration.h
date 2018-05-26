@@ -188,11 +188,11 @@ inline uint64_t configuration::get_value<uint64_t>(const char *section,
 {
     const char *value;
     char defaultstr[32];
-    sprintf(defaultstr, "%" PRId64, default_value);
+    sprintf(defaultstr, "%" PRIu64, default_value);
 
     if (!get_string_value_internal(section, key, defaultstr, &value, dsptr)) {
         if (_warning) {
-            printf("WARNING: configuration '[%s] %s' is not defined, default value is '%" PRId64
+            printf("WARNING: configuration '[%s] %s' is not defined, default value is '%" PRIu64
                    "'\n",
                    section,
                    key,
