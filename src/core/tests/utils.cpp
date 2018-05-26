@@ -256,11 +256,4 @@ TEST(core, hh_mm_today_to_unix_sec)
     ASSERT_EQ(hh_mm_today_to_unix_sec("a:00"), -1);
     ASSERT_EQ(hh_mm_today_to_unix_sec("01:b"), -1);
     ASSERT_EQ(hh_mm_today_to_unix_sec("01b"), -1);
-
-    uint64_t capacity = (uint64_t)dsn_config_get_value_uint64(
-        "pegasus.server",
-        "rocksdb_block_cache_capacity",
-        10 * 1024 * 1024 * 1024ULL,
-        "block cache capacity for one pegasus server, shared by all rocksdb instances");
-    std::cout << "capacity=" << capacity << std::endl;
 }

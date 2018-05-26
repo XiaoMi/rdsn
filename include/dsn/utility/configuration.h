@@ -160,9 +160,7 @@ inline int64_t configuration::get_value<int64_t>(const char *section,
     char defaultstr[32];
     sprintf(defaultstr, "%" PRId64, default_value);
 
-    std::cout << defaultstr << std::endl;
     if (!get_string_value_internal(section, key, defaultstr, &value, dsptr)) {
-        std::cout << "get_string_value_internal failed" << std::endl;
         if (_warning) {
             printf("WARNING: configuration '[%s] %s' is not defined, default value is '%" PRId64
                    "'\n",
@@ -173,11 +171,9 @@ inline int64_t configuration::get_value<int64_t>(const char *section,
 
         return default_value;
     } else {
-        std::cout << value << std::endl;
         if (strlen(value) > 2 && (value[0] == '0' && (value[1] == 'x' || value[1] == 'X'))) {
             int64_t v;
             sscanf(value, "0x%" PRIx64 "", &v);
-            std::cout << v << std::endl;
             return v;
         } else {
             int64_t result = default_value;
@@ -192,17 +188,15 @@ inline int64_t configuration::get_value<int64_t>(const char *section,
 
 template <>
 inline uint64_t configuration::get_value<uint64_t>(const char *section,
-                                                 const char *key,
-                                                 uint64_t default_value,
-                                                 const char *dsptr)
+                                                   const char *key,
+                                                   uint64_t default_value,
+                                                   const char *dsptr)
 {
     const char *value;
     char defaultstr[32];
     sprintf(defaultstr, "%" PRId64, default_value);
 
-    std::cout << defaultstr << std::endl;
     if (!get_string_value_internal(section, key, defaultstr, &value, dsptr)) {
-        std::cout << "get_string_value_internal failed" << std::endl;
         if (_warning) {
             printf("WARNING: configuration '[%s] %s' is not defined, default value is '%" PRId64
                    "'\n",
@@ -213,11 +207,9 @@ inline uint64_t configuration::get_value<uint64_t>(const char *section,
 
         return default_value;
     } else {
-        std::cout << value << std::endl;
         if (strlen(value) > 2 && (value[0] == '0' && (value[1] == 'x' || value[1] == 'X'))) {
             uint64_t v;
             sscanf(value, "0x%" PRIx64 "", &v);
-            std::cout << v << std::endl;
             return v;
         } else {
             uint64_t result = default_value;
@@ -228,68 +220,6 @@ inline uint64_t configuration::get_value<uint64_t>(const char *section,
             }
         }
     }
-}
-
-template <>
-inline int32_t configuration::get_value<int32_t>(const char *section,
-                                                 const char *key,
-                                                 int32_t default_value,
-                                                 const char *dsptr)
-{
-    const char *value;
-    char defaultstr[32];
-    sprintf(defaultstr, "%d", (int)default_value);
-
-    if (!get_string_value_internal(section, key, defaultstr, &value, dsptr)) {
-        if (_warning) {
-            printf("WARNING: configuration '[%s] %s' is not defined, default value is '%" PRId32
-                   "'\n",
-                   section,
-                   key,
-                   default_value);
-        }
-        return default_value;
-    } else {
-        if (strlen(value) > 2 && (value[0] == '0' && (value[1] == 'x' || value[1] == 'X'))) {
-            int32_t v;
-            sscanf(value, "0x%" PRIx32, &v);
-            return v;
-        } else {
-            int32_t result = default_value;
-            if (dsn::buf2int32(value, result)) {
-                return result;
-            } else {
-                return default_value;
-            }
-        }
-    }
-}
-
-template <>
-inline uint32_t configuration::get_value<uint32_t>(const char *section,
-                                                   const char *key,
-                                                   uint32_t default_value,
-                                                   const char *dsptr)
-{
-    return (uint32_t)(get_value<int32_t>(section, key, default_value, dsptr));
-}
-
-template <>
-inline int16_t configuration::get_value<int16_t>(const char *section,
-                                                 const char *key,
-                                                 int16_t default_value,
-                                                 const char *dsptr)
-{
-    return (int16_t)(get_value<int32_t>(section, key, default_value, dsptr));
-}
-
-template <>
-inline uint16_t configuration::get_value<uint16_t>(const char *section,
-                                                   const char *key,
-                                                   unsigned short default_value,
-                                                   const char *dsptr)
-{
-    return (uint16_t)(get_value<int32_t>(section, key, default_value, dsptr));
 }
 
 template <>
@@ -319,4 +249,4 @@ inline bool configuration::get_value<bool>(const char *section,
     }
 }
 
-} // end namespace
+} // namespace dsn
