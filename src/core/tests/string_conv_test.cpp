@@ -55,6 +55,12 @@ TEST(string_conv, buf2int32)
     ASSERT_TRUE(dsn::buf2int32(std::to_string(0), result));
     ASSERT_EQ(result, 0);
 
+    ASSERT_TRUE(dsn::buf2int32("0xbeef", result));
+    ASSERT_EQ(result, 0xbeef);
+
+    ASSERT_TRUE(dsn::buf2int32("0xBEEF", result));
+    ASSERT_EQ(result, 0xbeef);
+
     ASSERT_TRUE(dsn::buf2int32(std::to_string(42), result));
     ASSERT_EQ(result, 42);
 
@@ -78,6 +84,12 @@ TEST(string_conv, buf2int64)
 
     ASSERT_TRUE(dsn::buf2int64(std::to_string(0), result));
     ASSERT_EQ(result, 0);
+
+    ASSERT_TRUE(dsn::buf2int64("0xdeadbeef", result));
+    ASSERT_EQ(result, 0xdeadbeef);
+
+    ASSERT_TRUE(dsn::buf2int64("0xDEADBEEF", result));
+    ASSERT_EQ(result, 0xdeadbeef);
 
     ASSERT_TRUE(dsn::buf2int64(std::to_string(42), result));
     ASSERT_EQ(result, 42);
@@ -113,6 +125,12 @@ TEST(string_conv, buf2uint64)
     ASSERT_TRUE(dsn::buf2uint64("-0", result));
     ASSERT_EQ(result, 0);
 
+    ASSERT_TRUE(dsn::buf2uint64("0xdeadbeef", result));
+    ASSERT_EQ(result, 0xdeadbeef);
+
+    ASSERT_TRUE(dsn::buf2uint64("0xDEADBEEF", result));
+    ASSERT_EQ(result, 0xdeadbeef);
+
     ASSERT_TRUE(dsn::buf2uint64(std::to_string(42), result));
     ASSERT_EQ(result, 42);
 
@@ -137,6 +155,7 @@ TEST(string_conv, int64_partial)
     ASSERT_FALSE(dsn::buf2int64("-", result)) << result;
     ASSERT_FALSE(dsn::buf2int64("123@@@", result));
     ASSERT_FALSE(dsn::buf2int64("@@@123", result));
+    ASSERT_FALSE(dsn::buf2int64("0xdeadbeeg", result));
 
     const int64_t int64_min = std::numeric_limits<int64_t>::min();
     const int64_t int64_max = std::numeric_limits<int64_t>::max();
@@ -152,6 +171,7 @@ TEST(string_conv, uint64_partial)
     ASSERT_FALSE(dsn::buf2uint64("-", result)) << result;
     ASSERT_FALSE(dsn::buf2uint64("123@@@", result));
     ASSERT_FALSE(dsn::buf2uint64("@@@123", result));
+    ASSERT_FALSE(dsn::buf2uint64("0xdeadbeeg", result));
 
     ASSERT_FALSE(dsn::buf2uint64(std::to_string(-1), result));
     ASSERT_FALSE(dsn::buf2uint64(std::to_string(std::numeric_limits<uint64_t>::max()).append("0"), result));

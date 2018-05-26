@@ -47,11 +47,12 @@ bool buf2signed(string_view buf, T &result)
     const int saved_errno = errno;
     errno = 0;
     char *p = nullptr;
-    long long v = std::strtoll(buf.data(), &p, 10);
+    long long v = std::strtoll(buf.data(), &p, 0);
 
     if (p - buf.data() != buf.length()) {
         return false;
     }
+
 
     if (v > std::numeric_limits<T>::max() || v < std::numeric_limits<T>::min() || errno != 0) {
         return false;
@@ -77,7 +78,7 @@ bool buf2unsigned(string_view buf, T &result)
     const int saved_errno = errno;
     errno = 0;
     char *p = nullptr;
-    unsigned long long v = std::strtoull(buf.data(), &p, 10);
+    unsigned long long v = std::strtoull(buf.data(), &p, 0);
 
     if (p - buf.data() != buf.length()) {
         return false;

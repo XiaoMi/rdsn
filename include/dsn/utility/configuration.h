@@ -36,7 +36,7 @@
 #include <list>
 #include <mutex>
 #include <dsn/utility/string_conv.h>
-#include <iostream>
+
 namespace dsn {
 
 class configuration
@@ -171,17 +171,11 @@ inline int64_t configuration::get_value<int64_t>(const char *section,
 
         return default_value;
     } else {
-        if (strlen(value) > 2 && (value[0] == '0' && (value[1] == 'x' || value[1] == 'X'))) {
-            int64_t v;
-            sscanf(value, "0x%" PRIx64 "", &v);
-            return v;
+        int64_t result = default_value;
+        if (dsn::buf2int64(value, result)) {
+            return result;
         } else {
-            int64_t result = default_value;
-            if (dsn::buf2int64(value, result)) {
-                return result;
-            } else {
-                return default_value;
-            }
+            return default_value;
         }
     }
 }
@@ -207,17 +201,11 @@ inline uint64_t configuration::get_value<uint64_t>(const char *section,
 
         return default_value;
     } else {
-        if (strlen(value) > 2 && (value[0] == '0' && (value[1] == 'x' || value[1] == 'X'))) {
-            uint64_t v;
-            sscanf(value, "0x%" PRIx64 "", &v);
-            return v;
+        uint64_t result = default_value;
+        if (dsn::buf2uint64(value, result)) {
+            return result;
         } else {
-            uint64_t result = default_value;
-            if (dsn::buf2uint64(value, result)) {
-                return result;
-            } else {
-                return default_value;
-            }
+            return default_value;
         }
     }
 }
