@@ -90,6 +90,8 @@ bool buf2unsigned(string_view buf, T &result)
         errno = saved_errno;
     }
 
+    // strtoull() will convert a negative integer to an unsigned integer,
+    // return false in this condition. (but we consider "-0" is correct)
     if (v != 0 && std::find(buf.begin(), buf.end(), '-') != buf.end()) {
         return false;
     }
@@ -98,6 +100,8 @@ bool buf2unsigned(string_view buf, T &result)
     return true;
 }
 } // namespace internal
+
+/// buf2*: `result` will keep unmodified if false is returned.
 
 inline bool buf2int32(string_view buf, int32_t &result) { return internal::buf2signed(buf, result); }
 
