@@ -36,7 +36,6 @@
 #include <list>
 #include <mutex>
 #include <dsn/utility/string_conv.h>
-#include <dsn/service_api_c.h>
 
 namespace dsn {
 
@@ -174,7 +173,7 @@ inline int64_t configuration::get_value<int64_t>(const char *section,
     } else {
         int64_t result = default_value;
         bool suc = dsn::buf2int64(value, result);
-        dassert(suc || result == default_value, "");
+        assert(suc || result == default_value);
         return result;
     }
 }
@@ -202,7 +201,7 @@ inline uint64_t configuration::get_value<uint64_t>(const char *section,
     } else {
         uint64_t result = default_value;
         bool suc = dsn::buf2uint64(value, result);
-        dassert(suc || result == default_value, "");
+        assert(suc || result == default_value);
         return result;
     }
 }
@@ -227,7 +226,7 @@ inline bool configuration::get_value<bool>(const char *section,
     } else {
         bool result = default_value;
         bool suc = dsn::buf2bool(value, result);
-        dassert(suc || result == default_value, "");
+        assert(suc || result == default_value);
         return result;
     }
 }
