@@ -90,7 +90,7 @@ bool buf2unsigned(string_view buf, T &result)
         errno = saved_errno;
     }
 
-    if (v != 0 && std::string(buf.data(), buf.length()).find('-') != std::string::npos) {
+    if (v != 0 && std::find(buf.begin(), buf.end(), '-') != buf.end()) {
         return false;
     }
 
