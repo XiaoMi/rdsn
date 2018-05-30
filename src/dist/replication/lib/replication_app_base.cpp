@@ -26,8 +26,6 @@
 
 #include "replica.h"
 #include "mutation.h"
-#include "split/replica_split.h"
-
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>
@@ -312,7 +310,7 @@ replication_app_base *replication_app_base::new_storage_instance(const std::stri
 }
 
 replication_app_base::replication_app_base(replica *replica)
-    : replica_base(replica)
+    : replica_base(replica->get_gpid(), replica->name())
 {
     _dir_data = utils::filesystem::path_combine(replica->dir(), "data");
     _dir_learn = utils::filesystem::path_combine(replica->dir(), "learn");
@@ -462,7 +460,6 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
     return storage_error;
 }
 
-// ThreadPool(THREAD_POOL_REPLICATION)
 ::dsn::error_code replication_app_base::apply_mutation(const mutation *mu)
 {
     dassert(mu->data.header.decree == last_committed_decree() + 1,
@@ -484,15 +481,13 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
     for (int i = 0; i < request_count; i++) {
         const mutation_update &update = mu->data.updates[i];
         dsn_message_t req = mu->client_requests[i];
-        if (update.code == RPC_REPLICATION_WRITE_EMPTY) {
-            // ignore. if finally `batched_requests` is empty, pegasus
-            // will write an empty record into rocksdb.
-            // TODO(wutao1): remove this when shared log is removed.
-        } else if (dsn_unlikely(update.code == RPC_PARTITION_SPLIT_2PC)) {
-            dassert(request_count == 1, "partition_split_2pc doesn't allow batch");
-            _replica->get_parent_split_impl()->on_partition_split_2pc_committed();
-            // block until split ends successfully
-        } else {
+        if (update.code != RPC_REPLICATION_WRITE_EMPTY) {
+            dinfo("%s: mutation %s #%d: dispatch rpc call %s",
+                  _replica->name(),
+                  mu->name(),
+                  i,
+                  update.code.to_string());
+
             if (req == nullptr) {
                 req = dsn_msg_create_received_request(
                     update.code,
@@ -503,6 +498,13 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
             }
 
             batched_requests[batched_count++] = req;
+        } else {
+            // empty mutation write
+            dinfo("%s: mutation %s #%d: dispatch rpc call %s",
+                  _replica->name(),
+                  mu->name(),
+                  i,
+                  update.code.to_string());
         }
     }
 
