@@ -47,10 +47,6 @@ replica::replica(
       _cold_backup_running_count(0),
       _cold_backup_max_duration_time_ms(0),
       _cold_backup_max_upload_file_size(0),
-      _manual_compact_enqueue_time_ms(0),
-      _manual_compact_start_time_ms(0),
-      _manual_compact_last_finish_time_ms(0),
-      _manual_compact_last_time_used_ms(0),
       _chkpt_total_size(0),
       _cur_download_size(0),
       _restore_progress(0),
@@ -358,6 +354,8 @@ bool replica::group_configuration(/*out*/ partition_configuration &config) const
 
 decree replica::last_durable_decree() const { return _app->last_durable_decree(); }
 
+decree replica::last_flushed_decree() const { return _app->last_flushed_decree(); }
+
 decree replica::last_prepared_decree() const
 {
     ballot lastBallot = 0;
@@ -382,18 +380,23 @@ void replica::close()
             name(),
             enum_to_string(status()));
 
-    _tracker.cancel_outstanding_tasks();
+    uint64_t start_time = dsn_now_ms();
 
     if (_checkpoint_timer != nullptr) {
-        dassert(!_checkpoint_timer->cancel(false),
-                "checkpoint timer should already been cancelled");
+        _checkpoint_timer->cancel(true);
         _checkpoint_timer = nullptr;
     }
+
     if (_collect_info_timer != nullptr) {
-        dassert(!_collect_info_timer->cancel(false),
-                "collect info timer should already been cancelled");
+        _collect_info_timer->cancel(true);
         _collect_info_timer = nullptr;
     }
+
+    if (_app != nullptr) {
+        _app->cancel_background_work(true);
+    }
+
+    _tracker.cancel_outstanding_tasks();
 
     cleanup_preparing_mutations(true);
     dassert(_primary_states.is_cleaned(), "primary context is not cleared");
@@ -419,72 +422,22 @@ void replica::close()
     }
 
     if (_app != nullptr) {
-        error_code err = _app->close(false);
-        if (err != dsn::ERR_OK)
-            ddebug("app close result: %s", err.to_string());
-        _app.reset();
+        std::unique_ptr<replication_app_base> tmp_app = std::move(_app);
+        error_code err = tmp_app->close(false);
+        if (err != dsn::ERR_OK) {
+            dwarn("%s: close app failed, err = %s", name(), err.to_string());
+        }
     }
 
     _counter_private_log_size.clear();
+
+    ddebug("%s: replica closed, time_used = %" PRIu64 "ms", name(), dsn_now_ms() - start_time);
 }
 
-bool replica::could_start_manual_compact()
+std::string replica::query_compact_state() const
 {
-    uint64_t not_start = 0;
-    uint64_t now = dsn_now_ms();
-    if (_options->manual_compact_min_interval_seconds > 0 &&
-        (_manual_compact_last_finish_time_ms.load() == 0 ||
-         now - _manual_compact_last_finish_time_ms.load() >
-             (uint64_t)_options->manual_compact_min_interval_seconds * 1000)) {
-        return _manual_compact_enqueue_time_ms.compare_exchange_strong(not_start, now);
-    } else {
-        return false;
-    }
-}
-
-void replica::manual_compact(const std::map<std::string, std::string> &opts)
-{
-    if (_app != nullptr) {
-        ddebug("%s: start to execute manual compaction", name());
-        uint64_t start = dsn_now_ms();
-        _manual_compact_start_time_ms.store(start);
-        _app->manual_compact(opts);
-        uint64_t finish = dsn_now_ms();
-        ddebug("%s: finish to execute manual compaction, time_used = %" PRId64 "ms",
-               name(),
-               finish - start);
-        _manual_compact_last_finish_time_ms.store(finish);
-        _manual_compact_last_time_used_ms.store(finish - start);
-        _manual_compact_start_time_ms.store(0);
-        _manual_compact_enqueue_time_ms.store(0);
-    }
-}
-
-std::string replica::get_compact_state()
-{
-    uint64_t enqueue_time_ms = _manual_compact_enqueue_time_ms.load();
-    uint64_t start_time_ms = _manual_compact_start_time_ms.load();
-    uint64_t last_finish_time_ms = _manual_compact_last_finish_time_ms.load();
-    uint64_t last_time_used_ms = _manual_compact_last_time_used_ms.load();
-    std::stringstream state;
-    if (last_finish_time_ms > 0) {
-        char str[24];
-        utils::time_ms_to_string(last_finish_time_ms, str);
-        state << "last finish at [" << str << "], last used " << last_time_used_ms << " ms";
-    } else {
-        state << "last finish at [-]";
-    }
-    if (enqueue_time_ms > 0) {
-        char str[24];
-        utils::time_ms_to_string(enqueue_time_ms, str);
-        state << ", recent enqueue at [" << str << "]";
-    }
-    if (start_time_ms > 0) {
-        char str[24];
-        utils::time_ms_to_string(start_time_ms, str);
-        state << ", recent start at [" << str << "]";
-    }
-    return state.str();
+    dassert_replica(_app != nullptr, "");
+    return _app->query_compact_state();
 }
 }
 } // namespace

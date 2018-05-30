@@ -47,6 +47,8 @@ void meta_storage::create_node_recursively(std::queue<std::string> &&nodes,
                                            blob &&value,
                                            std::function<void()> &&cb)
 {
+    dassert(!nodes.empty(), "");
+
     on_create_recursively op;
     op.initialize(this);
     op.args.reset(

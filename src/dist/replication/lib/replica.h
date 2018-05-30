@@ -87,6 +87,8 @@ public:
     void set_inactive_state_transient(bool t);
     void check_state_completeness();
     // error_code check_and_fix_private_log_completeness();
+
+    // close() will wait all traced tasks to finish
     void close();
 
     //
@@ -139,6 +141,7 @@ public:
     decree last_committed_decree() const { return _prepare_list->last_committed_decree(); }
     decree last_prepared_decree() const;
     decree last_durable_decree() const;
+    decree last_flushed_decree() const;
     const std::string &dir() const { return _dir; }
     bool group_configuration(/*out*/ partition_configuration &config) const;
     uint64_t create_time_milliseconds() const { return _create_time_ms; }
@@ -149,6 +152,7 @@ public:
     const replication_options *options() const { return _options; }
     replica_stub *get_replica_stub() { return _stub; }
     bool verbose_commit_log() const;
+    dsn::task_tracker *tracker() { return &_tracker; }
     replica_split *get_parent_split_impl() const { return _split.get(); }
 
     // void json_state(std::stringstream& out) const;
@@ -296,11 +300,7 @@ private:
 
     void update_restore_progress();
 
-    bool could_start_manual_compact();
-
-    void manual_compact(const std::map<std::string, std::string> &opts);
-
-    std::string get_compact_state();
+    std::string query_compact_state() const;
 
 private:
     friend class ::dsn::replication::replication_checker;
@@ -360,12 +360,6 @@ private:
     std::atomic<uint64_t> _cold_backup_running_count;
     std::atomic<uint64_t> _cold_backup_max_duration_time_ms;
     std::atomic<uint64_t> _cold_backup_max_upload_file_size;
-
-    // manual compact state
-    std::atomic<uint64_t> _manual_compact_enqueue_time_ms;
-    std::atomic<uint64_t> _manual_compact_start_time_ms;
-    std::atomic<uint64_t> _manual_compact_last_finish_time_ms;
-    std::atomic<uint64_t> _manual_compact_last_time_used_ms;
 
     // record the progress of restore
     int64_t _chkpt_total_size;

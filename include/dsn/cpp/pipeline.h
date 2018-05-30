@@ -153,7 +153,7 @@ struct base : environment
 
     void pause() { _paused.store(true, std::memory_order_release); }
 
-    bool paused() { return _paused.load(std::memory_order_acquire); }
+    bool paused() const { return _paused.load(std::memory_order_acquire); }
 
     // Await for all running tasks to complete.
     void wait_all() { __conf.tracker->wait_outstanding_tasks(); }
@@ -262,7 +262,7 @@ struct when : environment
     /// Run this stage asynchronously in its environment.
     void async(Args &&... in) { repeat(std::forward<Args>(in)...); }
 
-    bool paused() { return __pipeline->paused(); }
+    bool paused() const { return __pipeline->paused(); }
 
     base *__pipeline{nullptr};
 };
@@ -282,9 +282,10 @@ inline void base::run_pipeline()
 /// Runnable must extend from pipeline::environment and implement
 /// a public method: `void run();`
 template <typename Runnable>
-static void repeat(Runnable *runnable, std::chrono::milliseconds delay_ms = 0_ms)
+static void repeat(Runnable &&r, std::chrono::milliseconds delay_ms = 0_ms)
 {
-    runnable->schedule([r = std::move(*runnable)]() mutable { r.run(); }, delay_ms);
+    environment env = r;
+    env.schedule([r = std::move(r)]() mutable { r.run(); }, delay_ms);
 }
 
 } // namespace pipeline
