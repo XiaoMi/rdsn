@@ -51,9 +51,12 @@ void replica::on_checkpoint_timer()
 
     if (now_ms() > _next_checkpoint_interval_trigger_time_ms) {
         // we trigger emergency checkpoint if no checkpoint generated for a long time
-        ddebug("%s: trigger emergency checkpoint by checkpoint_max_interval_hours, interval = %d",
+        ddebug("%s: trigger emergency checkpoint by checkpoint_max_interval_hours, "
+               "config_interval = %dh (%" PRIu64 "ms), random_interval = %" PRIu64 "ms",
                name(),
-               _options->checkpoint_max_interval_hours);
+               _options->checkpoint_max_interval_hours,
+               _options->checkpoint_max_interval_hours * 3600000UL,
+               _next_checkpoint_interval_trigger_time_ms - _last_checkpoint_generate_time_ms);
         init_checkpoint(true);
     } else {
         ddebug("%s: trigger non-emergency checkpoint",

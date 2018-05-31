@@ -80,7 +80,7 @@ replica::replica(
 void replica::update_last_checkpoint_generate_time()
 {
     _last_checkpoint_generate_time_ms = now_ms();
-    uint64_t max_interval_ms = _options->checkpoint_max_interval_hours * 3600 * 1000;
+    uint64_t max_interval_ms = _options->checkpoint_max_interval_hours * 3600000UL;
     // use random trigger time to avoid flush peek
     _next_checkpoint_interval_trigger_time_ms =
         _last_checkpoint_generate_time_ms + dsn_random64(max_interval_ms / 2, max_interval_ms);
