@@ -269,6 +269,7 @@ if [ ! -d $TP_OUTPUT/include/s2geometry ]; then
     mkdir -p build && cd build
     cmake .. -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT
     make -j8 && make install
+    res=$?
     cd $TP_DIR
     exit_if_fail "s2geometry" $?
 else
