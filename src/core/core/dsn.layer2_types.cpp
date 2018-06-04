@@ -705,17 +705,9 @@ void app_info::__set_expire_second(const int64_t val) {
   this->expire_second = val;
 }
 
-void app_info::__set_create_second(const int64_t val)
-{
-    this->create_second = val;
-    __isset.create_second = true;
-}
+void app_info::__set_create_second(const int64_t val) { this->create_second = val; }
 
-void app_info::__set_drop_second(const int64_t val)
-{
-    this->drop_second = val;
-    __isset.drop_second = true;
-}
+void app_info::__set_drop_second(const int64_t val) { this->drop_second = val; }
 
 uint32_t app_info::read(::apache::thrift::protocol::TProtocol *iprot)
 {
@@ -904,16 +896,14 @@ uint32_t app_info::write(::apache::thrift::protocol::TProtocol *oprot) const
     xfer += oprot->writeI64(this->expire_second);
     xfer += oprot->writeFieldEnd();
 
-    if (this->__isset.create_second) {
-        xfer += oprot->writeFieldBegin("create_second", ::apache::thrift::protocol::T_I64, 10);
-        xfer += oprot->writeI64(this->create_second);
-        xfer += oprot->writeFieldEnd();
-    }
-    if (this->__isset.drop_second) {
-        xfer += oprot->writeFieldBegin("drop_second", ::apache::thrift::protocol::T_I64, 11);
-        xfer += oprot->writeI64(this->drop_second);
-        xfer += oprot->writeFieldEnd();
-    }
+    xfer += oprot->writeFieldBegin("create_second", ::apache::thrift::protocol::T_I64, 10);
+    xfer += oprot->writeI64(this->create_second);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("drop_second", ::apache::thrift::protocol::T_I64, 11);
+    xfer += oprot->writeI64(this->drop_second);
+    xfer += oprot->writeFieldEnd();
+
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -1020,11 +1010,9 @@ void app_info::printTo(std::ostream &out) const
     out << ", "
         << "expire_second=" << to_string(expire_second);
     out << ", "
-        << "create_second=";
-    (__isset.create_second ? (out << to_string(create_second)) : (out << "<null>"));
+        << "create_second=" << to_string(create_second);
     out << ", "
-        << "drop_second=";
-    (__isset.drop_second ? (out << to_string(drop_second)) : (out << "<null>"));
+        << "drop_second=" << to_string(drop_second);
     out << ")";
 }
 

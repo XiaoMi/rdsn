@@ -367,13 +367,9 @@ public:
             return false;
         if (!(expire_second == rhs.expire_second))
             return false;
-        if (__isset.create_second != rhs.__isset.create_second)
+        if (!(create_second == rhs.create_second))
             return false;
-        else if (__isset.create_second && !(create_second == rhs.create_second))
-            return false;
-        if (__isset.drop_second != rhs.__isset.drop_second)
-            return false;
-        else if (__isset.drop_second && !(drop_second == rhs.drop_second))
+        if (!(drop_second == rhs.drop_second))
             return false;
         return true;
     }
