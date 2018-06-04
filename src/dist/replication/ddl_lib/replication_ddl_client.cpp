@@ -42,8 +42,6 @@
 #include <fstream>
 #include <iomanip>
 
-#include <boost/lexical_cast.hpp>
-
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -105,8 +103,7 @@ std::string replication_ddl_client::hostname(const rpc_address &address)
     if (address.type() != HOST_TYPE_IPV4) {
         return std::string("invalid");
     }
-    return hostname_from_ip(htonl(address.ip())) + ":" +
-           boost::lexical_cast<std::string>(address.port());
+    return hostname_from_ip(htonl(address.ip())) + ":" + std::to_string(address.port());
 }
 
 std::string replication_ddl_client::list_hostname_from_ip(const char *ip_list)
@@ -428,17 +425,17 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
             }
         }
         std::vector<std::string> row;
-        row.push_back(boost::lexical_cast<std::string>(info.app_id));
+        row.push_back(std::to_string(info.app_id));
         row.push_back(status_str);
         row.push_back(info.app_name);
         row.push_back(info.app_type);
-        row.push_back(boost::lexical_cast<std::string>(info.partition_count));
-        row.push_back(boost::lexical_cast<std::string>(info.max_replica_count));
+        row.push_back(std::to_string(info.partition_count));
+        row.push_back(std::to_string(info.max_replica_count));
         row.push_back(info.is_stateful ? "true" : "false");
         row.push_back(create_time);
         row.push_back(drop_time);
         row.push_back(drop_expire_time);
-        row.push_back(boost::lexical_cast<std::string>(info.envs.size()));
+        row.push_back(std::to_string(info.envs.size()));
         table.emplace_back(std::move(row));
     }
     bool pr = print_table(table, out);
@@ -493,13 +490,13 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
                 }
             }
             std::vector<std::string> row;
-            row.push_back(boost::lexical_cast<std::string>(info.app_id));
+            row.push_back(std::to_string(info.app_id));
             row.push_back(info.app_name);
-            row.push_back(boost::lexical_cast<std::string>(info.partition_count));
-            row.push_back(boost::lexical_cast<std::string>(fully_healthy));
-            row.push_back(boost::lexical_cast<std::string>(info.partition_count - fully_healthy));
-            row.push_back(boost::lexical_cast<std::string>(write_unhealthy));
-            row.push_back(boost::lexical_cast<std::string>(read_unhealthy));
+            row.push_back(std::to_string(info.partition_count));
+            row.push_back(std::to_string(fully_healthy));
+            row.push_back(std::to_string(info.partition_count - fully_healthy));
+            row.push_back(std::to_string(write_unhealthy));
+            row.push_back(std::to_string(read_unhealthy));
             detail_table.emplace_back(std::move(row));
         }
         out << "[App Healthy Info]" << std::endl;
