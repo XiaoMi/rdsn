@@ -441,7 +441,7 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
         row.push_back(boost::lexical_cast<std::string>(info.envs.size()));
         table.emplace_back(std::move(row));
     }
-    bool pr = dsn::utils::print_table(table, out);
+    bool pr = print_table(table, out);
     dassert(pr, "bad table format");
     out << std::endl;
 
@@ -503,7 +503,7 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
             detail_table.emplace_back(std::move(row));
         }
         out << "[App Healthy Info]" << std::endl;
-        pr = dsn::utils::print_table(detail_table, out);
+        pr = print_table(detail_table, out);
         dassert(pr, "bad table format");
         out << std::endl;
     }
@@ -1488,6 +1488,43 @@ dsn::error_code replication_ddl_client::get_app_envs(const std::string &app_name
         }
     }
     return ERR_OK;
+}
+
+bool replication_ddl_client::print_table(const std::vector<std::vector<std::string>> &table,
+                                         std::ostream &output,
+                                         const std::string &column_delimiter)
+{
+    if (table.empty())
+        return true;
+
+    int row_count = table.size();
+    int column_count = table[0].size();
+    std::vector<int> column_widths(column_count);
+    for (int r = 0; r < row_count; ++r) {
+        const std::vector<std::string> &row = table[r];
+        if ((int)row.size() != column_count)
+            return false;
+        for (int c = 0; c < column_count; ++c) {
+            int w = row[c].size();
+            if (w > column_widths[c])
+                column_widths[c] = w;
+        }
+    }
+
+    for (int r = 0; r < row_count; ++r) {
+        const std::vector<std::string> &row = table[r];
+        for (int c = 0; c < column_count; ++c) {
+            if (c == 0) {
+                output << std::setw(column_widths[c]) << std::left << row[c];
+            } else {
+                output << column_delimiter;
+                output << std::setw(column_widths[c]) << std::right << row[c];
+            }
+        }
+        output << std::endl;
+    }
+
+    return true;
 }
 }
 } // namespace
