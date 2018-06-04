@@ -33,7 +33,6 @@
  */
 #include <boost/lexical_cast.hpp>
 #include <dsn/utility/error_code.h>
-#include <dsn/utility/utils.h>
 
 #include <dsn/tool-api/group_address.h>
 #include <dsn/dist/replication/replication_ddl_client.h>
