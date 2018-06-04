@@ -1514,7 +1514,7 @@ bool replication_ddl_client::print_table(const std::vector<std::vector<std::stri
                 output << std::setw(column_widths[c]) << std::left << row[c];
             } else {
                 output << column_delimiter;
-                output << std::setw(column_widths[c]) << std::right << row[c];
+                output << std::setw(column_widths[c]) << std::left << row[c];
             }
         }
         output << std::endl;
