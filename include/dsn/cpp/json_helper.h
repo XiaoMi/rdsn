@@ -670,7 +670,9 @@ inline bool json_decode(dsn::json::string_tokenizer &in, dsn::app_info &info)
                         envs,
                         is_stateful,
                         max_replica_count,
-                        expire_second);
+                        expire_second,
+                        create_second,
+                        drop_second);
 }
 }
 }
