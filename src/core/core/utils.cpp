@@ -39,6 +39,7 @@
 #include <sys/stat.h>
 #include <random>
 #include <iostream>
+#include <iomanip>
 #include <memory>
 #include <array>
 
@@ -170,6 +171,43 @@ int pipe_execute(const char *command, std::ostream &output)
         }
     }
     return retcode;
+}
+
+bool print_table(const std::vector<std::vector<std::string>> &table,
+                 std::ostream &output,
+                 const std::string &column_delimiter)
+{
+    if (table.empty())
+        return true;
+
+    int row_count = table.size();
+    int column_count = table[0].size();
+    std::vector<int> column_widths(column_count);
+    for (int r = 0; r < row_count; ++r) {
+        const std::vector<std::string> &row = table[r];
+        if ((int)row.size() != column_count)
+            return false;
+        for (int c = 0; c < column_count; ++c) {
+            int w = row[c].size();
+            if (w > column_widths[c])
+                column_widths[c] = w;
+        }
+    }
+
+    for (int r = 0; r < row_count; ++r) {
+        const std::vector<std::string> &row = table[r];
+        for (int c = 0; c < column_count; ++c) {
+            if (c == 0) {
+                output << std::setw(column_widths[c]) << std::left << row[c];
+            } else {
+                output << column_delimiter;
+                output << std::setw(column_widths[c]) << std::right << row[c];
+            }
+        }
+        output << std::endl;
+    }
+
+    return true;
 }
 }
 }

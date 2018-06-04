@@ -104,5 +104,11 @@ inline int get_invalid_tid() { return -1; }
 // read it's stdout to output
 // and return the retcode of command
 int pipe_execute(const char *command, std::ostream &output);
+
+// print table to format columns with the same width.
+// return false if column count is the same for all rows.
+bool print_table(const std::vector<std::vector<std::string>> &table,
+                 std::ostream &output,
+                 const std::string &column_delimiter = "  ");
 }
 }

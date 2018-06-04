@@ -29,7 +29,7 @@ thrift_description = [
         },
         "file_move": {
             ".types.h _types.h": "include/dsn/cpp/serialization_helper",
-            "_types.cpp": "src/dev/cpp"
+            "_types.cpp": "src/core/core"
         }
     },
     {

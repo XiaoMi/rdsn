@@ -86,6 +86,14 @@
     JSON_ENCODE_ENTRIES8(out, prefix, T1, T2, T3, T4, T5, T6, T7, T8);                             \
     out << ",";                                                                                    \
     JSON_ENCODE_ENTRY(out, prefix, T9)
+#define JSON_ENCODE_ENTRIES10(out, prefix, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)                \
+    JSON_ENCODE_ENTRIES9(out, prefix, T1, T2, T3, T4, T5, T6, T7, T8, T9);                         \
+    out << ",";                                                                                    \
+    JSON_ENCODE_ENTRY(out, prefix, T10)
+#define JSON_ENCODE_ENTRIES11(out, prefix, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)           \
+    JSON_ENCODE_ENTRIES10(out, prefix, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);                   \
+    out << ",";                                                                                    \
+    JSON_ENCODE_ENTRY(out, prefix, T11)
 
 #define JSON_DECODE_ENTRY(in, prefix, T)                                                           \
     do {                                                                                           \
@@ -126,14 +134,23 @@
 #define JSON_DECODE_ENTRIES9(in, prefix, T1, T2, T3, T4, T5, T6, T7, T8, T9)                       \
     JSON_DECODE_ENTRIES8(in, prefix, T1, T2, T3, T4, T5, T6, T7, T8);                              \
     JSON_TRY_DECODE_ENTRY(in, prefix, T9)
+#define JSON_DECODE_ENTRIES10(in, prefix, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)                 \
+    JSON_DECODE_ENTRIES9(in, prefix, T1, T2, T3, T4, T5, T6, T7, T8, T9);                          \
+    JSON_TRY_DECODE_ENTRY(in, prefix, T10)
+#define JSON_DECODE_ENTRIES11(in, prefix, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)            \
+    JSON_DECODE_ENTRIES10(in, prefix, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);                    \
+    JSON_TRY_DECODE_ENTRY(in, prefix, T11)
 
-#define JSON_ENTRIES_GET_MACRO(ph1, ph2, ph3, ph4, ph5, ph6, ph7, ph8, ph9, NAME, ...) NAME
+#define JSON_ENTRIES_GET_MACRO(ph1, ph2, ph3, ph4, ph5, ph6, ph7, ph8, ph9, ph10, ph11, NAME, ...) \
+    NAME
 // workaround due to the way VC handles "..."
 #define JSON_ENTRIES_GET_MACRO_(tuple) JSON_ENTRIES_GET_MACRO tuple
 
 #define JSON_ENCODE_ENTRIES(out, prefix, ...)                                                      \
     out << "{";                                                                                    \
     JSON_ENTRIES_GET_MACRO_((__VA_ARGS__,                                                          \
+                             JSON_ENCODE_ENTRIES11,                                                \
+                             JSON_ENCODE_ENTRIES10,                                                \
                              JSON_ENCODE_ENTRIES9,                                                 \
                              JSON_ENCODE_ENTRIES8,                                                 \
                              JSON_ENCODE_ENTRIES7,                                                 \
@@ -149,6 +166,8 @@
 #define JSON_DECODE_ENTRIES(in, prefix, ...)                                                       \
     dverify(in.expect_token('{'));                                                                 \
     JSON_ENTRIES_GET_MACRO_((__VA_ARGS__,                                                          \
+                             JSON_DECODE_ENTRIES11,                                                \
+                             JSON_DECODE_ENTRIES10,                                                \
                              JSON_DECODE_ENTRIES9,                                                 \
                              JSON_DECODE_ENTRIES8,                                                 \
                              JSON_DECODE_ENTRIES7,                                                 \
@@ -635,7 +654,9 @@ inline void json_encode(std::stringstream &out, const dsn::app_info &info)
                         envs,
                         is_stateful,
                         max_replica_count,
-                        expire_second);
+                        expire_second,
+                        create_second,
+                        drop_second);
 }
 inline bool json_decode(dsn::json::string_tokenizer &in, dsn::app_info &info)
 {

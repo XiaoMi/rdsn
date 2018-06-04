@@ -259,94 +259,132 @@ inline std::ostream& operator<<(std::ostream& out, const configuration_query_by_
   return out;
 }
 
-typedef struct _app_info__isset {
-  _app_info__isset() : status(true), app_type(false), app_name(false), app_id(false), partition_count(false), envs(false), is_stateful(false), max_replica_count(false), expire_second(false) {}
-  bool status :1;
-  bool app_type :1;
-  bool app_name :1;
-  bool app_id :1;
-  bool partition_count :1;
-  bool envs :1;
-  bool is_stateful :1;
-  bool max_replica_count :1;
-  bool expire_second :1;
+typedef struct _app_info__isset
+{
+    _app_info__isset()
+        : status(true),
+          app_type(false),
+          app_name(false),
+          app_id(false),
+          partition_count(false),
+          envs(false),
+          is_stateful(false),
+          max_replica_count(false),
+          expire_second(false),
+          create_second(false),
+          drop_second(false)
+    {
+    }
+    bool status : 1;
+    bool app_type : 1;
+    bool app_name : 1;
+    bool app_id : 1;
+    bool partition_count : 1;
+    bool envs : 1;
+    bool is_stateful : 1;
+    bool max_replica_count : 1;
+    bool expire_second : 1;
+    bool create_second : 1;
+    bool drop_second : 1;
 } _app_info__isset;
 
-class app_info {
- public:
+class app_info
+{
+public:
+    app_info(const app_info &);
+    app_info(app_info &&);
+    app_info &operator=(const app_info &);
+    app_info &operator=(app_info &&);
+    app_info()
+        : status((app_status::type)0),
+          app_type(),
+          app_name(),
+          app_id(0),
+          partition_count(0),
+          is_stateful(0),
+          max_replica_count(0),
+          expire_second(0),
+          create_second(0),
+          drop_second(0)
+    {
+        status = (app_status::type)0;
+    }
 
-  app_info(const app_info&);
-  app_info(app_info&&);
-  app_info& operator=(const app_info&);
-  app_info& operator=(app_info&&);
-  app_info() : status((app_status::type)0), app_type(), app_name(), app_id(0), partition_count(0), is_stateful(0), max_replica_count(0), expire_second(0) {
-    status = (app_status::type)0;
+    virtual ~app_info() throw();
+    app_status::type status;
+    std::string app_type;
+    std::string app_name;
+    int32_t app_id;
+    int32_t partition_count;
+    std::map<std::string, std::string> envs;
+    bool is_stateful;
+    int32_t max_replica_count;
+    int64_t expire_second;
+    int64_t create_second;
+    int64_t drop_second;
 
-  }
+    _app_info__isset __isset;
 
-  virtual ~app_info() throw();
-  app_status::type status;
-  std::string app_type;
-  std::string app_name;
-  int32_t app_id;
-  int32_t partition_count;
-  std::map<std::string, std::string>  envs;
-  bool is_stateful;
-  int32_t max_replica_count;
-  int64_t expire_second;
+    void __set_status(const app_status::type val);
 
-  _app_info__isset __isset;
+    void __set_app_type(const std::string &val);
 
-  void __set_status(const app_status::type val);
+    void __set_app_name(const std::string &val);
 
-  void __set_app_type(const std::string& val);
+    void __set_app_id(const int32_t val);
 
-  void __set_app_name(const std::string& val);
+    void __set_partition_count(const int32_t val);
 
-  void __set_app_id(const int32_t val);
+    void __set_envs(const std::map<std::string, std::string> &val);
 
-  void __set_partition_count(const int32_t val);
+    void __set_is_stateful(const bool val);
 
-  void __set_envs(const std::map<std::string, std::string> & val);
+    void __set_max_replica_count(const int32_t val);
 
-  void __set_is_stateful(const bool val);
+    void __set_expire_second(const int64_t val);
 
-  void __set_max_replica_count(const int32_t val);
+    void __set_create_second(const int64_t val);
 
-  void __set_expire_second(const int64_t val);
+    void __set_drop_second(const int64_t val);
 
-  bool operator == (const app_info & rhs) const
-  {
-    if (!(status == rhs.status))
-      return false;
-    if (!(app_type == rhs.app_type))
-      return false;
-    if (!(app_name == rhs.app_name))
-      return false;
-    if (!(app_id == rhs.app_id))
-      return false;
-    if (!(partition_count == rhs.partition_count))
-      return false;
-    if (!(envs == rhs.envs))
-      return false;
-    if (!(is_stateful == rhs.is_stateful))
-      return false;
-    if (!(max_replica_count == rhs.max_replica_count))
-      return false;
-    if (!(expire_second == rhs.expire_second))
-      return false;
-    return true;
-  }
-  bool operator != (const app_info &rhs) const {
-    return !(*this == rhs);
-  }
+    bool operator==(const app_info &rhs) const
+    {
+        if (!(status == rhs.status))
+            return false;
+        if (!(app_type == rhs.app_type))
+            return false;
+        if (!(app_name == rhs.app_name))
+            return false;
+        if (!(app_id == rhs.app_id))
+            return false;
+        if (!(partition_count == rhs.partition_count))
+            return false;
+        if (!(envs == rhs.envs))
+            return false;
+        if (!(is_stateful == rhs.is_stateful))
+            return false;
+        if (!(max_replica_count == rhs.max_replica_count))
+            return false;
+        if (!(expire_second == rhs.expire_second))
+            return false;
+        if (__isset.create_second != rhs.__isset.create_second)
+            return false;
+        else if (__isset.create_second && !(create_second == rhs.create_second))
+            return false;
+        if (__isset.drop_second != rhs.__isset.drop_second)
+            return false;
+        else if (__isset.drop_second && !(drop_second == rhs.drop_second))
+            return false;
+        return true;
+    }
+    bool operator!=(const app_info &rhs) const { return !(*this == rhs); }
 
-  bool operator < (const app_info & ) const;
+    bool operator<(const app_info &) const;
 
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
 
-  virtual void printTo(std::ostream& out) const;
+    virtual void printTo(std::ostream &out) const;
 };
 
 void swap(app_info &a, app_info &b);
