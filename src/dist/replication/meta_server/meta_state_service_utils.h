@@ -33,15 +33,16 @@ namespace replication {
 namespace mss { // abbreviation of meta_state_service
 
 /// This class is a convenience wrapper over meta_state_service.
-/// It wraps every operation in a error handling mechanism, and provides utilities
+/// It wraps every operation in an error handling mechanism, and provides utilities
 /// like recursive node creation.
 /// Notice: The operations always run in THREAD_POOL_META_STATE: LPC_META_STATE_HIGH.
+///         This class is thread-safe.
 ///
 /// ERROR HANDLING:
 /// Currently it retries for every timeout(ERR_TIMEOUT) operation infinitely,
 /// and delays 1sec for each attempt. For unexpected failures it will terminate
 /// the program.
-/// \see meta_state_service_utils_impl.h # error_handling
+/// \see meta_state_service_utils_impl.h # operation
 struct meta_storage
 {
     meta_storage(dist::meta_state_service *remote_storage, task_tracker *tracker);
@@ -55,16 +56,23 @@ struct meta_storage
 
     void create_node(std::string &&node, blob &&value, std::function<void()> &&cb);
 
+    /// Will fatal if node doesn't exists.
     void delete_node_recursively(std::string &&node, std::function<void()> &&cb);
 
+    /// Will fatal if node doesn't exists.
     void delete_node(std::string &&node, std::function<void()> &&cb);
 
+    /// Will fatal if node doesn't exists.
     void set_data(std::string &&node, blob &&value, std::function<void()> &&cb);
 
     /// If node does not exist, cb will receive an empty blob.
     void get_data(std::string &&node, std::function<void(const blob &)> &&cb);
 
-    // TODO(wutao1): get_children_data: retrieve data of all children into a vector.
+    /// Will fatal if node doesn't exists.
+    /// \param cb: void (const std::vector<std::string> &children)
+    ///            `children` contains the name (not full path) of children nodes.
+    void get_children(std::string &&node,
+                      std::function<void(const std::vector<std::string> &)> &&cb);
 
 private:
     void delete_node_impl(std::string &&node, std::function<void()> &&cb, bool is_recursive);

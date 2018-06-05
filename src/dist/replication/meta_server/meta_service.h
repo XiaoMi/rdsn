@@ -75,7 +75,7 @@ public:
     const replication_options &get_options() const { return _opts; }
     const meta_options &get_meta_options() const { return _meta_opts; }
 
-    /// DEPRECATE: use mss::meta_storage instead.
+    /// NOTE: prefer using mss::meta_storage instead.
     dist::meta_state_service *get_remote_storage() const { return _storage.get(); }
     mss::meta_storage *get_meta_storage() const { return _meta_storage.get(); }
 
