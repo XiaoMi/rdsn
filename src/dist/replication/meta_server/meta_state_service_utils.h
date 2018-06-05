@@ -68,7 +68,6 @@ struct meta_storage
     /// If node does not exist, cb will receive an empty blob.
     void get_data(std::string &&node, std::function<void(const blob &)> &&cb);
 
-    /// Will fatal if node doesn't exists.
     /// \param cb: void (bool node_exists, const std::vector<std::string> &children)
     ///            `children` contains the name (not full path) of children nodes.
     ///            `node_exists` indicates whether this node exists.
