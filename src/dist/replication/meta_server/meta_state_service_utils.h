@@ -33,7 +33,7 @@ namespace replication {
 namespace mss { // abbreviation of meta_state_service
 
 /// This class is a convenience wrapper over meta_state_service.
-/// It wraps every operation in an error handling mechanism, and provides utilities
+/// It wraps every operation with a simple error handling mechanism, and provides utilities
 /// like recursive node creation.
 /// Notice: The operations always run in THREAD_POOL_META_STATE: LPC_META_STATE_HIGH.
 ///         This class is thread-safe.
@@ -41,7 +41,8 @@ namespace mss { // abbreviation of meta_state_service
 /// ERROR HANDLING:
 /// Currently it retries for every timeout(ERR_TIMEOUT) operation infinitely,
 /// and delays 1sec for each attempt. For unexpected failures it will terminate
-/// the program.
+/// the program. This is somewhat brute force but suitable for most cases.
+/// For more fine-grained error handling strategy, use meta_state_service instead.
 /// \see meta_state_service_utils_impl.h # operation
 struct meta_storage
 {
