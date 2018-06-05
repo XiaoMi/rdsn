@@ -284,7 +284,7 @@ struct on_get_children : operation
 {
     struct arguments
     {
-        std::function<void(const std::vector<std::string> &)> cb;
+        std::function<void(bool, const std::vector<std::string> &)> cb;
         std::string node;
     };
     std::shared_ptr<arguments> args;
@@ -303,7 +303,11 @@ struct on_get_children : operation
     void on_error(error_code ec, const std::vector<std::string> &children)
     {
         if (ec == ERR_OK) {
-            args->cb(children);
+            args->cb(true, children);
+            return;
+        }
+        if (ec == ERR_OBJECT_NOT_FOUND) {
+            args->cb(false, children);
             return;
         }
         operation::on_error(this, op_type::OP_GET_CHILDREN, ec, args->node);

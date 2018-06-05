@@ -104,7 +104,7 @@ void meta_storage::get_data(std::string &&node, std::function<void(const blob &)
 }
 
 void meta_storage::get_children(std::string &&node,
-                                std::function<void(const std::vector<std::string> &)> &&cb)
+                                std::function<void(bool, const std::vector<std::string> &)> &&cb)
 {
     on_get_children op;
     op.initialize(this);

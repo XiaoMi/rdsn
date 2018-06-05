@@ -69,10 +69,11 @@ struct meta_storage
     void get_data(std::string &&node, std::function<void(const blob &)> &&cb);
 
     /// Will fatal if node doesn't exists.
-    /// \param cb: void (const std::vector<std::string> &children)
+    /// \param cb: void (bool node_exists, const std::vector<std::string> &children)
     ///            `children` contains the name (not full path) of children nodes.
+    ///            `node_exists` indicates whether this node exists.
     void get_children(std::string &&node,
-                      std::function<void(const std::vector<std::string> &)> &&cb);
+                      std::function<void(bool, const std::vector<std::string> &)> &&cb);
 
 private:
     void delete_node_impl(std::string &&node, std::function<void()> &&cb, bool is_recursive);
