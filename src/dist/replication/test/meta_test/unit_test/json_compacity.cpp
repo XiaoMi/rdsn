@@ -24,7 +24,7 @@ void meta_service_test_app::json_compacity()
     // 1. encoded data can be decoded
     dsn::blob bb = dsn::json::json_forwarder<dsn::app_info>::encode(info);
     std::cout << bb.data() << std::endl;
-    dsn::json::json_forwarder<dsn::app_info>::decode(bb, info2);
+    ASSERT_TRUE(dsn::json::json_forwarder<dsn::app_info>::decode(bb, info2));
     ASSERT_EQ(info2, info);
 
     // 2. old version of json can be decoded to new struct
@@ -64,12 +64,9 @@ void meta_service_test_app::json_compacity()
     const char *json4 = "{\"pid\":\"1.1\",\"ballot\":234,\"max_replica_count\":3,"
                         "\"primary\":\"invalid address\",\"secondaries\":[\"127.0.0.1:6\","
                         "\"last_drops\":[],\"last_committed_decree\":157}";
-    dsn::json::string_tokenizer in(json4, 0, strlen(json4));
+    dsn::blob in(json4, 0, strlen(json4));
     bool result = dsn::json::json_forwarder<dsn::partition_configuration>::decode(in, pc);
     ASSERT_FALSE(result);
-    if (!result) {
-        std::cout << "invalid pos: " << json4 + in.tell() << std::endl;
-    }
 
     // 6 app_name with ':'
     const char *json6 = "{\"status\":\"app_status::AS_AVAILABLE\","
