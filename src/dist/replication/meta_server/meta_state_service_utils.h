@@ -57,10 +57,8 @@ struct meta_storage
 
     void create_node(std::string &&node, blob &&value, std::function<void()> &&cb);
 
-    /// Will fatal if node doesn't exists.
     void delete_node_recursively(std::string &&node, std::function<void()> &&cb);
 
-    /// Will fatal if node doesn't exists.
     void delete_node(std::string &&node, std::function<void()> &&cb);
 
     /// Will fatal if node doesn't exists.
