@@ -49,16 +49,6 @@ public:
     }
 };
 
-#define EXTERNAL_JSON_SERIALIZATION(type, ...)                                                     \
-    inline void json_encode(json::JsonWriter &output, const type &t)                               \
-    {                                                                                              \
-        JSON_ENCODE_ENTRIES(output, t, __VA_ARGS__);                                               \
-    }                                                                                              \
-    inline bool json_decode(const json::JsonObject &input, type &t)                                \
-    {                                                                                              \
-        JSON_DECODE_ENTRIES(input, t, __VA_ARGS__);                                                \
-    }
-
 struct struct_type1
 {
     bool b;
@@ -70,7 +60,7 @@ struct struct_type1
         return b == another.b && s == another.s && d == another.d;
     }
 };
-EXTERNAL_JSON_SERIALIZATION(struct_type1, b, s, d)
+NON_MEMBER_JSON_SERIALIZATION(struct_type1, b, s, d)
 
 struct struct_type2
 {
@@ -83,7 +73,7 @@ struct struct_type2
         return i8 == another.i8 && i16 == another.i16 && i32 == another.i32 && i64 == another.i64;
     }
 };
-EXTERNAL_JSON_SERIALIZATION(struct_type2, i8, i16, i32, i64)
+NON_MEMBER_JSON_SERIALIZATION(struct_type2, i8, i16, i32, i64)
 
 struct struct_type3
 {
@@ -96,7 +86,7 @@ struct struct_type3
         return u8 == another.u8 && u16 == another.u16 && u32 == another.u32 && u64 == another.u64;
     }
 };
-EXTERNAL_JSON_SERIALIZATION(struct_type3, u8, u16, u32, u64)
+NON_MEMBER_JSON_SERIALIZATION(struct_type3, u8, u16, u32, u64)
 
 struct nested_type
 {
@@ -113,7 +103,7 @@ struct nested_type
                t5_set == another.t5_set;
     }
 };
-EXTERNAL_JSON_SERIALIZATION(nested_type, str, t1, t2_vec, t3_map, t4_umap, t5_set)
+NON_MEMBER_JSON_SERIALIZATION(nested_type, str, t1, t2_vec, t3_map, t4_umap, t5_set)
 
 struct older_struct
 {

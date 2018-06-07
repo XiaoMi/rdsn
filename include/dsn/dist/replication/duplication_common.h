@@ -54,9 +54,9 @@ inline const char *duplication_status_to_string(const duplication_status::type &
     return it->second;
 }
 
-inline void json_encode(std::stringstream &out, const duplication_status::type &s)
+inline void json_encode(dsn::json::JsonWriter &out, const duplication_status::type &s)
 {
-    out << duplication_status_to_string(s);
+    json_encode(out, duplication_status_to_string(s));
 }
 
 inline bool json_decode(const dsn::json::JsonObject &in, duplication_status::type &s)
