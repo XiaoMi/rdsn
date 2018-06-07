@@ -3,7 +3,8 @@
 if [ -z "${REPORT_DIR}" ]; then
     REPORT_DIR="."
 fi
-cat gtest.filter | while read -r -a line; do
+
+while read -r -a line; do
     test_case=${line[0]}
     gtest_filter=${line[1]}
     output_xml="${REPORT_DIR}/dsn.core.tests_${test_case/.ini/.xml}"
@@ -25,7 +26,7 @@ cat gtest.filter | while read -r -a line; do
         fi
         exit 1
     fi
-done
+done <gtest.filter
 
 echo "============ done ============"
 
