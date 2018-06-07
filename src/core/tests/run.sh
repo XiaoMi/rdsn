@@ -23,7 +23,7 @@ cat gtest.filter | while read -r -a line; do
             echo "---- gdb ./dsn.core.tests core ----"
             gdb ./dsn.core.tests core -ex "thread apply all bt" -ex "set pagination 0" -batch
         fi
-        exit -1
+        exit 1
     fi
 done
 
