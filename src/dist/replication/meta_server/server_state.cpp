@@ -2719,7 +2719,7 @@ void server_state::clear_app_envs(const app_env_rpc &env_rpc)
         zauto_read_lock l(_lock);
         std::shared_ptr<app_state> app = get_app(app_name);
         if (app == nullptr) {
-            dwarn("del app envs failed with invalid app_name(%s)", app_name.c_str());
+            dwarn("clear app envs failed with invalid app_name(%s)", app_name.c_str());
             env_rpc.response().err = ERR_INVALID_PARAMETERS;
             env_rpc.response().hint_message = "invalid app name";
             return;
