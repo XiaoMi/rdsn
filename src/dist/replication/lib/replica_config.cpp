@@ -40,7 +40,7 @@
 #include "replica_stub.h"
 #include <dsn/dist/replication/replication_app_base.h>
 
-#include "dist/replication/lib/split/replica_split.h"
+//#include "dist/replication/lib/split/replica_split.h"
 
 namespace dsn {
 namespace replication {
@@ -958,7 +958,7 @@ void replica::on_config_sync(const app_info &info, const partition_configuration
     if (config.ballot < get_ballot())
         return;
 
-    _split->start_splitting_if_needed(info, config);
+//    _split->start_splitting_if_needed(info, config);
 
     update_app_envs(info.envs);
 

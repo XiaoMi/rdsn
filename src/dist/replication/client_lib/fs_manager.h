@@ -37,9 +37,7 @@
 #include <dsn/service_api_cpp.h>
 #include <dsn/cpp/zlocks.h>
 #include <dsn/cpp/perf_counter_wrapper.h>
-#include <dsn/utility/string_view.h>
 #include <memory>
-
 #include "dist/replication/client_lib/replication_common.h"
 
 namespace dsn {
@@ -71,39 +69,25 @@ public:
     void update_disk_stat();
 };
 
-/// fs_manager is used to track the disk position for all the allocated replicas.
 class fs_manager
 {
 public:
-    explicit fs_manager(bool for_test = false);
+    fs_manager(bool for_test);
+    ~fs_manager() {}
 
-    ~fs_manager() = default;
-
+    // this should be called before open/load any replicas
+    dsn::error_code initialize(const replication_options &opts);
     dsn::error_code initialize(const std::vector<std::string> &data_dirs,
                                const std::vector<std::string> &tags,
                                bool for_test);
 
     dsn::error_code get_disk_tag(const std::string &dir, /*out*/ std::string &tag);
-
-    /// Select a best suited location for the specified replica.
-    /// This function doesn't create directory.
     void allocate_dir(const dsn::gpid &pid,
                       const std::string &type,
                       /*out*/ std::string &dir);
-
-    /// Assign a directory for child replica alongside with parent replica.
-    std::string allocate_dir_alongside_with(gpid parent, gpid child, string_view type);
-
-    /// \returns: path of the specified replica. empty if not found.
-    /// Not thread-safe.
-    std::string find_replica(gpid pid, string_view type);
-
     void add_replica(const dsn::gpid &pid, const std::string &pid_dir);
-
     void remove_replica(const dsn::gpid &pid);
-
     bool for_each_dir_node(const std::function<bool(const dir_node &)> &func) const;
-
     void update_disk_stat();
 
 private:
@@ -120,6 +104,5 @@ private:
     perf_counter_wrapper _counter_available_min_ratio;
     perf_counter_wrapper _counter_available_max_ratio;
 };
-
-} // namespace replication
-} // namespace dsn
+}
+}

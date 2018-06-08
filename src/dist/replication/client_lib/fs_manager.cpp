@@ -24,9 +24,18 @@
  * THE SOFTWARE.
  */
 
-#include "fs_manager.h"
+/*
+ * Description:
+ *     fs_manager's implement: used to track the disk position for all the allocated replicas
+ *
+ * Revision history:
+ *     2017-08-08: sunweijie@xiaomi.com, first draft
+ */
 
+#include "fs_manager.h"
+#include <dsn/utility/utils.h>
 #include <dsn/utility/filesystem.h>
+#include <thread>
 
 namespace dsn {
 namespace replication {
@@ -191,19 +200,12 @@ void fs_manager::add_replica(const gpid &pid, const std::string &pid_dir)
     }
 }
 
-void fs_manager::allocate_dir(const gpid &pid,
-                              const std::string &type,
-                              /*out*/ std::string &dir)
+void fs_manager::allocate_dir(const gpid &pid, const std::string &type, /*out*/ std::string &dir)
 {
     char buffer[256];
     sprintf(buffer, "%d.%d.%s", pid.get_app_id(), pid.get_partition_index(), type.c_str());
 
     zauto_write_lock l(_lock);
-
-    dir = find_replica(pid, type);
-    if (!dir.empty()) {
-        return;
-    }
 
     dir_node *selected = nullptr;
 
@@ -241,47 +243,6 @@ void fs_manager::allocate_dir(const gpid &pid,
 
     selected->holding_replicas[pid.get_app_id()].emplace(pid);
     dir = utils::filesystem::path_combine(selected->full_dir, buffer);
-}
-
-std::string fs_manager::allocate_dir_alongside_with(gpid parent, gpid child, string_view type)
-{
-    char buffer[256];
-    sprintf(buffer, "%d.%d.%s", child.get_app_id(), child.get_partition_index(), type.data());
-
-    zauto_write_lock l(_lock);
-
-    std::string child_dir = find_replica(child, type);
-    dassert(child_dir.empty(), "directory for child [%s] is allocated already", child_dir.c_str());
-
-    dir_node *parent_dir = nullptr;
-    for (auto &n : _dir_nodes) {
-        if (n->has(parent)) {
-            parent_dir = n.get();
-            break;
-        }
-    }
-    dassert(parent_dir != nullptr,
-            "cannot find directory for parent replica [%d.%d]",
-            parent.get_app_id(),
-            parent.get_partition_index());
-    parent_dir->holding_replicas[child.get_app_id()].emplace(child);
-
-    return utils::filesystem::path_combine(parent_dir->full_dir, buffer);
-}
-
-std::string fs_manager::find_replica(gpid pid, string_view type, )
-{
-    std::string ret_dir;
-    for (auto &n : _dir_nodes) {
-        if (n->has(pid)) {
-            char buffer[256];
-            sprintf(buffer, "%d.%d.%s", pid.get_app_id(), pid.get_partition_index(), type.data());
-
-            std::string cur_dir = utils::filesystem::path_combine(n->full_dir, buffer);
-            ret_dir = cur_dir;
-        }
-    }
-    return ret_dir;
 }
 
 void fs_manager::remove_replica(const gpid &pid)
@@ -349,6 +310,5 @@ void fs_manager::update_disk_stat()
     _counter_available_min_ratio->set(available_min_ratio);
     _counter_available_max_ratio->set(available_max_ratio);
 }
-
-} // namespace replication
-} // namespace dsn
+}
+}
