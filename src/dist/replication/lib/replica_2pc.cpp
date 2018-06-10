@@ -573,7 +573,7 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
         // make sure this is before any later commit ops
         // because now commit ops may lead to new prepare ops
         // due to replication throttling
-        handle_remote_failure(st, node, resp.err);
+        handle_remote_failure(st, node, resp.err, "prepare");
 
         // note targetStatus and (curent) status may diff
         if (target_status == partition_status::PS_POTENTIAL_SECONDARY) {
