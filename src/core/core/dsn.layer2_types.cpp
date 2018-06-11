@@ -705,181 +705,208 @@ void app_info::__set_expire_second(const int64_t val) {
   this->expire_second = val;
 }
 
-uint32_t app_info::read(::apache::thrift::protocol::TProtocol* iprot) {
+void app_info::__set_create_second(const int64_t val) { this->create_second = val; }
 
-  apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
-  uint32_t xfer = 0;
-  std::string fname;
-  ::apache::thrift::protocol::TType ftype;
-  int16_t fid;
+void app_info::__set_drop_second(const int64_t val) { this->drop_second = val; }
 
-  xfer += iprot->readStructBegin(fname);
+uint32_t app_info::read(::apache::thrift::protocol::TProtocol *iprot)
+{
 
-  using ::apache::thrift::protocol::TProtocolException;
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
 
+    xfer += iprot->readStructBegin(fname);
 
-  while (true)
-  {
-    xfer += iprot->readFieldBegin(fname, ftype, fid);
-    if (ftype == ::apache::thrift::protocol::T_STOP) {
-      break;
-    }
-    switch (fid)
-    {
-      case 1:
-        if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast36;
-          xfer += iprot->readI32(ecast36);
-          this->status = (app_status::type)ecast36;
-          this->__isset.status = true;
-        } else {
-          xfer += iprot->skip(ftype);
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
         }
-        break;
-      case 2:
-        if (ftype == ::apache::thrift::protocol::T_STRING) {
-          xfer += iprot->readString(this->app_type);
-          this->__isset.app_type = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 3:
-        if (ftype == ::apache::thrift::protocol::T_STRING) {
-          xfer += iprot->readString(this->app_name);
-          this->__isset.app_name = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 4:
-        if (ftype == ::apache::thrift::protocol::T_I32) {
-          xfer += iprot->readI32(this->app_id);
-          this->__isset.app_id = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 5:
-        if (ftype == ::apache::thrift::protocol::T_I32) {
-          xfer += iprot->readI32(this->partition_count);
-          this->__isset.partition_count = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 6:
-        if (ftype == ::apache::thrift::protocol::T_MAP) {
-          {
-            this->envs.clear();
-            uint32_t _size37;
-            ::apache::thrift::protocol::TType _ktype38;
-            ::apache::thrift::protocol::TType _vtype39;
-            xfer += iprot->readMapBegin(_ktype38, _vtype39, _size37);
-            uint32_t _i41;
-            for (_i41 = 0; _i41 < _size37; ++_i41)
-            {
-              std::string _key42;
-              xfer += iprot->readString(_key42);
-              std::string& _val43 = this->envs[_key42];
-              xfer += iprot->readString(_val43);
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                int32_t ecast36;
+                xfer += iprot->readI32(ecast36);
+                this->status = (app_status::type)ecast36;
+                this->__isset.status = true;
+            } else {
+                xfer += iprot->skip(ftype);
             }
-            xfer += iprot->readMapEnd();
-          }
-          this->__isset.envs = true;
-        } else {
-          xfer += iprot->skip(ftype);
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->app_type);
+                this->__isset.app_type = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 3:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->app_name);
+                this->__isset.app_name = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 4:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                xfer += iprot->readI32(this->app_id);
+                this->__isset.app_id = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 5:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                xfer += iprot->readI32(this->partition_count);
+                this->__isset.partition_count = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 6:
+            if (ftype == ::apache::thrift::protocol::T_MAP) {
+                {
+                    this->envs.clear();
+                    uint32_t _size37;
+                    ::apache::thrift::protocol::TType _ktype38;
+                    ::apache::thrift::protocol::TType _vtype39;
+                    xfer += iprot->readMapBegin(_ktype38, _vtype39, _size37);
+                    uint32_t _i41;
+                    for (_i41 = 0; _i41 < _size37; ++_i41) {
+                        std::string _key42;
+                        xfer += iprot->readString(_key42);
+                        std::string &_val43 = this->envs[_key42];
+                        xfer += iprot->readString(_val43);
+                    }
+                    xfer += iprot->readMapEnd();
+                }
+                this->__isset.envs = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 7:
+            if (ftype == ::apache::thrift::protocol::T_BOOL) {
+                xfer += iprot->readBool(this->is_stateful);
+                this->__isset.is_stateful = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 8:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                xfer += iprot->readI32(this->max_replica_count);
+                this->__isset.max_replica_count = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 9:
+            if (ftype == ::apache::thrift::protocol::T_I64) {
+                xfer += iprot->readI64(this->expire_second);
+                this->__isset.expire_second = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 10:
+            if (ftype == ::apache::thrift::protocol::T_I64) {
+                xfer += iprot->readI64(this->create_second);
+                this->__isset.create_second = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 11:
+            if (ftype == ::apache::thrift::protocol::T_I64) {
+                xfer += iprot->readI64(this->drop_second);
+                this->__isset.drop_second = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
         }
-        break;
-      case 7:
-        if (ftype == ::apache::thrift::protocol::T_BOOL) {
-          xfer += iprot->readBool(this->is_stateful);
-          this->__isset.is_stateful = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 8:
-        if (ftype == ::apache::thrift::protocol::T_I32) {
-          xfer += iprot->readI32(this->max_replica_count);
-          this->__isset.max_replica_count = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 9:
-        if (ftype == ::apache::thrift::protocol::T_I64) {
-          xfer += iprot->readI64(this->expire_second);
-          this->__isset.expire_second = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      default:
-        xfer += iprot->skip(ftype);
-        break;
+        xfer += iprot->readFieldEnd();
     }
-    xfer += iprot->readFieldEnd();
-  }
 
-  xfer += iprot->readStructEnd();
+    xfer += iprot->readStructEnd();
 
-  return xfer;
+    return xfer;
 }
 
-uint32_t app_info::write(::apache::thrift::protocol::TProtocol* oprot) const {
-  uint32_t xfer = 0;
-  apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
-  xfer += oprot->writeStructBegin("app_info");
+uint32_t app_info::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("app_info");
 
-  xfer += oprot->writeFieldBegin("status", ::apache::thrift::protocol::T_I32, 1);
-  xfer += oprot->writeI32((int32_t)this->status);
-  xfer += oprot->writeFieldEnd();
+    xfer += oprot->writeFieldBegin("status", ::apache::thrift::protocol::T_I32, 1);
+    xfer += oprot->writeI32((int32_t)this->status);
+    xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("app_type", ::apache::thrift::protocol::T_STRING, 2);
-  xfer += oprot->writeString(this->app_type);
-  xfer += oprot->writeFieldEnd();
+    xfer += oprot->writeFieldBegin("app_type", ::apache::thrift::protocol::T_STRING, 2);
+    xfer += oprot->writeString(this->app_type);
+    xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("app_name", ::apache::thrift::protocol::T_STRING, 3);
-  xfer += oprot->writeString(this->app_name);
-  xfer += oprot->writeFieldEnd();
+    xfer += oprot->writeFieldBegin("app_name", ::apache::thrift::protocol::T_STRING, 3);
+    xfer += oprot->writeString(this->app_name);
+    xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("app_id", ::apache::thrift::protocol::T_I32, 4);
-  xfer += oprot->writeI32(this->app_id);
-  xfer += oprot->writeFieldEnd();
+    xfer += oprot->writeFieldBegin("app_id", ::apache::thrift::protocol::T_I32, 4);
+    xfer += oprot->writeI32(this->app_id);
+    xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("partition_count", ::apache::thrift::protocol::T_I32, 5);
-  xfer += oprot->writeI32(this->partition_count);
-  xfer += oprot->writeFieldEnd();
+    xfer += oprot->writeFieldBegin("partition_count", ::apache::thrift::protocol::T_I32, 5);
+    xfer += oprot->writeI32(this->partition_count);
+    xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("envs", ::apache::thrift::protocol::T_MAP, 6);
-  {
-    xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->envs.size()));
-    std::map<std::string, std::string> ::const_iterator _iter44;
-    for (_iter44 = this->envs.begin(); _iter44 != this->envs.end(); ++_iter44)
+    xfer += oprot->writeFieldBegin("envs", ::apache::thrift::protocol::T_MAP, 6);
     {
-      xfer += oprot->writeString(_iter44->first);
-      xfer += oprot->writeString(_iter44->second);
+        xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING,
+                                     ::apache::thrift::protocol::T_STRING,
+                                     static_cast<uint32_t>(this->envs.size()));
+        std::map<std::string, std::string>::const_iterator _iter44;
+        for (_iter44 = this->envs.begin(); _iter44 != this->envs.end(); ++_iter44) {
+            xfer += oprot->writeString(_iter44->first);
+            xfer += oprot->writeString(_iter44->second);
+        }
+        xfer += oprot->writeMapEnd();
     }
-    xfer += oprot->writeMapEnd();
-  }
-  xfer += oprot->writeFieldEnd();
+    xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("is_stateful", ::apache::thrift::protocol::T_BOOL, 7);
-  xfer += oprot->writeBool(this->is_stateful);
-  xfer += oprot->writeFieldEnd();
+    xfer += oprot->writeFieldBegin("is_stateful", ::apache::thrift::protocol::T_BOOL, 7);
+    xfer += oprot->writeBool(this->is_stateful);
+    xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("max_replica_count", ::apache::thrift::protocol::T_I32, 8);
-  xfer += oprot->writeI32(this->max_replica_count);
-  xfer += oprot->writeFieldEnd();
+    xfer += oprot->writeFieldBegin("max_replica_count", ::apache::thrift::protocol::T_I32, 8);
+    xfer += oprot->writeI32(this->max_replica_count);
+    xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("expire_second", ::apache::thrift::protocol::T_I64, 9);
-  xfer += oprot->writeI64(this->expire_second);
-  xfer += oprot->writeFieldEnd();
+    xfer += oprot->writeFieldBegin("expire_second", ::apache::thrift::protocol::T_I64, 9);
+    xfer += oprot->writeI64(this->expire_second);
+    xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldStop();
-  xfer += oprot->writeStructEnd();
-  return xfer;
+    xfer += oprot->writeFieldBegin("create_second", ::apache::thrift::protocol::T_I64, 10);
+    xfer += oprot->writeI64(this->create_second);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("drop_second", ::apache::thrift::protocol::T_I64, 11);
+    xfer += oprot->writeI64(this->drop_second);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
 }
 
 void swap(app_info &a, app_info &b) {
@@ -893,6 +920,8 @@ void swap(app_info &a, app_info &b) {
   swap(a.is_stateful, b.is_stateful);
   swap(a.max_replica_count, b.max_replica_count);
   swap(a.expire_second, b.expire_second);
+  swap(a.create_second, b.create_second);
+  swap(a.drop_second, b.drop_second);
   swap(a.__isset, b.__isset);
 }
 
@@ -906,45 +935,56 @@ app_info::app_info(const app_info& other45) {
   is_stateful = other45.is_stateful;
   max_replica_count = other45.max_replica_count;
   expire_second = other45.expire_second;
+  create_second = other45.create_second;
+  drop_second = other45.drop_second;
   __isset = other45.__isset;
 }
-app_info::app_info( app_info&& other46) {
-  status = std::move(other46.status);
-  app_type = std::move(other46.app_type);
-  app_name = std::move(other46.app_name);
-  app_id = std::move(other46.app_id);
-  partition_count = std::move(other46.partition_count);
-  envs = std::move(other46.envs);
-  is_stateful = std::move(other46.is_stateful);
-  max_replica_count = std::move(other46.max_replica_count);
-  expire_second = std::move(other46.expire_second);
-  __isset = std::move(other46.__isset);
+app_info::app_info(app_info &&other46)
+{
+    status = std::move(other46.status);
+    app_type = std::move(other46.app_type);
+    app_name = std::move(other46.app_name);
+    app_id = std::move(other46.app_id);
+    partition_count = std::move(other46.partition_count);
+    envs = std::move(other46.envs);
+    is_stateful = std::move(other46.is_stateful);
+    max_replica_count = std::move(other46.max_replica_count);
+    expire_second = std::move(other46.expire_second);
+    create_second = std::move(other46.create_second);
+    drop_second = std::move(other46.drop_second);
+    __isset = std::move(other46.__isset);
 }
-app_info& app_info::operator=(const app_info& other47) {
-  status = other47.status;
-  app_type = other47.app_type;
-  app_name = other47.app_name;
-  app_id = other47.app_id;
-  partition_count = other47.partition_count;
-  envs = other47.envs;
-  is_stateful = other47.is_stateful;
-  max_replica_count = other47.max_replica_count;
-  expire_second = other47.expire_second;
-  __isset = other47.__isset;
-  return *this;
+app_info &app_info::operator=(const app_info &other47)
+{
+    status = other47.status;
+    app_type = other47.app_type;
+    app_name = other47.app_name;
+    app_id = other47.app_id;
+    partition_count = other47.partition_count;
+    envs = other47.envs;
+    is_stateful = other47.is_stateful;
+    max_replica_count = other47.max_replica_count;
+    expire_second = other47.expire_second;
+    create_second = other47.create_second;
+    drop_second = other47.drop_second;
+    __isset = other47.__isset;
+    return *this;
 }
-app_info& app_info::operator=(app_info&& other48) {
-  status = std::move(other48.status);
-  app_type = std::move(other48.app_type);
-  app_name = std::move(other48.app_name);
-  app_id = std::move(other48.app_id);
-  partition_count = std::move(other48.partition_count);
-  envs = std::move(other48.envs);
-  is_stateful = std::move(other48.is_stateful);
-  max_replica_count = std::move(other48.max_replica_count);
-  expire_second = std::move(other48.expire_second);
-  __isset = std::move(other48.__isset);
-  return *this;
+app_info &app_info::operator=(app_info &&other48)
+{
+    status = std::move(other48.status);
+    app_type = std::move(other48.app_type);
+    app_name = std::move(other48.app_name);
+    app_id = std::move(other48.app_id);
+    partition_count = std::move(other48.partition_count);
+    envs = std::move(other48.envs);
+    is_stateful = std::move(other48.is_stateful);
+    max_replica_count = std::move(other48.max_replica_count);
+    expire_second = std::move(other48.expire_second);
+    create_second = std::move(other48.create_second);
+    drop_second = std::move(other48.drop_second);
+    __isset = std::move(other48.__isset);
+    return *this;
 }
 void app_info::printTo(std::ostream& out) const {
   using ::apache::thrift::to_string;
@@ -952,12 +992,22 @@ void app_info::printTo(std::ostream& out) const {
   out << "status=" << to_string(status);
   out << ", " << "app_type=" << to_string(app_type);
   out << ", " << "app_name=" << to_string(app_name);
-  out << ", " << "app_id=" << to_string(app_id);
-  out << ", " << "partition_count=" << to_string(partition_count);
-  out << ", " << "envs=" << to_string(envs);
-  out << ", " << "is_stateful=" << to_string(is_stateful);
-  out << ", " << "max_replica_count=" << to_string(max_replica_count);
-  out << ", " << "expire_second=" << to_string(expire_second);
+  out << ", "
+      << "app_id=" << to_string(app_id);
+  out << ", "
+      << "partition_count=" << to_string(partition_count);
+  out << ", "
+      << "envs=" << to_string(envs);
+  out << ", "
+      << "is_stateful=" << to_string(is_stateful);
+  out << ", "
+      << "max_replica_count=" << to_string(max_replica_count);
+  out << ", "
+      << "expire_second=" << to_string(expire_second);
+  out << ", "
+      << "create_second=" << to_string(create_second);
+  out << ", "
+      << "drop_second=" << to_string(drop_second);
   out << ")";
 }
 
