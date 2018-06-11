@@ -269,6 +269,9 @@ extern DSN_API dsn::rpc_address dsn_primary_address();
      cluster_id = 3
      arguments = 10.231.58.247:54601, 10.231.58.247:54602, 10.231.58.247:54603
  The returned cluster id of url "dsn://slave-cluster" is 3.
+
+ \return -2 if failed to resolve the url.
+ \return -1 if the url doesn't have a valid cluster_id.
  */
 extern DSN_API int dsn_uri_to_cluster_id(const char *url);
 
