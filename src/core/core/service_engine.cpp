@@ -75,17 +75,6 @@ error_code service_node::init_io_engine()
     auto &spec = service_engine::fast_instance().spec();
     error_code err = ERR_OK;
 
-    // init timer service
-    _node_io.tsvc = factory_store<timer_service>::create(
-        service_engine::fast_instance().spec().timer_factory_name.c_str(),
-        PROVIDER_TYPE_MAIN,
-        this,
-        nullptr);
-    for (auto &s : service_engine::fast_instance().spec().timer_aspects) {
-        _node_io.tsvc = factory_store<timer_service>::create(
-            s.c_str(), PROVIDER_TYPE_ASPECT, this, _node_io.tsvc);
-    }
-
     // init disk engine
     _node_io.disk = new disk_engine(this);
     aio_provider *aio = factory_store<aio_provider>::create(
@@ -118,9 +107,6 @@ error_code service_node::start_io_engine_in_main()
 {
     auto &spec = service_engine::fast_instance().spec();
     error_code err = ERR_OK;
-
-    // start timer service
-    _node_io.tsvc->start();
 
     // start disk engine
     _node_io.disk->start(_node_io.aio);

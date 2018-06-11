@@ -69,7 +69,6 @@ public:
         rpc_engine *rpc;
         disk_engine *disk;
         nfs_node *nfs;
-        timer_service *tsvc;
         aio_provider *aio;
 
         io_engine() { memset((void *)this, 0, sizeof(io_engine)); }
@@ -81,7 +80,6 @@ public:
     rpc_engine *rpc() const { return _node_io.rpc; }
     disk_engine *disk() const { return _node_io.disk; }
     nfs_node *nfs() const { return _node_io.nfs; }
-    timer_service *tsvc() const { return _node_io.tsvc; }
 
     task_engine *computation() const { return _computation; }
     void get_runtime_info(const std::string &indent,
