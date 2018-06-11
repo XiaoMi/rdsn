@@ -262,6 +262,17 @@ rpc message read/write
 extern DSN_API dsn::rpc_address dsn_primary_address();
 
 /*!
+ This function returns the cluster id of url specified in the url-resolver section
+ of your configuration, for example:
+     [uri-resolver.dsn://slave-cluster]
+     factory = partition_resolver_simple
+     cluster_id = 3
+     arguments = 10.231.58.247:54601, 10.231.58.247:54602, 10.231.58.247:54603
+ The returned cluster id of url "dsn://slave-cluster" is 3.
+ */
+extern DSN_API int dsn_uri_to_cluster_id(const char *url);
+
+/*!
  create a rpc request message
 
  \param rpc_code              task code for this request

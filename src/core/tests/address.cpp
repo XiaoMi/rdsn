@@ -36,6 +36,7 @@
 #include <dsn/tool-api/rpc_address.h>
 #include <dsn/tool-api/group_address.h>
 #include <dsn/tool-api/uri_address.h>
+#include <dsn/c/api_layer1.h>
 #include <gtest/gtest.h>
 
 using namespace ::dsn;
@@ -215,4 +216,14 @@ TEST(core, rpc_group_address)
     ASSERT_FALSE(g->contains(addr2));
     ASSERT_EQ(0u, g->members().size());
     ASSERT_EQ(invalid_addr, g->leader());
+}
+
+TEST(core, uri_to_cluster_id)
+{
+    ASSERT_EQ(dsn_uri_to_cluster_id("dsn://duplication_cluster"), 3);
+    ASSERT_EQ(dsn_uri_to_cluster_id("duplication_cluster"), -2);
+    ASSERT_EQ(dsn_uri_to_cluster_id("dsn://unknown_cluster"), -2);
+    ASSERT_EQ(dsn_uri_to_cluster_id("http://localhost:8080"), -1);
+    ASSERT_EQ(dsn_uri_to_cluster_id(" http://localhost:8080"), -2);
+    ASSERT_EQ(dsn_uri_to_cluster_id(""), -2);
 }

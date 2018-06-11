@@ -51,6 +51,7 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/transient_memory.h>
 #include <dsn/tool-api/command_manager.h>
+#include <dsn/tool-api/uri_address.h>
 #include "service_engine.h"
 #include "rpc_engine.h"
 #include "disk_engine.h"
@@ -264,6 +265,11 @@ DSN_API bool dsn_semaphore_wait_timeout(dsn_handle_t s, int timeout_milliseconds
 DSN_API dsn::rpc_address dsn_primary_address()
 {
     return ::dsn::task::get_current_rpc()->primary_address();
+}
+
+DSN_API int dsn_uri_to_cluster_id(const char *url)
+{
+    return ::dsn::task::get_current_rpc()->uri_resolver_mgr()->get_cluster_id(url);
 }
 
 DSN_API bool dsn_rpc_register_handler(dsn::task_code code,

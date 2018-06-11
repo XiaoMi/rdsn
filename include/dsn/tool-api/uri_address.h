@@ -36,6 +36,7 @@
 #pragma once
 
 #include <algorithm>
+#include <dsn/utility/errors.h>
 #include <dsn/utility/config_api.h>
 #include <dsn/utility/synchronize.h>
 #include <dsn/tool-api/rpc_address.h>
@@ -55,6 +56,17 @@ public:
      *          protocol : // resolver-address / app-path
      */
     rpc_uri_address(const char *uri);
+
+    /**
+     * Creates an `rpc_uri_address` from `uri`.
+     * This function returns error when uri resolved failed rather than aborts
+     * the program as constructor `rpc_uri_address(const char *uri)` does.
+     *
+     * \param uri URI of the document, it is composed with three parts:
+     *            dsn://meta-server:23356/app1
+     *            protocol : // resolver-address / app-path
+     */
+    static error_with<rpc_uri_address> resolve(const char *uri);
 
     /**
      * Copy constructor.
@@ -77,6 +89,9 @@ public:
     const char *uri() const { return _uri.c_str(); }
 
     dist::partition_resolver_ptr get_resolver() { return _resolver; }
+
+private:
+    rpc_uri_address() = default;
 
 private:
     ::dsn::dist::partition_resolver_ptr _resolver;
@@ -124,13 +139,25 @@ public:
 
     std::shared_ptr<uri_resolver> get(rpc_uri_address *uri) const;
 
+    // Returns the uri_resolver for the given `uri` as `uri_resolver_manager::get` does,
+    // but it doesn't abort, instead it returns an error when resolved as failed.
+    error_with<std::shared_ptr<uri_resolver>> try_get(rpc_uri_address *uri);
+
     std::map<std::string, std::shared_ptr<uri_resolver>> get_all() const;
+
+    // return -2 if the uri is failed to resolve.
+    // return -1 if the uri doesn't have a valid cluster_id.
+    int get_cluster_id(const char *uri) const;
 
 private:
     void setup_resolvers();
 
     typedef std::unordered_map<std::string, std::shared_ptr<uri_resolver>> resolvers;
     resolvers _resolvers;
+
+    // address => cluster_id
+    std::map<std::string, int> _cluster_id_map;
+
     mutable utils::rw_lock_nr _lock;
 };
 
