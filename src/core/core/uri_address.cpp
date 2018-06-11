@@ -133,10 +133,10 @@ std::map<std::string, std::shared_ptr<uri_resolver>> uri_resolver_manager::get_a
     return result;
 }
 
-error_with<std::shared_ptr<uri_resolver>> uri_resolver_manager::try_get(rpc_uri_address *uri)
+error_with<std::shared_ptr<uri_resolver>> uri_resolver_manager::try_get(const rpc_uri_address &uri)
 {
     std::shared_ptr<uri_resolver> ret = nullptr;
-    auto pr = uri->get_uri_components();
+    std::pair<std::string, std::string> pr = uri.get_uri_components();
     if (pr.first.length() == 0) {
         return error_s::make(ERR_INVALID_PARAMETERS, "uri is empty");
     }
@@ -149,8 +149,7 @@ error_with<std::shared_ptr<uri_resolver>> uri_resolver_manager::try_get(rpc_uri_
     }
 
     if (ret == nullptr) {
-        return error_s::make(ERR_INVALID_PARAMETERS,
-                             std::string("resolver for uri is not configured"));
+        return error_s::make(ERR_INVALID_PARAMETERS, "resolver for uri is not configured");
     }
 
     return ret;
@@ -181,7 +180,7 @@ rpc_uri_address &rpc_uri_address::operator=(const rpc_uri_address &other)
 
 rpc_uri_address::~rpc_uri_address() { _resolver = nullptr; }
 
-std::pair<std::string, std::string> rpc_uri_address::get_uri_components()
+std::pair<std::string, std::string> rpc_uri_address::get_uri_components() const
 {
     auto it = _uri.find("://");
     if (it == std::string::npos)
@@ -200,7 +199,7 @@ std::pair<std::string, std::string> rpc_uri_address::get_uri_components()
     rpc_uri_address addr;
     addr._uri = uri;
 
-    auto result = task::get_current_rpc()->uri_resolver_mgr()->try_get(&addr);
+    auto result = task::get_current_rpc()->uri_resolver_mgr()->try_get(addr);
     if (!result.is_ok()) {
         return result.get_error();
     }
@@ -279,18 +278,18 @@ int uri_resolver_manager::get_cluster_id(const char *uri) const
 {
     dassert(uri != nullptr, "");
 
-    auto result = rpc_uri_address::resolve(uri);
+    error_with<rpc_uri_address> result = rpc_uri_address::resolve(uri);
     if (!result.is_ok()) {
         derror("failed to resolve uri(%s): %s", uri, result.get_error().description().c_str());
         return -2;
     }
 
-    std::string addr = result.get_value().get_uri_components().first;
-    dassert(!addr.empty(), "");
+    std::string cluster_name = result.get_value().get_uri_components().first;
+    dassert(!cluster_name.empty(), "");
 
     {
         utils::auto_read_lock l(_lock);
-        auto it = _cluster_id_map.find(addr);
+        auto it = _cluster_id_map.find(cluster_name);
         if (it != _cluster_id_map.end()) {
             return it->second;
         }

@@ -84,7 +84,7 @@ public:
     *
     * \return The resolver address
     */
-    std::pair<std::string, std::string> get_uri_components();
+    std::pair<std::string, std::string> get_uri_components() const;
 
     const char *uri() const { return _uri.c_str(); }
 
@@ -139,9 +139,9 @@ public:
 
     std::shared_ptr<uri_resolver> get(rpc_uri_address *uri) const;
 
-    // Returns the uri_resolver for the given `uri` as `uri_resolver_manager::get` does,
+    // Returns the uri_resolver for the given `uri` like what `uri_resolver_manager::get` does,
     // but it doesn't abort, instead it returns an error when resolved as failed.
-    error_with<std::shared_ptr<uri_resolver>> try_get(rpc_uri_address *uri);
+    error_with<std::shared_ptr<uri_resolver>> try_get(const rpc_uri_address &uri);
 
     std::map<std::string, std::shared_ptr<uri_resolver>> get_all() const;
 
@@ -155,7 +155,7 @@ private:
     typedef std::unordered_map<std::string, std::shared_ptr<uri_resolver>> resolvers;
     resolvers _resolvers;
 
-    // address => cluster_id
+    // cluster_name => cluster_id (c4tst-tune => 2, eg.)
     std::map<std::string, int> _cluster_id_map;
 
     mutable utils::rw_lock_nr _lock;
