@@ -587,9 +587,20 @@ dsn::error_code server_state::sync_apps_from_remote_storage()
                             process_one_partition(app);
                     }
                 } else if (ec == ERR_OBJECT_NOT_FOUND) {
-                    dwarn("partition node %s not exist on remote storage, may half create before",
-                          partition_path.c_str());
-                    init_app_partition_node(app, partition_id, nullptr);
+                    int init_partition_count = app->init_partition_count > 0 ? app->init_partition_count : app->partition_count;
+                    if(partition_id < init_partition_count){
+                        dwarn("partition node %s not exist on remote storage, may half create before",
+                              partition_path.c_str());
+                        init_app_partition_node(app, partition_id, nullptr);
+                    } else {
+                        dwarn("partition node %s not exist on remote storage, may half split before",
+                              partition_path.c_str());
+
+                        zauto_write_lock l(_lock);
+                        app->partitions[partition_id].ballot = invalid_ballot;
+                        app->partitions[partition_id].pid = gpid(app->app_id, partition_id);
+                        process_one_partition(app);
+                    }
                 } else {
                     derror("get partition node failed, reason(%s)", ec.to_string());
                     err = ec;

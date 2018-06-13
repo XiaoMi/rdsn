@@ -705,6 +705,10 @@ void app_info::__set_expire_second(const int64_t val) {
   this->expire_second = val;
 }
 
+void app_info::__set_init_partition_count(const int32_t val) {
+  this->init_partition_count = val;
+}
+
 uint32_t app_info::read(::apache::thrift::protocol::TProtocol* iprot) {
 
   apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
@@ -815,6 +819,14 @@ uint32_t app_info::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 10:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->init_partition_count);
+          this->__isset.init_partition_count = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -877,6 +889,10 @@ uint32_t app_info::write(::apache::thrift::protocol::TProtocol* oprot) const {
   xfer += oprot->writeI64(this->expire_second);
   xfer += oprot->writeFieldEnd();
 
+  xfer += oprot->writeFieldBegin("init_partition_count", ::apache::thrift::protocol::T_I32, 10);
+  xfer += oprot->writeI32(this->init_partition_count);
+  xfer += oprot->writeFieldEnd();
+
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -893,6 +909,7 @@ void swap(app_info &a, app_info &b) {
   swap(a.is_stateful, b.is_stateful);
   swap(a.max_replica_count, b.max_replica_count);
   swap(a.expire_second, b.expire_second);
+  swap(a.init_partition_count, b.init_partition_count);
   swap(a.__isset, b.__isset);
 }
 
@@ -906,6 +923,7 @@ app_info::app_info(const app_info& other45) {
   is_stateful = other45.is_stateful;
   max_replica_count = other45.max_replica_count;
   expire_second = other45.expire_second;
+  init_partition_count = other45.init_partition_count;
   __isset = other45.__isset;
 }
 app_info::app_info( app_info&& other46) {
@@ -918,6 +936,7 @@ app_info::app_info( app_info&& other46) {
   is_stateful = std::move(other46.is_stateful);
   max_replica_count = std::move(other46.max_replica_count);
   expire_second = std::move(other46.expire_second);
+  init_partition_count = std::move(other46.init_partition_count);
   __isset = std::move(other46.__isset);
 }
 app_info& app_info::operator=(const app_info& other47) {
@@ -930,6 +949,7 @@ app_info& app_info::operator=(const app_info& other47) {
   is_stateful = other47.is_stateful;
   max_replica_count = other47.max_replica_count;
   expire_second = other47.expire_second;
+  init_partition_count = other47.init_partition_count;
   __isset = other47.__isset;
   return *this;
 }
@@ -943,6 +963,7 @@ app_info& app_info::operator=(app_info&& other48) {
   is_stateful = std::move(other48.is_stateful);
   max_replica_count = std::move(other48.max_replica_count);
   expire_second = std::move(other48.expire_second);
+  init_partition_count = std::move(other48.init_partition_count);
   __isset = std::move(other48.__isset);
   return *this;
 }
@@ -958,6 +979,7 @@ void app_info::printTo(std::ostream& out) const {
   out << ", " << "is_stateful=" << to_string(is_stateful);
   out << ", " << "max_replica_count=" << to_string(max_replica_count);
   out << ", " << "expire_second=" << to_string(expire_second);
+  out << ", " << "init_partition_count=" << to_string(init_partition_count);
   out << ")";
 }
 

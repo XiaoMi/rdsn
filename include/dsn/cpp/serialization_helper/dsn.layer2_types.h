@@ -260,7 +260,7 @@ inline std::ostream& operator<<(std::ostream& out, const configuration_query_by_
 }
 
 typedef struct _app_info__isset {
-  _app_info__isset() : status(true), app_type(false), app_name(false), app_id(false), partition_count(false), envs(false), is_stateful(false), max_replica_count(false), expire_second(false) {}
+  _app_info__isset() : status(true), app_type(false), app_name(false), app_id(false), partition_count(false), envs(false), is_stateful(false), max_replica_count(false), expire_second(false), init_partition_count(true) {}
   bool status :1;
   bool app_type :1;
   bool app_name :1;
@@ -270,6 +270,7 @@ typedef struct _app_info__isset {
   bool is_stateful :1;
   bool max_replica_count :1;
   bool expire_second :1;
+  bool init_partition_count :1;
 } _app_info__isset;
 
 class app_info {
@@ -279,7 +280,7 @@ class app_info {
   app_info(app_info&&);
   app_info& operator=(const app_info&);
   app_info& operator=(app_info&&);
-  app_info() : status((app_status::type)0), app_type(), app_name(), app_id(0), partition_count(0), is_stateful(0), max_replica_count(0), expire_second(0) {
+  app_info() : status((app_status::type)0), app_type(), app_name(), app_id(0), partition_count(0), is_stateful(0), max_replica_count(0), expire_second(0), init_partition_count(-1) {
     status = (app_status::type)0;
 
   }
@@ -294,6 +295,7 @@ class app_info {
   bool is_stateful;
   int32_t max_replica_count;
   int64_t expire_second;
+  int32_t init_partition_count;
 
   _app_info__isset __isset;
 
@@ -315,6 +317,8 @@ class app_info {
 
   void __set_expire_second(const int64_t val);
 
+  void __set_init_partition_count(const int32_t val);
+
   bool operator == (const app_info & rhs) const
   {
     if (!(status == rhs.status))
@@ -334,6 +338,8 @@ class app_info {
     if (!(max_replica_count == rhs.max_replica_count))
       return false;
     if (!(expire_second == rhs.expire_second))
+      return false;
+    if (!(init_partition_count == rhs.init_partition_count))
       return false;
     return true;
   }

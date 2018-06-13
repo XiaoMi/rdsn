@@ -1453,7 +1453,17 @@ dsn::error_code replication_ddl_client::get_app_envs(const std::string &app_name
 error_code replication_ddl_client::app_partition_split(const std::string &app_name,
                                                        int new_partition_count)
 {
-    if (app_name.empty() || new_partition_count == 0 || new_partition_count > 4096) {
+    if(new_partition_count < 1){
+        fmt::print("Failed to split partition for app {}, new partition count should >= 1\n",
+                   app_name);
+        return ERR_INVALID_PARAMETERS;
+    }
+
+    if (app_name.empty() ||
+        !std::all_of(app_name.cbegin(),
+                     app_name.cend(),
+                     (bool (*)(int))replication_ddl_client::valid_app_char)) {
+        fmt::print("Failed to partition split, app_name {} is invalid\n", app_name);
         return ERR_INVALID_PARAMETERS;
     }
 

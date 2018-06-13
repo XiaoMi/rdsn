@@ -719,7 +719,7 @@ struct app_partition_split_response
     // - ERR_BUSY:
     //   if there's ongoing split already.
     1:dsn.error_code         err;
-    2:i32                    appid;
+    2:i32                    app_id;
     3:i32                    partition_count;
 }
 

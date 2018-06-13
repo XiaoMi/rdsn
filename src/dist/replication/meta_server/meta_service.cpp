@@ -47,7 +47,7 @@
 #include "meta_server_failure_detector.h"
 #include "server_load_balancer.h"
 #include "meta_state_service_utils.h"
-#include "split/meta_split_service.h"
+#include "meta_split_service.h"
 
 namespace dsn {
 namespace replication {
@@ -269,6 +269,8 @@ error_code meta_service::start()
 
     _state->register_cli_commands();
 
+    _split_svc = std::make_unique<meta_split_service>(this);
+
     start_service();
 
     ddebug("start meta_service succeed");
@@ -315,6 +317,10 @@ void meta_service::register_rpc_handlers()
                          &meta_service::on_query_restore_status);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_UPDATE_APP_ENV, "update_app_env(set/del/clear)", &meta_service::update_app_env);
+    register_rpc_handler_with_rpc_holder(
+                RPC_CM_APP_PARTITION_SPLIT,
+                "app_partition_split",
+                &meta_service::on_app_partition_split);
 }
 
 int meta_service::check_leader(dsn_message_t req)

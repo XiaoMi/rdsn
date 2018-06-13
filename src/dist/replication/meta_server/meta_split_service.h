@@ -30,30 +30,19 @@
 namespace dsn {
 namespace replication {
 
-/// Handles split-related requests on meta server.
-class meta_split_service
-{
+class meta_split_service{
 public:
-    explicit meta_split_service(meta_service *svc, server_state *state)
-        : _meta_svc(svc), _state(state)
-    {
-    }
+    explicit meta_split_service(meta_service *meta);
 
-    /// 1. validation of rpc request
-    /// 2. record new partition configuration into meta store
     void app_partition_split(app_partition_split_rpc rpc);
-
-    /// ========== Implementation ========== ///
-
     void do_app_partition_split(std::shared_ptr<app_state> app, app_partition_split_rpc rpc);
 
 private:
-    // get lock to protect access of tables
-    zrwlock_nr &app_lock() const { return _state->_lock; }
+    meta_service* _meta_svc;
+    server_state* _state;
 
-private:
-    meta_service *_meta_svc;
-    server_state *_state;
+    zrwlock_nr &app_lock() const { return _state->_lock; }
+//    mutable zrwlock_nr _lock;
 };
 
 } // namespace replication
