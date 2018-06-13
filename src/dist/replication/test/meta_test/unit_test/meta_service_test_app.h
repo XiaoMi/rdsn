@@ -95,6 +95,9 @@ public:
     // test server_state set_app_envs/del_app_envs/clear_app_envs
     void app_envs_basic_test();
 
+    // test app_partition_split
+    void app_partition_split_test();
+
     // test for bug found
     void adjust_dropped_size();
 
