@@ -27,6 +27,7 @@
 #pragma once
 
 #include <climits>
+#include <cmath>
 
 #include <dsn/utility/string_view.h>
 
@@ -126,4 +127,30 @@ inline bool buf2bool(string_view buf, bool &result, bool ignore_case = true)
     return false;
 }
 
+inline bool buf2double(string_view buf, double &result)
+{
+    if (buf.empty()) {
+        return false;
+    }
+
+    const int saved_errno = errno;
+    errno = 0;
+    char *p = nullptr;
+    double v = std::strtod(buf.data(), &p);
+
+    if (p - buf.data() != buf.length()) {
+        return false;
+    }
+
+    if (v == HUGE_VAL || v == -HUGE_VAL || std::isnan(v) || errno != 0) {
+        return false;
+    }
+
+    if (errno == 0) {
+        errno = saved_errno;
+    }
+
+    result = v;
+    return true;
+}
 } // namespace dsn
