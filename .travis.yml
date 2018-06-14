@@ -5,7 +5,7 @@ language: cpp
 
 os: linux
 
-compiler:
+compiler: 
     - gcc
 
 cache:
