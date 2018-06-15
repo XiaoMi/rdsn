@@ -404,6 +404,7 @@ function(dsn_setup_compiler_flags)
         if(CCACHE_FOUND)
             set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
             set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+            add_compile_options(-Qunused-arguments)
             message("use ccache to speed up compilation")
         endif(CCACHE_FOUND)
 
