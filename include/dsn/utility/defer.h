@@ -26,6 +26,31 @@
 
 namespace dsn {
 
+// `defer` is an useful util to implement RAII in golang, much alike
+// `try...finally...` in java. In C++ we used to implement an RAII class
+// wrapping around the resource:
+//
+// ```cpp
+// struct object_raii
+// {
+//   object_raii() {
+//     obj = c_object_new();
+//   }
+//   ~object_raii() {
+//     c_object_free(obj);
+//   }
+// private:
+//   c_object *_obj;
+// };
+// ```
+//
+// Now with `defer`, things will be simplified:
+//
+// ```cpp
+// c_object *obj = c_object_new();
+// auto cleanup = dsn::defer([obj]() { c_object_free(obj); });
+// ```
+
 template <typename Func>
 struct deferred_action
 {
