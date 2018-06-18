@@ -34,10 +34,10 @@ namespace dsn {
 // struct object_raii
 // {
 //   object_raii() {
-//     obj = c_object_new();
+//     _obj = c_object_new();
 //   }
 //   ~object_raii() {
-//     c_object_free(obj);
+//     c_object_free(_obj);
 //   }
 // private:
 //   c_object *_obj;
