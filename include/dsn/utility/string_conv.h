@@ -104,11 +104,20 @@ bool buf2unsigned(string_view buf, T &result)
 
 /// buf2*: `result` will keep unmodified if false is returned.
 
-inline bool buf2int32(string_view buf, int32_t &result) { return internal::buf2signed(buf, result); }
+inline bool buf2int32(string_view buf, int32_t &result)
+{
+    return internal::buf2signed(buf, result);
+}
 
-inline bool buf2int64(string_view buf, int64_t &result) { return internal::buf2signed(buf, result); }
+inline bool buf2int64(string_view buf, int64_t &result)
+{
+    return internal::buf2signed(buf, result);
+}
 
-inline bool buf2uint64(string_view buf, uint64_t &result) { return internal::buf2unsigned(buf, result); }
+inline bool buf2uint64(string_view buf, uint64_t &result)
+{
+    return internal::buf2unsigned(buf, result);
+}
 
 inline bool buf2bool(string_view buf, bool &result, bool ignore_case = true)
 {
