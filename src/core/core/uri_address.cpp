@@ -50,6 +50,7 @@ void uri_resolver_manager::setup_resolvers()
     // [uri-resolver.%resolver-address%]
     // factory = %uri-resolver-factory%
     // arguments = %uri-resolver-arguments%
+    // cluster_id = %cluster_id%
 
     std::vector<std::string> sections;
     dsn_config_get_all_sections(sections);
@@ -74,6 +75,17 @@ void uri_resolver_manager::setup_resolvers()
             "partition-resolver factory name which creates the concrete partition-resolver object");
         auto arguments =
             dsn_config_get_value_string(s.c_str(), "arguments", "", "uri-resolver ctor arguments");
+
+        // resolve cluster id
+        auto cluster_id =
+            dsn_config_get_value_uint64(s.c_str(), "cluster_id", 0, "remote cluster id");
+        dassert(cluster_id < 0xFF,
+                "cluster_id(%zu) for %s should in [0, 254]",
+                cluster_id,
+                resolver_addr.c_str());
+        if (cluster_id > 0) {
+            _cluster_id_map.insert({resolver_addr, static_cast<int>(cluster_id)});
+        }
 
         auto resolver = new uri_resolver(resolver_addr.c_str(), factory, arguments);
         _resolvers.emplace(resolver_addr, std::shared_ptr<uri_resolver>(resolver));
@@ -121,6 +133,28 @@ std::map<std::string, std::shared_ptr<uri_resolver>> uri_resolver_manager::get_a
     return result;
 }
 
+error_with<std::shared_ptr<uri_resolver>> uri_resolver_manager::try_get(const rpc_uri_address &uri)
+{
+    std::shared_ptr<uri_resolver> ret = nullptr;
+    std::pair<std::string, std::string> pr = uri.get_uri_components();
+    if (pr.first.length() == 0) {
+        return error_s::make(ERR_INVALID_PARAMETERS, "uri is empty");
+    }
+
+    {
+        utils::auto_read_lock l(_lock);
+        auto it = _resolvers.find(pr.first);
+        if (it != _resolvers.end())
+            ret = it->second;
+    }
+
+    if (ret == nullptr) {
+        return error_s::make(ERR_INVALID_PARAMETERS, "resolver for uri is not configured");
+    }
+
+    return ret;
+}
+
 //---------------------------------------------------------------
 
 rpc_uri_address::rpc_uri_address(const char *uri) : _uri(uri)
@@ -146,7 +180,7 @@ rpc_uri_address &rpc_uri_address::operator=(const rpc_uri_address &other)
 
 rpc_uri_address::~rpc_uri_address() { _resolver = nullptr; }
 
-std::pair<std::string, std::string> rpc_uri_address::get_uri_components()
+std::pair<std::string, std::string> rpc_uri_address::get_uri_components() const
 {
     auto it = _uri.find("://");
     if (it == std::string::npos)
@@ -158,6 +192,22 @@ std::pair<std::string, std::string> rpc_uri_address::get_uri_components()
 
     else
         return std::make_pair(_uri.substr(0, it2), _uri.substr(it2 + 1));
+}
+
+/*static*/ error_with<rpc_uri_address> rpc_uri_address::resolve(const char *uri)
+{
+    rpc_uri_address addr;
+    addr._uri = uri;
+
+    auto result = task::get_current_rpc()->uri_resolver_mgr()->try_get(addr);
+    if (!result.is_ok()) {
+        return result.get_error();
+    }
+    dassert(result.get_value(), "");
+
+    std::shared_ptr<uri_resolver> resolver = result.get_value();
+    addr._resolver = resolver->get_app_resolver(addr.get_uri_components().second.c_str());
+    return addr;
 }
 
 //---------------------------------------------------------------
@@ -222,5 +272,28 @@ std::map<std::string, dist::partition_resolver_ptr> uri_resolver::get_all_app_re
     }
 
     return result;
+}
+
+int uri_resolver_manager::get_cluster_id(const char *uri) const
+{
+    dassert(uri != nullptr, "");
+
+    error_with<rpc_uri_address> result = rpc_uri_address::resolve(uri);
+    if (!result.is_ok()) {
+        derror("failed to resolve uri(%s): %s", uri, result.get_error().description().c_str());
+        return -2;
+    }
+
+    std::string cluster_name = result.get_value().get_uri_components().first;
+    dassert(!cluster_name.empty(), "");
+
+    {
+        utils::auto_read_lock l(_lock);
+        auto it = _cluster_id_map.find(cluster_name);
+        if (it != _cluster_id_map.end()) {
+            return it->second;
+        }
+    }
+    return -1;
 }
 }
