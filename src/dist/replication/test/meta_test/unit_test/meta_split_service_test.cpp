@@ -53,7 +53,7 @@ void meta_service_test_app::app_partition_split_test()
         dsn_message_t recv_msg = create_corresponding_receive(binary_req);
         app_partition_split_rpc rpc(recv_msg); // don't need reply
 
-        svc->_split_svc = std::make_unique<meta_split_service>(svc);
+        svc->_split_svc = dsn::make_unique<meta_split_service>(svc);
         meta_split_service *split_srv = svc->_split_svc.get();
         ASSERT_NE(split_srv, nullptr);
 
@@ -76,7 +76,7 @@ void meta_service_test_app::app_partition_split_test()
         dsn_message_t recv_msg = create_corresponding_receive(binary_req);
         app_partition_split_rpc rpc(recv_msg); // don't need reply
 
-        svc->_split_svc = std::make_unique<meta_split_service>(svc);
+        svc->_split_svc = dsn::make_unique<meta_split_service>(svc);
         meta_split_service *split_srv = svc->_split_svc.get();
         ASSERT_NE(split_srv, nullptr);
 
@@ -99,7 +99,7 @@ void meta_service_test_app::app_partition_split_test()
         dsn_message_t recv_msg = create_corresponding_receive(binary_req);
         app_partition_split_rpc rpc(recv_msg); // don't need reply
 
-        svc->_split_svc = std::make_unique<meta_split_service>(svc);
+        svc->_split_svc = dsn::make_unique<meta_split_service>(svc);
         meta_split_service *split_srv = svc->_split_svc.get();
         ASSERT_NE(split_srv, nullptr);
 

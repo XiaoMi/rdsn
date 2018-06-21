@@ -269,7 +269,7 @@ error_code meta_service::start()
 
     _state->register_cli_commands();
 
-    _split_svc = std::make_unique<meta_split_service>(this);
+    _split_svc = dsn::make_unique<meta_split_service>(this);
 
     start_service();
 
