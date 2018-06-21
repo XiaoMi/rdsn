@@ -170,7 +170,7 @@ exit_if_fail $?
 
 # fds
 if [ ! -d $TP_SRC/fds ]; then
-    git clone git@github.com:XiaoMi/galaxy-fds-sdk-cpp.git
+    git clone https://github.com/XiaoMi/galaxy-fds-sdk-cpp.git
     if [ $? != 0 ]; then
         echo "ERROR: download fds wrong"
         exit -1
@@ -190,7 +190,7 @@ exit_if_fail $?
 
 # s2geometry
 if [ ! -d $TP_SRC/s2geometry ]; then
-    git clone -b pegasus git@github.com:acelyc111/s2geometry.git
+    git clone -b pegasus https://github.com/acelyc111/s2geometry.git
     if [ $? != 0 ]; then
         echo "ERROR: download s2geometry wrong"
         exit -1
