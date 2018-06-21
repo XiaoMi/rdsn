@@ -13,7 +13,19 @@ set(MY_PROJ_INC_PATH "")
 
 set(MY_BOOST_PACKAGES system filesystem)
 
-set(MY_PROJ_LIBS dsn_replica_server dsn_meta_server fmt)
+set(MY_PROJ_LIBS
+        dsn_replica_server
+        dsn_meta_server
+        dsn.replication.clientlib
+        dsn.block_service.fds
+        dsn.block_service.local
+        galaxy-fds-sdk-cpp
+        PocoNet
+        PocoFoundation
+        PocoNetSSL
+        PocoJSON
+        fmt
+        )
 
 set(MY_PROJ_LIB_PATH "")
 

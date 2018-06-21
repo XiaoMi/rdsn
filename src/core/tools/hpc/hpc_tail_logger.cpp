@@ -175,7 +175,7 @@ std::string hpc_tail_logger::search(const char *keyword,
     int log_count = 0;
 
     for (auto &tid : threads) {
-        __tail_log_info__ *log;
+        __tail_log_info__ *log = nullptr;
         if (!tail_log_manager::instance().get(tid, log))
             continue;
 

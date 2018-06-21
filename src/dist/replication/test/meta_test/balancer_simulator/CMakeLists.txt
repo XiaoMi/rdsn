@@ -15,6 +15,11 @@ set(MY_PROJ_LIBS dsn_meta_server
                  dsn.replication.clientlib
                  dsn.block_service.local
                  dsn.block_service.fds
+                 galaxy-fds-sdk-cpp
+                 PocoNet
+                 PocoFoundation
+                 PocoNetSSL
+                 PocoJSON
                  fmt
                  gtest)
 

@@ -242,7 +242,7 @@ void hpc_logger::flush()
     hpc_log_manager::instance().get_all_keys(threads);
 
     for (auto &tid : threads) {
-        __hpc_log_info__ *log;
+        __hpc_log_info__ *log = nullptr;
         if (!hpc_log_manager::instance().get(tid, log))
             continue;
 
