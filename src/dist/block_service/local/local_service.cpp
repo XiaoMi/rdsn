@@ -111,8 +111,8 @@ dsn::task_ptr local_service::create_file(const create_file_request &req,
     if (req.ignore_metadata) {
         create_file_response resp;
         resp.err = ERR_OK;
-        resp.file_handle = new local_file_object(
-            this, ::dsn::utils::filesystem::path_combine(_root, req.file_name));
+        resp.file_handle =
+            new local_file_object(::dsn::utils::filesystem::path_combine(_root, req.file_name));
         tsk->enqueue_with(resp);
         return tsk;
     }
@@ -124,14 +124,14 @@ dsn::task_ptr local_service::create_file(const create_file_request &req,
 
         if (::dsn::utils::filesystem::file_exists(file_path)) {
             ddebug("file: %s already exist", file_path.c_str());
-            resp.file_handle = new local_file_object(this, file_path);
+            resp.file_handle = new local_file_object(file_path);
         } else {
             ddebug("start create file, file = %s", file_path.c_str());
             if (!::dsn::utils::filesystem::create_file(file_path)) {
                 derror("create file: %s fail", file_path.c_str());
                 resp.err = ERR_FS_INTERNAL;
             } else {
-                resp.file_handle = new local_file_object(this, file_path);
+                resp.file_handle = new local_file_object(file_path);
                 ddebug("create file succeed, file = %s", resp.file_handle->file_name().c_str());
             }
         }
@@ -179,7 +179,7 @@ dsn::task_ptr local_service::exist(const exist_request &req,
 {
     exist_future_ptr tsk(new exist_future(code, cb, 0));
     tsk->set_tracker(tracker);
-    auto exist_background = [this, req, tsk]() {
+    auto exist_background = [req, tsk]() {
         exist_response resp;
         if (utils::filesystem::path_exists(req.path)) {
             resp.err = ERR_OK;
@@ -201,7 +201,7 @@ dsn::task_ptr local_service::remove_path(const remove_path_request &req,
     remove_path_future_ptr tsk(new remove_path_future(code, cb, 0));
     tsk->set_tracker(tracker);
 
-    auto remove_path_background = [this, req, tsk]() {
+    auto remove_path_background = [req, tsk]() {
         remove_path_response resp;
         resp.err = ERR_OK;
 
@@ -238,16 +238,12 @@ dsn::task_ptr local_service::remove_path(const remove_path_request &req,
 }
 
 // local_file_object
-local_file_object::local_file_object(local_service *local_svc, const std::string &name)
-    : block_file(name), _local_service(local_svc), _md5_value()
+local_file_object::local_file_object(const std::string &name) : block_file(name)
 {
     _md5_value = compute_md5();
 }
 
-local_file_object::~local_file_object()
-{
-    // do nothing
-}
+local_file_object::~local_file_object() {}
 
 const std::string &local_file_object::get_md5sum() { return _md5_value; }
 

@@ -1,3 +1,5 @@
+include(${CMAKE_CURRENT_LIST_DIR}/compiler_info.cmake)
+
 function(ms_add_project PROJ_LANG PROJ_TYPE PROJ_NAME PROJ_SRC PROJ_INC_PATH PROJ_LIBS PROJ_LIB_PATH PROJ_BINPLACES PROJ_BINDIRS DO_INSTALL)
     if(DEFINED DSN_DEBUG_CMAKE)
         message(STATUS "PROJ_LANG = ${PROJ_LANG}")
@@ -394,11 +396,21 @@ function(dsn_setup_compiler_flags)
         add_compile_options(-Werror)
         add_compile_options(-Wno-sign-compare)
         add_compile_options(-Wno-strict-aliasing)
-        add_compile_options(-Wno-uninitialized)
+        add_compile_options(-Wuninitialized)
         add_compile_options(-Wno-unused-result)
         add_compile_options(-Wno-unused-variable)
         add_compile_options(-Wno-deprecated-declarations)
         add_compile_options(-Wno-inconsistent-missing-override)
+
+        find_program(CCACHE_FOUND ccache)
+        if(CCACHE_FOUND)
+            set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+            set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+            if ("${COMPILER_FAMILY}" STREQUAL "clang")
+                add_compile_options(-Qunused-arguments)
+            endif()
+            message("use ccache to speed up compilation")
+        endif(CCACHE_FOUND)
 
         set(CMAKE_EXE_LINKER_FLAGS
             "${CMAKE_EXE_LINKER_FLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
