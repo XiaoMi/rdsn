@@ -42,7 +42,6 @@ private:
     server_state* _state;
 
     zrwlock_nr &app_lock() const { return _state->_lock; }
-//    mutable zrwlock_nr _lock;
 };
 
 } // namespace replication

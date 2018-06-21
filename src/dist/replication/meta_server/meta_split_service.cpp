@@ -132,19 +132,6 @@ void meta_split_service::do_app_partition_split(std::shared_ptr<app_state> app, 
                 LPC_META_STATE_HIGH,
                 on_write_storage_complete,
                 _meta_svc->tracker());
-
-    //TODO: refactor
-//    _meta_svc->get_meta_storage()->set_data(
-//        _state->get_app_path(*app), std::move(value), [app, rpc, this]() {
-//            zauto_write_lock l(_lock);
-//            app->partition_count *= 2;
-//            app->partitions.resize(static_cast<size_t>(app->partition_count));
-//            for (int i = app->partition_count / 2; i < app->partition_count; i++) {
-//                app->partitions[i].ballot = invalid_ballot;
-//                app->partitions[i].pid = gpid(app->app_id, i);
-//            }
-//            rpc.response().partition_count = app->partition_count;
-//        });
 }
 
 meta_split_service::meta_split_service(meta_service* meta_srv){

@@ -163,7 +163,6 @@ public:
     mutation_log(const std::string &dir, int32_t max_log_file_mb, gpid gpid, replica *r = nullptr);
 
     virtual ~mutation_log();
-//    virtual ~mutation_log() override = default;
 
     //
     // initialization
@@ -387,11 +386,6 @@ public:
     }
 
     virtual ~mutation_log_shared() override { _tracker.cancel_outstanding_tasks(); }
-//    virtual ~mutation_log_shared() override
-//    {
-//        _tracker.cancel_outstanding_tasks();
-//        close();
-//    }
 
     virtual ::dsn::task_ptr append(mutation_ptr &mu,
                                    dsn::task_code callback_code,
@@ -448,11 +442,6 @@ public:
     }
 
     virtual ~mutation_log_private() override { _tracker.cancel_outstanding_tasks(); }
-//    virtual ~mutation_log_private() override
-//    {
-//        _tracker.cancel_outstanding_tasks();
-//        close();
-//    }
 
     virtual ::dsn::task_ptr append(mutation_ptr &mu,
                                    dsn::task_code callback_code,
