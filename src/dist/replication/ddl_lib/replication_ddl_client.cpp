@@ -1453,7 +1453,7 @@ dsn::error_code replication_ddl_client::get_app_envs(const std::string &app_name
 error_code replication_ddl_client::app_partition_split(const std::string &app_name,
                                                        int new_partition_count)
 {
-    if(new_partition_count < 1){
+    if (new_partition_count < 1) {
         fmt::print("Failed to split partition for app {}, new partition count should >= 1\n",
                    app_name);
         return ERR_INVALID_PARAMETERS;

@@ -30,7 +30,8 @@
 namespace dsn {
 namespace replication {
 
-class meta_split_service{
+class meta_split_service
+{
 public:
     explicit meta_split_service(meta_service *meta);
 
@@ -38,8 +39,8 @@ public:
     void do_app_partition_split(std::shared_ptr<app_state> app, app_partition_split_rpc rpc);
 
 private:
-    meta_service* _meta_svc;
-    server_state* _state;
+    meta_service *_meta_svc;
+    server_state *_state;
 
     zrwlock_nr &app_lock() const { return _state->_lock; }
 };

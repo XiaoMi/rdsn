@@ -318,9 +318,7 @@ void meta_service::register_rpc_handlers()
     register_rpc_handler_with_rpc_holder(
         RPC_CM_UPDATE_APP_ENV, "update_app_env(set/del/clear)", &meta_service::update_app_env);
     register_rpc_handler_with_rpc_holder(
-                RPC_CM_APP_PARTITION_SPLIT,
-                "app_partition_split",
-                &meta_service::on_app_partition_split);
+        RPC_CM_APP_PARTITION_SPLIT, "app_partition_split", &meta_service::on_app_partition_split);
 }
 
 int meta_service::check_leader(dsn_message_t req)

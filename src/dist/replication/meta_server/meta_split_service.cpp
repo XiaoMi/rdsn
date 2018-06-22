@@ -29,10 +29,11 @@
 #include "dist/replication/meta_server/meta_split_service.h"
 #include "dist/replication/meta_server/meta_state_service_utils.h"
 
-namespace dsn{
+namespace dsn {
 namespace replication {
 
-void meta_split_service::app_partition_split(app_partition_split_rpc rpc){
+void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
+{
     const auto &request = rpc.request();
     ddebug_f("split partition for app({}), new_partition_count={}",
              request.app_name,
@@ -79,10 +80,12 @@ void meta_split_service::app_partition_split(app_partition_split_rpc rpc){
     do_app_partition_split(std::move(app), std::move(rpc));
 }
 
-void meta_split_service::do_app_partition_split(std::shared_ptr<app_state> app, app_partition_split_rpc rpc){
+void meta_split_service::do_app_partition_split(std::shared_ptr<app_state> app,
+                                                app_partition_split_rpc rpc)
+{
 
     auto on_write_storage_complete = [app, rpc, this](error_code ec) {
-        if(ec == ERR_OK) {
+        if (ec == ERR_OK) {
             ddebug_f("app {} partition split succeed, new partition count is {}",
                      app->app_name.c_str(),
                      app->partition_count);
@@ -92,9 +95,9 @@ void meta_split_service::do_app_partition_split(std::shared_ptr<app_state> app, 
             app->helpers->contexts.resize(app->partition_count);
             app->partitions.resize(app->partition_count);
 
-            for(int i = 0; i < app->partition_count; ++i){
+            for (int i = 0; i < app->partition_count; ++i) {
                 app->helpers->contexts[i].config_owner = &app->partitions[i];
-                if(i >= app->partition_count/2){
+                if (i >= app->partition_count / 2) {
                     app->partitions[i].ballot = invalid_ballot;
                     app->partitions[i].pid = gpid(app->app_id, i);
                 }
@@ -104,39 +107,42 @@ void meta_split_service::do_app_partition_split(std::shared_ptr<app_state> app, 
             response.err = ERR_OK;
             response.partition_count = app->partition_count;
 
-        } else if( ec == ERR_TIMEOUT){
+        } else if (ec == ERR_TIMEOUT) {
             dwarn_f("remote storage is not available now, please try it later");
             tasking::enqueue(LPC_META_STATE_HIGH,
                              nullptr,
-                             std::bind(&meta_split_service::do_app_partition_split, this, std::move(app), std::move(rpc)),
+                             std::bind(&meta_split_service::do_app_partition_split,
+                                       this,
+                                       std::move(app),
+                                       std::move(rpc)),
                              0,
                              std::chrono::seconds(1));
-            //TODO(hyc):consider tracker
+            // TODO(hyc): consider tracker
         } else {
             dassert(false, "failed to write to remote stroage, error is %s", ec.to_string());
         }
     };
 
-
     // if init_partition_count is invalid, init_partition_count = original partition_count
-    if (app->init_partition_count < 0){
+    if (app->init_partition_count < 0) {
         app->init_partition_count = app->partition_count;
     }
     auto copy = *app;
     copy.partition_count *= 2;
     blob value = dsn::json::json_forwarder<app_info>::encode(copy);
 
-    _meta_svc->get_remote_storage()->set_data(
-                _state->get_app_path(*app),
-                std::move(value),
-                LPC_META_STATE_HIGH,
-                on_write_storage_complete,
-                _meta_svc->tracker());
+    // TODO(hyc): refactor, using meta storage
+    _meta_svc->get_remote_storage()->set_data(_state->get_app_path(*app),
+                                              std::move(value),
+                                              LPC_META_STATE_HIGH,
+                                              on_write_storage_complete,
+                                              _meta_svc->tracker());
 }
 
-meta_split_service::meta_split_service(meta_service* meta_srv){
-    this->_meta_svc = meta_srv;
-    this->_state = meta_srv->get_server_state();
+meta_split_service::meta_split_service(meta_service *meta_srv)
+{
+    _meta_svc = meta_srv;
+    _state = meta_srv->get_server_state();
 }
 
 } // namespace replication

@@ -11,7 +11,6 @@
 
 using namespace ::dsn::replication;
 
-
 void meta_service_test_app::app_partition_split_test()
 {
     // create a fake app
@@ -69,7 +68,7 @@ void meta_service_test_app::app_partition_split_test()
     {
         app_partition_split_request request;
         request.app_name = "table_not_exist";
-        request.new_partition_count = PARTITION_COUNT*2;
+        request.new_partition_count = PARTITION_COUNT * 2;
 
         dsn_message_t binary_req = dsn_msg_create_request(RPC_CM_APP_PARTITION_SPLIT);
         dsn::marshall(binary_req, request);
@@ -92,7 +91,7 @@ void meta_service_test_app::app_partition_split_test()
     {
         app_partition_split_request request;
         request.app_name = fake_app->app_name;
-        request.new_partition_count = PARTITION_COUNT*2;
+        request.new_partition_count = PARTITION_COUNT * 2;
 
         dsn_message_t binary_req = dsn_msg_create_request(RPC_CM_APP_PARTITION_SPLIT);
         dsn::marshall(binary_req, request);
@@ -109,6 +108,6 @@ void meta_service_test_app::app_partition_split_test()
         auto response = rpc.response();
 
         ASSERT_EQ(response.err, dsn::ERR_OK);
-        ASSERT_EQ(response.partition_count, PARTITION_COUNT*2);
+        ASSERT_EQ(response.partition_count, PARTITION_COUNT * 2);
     }
 }
