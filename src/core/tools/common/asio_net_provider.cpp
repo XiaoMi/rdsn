@@ -138,7 +138,8 @@ void asio_network_provider::do_accept()
                                      null_parser,
                                      false);
             on_server_session_accepted(s);
-            // we should start read next after rpc session is completely created.
+
+            // we should start read immediately after the rpc session is completely created.
             s->start_read_next();
         }
 

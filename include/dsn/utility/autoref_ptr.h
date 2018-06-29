@@ -48,14 +48,15 @@ public:
     virtual ~ref_counter()
     {
         // 0xdeadbeef: 3735928559
-        // 0xfacedead: 4207861421
         dassert(_magic == 0xdeadbeef, "memory corrupted, could be double free or others");
 
+        // 0xfacedead: 4207861421
         _magic = 0xfacedead;
     }
 
     void add_ref()
     {
+        // 0xdeadbeef: 3735928559
         dassert(_magic == 0xdeadbeef, "memory corrupted, could be double free or others");
 
         // Increasing the reference counter can always be done with memory_order_relaxed:
@@ -67,6 +68,7 @@ public:
 
     void release_ref()
     {
+        // 0xdeadbeef: 3735928559
         dassert(_magic == 0xdeadbeef, "memory corrupted, could be double free or others");
 
         // It is important to enforce any possible access to the object in one thread
