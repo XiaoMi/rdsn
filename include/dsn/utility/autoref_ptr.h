@@ -37,6 +37,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <dsn/c/api_utilities.h>
 
 namespace dsn {
 class ref_counter
@@ -46,15 +47,17 @@ public:
 
     virtual ~ref_counter()
     {
-        if (_magic != 0xdeadbeef) { // 3735928559
-            assert(!"memory corrupted, could be double free or others");
-        } else {
-            _magic = 0xfacedead; // 4207861421
-        }
+        // 0xdeadbeef: 3735928559
+        // 0xfacedead: 4207861421
+        dassert(_magic == 0xdeadbeef, "memory corrupted, could be double free or others");
+
+        _magic = 0xfacedead;
     }
 
     void add_ref()
     {
+        dassert(_magic == 0xdeadbeef, "memory corrupted, could be double free or others");
+
         // Increasing the reference counter can always be done with memory_order_relaxed:
         // New references to an object can only be formed from an existing reference,
         // and passing an existing reference from one thread to another must already provide any
@@ -64,6 +67,8 @@ public:
 
     void release_ref()
     {
+        dassert(_magic == 0xdeadbeef, "memory corrupted, could be double free or others");
+
         // It is important to enforce any possible access to the object in one thread
         //(through an existing reference) to happen before deleting the object in a different
         // thread.
