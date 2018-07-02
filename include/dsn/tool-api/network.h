@@ -225,7 +225,7 @@ public:
     message_parser_ptr parser() const { return _parser; }
 
     ///
-    /// rpc_session's interface for send and receive
+    /// rpc_session's interface for sending and receiving
     ///
     void send_message(message_ex *msg);
     bool cancel(message_ex *request);
@@ -234,7 +234,7 @@ public:
 
 public:
     ///
-    /// for subclass to implement receive message
+    /// for subclass to implement receiving message
     ///
     void start_read_next(int read_next = 256);
     // should be called in do_read() before using _parser when it is nullptr.
@@ -245,17 +245,18 @@ public:
     int prepare_parser();
     virtual void do_read(int read_next) = 0;
 
-public:
     ///
-    /// for subclass to implement send message
+    /// for subclass to implement sending message
     ///
+    // return whether there are messages for sending;
+    // should always be called in lock
     bool unlink_message_for_send();
     virtual void send(uint64_t signature) = 0;
     void on_send_completed(uint64_t signature = 0);
 
 protected:
     ///
-    /// fields related to send messages
+    /// fields related to sending messages
     ///
     enum session_state
     {
@@ -296,10 +297,7 @@ protected:
     bool is_connecting() const { return _connect_state == SS_CONNECTING; }
     bool is_connected() const { return _connect_state == SS_CONNECTED; }
 
-    // return whether there are messages for sending;
-    // should always be called in lock
     void clear_send_queue(bool resend_msgs);
-
     bool on_disconnected(bool is_write);
 
 protected:
