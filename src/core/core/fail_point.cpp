@@ -22,24 +22,22 @@ namespace fail {
 
 static fail_point_registry REGISTRY;
 
-dsn::string_view eval(dsn::string_view name)
+/*extern*/ dsn::string_view eval(dsn::string_view name)
 {
     auto p = REGISTRY.try_get(name);
     dassert(p != nullptr, "%s is not registered", name.data());
     return p->eval();
 }
 
-/// Set new actions to a fail point at runtime.
-void cfg(dsn::string_view name, dsn::string_view action)
+/*extern*/ void cfg(dsn::string_view name, dsn::string_view action)
 {
     auto p = REGISTRY.create_if_not_exists(name);
     p->set_action(action);
 }
 
-void setup() {}
+/*extern*/ void setup() {}
 
-/// Tear down the fail point system.
-void teardown() { REGISTRY.clear(); }
+/*extern*/ void teardown() { REGISTRY.clear(); }
 
 } // namespace fail
 } // namespace dsn
