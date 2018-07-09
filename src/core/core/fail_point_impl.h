@@ -35,54 +35,27 @@ struct fail_point
         Print,
     };
 
-    void set_action(dsn::string_view action)
-    {
-        // no arg
-        if (action == "off") {
-            _task = Off;
-            return;
-        }
+    void set_action(string_view action, float freq, int max_cnt);
 
-        char arg_str[64];
-        if (action.compare(0, 6, "return") == 0) {
-            _task = Return;
-            sscanf(action.data(), "return(%s)", arg_str);
-        } else if (action.compare(0, 5, "print") == 0) {
-            _task = Print;
-            sscanf(action.data(), "print(%s)", arg_str);
-        } else {
-            dfatal("unrecognized command %s", action.data());
-        }
-        _arg = arg_str;
-    }
-
-    const std::string *eval()
-    {
-        switch (_task) {
-        case Off:
-            break;
-        case Return:
-            return &_arg;
-        case Print:
-            ddebug(_arg.data());
-            break;
-        }
-        return nullptr;
-    }
+    const std::string *eval();
 
 private:
     task_type _task;
     std::string _arg;
+    float _freq;
+    int _max_cnt;
 };
 
 struct fail_point_registry
 {
-    fail_point *create_if_not_exists(dsn::string_view name)
+    fail_point *create_if_not_exists(string_view name)
     {
+        std::lock_guard<std::mutex> guard(_mu);
+
         return &_registry[std::string(name.data(), name.length())];
     }
 
-    fail_point *try_get(dsn::string_view name)
+    fail_point *try_get(string_view name)
     {
         std::lock_guard<std::mutex> guard(_mu);
 
@@ -93,10 +66,14 @@ struct fail_point_registry
         return &it->second;
     }
 
-    void clear() { _registry.clear(); }
+    void clear()
+    {
+        std::lock_guard<std::mutex> guard(_mu);
+        _registry.clear();
+    }
 
 private:
-    std::mutex _mu;
+    mutable std::mutex _mu;
     std::unordered_map<std::string, fail_point> _registry;
 };
 

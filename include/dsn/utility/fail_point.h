@@ -47,7 +47,7 @@ namespace fail {
 extern const std::string *eval(dsn::string_view name);
 
 /// Set new actions to a fail point at runtime.
-extern void cfg(dsn::string_view name, dsn::string_view action);
+extern void cfg(dsn::string_view name, dsn::string_view action, float freq = 1, int max_cnt = -1);
 
 extern void setup();
 
