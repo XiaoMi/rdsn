@@ -154,7 +154,9 @@ private:
 // 2. for a write rpc, a primary may also need to replicate it
 //    to secondaries before forwarding to the storage engine.
 // 3. some storage engine's rpc shouldn't be batched,
-//    either for better performance or correctness
+//    either for better performance or correctness.
+// 4. some write rpc is idempotent, but some is not.
+//    we should differentiate it.
 // so we define some specical fields in task_spec to mark these features.
 //
 // please refer to rpc_engine::on_recv_request for the detailes on how storage_engine's rpc
@@ -173,6 +175,11 @@ private:
                                                is_write,                                           \
                                                allow_batch,                                        \
                                                is_idempotent);
+
+#define ALLOW_BATCH true
+#define NOT_ALLOW_BATCH false
+#define IS_IDEMPOTENT true
+#define NOT_IDEMPOTENT false
 
 // define a default task code "task_code_invalid", it's mainly used for representing
 // some error status when you want to return task_code in some functions.
