@@ -22,7 +22,7 @@ namespace fail {
 
 static fail_point_registry REGISTRY;
 
-/*extern*/ dsn::string_view eval(dsn::string_view name)
+/*extern*/ const std::string *eval(dsn::string_view name)
 {
     auto p = REGISTRY.try_get(name);
     dassert(p != nullptr, "%s is not registered", name.data());

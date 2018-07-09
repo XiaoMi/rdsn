@@ -24,18 +24,27 @@
 
 /// The only entry to define a fail point.
 #ifndef NO_FAIL
-#define FAIL_POINT_MAYBE_RETURN(name)                                                              \
+#define FAIL_POINT_INJECT_F(name, lambda)                                                          \
     do {                                                                                           \
-        return ::dsn::fail::eval(name);                                                            \
+        auto __Func = lambda;                                                                      \
+        auto __Res = ::dsn::fail::eval(name);                                                      \
+        if (__Res != nullptr) {                                                                    \
+            return __Func(*__Res);                                                                 \
+        }                                                                                          \
+    } while (0)
+#define FAIL_POINT_INJECT(name)                                                                    \
+    do {                                                                                           \
+        ::dsn::fail::eval(name)                                                                    \
     } while (0)
 #else
-#define FAIL_POINT_MAYBE_RETURN(name, cond, expr)
+#define FAIL_POINT_INJECT_F(name, lambda)
+#define FAIL_POINT_INJECT(name)
 #endif
 
 namespace dsn {
 namespace fail {
 
-extern dsn::string_view eval(dsn::string_view name);
+extern const std::string *eval(dsn::string_view name);
 
 /// Set new actions to a fail point at runtime.
 extern void cfg(dsn::string_view name, dsn::string_view action);

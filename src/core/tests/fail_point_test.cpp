@@ -22,25 +22,28 @@
 namespace dsn {
 namespace fail {
 
-TEST(fail_point, off) {
-  fail_point p;
-  p.set_action("off");
-  ASSERT_TRUE(p.eval().empty());
+TEST(fail_point, off)
+{
+    fail_point p;
+    p.set_action("off");
+    ASSERT_EQ(p.eval(), nullptr);
 }
 
-TEST(fail_point, return_test) {
-  fail_point p;
-  p.set_action("return()");
-  ASSERT_TRUE(p.eval().empty());
+TEST(fail_point, return_test)
+{
+    fail_point p;
+    p.set_action("return()");
+    ASSERT_EQ(p.eval(), nullptr);
 
-  p.set_action("return(test)");
-  ASSERT_EQ(p.eval(), "test");
+    p.set_action("return(test)");
+    ASSERT_EQ(*p.eval(), "test");
 }
 
-TEST(fail_point, print) {
-  fail_point p;
-  p.set_action("print(test)");
-  ASSERT_TRUE(p.eval().empty());
+TEST(fail_point, print)
+{
+    fail_point p;
+    p.set_action("print(test)");
+    ASSERT_EQ(p.eval(), nullptr);
 }
 
 } // namespace fail

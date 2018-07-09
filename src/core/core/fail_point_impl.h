@@ -56,13 +56,13 @@ struct fail_point
         _arg = arg_str;
     }
 
-    dsn::string_view eval()
+    const std::string *eval()
     {
         switch (_task) {
         case Off:
             break;
         case Return:
-            return _arg;
+            return &_arg;
         case Print:
             ddebug(_arg.data());
             break;
