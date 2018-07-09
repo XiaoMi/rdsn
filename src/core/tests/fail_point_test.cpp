@@ -25,25 +25,47 @@ namespace fail {
 TEST(fail_point, off)
 {
     fail_point p;
-    p.set_action("off");
+    p.set_action("off", 1.0, -1);
     ASSERT_EQ(p.eval(), nullptr);
 }
 
 TEST(fail_point, return_test)
 {
     fail_point p;
-    p.set_action("return()");
+    p.set_action("return()", 1.0, -1);
     ASSERT_EQ(p.eval(), nullptr);
 
-    p.set_action("return(test)");
+    p.set_action("return(test)", 1.0, -1);
     ASSERT_EQ(*p.eval(), "test");
 }
 
 TEST(fail_point, print)
 {
     fail_point p;
-    p.set_action("print(test)");
+    p.set_action("print(test)", 1.0, -1);
     ASSERT_EQ(p.eval(), nullptr);
+}
+
+TEST(fail_point, frequency_and_count)
+{
+    fail_point p;
+    p.set_action("return()", 1, 100);
+    ASSERT_EQ(p.eval(), nullptr);
+
+    int cnt = 0;
+    double times = 0;
+    while (cnt < 100) {
+        if (p.eval() != nullptr) {
+            cnt++;
+        }
+        times++;
+    }
+    ASSERT_TRUE(100 / 0.9 < times);
+    ASSERT_TRUE(100 / 0.7 > times);
+
+    for (int i = 0; i < times; i++) {
+        ASSERT_EQ(p.eval(), nullptr);
+    }
 }
 
 } // namespace fail

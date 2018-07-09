@@ -17,6 +17,8 @@
 
 #include "fail_point_impl.h"
 
+#include <dsn/c/api_layer1.h>
+
 namespace dsn {
 namespace fail {
 
@@ -44,6 +46,11 @@ void fail_point::set_action(string_view action, float freq, int max_cnt)
     _freq = freq;
     _max_cnt = max_cnt;
 
+    if (action.compare("off") == 0) {
+        _task = Off;
+        return;
+    }
+
     char arg_str[64];
     if (action.compare(0, 6, "return") == 0) {
         _task = Return;
@@ -59,6 +66,14 @@ void fail_point::set_action(string_view action, float freq, int max_cnt)
 
 const std::string *fail_point::eval()
 {
+    uint32_t r = dsn_random32(0, 100);
+    if (_freq > r / 100.0) {
+        return nullptr;
+    }
+    if (_max_cnt-- <= 0) {
+        return nullptr;
+    }
+
     switch (_task) {
     case Off:
         break;
