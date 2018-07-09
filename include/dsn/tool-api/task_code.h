@@ -102,7 +102,8 @@ public:
               dsn_task_priority_t pri,
               dsn::threadpool_code pool,
               bool is_storage_write,
-              bool allow_batch);
+              bool allow_batch,
+              bool is_idempotent);
 
     const char *to_string() const;
 
@@ -162,11 +163,16 @@ private:
 // Notice we dispatch storage rpc's response to THREAD_POOL_DEFAULT,
 // the reason is that the storage rpc's response mainly runs at client side, which is not
 // necessary to start so many threadpools
-#define DEFINE_STORAGE_RPC_CODE(x, pri, pool, is_write, allow_batch)                               \
+#define DEFINE_STORAGE_RPC_CODE(x, pri, pool, is_write, allow_batch, is_idempotent)                \
     __selectany const ::dsn::task_code x(                                                          \
-        #x, TASK_TYPE_RPC_REQUEST, pri, pool, is_write, allow_batch);                              \
-    __selectany const ::dsn::task_code x##_ACK(                                                    \
-        #x "_ACK", TASK_TYPE_RPC_RESPONSE, pri, THREAD_POOL_DEFAULT, is_write, allow_batch);
+        #x, TASK_TYPE_RPC_REQUEST, pri, pool, is_write, allow_batch, is_idempotent);               \
+    __selectany const ::dsn::task_code x##_ACK(#x "_ACK",                                          \
+                                               TASK_TYPE_RPC_RESPONSE,                             \
+                                               pri,                                                \
+                                               THREAD_POOL_DEFAULT,                                \
+                                               is_write,                                           \
+                                               allow_batch,                                        \
+                                               is_idempotent);
 
 // define a default task code "task_code_invalid", it's mainly used for representing
 // some error status when you want to return task_code in some functions.
