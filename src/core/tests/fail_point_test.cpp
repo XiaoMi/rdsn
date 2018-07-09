@@ -25,32 +25,31 @@ namespace fail {
 TEST(fail_point, off)
 {
     fail_point p;
-    p.set_action("off", 1.0, -1);
+    p.set_action("off");
     ASSERT_EQ(p.eval(), nullptr);
 }
 
 TEST(fail_point, return_test)
 {
     fail_point p;
-    p.set_action("return()", 1.0, -1);
-    ASSERT_EQ(p.eval(), nullptr);
+    p.set_action("return()");
+    ASSERT_EQ(*p.eval(), "");
 
-    p.set_action("return(test)", 1.0, -1);
+    p.set_action("return(test)");
     ASSERT_EQ(*p.eval(), "test");
 }
 
 TEST(fail_point, print)
 {
     fail_point p;
-    p.set_action("print(test)", 1.0, -1);
+    p.set_action("print(test)");
     ASSERT_EQ(p.eval(), nullptr);
 }
 
 TEST(fail_point, frequency_and_count)
 {
     fail_point p;
-    p.set_action("return()", 1, 100);
-    ASSERT_EQ(p.eval(), nullptr);
+    p.set_action("80%100*return()");
 
     int cnt = 0;
     double times = 0;
@@ -66,6 +65,40 @@ TEST(fail_point, frequency_and_count)
     for (int i = 0; i < times; i++) {
         ASSERT_EQ(p.eval(), nullptr);
     }
+}
+
+TEST(fail_point, parse)
+{
+    fail_point p;
+
+    p.set_action("return(64)");
+    ASSERT_EQ(p, fail_point(fail_point::Return, "64", 100, -1));
+
+    p = fail_point();
+    p.set_action("5*return");
+    ASSERT_EQ(p, fail_point(fail_point::Return, "", 100, 5));
+
+    p = fail_point();
+    p.set_action("125%2*return");
+    ASSERT_EQ(p, fail_point(fail_point::Return, "", 125, 2));
+
+    p = fail_point();
+    p.set_action("return(2%5)");
+    ASSERT_EQ(p, fail_point(fail_point::Return, "2%5", 100, -1));
+
+    p = fail_point();
+    p.set_action("125%2*off");
+    ASSERT_EQ(p, fail_point(fail_point::Off, "", 125, 2));
+
+    p = fail_point();
+    p.set_action("125%2*print");
+    ASSERT_EQ(p, fail_point(fail_point::Print, "", 125, 2));
+
+    ASSERT_FALSE(p.parse_from_string("delay"));
+    ASSERT_FALSE(p.parse_from_string("ab%return"));
+    ASSERT_FALSE(p.parse_from_string("ab*return"));
+    ASSERT_FALSE(p.parse_from_string("return(msg"));
+    ASSERT_FALSE(p.parse_from_string("unknown"));
 }
 
 } // namespace fail

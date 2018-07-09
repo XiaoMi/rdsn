@@ -22,6 +22,7 @@
 #include <dsn/utility/ports.h>
 #include <mutex>
 #include <unordered_map>
+#include <utility>
 
 namespace dsn {
 namespace fail {
@@ -35,15 +36,32 @@ struct fail_point
         Print,
     };
 
-    void set_action(string_view action, float freq, int max_cnt);
+    void set_action(string_view action);
 
     const std::string *eval();
 
+    fail_point() = default;
+
+    /// Only for test:
+
+    fail_point(task_type t, std::string arg, int freq, int max_cnt)
+        : _task(t), _arg(std::move(arg)), _freq(freq), _max_cnt(max_cnt)
+    {
+    }
+
+    bool parse_from_string(string_view action);
+
+    friend inline bool operator==(const fail_point &p1, const fail_point &p2)
+    {
+        return p1._task == p2._task && p1._arg == p2._arg && p1._freq == p2._freq &&
+               p1._max_cnt == p2._max_cnt;
+    }
+
 private:
-    task_type _task;
+    task_type _task{Off};
     std::string _arg;
-    float _freq;
-    int _max_cnt;
+    int _freq{100};
+    int _max_cnt{-1}; // TODO(wutao1): not thread-safe
 };
 
 struct fail_point_registry

@@ -14,6 +14,7 @@ set(MY_BOOST_PACKAGES system filesystem)
 
 set(MY_PROJ_LIBS gtest
                  dsn_runtime
+                 boost_regex
                  )
 
 set(MY_PROJ_LIB_PATH "${GTEST_LIB_DIR}")
