@@ -66,11 +66,11 @@ private:
 
 struct fail_point_registry
 {
-    fail_point *create_if_not_exists(string_view name)
+    fail_point &create_if_not_exists(string_view name)
     {
         std::lock_guard<std::mutex> guard(_mu);
 
-        return &_registry[std::string(name.data(), name.length())];
+        return _registry[std::string(name.data(), name.length())];
     }
 
     fail_point *try_get(string_view name)

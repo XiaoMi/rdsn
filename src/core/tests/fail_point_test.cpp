@@ -101,5 +101,34 @@ TEST(fail_point, parse)
     ASSERT_FALSE(p.parse_from_string("unknown"));
 }
 
+int test_func()
+{
+    FAIL_POINT_INJECT_F("test_1", [](string_view str) -> int {
+        EXPECT_EQ(str, "1");
+        return 1;
+    });
+
+    FAIL_POINT_INJECT_F("test_2", [](string_view str) -> int {
+        EXPECT_EQ(str, "2");
+        return 2;
+    });
+
+    return 0;
+}
+TEST(fail_point, macro_use)
+{
+    setup();
+
+    cfg("test_1", "1*return(1)");
+    ASSERT_EQ(test_func(), 1);
+
+    cfg("test_2", "1*return(2)");
+    ASSERT_EQ(test_func(), 2);
+
+    ASSERT_EQ(test_func(), 0);
+
+    teardown();
+}
+
 } // namespace fail
 } // namespace dsn

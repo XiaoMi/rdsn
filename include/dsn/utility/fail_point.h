@@ -32,10 +32,7 @@
             return __Func(*__Res);                                                                 \
         }                                                                                          \
     } while (0)
-#define FAIL_POINT_INJECT(name)                                                                    \
-    do {                                                                                           \
-        ::dsn::fail::eval(name)                                                                    \
-    } while (0)
+#define FAIL_POINT_INJECT(name) ::dsn::fail::eval(name)
 #else
 #define FAIL_POINT_INJECT_F(name, lambda)
 #define FAIL_POINT_INJECT(name)

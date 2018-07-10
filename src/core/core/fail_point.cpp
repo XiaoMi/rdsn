@@ -27,15 +27,17 @@ static fail_point_registry REGISTRY;
 
 /*extern*/ const std::string *eval(string_view name)
 {
-    auto p = REGISTRY.try_get(name);
-    dassert(p != nullptr, "%s is not registered", name.data());
+    fail_point *p = REGISTRY.try_get(name);
+    if (!p) {
+        return nullptr;
+    }
     return p->eval();
 }
 
 /*extern*/ void cfg(string_view name, string_view action)
 {
-    auto p = REGISTRY.create_if_not_exists(name);
-    p->set_action(action);
+    fail_point &p = REGISTRY.create_if_not_exists(name);
+    p.set_action(action);
 }
 
 /*extern*/ void setup() {}
@@ -59,7 +61,6 @@ bool fail_point::parse_from_string(string_view action)
 
     std::string tmp(action.data(), action.length());
     if (boost::regex_match(tmp, match, regex)) {
-        derror("%d", match.size());
         if (match.size() == 6) {
             boost::ssub_match sub_match = match[1];
             if (!sub_match.str().empty()) {
