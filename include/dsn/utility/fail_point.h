@@ -23,7 +23,12 @@
 #include <dsn/utility/string_view.h>
 
 /// The only entry to define a fail point.
-#ifndef NO_FAIL
+/// Add following line to cmake to compile target with fault injection.
+/// ```
+///   add_definition(-DENABLE_FAIL)
+/// ```
+/// When a fail point is defined, it's referenced via the name.
+#ifdef ENABLE_FAIL
 #define FAIL_POINT_INJECT_F(name, lambda)                                                          \
     do {                                                                                           \
         auto __Func = lambda;                                                                      \
@@ -44,6 +49,10 @@ namespace fail {
 extern const std::string *eval(dsn::string_view name);
 
 /// Set new actions to a fail point at runtime.
+/// The format of an action is `[p%][cnt*]task[(arg)]`. `p%` is the expected probability that
+/// the action is triggered, and `cnt*` is the max times the action can be triggered.
+/// For example, `20%3*print(still alive!)` means the fail point has 20% chance to print a
+/// message "still alive!". And the message will be printed at most 3 times.
 extern void cfg(dsn::string_view name, dsn::string_view action);
 
 extern void setup();
