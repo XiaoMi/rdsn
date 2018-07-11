@@ -32,7 +32,6 @@
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/utility/smart_pointers.h>
 #include <dsn/utility/chrono_literals.h>
-#include <dsn/cpp/message_utils.h>
 
 namespace dsn {
 
