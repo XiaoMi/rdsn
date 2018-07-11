@@ -57,6 +57,8 @@ TEST(message_utils, thrift_msg_convertion)
 
     t_rpc rpc(msg);
     ASSERT_EQ(rpc.request().app_name, "haha");
+
+    dsn_msg_release_ref(msg);
 }
 
 TEST(message_utils, complex_convertion)
