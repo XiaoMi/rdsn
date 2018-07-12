@@ -23,49 +23,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-#include <utility>
+#include <dsn/utility/utils.h>
+#include <dsn/tool-api/thread_access_checker.h>
+#include <dsn/c/api_utilities.h>
 
 namespace dsn {
 
-// `defer` is an useful util to implement RAII in golang, much alike
-// `try...finally...` in java. In C++ we used to implement an RAII class
-// wrapping around the resource:
-//
-// ```cpp
-// struct object_raii
-// {
-//   object_raii() {
-//     _obj = c_object_new();
-//   }
-//   ~object_raii() {
-//     c_object_free(_obj);
-//   }
-// private:
-//   c_object *_obj;
-// };
-// ```
-//
-// Now with `defer`, things will be simplified:
-//
-// ```cpp
-// c_object *obj = c_object_new();
-// auto cleanup = dsn::defer([obj]() { c_object_free(obj); });
-// ```
+thread_access_checker::thread_access_checker() { _access_thread_id_inited = false; }
 
-template <typename Func>
-struct deferred_action
-{
-    explicit deferred_action(Func &&func) noexcept : _func(std::move(func)) {}
-    ~deferred_action() { _func(); }
-private:
-    Func _func;
-};
+thread_access_checker::~thread_access_checker() { _access_thread_id_inited = false; }
 
-template <typename Func>
-inline deferred_action<Func> defer(Func &&func)
+void thread_access_checker::only_one_thread_access()
 {
-    return deferred_action<Func>(std::forward<Func>(func));
+    if (_access_thread_id_inited) {
+        dassert(::dsn::utils::get_current_tid() == _access_thread_id,
+                "the service is assumed to be accessed by one thread only!");
+    } else {
+        _access_thread_id = ::dsn::utils::get_current_tid();
+        _access_thread_id_inited = true;
+    }
 }
-
-} // namespace dsn
+}
