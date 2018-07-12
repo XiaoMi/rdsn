@@ -142,14 +142,14 @@ check_and_download "thrift-0.9.3.tar.gz"\
     "thrift-0.9.3"
 ret_code=$?
 if [ $ret_code -eq 2 ]; then
-    exit -1
+    exit 2
 elif [ $ret_code -eq 0 ]; then
     echo "make patch to thrift"
     cd thrift-0.9.3
     patch -p1 < ../../fix_thrift_for_cpp11.patch
     if [ $? != 0 ]; then
         echo "ERROR: patch fix_thrift_for_cpp11.patch for thrift failed"
-        exit -1
+        exit 2
     fi
     cd ..
 fi
@@ -180,7 +180,7 @@ if [ ! -d $TP_SRC/fds ]; then
     git clone https://github.com/XiaoMi/galaxy-fds-sdk-cpp.git
     if [ $? != 0 ]; then
         echo "ERROR: download fds wrong"
-        exit -1
+        exit 2
     fi
     echo "mv galaxy-fds-sdk-cpp fds"
     mv galaxy-fds-sdk-cpp fds
@@ -202,14 +202,14 @@ check_and_download "s2geometry-master.zip"\
     "s2geometry"
 ret_code=$?
 if [ $ret_code -eq 2 ]; then
-    exit -1
+    exit 2
 elif [ $ret_code -eq 0 ]; then
     echo "make patch to s2geometry"
     cd s2geometry-master
     patch -p1 < ../../fix_s2_for_pegasus.patch
     if [ $? != 0 ]; then
         echo "ERROR: patch fix_s2_for_pegasus.patch for s2geometry failed"
-        exit -1
+        exit 2
     fi
     cd ..
 fi
