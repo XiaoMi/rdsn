@@ -57,4 +57,6 @@ string_view::size_type string_view::find(string_view s, size_type pos) const noe
     return result ? result - ptr_ : npos;
 }
 
+constexpr string_view::size_type string_view::npos;
+
 } // namespace dsn
