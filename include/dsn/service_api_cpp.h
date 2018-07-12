@@ -41,7 +41,6 @@
 #include <dsn/cpp/serialization_helper/dsn.layer2.types.h>
 #include <dsn/cpp/rpc_stream.h>
 #include <dsn/cpp/zlocks.h>
-#include <dsn/cpp/clientlet.h>
 #include <dsn/cpp/serverlet.h>
 #include <dsn/cpp/service_app.h>
 #include <dsn/tool-api/rpc_address.h>

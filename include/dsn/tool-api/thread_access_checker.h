@@ -23,49 +23,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-#include <utility>
+#pragma once
 
 namespace dsn {
 
-// `defer` is an useful util to implement RAII in golang, much alike
-// `try...finally...` in java. In C++ we used to implement an RAII class
-// wrapping around the resource:
-//
-// ```cpp
-// struct object_raii
-// {
-//   object_raii() {
-//     _obj = c_object_new();
-//   }
-//   ~object_raii() {
-//     c_object_free(_obj);
-//   }
-// private:
-//   c_object *_obj;
-// };
-// ```
-//
-// Now with `defer`, things will be simplified:
-//
-// ```cpp
-// c_object *obj = c_object_new();
-// auto cleanup = dsn::defer([obj]() { c_object_free(obj); });
-// ```
-
-template <typename Func>
-struct deferred_action
+///
+/// a simple class used to check if some code is accessed by only one thread.
+/// please refer to @replica.h and @lock_struct.h for a sample usage
+///
+class thread_access_checker
 {
-    explicit deferred_action(Func &&func) noexcept : _func(std::move(func)) {}
-    ~deferred_action() { _func(); }
+public:
+    thread_access_checker();
+    ~thread_access_checker();
+
+    void only_one_thread_access();
+
 private:
-    Func _func;
+    // TODO: the implementation is not thread safe. use atomic variable to reimplement this
+    int _access_thread_id;
+    bool _access_thread_id_inited;
 };
-
-template <typename Func>
-inline deferred_action<Func> defer(Func &&func)
-{
-    return deferred_action<Func>(std::forward<Func>(func));
 }
-
-} // namespace dsn
