@@ -46,6 +46,7 @@
 
 #include <dsn/utility/absl/base/internal/invoke.h>
 
+// make namespace absl internal of dsn to solve redefine error with absl in s2geometry
 namespace dsn {
 namespace absl {
 

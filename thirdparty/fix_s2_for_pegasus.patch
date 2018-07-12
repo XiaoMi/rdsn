@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index c6b40ee..1f1efe8 100644
+index c6b40ee..cd20718 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -1,4 +1,4 @@
@@ -8,7 +8,12 @@ index c6b40ee..1f1efe8 100644
  project(s2-geometry)
  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
  include(CMakeDependentOption)
-@@ -21,7 +21,8 @@ option(BUILD_SHARED_LIBS "Build shared libraries instead of static." ON)
+@@ -17,11 +17,12 @@ cmake_dependent_option(WITH_GLOG "Use glog for logging." ON
+                        "WITH_GFLAGS" OFF)
+ add_feature_info(GLOG WITH_GLOG "provides logging configurability.")
+ 
+-option(BUILD_SHARED_LIBS "Build shared libraries instead of static." ON)
++option(BUILD_SHARED_LIBS "Build shared libraries instead of static." OFF)
  add_feature_info(SHARED_LIBS BUILD_SHARED_LIBS
                   "builds shared libraries instead of static.")
  
