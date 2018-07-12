@@ -18,50 +18,6 @@
 
 namespace {
 
-TEST(StringViewTest, STLComparator)
-{
-    std::string s1("foo");
-    std::string s2("bar");
-    std::string s3("baz");
-
-    dsn::string_view p1(s1);
-    dsn::string_view p2(s2);
-    dsn::string_view p3(s3);
-
-    typedef std::map<dsn::string_view, int> TestMap;
-    TestMap map;
-
-    map.insert(std::make_pair(p1, 0));
-    map.insert(std::make_pair(p2, 1));
-    map.insert(std::make_pair(p3, 2));
-    EXPECT_EQ(map.size(), 3);
-
-    TestMap::const_iterator iter = map.begin();
-    EXPECT_EQ(iter->second, 1);
-    ++iter;
-    EXPECT_EQ(iter->second, 2);
-    ++iter;
-    EXPECT_EQ(iter->second, 0);
-    ++iter;
-    EXPECT_TRUE(iter == map.end());
-
-    TestMap::iterator new_iter = map.find("zot");
-    EXPECT_TRUE(new_iter == map.end());
-
-    new_iter = map.find("bar");
-    EXPECT_TRUE(new_iter != map.end());
-
-    map.erase(new_iter);
-    EXPECT_EQ(map.size(), 2);
-
-    iter = map.begin();
-    EXPECT_EQ(iter->second, 2);
-    ++iter;
-    EXPECT_EQ(iter->second, 0);
-    ++iter;
-    EXPECT_TRUE(iter == map.end());
-}
-
 // Separated from STL1() because some compilers produce an overly
 // large stack frame for the combined function.
 TEST(StringViewTest, STL2)
