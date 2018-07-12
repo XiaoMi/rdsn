@@ -57,7 +57,14 @@ function check_and_download()
 function extract_package()
 {
     package_name=$1
-    tar xf $package_name
+    is_tar_gz=$(echo $package_name | grep ".tar.gz")
+    if [[ $is_tar_gz != "" ]]; then
+        tar xf $package_name
+    fi
+    is_zip=$(echo $package_name | grep ".zip")
+    if [[ $is_zip != "" ]]; then
+        unzip -o $package_name
+    fi
     local ret_code=$?
     if [ $ret_code -ne 0 ]; then
         rm -f $package_name
@@ -189,14 +196,22 @@ check_and_download "fmt-4.0.0.tar.gz"\
 exit_if_fail $?
 
 # s2geometry
-if [ ! -d $TP_SRC/s2geometry ]; then
-    git clone -b pegasus https://github.com/acelyc111/s2geometry.git
+check_and_download "s2geometry-master.zip"\
+    "https://github.com/google/s2geometry/archive/master.zip"\
+    "afda53fb79131248d414e10f5246f4ed"\
+    "s2geometry"
+ret_code=$?
+if [ $ret_code -eq 2 ]; then
+    exit -1
+elif [ $ret_code -eq 0 ]; then
+    echo "make patch to s2geometry"
+    cd s2geometry-master
+    patch -p1 < ../../fix_s2_for_pegasus.patch
     if [ $? != 0 ]; then
-        echo "ERROR: download s2geometry wrong"
+        echo "ERROR: patch fix_s2_for_pegasus.patch for s2geometry failed"
         exit -1
     fi
-else
-    echo "s2geometry has already downloaded, skip it"
+    cd ..
 fi
 
 cd $TP_DIR
