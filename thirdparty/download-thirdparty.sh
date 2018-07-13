@@ -63,7 +63,7 @@ function extract_package()
     fi
     is_zip=$(echo $package_name | grep ".zip")
     if [[ $is_zip != "" ]]; then
-        unzip -o $package_name
+        unzip -oq $package_name
     fi
     local ret_code=$?
     if [ $ret_code -ne 0 ]; then
@@ -199,7 +199,7 @@ exit_if_fail $?
 check_and_download "s2geometry-master.zip"\
     "https://github.com/google/s2geometry/archive/master.zip"\
     "afda53fb79131248d414e10f5246f4ed"\
-    "s2geometry"
+    "s2geometry-master"
 ret_code=$?
 if [ $ret_code -eq 2 ]; then
     exit 2
