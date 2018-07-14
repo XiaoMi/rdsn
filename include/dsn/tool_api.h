@@ -164,7 +164,6 @@ register_component_provider(const char *name, nfs_node::factory f, ::dsn::provid
 DSN_API bool register_component_provider(network_header_format fmt,
                                          const std::vector<const char *> &signatures,
                                          message_parser::factory f,
-                                         message_parser::factory2 f2,
                                          size_t sz);
 DSN_API bool register_toollet(const char *name, toollet::factory f, ::dsn::provider_type type);
 DSN_API bool register_tool(const char *name, tool_app::factory f, ::dsn::provider_type type);
