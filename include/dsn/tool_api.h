@@ -227,7 +227,7 @@ bool register_message_header_parser(network_header_format fmt,
                                     const std::vector<const char *> &signatures)
 {
     return internal_use_only::register_component_provider(
-        fmt, signatures, T::template create<T>, T::template create2<T>, sizeof(T));
+        fmt, signatures, T::template create<T>, sizeof(T));
 }
 }
 } // end namespace dsn::tools
