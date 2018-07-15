@@ -67,7 +67,11 @@ struct fast_code
 
 typedef struct message_header
 {
+    // For thrift protocol this is "THRT".
+    // For dsn protocol this is "RDSN".
+    // For http protocol this is either a "GET " or "POST".
     uint32_t hdr_type;
+
     uint32_t hdr_version;
     uint32_t hdr_length;
     uint32_t hdr_crc32;
