@@ -48,6 +48,8 @@ struct parser_context
 
 http_message_parser::http_message_parser()
 {
+    memset(&_parser_setting, 0, sizeof(_parser_setting));
+
     _parser_setting.on_message_begin = [](http_parser *parser) -> int {
         auto &msg = reinterpret_cast<parser_context *>(parser->data)->parser->_current_message;
 
@@ -69,6 +71,12 @@ http_message_parser::http_message_parser()
         return 0;
     };
 
+    _parser_setting.on_header_field =
+        [](http_parser *parser, const char *at, size_t length) -> int { return 0; };
+
+    _parser_setting.on_header_value =
+        [](http_parser *parser, const char *at, size_t length) -> int { return 0; };
+
     _parser_setting.on_headers_complete = [](http_parser *parser) -> int {
         auto &msg = reinterpret_cast<parser_context *>(parser->data)->parser->_current_message;
 
@@ -83,6 +91,12 @@ http_message_parser::http_message_parser()
             derror("invalid http type %d and method %d", parser->type, parser->method);
             return 1;
         }
+        return 0;
+    };
+
+    _parser_setting.on_message_complete = [](http_parser *parser) -> int {
+        auto message_parser = reinterpret_cast<parser_context *>(parser->data)->parser;
+        message_parser->_received_messages.emplace(std::move(message_parser->_current_message));
         return 0;
     };
 
@@ -101,15 +115,12 @@ message_ex *http_message_parser::get_message_on_receive(message_reader *reader,
 
         _parser_setting.on_body = [](http_parser *parser, const char *at, size_t length) -> int {
             auto data = reinterpret_cast<parser_context *>(parser->data);
-            auto& msg = data->parser->_current_message;
+            auto &msg = data->parser->_current_message;
             blob read_buf = data->reader->_buffer;
 
             // set http body
             msg->buffers[1].assign(read_buf.buffer(), at - read_buf.buffer_ptr(), length);
             msg->header->body_length = length;
-
-            // complete
-            data->parser->_received_messages.emplace(std::move(msg));
             return 0;
         };
 

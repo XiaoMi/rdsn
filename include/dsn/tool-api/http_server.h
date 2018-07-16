@@ -67,11 +67,7 @@ public:
 
     ~http_server() override = default;
 
-    void add_service(http_service *service)
-    {
-        dassert(service != nullptr, "");
-        _service_map.emplace(service->path(), std::unique_ptr<http_service>(service));
-    }
+    void add_service(http_service *service);
 
     void serve(dsn_message_t msg);
 

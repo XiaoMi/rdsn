@@ -5,8 +5,9 @@
 #include <dsn/tool-api/http_server.h>
 #include <dsn/tool_api.h>
 
-#include "rpcz_http_service.h"
 #include "http_message_parser.h"
+#include "rpcz_http_service.h"
+#include "root_http_service.h"
 
 namespace dsn {
 
@@ -18,6 +19,7 @@ http_server::http_server() : serverlet<http_server>("http_server")
 
     // add builtin services
     add_service(new rpcz_http_service());
+    add_service(new root_http_service());
 }
 
 void http_server::serve(dsn_message_t msg)
@@ -35,6 +37,12 @@ void http_server::serve(dsn_message_t msg)
     dsn_rpc_reply(resp.to_message(msg));
 }
 
+void http_server::add_service(http_service *service)
+{
+    dassert(service != nullptr, "");
+    _service_map.emplace(service->path(), std::unique_ptr<http_service>(service));
+}
+
 http_request http_request::parse(dsn_message_t msg)
 {
     auto m = (message_ex *)(msg);
@@ -43,6 +51,26 @@ http_request http_request::parse(dsn_message_t msg)
     http_request ret;
     ret.body = m->buffers[1];
     ret.full_url = m->buffers[2];
+
+    http_parser_url u{0};
+    http_parser_parse_url(ret.full_url.data(), ret.full_url.length(), false, &u);
+
+    std::string unresolved_path;
+    if (u.field_set & (1u << UF_PATH)) {
+        unresolved_path.resize(u.field_data[UF_PATH].len + 1);
+        strncpy(&unresolved_path[0],
+                ret.full_url.data() + u.field_data[UF_PATH].off,
+                u.field_data[UF_PATH].len);
+        unresolved_path[u.field_data[UF_PATH].len] = '\0';
+    }
+
+    utils::split_args(unresolved_path.data(), ret.url_path, '/');
+
+    if (ret.url_path.empty()) {
+        // http://host ==> http://host/
+        // redirect to root_http_service.
+        ret.url_path.emplace_back("/");
+    }
     return ret;
 }
 
