@@ -24,18 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
-#ifdef _WIN32
-#include <Winsock2.h>
-#endif
 #include <dsn/tool-api/network.h>
 #include <dsn/utility/factory_store.h>
 #include "message_parser_manager.h"
@@ -472,15 +460,6 @@ message_parser *network::new_message_parser(network_header_format hdr_format)
     message_parser *parser = message_parser_manager::instance().create_parser(hdr_format);
     dassert(parser, "message parser '%s' not registerd or invalid!", hdr_format.to_string());
     return parser;
-}
-
-std::pair<message_parser::factory2, size_t>
-network::get_message_parser_info(network_header_format hdr_format)
-{
-    auto &pinfo = message_parser_manager::instance().get(hdr_format);
-    dassert(
-        pinfo.factory2, "message parser '%s' not registerd or invalid!", hdr_format.to_string());
-    return std::make_pair(pinfo.factory2, pinfo.parser_size);
 }
 
 uint32_t network::get_local_ipv4()
