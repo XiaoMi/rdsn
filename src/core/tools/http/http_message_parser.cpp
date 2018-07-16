@@ -40,27 +40,39 @@ namespace dsn {
 // msg->buffers[1] = body
 // msg->buffers[2] = url
 
+struct parser_context
+{
+    http_message_parser *parser;
+    message_reader *reader;
+};
+
 http_message_parser::http_message_parser()
 {
-    _parser_setting.on_message_begin = [this](http_parser *parser) -> int {
-        // initialize http message
-        _current_message.reset(message_ex::create_receive_message_with_standalone_header(blob()));
+    _parser_setting.on_message_begin = [](http_parser *parser) -> int {
+        auto &msg = reinterpret_cast<parser_context *>(parser->data)->parser->_current_message;
 
-        message_header *header = _current_message->header;
+        // initialize http message
+        msg.reset(message_ex::create_receive_message_with_standalone_header(blob()));
+
+        message_header *header = msg->header;
         header->hdr_length = sizeof(message_header);
         header->hdr_crc32 = header->body_crc32 = CRC_INVALID;
         strcpy(header->rpc_name, RPC_HTTP_SERVICE.to_string());
         return 0;
     };
 
-    _parser_setting.on_url = [this](http_parser *parser, const char *at, size_t length) -> int {
+    _parser_setting.on_url = [](http_parser *parser, const char *at, size_t length) -> int {
+        auto &msg = reinterpret_cast<parser_context *>(parser->data)->parser->_current_message;
+
         std::string url(at, length);
-        _current_message->buffers.emplace_back(blob::create_from_bytes(std::move(url)));
+        msg->buffers.emplace_back(blob::create_from_bytes(std::move(url)));
         return 0;
     };
 
-    _parser_setting.on_headers_complete = [this](http_parser *parser) -> int {
-        message_header *header = _current_message->header;
+    _parser_setting.on_headers_complete = [](http_parser *parser) -> int {
+        auto &msg = reinterpret_cast<parser_context *>(parser->data)->parser->_current_message;
+
+        message_header *header = msg->header;
         if (parser->type == HTTP_REQUEST && parser->method == HTTP_GET) {
             header->hdr_type = *(uint32_t *)"GET ";
             header->context.u.is_request = 1;
@@ -84,18 +96,20 @@ message_ex *http_message_parser::get_message_on_receive(message_reader *reader,
     read_next = 4096;
 
     if (reader->_buffer_occupied > 0) {
+        parser_context ctx{this, reader};
+        _parser.data = &ctx;
 
-        _parser_setting.on_body =
-            [this, reader](http_parser *parser, const char *at, size_t length) -> int {
-            blob read_buf = reader->_buffer;
+        _parser_setting.on_body = [](http_parser *parser, const char *at, size_t length) -> int {
+            auto data = reinterpret_cast<parser_context *>(parser->data);
+            auto& msg = data->parser->_current_message;
+            blob read_buf = data->reader->_buffer;
 
             // set http body
-            _current_message->buffers[1].assign(
-                read_buf.buffer(), at - read_buf.buffer_ptr(), length);
-            _current_message->header->body_length = length;
+            msg->buffers[1].assign(read_buf.buffer(), at - read_buf.buffer_ptr(), length);
+            msg->header->body_length = length;
 
             // complete
-            _received_messages.emplace(std::move(_current_message));
+            data->parser->_received_messages.emplace(std::move(msg));
             return 0;
         };
 

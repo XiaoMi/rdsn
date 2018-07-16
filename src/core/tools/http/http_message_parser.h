@@ -54,14 +54,14 @@ class http_message_parser : public message_parser
 public:
     http_message_parser();
 
-    virtual ~http_message_parser() {}
+    ~http_message_parser() override = default;
 
-    virtual message_ex *get_message_on_receive(message_reader *reader,
-                                               /*out*/ int &read_next) override;
+    message_ex *get_message_on_receive(message_reader *reader,
+                                       /*out*/ int &read_next) override;
 
-    virtual void prepare_on_send(message_ex *msg) override;
+    void prepare_on_send(message_ex *msg) override;
 
-    virtual int get_buffers_on_send(message_ex *msg, /*out*/ send_buf *buffers) override;
+    int get_buffers_on_send(message_ex *msg, /*out*/ send_buf *buffers) override;
 
 private:
     http_parser_settings _parser_setting;

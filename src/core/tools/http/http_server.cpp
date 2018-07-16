@@ -20,13 +20,6 @@ http_server::http_server() : serverlet<http_server>("http_server")
     add_service(new rpcz_http_service());
 }
 
-http_server::~http_server()
-{
-    for (auto &kv : _service_map) {
-        delete kv.second;
-    }
-}
-
 void http_server::serve(dsn_message_t msg)
 {
     http_request req = http_request::parse(msg);
@@ -36,11 +29,29 @@ void http_server::serve(dsn_message_t msg)
     if (it != _service_map.end()) {
         it->second->call(req, resp);
     } else {
-
+        resp.status_code = http_status_code::bad_request;
     }
 
-    dsn_message_t resp_msg = dsn_msg_create_response(msg);
-    dsn_rpc_reply(resp_msg);
+    dsn_rpc_reply(resp.to_message(msg));
+}
+
+http_request http_request::parse(dsn_message_t msg)
+{
+    auto m = (message_ex *)(msg);
+    dassert(m->buffers.size() == 3, "");
+
+    http_request ret;
+    ret.body = m->buffers[1];
+    ret.full_url = m->buffers[2];
+    return ret;
+}
+
+dsn_message_t http_response::to_message(dsn_message_t req) const
+{
+    dsn_message_t resp = dsn_msg_create_response(req);
+    rpc_write_stream writer(resp);
+    writer.write(blob::create_from_bytes(body));
+    return resp;
 }
 
 } // namespace dsn

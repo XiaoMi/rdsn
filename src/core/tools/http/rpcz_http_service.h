@@ -11,9 +11,19 @@ class rpcz_http_service : public http_service
 public:
     rpcz_http_service()
     {
-        register_handler("/", &rpcz_http_service::default_handler);
-        register_handler("/enable", std::bind(rpcz_http_service::enable, this));
-        register_handler("/disable", std::bind(rpcz_http_service::disable, this));
+        register_handler("/",
+                         std::bind(&rpcz_http_service::default_handler,
+                                   this,
+                                   std::placeholders::_1,
+                                   std::placeholders::_2));
+        register_handler(
+            "/enable",
+            std::bind(
+                &rpcz_http_service::enable, this, std::placeholders::_1, std::placeholders::_2));
+        register_handler(
+            "/disable",
+            std::bind(
+                &rpcz_http_service::disable, this, std::placeholders::_1, std::placeholders::_2));
     }
 
     std::string path() const override { return "/rpcz"; }
