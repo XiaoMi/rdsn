@@ -38,6 +38,17 @@ namespace dsn {
 
 DEFINE_CUSTOMIZED_ID(network_header_format, NET_HDR_HTTP)
 
+// Incoming HTTP requests will be parsed into:
+//
+//    msg->header->rpc_name = "RPC_HTTP_SERVICE"
+//    msg->header->body_length = http body length
+//    msg->header->hdr_type = "POST" / "GET ";
+//    msg->hdr_format = NET_HDR_HTTP
+//    msg->buffers[0] = header
+//    msg->buffers[1] = body
+//    msg->buffers[2] = url
+//
+
 class http_message_parser : public message_parser
 {
 public:
@@ -55,7 +66,6 @@ public:
 private:
     http_parser_settings _parser_setting;
     http_parser _parser;
-    blob _current_buffer;
     std::unique_ptr<message_ex> _current_message;
     std::queue<std::unique_ptr<message_ex>> _received_messages;
 };

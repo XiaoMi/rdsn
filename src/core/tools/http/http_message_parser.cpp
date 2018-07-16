@@ -31,45 +31,36 @@
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/cpp/serialization.h>
 #include <dsn/c/api_layer1.h>
+#include <dsn/tool-api/http_server.h>
 #include <iomanip>
 
 namespace dsn {
 
+// msg->buffers[0] = header
+// msg->buffers[1] = body
+// msg->buffers[2] = url
+
 http_message_parser::http_message_parser()
 {
-    _parser.data = this;
-    _parser_setting.on_message_begin = [](http_parser *parser) -> int {
-        auto owner = static_cast<http_message_parser *>(parser->data);
-        owner->_current_message.reset(
-            message_ex::create_receive_message_with_standalone_header(blob()));
+    _parser_setting.on_message_begin = [this](http_parser *parser) -> int {
+        // initialize http message
+        _current_message.reset(message_ex::create_receive_message_with_standalone_header(blob()));
 
-        message_header *header = owner->_current_message->header;
+        message_header *header = _current_message->header;
         header->hdr_length = sizeof(message_header);
         header->hdr_crc32 = header->body_crc32 = CRC_INVALID;
+        strcpy(header->rpc_name, RPC_HTTP_SERVICE.to_string());
         return 0;
     };
 
-    _parser_setting.on_url = [](http_parser *parser, const char *at, size_t length) -> int {
+    _parser_setting.on_url = [this](http_parser *parser, const char *at, size_t length) -> int {
         std::string url(at, length);
-
-        auto owner = static_cast<http_message_parser *>(parser->data);
-        auto &hdr = owner->_current_message->header;
-
-        // Store url in rpc_name
-        // TODO(wutao1): This will lead to limitation of url length (max=48). Place the url
-        // in msg->buffers if we must handle long url.
-        if (url.length() > DSN_MAX_TASK_CODE_NAME_LENGTH) {
-            derror("url is too long to be handled: %s", url.data());
-            return 1;
-        }
-        strcpy(hdr->rpc_name, url.c_str());
-
+        _current_message->buffers.emplace_back(blob::create_from_bytes(std::move(url)));
         return 0;
     };
 
-    _parser_setting.on_headers_complete = [](http_parser *parser) -> int {
-        auto owner = static_cast<http_message_parser *>(parser->data);
-        message_header *header = owner->_current_message->header;
+    _parser_setting.on_headers_complete = [this](http_parser *parser) -> int {
+        message_header *header = _current_message->header;
         if (parser->type == HTTP_REQUEST && parser->method == HTTP_GET) {
             header->hdr_type = *(uint32_t *)"GET ";
             header->context.u.is_request = 1;
@@ -83,16 +74,6 @@ http_message_parser::http_message_parser()
         return 0;
     };
 
-    _parser_setting.on_body = [](http_parser *parser, const char *at, size_t length) -> int {
-        auto owner = static_cast<http_message_parser *>(parser->data);
-        dassert(owner->_current_buffer.buffer() != nullptr, "the read buffer is not owning");
-        owner->_current_message->buffers.rbegin()->assign(
-            owner->_current_buffer.buffer(), at - owner->_current_buffer.buffer_ptr(), length);
-        owner->_current_message->header->body_length = length;
-        owner->_received_messages.emplace(std::move(owner->_current_message));
-        return 0;
-    };
-
     // rDSN application can only serve as http server, support for http client is not in our plan.
     http_parser_init(&_parser, HTTP_REQUEST);
 }
@@ -103,21 +84,30 @@ message_ex *http_message_parser::get_message_on_receive(message_reader *reader,
     read_next = 4096;
 
     if (reader->_buffer_occupied > 0) {
-        _current_buffer = reader->_buffer;
+
+        _parser_setting.on_body =
+            [this, reader](http_parser *parser, const char *at, size_t length) -> int {
+            blob read_buf = reader->_buffer;
+
+            // set http body
+            _current_message->buffers[1].assign(
+                read_buf.buffer(), at - read_buf.buffer_ptr(), length);
+            _current_message->header->body_length = length;
+
+            // complete
+            _received_messages.emplace(std::move(_current_message));
+            return 0;
+        };
+
         auto nparsed = http_parser_execute(
             &_parser, &_parser_setting, reader->_buffer.data(), reader->_buffer_occupied);
-        _current_buffer = blob();
+
         reader->_buffer = reader->_buffer.range(nparsed);
         reader->_buffer_occupied -= nparsed;
-        if (_parser.upgrade) {
-            derror("unsupported http protocol");
-            read_next = -1;
-            return nullptr;
-        }
     }
 
     if (!_received_messages.empty()) {
-        auto msg = std::move(_received_messages.front());
+        std::unique_ptr<message_ex> msg = std::move(_received_messages.front());
         _received_messages.pop();
         msg->hdr_format = NET_HDR_HTTP;
         return msg.release();

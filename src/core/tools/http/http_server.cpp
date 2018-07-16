@@ -3,19 +3,18 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <dsn/tool-api/http_server.h>
-#include <dsn/dist/replication.h>
+#include <dsn/tool_api.h>
 
 #include "rpcz_http_service.h"
+#include "http_message_parser.h"
 
 namespace dsn {
 
-DEFINE_TASK_CODE_RPC(RPC_, TASK_PRIORITY_LOW, THREAD_POOL_DEFAULT);
-
 http_server::http_server() : serverlet<http_server>("http_server")
 {
-    register_rpc_handler(RPC_CM_QUERY_NODE_PARTITIONS,
-                         "",
-                         &meta_service::on_query_configuration_by_node);
+    register_rpc_handler(RPC_HTTP_SERVICE, "http_service", &http_server::serve);
+
+    tools::register_message_header_parser<http_message_parser>(NET_HDR_HTTP, {"GET ", "POST"});
 
     // add builtin services
     add_service(new rpcz_http_service());
@@ -37,6 +36,7 @@ void http_server::serve(dsn_message_t msg)
     if (it != _service_map.end()) {
         it->second->call(req, resp);
     } else {
+
     }
 
     dsn_message_t resp_msg = dsn_msg_create_response(msg);

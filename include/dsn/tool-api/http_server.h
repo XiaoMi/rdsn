@@ -67,4 +67,7 @@ private:
     std::map<std::string, http_service *> _service_map;
 };
 
+/// The rpc code for all the HTTP RPCs.
+DEFINE_TASK_CODE_RPC(RPC_HTTP_SERVICE, TASK_PRIORITY_LOW, THREAD_POOL_DEFAULT);
+
 } // namespace dsn
