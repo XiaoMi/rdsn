@@ -280,7 +280,8 @@ public:
     // thread safe
     void check_valid_start_offset(gpid gpid, int64_t valid_start_offset) const;
 
-    int64_t size() const { return _global_end_offset - _global_start_offset; }
+    // get total size.
+    int64_t total_size() const;
 
     void hint_switch_file() { _switch_file_hint = true; }
     void demand_switch_file() { _switch_file_demand = true; }
@@ -291,7 +292,7 @@ protected:
     // can switch file only when create_new_log_if_needed = true;
     // return pair: the first is target file to write; the second is the global offset to start
     // write
-    std::pair<log_file_ptr, int64_t> mark_new_offset(size_t size, bool create_new_log_if_needed);
+    std::pair<log_file_ptr, int64_t> mark_new_offset(size_t total_size, bool create_new_log_if_needed);
     // thread-safe
     int64_t get_global_offset() const
     {
@@ -326,6 +327,9 @@ private:
     // - _pending_write == nullptr (because we need create new pending buffer to write file header)
     // - _lock.locked()
     error_code create_new_log_file();
+
+    // get total size ithout lock.
+    int64_t total_size_no_lock() const;
 
 protected:
     std::string _dir;
