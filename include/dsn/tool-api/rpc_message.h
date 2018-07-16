@@ -159,12 +159,18 @@ public:
                                               uint64_t partition_hash = 0);
 
     /// This method is only used for receiving request.
-    /// For the returned message:
+    /// The returned message:
     ///   - msg->buffers[0] = message_header
     ///   - msg->buffers[1] = data
     DSN_API static message_ex *create_receive_message_with_standalone_header(const blob &data);
 
+    /// The returned message:
+    ///   - msg->buffers[0] = message_header
+    ///   - msg->_is_read = false
+    ///   - msg->_rw_index = 0
+    ///   - msg->_rw_offset = 48 (size of message_header)
     DSN_API message_ex *create_response();
+
     DSN_API message_ex *copy(bool clone_content, bool copy_for_receive);
     DSN_API message_ex *copy_and_prepare_send(bool clone_content);
 

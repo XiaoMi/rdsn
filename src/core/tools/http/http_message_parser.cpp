@@ -36,10 +36,6 @@
 
 namespace dsn {
 
-// msg->buffers[0] = header
-// msg->buffers[1] = body
-// msg->buffers[2] = url
-
 struct parser_context
 {
     http_message_parser *parser;
@@ -54,6 +50,8 @@ http_message_parser::http_message_parser()
         auto &msg = reinterpret_cast<parser_context *>(parser->data)->parser->_current_message;
 
         // initialize http message
+        // msg->buffers[0] = header
+        // msg->buffers[1] = body (blob())
         msg.reset(message_ex::create_receive_message_with_standalone_header(blob()));
 
         message_header *header = msg->header;
@@ -66,6 +64,7 @@ http_message_parser::http_message_parser()
     _parser_setting.on_url = [](http_parser *parser, const char *at, size_t length) -> int {
         auto &msg = reinterpret_cast<parser_context *>(parser->data)->parser->_current_message;
 
+        // msg->buffers[2] = url
         std::string url(at, length);
         msg->buffers.emplace_back(blob::create_from_bytes(std::move(url)));
         return 0;
@@ -163,39 +162,13 @@ void http_message_parser::prepare_on_send(message_ex *msg)
 
 int http_message_parser::get_buffers_on_send(message_ex *msg, send_buf *buffers)
 {
-    auto &msg_header = msg->header;
-    auto &msg_buffers = msg->buffers;
+    std::vector<blob> &msg_buffers = msg->buffers;
+    dassert(msg_buffers.size() == 2, "");
 
-    // leave buffers[0] to header
-    int i = 1;
-    // we must skip the dsn message header
-    unsigned int offset = sizeof(message_header);
-    unsigned int dsn_size = sizeof(message_header) + msg_header->body_length;
-    int dsn_buf_count = 0;
-    while (dsn_size > 0 && dsn_buf_count < msg_buffers.size()) {
-        blob &buf = msg_buffers[dsn_buf_count];
-        dassert(dsn_size >= buf.length(), "%u VS %u", dsn_size, buf.length());
-        dsn_size -= buf.length();
-        ++dsn_buf_count;
+    buffers[0].buf = (void *)msg_buffers[1].data();
+    buffers[0].sz = msg_buffers[1].length();
 
-        if (offset >= buf.length()) {
-            offset -= buf.length();
-            continue;
-        }
-        buffers[i].buf = (void *)(buf.data() + offset);
-        buffers[i].sz = buf.length() - offset;
-        offset = 0;
-        ++i;
-    }
-    dassert(dsn_size == 0, "dsn_size = %u", dsn_size);
-    dassert(dsn_buf_count + 1 == msg_buffers.size(), "must have 1 more blob at the end");
-
-    // set header
-    blob &header_bb = msg_buffers[dsn_buf_count];
-    buffers[0].buf = (void *)header_bb.data();
-    buffers[0].sz = header_bb.length();
-
-    return i;
+    return 1;
 }
 
 } // namespace dsn

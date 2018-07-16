@@ -64,8 +64,10 @@ public:
     int get_buffers_on_send(message_ex *msg, /*out*/ send_buf *buffers) override;
 
 private:
+    // see https://github.com/joyent/http-parser
     http_parser_settings _parser_setting;
     http_parser _parser;
+
     std::unique_ptr<message_ex> _current_message;
     std::queue<std::unique_ptr<message_ex>> _received_messages;
 };
