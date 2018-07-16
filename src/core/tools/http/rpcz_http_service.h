@@ -11,17 +11,17 @@ class rpcz_http_service : public http_service
 public:
     rpcz_http_service()
     {
-        register_handler("/",
+        register_handler("",
                          std::bind(&rpcz_http_service::default_handler,
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2));
         register_handler(
-            "/enable",
+            "enable",
             std::bind(
                 &rpcz_http_service::enable, this, std::placeholders::_1, std::placeholders::_2));
         register_handler(
-            "/disable",
+            "disable",
             std::bind(
                 &rpcz_http_service::disable, this, std::placeholders::_1, std::placeholders::_2));
     }

@@ -11,6 +11,23 @@
 
 namespace dsn {
 
+/*extern*/ std::string http_status_code_to_string(http_status_code code)
+{
+    switch (code) {
+    case http_status_code::ok:
+        return "200 OK";
+    case http_status_code::bad_request:
+        return "400 Bad Request";
+    case http_status_code::not_found:
+        return "404 Not Found";
+    case http_status_code::internal_server_error:
+        return "500 Internal Server Error";
+    default:
+        dfatal("invalid code: %d", code);
+        __builtin_unreachable();
+    }
+}
+
 http_server::http_server() : serverlet<http_server>("http_server")
 {
     register_rpc_handler(RPC_HTTP_SERVICE, "http_service", &http_server::serve);
@@ -34,7 +51,8 @@ void http_server::serve(dsn_message_t msg)
         resp.status_code = http_status_code::bad_request;
     }
 
-    dsn_rpc_reply(resp.to_message(msg));
+    ref_ptr<message_ex> resp_msg = resp.to_message(msg);
+    dsn_rpc_reply(resp_msg.get());
 }
 
 void http_server::add_service(http_service *service)
@@ -74,11 +92,18 @@ http_request http_request::parse(dsn_message_t msg)
     return ret;
 }
 
-dsn_message_t http_response::to_message(dsn_message_t req) const
+ref_ptr<message_ex> http_response::to_message(dsn_message_t req) const
 {
-    dsn_message_t resp = dsn_msg_create_response(req);
-    rpc_write_stream writer(resp);
-    writer.write(blob::create_from_bytes(body));
+    ref_ptr<message_ex> resp = reinterpret_cast<message_ex *>(req)->create_response();
+
+    std::ostringstream os;
+    os << "HTTP/1.1 " << http_status_code_to_string(status_code) << "\r\n";
+    os << "Content-Type: text/plain\r\n";
+    os << "Content-Length: " << body.length() << "\r\n";
+    os << "\r\n";
+    os << body;
+
+    resp->buffers.emplace_back(blob::create_from_bytes(os.str()));
     return resp;
 }
 

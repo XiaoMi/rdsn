@@ -25,15 +25,16 @@ enum class http_status_code
     bad_request,           // 400
     not_found,             // 404
     internal_server_error, // 500
-    service_unavailable,   // 503
 };
+
+extern std::string http_status_code_to_string(http_status_code code);
 
 struct http_response
 {
     std::string body;
-    http_status_code status_code;
+    http_status_code status_code{http_status_code::ok};
 
-    dsn_message_t to_message(dsn_message_t req) const;
+    ref_ptr<message_ex> to_message(dsn_message_t req) const;
 };
 
 class http_service

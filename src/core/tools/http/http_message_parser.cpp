@@ -163,7 +163,7 @@ void http_message_parser::prepare_on_send(message_ex *msg)
 int http_message_parser::get_buffers_on_send(message_ex *msg, send_buf *buffers)
 {
     std::vector<blob> &msg_buffers = msg->buffers;
-    dassert(msg_buffers.size() == 2, "");
+    dassert(msg_buffers.size() == 1, "");
 
     buffers[0].buf = (void *)msg_buffers[1].data();
     buffers[0].sz = msg_buffers[1].length();

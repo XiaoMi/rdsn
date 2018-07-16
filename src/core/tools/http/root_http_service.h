@@ -12,7 +12,7 @@ class root_http_service : public http_service
 public:
     root_http_service()
     {
-        register_handler("/",
+        register_handler("",
                          std::bind(&root_http_service::default_handler,
                                    this,
                                    std::placeholders::_1,
