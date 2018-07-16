@@ -292,7 +292,7 @@ protected:
     // can switch file only when create_new_log_if_needed = true;
     // return pair: the first is target file to write; the second is the global offset to start
     // write
-    std::pair<log_file_ptr, int64_t> mark_new_offset(size_t total_size, bool create_new_log_if_needed);
+    std::pair<log_file_ptr, int64_t> mark_new_offset(size_t size, bool create_new_log_if_needed);
     // thread-safe
     int64_t get_global_offset() const
     {
