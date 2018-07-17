@@ -72,7 +72,7 @@ public:
     }
 
     /// Create shared buffer without copying data.
-    static blob create_from_bytes(std::string bytes)
+    static blob create_from_bytes(std::string &&bytes)
     {
         auto s = new std::string(std::move(bytes));
         std::shared_ptr<char> buf(const_cast<char *>(s->data()), [s](char *) { delete s; });

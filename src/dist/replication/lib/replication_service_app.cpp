@@ -36,7 +36,7 @@
 #include <dsn/dist/replication/replication_service_app.h>
 #include <dsn/tool-api/http_server.h>
 
-#include "dist/replication/client_lib/replication_common.h"
+#include "dist/replication/common/replication_common.h"
 #include "replica_stub.h"
 
 namespace dsn {
