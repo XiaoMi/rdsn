@@ -162,13 +162,20 @@ void http_message_parser::prepare_on_send(message_ex *msg)
 
 int http_message_parser::get_buffers_on_send(message_ex *msg, send_buf *buffers)
 {
-    std::vector<blob> &msg_buffers = msg->buffers;
-    dassert(msg_buffers.size() == 1, "");
-
-    buffers[0].buf = (void *)msg_buffers[1].data();
-    buffers[0].sz = msg_buffers[1].length();
-
-    return 1;
+    // we must skip the message header
+    unsigned int offset = sizeof(message_header);
+    int i = 0;
+    for (blob &buf : msg->buffers) {
+        if (offset >= buf.length()) {
+            offset -= buf.length();
+            continue;
+        }
+        buffers[i].buf = (void *)(buf.data() + offset);
+        buffers[i].sz = buf.length() - offset;
+        offset = 0;
+        ++i;
+    }
+    return i;
 }
 
 } // namespace dsn

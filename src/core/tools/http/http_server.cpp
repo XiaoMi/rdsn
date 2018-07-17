@@ -98,12 +98,15 @@ ref_ptr<message_ex> http_response::to_message(dsn_message_t req) const
 
     std::ostringstream os;
     os << "HTTP/1.1 " << http_status_code_to_string(status_code) << "\r\n";
-    os << "Content-Type: text/plain\r\n";
+    os << "Content-Type: " << content_type << "\r\n";
     os << "Content-Length: " << body.length() << "\r\n";
     os << "\r\n";
     os << body;
 
-    resp->buffers.emplace_back(blob::create_from_bytes(os.str()));
+    rpc_write_stream writer(resp.get());
+    writer.write(os.str().data(), os.str().length());
+    writer.flush();
+
     return resp;
 }
 

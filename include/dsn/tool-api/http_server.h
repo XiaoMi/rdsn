@@ -33,6 +33,7 @@ struct http_response
 {
     std::string body;
     http_status_code status_code{http_status_code::ok};
+    std::string content_type = "text/plain";
 
     ref_ptr<message_ex> to_message(dsn_message_t req) const;
 };
