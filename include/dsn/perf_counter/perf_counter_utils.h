@@ -17,7 +17,7 @@ struct perf_counter_metric
     double value;
     perf_counter_metric() : value(0) {}
     perf_counter_metric(const char *n, dsn_perf_counter_type_t t, double v)
-        : name(n), type(counter_type_to_string(t)), value(v)
+        : name(n), type(dsn_counter_type_to_string(t)), value(v)
     {
     }
     DEFINE_JSON_SERIALIZATION(name, type, value)

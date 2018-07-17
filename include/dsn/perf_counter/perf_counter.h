@@ -53,11 +53,11 @@ typedef enum dsn_perf_counter_percentile_type_t {
     COUNTER_PERCENTILE_INVALID
 } dsn_perf_counter_percentile_type_t;
 
-const char *counter_type_to_string(dsn_perf_counter_type_t t);
-dsn_perf_counter_type_t counter_type_from_string(const char *str);
+const char *dsn_counter_type_to_string(dsn_perf_counter_type_t t);
+dsn_perf_counter_type_t dsn_counter_type_from_string(const char *str);
 
-const char *percentile_type_to_string(dsn_perf_counter_percentile_type_t t);
-dsn_perf_counter_percentile_type_t percentile_type_from_string(const char *str);
+const char *dsn_percentile_type_to_string(dsn_perf_counter_percentile_type_t t);
+dsn_perf_counter_percentile_type_t dsn_percentile_type_from_string(const char *str);
 
 namespace dsn {
 

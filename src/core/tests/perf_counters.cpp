@@ -287,10 +287,10 @@ TEST(perf_counters, query_snapshot_by_regexp)
     ASSERT_EQ(4, info.counters.size());
 
     std::map<std::string, std::string> expected = {
-        {"a*s*test_counter", counter_type_to_string(COUNTER_TYPE_NUMBER)},
-        {"b*s*test_counter", counter_type_to_string(COUNTER_TYPE_VOLATILE_NUMBER)},
-        {"c*s*test_counter", counter_type_to_string(COUNTER_TYPE_RATE)},
-        {"d*s*test_counter", counter_type_to_string(COUNTER_TYPE_NUMBER_PERCENTILES)},
+        {"a*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER)},
+        {"b*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_VOLATILE_NUMBER)},
+        {"c*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_RATE)},
+        {"d*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER_PERCENTILES)},
     };
     std::map<std::string, std::string> actual;
     for (const dsn::perf_counter_metric &m : info.counters) {
