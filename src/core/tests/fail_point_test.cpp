@@ -59,8 +59,8 @@ TEST(fail_point, frequency_and_count)
         }
         times++;
     }
-    ASSERT_TRUE(100 / 0.9 < times);
-    ASSERT_TRUE(100 / 0.7 > times);
+    ASSERT_TRUE(10000 / 0.9 < times);
+    ASSERT_TRUE(10000 / 0.7 > times);
 
     for (int i = 0; i < times; i++) {
         ASSERT_EQ(p.eval(), nullptr);
