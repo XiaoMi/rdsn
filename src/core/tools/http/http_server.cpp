@@ -6,7 +6,6 @@
 #include <dsn/tool_api.h>
 
 #include "http_message_parser.h"
-#include "rpcz_http_service.h"
 #include "root_http_service.h"
 
 namespace dsn {
@@ -35,7 +34,6 @@ http_server::http_server() : serverlet<http_server>("http_server")
     tools::register_message_header_parser<http_message_parser>(NET_HDR_HTTP, {"GET ", "POST"});
 
     // add builtin services
-    add_service(new rpcz_http_service());
     add_service(new root_http_service());
 }
 
