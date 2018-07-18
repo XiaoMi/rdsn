@@ -49,7 +49,7 @@ TEST(fail_point, print)
 TEST(fail_point, frequency_and_count)
 {
     fail_point p;
-    p.set_action("80%100*return()");
+    p.set_action("80%10000*return()");
 
     int cnt = 0;
     double times = 0;
