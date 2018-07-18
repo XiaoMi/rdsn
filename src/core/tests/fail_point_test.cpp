@@ -53,7 +53,7 @@ TEST(fail_point, frequency_and_count)
 
     int cnt = 0;
     double times = 0;
-    while (cnt < 100) {
+    while (cnt < 10000) {
         if (p.eval() != nullptr) {
             cnt++;
         }
