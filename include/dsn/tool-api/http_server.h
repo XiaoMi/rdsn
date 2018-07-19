@@ -7,14 +7,15 @@
 #include <dsn/c/api_common.h>
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/cpp/serverlet.h>
+#include <dsn/utility/errors.h>
 
 namespace dsn {
 
 struct http_request
 {
-    static http_request parse(dsn_message_t msg);
+    static error_with<http_request> parse(dsn_message_t msg);
 
-    std::vector<std::string> url_path;
+    std::pair<std::string, std::string> service_method;
     blob body;
     blob full_url;
 };
@@ -52,9 +53,12 @@ public:
 
     void call(const http_request &req, http_response &resp)
     {
-        auto it = _cb_map.find(req.url_path[1]);
+        auto it = _cb_map.find(req.service_method.second);
         if (it != _cb_map.end()) {
             it->second(req, resp);
+        } else {
+            resp.status_code = http_status_code::bad_request;
+            resp.body = "method not found";
         }
     }
 

@@ -19,7 +19,7 @@ public:
                                    std::placeholders::_2));
     }
 
-    std::string path() const override { return "/"; }
+    std::string path() const override { return ""; }
 
     void default_handler(const http_request &req, http_response &resp)
     {

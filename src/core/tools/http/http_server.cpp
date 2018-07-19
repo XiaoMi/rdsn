@@ -4,6 +4,7 @@
 
 #include <dsn/tool-api/http_server.h>
 #include <dsn/tool_api.h>
+#include <boost/algorithm/string.hpp>
 
 #include "http_message_parser.h"
 #include "root_http_service.h"
@@ -39,14 +40,20 @@ http_server::http_server() : serverlet<http_server>("http_server")
 
 void http_server::serve(dsn_message_t msg)
 {
-    http_request req = http_request::parse(msg);
+    error_with<http_request> res = http_request::parse(msg);
     http_response resp;
-
-    auto it = _service_map.find(req.url_path[0]);
-    if (it != _service_map.end()) {
-        it->second->call(req, resp);
-    } else {
+    if (!res.is_ok()) {
         resp.status_code = http_status_code::bad_request;
+        resp.body = "failed to parse request";
+    } else {
+        const http_request &req = res.get_value();
+        auto it = _service_map.find(req.service_method.first);
+        if (it != _service_map.end()) {
+            it->second->call(req, resp);
+        } else {
+            resp.status_code = http_status_code::bad_request;
+            resp.body = "service not found";
+        }
     }
 
     ref_ptr<message_ex> resp_msg = resp.to_message(msg);
@@ -59,7 +66,7 @@ void http_server::add_service(http_service *service)
     _service_map.emplace(service->path(), std::unique_ptr<http_service>(service));
 }
 
-http_request http_request::parse(dsn_message_t msg)
+/*static*/ error_with<http_request> http_request::parse(dsn_message_t msg)
 {
     auto m = (message_ex *)(msg);
     dassert(m->buffers.size() == 3, "");
@@ -80,13 +87,26 @@ http_request http_request::parse(dsn_message_t msg)
         unresolved_path[u.field_data[UF_PATH].len] = '\0';
     }
 
-    utils::split_args(unresolved_path.data(), ret.url_path, '/');
-
-    if (ret.url_path.empty()) {
-        // http://host ==> http://host/
-        // redirect to root_http_service.
-        ret.url_path.emplace_back("/");
+    std::vector<std::string> args;
+    boost::split(args, unresolved_path, boost::is_any_of("/"));
+    std::vector<string_view> real_args;
+    for (string_view arg : args) {
+        if (!arg.empty() && strlen(arg.data()) != 0) {
+            real_args.emplace_back(string_view(arg.data()));
+        }
     }
+    if (real_args.size() > 2) {
+        return error_s::make(ERR_INVALID_PARAMETERS);
+    }
+    if (real_args.size() == 1) {
+        ret.service_method = std::make_pair(std::string(real_args[0]), std::string(""));
+        return ret;
+    }
+    if (real_args.size() == 0) {
+        ret.service_method = std::make_pair(std::string(""), std::string(""));
+        return ret;
+    }
+    ret.service_method = std::make_pair(std::string(real_args[0]), std::string(real_args[1]));
     return ret;
 }
 
