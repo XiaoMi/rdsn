@@ -14,7 +14,6 @@ if(DEFINED WARNING_ALL)
     SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall")
 endif()
 OPTION(ENABLE_GCOV "Enable gcov (debug, Linux builds only)" OFF)
-
 if(ENABLE_GCOV AND UNIX)
     #add_compile_options("-fprofile-arcs" "-ftest-coverage")
     SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fprofile-arcs -ftest-coverage -DENABLE_GCOV")
