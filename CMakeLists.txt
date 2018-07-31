@@ -15,11 +15,6 @@ if(DEFINED WARNING_ALL)
 endif()
 OPTION(ENABLE_GCOV "Enable gcov (debug, Linux builds only)" OFF)
 
-# Always generate the compilation database file (compile_commands.json) for use
-# with various development tools, such as IWYU and Vim's YouCompleteMe plugin.
-# See http://clang.llvm.org/docs/JSONCompilationDatabase.html
-set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
-
 if(ENABLE_GCOV AND UNIX)
     #add_compile_options("-fprofile-arcs" "-ftest-coverage")
     SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fprofile-arcs -ftest-coverage -DENABLE_GCOV")
