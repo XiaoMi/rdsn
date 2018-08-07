@@ -876,7 +876,7 @@ void rpc_engine::reply(message_ex *response, error_code err)
 
     bool no_fail = true;
     if (sp) {
-        // current task may be nullptr when this method is directly invoked from by rpc_engine.
+        // current task may be nullptr when this method is directly invoked from rpc_engine.
         task *cur_task = task::get_current_task();
         if (cur_task) {
             no_fail = sp->on_rpc_reply.execute(cur_task, response, true);
