@@ -151,6 +151,9 @@ struct group_check_request
     2:dsn.rpc_address       node;
     3:replica_configuration config;
     4:i64                   last_committed_decree;
+
+    // duplication
+    5:i64                   confirmed_decree;
 }
 
 struct group_check_response
@@ -201,7 +204,7 @@ struct configuration_update_request
     2:dsn.layer2.partition_configuration  config;
     3:config_type              type = config_type.CT_INVALID;
     4:dsn.rpc_address          node;
-    5:dsn.rpc_address          host_node; // only used by stateless apps    
+    5:dsn.rpc_address          host_node; // only used by stateless apps
 }
 
 // meta server (config mgr) => primary | secondary (downgrade) (w/ new config)
@@ -693,9 +696,9 @@ struct duplication_sync_response
     // - ERR_OBJECT_NOT_FOUND: node is not found
     1:dsn.error_code                                   err;
 
-    // appid -> list<dup_entry>
+    // appid -> map<dupid, dup_entry>
     // this rpc will not return the apps that were not assigned duplication.
-    2:map<i32, list<duplication_entry>>                dup_map;
+    2:map<i32, map<i32, duplication_entry>>                dup_map;
 }
 
 /*

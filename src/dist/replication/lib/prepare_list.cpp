@@ -24,17 +24,9 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
+#include <dsn/dist/fmt_logging.h>
 
 #include "prepare_list.h"
-#include "mutation.h"
 
 namespace dsn {
 namespace replication {
@@ -144,9 +136,16 @@ bool prepare_list::commit(decree d, commit_type ct)
     case COMMIT_TO_DECREE_HARD: {
         for (decree d0 = last_committed_decree() + 1; d0 <= d; d0++) {
             mutation_ptr mu = get_mutation_by_decree(d0);
-            dassert(mu != nullptr && (mu->is_logged()) && mu->data.header.ballot >= last_bt,
-                    "mutation %" PRId64 " is missing in prepare list",
-                    d0);
+            if (mu == nullptr) {
+                dfatal_f("mutation {} is missing in prepare list (mu == nullptr)", d0);
+            } else {
+                dassert_f(mu->is_logged() && mu->get_ballot() >= last_bt,
+                          "mutation {} is invalid in prepare list [mutation: {} "
+                          "last_ballot: {}]",
+                          d0,
+                          mu->to_string(),
+                          last_bt);
+            }
 
             _last_committed_decree++;
             last_bt = mu->data.header.ballot;

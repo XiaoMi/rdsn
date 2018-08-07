@@ -2282,6 +2282,11 @@ void group_check_request::__set_last_committed_decree(const int64_t val)
     this->last_committed_decree = val;
 }
 
+void group_check_request::__set_confirmed_decree(const int64_t val)
+{
+    this->confirmed_decree = val;
+}
+
 uint32_t group_check_request::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -2333,6 +2338,14 @@ uint32_t group_check_request::read(::apache::thrift::protocol::TProtocol *iprot)
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 5:
+            if (ftype == ::apache::thrift::protocol::T_I64) {
+                xfer += iprot->readI64(this->confirmed_decree);
+                this->__isset.confirmed_decree = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -2367,6 +2380,10 @@ uint32_t group_check_request::write(::apache::thrift::protocol::TProtocol *oprot
     xfer += oprot->writeI64(this->last_committed_decree);
     xfer += oprot->writeFieldEnd();
 
+    xfer += oprot->writeFieldBegin("confirmed_decree", ::apache::thrift::protocol::T_I64, 5);
+    xfer += oprot->writeI64(this->confirmed_decree);
+    xfer += oprot->writeFieldEnd();
+
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -2379,6 +2396,7 @@ void swap(group_check_request &a, group_check_request &b)
     swap(a.node, b.node);
     swap(a.config, b.config);
     swap(a.last_committed_decree, b.last_committed_decree);
+    swap(a.confirmed_decree, b.confirmed_decree);
     swap(a.__isset, b.__isset);
 }
 
@@ -2388,6 +2406,7 @@ group_check_request::group_check_request(const group_check_request &other67)
     node = other67.node;
     config = other67.config;
     last_committed_decree = other67.last_committed_decree;
+    confirmed_decree = other67.confirmed_decree;
     __isset = other67.__isset;
 }
 group_check_request::group_check_request(group_check_request &&other68)
@@ -2396,6 +2415,7 @@ group_check_request::group_check_request(group_check_request &&other68)
     node = std::move(other68.node);
     config = std::move(other68.config);
     last_committed_decree = std::move(other68.last_committed_decree);
+    confirmed_decree = std::move(other68.confirmed_decree);
     __isset = std::move(other68.__isset);
 }
 group_check_request &group_check_request::operator=(const group_check_request &other69)
@@ -2404,6 +2424,7 @@ group_check_request &group_check_request::operator=(const group_check_request &o
     node = other69.node;
     config = other69.config;
     last_committed_decree = other69.last_committed_decree;
+    confirmed_decree = other69.confirmed_decree;
     __isset = other69.__isset;
     return *this;
 }
@@ -2413,6 +2434,7 @@ group_check_request &group_check_request::operator=(group_check_request &&other7
     node = std::move(other70.node);
     config = std::move(other70.config);
     last_committed_decree = std::move(other70.last_committed_decree);
+    confirmed_decree = std::move(other70.confirmed_decree);
     __isset = std::move(other70.__isset);
     return *this;
 }
@@ -2427,6 +2449,8 @@ void group_check_request::printTo(std::ostream &out) const
         << "config=" << to_string(config);
     out << ", "
         << "last_committed_decree=" << to_string(last_committed_decree);
+    out << ", "
+        << "confirmed_decree=" << to_string(confirmed_decree);
     out << ")";
 }
 
@@ -11981,7 +12005,7 @@ duplication_sync_response::~duplication_sync_response() throw() {}
 void duplication_sync_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
 
 void duplication_sync_response::__set_dup_map(
-    const std::map<int32_t, std::vector<duplication_entry>> &val)
+    const std::map<int32_t, std::map<int32_t, duplication_entry>> &val)
 {
     this->dup_map = val;
 }
@@ -12025,18 +12049,21 @@ uint32_t duplication_sync_response::read(::apache::thrift::protocol::TProtocol *
                     for (_i525 = 0; _i525 < _size521; ++_i525) {
                         int32_t _key526;
                         xfer += iprot->readI32(_key526);
-                        std::vector<duplication_entry> &_val527 = this->dup_map[_key526];
+                        std::map<int32_t, duplication_entry> &_val527 = this->dup_map[_key526];
                         {
                             _val527.clear();
                             uint32_t _size528;
-                            ::apache::thrift::protocol::TType _etype531;
-                            xfer += iprot->readListBegin(_etype531, _size528);
-                            _val527.resize(_size528);
+                            ::apache::thrift::protocol::TType _ktype529;
+                            ::apache::thrift::protocol::TType _vtype530;
+                            xfer += iprot->readMapBegin(_ktype529, _vtype530, _size528);
                             uint32_t _i532;
                             for (_i532 = 0; _i532 < _size528; ++_i532) {
-                                xfer += _val527[_i532].read(iprot);
+                                int32_t _key533;
+                                xfer += iprot->readI32(_key533);
+                                duplication_entry &_val534 = _val527[_key533];
+                                xfer += _val534.read(iprot);
                             }
-                            xfer += iprot->readListEnd();
+                            xfer += iprot->readMapEnd();
                         }
                     }
                     xfer += iprot->readMapEnd();
@@ -12071,20 +12098,22 @@ uint32_t duplication_sync_response::write(::apache::thrift::protocol::TProtocol 
     xfer += oprot->writeFieldBegin("dup_map", ::apache::thrift::protocol::T_MAP, 2);
     {
         xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_I32,
-                                     ::apache::thrift::protocol::T_LIST,
+                                     ::apache::thrift::protocol::T_MAP,
                                      static_cast<uint32_t>(this->dup_map.size()));
-        std::map<int32_t, std::vector<duplication_entry>>::const_iterator _iter533;
-        for (_iter533 = this->dup_map.begin(); _iter533 != this->dup_map.end(); ++_iter533) {
-            xfer += oprot->writeI32(_iter533->first);
+        std::map<int32_t, std::map<int32_t, duplication_entry>>::const_iterator _iter535;
+        for (_iter535 = this->dup_map.begin(); _iter535 != this->dup_map.end(); ++_iter535) {
+            xfer += oprot->writeI32(_iter535->first);
             {
-                xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
-                                              static_cast<uint32_t>(_iter533->second.size()));
-                std::vector<duplication_entry>::const_iterator _iter534;
-                for (_iter534 = _iter533->second.begin(); _iter534 != _iter533->second.end();
-                     ++_iter534) {
-                    xfer += (*_iter534).write(oprot);
+                xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_I32,
+                                             ::apache::thrift::protocol::T_STRUCT,
+                                             static_cast<uint32_t>(_iter535->second.size()));
+                std::map<int32_t, duplication_entry>::const_iterator _iter536;
+                for (_iter536 = _iter535->second.begin(); _iter536 != _iter535->second.end();
+                     ++_iter536) {
+                    xfer += oprot->writeI32(_iter536->first);
+                    xfer += _iter536->second.write(oprot);
                 }
-                xfer += oprot->writeListEnd();
+                xfer += oprot->writeMapEnd();
             }
         }
         xfer += oprot->writeMapEnd();
@@ -12104,32 +12133,32 @@ void swap(duplication_sync_response &a, duplication_sync_response &b)
     swap(a.__isset, b.__isset);
 }
 
-duplication_sync_response::duplication_sync_response(const duplication_sync_response &other535)
-{
-    err = other535.err;
-    dup_map = other535.dup_map;
-    __isset = other535.__isset;
-}
-duplication_sync_response::duplication_sync_response(duplication_sync_response &&other536)
-{
-    err = std::move(other536.err);
-    dup_map = std::move(other536.dup_map);
-    __isset = std::move(other536.__isset);
-}
-duplication_sync_response &duplication_sync_response::
-operator=(const duplication_sync_response &other537)
+duplication_sync_response::duplication_sync_response(const duplication_sync_response &other537)
 {
     err = other537.err;
     dup_map = other537.dup_map;
     __isset = other537.__isset;
-    return *this;
 }
-duplication_sync_response &duplication_sync_response::
-operator=(duplication_sync_response &&other538)
+duplication_sync_response::duplication_sync_response(duplication_sync_response &&other538)
 {
     err = std::move(other538.err);
     dup_map = std::move(other538.dup_map);
     __isset = std::move(other538.__isset);
+}
+duplication_sync_response &duplication_sync_response::
+operator=(const duplication_sync_response &other539)
+{
+    err = other539.err;
+    dup_map = other539.dup_map;
+    __isset = other539.__isset;
+    return *this;
+}
+duplication_sync_response &duplication_sync_response::
+operator=(duplication_sync_response &&other540)
+{
+    err = std::move(other540.err);
+    dup_map = std::move(other540.dup_map);
+    __isset = std::move(other540.__isset);
     return *this;
 }
 void duplication_sync_response::printTo(std::ostream &out) const

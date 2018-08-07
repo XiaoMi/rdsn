@@ -43,6 +43,10 @@
 namespace dsn {
 namespace replication {
 
+// mutation_cache is an in-memory array that stores a limited number
+// (SEE replication_options::max_mutation_count_in_prepare_list) of mutation log entries.
+//
+// Inherited by: prepare_list
 class mutation_cache
 {
 public:
@@ -59,6 +63,11 @@ public:
     decree max_decree() const { return _end_decree; }
     int count() const { return _interval; }
     int capacity() const { return _max_count; }
+
+    // Returns a copy of mutation_cache.
+    // This function is mainly used for testing.
+    // Not-Thread-Safe.
+    std::unique_ptr<mutation_cache> copy() const;
 
 private:
     std::vector<mutation_ptr> _array;

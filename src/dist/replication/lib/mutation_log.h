@@ -35,9 +35,11 @@
 
 #pragma once
 
-#include "../common/replication_common.h"
-#include "mutation.h"
+#include "dist/replication/common/replication_common.h"
+#include "dist/replication/lib/mutation.h"
+
 #include <atomic>
+#include <dsn/utility/errors.h>
 
 namespace dsn {
 namespace replication {
@@ -123,9 +125,10 @@ class replica;
 class mutation_log : public ref_counter
 {
 public:
-    // return true when the mutation's offset is not less than
-    // the remembered (shared or private) valid_start_offset therefore valid for the replica
+    // DEPRECATED: The returned bool value will never be evaluated.
+    // Always return true in the callback.
     typedef std::function<bool(int log_length, mutation_ptr &)> replay_callback;
+
     typedef std::function<void(dsn::error_code err)> io_failure_callback;
 
 public:
@@ -161,7 +164,7 @@ public:
     // when is_private = true, should specify "private_gpid"
     //
     mutation_log(const std::string &dir, int32_t max_log_file_mb, gpid gpid, replica *r = nullptr);
-    virtual ~mutation_log();
+    virtual ~mutation_log() = default;
 
     //
     // initialization
@@ -184,6 +187,36 @@ public:
     static error_code replay(std::vector<std::string> &log_files,
                              replay_callback callback,
                              /*out*/ int64_t &end_offset);
+
+    // Reads a series of mutations from the log file(from current offset of `log`),
+    // and iterates over the mutations, executing the provided `callback` for each
+    // mutation entry.
+    // Since the logs are packed into multiple blocks, this function retrieves
+    // only one log block at a time. The size of block depends on configuration
+    // `log_private_batch_buffer_kb` and `log_private_batch_buffer_count`.
+    //
+    // Parameters:
+    // - read_from_start:
+    // If `read_from_start` is not specified, the reading will continue from the
+    // current offset, otherwise it will start from `log->start_offset()`.
+    //
+    // Returns:
+    // - ERR_INVALID_DATA: if the loaded data is incorrect or invalid.
+    //
+    // SEE:
+    // - mutation_log::replay(log_file_ptr, replay_callback, int64_t &)
+    //
+    static error_s replay_block(log_file_ptr &log,
+                                replay_callback &callback,
+                                bool read_from_start,
+                                /*out*/ int64_t &end_offset);
+    static error_s replay_block(log_file_ptr &log,
+                                replay_callback &&callback,
+                                bool read_from_start,
+                                /*out*/ int64_t &end_offset)
+    {
+        return replay_block(log, callback, read_from_start, end_offset);
+    }
 
     //
     // maintain max_decree & valid_start_offset
@@ -286,6 +319,8 @@ public:
     void hint_switch_file() { _switch_file_hint = true; }
     void demand_switch_file() { _switch_file_demand = true; }
 
+    task_tracker *tracker() { return &_tracker; }
+
 protected:
     // thread-safe
     // 'size' is data size to write; the '_global_end_offset' will be updated by 'size'.
@@ -346,6 +381,8 @@ protected:
     dsn::task_tracker _tracker;
 
 private:
+    friend struct mutation_log_test;
+
     ///////////////////////////////////////////////
     //// memory states
     ///////////////////////////////////////////////
@@ -389,7 +426,12 @@ public:
     {
     }
 
-    virtual ~mutation_log_shared() override { _tracker.cancel_outstanding_tasks(); }
+    virtual ~mutation_log_shared() override
+    {
+        close();
+        _tracker.cancel_outstanding_tasks();
+    }
+
     virtual ::dsn::task_ptr append(mutation_ptr &mu,
                                    dsn::task_code callback_code,
                                    dsn::task_tracker *tracker,
@@ -429,6 +471,11 @@ private:
 class mutation_log_private : public mutation_log
 {
 public:
+    // Parameters:
+    //  - batch_buffer_max_count, batch_buffer_bytes
+    //    The hint of limited size for the write buffer storing the pending mutations.
+    //    Note that the actual log block is still possible to be larger than the
+    //    hinted size.
     mutation_log_private(const std::string &dir,
                          int32_t max_log_file_mb,
                          gpid gpid,
@@ -444,7 +491,12 @@ public:
         mutation_log_private::init_states();
     }
 
-    virtual ~mutation_log_private() override { _tracker.cancel_outstanding_tasks(); }
+    virtual ~mutation_log_private() override
+    {
+        close();
+        _tracker.cancel_outstanding_tasks();
+    }
+
     virtual ::dsn::task_ptr append(mutation_ptr &mu,
                                    dsn::task_code callback_code,
                                    dsn::task_tracker *tracker,

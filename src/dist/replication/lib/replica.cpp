@@ -33,6 +33,8 @@
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>
 
+#include "dist/replication/lib/duplication/replica_duplicator_manager.h"
+
 namespace dsn {
 namespace replication {
 
@@ -49,7 +51,8 @@ replica::replica(
       _chkpt_total_size(0),
       _cur_download_size(0),
       _restore_progress(0),
-      _restore_status(ERR_OK)
+      _restore_status(ERR_OK),
+      _duplication_mgr(new replica_duplicator_manager(this))
 {
     dassert(_app_info.app_type != "", "");
     dassert(stub != nullptr, "");
@@ -437,6 +440,10 @@ void replica::close()
     }
 
     _counter_private_log_size.clear();
+
+    // duplication_impl may have ongoing tasks.
+    // release it before release replica.
+    _duplication_mgr.reset();
 
     ddebug("%s: replica closed, time_used = %" PRIu64 "ms", name(), dsn_now_ms() - start_time);
 }

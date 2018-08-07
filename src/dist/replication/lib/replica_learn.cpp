@@ -37,7 +37,9 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
-#include <dsn/utility/factory_store.h>
+
+#include "dist/replication/lib/duplication/replica_duplicator_manager.h"
+
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/replication/replication_app_base.h>
 
@@ -316,7 +318,8 @@ void replica::on_learn(dsn_message_t msg, const learn_request &request)
             request.last_committed_decree_in_app,
             local_committed_decree);
 
-    decree learn_start_decree = request.last_committed_decree_in_app + 1;
+    decree learn_start_decree = std::min(_duplication_mgr->min_confirmed_decree() + 1,
+                                         request.last_committed_decree_in_app + 1);
     dassert(learn_start_decree <= local_committed_decree + 1,
             "%" PRId64 " VS %" PRId64 "",
             learn_start_decree,
@@ -1356,13 +1359,16 @@ void replica::on_learn_completion_notification_reply(error_code err,
 
 void replica::on_add_learner(const group_check_request &request)
 {
+    _checker.only_one_thread_access();
+
     ddebug("%s: process add learner, primary = %s, ballot = %" PRId64
-           ", status = %s, last_committed_decree = %" PRId64,
+           ", status = %s, last_committed_decree = %" PRId64 ", confirmed_decree = %" PRId64,
            name(),
            request.config.primary.to_string(),
            request.config.ballot,
            enum_to_string(request.config.status),
-           request.last_committed_decree);
+           request.last_committed_decree,
+           request.confirmed_decree);
 
     if (request.config.ballot < get_ballot()) {
         dwarn("%s: on_add_learner ballot is old, skipped", name());
@@ -1377,6 +1383,8 @@ void replica::on_add_learner(const group_check_request &request)
         dassert(partition_status::PS_POTENTIAL_SECONDARY == status(),
                 "invalid partition_status, status = %s",
                 enum_to_string(status()));
+
+        _duplication_mgr->set_confirmed_decree_non_primary(request.confirmed_decree);
         init_learn(request.config.learner_signature);
     }
 }

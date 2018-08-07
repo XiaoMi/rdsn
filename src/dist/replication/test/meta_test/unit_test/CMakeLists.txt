@@ -10,6 +10,7 @@ set(MY_PROJ_SRC ../misc/misc.cpp)
 set(MY_SRC_SEARCH_MODE "GLOB")
 
 ms_find_source_files("CXX" "${CMAKE_CURRENT_SOURCE_DIR}/../../../meta_server" "GLOB" MY_PROJ_SRC)
+ms_find_source_files("CXX" "${CMAKE_CURRENT_SOURCE_DIR}/../../../meta_server/duplication" "GLOB" MY_PROJ_SRC)
 
 set(MY_PROJ_INC_PATH "")
 

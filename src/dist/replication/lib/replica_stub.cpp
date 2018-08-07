@@ -44,6 +44,8 @@
 #include <vector>
 #include <deque>
 
+#include "dist/replication/lib/duplication/duplication_sync_timer.h"
+
 namespace dsn {
 namespace replication {
 
@@ -595,6 +597,9 @@ void replica_stub::initialize_start()
                                    std::chrono::milliseconds(_options.config_sync_interval_ms));
     }
 
+    _duplication_sync_timer.reset(new duplication_sync_timer(this));
+    _duplication_sync_timer->start();
+
     // init liveness monitor
     dassert(NS_Disconnected == _state, "");
     if (_options.fd_disabled == false) {
@@ -871,13 +876,14 @@ void replica_stub::on_group_check(const group_check_request &request,
     }
 
     ddebug("%s@%s: received group check, primary = %s, ballot = %" PRId64
-           ", status = %s, last_committed_decree = %" PRId64,
+           ", status = %s, last_committed_decree = %" PRId64 ", confirmed_decree = %" PRId64,
            request.config.pid.to_string(),
            _primary_address.to_string(),
            request.config.primary.to_string(),
            request.config.ballot,
            enum_to_string(request.config.status),
-           request.last_committed_decree);
+           request.last_committed_decree,
+           request.confirmed_decree);
 
     replica_ptr rep = get_replica(request.config.pid);
     if (rep != nullptr) {
@@ -2072,6 +2078,9 @@ void replica_stub::close()
         _config_sync_timer_task->cancel(true);
         _config_sync_timer_task = nullptr;
     }
+
+    _duplication_sync_timer->close();
+    _duplication_sync_timer = nullptr;
 
     if (_config_query_task != nullptr) {
         _config_query_task->cancel(true);

@@ -56,12 +56,6 @@ public:
 
     ::dsn::error_code start(const std::vector<std::string> &args)
     {
-        int argc = args.size();
-        char *argv[20];
-        for (int i = 0; i < argc; ++i) {
-            argv[i] = (char *)(args[i].c_str());
-        }
-        testing::InitGoogleTest(&argc, argv);
         g_test_ret = RUN_ALL_TESTS();
         g_test_count = 1;
         /*

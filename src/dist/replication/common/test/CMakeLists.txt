@@ -1,0 +1,16 @@
+set(MY_PROJ_NAME dsn_replication_common_test)
+
+set(MY_SRC_SEARCH_MODE "GLOB")
+
+set(MY_BOOST_PACKAGES system filesystem)
+
+set(MY_PROJ_LIBS
+        dsn_replication_common
+        gtest
+        )
+
+set(MY_BINPLACES
+        config-test.ini
+        )
+
+dsn_add_executable()

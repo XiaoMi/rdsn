@@ -1202,13 +1202,18 @@ inline std::ostream &operator<<(std::ostream &out, const learn_notify_response &
 typedef struct _group_check_request__isset
 {
     _group_check_request__isset()
-        : app(false), node(false), config(false), last_committed_decree(false)
+        : app(false),
+          node(false),
+          config(false),
+          last_committed_decree(false),
+          confirmed_decree(false)
     {
     }
     bool app : 1;
     bool node : 1;
     bool config : 1;
     bool last_committed_decree : 1;
+    bool confirmed_decree : 1;
 } _group_check_request__isset;
 
 class group_check_request
@@ -1218,13 +1223,14 @@ public:
     group_check_request(group_check_request &&);
     group_check_request &operator=(const group_check_request &);
     group_check_request &operator=(group_check_request &&);
-    group_check_request() : last_committed_decree(0) {}
+    group_check_request() : last_committed_decree(0), confirmed_decree(0) {}
 
     virtual ~group_check_request() throw();
     ::dsn::app_info app;
     ::dsn::rpc_address node;
     replica_configuration config;
     int64_t last_committed_decree;
+    int64_t confirmed_decree;
 
     _group_check_request__isset __isset;
 
@@ -1236,6 +1242,8 @@ public:
 
     void __set_last_committed_decree(const int64_t val);
 
+    void __set_confirmed_decree(const int64_t val);
+
     bool operator==(const group_check_request &rhs) const
     {
         if (!(app == rhs.app))
@@ -1245,6 +1253,8 @@ public:
         if (!(config == rhs.config))
             return false;
         if (!(last_committed_decree == rhs.last_committed_decree))
+            return false;
+        if (!(confirmed_decree == rhs.confirmed_decree))
             return false;
         return true;
     }
@@ -5109,13 +5119,13 @@ public:
 
     virtual ~duplication_sync_response() throw();
     ::dsn::error_code err;
-    std::map<int32_t, std::vector<duplication_entry>> dup_map;
+    std::map<int32_t, std::map<int32_t, duplication_entry>> dup_map;
 
     _duplication_sync_response__isset __isset;
 
     void __set_err(const ::dsn::error_code &val);
 
-    void __set_dup_map(const std::map<int32_t, std::vector<duplication_entry>> &val);
+    void __set_dup_map(const std::map<int32_t, std::map<int32_t, duplication_entry>> &val);
 
     bool operator==(const duplication_sync_response &rhs) const
     {

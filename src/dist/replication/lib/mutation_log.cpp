@@ -34,13 +34,11 @@
  */
 
 #include "mutation_log.h"
-#ifdef _WIN32
-#include <io.h>
-#endif
 #include "replica.h"
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/crc.h>
 #include <dsn/tool-api/async_calls.h>
+#include <fmt/format.h>
 
 namespace dsn {
 namespace replication {
@@ -467,8 +465,6 @@ void mutation_log::init_states()
     _private_max_commit_on_disk = 0;
 }
 
-mutation_log::~mutation_log() { close(); }
-
 error_code mutation_log::open(replay_callback read_callback,
                               io_failure_callback write_error_callback)
 {
@@ -822,6 +818,73 @@ std::pair<log_file_ptr, int64_t> mutation_log::mark_new_offset(size_t size,
     return std::make_pair(_current_log_file, write_start_offset);
 }
 
+namespace internal {
+
+inline static error_s read_log_block(log_file_ptr &log,
+                                     int64_t &end_offset,
+                                     std::unique_ptr<binary_reader> &reader,
+                                     blob &bb)
+{
+    error_code err = log->read_next_log_block(bb);
+    if (err != ERR_OK) {
+        return error_s::make(err, "failed to read log block");
+    }
+    reader = dsn::make_unique<binary_reader>(bb);
+    end_offset += sizeof(log_block_header);
+
+    return error_s::ok();
+}
+
+} // namespace internal
+
+/*static*/ error_s mutation_log::replay_block(log_file_ptr &log,
+                                              replay_callback &callback,
+                                              bool read_from_start,
+                                              int64_t &end_offset)
+{
+    blob bb;
+    std::unique_ptr<binary_reader> reader;
+
+    if (read_from_start) {
+        end_offset = log->start_offset();
+        log->reset_stream();
+    }
+
+    error_s err = internal::read_log_block(log, end_offset, reader, bb);
+    if (!err.is_ok()) {
+        return err;
+    }
+
+    // first block is log_file_header
+    if (read_from_start) {
+        end_offset += log->read_file_header(*reader);
+        if (!log->is_right_header()) {
+            return error_s::make(ERR_INVALID_DATA, "failed to read log file header");
+        }
+    }
+
+    while (!reader->is_eof()) {
+        auto old_size = reader->get_remaining_size();
+        mutation_ptr mu = mutation::read_from(*reader, nullptr);
+        dassert(nullptr != mu, "");
+        mu->set_logged();
+
+        if (mu->data.header.log_offset != end_offset) {
+            return error_s::make(ERR_INVALID_DATA,
+                                 fmt::format("offset mismatch in log entry and mutation {} vs {}",
+                                             end_offset,
+                                             mu->data.header.log_offset));
+        }
+
+        int log_length = old_size - reader->get_remaining_size();
+        callback(log_length, mu);
+
+        end_offset += log_length;
+    }
+
+    return error_s::ok();
+}
+
 /*static*/ error_code mutation_log::replay(log_file_ptr log,
                                            replay_callback callback,
                                            /*out*/ int64_t &end_offset)
@@ -835,54 +898,21 @@ std::pair<log_file_ptr, int64_t> mutation_log::mark_new_offset(size_t size,
 
     ::dsn::blob bb;
     log->reset_stream();
-    error_code err = log->read_next_log_block(bb);
-    if (err != ERR_OK) {
-        return err;
-    }
-
-    std::shared_ptr<binary_reader> reader(new binary_reader(std::move(bb)));
-    end_offset += sizeof(log_block_header);
-
-    // read file header
-    end_offset += log->read_file_header(*reader);
-    if (!log->is_right_header()) {
-        return ERR_INVALID_DATA;
-    }
-
+    error_s err;
+    bool start = true;
     while (true) {
-        while (!reader->is_eof()) {
-            auto old_size = reader->get_remaining_size();
-            mutation_ptr mu = mutation::read_from(*reader, nullptr);
-            dassert(nullptr != mu, "");
-            mu->set_logged();
-
-            if (mu->data.header.log_offset != end_offset) {
-                derror("offset mismatch in log entry and mutation %" PRId64 " vs %" PRId64,
-                       end_offset,
-                       mu->data.header.log_offset);
-                err = ERR_INVALID_DATA;
-                break;
-            }
-
-            int log_length = old_size - reader->get_remaining_size();
-
-            callback(log_length, mu);
-
-            end_offset += log_length;
-        }
-
-        err = log->read_next_log_block(bb);
-        if (err != ERR_OK) {
-            // if an error occurs in an log mutation block, then the replay log is stopped
+        err = replay_block(log, callback, start, end_offset);
+        if (!err.is_ok()) {
             break;
         }
 
-        reader.reset(new binary_reader(std::move(bb)));
-        end_offset += sizeof(log_block_header);
+        start = false;
     }
 
-    ddebug("finish to replay mutation log %s, err = %s", log->path().c_str(), err.to_string());
-    return err;
+    ddebug("finish to replay mutation log (%s) [err: %s]",
+           log->path().c_str(),
+           err.description().c_str());
+    return err.code();
 }
 
 /*static*/ error_code mutation_log::replay(std::vector<std::string> &log_files,
@@ -1343,29 +1373,16 @@ int mutation_log::garbage_collection(gpid gpid,
             // not break, go to update max decree
         }
 
-        // log is invalid, ok to delete
-        else if (valid_start_offset >= log->end_offset()) {
-            dinfo("gc_private @ %d.%d: max_offset for %s is %" PRId64 " vs %" PRId64
-                  " as app.valid_start_offset.private,"
-                  " safe to delete this and all older logs",
-                  _private_gpid.get_app_id(),
-                  _private_gpid.get_partition_index(),
-                  mark_it->second->path().c_str(),
-                  mark_it->second->end_offset(),
-                  valid_start_offset);
-            break;
-        }
-
         // all decrees are durable, ok to delete
         else if (durable_decree >= max_decree) {
-            dinfo("gc_private @ %d.%d: max_decree for %s is %" PRId64 " vs %" PRId64
-                  " as app.durable decree,"
-                  " safe to delete this and all older logs",
-                  _private_gpid.get_app_id(),
-                  _private_gpid.get_partition_index(),
-                  mark_it->second->path().c_str(),
-                  max_decree,
-                  durable_decree);
+            ddebug("gc_private @ %d.%d: max_decree for %s is %" PRId64 " vs %" PRId64
+                   " as app.durable decree,"
+                   " safe to delete this and all older logs",
+                   _private_gpid.get_app_id(),
+                   _private_gpid.get_partition_index(),
+                   mark_it->second->path().c_str(),
+                   max_decree,
+                   durable_decree);
             break;
         }
 
@@ -1745,7 +1762,7 @@ int mutation_log::garbage_collection(const replica_log_info_map &gc_condition,
 class log_file::file_streamer
 {
 public:
-    explicit file_streamer(dsn_handle_t fd, size_t file_offset)
+    file_streamer(dsn_handle_t fd, size_t file_offset)
         : _file_dispatched_bytes(file_offset), _file_handle(fd)
     {
         _current_buffer = _buffers + 0;
@@ -1773,6 +1790,9 @@ public:
         }
         fill_buffers();
     }
+
+    // TODO(wutao1): use string_view instead of using blob.
+    // WARNING: the resulted blob is not guaranteed to be reference counted.
     // possible error_code:
     //  ERR_OK                      result would always size as expected
     //  ERR_HANDLE_EOF              if there are not enough data in file. result would still be

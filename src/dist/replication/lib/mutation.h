@@ -129,6 +129,9 @@ public:
     static void write_mutation_header(binary_writer &writer, const mutation_header &header);
     static void read_mutation_header(binary_reader &reader, mutation_header &header);
 
+    // To human-readable string.
+    std::string to_string() const;
+
     // data
     mutation_data data;
 

@@ -33,6 +33,8 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
+#include <dsn/utility/smart_pointers.h>
+
 #include "mutation_cache.h"
 #include "mutation.h"
 
@@ -137,6 +139,19 @@ mutation_ptr mutation_cache::get_mutation_by_decree(decree decree)
         return nullptr;
     else
         return _array[(_start_idx + (decree - _start_decree) + _max_count) % _max_count];
+}
+
+std::unique_ptr<mutation_cache> mutation_cache::copy() const
+{
+    auto ret = make_unique<mutation_cache>(0, 0);
+    ret->_array = _array;
+    ret->_interval = _interval;
+    ret->_start_idx = _start_idx;
+    ret->_end_idx = _end_idx;
+    ret->_start_decree = _start_decree;
+    ret->_end_decree = _end_decree.load();
+    ret->_max_count = _max_count;
+    return ret;
 }
 
 mutation_ptr mutation_cache::remove_mutation_by_decree(decree decree)
