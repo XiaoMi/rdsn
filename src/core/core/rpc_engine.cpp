@@ -868,12 +868,15 @@ void rpc_engine::reply(message_ex *response, error_code err)
             sizeof(response->header->server.error_name));
     response->header->server.error_code.local_code = err;
     response->header->server.error_code.local_hash = message_ex::s_local_hash;
+
+    // response rpc code may be TASK_CODE_INVALID when request rpc code is not exist
     auto sp = response->local_rpc_code == TASK_CODE_INVALID
                   ? nullptr
                   : task_spec::get(response->local_rpc_code);
 
     bool no_fail = true;
     if (sp) {
+        // current task may be nullptr when this method is directly invoked from by rpc_engine.
         task *cur_task = task::get_current_task();
         if (cur_task) {
             no_fail = sp->on_rpc_reply.execute(cur_task, response, true);
