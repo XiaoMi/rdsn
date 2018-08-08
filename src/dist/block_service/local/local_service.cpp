@@ -5,6 +5,7 @@
 #include <dsn/utility/defer.h>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/strings.h>
+#include <dsn/utility/safe_strerror_posix.h>
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/tool-api/task_tracker.h>
@@ -292,7 +293,7 @@ error_code local_file_object::load_metadata()
     std::string metadata_path = local_service::get_metafile(file_name());
     std::ifstream is(metadata_path, std::ios::in);
     if (!is.is_open()) {
-        dwarn("load meta data from %s failed, err = %s", utils::safe_strerror(errno));
+        dwarn("load meta data from %s failed, err = %s", utils::safe_strerror(errno).c_str());
         return ERR_FS_INTERNAL;
     }
     auto cleanup = dsn::defer([&is]() { is.close(); });
@@ -324,7 +325,7 @@ error_code local_file_object::store_metadata()
     if (!os.is_open()) {
         dwarn("store to metadata file %s failed, err=%s",
               metadata_path.c_str(),
-              utils::safe_strerror(errno));
+              utils::safe_strerror(errno).c_str());
         return ERR_FS_INTERNAL;
     }
     auto cleanup = dsn::defer([&os]() { os.close(); });
@@ -445,7 +446,7 @@ dsn::task_ptr local_file_object::upload(const upload_request &req,
         if (!fin.is_open()) {
             dwarn("open %s for read faied, err(%s)",
                   req.input_local_name.c_str(),
-                  utils::safe_strerror(errno));
+                  utils::safe_strerror(errno).c_str());
             resp.err = ERR_FS_INTERNAL;
         }
 
@@ -455,7 +456,7 @@ dsn::task_ptr local_file_object::upload(const upload_request &req,
         if (!fout.is_open()) {
             dwarn("open %s for write faied, err(%s)",
                   file_name().c_str(),
-                  utils::safe_strerror(errno));
+                  utils::safe_strerror(errno).c_str());
             resp.err = ERR_FILE_OPERATION_FAILED;
         }
 
