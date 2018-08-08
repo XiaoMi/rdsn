@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef BUTIL_SAFE_STRERROR_POSIX_H_
-#define BUTIL_SAFE_STRERROR_POSIX_H_
+#pragma once
 
 #include <string>
 
@@ -34,4 +33,3 @@ void safe_strerror_r(int err, char *buf, size_t len);
 std::string safe_strerror(int err);
 }
 }
-#endif // BUTIL_SAFE_STRERROR_POSIX_H_

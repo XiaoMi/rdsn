@@ -12,8 +12,7 @@
 //    ARCH_CPU_X86 / ARCH_CPU_X86_64 / ARCH_CPU_X86_FAMILY (X86 or X86_64)
 //    ARCH_CPU_32_BITS / ARCH_CPU_64_BITS
 
-#ifndef BUTIL_BUILD_CONFIG_H_
-#define BUTIL_BUILD_CONFIG_H_
+#pragma once
 
 // A set of macros to use for platform detection.
 #if defined(__native_client__)
@@ -174,5 +173,3 @@
 #endif
 
 #define HAVE_DLADDR
-
-#endif  // BUTIL_BUILD_CONFIG_H_
