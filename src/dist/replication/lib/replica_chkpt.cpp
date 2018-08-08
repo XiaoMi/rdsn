@@ -72,18 +72,21 @@ void replica::on_checkpoint_timer()
 
         decree last_durable_decree = _app->last_durable_decree();
         decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
-        decree cleanable_decree = std::min(last_durable_decree, min_confirmed_decree);
-        if (min_confirmed_decree < last_durable_decree) {
-            ddebug_replica("gc_private {}: delay gc for duplication: min_confirmed_decree({}) "
-                           "last_durable_decree({})",
-                           enum_to_string(status()),
-                           min_confirmed_decree,
-                           last_durable_decree);
-        } else {
-            ddebug_replica("gc_private {}: min_confirmed_decree({}) last_durable_decree({})",
-                           enum_to_string(status()),
-                           min_confirmed_decree,
-                           last_durable_decree);
+        decree cleanable_decree = last_durable_decree;
+        if (min_confirmed_decree != invalid_decree) {
+            if (min_confirmed_decree < last_durable_decree) {
+                ddebug_replica("gc_private {}: delay gc for duplication: min_confirmed_decree({}) "
+                               "last_durable_decree({})",
+                               enum_to_string(status()),
+                               min_confirmed_decree,
+                               last_durable_decree);
+                cleanable_decree = min_confirmed_decree;
+            } else {
+                ddebug_replica("gc_private {}: min_confirmed_decree({}) last_durable_decree({})",
+                               enum_to_string(status()),
+                               min_confirmed_decree,
+                               last_durable_decree);
+            }
         }
 
         int64_t valid_start_offset = _app->init_info().init_offset_in_private_log;
@@ -102,7 +105,8 @@ void replica::on_checkpoint_timer()
                                  (int64_t)_options->log_private_reserve_max_size_mb * 1024 * 1024,
                                  (int64_t)_options->log_private_reserve_max_time_seconds);
                              if (status() == partition_status::PS_PRIMARY)
-                                 _counter_private_log_size->set(_private_log->total_size() / 1000000);
+                                 _counter_private_log_size->set(_private_log->total_size() /
+                                                                1000000);
                          });
     }
 }

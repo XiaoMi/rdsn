@@ -95,8 +95,8 @@ TEST_F(replica_duplicator_manager_test, min_confirmed_decree)
 {
     struct test_case
     {
-        std::vector<uint64_t> confirmed_decree;
-        uint64_t min_confirmed_decree;
+        std::vector<int64_t> confirmed_decree;
+        int64_t min_confirmed_decree;
     };
 
     auto r = stub->add_non_primary_replica(2, 1);
@@ -119,7 +119,7 @@ TEST_F(replica_duplicator_manager_test, min_confirmed_decree)
 
     {
         // non-primary
-        test_case tt{{1, 2, 3}, std::numeric_limits<int64_t>::max()};
+        test_case tt{{1, 2, 3}, invalid_decree};
         assert_test(tt);
     }
 
@@ -131,7 +131,7 @@ TEST_F(replica_duplicator_manager_test, min_confirmed_decree)
         tt = {{1000}, 1000};
         assert_test(tt);
 
-        tt = {{}, std::numeric_limits<int64_t>::max()};
+        tt = {{}, invalid_decree};
         assert_test(tt);
     }
 }

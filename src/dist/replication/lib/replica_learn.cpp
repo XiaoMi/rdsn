@@ -318,8 +318,12 @@ void replica::on_learn(dsn_message_t msg, const learn_request &request)
             request.last_committed_decree_in_app,
             local_committed_decree);
 
-    decree learn_start_decree = std::min(_duplication_mgr->min_confirmed_decree() + 1,
-                                         request.last_committed_decree_in_app + 1);
+    decree learn_start_decree = request.last_committed_decree_in_app + 1;
+    decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
+    if (min_confirmed_decree != invalid_decree) {
+        learn_start_decree = std::min(learn_start_decree, min_confirmed_decree + 1);
+    }
+
     dassert(learn_start_decree <= local_committed_decree + 1,
             "%" PRId64 " VS %" PRId64 "",
             learn_start_decree,

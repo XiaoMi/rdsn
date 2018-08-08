@@ -74,15 +74,19 @@ void replica_duplicator_manager::sync_duplication(const duplication_entry &ent)
 
 int64_t replica_duplicator_manager::min_confirmed_decree() const
 {
-    int64_t min_decree = std::numeric_limits<int64_t>::max();
+    int64_t min_decree = invalid_decree;
     if (_replica->status() == partition_status::PS_PRIMARY) {
         for (auto &kv : _duplications) {
             const duplication_progress &p = kv.second->progress();
-            min_decree = std::min(min_decree, p.confirmed_decree);
+            if (min_decree == invalid_decree) {
+                min_decree = p.confirmed_decree;
+            } else {
+                min_decree = std::min(min_decree, p.confirmed_decree);
+            }
         }
     } else if (_replica->status() == partition_status::PS_SECONDARY) {
         if (_primary_confirmed_decree > 0) {
-            min_decree = std::min(min_decree, _primary_confirmed_decree);
+            min_decree = _primary_confirmed_decree;
         }
     }
     return min_decree;
