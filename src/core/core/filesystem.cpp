@@ -36,6 +36,7 @@
 #include <dsn/c/api_utilities.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/utils.h>
+#include <dsn/utility/safe_strerror_posix.h>
 
 #include <sys/stat.h>
 #include <errno.h>
@@ -327,7 +328,7 @@ static bool remove_directory(const std::string &npath)
                 (typeflag == FTW_F) || (typeflag == FTW_DP), "Invalid typeflag = %d.", typeflag);
             succ = (::remove(fpath) == 0);
             if (!succ) {
-                dwarn("remove file %s failed, err = %s", fpath, safe_strerror(errno));
+                dwarn("remove file %s failed, err = %s", fpath, safe_strerror(errno).c_str());
             }
 
             return (succ ? FTW_CONTINUE : FTW_STOP);
@@ -352,7 +353,7 @@ bool remove_path(const std::string &path)
     if (dsn::utils::filesystem::path_exists_internal(npath, FTW_F)) {
         bool ret = (::remove(npath.c_str()) == 0);
         if (!ret) {
-            dwarn("remove file %s failed, err = %s", path.c_str(), safe_strerror(errno));
+            dwarn("remove file %s failed, err = %s", path.c_str(), safe_strerror(errno).c_str());
         }
         return ret;
     } else if (dsn::utils::filesystem::path_exists_internal(npath, FTW_D)) {
@@ -371,7 +372,7 @@ bool rename_path(const std::string &path1, const std::string &path2)
         dwarn("rename from '%s' to '%s' failed, err = %s",
               path1.c_str(),
               path2.c_str(),
-              safe_strerror(errno));
+              safe_strerror(errno).c_str());
     }
 
     return ret;
@@ -479,7 +480,7 @@ out_error:
     dwarn("create_directory %s failed due to cannot create the component: %s, err = %s",
           path.c_str(),
           cpath.c_str(),
-          safe_strerror(err));
+          safe_strerror(err).c_str());
     return false;
 }
 
@@ -524,7 +525,7 @@ bool create_file(const std::string &path)
     fd = ::creat(npath.c_str(), mode);
     if (fd == -1) {
         err = errno;
-        dwarn("create_file %s failed, err = %s", path.c_str(), safe_strerror(err));
+        dwarn("create_file %s failed, err = %s", path.c_str(), safe_strerror(err).c_str());
         return false;
     }
 
@@ -737,7 +738,7 @@ error_code md5sum(const std::string &file_path, /*out*/ std::string &result)
                 derror("md5sum error: read file %s failed: errno = %d (%s)",
                        file_path.c_str(),
                        err,
-                       safe_strerror(err));
+                       safe_strerror(err).c_str());
                 fclose(fp);
                 MD5_Final(out, &c);
                 return ERR_FILE_OPERATION_FAILED;

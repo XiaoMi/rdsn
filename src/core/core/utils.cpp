@@ -210,22 +210,5 @@ void process_mem_usage(double &vm_usage, double &resident_set)
     vm_usage = vsize / 1024.0;
     resident_set = rss * page_size_kb;
 }
-
-static __thread char errno_buffer[256];
-const char *safe_strerror(int err)
-{
-#if (((defined _POSIX_C_SOURCE && (_POSIX_C_SOURCE >= 200112L)) ||                                 \
-      (defined _XOPEN_SOURCE && (_XOPEN_SOURCE >= 600))) &&                                        \
-     !defined _GNU_SOURCE)
-    int result = strerror_r(err, errno_buffer, 256);
-    if (result != 0) {
-        printf("call strerror_r faild, old_err(%d), new_err(%d), ret(%d)\n", err, errno, result);
-        return "unknown_error";
-    }
-    return errno_buffer;
-#else
-    return strerror_r(err, errno_buffer, 256);
-#endif
-}
 }
 }

@@ -113,7 +113,5 @@ int pipe_execute(const char *command, std::ostream &output);
 // On failure, returns 0.0, 0.0
 //
 void process_mem_usage(double &vm_usage, double &resident_set);
-
-const char *safe_strerror(int err);
 }
 }
