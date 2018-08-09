@@ -183,17 +183,23 @@ dsn::task_ptr local_service::delete_file(const delete_file_request &req,
         dinfo("delete file(%s)", req.file_name.c_str());
 
         // delete the meta data file.
-        // skip to check the result for simplicity
         std::string meta_file = utils::filesystem::path_combine(_root, get_metafile(req.file_name));
-        utils::filesystem::remove_path(meta_file);
-
-        std::string file = utils::filesystem::path_combine(_root, req.file_name);
-        if (::dsn::utils::filesystem::file_exists(file)) {
-            if (!::dsn::utils::filesystem::remove_path(file)) {
+        if (utils::filesystem::file_exists(meta_file)) {
+            if (!utils::filesystem::remove_path(meta_file)) {
                 resp.err = ERR_FS_INTERNAL;
             }
-        } else {
-            resp.err = ERR_OBJECT_NOT_FOUND;
+        }
+
+        // if "delete meta data file ok" or "meta data file not found", then delete the real file
+        if (resp.err == ERR_OK) {
+            std::string file = utils::filesystem::path_combine(_root, req.file_name);
+            if (::dsn::utils::filesystem::file_exists(file)) {
+                if (!::dsn::utils::filesystem::remove_path(file)) {
+                    resp.err = ERR_FS_INTERNAL;
+                }
+            } else {
+                resp.err = ERR_OBJECT_NOT_FOUND;
+            }
         }
 
         tsk->enqueue_with(resp);
