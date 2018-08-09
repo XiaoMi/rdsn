@@ -162,10 +162,10 @@ check_and_download "zookeeper-3.4.10.tar.gz"\
 exit_if_fail $?
 
 # libevent for send http request
-check_and_download "libevent-2.0.22.tar.gz"\
-    "https://codeload.github.com/libevent/libevent/tar.gz/release-2.0.22-stable"\
-    "8913ef56ec329f2c046007bd634c7201"\
-    "libevent-release-2.0.22-stable"
+check_and_download "libevent-2.1.8.tar.gz"\
+    "https://github.com/libevent/libevent/archive/release-2.1.8-stable.tar.gz"\
+    "80f8652e4b08d2ec86a5f5eb46b74510"\
+    "libevent-release-2.1.8-stable"
 exit_if_fail $?
 
 # poco 1.7.8
@@ -193,6 +193,13 @@ check_and_download "fmt-4.0.0.tar.gz"\
     "https://codeload.github.com/fmtlib/fmt/tar.gz/4.0.0"\
     "c9be9a37bc85493d1116b0af59a25eba"\
     "fmt-4.0.0"
+exit_if_fail $?
+
+# gflags
+check_and_download "gflags-2.2.1.zip"\
+    "https://github.com/gflags/gflags/archive/v2.2.1.zip"\
+    "2d988ef0b50939fb50ada965dafce96b"\
+    "gflags-2.2.1"
 exit_if_fail $?
 
 # s2geometry
