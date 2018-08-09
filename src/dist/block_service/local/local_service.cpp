@@ -157,9 +157,6 @@ dsn::task_ptr local_service::create_file(const create_file_request &req,
 
             dinfo("file(%s) already exist", file_path.c_str());
             resp.err = f->load_metadata();
-        } else {
-            resp.file_handle = new local_file_object(file_path);
-            dinfo("create file(%s) succeed, ", f->file_name().c_str());
         }
 
         if (ERR_OK == resp.err)
@@ -354,7 +351,7 @@ dsn::task_ptr local_file_object::write(const write_request &req,
         }
 
         if (resp.err == ERR_OK) {
-            ddebug("start write file, file = %s", file_name().c_str());
+            dinfo("start write file, file = %s", file_name().c_str());
 
             std::ofstream fout(file_name(), std::ifstream::out | std::ifstream::trunc);
             if (!fout.is_open()) {
@@ -444,24 +441,23 @@ dsn::task_ptr local_file_object::upload(const upload_request &req,
         resp.err = ERR_OK;
         std::ifstream fin(req.input_local_name, std::ios_base::in);
         if (!fin.is_open()) {
-            dwarn("open %s for read faied, err(%s)",
+            dwarn("open source file %s for read failed, err(%s)",
                   req.input_local_name.c_str(),
-                  utils::safe_strerror(errno).c_str());
-            resp.err = ERR_FS_INTERNAL;
-        }
-
-        utils::filesystem::create_file(file_name());
-        std::ofstream fout(file_name(),
-                           std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
-        if (!fout.is_open()) {
-            dwarn("open %s for write faied, err(%s)",
-                  file_name().c_str(),
                   utils::safe_strerror(errno).c_str());
             resp.err = ERR_FILE_OPERATION_FAILED;
         }
 
+        utils::filesystem::create_file(file_name());
+        std::ofstream fout(file_name(), std::ios_base::out | std::ios_base::trunc);
+        if (!fout.is_open()) {
+            dwarn("open target file %s for write failed, err(%s)",
+                  file_name().c_str(),
+                  utils::safe_strerror(errno).c_str());
+            resp.err = ERR_FS_INTERNAL;
+        }
+
         if (resp.err == ERR_OK) {
-            dinfo("start to transfer the file, src_file = %s, des_file = %s",
+            dinfo("start to transfer from src_file(%s) to des_file(%s)",
                   req.input_local_name.c_str(),
                   file_name().c_str());
             int64_t total_sz = 0;
@@ -477,6 +473,7 @@ dsn::task_ptr local_file_object::upload(const upload_request &req,
 
             resp.uploaded_size = static_cast<uint64_t>(total_sz);
 
+            // calc the md5sum by source file for simplicity
             _size = total_sz;
             error_code res = utils::filesystem::md5sum(req.input_local_name, _md5_value);
             if (res == dsn::ERR_OK) {
@@ -514,11 +511,13 @@ dsn::task_ptr local_file_object::download(const download_request &req,
         resp.err = ERR_OK;
         std::string target_file = req.output_local_name;
         if (target_file.empty()) {
-            derror("%s: download file failed, because output file is invalid", file_name().c_str());
+            derror("download %s failed, because target name(%s) is invalid",
+                   file_name().c_str(),
+                   target_file.c_str());
             resp.err = ERR_INVALID_PARAMETERS;
         }
 
-        if (!_has_meta_synced) {
+        if (resp.err == ERR_OK && !_has_meta_synced) {
             if (!utils::filesystem::file_exists(file_name()) ||
                 !utils::filesystem::file_exists(local_service::get_metafile(file_name()))) {
                 resp.err = ERR_OBJECT_NOT_FOUND;
@@ -527,18 +526,23 @@ dsn::task_ptr local_file_object::download(const download_request &req,
 
         if (resp.err == ERR_OK) {
             std::ifstream fin(file_name(), std::ifstream::in);
-            std::ofstream fout(target_file,
-                               std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
-            if (!fin.is_open() || !fout.is_open()) {
-                if (fin) {
-                    resp.err = ERR_FILE_OPERATION_FAILED;
-                    fin.close();
-                }
-                if (fout) {
-                    resp.err = ERR_FS_INTERNAL;
-                    fout.close();
-                }
+            if (!fin.is_open()) {
+                derror("open block file(%s) failed, err(%s)",
+                       file_name().c_str(),
+                       utils::safe_strerror(errno).c_str());
+                resp.err = ERR_FS_INTERNAL;
             }
+
+            std::ofstream fout(target_file, std::ios_base::out | std::ios_base::trunc);
+            if (!fout.is_open()) {
+                if (fin.is_open())
+                    fin.close();
+                derror("open target file(%s) failed, err(%s)",
+                       target_file.c_str(),
+                       utils::safe_strerror(errno).c_str());
+                resp.err = ERR_FILE_OPERATION_FAILED;
+            }
+
             if (resp.err == ERR_OK) {
                 dinfo("start to transfer, src_file(%s), des_file(%s)",
                       file_name().c_str(),
