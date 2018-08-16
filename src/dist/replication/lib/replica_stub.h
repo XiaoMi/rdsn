@@ -205,6 +205,7 @@ private:
     friend class ::dsn::replication::replication_checker;
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::replica;
+    friend class ::dsn::replication::potential_secondary_context;
     friend class ::dsn::replication::cold_backup_context;
 
     friend class mock_replica_stub;
