@@ -30,4 +30,4 @@ set(MY_BINPLACES
         log.1.0.handle_real_private_log2
 )
 
-dsn_add_executable()
+dsn_add_test()

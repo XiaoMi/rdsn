@@ -13,4 +13,4 @@ set(MY_BINPLACES
         config-test.ini
         )
 
-dsn_add_executable()
+dsn_add_test()
