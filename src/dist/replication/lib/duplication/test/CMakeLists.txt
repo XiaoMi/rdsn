@@ -28,6 +28,7 @@ set(MY_BINPLACES
         log.1.0.handle_real_private_log
         log.1.0.all_loaded_are_write_empties
         log.1.0.handle_real_private_log2
+        run.sh
 )
 
 dsn_add_test()

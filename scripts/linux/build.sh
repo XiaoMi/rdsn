@@ -198,7 +198,7 @@ echo "##########################################################################
 ##############################################
 if [ -z "$TEST_MODULE" ]
 then
-    TEST_MODULE="dsn.core.tests,dsn.tests,dsn_nfs_test,dsn.replication.simple_kv,dsn.rep_tests.simple_kv,dsn.meta.test,dsn.replica.test"
+    TEST_MODULE="dsn.core.tests,dsn.tests,dsn_nfs_test,dsn.replication.simple_kv,dsn.rep_tests.simple_kv,dsn.meta.test,dsn.replica.test,dsn_replica_server_dup_test,dsn_replication_common_test"
 fi
 
 echo "TEST_MODULE=$TEST_MODULE"
