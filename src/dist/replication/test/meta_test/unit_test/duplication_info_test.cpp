@@ -36,7 +36,7 @@ class duplication_info_test : public testing::Test
 public:
     void test_alter_progress()
     {
-        duplication_info dup(1, 1, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+        duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
 
         dup.alter_progress(1, 5);
         ASSERT_EQ(dup._progress[1].volatile_decree, 5);
@@ -64,7 +64,7 @@ public:
 
 TEST_F(duplication_info_test, init_and_start)
 {
-    duplication_info dup(1, 1, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+    duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
     ASSERT_FALSE(dup.is_altering());
     ASSERT_EQ(dup.status, duplication_status::DS_INIT);
     ASSERT_EQ(dup.next_status, duplication_status::DS_INIT);
@@ -77,7 +77,7 @@ TEST_F(duplication_info_test, init_and_start)
 
 TEST_F(duplication_info_test, stable_status)
 {
-    duplication_info dup(1, 1, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+    duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
     dup.start();
 
     dup.stable_status();
@@ -88,7 +88,7 @@ TEST_F(duplication_info_test, stable_status)
 
 TEST_F(duplication_info_test, alter_status_when_busy)
 {
-    duplication_info dup(1, 1, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+    duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
     dup.start();
 
     ASSERT_EQ(dup.alter_status(duplication_status::DS_PAUSE), ERR_BUSY);
@@ -119,7 +119,7 @@ TEST_F(duplication_info_test, alter_status)
     };
 
     for (auto tt : tests) {
-        duplication_info dup(1, 1, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+        duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
         dup.start();
         dup.stable_status();
 
@@ -134,7 +134,7 @@ TEST_F(duplication_info_test, alter_status)
 
 TEST_F(duplication_info_test, encode_and_decode)
 {
-    duplication_info dup(1, 1, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+    duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
     dup.start();
     dup.stable_status();
 

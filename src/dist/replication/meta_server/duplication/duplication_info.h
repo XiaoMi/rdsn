@@ -59,6 +59,7 @@ public:
     /// \see meta_duplication_service::new_dup_from_init
     duplication_info(dupid_t dupid,
                      int32_t appid,
+                     int32_t partition_count,
                      std::string remote_cluster_address,
                      std::string meta_store_path)
         : id(dupid),
@@ -67,12 +68,19 @@ public:
           store_path(std::move(meta_store_path)),
           create_timestamp_ms(dsn_now_ms())
     {
+        for (int i = 1; i <= partition_count; i++) {
+            init_progress(i, invalid_decree);
+        }
     }
 
     /// \see meta_duplication_service::recover_from_meta_state
-    duplication_info(dupid_t dupid, int32_t appid, std::string meta_store_path)
-        : id(dupid), app_id(appid), store_path(std::move(meta_store_path))
+    duplication_info(dupid_t dupid,
+                     int32_t appid,
+                     int32_t partition_count,
+                     std::string meta_store_path)
+        : duplication_info(dupid, appid, partition_count, "", std::move(meta_store_path))
     {
+        // initiates with unknown remote_cluster_address
     }
 
     duplication_info() = default;
@@ -162,8 +170,8 @@ private:
 
     struct partition_progress
     {
-        int64_t volatile_decree{0};
-        int64_t stored_decree{0};
+        int64_t volatile_decree{invalid_decree};
+        int64_t stored_decree{invalid_decree};
         bool is_altering{false};
         uint64_t last_progress_update_ms{0};
     };

@@ -38,10 +38,10 @@ class duplication_progress
 {
 public:
     // the maximum decree that's been persisted in meta server
-    decree confirmed_decree{0};
+    decree confirmed_decree{invalid_decree};
 
     // the maximum decree that's been duplicated to remote.
-    decree last_decree{0};
+    decree last_decree{invalid_decree};
 
     duplication_progress &set_last_decree(decree d)
     {

@@ -318,7 +318,7 @@ meta_duplication_service::new_dup_from_init(const std::string &remote_cluster_ad
 
         std::string dup_path = get_duplication_path(*app, std::to_string(dupid));
         dup = std::make_shared<duplication_info>(
-            dupid, app->app_id, remote_cluster_address, std::move(dup_path));
+            dupid, app->app_id, app->partition_count, remote_cluster_address, std::move(dup_path));
 
         app->duplications.emplace(dup->id, dup);
     }
@@ -359,8 +359,11 @@ void meta_duplication_service::recover_from_meta_state()
 void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
                                                       std::shared_ptr<app_state> app)
 {
-    auto dup = std::make_shared<duplication_info>(
-        dup_id, app->app_id, get_duplication_path(*app, std::to_string(dup_id)));
+    auto dup =
+        std::make_shared<duplication_info>(dup_id,
+                                           app->app_id,
+                                           app->partition_count,
+                                           get_duplication_path(*app, std::to_string(dup_id)));
     app->duplications[dup_id] = dup;
 
     // restore duplication info from json

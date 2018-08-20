@@ -364,27 +364,15 @@ TEST_F(meta_duplication_service_test, duplication_sync)
         ASSERT_EQ(resp.dup_map[app->app_id][dupid].remote_address, dup->remote);
 
         auto progress_map = resp.dup_map[app->app_id][dupid].progress;
-        ASSERT_EQ(progress_map.size(), 3);
+        ASSERT_EQ(progress_map.size(), 8);
         ASSERT_EQ(progress_map[1], 5);
         ASSERT_EQ(progress_map[2], 6);
         ASSERT_EQ(progress_map[3], 7);
-        ASSERT_TRUE(progress_map.find(4) == progress_map.end());
-    }
 
-    { // ensure no updated progresses will also be included in response
-        std::map<gpid, std::vector<duplication_confirm_entry>> confirm_list;
-        duplication_confirm_entry ce;
-        ce.dupid = dupid;
-        ce.confirmed_decree = 9;
-        confirm_list[gpid(app->app_id, 4)].push_back(ce);
-
-        duplication_sync_response resp = duplication_sync(node, confirm_list);
-        auto progress_map = resp.dup_map[app->app_id][dupid].progress;
-        ASSERT_EQ(progress_map.size(), 4);
-        ASSERT_EQ(progress_map[1], 5);
-        ASSERT_EQ(progress_map[2], 6);
-        ASSERT_EQ(progress_map[3], 7);
-        ASSERT_EQ(progress_map[4], 9);
+        // ensure no updated progresses will also be included in response
+        for (int p = 4; p <= 8; p++) {
+            ASSERT_EQ(progress_map[p], invalid_decree);
+        }
     }
 
     { // duplication not existed will be ignored
@@ -415,8 +403,6 @@ TEST_F(meta_duplication_service_test, duplication_sync)
         ASSERT_TRUE(resp.dup_map.find(app->app_id + 1) == resp.dup_map.end());
     }
 }
-
-TEST_F(meta_duplication_service_test, do_duplication_sync_for_partition) {}
 
 // This test ensures that duplications persisted on meta storage can be correctly
 // restored.

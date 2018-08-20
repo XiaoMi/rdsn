@@ -54,7 +54,7 @@ private:
     // replica server periodically uploads current confirm points to meta server by sending
     // `duplication_sync_request`.
     // if success, meta server will respond with `duplication_sync_response`, which contains
-    // the current set of duplications.
+    // the entire set of duplications on this server.
     void run();
 
     void update_duplication_map(const std::map<app_id, std::map<dupid_t, duplication_entry>> &);
