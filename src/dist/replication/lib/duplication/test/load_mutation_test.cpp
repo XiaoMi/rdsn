@@ -39,30 +39,38 @@ struct load_mutation_test : public replica_test_base
     void test_load_mutation_from_cache()
     {
         mutation_batch batch;
-        batch.add(create_test_mutation(1, "hello"));
-        batch.add(create_test_mutation(2, "world"));
-        batch.add(create_test_mutation(3, "")); // commit to 2
+        batch.add(create_test_mutation(2, "hello"));
+        batch.add(create_test_mutation(3, "world"));
+        batch.add(create_test_mutation(4, "")); // commit to 2
 
         { // initiates private log.
             mutation_log_ptr mlog = new mutation_log_private(
                 _replica->dir(), 4, _replica->get_gpid(), nullptr, 1024, 512, 10000);
             _replica->init_private_log(mlog);
-            mlog->update_max_commit_on_disk(2); // assume all logs are committed.
+            mlog->update_max_commit_on_disk(3); // assume all logs are committed.
         }
+
+        // last_decree = 1, start_decree = 2
+        duplication_entry dup_ent;
+        dup_ent.dupid = 1;
+        dup_ent.remote_address = "remote_address";
+        dup_ent.status = duplication_status::DS_PAUSE;
+        dup_ent.progress[_replica->get_gpid().get_partition_index()] = 1;
+        duplicator = make_unique<replica_duplicator>(dup_ent, _replica.get());
 
         load_mutation loader(duplicator.get(), _replica.get(), nullptr);
         loader._log_in_cache = batch._mutation_buffer.get(); // replace the cache pointer.
 
         pipeline::do_when<decree, mutation_tuple_set> end(
             [](decree &&d, mutation_tuple_set &&mutations) {
-                ASSERT_EQ(d, 2);
+                ASSERT_EQ(d, 3);
                 ASSERT_EQ(mutations.size(), 2);
 
                 auto it = mutations.begin();
-                ASSERT_EQ(std::get<0>(*it), 1);
+                ASSERT_EQ(std::get<0>(*it), 2);
 
                 it = std::next(it);
-                ASSERT_EQ(std::get<0>(*it), 2);
+                ASSERT_EQ(std::get<0>(*it), 3);
             });
 
         pipeline::base base;

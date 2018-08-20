@@ -49,6 +49,11 @@ void load_mutation::run()
 
     // try load from cache
     if (_start_decree >= _log_in_cache->min_decree()) {
+        dassert_replica(_start_decree <= _log_in_cache->max_decree(),
+                        "start_decree: {} _log_in_cache->max_decree(): {}",
+                        _start_decree,
+                        _log_in_cache->max_decree());
+
         for (decree d = _start_decree; d <= _log_in_cache->last_committed_decree(); d++) {
             auto mu = _log_in_cache->get_mutation_by_decree(d);
             dassert(mu != nullptr, "");

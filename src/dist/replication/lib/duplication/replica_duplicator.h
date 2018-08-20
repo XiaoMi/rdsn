@@ -110,6 +110,9 @@ public:
     error_s verify_start_decree(decree start_decree);
 
 private:
+    decree get_max_gced_decree() const;
+
+private:
     friend struct replica_duplicator_test;
     friend struct duplication_sync_timer_test;
 

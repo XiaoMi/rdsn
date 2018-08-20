@@ -42,6 +42,10 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     if (it != ent.progress.end()) {
         _progress.last_decree = _progress.confirmed_decree = it->second;
     }
+    if (it->second == invalid_decree) {
+        // initiates from a newly added duplication
+        _progress.last_decree = get_max_gced_decree() + 1;
+    }
 
     if (ent.status != duplication_status::DS_START && ent.status != duplication_status::DS_PAUSE) {
         derror_replica("invalid duplication status: {}", duplication_status_to_string(ent.status));
@@ -135,8 +139,7 @@ void replica_duplicator::update_progress(const duplication_progress &p)
 error_s replica_duplicator::verify_start_decree(decree start_decree)
 {
     decree confirmed_decree = progress().confirmed_decree;
-    decree max_gced_decree = _replica->private_log()->max_gced_decree(
-        _replica->get_gpid(), _replica->get_app()->init_info().init_offset_in_private_log);
+    decree max_gced_decree = get_max_gced_decree();
     if (max_gced_decree >= start_decree) {
         return error_s::make(
             ERR_CORRUPTION,
@@ -147,6 +150,12 @@ error_s replica_duplicator::verify_start_decree(decree start_decree)
                         confirmed_decree));
     }
     return error_s::ok();
+}
+
+decree replica_duplicator::get_max_gced_decree() const
+{
+    return _replica->private_log()->max_gced_decree(
+        _replica->get_gpid(), _replica->get_app()->init_info().init_offset_in_private_log);
 }
 
 } // namespace replication
