@@ -41,9 +41,9 @@
 #include <dsn/dist/replication/replication_other_types.h>
 #include <dsn/dist/block_service.h>
 #include <dsn/tool-api/task_tracker.h>
-#include <dsn/cpp/perf_counter_wrapper.h>
+#include <dsn/perf_counter/perf_counter_wrapper.h>
 
-#include "dist/replication/client_lib/replication_common.h"
+#include "dist/replication/common/replication_common.h"
 #include "dist/replication/meta_server/meta_data.h"
 
 #include "meta_service.h"

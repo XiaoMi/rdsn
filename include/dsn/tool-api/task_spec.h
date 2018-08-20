@@ -45,7 +45,7 @@
 #include <dsn/utility/extensible_object.h>
 #include <dsn/utility/exp_delay.h>
 #include <dsn/utility/dlib.h>
-#include <dsn/tool-api/perf_counter.h>
+#include <dsn/perf_counter/perf_counter.h>
 #include <dsn/tool-api/auto_codes.h>
 
 ENUM_BEGIN(dsn_log_level_t, LOG_LEVEL_INVALID)
@@ -93,18 +93,6 @@ ENUM_REG(TASK_STATE_RUNNING)
 ENUM_REG(TASK_STATE_FINISHED)
 ENUM_REG(TASK_STATE_CANCELLED)
 ENUM_END(task_state)
-
-typedef enum ioe_mode {
-    IOE_PER_NODE,  // each node has shared io engine (rpc/disk/nfs/timer)
-    IOE_PER_QUEUE, // each queue has shared io engine (rpc/disk/nfs/timer)
-    IOE_COUNT,
-    IOE_INVALID
-} ioe_mode;
-
-ENUM_BEGIN(ioe_mode, IOE_INVALID)
-ENUM_REG(IOE_PER_NODE)
-ENUM_REG(IOE_PER_QUEUE)
-ENUM_END(ioe_mode)
 
 typedef enum grpc_mode_t {
     GRPC_TO_LEADER, // the rpc is sent to the leader (if exist)
@@ -161,13 +149,6 @@ class message_ex;
 class admission_controller;
 typedef void (*task_rejection_handler)(task *, admission_controller *);
 
-typedef struct __io_mode_modifier__
-{
-    ioe_mode mode;        // see ioe_mode for details
-    task_queue *queue;    // when mode == IOE_PER_QUEUE
-    int port_shift_value; // port += port_shift_value
-} io_modifer;
-
 class task_spec : public extensible_object<task_spec, 4>
 {
 public:
@@ -182,7 +163,8 @@ public:
                                                    dsn_task_priority_t pri,
                                                    dsn::threadpool_code pool,
                                                    bool is_write_operation,
-                                                   bool allow_batch);
+                                                   bool allow_batch,
+                                                   bool is_idempotent);
 
 public:
     // not configurable [
@@ -195,6 +177,7 @@ public:
     bool rpc_request_for_storage;
     bool rpc_request_is_write_operation;   // need stateful replication
     bool rpc_request_is_write_allow_batch; // if write allow batch
+    bool rpc_request_is_write_idempotent;  // if write operation is idempotent
     // ]
 
     // configurable [

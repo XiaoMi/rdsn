@@ -34,7 +34,7 @@
  */
 
 #include <dsn/dist/meta_state_service.h>
-#include "dist/replication/client_lib/replication_common.h"
+#include "dist/replication/common/replication_common.h"
 
 #include <queue>
 
@@ -46,7 +46,7 @@ DEFINE_TASK_CODE_AIO(LPC_META_STATE_SERVICE_SIMPLE_INTERNAL,
                      TASK_PRIORITY_HIGH,
                      THREAD_POOL_DEFAULT);
 
-class meta_state_service_simple : public meta_state_service, public clientlet
+class meta_state_service_simple : public meta_state_service
 {
 public:
     explicit meta_state_service_simple()

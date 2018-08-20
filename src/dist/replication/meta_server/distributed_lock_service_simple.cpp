@@ -33,12 +33,14 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-#include "dist/replication/client_lib/replication_common.h"
+#include <dsn/tool-api/async_calls.h>
+
+#include "dist/replication/common/replication_common.h"
 #include "distributed_lock_service_simple.h"
 
 namespace dsn {
 namespace dist {
-DEFINE_TASK_CODE(LPC_DIST_LOCK_SVC_RANDOM_EXPIRE, TASK_PRIORITY_COMMON, THREAD_POOL_META_SERVER);
+DEFINE_TASK_CODE(LPC_DIST_LOCK_SVC_RANDOM_EXPIRE, TASK_PRIORITY_COMMON, THREAD_POOL_META_SERVER)
 
 static void __lock_cb_bind_and_enqueue(task_ptr lock_task,
                                        error_code err,
@@ -118,7 +120,7 @@ distributed_lock_service_simple::lock(const std::string &lock_id,
 
     error_code err;
     std::string cowner;
-    uint64_t version;
+    uint64_t version = 0;
     bool is_new = false;
 
     {
@@ -225,7 +227,7 @@ task_ptr distributed_lock_service_simple::unlock(const std::string &lock_id,
 {
     error_code err;
     lock_wait_info next;
-    uint64_t next_version;
+    uint64_t next_version = 0;
 
     {
         zauto_lock l(_lock);
@@ -270,7 +272,7 @@ task_ptr distributed_lock_service_simple::query_lock(const std::string &lock_id,
 {
     error_code err;
     std::string cowner;
-    uint64_t version;
+    uint64_t version = 0;
 
     {
         zauto_lock l(_lock);

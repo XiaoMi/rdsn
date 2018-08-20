@@ -103,7 +103,7 @@ struct service_app_spec
     int delay_seconds;
     bool run;
     int count;     // index = 1,2,...,count
-    int ports_gap; // when count > 1 or service_spec.io_mode != IOE_PER_NODE
+    int ports_gap; // when count > 1
 
     network_client_configs network_client_confs;
     network_server_configs network_server_confs;
@@ -137,7 +137,6 @@ struct service_spec
     std::string tool;                // the main tool (only 1 is allowed for a time)
     std::list<std::string> toollets; // toollets enabled compatible to the main tool
     std::string data_dir;            // to store all data/log/coredump etc.
-    bool start_nfs;
 
     //
     // we allow multiple apps in the same process in rDSN, and each app (service_app_spec)
@@ -160,7 +159,6 @@ struct service_spec
     std::string rwlock_nr_factory_name;
     std::string semaphore_factory_name;
     std::string nfs_factory_name;
-    std::string perf_counter_factory_name;
     std::string logging_factory_name;
 
     std::list<std::string> network_aspects; // toollets compatible to the above network main
@@ -173,11 +171,7 @@ struct service_spec
     std::list<std::string> rwlock_nr_aspects;
     std::list<std::string> semaphore_aspects;
 
-    ioe_mode disk_io_mode;  // whether disk is per node or per queue
-    ioe_mode rpc_io_mode;   // whether rpc is per node or per queue
-    ioe_mode nfs_io_mode;   // whether nfs is per node or per queue
-    ioe_mode timer_io_mode; // whether timer is per node or per queue
-    int io_worker_count;    // for disk and rpc when per node
+    int io_worker_count; // for disk and rpc
 
     network_client_configs network_default_client_cfs; // default network configed by tools
     network_server_configs network_default_server_cfs; // default network configed by tools
@@ -191,14 +185,12 @@ struct service_spec
     service_spec() {}
     DSN_API bool init();
     DSN_API bool init_app_specs();
-    DSN_API int get_ports_delta(int app_id, dsn::threadpool_code pool, int queue_index) const;
 };
 
 CONFIG_BEGIN(service_spec)
 CONFIG_FLD_STRING(tool, "", "use what tool to run this process, e.g., native or simulator")
 CONFIG_FLD_STRING_LIST(toollets, "use what toollets, e.g., tracer, profiler, fault_injector")
 CONFIG_FLD_STRING(data_dir, "./data", "where to put the all the data/log/coredump, etc..")
-CONFIG_FLD(bool, bool, start_nfs, false, "whether to start nfs")
 CONFIG_FLD(
     bool,
     bool,
@@ -216,7 +208,6 @@ CONFIG_FLD_STRING(lock_nr_factory_name, "", "non-recurisve exclusive lock provid
 CONFIG_FLD_STRING(rwlock_nr_factory_name, "", "non-recurisve rwlock provider")
 CONFIG_FLD_STRING(semaphore_factory_name, "", "semaphore provider")
 CONFIG_FLD_STRING(nfs_factory_name, "", "nfs provider")
-CONFIG_FLD_STRING(perf_counter_factory_name, "", "peformance counter provider")
 CONFIG_FLD_STRING(logging_factory_name, "", "logging provider")
 
 CONFIG_FLD_STRING_LIST(network_aspects, "network aspect providers, usually for tooling purpose")
@@ -230,30 +221,6 @@ CONFIG_FLD_STRING_LIST(rwlock_nr_aspects,
                        "non-recursive rwlock aspect providers, usually for tooling purpose")
 CONFIG_FLD_STRING_LIST(semaphore_aspects, "semaphore aspect providers, usually for tooling purpose")
 
-CONFIG_FLD_ENUM(ioe_mode,
-                disk_io_mode,
-                IOE_PER_NODE,
-                IOE_INVALID,
-                false,
-                "how many disk engines? IOE_PER_NODE, or IOE_PER_QUEUE")
-CONFIG_FLD_ENUM(ioe_mode,
-                rpc_io_mode,
-                IOE_PER_NODE,
-                IOE_INVALID,
-                false,
-                "how many rpc engines? IOE_PER_NODE, or IOE_PER_QUEUE")
-CONFIG_FLD_ENUM(ioe_mode,
-                nfs_io_mode,
-                IOE_PER_NODE,
-                IOE_INVALID,
-                false,
-                "how many nfs engines? IOE_PER_NODE, or IOE_PER_QUEUE")
-CONFIG_FLD_ENUM(ioe_mode,
-                timer_io_mode,
-                IOE_PER_NODE,
-                IOE_INVALID,
-                false,
-                "how many disk timer services? IOE_PER_NODE, or IOE_PER_QUEUE")
 CONFIG_FLD(int,
            uint64,
            io_worker_count,

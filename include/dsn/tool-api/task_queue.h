@@ -36,7 +36,7 @@
 #pragma once
 
 #include <dsn/tool-api/task.h>
-#include <dsn/cpp/perf_counter_wrapper.h>
+#include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/utility/dlib.h>
 
 namespace dsn {
@@ -77,7 +77,7 @@ public:
     int count() const { return _queue_length.load(std::memory_order_relaxed); }
     int decrease_count(int count = 1)
     {
-        _queue_length_counter->add((uint64_t)(-count));
+        _queue_length_counter->add((int64_t)(-count));
         return _queue_length.fetch_sub(count, std::memory_order_relaxed) - count;
     }
     int increase_count(int count = 1)

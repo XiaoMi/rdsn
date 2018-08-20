@@ -29,17 +29,19 @@
 //
 // the replica_stub is the *singleton* entry to
 // access all replica managed in the same process
-//   replica_stub(singleton) --> replica --> replication_app
+//   replica_stub(singleton) --> replica --> replication_app_base
 //
 
-#include "../client_lib/replication_common.h"
-#include "../client_lib/fs_manager.h"
-#include "../client_lib/block_service_manager.h"
-#include "replica.h"
-#include <dsn/cpp/perf_counter_wrapper.h>
-#include <dsn/dist/failure_detector_multimaster.h>
 #include <functional>
 #include <tuple>
+#include <dsn/perf_counter/perf_counter_wrapper.h>
+#include <dsn/dist/failure_detector_multimaster.h>
+#include <dsn/dist/nfs_node.h>
+
+#include "dist/replication/common/replication_common.h"
+#include "dist/replication/common/fs_manager.h"
+#include "dist/replication/common/block_service_manager.h"
+#include "replica.h"
 
 namespace dsn {
 namespace replication {
@@ -200,6 +202,7 @@ private:
     friend class ::dsn::replication::replication_checker;
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::replica;
+    friend class ::dsn::replication::potential_secondary_context;
     friend class ::dsn::replication::cold_backup_context;
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>
@@ -254,6 +257,9 @@ private:
     // handle all the block filesystems for current replica stub
     // (in other words, current service node)
     block_service_manager _block_service_manager;
+
+    // nfs_node
+    std::unique_ptr<dsn::nfs_node> _nfs;
 
     // performance counters
     perf_counter_wrapper _counter_replicas_count;

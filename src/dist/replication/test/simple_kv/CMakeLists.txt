@@ -15,7 +15,7 @@ set(MY_PROJ_LIBS gtest
                  dsn_runtime
                  dsn_replica_server
                  dsn_meta_server
-                 dsn.replication.clientlib
+                 dsn_replication_common
                  dsn.block_service.local
                  dsn.block_service.fds
                  dsn.failure_detector.multimaster
@@ -47,8 +47,4 @@ set(MY_BINPLACES
     "${CASE_FILES}"
 )
 
-if(WIN32)
-    SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4217")
-endif()
-
-dsn_add_executable()
+dsn_add_test()

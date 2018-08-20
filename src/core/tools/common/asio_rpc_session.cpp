@@ -170,8 +170,6 @@ asio_rpc_session::asio_rpc_session(asio_network_provider &net,
     : rpc_session(net, remote_addr, parser, is_client), _socket(socket)
 {
     set_options();
-    if (!is_client)
-        start_read_next();
 }
 
 void asio_rpc_session::on_failure(bool is_write)
@@ -194,7 +192,7 @@ void asio_rpc_session::safe_close()
 
 void asio_rpc_session::connect()
 {
-    if (try_connecting()) {
+    if (set_connecting()) {
         boost::asio::ip::tcp::endpoint ep(boost::asio::ip::address_v4(_remote_addr.ip()),
                                           _remote_addr.port());
 

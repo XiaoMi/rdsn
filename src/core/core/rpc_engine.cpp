@@ -46,12 +46,12 @@
 #include "rpc_engine.h"
 #include "service_engine.h"
 #include <dsn/utility/factory_store.h>
-#include <dsn/tool-api/perf_counter.h>
+#include <dsn/perf_counter/perf_counter.h>
 #include <dsn/tool-api/group_address.h>
 #include <dsn/tool-api/uri_address.h>
 #include <dsn/tool-api/task_queue.h>
+#include <dsn/tool-api/async_calls.h>
 #include <dsn/cpp/serialization.h>
-#include <dsn/cpp/clientlet.h>
 #include <set>
 
 namespace dsn {
@@ -429,8 +429,7 @@ rpc_engine::rpc_engine(service_node *node) : _node(node), _rpc_matcher(this)
 //
 network *rpc_engine::create_network(const network_server_config &netcs,
                                     bool client_only,
-                                    network_header_format client_hdr_format,
-                                    io_modifer &ctx)
+                                    network_header_format client_hdr_format)
 {
     const service_spec &spec = service_engine::fast_instance().spec();
     network *net = utils::factory_store<network>::create(
@@ -443,7 +442,7 @@ network *rpc_engine::create_network(const network_server_config &netcs,
     }
 
     // start the net
-    error_code ret = net->start(netcs.channel, netcs.port + ctx.port_shift_value, client_only, ctx);
+    error_code ret = net->start(netcs.channel, netcs.port, client_only);
     if (ret == ERR_OK) {
         return net;
     } else {
@@ -453,14 +452,11 @@ network *rpc_engine::create_network(const network_server_config &netcs,
     }
 }
 
-error_code rpc_engine::start(const service_app_spec &aspec, io_modifer &ctx)
+error_code rpc_engine::start(const service_app_spec &aspec)
 {
     if (_is_running) {
         return ERR_SERVICE_ALREADY_RUNNING;
     }
-
-    // local cache for shared networks with same provider and message format and port
-    std::map<std::string, network *> named_nets; // factory##fmt##port -> net
 
     // start client networks
     _client_nets.resize(network_header_format::max_value() + 1);
@@ -491,25 +487,16 @@ error_code rpc_engine::start(const service_app_spec &aspec, io_modifer &ctx)
             cs.factory_name = factory;
             cs.message_buffer_block_size = blk_size;
 
-            auto net = create_network(cs, true, client_hdr_format, ctx);
+            auto net = create_network(cs, true, client_hdr_format);
             if (!net)
                 return ERR_NETWORK_INIT_FAILED;
             pnet[j] = net;
 
-            if (ctx.queue) {
-                ddebug("[%s.%s] network client started at port %u, channel = %s, fmt = %s ...",
-                       node()->full_name(),
-                       ctx.queue->get_name().c_str(),
-                       (uint32_t)(cs.port + ctx.port_shift_value),
-                       cs.channel.to_string(),
-                       client_hdr_format.to_string());
-            } else {
-                ddebug("[%s] network client started at port %u, channel = %s, fmt = %s ...",
-                       node()->full_name(),
-                       (uint32_t)(cs.port + ctx.port_shift_value),
-                       cs.channel.to_string(),
-                       client_hdr_format.to_string());
-            }
+            ddebug("[%s] network client started at port %u, channel = %s, fmt = %s ...",
+                   node()->full_name(),
+                   (uint32_t)(cs.port),
+                   cs.channel.to_string(),
+                   client_hdr_format.to_string());
         }
     }
 
@@ -530,32 +517,23 @@ error_code rpc_engine::start(const service_app_spec &aspec, io_modifer &ctx)
             pnets = &it->second;
         }
 
-        auto net = create_network(sp.second, false, NET_HDR_DSN, ctx);
+        auto net = create_network(sp.second, false, NET_HDR_DSN);
         if (net == nullptr) {
             return ERR_NETWORK_INIT_FAILED;
         }
 
         (*pnets)[sp.second.channel] = net;
 
-        if (ctx.queue) {
-            dwarn("[%s.%s] network server started at port %u, channel = %s, ...",
-                  node()->full_name(),
-                  ctx.queue->get_name().c_str(),
-                  (uint32_t)(port + ctx.port_shift_value),
-                  sp.second.channel.to_string());
-        } else {
-            dwarn("[%s] network server started at port %u, channel = %s, ...",
-                  node()->full_name(),
-                  (uint32_t)(port + ctx.port_shift_value),
-                  sp.second.channel.to_string());
-        }
+        dwarn("[%s] network server started at port %u, channel = %s, ...",
+              node()->full_name(),
+              (uint32_t)(port),
+              sp.second.channel.to_string());
     }
 
     _uri_resolver_mgr.reset(new uri_resolver_manager());
 
     _local_primary_address = _client_nets[NET_HDR_DSN][0]->address();
-    _local_primary_address.set_port(aspec.ports.size() > 0 ? *aspec.ports.begin()
-                                                           : aspec.id + ctx.port_shift_value);
+    _local_primary_address.set_port(aspec.ports.size() > 0 ? *aspec.ports.begin() : aspec.id);
 
     ddebug("=== service_node=[%s], primary_address=[%s] ===",
            _node->full_name(),
@@ -635,7 +613,9 @@ void rpc_engine::on_recv_request(network *net, message_ex *msg, int delay_ms)
                   msg->header->trace_id);
 
             dassert(msg->get_count() == 0, "request should not be referenced by anybody so far");
-            delete msg;
+            msg->add_ref();
+            dsn_rpc_reply(dsn_msg_create_response(msg), ::dsn::ERR_HANDLER_NOT_FOUND);
+            msg->release_ref();
         }
     } else {
         dwarn("recv message with unknown rpc name %s from %s, trace_id = %016" PRIx64,
@@ -644,7 +624,9 @@ void rpc_engine::on_recv_request(network *net, message_ex *msg, int delay_ms)
               msg->header->trace_id);
 
         dassert(msg->get_count() == 0, "request should not be referenced by anybody so far");
-        delete msg;
+        msg->add_ref();
+        dsn_rpc_reply(dsn_msg_create_response(msg), ::dsn::ERR_HANDLER_NOT_FOUND);
+        msg->release_ref();
     }
 }
 
@@ -686,7 +668,8 @@ void rpc_engine::call_uri(rpc_address addr, message_ex *request, const rpc_respo
                 dsn::error_code err, dsn_message_t req, dsn_message_t resp) {
                 message_ex *req2 = (message_ex *)req;
                 if (req2->header->gpid.value() != 0 && err != ERR_OK &&
-                    err != ERR_HANDLER_NOT_FOUND && err != ERR_APP_NOT_EXIST) {
+                    err != ERR_HANDLER_NOT_FOUND && err != ERR_APP_NOT_EXIST &&
+                    err != ERR_OPERATION_DISABLED) {
                     auto resolver = req2->server_address.uri_address()->get_resolver();
                     if (nullptr != resolver) {
                         resolver->on_access_failure(req2->header->gpid.get_partition_index(), err);
@@ -885,9 +868,20 @@ void rpc_engine::reply(message_ex *response, error_code err)
             sizeof(response->header->server.error_name));
     response->header->server.error_code.local_code = err;
     response->header->server.error_code.local_hash = message_ex::s_local_hash;
-    auto sp = task_spec::get(response->local_rpc_code);
 
-    bool no_fail = sp->on_rpc_reply.execute(task::get_current_task(), response, true);
+    // response rpc code may be TASK_CODE_INVALID when request rpc code is not exist
+    auto sp = response->local_rpc_code == TASK_CODE_INVALID
+                  ? nullptr
+                  : task_spec::get(response->local_rpc_code);
+
+    bool no_fail = true;
+    if (sp) {
+        // current task may be nullptr when this method is directly invoked from rpc_engine.
+        task *cur_task = task::get_current_task();
+        if (cur_task) {
+            no_fail = sp->on_rpc_reply.execute(cur_task, response, true);
+        }
+    }
 
     // connection oriented network, we have bound session
     if (s != nullptr) {
@@ -907,7 +901,8 @@ void rpc_engine::reply(message_ex *response, error_code err)
                         "target address must have named port in this case");
 
             // use the header format recorded in the message
-            network *net = _client_nets[response->hdr_format][sp->rpc_call_channel];
+            auto rpc_channel = sp ? sp->rpc_call_channel : RPC_CHANNEL_TCP;
+            network *net = _client_nets[response->hdr_format][rpc_channel];
             dassert(
                 nullptr != net,
                 "client network not present for rpc channel '%s' with format '%s' used by rpc %s",
@@ -928,7 +923,8 @@ void rpc_engine::reply(message_ex *response, error_code err)
         dbg_dassert(response->to_address.port() > MAX_CLIENT_PORT,
                     "target address must have named port in this case");
 
-        network *net = _server_nets[response->header->from_address.port()][sp->rpc_call_channel];
+        auto rpc_channel = sp ? sp->rpc_call_channel : RPC_CHANNEL_TCP;
+        network *net = _server_nets[response->header->from_address.port()][rpc_channel];
 
         dassert(nullptr != net,
                 "server network not present for rpc channel '%s' on port %u used by rpc %s",

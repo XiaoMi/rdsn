@@ -3,18 +3,19 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/replication/replication_app_base.h>
 
+#include "dist/replication/common/block_service_manager.h"
+
 #include "replica.h"
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
-#include "../client_lib/block_service_manager.h"
 
 namespace dsn {
 namespace replication {
 
 void replica::on_cold_backup(const backup_request &request, /*out*/ backup_response &response)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     const std::string &policy_name = request.policy.policy_name;
     auto backup_id = request.backup_id;
@@ -374,7 +375,7 @@ void replica::generate_backup_checkpoint(cold_backup_context_ptr backup_context)
             ::dsn::utils::filesystem::path_combine(backup_dir, valid_backup_chkpt_dirname);
         // parse checkpoint dirname
         std::string policy_name;
-        int64_t backup_id, decree, timestamp;
+        int64_t backup_id = 0, decree = 0, timestamp = 0;
         dassert(backup_parse_dir_name(
                     valid_backup_chkpt_dirname.c_str(), policy_name, backup_id, decree, timestamp),
                 "%s: valid chekpoint dirname %s",
@@ -441,7 +442,7 @@ void replica::generate_backup_checkpoint(cold_backup_context_ptr backup_context)
 // - may trigger async checkpoint and invoke wait_async_checkpoint_for_backup()
 void replica::trigger_async_checkpoint_for_backup(cold_backup_context_ptr backup_context)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     if (backup_context->status() != ColdBackupCheckpointing) {
         ddebug("%s: ignore triggering async checkpoint because backup_status = %s",
@@ -516,7 +517,7 @@ void replica::trigger_async_checkpoint_for_backup(cold_backup_context_ptr backup
 // - may schedule local_create_backup_checkpoint if async checkpoint completed
 void replica::wait_async_checkpoint_for_backup(cold_backup_context_ptr backup_context)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     if (backup_context->status() != ColdBackupCheckpointing) {
         ddebug("%s: ignore waiting async checkpoint because backup_status = %s",

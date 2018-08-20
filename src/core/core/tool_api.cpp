@@ -57,10 +57,6 @@ public:
 
         if (_start) {
             error_code err;
-            for (auto &io : _node->ios()) {
-                _node->start_io_engine_in_node_start_task(io);
-            }
-
             err = _node->start_app();
             dassert(err == ERR_OK, "start app failed, err = %s", err.to_string());
         } else {
@@ -196,18 +192,6 @@ bool register_component_provider(const char *name,
 }
 
 bool register_component_provider(const char *name,
-                                 perf_counter::factory f,
-                                 ::dsn::provider_type type)
-{
-    return dsn::utils::factory_store<perf_counter>::register_factory(name, f, type);
-}
-
-bool register_component_provider(const char *name, nfs_node::factory f, ::dsn::provider_type type)
-{
-    return dsn::utils::factory_store<nfs_node>::register_factory(name, f, type);
-}
-
-bool register_component_provider(const char *name,
                                  logging_provider::factory f,
                                  ::dsn::provider_type type)
 {
@@ -217,10 +201,9 @@ bool register_component_provider(const char *name,
 bool register_component_provider(network_header_format fmt,
                                  const std::vector<const char *> &signatures,
                                  message_parser::factory f,
-                                 message_parser::factory2 f2,
                                  size_t sz)
 {
-    message_parser_manager::instance().register_factory(fmt, signatures, f, f2, sz);
+    message_parser_manager::instance().register_factory(fmt, signatures, f, sz);
     return true;
 }
 

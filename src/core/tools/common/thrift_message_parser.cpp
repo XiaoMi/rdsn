@@ -110,9 +110,8 @@ void thrift_message_parser::prepare_on_send(message_ex *msg)
     ::apache::thrift::protocol::TBinaryProtocol header_proto(header_trans_ptr);
     // first total length, but we don't know the length, so firstly we put a placeholder
     header_proto.writeI32(0);
-    char_ptr error_msg(header->server.error_name, strlen(header->server.error_name));
     // then the error_message
-    header_proto.writeString<char_ptr>(error_msg);
+    header_proto.writeString(string_view(header->server.error_name));
     // then the thrift message begin
     header_proto.writeMessageBegin(
         header->rpc_name, ::apache::thrift::protocol::T_REPLY, header->id);
@@ -145,11 +144,6 @@ void thrift_message_parser::prepare_on_send(message_ex *msg)
     buffers.resize(dsn_buf_count);
     buffers.emplace_back(std::move(header_bb));
     buffers.emplace_back(std::move(end_bb));
-}
-
-int thrift_message_parser::get_buffer_count_on_send(message_ex *msg)
-{
-    return (int)msg->buffers.size();
 }
 
 int thrift_message_parser::get_buffers_on_send(message_ex *msg, /*out*/ send_buf *buffers)
@@ -268,6 +262,7 @@ dsn::message_ex *thrift_message_parser::parse_message(const thrift_message_heade
 
     dsn_hdr->id = seqid;
     strncpy(dsn_hdr->rpc_name, fname.c_str(), DSN_MAX_TASK_CODE_NAME_LENGTH);
+    dsn_hdr->rpc_name[DSN_MAX_TASK_CODE_NAME_LENGTH - 1] = '\0';
     dsn_hdr->gpid.set_app_id(thrift_header.app_id);
     dsn_hdr->gpid.set_partition_index(thrift_header.partition_index);
     dsn_hdr->client.timeout_ms = thrift_header.client_timeout;

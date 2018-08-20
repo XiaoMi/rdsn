@@ -5,6 +5,8 @@
 #    CLEAR          YES|NO
 #    JOB_NUM        <num>
 #    BUILD_TYPE     debug|release
+#    C_COMPILER     <str>
+#    CXX_COMPILER   <str>
 #    ONLY_BUILD     YES|NO
 #    RUN_VERBOSE    YES|NO
 #    WARNING_ALL    YES|NO
@@ -13,8 +15,8 @@
 #    TEST_MODULE    "<module1> <module2> ..."
 #
 # CMake options:
-#    -DCMAKE_C_COMPILER=gcc
-#    -DCMAKE_CXX_COMPILER=g++
+#    -DCMAKE_C_COMPILER=gcc|clang
+#    -DCMAKE_CXX_COMPILER=g++|clang++
 #    [-DCMAKE_BUILD_TYPE=Debug]
 #    [-DDSN_GIT_SOURCE=github|xiaomi]
 #    [-DWARNING_ALL=TRUE]
@@ -28,7 +30,12 @@ GCOV_DIR="$ROOT/gcov_report"
 GCOV_TMP="$ROOT/.gcov_tmp"
 GCOV_PATTERN=`find $ROOT/include $ROOT/src -name '*.h' -o -name '*.cpp'`
 TIME=`date --rfc-3339=seconds`
-CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++"
+
+echo "C_COMPILER=$C_COMPILER"
+echo "CXX_COMPILER=$CXX_COMPILER"
+CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_C_COMPILER=$C_COMPILER -DCMAKE_CXX_COMPILER=$CXX_COMPILER"
+
+echo "JOB_NUM=$JOB_NUM"
 MAKE_OPTIONS="$MAKE_OPTIONS -j$JOB_NUM"
 
 if [ "$CLEAR" == "YES" ]
@@ -81,6 +88,14 @@ then
     CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_GCOV=TRUE"
 else
     echo "ENABLE_GCOV=NO"
+fi
+
+if [ "$NO_TEST" == "YES" ]
+then
+    echo "NO_TEST=YES"
+    CMAKE_OPTIONS="$CMAKE_OPTIONS -DBUILD_TEST=OFF"
+else
+    echo "NO_TEST=NO"
 fi
 
 # You can specify customized boost by defining BOOST_DIR.
@@ -183,7 +198,7 @@ echo "##########################################################################
 ##############################################
 if [ -z "$TEST_MODULE" ]
 then
-    TEST_MODULE="dsn.core.tests,dsn.tests,dsn.replication.simple_kv,dsn.rep_tests.simple_kv,dsn.meta.test,dsn.replica.test"
+    TEST_MODULE="dsn.core.tests,dsn.tests,dsn_nfs_test,dsn.replication.simple_kv,dsn.rep_tests.simple_kv,dsn.meta.test,dsn.replica.test"
 fi
 
 echo "TEST_MODULE=$TEST_MODULE"

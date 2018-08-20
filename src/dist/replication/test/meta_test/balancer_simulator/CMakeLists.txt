@@ -12,7 +12,7 @@ set(MY_SRC_SEARCH_MODE "GLOB")
 set(MY_PROJ_INC_PATH)
 
 set(MY_PROJ_LIBS dsn_meta_server
-                 dsn.replication.clientlib
+                 dsn_replication_common
                  dsn.block_service.local
                  dsn.block_service.fds
                  fmt
@@ -25,4 +25,4 @@ set(MY_BOOST_PACKAGES system filesystem)
 # Extra files that will be installed
 set(MY_BINPLACES "")
 
-dsn_add_executable()
+dsn_add_test()

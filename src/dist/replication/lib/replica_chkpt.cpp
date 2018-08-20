@@ -47,9 +47,9 @@ namespace replication {
 // run in replica thread
 void replica::on_checkpoint_timer()
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
-    if (now_ms() > _next_checkpoint_interval_trigger_time_ms) {
+    if (dsn_now_ms() > _next_checkpoint_interval_trigger_time_ms) {
         // we trigger emergency checkpoint if no checkpoint generated for a long time
         ddebug("%s: trigger emergency checkpoint by checkpoint_max_interval_hours, "
                "config_interval = %dh (%" PRIu64 "ms), random_interval = %" PRIu64 "ms",
@@ -84,7 +84,7 @@ void replica::on_checkpoint_timer()
                                  (int64_t)_options->log_private_reserve_max_size_mb * 1024 * 1024,
                                  (int64_t)_options->log_private_reserve_max_time_seconds);
                              if (status() == partition_status::PS_PRIMARY)
-                                 _counter_private_log_size->set(_private_log->size() / 1000000);
+                                 _counter_private_log_size->set(_private_log->total_size() / 1000000);
                          });
     }
 }
@@ -120,7 +120,7 @@ void replica::init_checkpoint(bool is_emergency)
 void replica::on_copy_checkpoint(const replica_configuration &request,
                                  /*out*/ learn_response &response)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     if (request.ballot > get_ballot()) {
         if (!update_local_configuration(request)) {
@@ -163,7 +163,7 @@ void replica::on_copy_checkpoint_ack(error_code err,
                                      const std::shared_ptr<replica_configuration> &req,
                                      const std::shared_ptr<learn_response> &resp)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     if (partition_status::PS_PRIMARY != status()) {
         _primary_states.checkpoint_task = nullptr;
@@ -197,19 +197,19 @@ void replica::on_copy_checkpoint_ack(error_code err,
     if (utils::filesystem::path_exists(ldir))
         utils::filesystem::remove_path(ldir);
 
-    _primary_states.checkpoint_task =
-        file::copy_remote_files(resp->address,
-                                resp->base_local_dir,
-                                resp->state.files,
-                                ldir,
-                                false,
-                                false,
-                                LPC_REPLICA_COPY_LAST_CHECKPOINT_DONE,
-                                &_tracker,
-                                [this, resp, ldir](error_code err, size_t sz) {
-                                    this->on_copy_checkpoint_file_completed(err, sz, resp, ldir);
-                                },
-                                get_gpid().thread_hash());
+    _primary_states.checkpoint_task = _stub->_nfs->copy_remote_files(
+        resp->address,
+        resp->base_local_dir,
+        resp->state.files,
+        ldir,
+        false,
+        false,
+        LPC_REPLICA_COPY_LAST_CHECKPOINT_DONE,
+        &_tracker,
+        [this, resp, ldir](error_code err, size_t sz) {
+            this->on_copy_checkpoint_file_completed(err, sz, resp, ldir);
+        },
+        get_gpid().thread_hash());
 }
 
 void replica::on_copy_checkpoint_file_completed(error_code err,
@@ -217,7 +217,7 @@ void replica::on_copy_checkpoint_file_completed(error_code err,
                                                 std::shared_ptr<learn_response> resp,
                                                 const std::string &chk_dir)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     if (ERR_OK != err) {
         dwarn("copy checkpoint failed, err(%s), remote_addr(%s)",
@@ -352,7 +352,7 @@ void replica::catch_up_with_private_logs(partition_status::type s)
 
 void replica::on_checkpoint_completed(error_code err)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     // closing or wrong timing
     if (partition_status::PS_SECONDARY != status() || err == ERR_WRONG_TIMING) {

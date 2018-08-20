@@ -53,11 +53,15 @@ function usage_build()
     echo "   -t|--type             build type: debug|release, default is debug"
     echo "   -c|--clear            clear environment before building, but not clear thirdparty"
     echo "   --clear_thirdparty    clear environment before building, including thirdparty"
+    echo "   --compiler            specify c and cxx compiler, sperated by ','"
+    echo "                         e.g., \"gcc,g++\" or \"clang-3.9,clang++-3.9\""
+    echo "                         default is \"gcc,g++\""
     echo "   -j|--jobs <num>       the number of jobs to run simultaneously, default 8"
     echo "   -b|--boost_dir <dir>  specify customized boost directory, use system boost if not set"
     echo "   -w|--warning_all      open all warnings when build, default no"
     echo "   --enable_gcov         generate gcov code coverage report, default no"
     echo "   -v|--verbose          build in verbose mode, default no"
+    echo "   --notest              build without building unit tests, default no"
     if [ "$ONLY_BUILD" == "NO" ]; then
         echo "   -m|--test_module      specify modules to test, split by ',',"
         echo "                         e.g., \"dsn.core.tests,dsn.tests\","
@@ -66,6 +70,8 @@ function usage_build()
 }
 function run_build()
 {
+    C_COMPILER="gcc"
+    CXX_COMPILER="g++"
     BUILD_TYPE="release"
     CLEAR=NO
     CLEAR_THIRDPARTY=NO
@@ -74,6 +80,7 @@ function run_build()
     WARNING_ALL=NO
     ENABLE_GCOV=NO
     RUN_VERBOSE=NO
+    NO_TEST=NO
     TEST_MODULE=""
     while [[ $# > 0 ]]; do
         key="$1"
@@ -92,6 +99,17 @@ function run_build()
             --clear_thirdparty)
                 CLEAR_THIRDPARTY=YES
                 ;;
+            --compiler)
+                C_COMPILER=`echo $2 | awk -F',' '{print $1}'`
+                CXX_COMPILER=`echo $2 | awk -F',' '{print $2}'`
+                if [ "x"$C_COMPILER == "x" -o "x"$CXX_COMPILER == "x" ]; then
+                    echo "ERROR: invalid compiler option: $2"
+                    echo
+                    usage_build
+                    exit 1
+                fi
+                shift
+                ;;
             -j|--jobs)
                 JOB_NUM="$2"
                 shift
@@ -108,6 +126,9 @@ function run_build()
                 ;;
             -v|--verbose)
                 RUN_VERBOSE=YES
+                ;;
+            --notest)
+                NO_TEST=YES
                 ;;
             -m|--test_module)
                 if [ "$ONLY_BUILD" == "YES" ]; then
@@ -156,10 +177,10 @@ function run_build()
     if [ "$ONLY_BUILD" == "NO" ]; then
         run_start_zk
     fi
-    BUILD_TYPE="$BUILD_TYPE" ONLY_BUILD="$ONLY_BUILD" \
-        CLEAR="$CLEAR" JOB_NUM="$JOB_NUM" \
+    C_COMPILER="$C_COMPILER" CXX_COMPILER="$CXX_COMPILER" BUILD_TYPE="$BUILD_TYPE" \
+        ONLY_BUILD="$ONLY_BUILD" CLEAR="$CLEAR" JOB_NUM="$JOB_NUM" \
         BOOST_DIR="$BOOST_DIR" WARNING_ALL="$WARNING_ALL" ENABLE_GCOV="$ENABLE_GCOV" \
-        RUN_VERBOSE="$RUN_VERBOSE" TEST_MODULE="$TEST_MODULE" $scripts_dir/build.sh
+        RUN_VERBOSE="$RUN_VERBOSE" TEST_MODULE="$TEST_MODULE" NO_TEST="$NO_TEST" $scripts_dir/build.sh
 }
 
 #####################

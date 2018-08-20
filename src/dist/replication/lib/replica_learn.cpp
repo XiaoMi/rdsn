@@ -46,7 +46,7 @@ namespace replication {
 
 void replica::init_learn(uint64_t signature)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     if (status() != partition_status::PS_POTENTIAL_SECONDARY) {
         dwarn(
@@ -230,7 +230,7 @@ void replica::init_learn(uint64_t signature)
 
 void replica::on_learn(dsn_message_t msg, const learn_request &request)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     learn_response response;
     if (partition_status::PS_PRIMARY != status()) {
@@ -502,7 +502,7 @@ void replica::on_learn(dsn_message_t msg, const learn_request &request)
 
 void replica::on_learn_reply(error_code err, learn_request &&req, learn_response &&resp)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     dassert(partition_status::PS_POTENTIAL_SECONDARY == status(),
             "invalid partition status, status = %s",
@@ -667,16 +667,18 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
     if (resp.type == learn_type::LT_APP) {
         if (++_stub->_learn_app_concurrent_count > _options->learn_app_max_concurrent_count) {
             --_stub->_learn_app_concurrent_count;
-            dwarn(
-                "%s: on_learn_reply[%016" PRIx64
-                "]: learnee = %s, exceed learn_app_max_concurrent_count(%d) limit, skip this round",
-                name(),
-                _potential_secondary_states.learning_version,
-                _config.primary.to_string(),
-                _options->learn_app_max_concurrent_count);
+            dwarn("%s: on_learn_reply[%016" PRIx64
+                  "]: learnee = %s, learn_app_concurrent_count(%d) >= "
+                  "learn_app_max_concurrent_count(%d), skip this round",
+                  name(),
+                  _potential_secondary_states.learning_version,
+                  _config.primary.to_string(),
+                  _stub->_learn_app_concurrent_count.load(),
+                  _options->learn_app_max_concurrent_count);
             _potential_secondary_states.learning_round_is_running = false;
             return;
         } else {
+            _potential_secondary_states.learn_app_concurrent_count_increased = true;
             ddebug("%s: on_learn_reply[%016" PRIx64
                    "]: learnee = %s, ++learn_app_concurrent_count = %d",
                    name(),
@@ -845,7 +847,6 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
             _potential_secondary_states.learn_remote_files_task =
                 tasking::create_task(LPC_LEARN_REMOTE_DELTA_FILES, &_tracker, [
                     this,
-                    err,
                     copy_start = _potential_secondary_states.duration_ms(),
                     req_cap = std::move(req),
                     resp_cap = std::move(resp)
@@ -870,7 +871,7 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
                static_cast<int>(resp.state.files.size()),
                high_priority ? "high" : "low");
 
-        _potential_secondary_states.learn_remote_files_task = file::copy_remote_files(
+        _potential_secondary_states.learn_remote_files_task = _stub->_nfs->copy_remote_files(
             resp.config.primary,
             resp.base_local_dir,
             resp.state.files,
@@ -937,6 +938,7 @@ void replica::on_copy_remote_state_completed(error_code err,
 
     if (resp.type == learn_type::LT_APP) {
         --_stub->_learn_app_concurrent_count;
+        _potential_secondary_states.learn_app_concurrent_count_increased = false;
         ddebug("%s: on_copy_remote_state_completed[%016" PRIx64
                "]: learnee = %s, --learn_app_concurrent_count = %d",
                name(),
@@ -1117,7 +1119,7 @@ void replica::on_copy_remote_state_completed(error_code err,
 
 void replica::on_learn_remote_state_completed(error_code err)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     if (partition_status::PS_POTENTIAL_SECONDARY != status()) {
         dwarn("%s: on_learn_remote_state_completed[%016" PRIx64
@@ -1158,7 +1160,7 @@ void replica::on_learn_remote_state_completed(error_code err)
 
 void replica::handle_learning_error(error_code err, bool is_local_error)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     derror("%s: handle_learning_error[%016" PRIx64 "]: learnee = %s, learn_duration = %" PRIu64
            " ms, err = %s, %s",
@@ -1247,7 +1249,7 @@ void replica::notify_learn_completion()
 void replica::on_learn_completion_notification(const group_check_response &report,
                                                /*out*/ learn_notify_response &response)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     ddebug("%s: on_learn_completion_notification[%016" PRIx64
            "]: learner = %s, learning_status = %s",
@@ -1292,7 +1294,7 @@ void replica::on_learn_completion_notification_reply(error_code err,
                                                      group_check_response &&report,
                                                      learn_notify_response &&resp)
 {
-    check_hashed_access();
+    _checker.only_one_thread_access();
 
     dassert(partition_status::PS_POTENTIAL_SECONDARY == status(),
             "invalid partition_status, status = %s",

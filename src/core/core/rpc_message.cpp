@@ -448,13 +448,6 @@ message_ex *message_ex::create_response()
     hdr.body_length = 0;
     hdr.context.u.is_request = false;
 
-    task_spec *request_sp = task_spec::get(local_rpc_code);
-    task_spec *response_sp = task_spec::get(request_sp->rpc_paired_code);
-    msg->local_rpc_code = response_sp->code;
-    strncpy(hdr.rpc_name, response_sp->name.c_str(), sizeof(hdr.rpc_name));
-    hdr.rpc_code.local_code = msg->local_rpc_code;
-    hdr.rpc_code.local_hash = s_local_hash;
-
     // ATTENTION: the from_address may not be the primary address of this node
     // if there are more than one ports listened and the to_address is not equal to
     // the primary address.
@@ -463,8 +456,24 @@ message_ex *message_ex::create_response()
     msg->io_session = io_session;
     msg->hdr_format = hdr_format;
 
-    // join point
-    request_sp->on_rpc_create_response.execute(this, msg);
+    if (local_rpc_code != TASK_CODE_INVALID) {
+        task_spec *request_sp = task_spec::get(local_rpc_code);
+        task_spec *response_sp = task_spec::get(request_sp->rpc_paired_code);
+        msg->local_rpc_code = response_sp->code;
+        strncpy(hdr.rpc_name, response_sp->name.c_str(), sizeof(hdr.rpc_name) - 1);
+        hdr.rpc_code.local_code = msg->local_rpc_code;
+        hdr.rpc_code.local_hash = s_local_hash;
+
+        // join point
+        request_sp->on_rpc_create_response.execute(this, msg);
+    } else {
+        msg->local_rpc_code = TASK_CODE_INVALID;
+        std::string ack_rpc_name(header->rpc_name);
+        ack_rpc_name += "_ACK";
+        strncpy(hdr.rpc_name, ack_rpc_name.c_str(), sizeof(hdr.rpc_name) - 1);
+        hdr.rpc_code.local_code = TASK_CODE_INVALID;
+        hdr.rpc_code.local_hash = s_local_hash;
+    }
 
     return msg;
 }
@@ -547,22 +556,6 @@ void message_ex::write_commit(size_t size)
     *this->buffers.rbegin() = this->buffers.rbegin()->range(0, (int)this->_rw_offset);
     this->_rw_committed = true;
     this->header->body_length += (int)size;
-}
-
-void message_ex::write_append(const blob &data)
-{
-    // printf("%p %s\n", this, __FUNCTION__);
-    dassert(!this->_is_read && this->_rw_committed,
-            "there are pending msg write not committed"
-            ", please invoke dsn_msg_write_next and dsn_msg_write_commit in pairs");
-
-    int size = data.length();
-    if (size > 0) {
-        this->_rw_index++;
-        this->_rw_offset += size;
-        this->buffers.push_back(data);
-        this->header->body_length += size;
-    }
 }
 
 bool message_ex::read_next(void **ptr, size_t *size)

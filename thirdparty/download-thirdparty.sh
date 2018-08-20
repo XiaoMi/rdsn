@@ -57,7 +57,14 @@ function check_and_download()
 function extract_package()
 {
     package_name=$1
-    tar xf $package_name
+    is_tar_gz=$(echo $package_name | grep ".tar.gz")
+    if [[ $is_tar_gz != "" ]]; then
+        tar xf $package_name
+    fi
+    is_zip=$(echo $package_name | grep ".zip")
+    if [[ $is_zip != "" ]]; then
+        unzip -oq $package_name
+    fi
     local ret_code=$?
     if [ $ret_code -ne 0 ]; then
         rm -f $package_name
@@ -135,14 +142,14 @@ check_and_download "thrift-0.9.3.tar.gz"\
     "thrift-0.9.3"
 ret_code=$?
 if [ $ret_code -eq 2 ]; then
-    exit -1
+    exit 2
 elif [ $ret_code -eq 0 ]; then
     echo "make patch to thrift"
     cd thrift-0.9.3
     patch -p1 < ../../fix_thrift_for_cpp11.patch
     if [ $? != 0 ]; then
         echo "ERROR: patch fix_thrift_for_cpp11.patch for thrift failed"
-        exit -1
+        exit 2
     fi
     cd ..
 fi
@@ -155,10 +162,10 @@ check_and_download "zookeeper-3.4.10.tar.gz"\
 exit_if_fail $?
 
 # libevent for send http request
-check_and_download "libevent-2.0.22.tar.gz"\
-    "https://codeload.github.com/libevent/libevent/tar.gz/release-2.0.22-stable"\
-    "8913ef56ec329f2c046007bd634c7201"\
-    "libevent-release-2.0.22-stable"
+check_and_download "libevent-2.1.8.tar.gz"\
+    "https://github.com/libevent/libevent/archive/release-2.1.8-stable.tar.gz"\
+    "80f8652e4b08d2ec86a5f5eb46b74510"\
+    "libevent-release-2.1.8-stable"
 exit_if_fail $?
 
 # poco 1.7.8
@@ -173,7 +180,7 @@ if [ ! -d $TP_SRC/fds ]; then
     git clone https://github.com/XiaoMi/galaxy-fds-sdk-cpp.git
     if [ $? != 0 ]; then
         echo "ERROR: download fds wrong"
-        exit -1
+        exit 2
     fi
     echo "mv galaxy-fds-sdk-cpp fds"
     mv galaxy-fds-sdk-cpp fds
@@ -187,5 +194,31 @@ check_and_download "fmt-4.0.0.tar.gz"\
     "c9be9a37bc85493d1116b0af59a25eba"\
     "fmt-4.0.0"
 exit_if_fail $?
+
+# gflags
+check_and_download "gflags-2.2.1.zip"\
+    "https://github.com/gflags/gflags/archive/v2.2.1.zip"\
+    "2d988ef0b50939fb50ada965dafce96b"\
+    "gflags-2.2.1"
+exit_if_fail $?
+
+# s2geometry
+check_and_download "s2geometry-master.zip"\
+    "https://github.com/google/s2geometry/archive/master.zip"\
+    "afda53fb79131248d414e10f5246f4ed"\
+    "s2geometry-master"
+ret_code=$?
+if [ $ret_code -eq 2 ]; then
+    exit 2
+elif [ $ret_code -eq 0 ]; then
+    echo "make patch to s2geometry"
+    cd s2geometry-master
+    patch -p1 < ../../fix_s2_for_pegasus.patch
+    if [ $? != 0 ]; then
+        echo "ERROR: patch fix_s2_for_pegasus.patch for s2geometry failed"
+        exit 2
+    fi
+    cd ..
+fi
 
 cd $TP_DIR

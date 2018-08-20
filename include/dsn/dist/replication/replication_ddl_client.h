@@ -39,6 +39,7 @@
 #include <map>
 #include <dsn/dist/replication.h>
 #include <dsn/tool-api/task_tracker.h>
+#include <dsn/tool-api/async_calls.h>
 
 namespace dsn {
 namespace replication {
@@ -77,6 +78,8 @@ public:
     dsn::error_code
     list_nodes(const dsn::replication::node_status::type status,
                std::map<dsn::rpc_address, dsn::replication::node_status::type> &nodes);
+
+    dsn::error_code cluster_name(int64_t timeout_ms, std::string &cluster_name);
 
     dsn::error_code cluster_info(const std::string &file_name, bool resolve_ip = false);
 

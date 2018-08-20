@@ -164,7 +164,7 @@ fi
 
 # build libevent
 if [ ! -d $TP_OUTPUT/include/event2 ]; then
-    cd $TP_SRC/libevent-release-2.0.22-stable
+    cd $TP_SRC/libevent-release-2.1.8-stable
     ./autogen.sh
     ./configure --enable-shared=no --disable-debug-mode --prefix=$TP_OUTPUT --with-pic=yes
     make -j8 && make install
@@ -261,4 +261,30 @@ if [ ! -d $TP_OUTPUT/include/fds ]; then
     cd $TP_DIR
 else
     echo "skip build fds"
+fi
+
+# build s2geometry
+if [ ! -d $TP_OUTPUT/include/s2 ]; then
+    cd $TP_SRC/s2geometry-master
+    mkdir -p build && cd build
+    cmake .. -DGTEST_INCLUDE=$TP_OUTPUT/include -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT
+    make -j8 && make install
+    res=$?
+    exit_if_fail "s2geometry" $res
+    cd $TP_DIR
+else
+    echo "skip build s2geometry"
+fi
+
+# build gflags
+if [ ! -d $TP_OUTPUT/include/gflags ]; then
+    cd $TP_SRC/gflags-2.2.1
+    mkdir -p build && cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT
+    make -j8 && make install
+    res=$?
+    exit_if_fail "gflags" $res
+    cd $TP_DIR
+else
+    echo "skip build gflags"
 fi

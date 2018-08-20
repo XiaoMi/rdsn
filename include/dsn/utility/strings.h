@@ -9,7 +9,10 @@
 namespace dsn {
 namespace utils {
 
-void split_args(const char *args, /*out*/ std::vector<std::string> &sargs, char splitter = ' ');
+void split_args(const char *args,
+                /*out*/ std::vector<std::string> &sargs,
+                char splitter = ' ',
+                bool keep_place_holder = false);
 
 void split_args(const char *args, /*out*/ std::list<std::string> &sargs, char splitter = ' ');
 
@@ -43,5 +46,8 @@ replace_string(std::string subject, const std::string &search, const std::string
 std::string get_last_component(const std::string &input, const char splitters[]);
 
 char *trim_string(char *s);
+
+// calculate the md5 checksum of buffer
+std::string string_md5(const char *buffer, unsigned int length);
 }
 }

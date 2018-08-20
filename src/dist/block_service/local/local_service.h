@@ -41,6 +41,8 @@ public:
 
     virtual ~local_service();
 
+    static std::string get_metafile(const std::string &filepath);
+
 private:
     std::string _root;
 };
@@ -48,7 +50,7 @@ private:
 class local_file_object : public block_file
 {
 public:
-    local_file_object(local_service *local_svc, const std::string &name);
+    local_file_object(const std::string &name);
 
     virtual ~local_file_object();
 
@@ -75,12 +77,16 @@ public:
                                    const download_callback &cb,
                                    dsn::task_tracker *tracker = nullptr) override;
 
+    error_code load_metadata();
+    error_code store_metadata();
+
 private:
     std::string compute_md5();
 
 private:
-    local_service *_local_service;
+    uint64_t _size;
     std::string _md5_value;
+    bool _has_meta_synced;
 };
 }
 }

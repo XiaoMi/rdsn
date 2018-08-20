@@ -14,7 +14,7 @@ set(MY_PROJ_INC_PATH "")
 set(MY_PROJ_LIBS dsn_meta_server
                  dsn_replica_server
                  dsn.replication.zookeeper_provider
-                 dsn.replication.clientlib
+                 dsn_replication_common
                  dsn.block_service.local
                  dsn.block_service.fds
                  dsn.failure_detector
@@ -34,4 +34,4 @@ set(MY_BOOST_PACKAGES system filesystem)
 set(MY_BINPLACES clear.sh run.sh config-test.ini)
 
 add_definitions(-DDSN_MOCK_TEST)
-dsn_add_executable()
+dsn_add_test()

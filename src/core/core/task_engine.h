@@ -38,7 +38,7 @@
 #include "service_engine.h"
 #include <dsn/tool-api/task_queue.h>
 #include <dsn/tool-api/admission_controller.h>
-#include <dsn/tool-api/perf_counter.h>
+#include <dsn/perf_counter/perf_counter.h>
 #include <dsn/tool-api/task_worker.h>
 #include <dsn/tool-api/timer_service.h>
 
@@ -90,8 +90,6 @@ private:
     std::vector<task_queue *> _queues;
     std::vector<admission_controller *> _controllers;
 
-    // cached ptrs for fast access
-    timer_service *_per_node_timer_svc;
     std::vector<timer_service *> _per_queue_timer_svcs;
 
     bool _is_running;

@@ -18,7 +18,7 @@ endif()
 set(MY_PROJ_LIBS 
     dsn_meta_server
     dsn_replica_server
-    dsn.replication.clientlib
+    dsn_replication_common
     dsn.block_service.local
     dsn.block_service.fds
     dsn.failure_detector.multimaster
@@ -48,4 +48,4 @@ set(MY_BINPLACES
     "${CMAKE_CURRENT_SOURCE_DIR}/config-test.ini"
 )
 
-dsn_add_executable()
+dsn_add_test()

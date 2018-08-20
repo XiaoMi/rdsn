@@ -43,11 +43,13 @@
 //
 
 #include <dsn/tool-api/uniq_timestamp_us.h>
+#include <dsn/tool-api/thread_access_checker.h>
 #include <dsn/cpp/serverlet.h>
-#include <dsn/cpp/perf_counter_wrapper.h>
+
+#include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/dist/replication/replica_base.h>
 
-#include "dist/replication/client_lib/replication_common.h"
+#include "dist/replication/common/replication_common.h"
 #include "mutation.h"
 #include "mutation_log.h"
 #include "prepare_list.h"
@@ -381,6 +383,8 @@ private:
     perf_counter_wrapper _counter_private_log_size;
 
     dsn::task_tracker _tracker;
+    // the thread access checker
+    dsn::thread_access_checker _checker;
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
 }
