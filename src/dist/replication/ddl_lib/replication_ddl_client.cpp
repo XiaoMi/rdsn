@@ -390,7 +390,7 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
                                   "is_stateful",
                                   "create_time",
                                   "drop_time",
-                                  "drop_expire_time",
+                                  "drop_expire",
                                   "envs_count"};
     table.emplace_back(std::move(head));
     int available_app_count = 0;
