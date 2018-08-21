@@ -42,15 +42,15 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     if (it != ent.progress.end()) {
         _progress.last_decree = _progress.confirmed_decree = it->second;
     }
+    dassert_replica(ent.status == duplication_status::DS_START ||
+                        ent.status == duplication_status::DS_PAUSE,
+                    "invalid duplication status: {}",
+                    duplication_status_to_string(ent.status));
+    _status = ent.status;
     if (it->second == invalid_decree) {
         // initiates from a newly added duplication
-        _progress.last_decree = get_max_gced_decree() + 1;
+        _progress.last_decree = get_max_gced_decree();
     }
-
-    if (ent.status != duplication_status::DS_START && ent.status != duplication_status::DS_PAUSE) {
-        derror_replica("invalid duplication status: {}", duplication_status_to_string(ent.status));
-    }
-    _status = ent.status;
 
     /// ===== pipeline declaration ===== ///
 

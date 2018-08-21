@@ -1934,11 +1934,8 @@ void replica_stub::open_service()
         [this](const std::vector<std::string> &args) {
             return exec_command_on_replica(args, true, [](const replica_ptr &rep) {
                 std::map<std::string, std::string> kv_map;
-                if (rep->query_app_envs(kv_map)) {
-                    return dsn::utils::kv_map_to_string(kv_map, ',', '=');
-                } else {
-                    return std::string("call replica::query_app_envs() failed");
-                }
+                rep->query_app_envs(kv_map);
+                return dsn::utils::kv_map_to_string(kv_map, ',', '=');
             });
         });
 }
