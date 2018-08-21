@@ -608,8 +608,11 @@ enum duplication_status
 // This request is sent from client to meta.
 struct duplication_add_request
 {
-    1:string                    app_name;
-    2:string                    remote_cluster_address;
+    1:string  app_name;
+    2:string  remote_cluster_address;
+
+    // True means to initialize the duplication in DS_PAUSE.
+    3:bool    freezed;
 }
 
 struct duplication_add_response
@@ -667,7 +670,8 @@ struct duplication_query_response
     4:list<duplication_entry>    entry_list;
 }
 
-struct duplication_confirm_entry {
+struct duplication_confirm_entry
+{
     1:i32       dupid;
     2:i64       confirmed_decree;
 }
@@ -698,7 +702,7 @@ struct duplication_sync_response
 
     // appid -> map<dupid, dup_entry>
     // this rpc will not return the apps that were not assigned duplication.
-    2:map<i32, map<i32, duplication_entry>>                dup_map;
+    2:map<i32, map<i32, duplication_entry>>            dup_map;
 }
 
 /*

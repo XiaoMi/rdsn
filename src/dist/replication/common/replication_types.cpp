@@ -10723,6 +10723,8 @@ void duplication_add_request::__set_remote_cluster_address(const std::string &va
     this->remote_cluster_address = val;
 }
 
+void duplication_add_request::__set_freezed(const bool val) { this->freezed = val; }
+
 uint32_t duplication_add_request::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -10758,6 +10760,14 @@ uint32_t duplication_add_request::read(::apache::thrift::protocol::TProtocol *ip
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 3:
+            if (ftype == ::apache::thrift::protocol::T_BOOL) {
+                xfer += iprot->readBool(this->freezed);
+                this->__isset.freezed = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -10785,6 +10795,10 @@ uint32_t duplication_add_request::write(::apache::thrift::protocol::TProtocol *o
     xfer += oprot->writeString(this->remote_cluster_address);
     xfer += oprot->writeFieldEnd();
 
+    xfer += oprot->writeFieldBegin("freezed", ::apache::thrift::protocol::T_BOOL, 3);
+    xfer += oprot->writeBool(this->freezed);
+    xfer += oprot->writeFieldEnd();
+
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -10795,6 +10809,7 @@ void swap(duplication_add_request &a, duplication_add_request &b)
     using ::std::swap;
     swap(a.app_name, b.app_name);
     swap(a.remote_cluster_address, b.remote_cluster_address);
+    swap(a.freezed, b.freezed);
     swap(a.__isset, b.__isset);
 }
 
@@ -10802,18 +10817,21 @@ duplication_add_request::duplication_add_request(const duplication_add_request &
 {
     app_name = other455.app_name;
     remote_cluster_address = other455.remote_cluster_address;
+    freezed = other455.freezed;
     __isset = other455.__isset;
 }
 duplication_add_request::duplication_add_request(duplication_add_request &&other456)
 {
     app_name = std::move(other456.app_name);
     remote_cluster_address = std::move(other456.remote_cluster_address);
+    freezed = std::move(other456.freezed);
     __isset = std::move(other456.__isset);
 }
 duplication_add_request &duplication_add_request::operator=(const duplication_add_request &other457)
 {
     app_name = other457.app_name;
     remote_cluster_address = other457.remote_cluster_address;
+    freezed = other457.freezed;
     __isset = other457.__isset;
     return *this;
 }
@@ -10821,6 +10839,7 @@ duplication_add_request &duplication_add_request::operator=(duplication_add_requ
 {
     app_name = std::move(other458.app_name);
     remote_cluster_address = std::move(other458.remote_cluster_address);
+    freezed = std::move(other458.freezed);
     __isset = std::move(other458.__isset);
     return *this;
 }
@@ -10831,6 +10850,8 @@ void duplication_add_request::printTo(std::ostream &out) const
     out << "app_name=" << to_string(app_name);
     out << ", "
         << "remote_cluster_address=" << to_string(remote_cluster_address);
+    out << ", "
+        << "freezed=" << to_string(freezed);
     out << ")";
 }
 

@@ -171,6 +171,9 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
                                                   duplication_add_rpc &rpc)
 {
     dup->start();
+    if (rpc.request().freezed) {
+        dup->alter_status(duplication_status::DS_PAUSE);
+    }
 
     // store the duplication in started state
     blob value = dup->to_json_blob_in_status(duplication_status::DS_START);
@@ -295,7 +298,7 @@ void meta_duplication_service::do_update_partition_confirmed(duplication_info_s_
                 rpc.response().dup_map[dup->app_id][dup->id].progress[partition_idx] =
                     confirmed_decree;
 
-                // rpc will finally be replied when confirmed points
+                // duplication_sync_rpc will finally be replied when confirmed points
                 // of all partitions are stored.
             });
     }
@@ -321,6 +324,7 @@ meta_duplication_service::new_dup_from_init(const std::string &remote_cluster_ad
             dupid, app->app_id, app->partition_count, remote_cluster_address, std::move(dup_path));
 
         app->duplications.emplace(dup->id, dup);
+        app->envs["duplicating"] = "true";
     }
 
     return dup;
@@ -344,6 +348,7 @@ void meta_duplication_service::recover_from_meta_state()
                     // if there's no duplication
                     return;
                 }
+                app->envs["duplicating"] = "true";
                 for (const std::string &raw_dup_id : dup_id_list) {
                     dupid_t dup_id;
                     dassert_f(buf2int32(raw_dup_id, dup_id),

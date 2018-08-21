@@ -4596,9 +4596,13 @@ inline std::ostream &operator<<(std::ostream &out, const configuration_update_ap
 
 typedef struct _duplication_add_request__isset
 {
-    _duplication_add_request__isset() : app_name(false), remote_cluster_address(false) {}
+    _duplication_add_request__isset()
+        : app_name(false), remote_cluster_address(false), freezed(false)
+    {
+    }
     bool app_name : 1;
     bool remote_cluster_address : 1;
+    bool freezed : 1;
 } _duplication_add_request__isset;
 
 class duplication_add_request
@@ -4608,11 +4612,12 @@ public:
     duplication_add_request(duplication_add_request &&);
     duplication_add_request &operator=(const duplication_add_request &);
     duplication_add_request &operator=(duplication_add_request &&);
-    duplication_add_request() : app_name(), remote_cluster_address() {}
+    duplication_add_request() : app_name(), remote_cluster_address(), freezed(0) {}
 
     virtual ~duplication_add_request() throw();
     std::string app_name;
     std::string remote_cluster_address;
+    bool freezed;
 
     _duplication_add_request__isset __isset;
 
@@ -4620,11 +4625,15 @@ public:
 
     void __set_remote_cluster_address(const std::string &val);
 
+    void __set_freezed(const bool val);
+
     bool operator==(const duplication_add_request &rhs) const
     {
         if (!(app_name == rhs.app_name))
             return false;
         if (!(remote_cluster_address == rhs.remote_cluster_address))
+            return false;
+        if (!(freezed == rhs.freezed))
             return false;
         return true;
     }

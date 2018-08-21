@@ -237,6 +237,17 @@ TEST_F(meta_duplication_service_test, add_duplication)
     for (auto tt : tests) {
         auto resp = create_dup(tt.app, tt.remote);
         ASSERT_EQ(tt.wec, resp.err);
+
+        if (tt.wec == ERR_OK) {
+            auto app = find_app(test_app);
+            auto dup = app->duplications[resp.dupid];
+            ASSERT_TRUE(dup != nullptr);
+            ASSERT_EQ(dup->app_id, app->app_id);
+            ASSERT_EQ(dup->status, duplication_status::DS_START);
+            ASSERT_EQ(dup->remote, ok_remote);
+            ASSERT_EQ(resp.dupid, dup->id);
+            ASSERT_EQ(app->envs["duplicating"], "true");
+        }
     }
 }
 
@@ -447,6 +458,7 @@ TEST_F(meta_duplication_service_test, recover_from_meta_state)
 
     for (int i = 0; i < test_apps.size(); i++) {
         auto app = find_app(test_apps[i]);
+        ASSERT_EQ(app->envs["duplicating"], "true");
 
         auto &before = meta_state[test_apps[i]];
         auto &after = app->duplications;

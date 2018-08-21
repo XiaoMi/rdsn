@@ -238,9 +238,9 @@ private:
     bool is_same_ballot_status_change_allowed(partition_status::type olds,
                                               partition_status::type news);
 
-    // return false when update fails or replica is going to be closed
-    bool update_app_envs(const std::map<std::string, std::string> &envs);
-    bool query_app_envs(/*out*/ std::map<std::string, std::string> &envs);
+    void update_app_envs(const std::map<std::string, std::string> &envs);
+    void query_app_envs(/*out*/ std::map<std::string, std::string> &envs);
+
     bool update_configuration(const partition_configuration &config);
     bool update_local_configuration(const replica_configuration &config, bool same_ballot = false);
 
@@ -340,6 +340,7 @@ private:
     std::string _dir;
     replication_options *_options;
     const app_info _app_info;
+
     std::map<std::string, std::string> _extra_envs;
 
     // uniq timestamp generator for this replica.

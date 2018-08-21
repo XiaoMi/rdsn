@@ -66,7 +66,7 @@ public:
         _duplications.clear();
     }
 
-    // THREAD_POOL_REPLICATION
+    /// THREAD_POOL_REPLICATION
     void set_confirmed_decree_non_primary(decree confirmed);
 
     replica *_replica;

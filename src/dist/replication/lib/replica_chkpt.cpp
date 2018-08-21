@@ -87,6 +87,14 @@ void replica::on_checkpoint_timer()
                                min_confirmed_decree,
                                last_durable_decree);
             }
+        } else {
+            // protect the logs from being truncated
+            // if this app is in duplication
+            std::map<std::string, std::string> envs;
+            query_app_envs(envs);
+            if (envs["duplicating"] == "true") {
+                return;
+            }
         }
 
         int64_t valid_start_offset = _app->init_info().init_offset_in_private_log;
