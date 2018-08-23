@@ -60,14 +60,14 @@ typedef std::set<mutation_tuple, mutation_tuple_cmp> mutation_tuple_set;
 class mutation_duplicator
 {
 public:
-    typedef std::function<void(error_s)> err_callback;
+    typedef std::function<void(error_s, mutation_tuple_set)> err_callback;
 
-    /// Duplicate the provided mutation to the remote cluster.
+    /// Duplicate the provided mutations to the remote cluster.
     /// The implementation must be non-blocking.
     ///
-    /// \param cb: Call it when a specified mutation was sent successfully or
+    /// \param cb: Call it when all the given mutations were sent successfully or
     ///            failed with an error.
-    virtual void duplicate(mutation_tuple mutation, err_callback cb) = 0;
+    virtual void duplicate(mutation_tuple_set mutations, err_callback cb) = 0;
 
     // Singleton creator of mutation_duplicator.
     static std::function<std::unique_ptr<mutation_duplicator>(

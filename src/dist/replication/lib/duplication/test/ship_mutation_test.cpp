@@ -55,34 +55,39 @@ struct ship_mutation_test : public replica_test_base
         base.thread_pool(LPC_DUPLICATION_LOAD_MUTATIONS).task_tracker(_replica->tracker());
         base.from(shipper).link(end);
 
-        mutation_tuple result;
-        bool error_flag = true;
-        mock_mutation_duplicator::mock(
-            [&result, &error_flag](mutation_tuple mut, mutation_duplicator::err_callback cb) {
-                if (error_flag) {
-                    result = mut;
-                } else {
-                    ASSERT_EQ(std::get<0>(result), std::get<0>(mut));
-                    ASSERT_EQ(std::get<1>(result), std::get<1>(mut));
-                    ASSERT_EQ(std::get<2>(result).to_string(), std::get<2>(mut).to_string());
-                    ASSERT_EQ(std::get<2>(result).to_string(), "hello");
-                }
-                error_flag = !error_flag;
-
-                if (error_flag) {
-                    cb(error_s::make(ERR_TIMEOUT));
-                } else {
-                    cb(error_s::make(ERR_OK));
-                }
-            });
-
         mutation_batch batch;
         batch.add(create_test_mutation(1, "hello"));
         batch.add(create_test_mutation(2, "hello"));
-        shipper.run(2, batch.move_all_mutations());
+        mutation_tuple_set in = batch.move_all_mutations();
+
+        std::vector<mutation_tuple> expected;
+        for (auto mut : in) {
+            expected.push_back(std::move(mut));
+        }
+
+        bool error_flag = true;
+        mock_mutation_duplicator::mock([&expected, &error_flag](
+            mutation_tuple_set muts, mutation_duplicator::err_callback cb) {
+            int i = 0;
+            for (auto mut : muts) {
+                ASSERT_EQ(std::get<0>(expected[i]), std::get<0>(mut));
+                ASSERT_EQ(std::get<1>(expected[i]), std::get<1>(mut));
+                ASSERT_EQ(std::get<2>(expected[i]).to_string(), std::get<2>(mut).to_string());
+                ASSERT_EQ(std::get<2>(expected[i]).to_string(), "hello");
+                i++;
+            }
+            error_flag = !error_flag;
+
+            if (error_flag) {
+                cb(error_s::make(ERR_TIMEOUT), muts);
+            } else {
+                cb(error_s::make(ERR_OK), muts);
+            }
+        });
+
+        shipper.run(2, std::move(in));
 
         base.wait_all();
-        ASSERT_EQ(shipper._pending.size(), 0);
         ASSERT_EQ(duplicator->progress().last_decree, 2);
     }
 

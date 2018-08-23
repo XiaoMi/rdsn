@@ -54,7 +54,6 @@ void duplication_sync_timer::run()
 
     // collects confirm points from all primaries on this server
     for (const replica_ptr &r : get_all_primaries()) {
-        // thread-safe since we are the only caller of get_duplication_manager.
         auto confirmed = r->get_duplication_manager()->get_duplication_confirms_to_update();
         if (!confirmed.empty()) {
             req->confirm_list[r->get_gpid()] = std::move(confirmed);

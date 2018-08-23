@@ -44,6 +44,7 @@ struct replica_duplicator_manager_test : public replica_stub_test_base
         ent.dupid = 1;
         ent.status = duplication_status::DS_PAUSE;
         ent.remote_address = "dsn://slave-cluster";
+        ent.progress[r->get_gpid().get_partition_index()] = 0;
         d.sync_duplication(ent);
         ASSERT_EQ(d._duplications.size(), 1);
 
@@ -67,6 +68,8 @@ TEST_F(replica_duplicator_manager_test, get_duplication_confirms)
     for (dupid_t id = 1; id <= update_dup_num; id++) {
         duplication_entry ent;
         ent.dupid = id;
+        ent.status = duplication_status::DS_PAUSE;
+        ent.progress[r->get_gpid().get_partition_index()] = 0;
 
         auto dup = make_unique<replica_duplicator>(ent, r);
         dup->update_progress(dup->progress().set_last_decree(2).set_confirmed_decree(1));
@@ -76,6 +79,8 @@ TEST_F(replica_duplicator_manager_test, get_duplication_confirms)
     for (dupid_t id = update_dup_num + 1; id <= total_dup_num; id++) {
         duplication_entry ent;
         ent.dupid = id;
+        ent.status = duplication_status::DS_PAUSE;
+        ent.progress[r->get_gpid().get_partition_index()] = 0;
 
         auto dup = make_unique<replica_duplicator>(ent, r);
         dup->update_progress(dup->progress().set_last_decree(1).set_confirmed_decree(1));
@@ -104,6 +109,8 @@ TEST_F(replica_duplicator_manager_test, min_confirmed_decree)
         for (int id = 1; id <= tt.confirmed_decree.size(); id++) {
             duplication_entry ent;
             ent.dupid = id;
+            ent.status = duplication_status::DS_PAUSE;
+            ent.progress[r->get_gpid().get_partition_index()] = 0;
 
             auto dup = make_unique<replica_duplicator>(ent, r);
             dup->update_progress(dup->progress()

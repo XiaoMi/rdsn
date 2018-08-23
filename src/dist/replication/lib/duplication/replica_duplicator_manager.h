@@ -73,7 +73,7 @@ public:
 
     std::map<dupid_t, replica_duplicator_u_ptr> _duplications;
 
-    decree _primary_confirmed_decree{0};
+    decree _primary_confirmed_decree{invalid_decree};
 
     // avoid thread confliction between replica::on_checkpoint_timer and
     // duplication_sync_timer.

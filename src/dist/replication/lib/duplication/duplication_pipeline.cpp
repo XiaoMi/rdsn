@@ -88,32 +88,24 @@ load_mutation::load_mutation(replica_duplicator *duplicator,
 {
 }
 
-void ship_mutation::ship(mutation_tuple &mut)
+void ship_mutation::ship(mutation_tuple_set &&in)
 {
-    _mutation_duplicator->duplicate(mut, [this, mut](error_s err) mutable {
-        if (!err.is_ok()) {
-            derror_replica("failed to ship mutation: {}, remote: {}, timestamp: {}",
-                           err,
-                           _duplicator->remote_cluster_address(),
-                           std::get<0>(mut));
+    _mutation_duplicator->duplicate(
+        std::move(in), [this](error_s err, mutation_tuple_set out) mutable {
+            if (!err.is_ok()) {
+                derror_replica("failed to ship mutation: {}, remote: {}",
+                               err,
+                               _duplicator->remote_cluster_address());
 
-            // retry infinitely whenever error occurs.
-            // delay 1 sec for retry.
-            schedule([this, mut]() mutable { ship(mut); }, 1_s);
-            return;
-        }
-
-        schedule([mut, this]() {
-            // single-threaded, no need for lock
-            _pending.erase(mut);
-
-            if (_pending.empty()) {
+                // retry infinitely whenever error occurs.
+                // delay 1 sec for retry.
+                schedule([ this, out = std::move(out) ]() mutable { ship(std::move(out)); }, 1_s);
+            } else {
                 _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree));
 
                 step_down_next_stage();
             }
         });
-    });
 }
 
 void ship_mutation::run(decree &&last_decree, mutation_tuple_set &&in)
@@ -126,10 +118,7 @@ void ship_mutation::run(decree &&last_decree, mutation_tuple_set &&in)
         return;
     }
 
-    _pending = std::move(in);
-    for (mutation_tuple mut : _pending) {
-        ship(mut);
-    }
+    ship(std::move(in));
 }
 
 } // namespace replication

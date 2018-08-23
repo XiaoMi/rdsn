@@ -77,7 +77,7 @@ struct ship_mutation : replica_base, pipeline::when<decree, mutation_tuple_set>,
                                     _duplicator->_replica->get_app_info()->app_name);
     }
 
-    void ship(mutation_tuple &mut);
+    void ship(mutation_tuple_set &&in);
 
 private:
     friend struct ship_mutation_test;
@@ -85,8 +85,7 @@ private:
     std::unique_ptr<mutation_duplicator> _mutation_duplicator;
 
     replica_duplicator *_duplicator{nullptr};
-    mutation_tuple_set _pending;
-    decree _last_decree{0};
+    decree _last_decree{invalid_decree};
 };
 
 } // namespace replication

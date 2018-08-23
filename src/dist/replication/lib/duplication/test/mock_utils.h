@@ -137,9 +137,9 @@ public:
 
 struct mock_mutation_duplicator : public mutation_duplicator
 {
-    void duplicate(mutation_tuple mut, err_callback cb) override { _func(mut, cb); }
+    void duplicate(mutation_tuple_set mut, err_callback cb) override { _func(mut, cb); }
 
-    typedef std::function<void(mutation_tuple, err_callback)> duplicate_function;
+    typedef std::function<void(mutation_tuple_set, err_callback)> duplicate_function;
     static void mock(duplicate_function hook) { _func = std::move(hook); }
     static duplicate_function _func;
 };

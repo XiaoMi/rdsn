@@ -72,7 +72,8 @@ struct duplication_sync_timer_test : public replica_stub_test_base
             // trigger duplication sync on partition 1
             duplication_entry ent;
             ent.dupid = 1;
-            ent.progress[1] = 1000;
+            ent.progress[r->get_gpid().get_partition_index()] = 1000;
+            ent.status = duplication_status::DS_PAUSE;
             auto dup = dsn::make_unique<replica_duplicator>(ent, r);
             add_dup(r, std::move(dup));
         }
@@ -152,6 +153,9 @@ struct duplication_sync_timer_test : public replica_stub_test_base
             duplication_entry ent;
             ent.dupid = 2;
             ent.status = duplication_status::DS_PAUSE;
+            for (int i = 0; i < 3; i++) {
+                ent.progress[i] = 0;
+            }
 
             // add duplication 2 for app 1, 3, 5 (of course in real world cases duplication
             // will not be the same for different tables)
@@ -229,6 +233,8 @@ struct duplication_sync_timer_test : public replica_stub_test_base
 
             duplication_entry ent;
             ent.dupid = 1;
+            ent.status = duplication_status::DS_PAUSE;
+            ent.progress[r->get_gpid().get_partition_index()] = 0;
             auto dup = make_unique<replica_duplicator>(ent, r);
             dup->update_progress(dup->progress().set_last_decree(3).set_confirmed_decree(1));
             add_dup(r, std::move(dup));
