@@ -119,7 +119,7 @@ public:
     for (const auto &kv : dup.progress) {
         rapidjson::Value part;
         part.SetObject();
-        part.AddMember("gpid", kv.first, alloc);
+        part.AddMember("pid", kv.first, alloc);
         part.AddMember("confirmed", kv.second, alloc);
         p.PushBack(std::move(part), alloc);
     }

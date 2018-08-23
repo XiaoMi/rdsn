@@ -381,9 +381,10 @@ TEST_F(meta_duplication_service_test, duplication_sync)
         ASSERT_EQ(progress_map[3], 7);
 
         // ensure no updated progresses will also be included in response
-        for (int p = 4; p <= 8; p++) {
+        for (int p = 4; p < 8; p++) {
             ASSERT_EQ(progress_map[p], invalid_decree);
         }
+        ASSERT_EQ(progress_map[0], invalid_decree);
     }
 
     { // duplication not existed will be ignored

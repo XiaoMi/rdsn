@@ -74,6 +74,10 @@ public:
     std::map<dupid_t, replica_duplicator_u_ptr> _duplications;
 
     decree _primary_confirmed_decree{0};
+
+    // avoid thread confliction between replica::on_checkpoint_timer and
+    // duplication_sync_timer.
+    mutable zlock _lock;
 };
 
 } // namespace replication

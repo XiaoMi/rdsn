@@ -55,6 +55,8 @@ replica_duplicator_manager::get_duplication_confirms_to_update() const
 
 void replica_duplicator_manager::sync_duplication(const duplication_entry &ent)
 {
+    zauto_lock l(_lock);
+
     dupid_t dupid = ent.dupid;
     duplication_status::type next_status = ent.status;
 
@@ -74,6 +76,8 @@ void replica_duplicator_manager::sync_duplication(const duplication_entry &ent)
 
 int64_t replica_duplicator_manager::min_confirmed_decree() const
 {
+    zauto_lock l(_lock);
+
     int64_t min_decree = invalid_decree;
     if (_replica->status() == partition_status::PS_PRIMARY) {
         for (auto &kv : _duplications) {
@@ -113,6 +117,8 @@ void replica_duplicator_manager::remove_non_existed_duplications(
 void replica_duplicator_manager::set_confirmed_decree_non_primary(decree confirmed)
 {
     dassert_replica(_replica->status() != partition_status::PS_PRIMARY, "");
+
+    zauto_lock l(_lock);
     _primary_confirmed_decree = confirmed;
 }
 

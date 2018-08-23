@@ -68,7 +68,7 @@ public:
           store_path(std::move(meta_store_path)),
           create_timestamp_ms(dsn_now_ms())
     {
-        for (int i = 1; i <= partition_count; i++) {
+        for (int i = 0; i < partition_count; i++) {
             init_progress(i, invalid_decree);
         }
     }

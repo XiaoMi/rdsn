@@ -69,6 +69,12 @@ TEST_F(duplication_info_test, init_and_start)
     ASSERT_EQ(dup.status, duplication_status::DS_INIT);
     ASSERT_EQ(dup.next_status, duplication_status::DS_INIT);
 
+    auto dup_ent = dup.to_duplication_entry();
+    ASSERT_EQ(dup_ent.progress.size(), 4);
+    for (auto kv : dup_ent.progress) {
+        ASSERT_EQ(kv.second, invalid_decree);
+    }
+
     dup.start();
     ASSERT_TRUE(dup.is_altering());
     ASSERT_EQ(dup.status, duplication_status::DS_INIT);

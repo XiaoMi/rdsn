@@ -38,15 +38,15 @@ namespace replication {
 replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     : replica_base(*r), _id(ent.dupid), _remote_cluster_address(ent.remote_address), _replica(r)
 {
-    auto it = ent.progress.find(get_gpid().get_partition_index());
-    if (it != ent.progress.end()) {
-        _progress.last_decree = _progress.confirmed_decree = it->second;
-    }
     dassert_replica(ent.status == duplication_status::DS_START ||
                         ent.status == duplication_status::DS_PAUSE,
                     "invalid duplication status: {}",
                     duplication_status_to_string(ent.status));
     _status = ent.status;
+
+    auto it = ent.progress.find(get_gpid().get_partition_index());
+    dassert_replica(it != ent.progress.end(), "");
+    _progress.last_decree = _progress.confirmed_decree = it->second;
     if (it->second == invalid_decree) {
         // initiates from a newly added duplication
         _progress.last_decree = get_max_gced_decree();
@@ -139,15 +139,18 @@ void replica_duplicator::update_progress(const duplication_progress &p)
 error_s replica_duplicator::verify_start_decree(decree start_decree)
 {
     decree confirmed_decree = progress().confirmed_decree;
+    decree last_decree = progress().last_decree;
     decree max_gced_decree = get_max_gced_decree();
     if (max_gced_decree >= start_decree) {
         return error_s::make(
             ERR_CORRUPTION,
-            fmt::format("the logs haven't yet duplicated were accidentally truncated "
-                        "[max_gced_decree: {}, start_decree: {}, confirmed_decree: {}]",
-                        max_gced_decree,
-                        start_decree,
-                        confirmed_decree));
+            fmt::format(
+                "the logs haven't yet duplicated were accidentally truncated "
+                "[max_gced_decree: {}, start_decree: {}, confirmed_decree: {}, last_decree: {}]",
+                max_gced_decree,
+                start_decree,
+                confirmed_decree,
+                last_decree));
     }
     return error_s::ok();
 }
