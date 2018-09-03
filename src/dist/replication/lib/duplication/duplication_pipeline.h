@@ -28,7 +28,7 @@
 
 #include <dsn/cpp/pipeline.h>
 #include <dsn/dist/replication/replica_base.h>
-#include <dsn/dist/replication/duplication_mutation_duplicator.h>
+#include <dsn/dist/replication/mutation_duplicator.h>
 
 #include "dist/replication/lib/replica.h"
 #include "replica_duplicator.h"

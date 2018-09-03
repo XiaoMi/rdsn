@@ -63,7 +63,7 @@ error_s mutation_batch::add(mutation_ptr mu)
 mutation_batch::mutation_batch()
 {
     _mutation_buffer =
-        dsn::make_unique<prepare_list>(0, PREPARE_LIST_NUM_ENTRIES, [this](mutation_ptr &mu) {
+        make_unique<prepare_list>(0, PREPARE_LIST_NUM_ENTRIES, [this](mutation_ptr &mu) {
             // committer
             add_mutation_if_valid(mu, _loaded_mutations);
         });
@@ -74,10 +74,8 @@ mutation_batch::mutation_batch()
     for (mutation_update &update : mu->data.updates) {
         // ignore WRITE_EMPTY (heartbeat)
         if (update.code == RPC_REPLICATION_WRITE_EMPTY) {
-            return;
+            continue;
         }
-        dsn_message_t req = from_blob_to_received_msg(
-            update.code, update.data, 0, 0, dsn_msg_serialize_format(update.serialization_type));
 
         blob bb;
         if (update.data.buffer() != nullptr) {
@@ -86,7 +84,7 @@ mutation_batch::mutation_batch()
             bb = blob::create_from_bytes(update.data.data(), update.data.length());
         }
 
-        mutations.emplace(std::make_tuple(mu->data.header.timestamp, req, std::move(bb)));
+        mutations.emplace(std::make_tuple(mu->data.header.timestamp, update.code, std::move(bb)));
     }
 }
 

@@ -65,25 +65,18 @@ struct ship_mutation_test : public replica_test_base
             expected.push_back(std::move(mut));
         }
 
-        bool error_flag = true;
-        mock_mutation_duplicator::mock([&expected, &error_flag](
-            mutation_tuple_set muts, mutation_duplicator::err_callback cb) {
-            int i = 0;
-            for (auto mut : muts) {
-                ASSERT_EQ(std::get<0>(expected[i]), std::get<0>(mut));
-                ASSERT_EQ(std::get<1>(expected[i]), std::get<1>(mut));
-                ASSERT_EQ(std::get<2>(expected[i]).to_string(), std::get<2>(mut).to_string());
-                ASSERT_EQ(std::get<2>(expected[i]).to_string(), "hello");
-                i++;
-            }
-            error_flag = !error_flag;
-
-            if (error_flag) {
-                cb(error_s::make(ERR_TIMEOUT), muts);
-            } else {
-                cb(error_s::make(ERR_OK), muts);
-            }
-        });
+        mock_mutation_duplicator::mock(
+            [&expected](mutation_tuple_set muts, mutation_duplicator::callback cb) {
+                int i = 0;
+                for (auto mut : muts) {
+                    ASSERT_EQ(std::get<0>(expected[i]), std::get<0>(mut));
+                    ASSERT_EQ(std::get<1>(expected[i]), std::get<1>(mut));
+                    ASSERT_EQ(std::get<2>(expected[i]).to_string(), std::get<2>(mut).to_string());
+                    ASSERT_EQ(std::get<2>(expected[i]).to_string(), "hello");
+                    i++;
+                }
+                cb({});
+            });
 
         shipper.run(2, std::move(in));
 

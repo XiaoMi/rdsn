@@ -28,7 +28,7 @@
 
 #include <dsn/cpp/pipeline.h>
 #include <dsn/utility/errors.h>
-#include <dsn/dist/replication/duplication_mutation_duplicator.h>
+#include <dsn/dist/replication/mutation_duplicator.h>
 
 #include "dist/replication/lib/mutation_log.h"
 #include "mutation_batch.h"

@@ -27,7 +27,10 @@
 #pragma once
 
 #include <dsn/dist/replication/replication_app_base.h>
-#include <dsn/dist/replication/duplication_mutation_duplicator.h>
+#include <dsn/dist/replication/mutation_duplicator.h>
+
+#include "dist/replication/lib/replica.h"
+#include "dist/replication/lib/replica_stub.h"
 
 namespace dsn {
 namespace replication {
@@ -137,9 +140,9 @@ public:
 
 struct mock_mutation_duplicator : public mutation_duplicator
 {
-    void duplicate(mutation_tuple_set mut, err_callback cb) override { _func(mut, cb); }
+    void duplicate(mutation_tuple_set mut, callback cb) override { _func(mut, cb); }
 
-    typedef std::function<void(mutation_tuple_set, err_callback)> duplicate_function;
+    typedef std::function<void(mutation_tuple_set, callback)> duplicate_function;
     static void mock(duplicate_function hook) { _func = std::move(hook); }
     static duplicate_function _func;
 };

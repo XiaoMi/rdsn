@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <dsn/dist/replication/duplication_mutation_duplicator.h>
+#include <dsn/dist/replication/mutation_duplicator.h>
 
 #include "dist/replication/lib/prepare_list.h"
 

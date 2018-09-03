@@ -34,20 +34,20 @@ namespace dsn {
 namespace replication {
 
 /// \brief Each of the mutation is a tuple made up of
-/// <timestamp, dsn_message_t, dsn::blob>.
-/// dsn_message_t is the write request represented as the mutation
-/// and dsn::blob is the content read from the message.
-typedef std::tuple<uint64_t, dsn_message_t, blob> mutation_tuple;
+/// <timestamp, task_code, dsn::blob>.
+/// dsn::blob is the content of the mutation.
+typedef std::tuple<uint64_t, task_code, blob> mutation_tuple;
 
+/// mutations are sorted by timestamp in mutation_tuple_set.
 struct mutation_tuple_cmp
 {
     inline bool operator()(const mutation_tuple &lhs, const mutation_tuple &rhs)
     {
         // different mutations is probable to be batched together
         // and sharing the same timestamp, so here we also compare
-        // the message pointer.
+        // the data pointer.
         if (std::get<0>(lhs) == std::get<0>(rhs)) {
-            return std::get<1>(lhs) < std::get<1>(rhs);
+            return std::get<2>(lhs).buffer_ptr() < std::get<2>(rhs).buffer_ptr();
         }
         return std::get<0>(lhs) < std::get<0>(rhs);
     }
@@ -60,14 +60,14 @@ typedef std::set<mutation_tuple, mutation_tuple_cmp> mutation_tuple_set;
 class mutation_duplicator
 {
 public:
-    typedef std::function<void(error_s, mutation_tuple_set)> err_callback;
+    typedef std::function<void(mutation_tuple_set)> callback;
 
     /// Duplicate the provided mutations to the remote cluster.
     /// The implementation must be non-blocking.
     ///
     /// \param cb: Call it when all the given mutations were sent successfully or
     ///            failed with an error.
-    virtual void duplicate(mutation_tuple_set mutations, err_callback cb) = 0;
+    virtual void duplicate(mutation_tuple_set mutations, callback cb) = 0;
 
     // Singleton creator of mutation_duplicator.
     static std::function<std::unique_ptr<mutation_duplicator>(

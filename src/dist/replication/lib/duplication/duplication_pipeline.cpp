@@ -90,22 +90,17 @@ load_mutation::load_mutation(replica_duplicator *duplicator,
 
 void ship_mutation::ship(mutation_tuple_set &&in)
 {
-    _mutation_duplicator->duplicate(
-        std::move(in), [this](error_s err, mutation_tuple_set out) mutable {
-            if (!err.is_ok()) {
-                derror_replica("failed to ship mutation: {}, remote: {}",
-                               err,
-                               _duplicator->remote_cluster_address());
+    _mutation_duplicator->duplicate(std::move(in), [this](mutation_tuple_set out) mutable {
+        if (!out.empty()) {
+            // retry infinitely whenever error occurs.
+            // delay 1 sec for retry.
+            schedule([ this, out = std::move(out) ]() mutable { ship(std::move(out)); }, 1_s);
+        } else {
+            _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree));
 
-                // retry infinitely whenever error occurs.
-                // delay 1 sec for retry.
-                schedule([ this, out = std::move(out) ]() mutable { ship(std::move(out)); }, 1_s);
-            } else {
-                _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree));
-
-                step_down_next_stage();
-            }
-        });
+            step_down_next_stage();
+        }
+    });
 }
 
 void ship_mutation::run(decree &&last_decree, mutation_tuple_set &&in)
