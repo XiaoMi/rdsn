@@ -43,6 +43,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -104,8 +105,7 @@ std::string replication_ddl_client::hostname(const rpc_address &address)
     if (address.type() != HOST_TYPE_IPV4) {
         return std::string("invalid");
     }
-    return hostname_from_ip(htonl(address.ip())) + ":" +
-           boost::lexical_cast<std::string>(address.port());
+    return hostname_from_ip(htonl(address.ip())) + ":" + std::to_string(address.port());
 }
 
 std::string replication_ddl_client::list_hostname_from_ip(const char *ip_list)
@@ -383,12 +383,19 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
         max_app_name_size = std::max(max_app_name_size, info.app_name.size() + 2);
     }
 
-    out << std::setw(10) << std::left << "app_id" << std::setw(20) << std::left << "status"
-        << std::setw(max_app_name_size) << std::left << "app_name" << std::setw(20) << std::left
-        << "app_type" << std::setw(20) << std::left << "partition_count" << std::setw(20)
-        << std::left << "replica_count" << std::setw(20) << std::left << "is_stateful"
-        << std::setw(20) << std::left << "drop_expire_time" << std::setw(20) << std::left
-        << "envs_count" << std::endl;
+    std::vector<std::vector<std::string>> table;
+    std::vector<std::string> head{"app_id",
+                                  "status",
+                                  "app_name",
+                                  "app_type",
+                                  "partition_count",
+                                  "replica_count",
+                                  "is_stateful",
+                                  "create_time",
+                                  "drop_time",
+                                  "drop_expire",
+                                  "envs_count"};
+    table.emplace_back(std::move(head));
     int available_app_count = 0;
     for (int i = 0; i < apps.size(); i++) {
         dsn::app_info info = apps[i];
@@ -397,30 +404,59 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
         }
         std::string status_str = enum_to_string(info.status);
         status_str = status_str.substr(status_str.find("AS_") + 3);
+        std::string create_time = "-";
+        if (info.create_second > 0) {
+            char buf[20];
+            dsn::utils::time_ms_to_date_time((uint64_t)info.create_second * 1000, buf, 20);
+            buf[10] = '_';
+            create_time = buf;
+        }
+        std::string drop_time = "-";
         std::string drop_expire_time = "-";
         if (info.status == app_status::AS_AVAILABLE) {
             available_app_count++;
         } else if (info.status == app_status::AS_DROPPED && info.expire_second > 0) {
-            char buf[20];
-            dsn::utils::time_ms_to_date_time((uint64_t)info.expire_second * 1000, buf, 20);
-            drop_expire_time = buf;
+            if (info.drop_second > 0) {
+                char buf[20];
+                dsn::utils::time_ms_to_date_time((uint64_t)info.drop_second * 1000, buf, 20);
+                buf[10] = '_';
+                drop_time = buf;
+            }
+            if (info.expire_second > 0) {
+                char buf[20];
+                dsn::utils::time_ms_to_date_time((uint64_t)info.expire_second * 1000, buf, 20);
+                buf[10] = '_';
+                drop_expire_time = buf;
+            }
         }
-        out << std::setw(10) << std::left << info.app_id << std::setw(20) << std::left << status_str
-            << std::setw(max_app_name_size) << std::left << info.app_name << std::setw(20)
-            << std::left << info.app_type << std::setw(20) << std::left << info.partition_count
-            << std::setw(20) << std::left << info.max_replica_count << std::setw(20) << std::left
-            << (info.is_stateful ? "true" : "false") << std::setw(20) << std::left
-            << drop_expire_time << std::setw(20) << std::left << info.envs.size() << std::endl;
+        std::vector<std::string> row;
+        row.push_back(std::to_string(info.app_id));
+        row.push_back(status_str);
+        row.push_back(info.app_name);
+        row.push_back(info.app_type);
+        row.push_back(std::to_string(info.partition_count));
+        row.push_back(std::to_string(info.max_replica_count));
+        row.push_back(info.is_stateful ? "true" : "false");
+        row.push_back(create_time);
+        row.push_back(drop_time);
+        row.push_back(drop_expire_time);
+        row.push_back(std::to_string(info.envs.size()));
+        table.emplace_back(std::move(row));
     }
-    out << std::endl << std::flush;
+    bool pr = print_table(table, out);
+    dassert(pr, "bad table format");
+    out << std::endl;
 
     if (detailed && available_app_count > 0) {
-        out << "[App Healthy Info]" << std::endl;
-        out << std::setw(10) << std::left << "app_id" << std::setw(max_app_name_size) << std::left
-            << "app_name" << std::setw(20) << std::left << "partition_count" << std::setw(20)
-            << std::left << "fully_healthy" << std::setw(20) << std::left << "unhealthy"
-            << std::setw(20) << std::left << "write_unhealthy" << std::setw(20) << std::left
-            << "read_unhealthy" << std::endl;
+        std::vector<std::vector<std::string>> detail_table;
+        std::vector<std::string> detail_head{"app_id",
+                                             "app_name",
+                                             "partition_count",
+                                             "fully_healthy",
+                                             "unhealthy",
+                                             "write_unhealthy",
+                                             "read_unhealthy"};
+        detail_table.emplace_back(std::move(detail_head));
         for (auto &info : apps) {
             if (info.status != app_status::AS_AVAILABLE) {
                 continue;
@@ -458,13 +494,20 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
                     read_unhealthy++;
                 }
             }
-            out << std::setw(10) << std::left << info.app_id << std::setw(max_app_name_size)
-                << std::left << info.app_name << std::setw(20) << std::left << info.partition_count
-                << std::setw(20) << std::left << fully_healthy << std::setw(20) << std::left
-                << (info.partition_count - fully_healthy) << std::setw(20) << std::left
-                << write_unhealthy << std::setw(20) << std::left << read_unhealthy << std::endl;
+            std::vector<std::string> row;
+            row.push_back(std::to_string(info.app_id));
+            row.push_back(info.app_name);
+            row.push_back(std::to_string(info.partition_count));
+            row.push_back(std::to_string(fully_healthy));
+            row.push_back(std::to_string(info.partition_count - fully_healthy));
+            row.push_back(std::to_string(write_unhealthy));
+            row.push_back(std::to_string(read_unhealthy));
+            detail_table.emplace_back(std::move(row));
         }
-        out << std::endl << std::flush;
+        out << "[App Healthy Info]" << std::endl;
+        pr = print_table(detail_table, out);
+        dassert(pr, "bad table format");
+        out << std::endl;
     }
 
     return dsn::ERR_OK;
@@ -607,7 +650,8 @@ dsn::error_code replication_ddl_client::cluster_name(int64_t timeout_ms, std::st
     std::shared_ptr<configuration_cluster_info_request> req(
         new configuration_cluster_info_request());
 
-    auto resp_task = request_meta<configuration_cluster_info_request>(RPC_CM_CLUSTER_INFO, req, timeout_ms);
+    auto resp_task =
+        request_meta<configuration_cluster_info_request>(RPC_CM_CLUSTER_INFO, req, timeout_ms);
     resp_task->wait();
     if (resp_task->error() != dsn::ERR_OK) {
         return resp_task->error();
@@ -1375,15 +1419,15 @@ bool replication_ddl_client::valid_app_char(int c)
 void replication_ddl_client::end_meta_request(const rpc_response_task_ptr &callback,
                                               int retry_times,
                                               error_code err,
-                                              dsn_message_t request,
-                                              dsn_message_t resp)
+                                              dsn::message_ex *request,
+                                              dsn::message_ex *resp)
 {
     if (err != dsn::ERR_OK && retry_times < 2) {
         rpc::call(_meta_server,
                   request,
                   &_tracker,
                   [this, retry_times, callback](
-                      error_code err, dsn_message_t request, dsn_message_t response) mutable {
+                      error_code err, dsn::message_ex *request, dsn::message_ex *response) mutable {
                       end_meta_request(callback, retry_times + 1, err, request, response);
                   });
     } else {
@@ -1506,6 +1550,67 @@ dsn::error_code replication_ddl_client::get_app_envs(const std::string &app_name
         }
     }
     return ERR_OK;
+}
+
+bool replication_ddl_client::print_table(const std::vector<std::vector<std::string>> &table,
+                                         std::ostream &output,
+                                         const std::string &column_delimiter)
+{
+    if (table.empty())
+        return true;
+
+    int row_count = table.size();
+    int column_count = table[0].size();
+    std::vector<int> column_widths(column_count);
+    for (int r = 0; r < row_count; ++r) {
+        const std::vector<std::string> &row = table[r];
+        if ((int)row.size() != column_count)
+            return false;
+        for (int c = 0; c < column_count; ++c) {
+            int w = row[c].size();
+            if (w > column_widths[c])
+                column_widths[c] = w;
+        }
+    }
+
+    for (int r = 0; r < row_count; ++r) {
+        const std::vector<std::string> &row = table[r];
+        for (int c = 0; c < column_count; ++c) {
+            if (c == 0) {
+                output << std::setw(column_widths[c]) << std::left << row[c];
+            } else {
+                output << column_delimiter;
+                output << std::setw(column_widths[c]) << std::left << row[c];
+            }
+        }
+        output << std::endl;
+    }
+
+    return true;
+}
+
+dsn::error_code
+replication_ddl_client::ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &ddd_partitions)
+{
+    std::shared_ptr<ddd_diagnose_request> req(new ddd_diagnose_request());
+    req->pid = pid;
+
+    auto resp_task = request_meta<ddd_diagnose_request>(RPC_CM_DDD_DIAGNOSE, req);
+
+    resp_task->wait();
+    if (resp_task->error() != dsn::ERR_OK) {
+        return resp_task->error();
+    }
+
+    ddd_diagnose_response resp;
+    dsn::unmarshall(resp_task->get_response(), resp);
+    if (resp.err != dsn::ERR_OK) {
+        return resp.err;
+    }
+
+    ddd_partitions = std::move(resp.partitions);
+
+    return dsn::ERR_OK;
 }
 }
 } // namespace
