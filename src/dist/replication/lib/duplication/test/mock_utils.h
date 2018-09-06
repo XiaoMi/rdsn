@@ -59,7 +59,7 @@ public:
     {
         return ERR_NOT_IMPLEMENTED;
     }
-    int on_request(dsn_message_t request) override { return 0; }
+    int on_request(message_ex *request) override { return 0; }
     std::string query_compact_state() const { return ""; };
     void update_app_envs(const std::map<std::string, std::string> &) override {}
     void query_app_envs(std::map<std::string, std::string> &) override {}
