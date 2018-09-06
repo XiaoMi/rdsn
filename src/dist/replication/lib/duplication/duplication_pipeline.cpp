@@ -49,10 +49,7 @@ void load_mutation::run()
 
     // try load from cache
     if (_start_decree >= _log_in_cache->min_decree()) {
-        dassert_replica(_start_decree <= _log_in_cache->max_decree(),
-                        "start_decree: {} _log_in_cache->max_decree(): {}",
-                        _start_decree,
-                        _log_in_cache->max_decree());
+        dcheck_le_replica(_start_decree, _log_in_cache->max_decree());
 
         for (decree d = _start_decree; d <= _log_in_cache->last_committed_decree(); d++) {
             auto mu = _log_in_cache->get_mutation_by_decree(d);
@@ -90,17 +87,23 @@ load_mutation::load_mutation(replica_duplicator *duplicator,
 
 void ship_mutation::ship(mutation_tuple_set &&in)
 {
-    _mutation_duplicator->duplicate(std::move(in), [this](mutation_tuple_set out) mutable {
-        if (!out.empty()) {
-            // retry infinitely whenever error occurs.
-            // delay 1 sec for retry.
-            schedule([ this, out = std::move(out) ]() mutable { ship(std::move(out)); }, 1_s);
-        } else {
-            _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree));
+    _mutation_duplicator->duplicate(
+        std::move(in), [this](bool failed, mutation_tuple_set out) mutable {
+            if (!out.empty()) {
+                // retry infinitely whenever error occurs.
+                // delay 1 sec for retry.
+                auto delay = 0_s;
+                if (failed) {
+                    delay = 1_s;
+                }
 
-            step_down_next_stage();
-        }
-    });
+                schedule([ this, out = std::move(out) ]() mutable { ship(std::move(out)); }, delay);
+            } else {
+                _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree));
+
+                step_down_next_stage();
+            }
+        });
 }
 
 void ship_mutation::run(decree &&last_decree, mutation_tuple_set &&in)

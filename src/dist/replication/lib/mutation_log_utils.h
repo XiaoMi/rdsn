@@ -35,12 +35,13 @@ namespace dsn {
 namespace replication {
 namespace log_utils {
 
+/// open a private log to read, and the application will be aborted if get failed.
 inline log_file_ptr open_read_or_die(string_view path)
 {
     error_code ec;
     log_file_ptr file = log_file::open_read(path.data(), ec);
     if (ec != ERR_OK) {
-        dfatal("failed to open the log file (%s): ", path.data(), ec.to_string());
+        derror("failed to open the log file (%s): %s", path.data(), ec.to_string());
     }
     return file;
 }

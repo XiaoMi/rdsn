@@ -57,6 +57,12 @@
 #define dcheck_gt(var1, var2) dassert_f(var1 > var2, "{} vs {}", var1, var2)
 #define dcheck_lt(var1, var2) dassert_f(var1 < var2, "{} vs {}", var1, var2)
 
+#define dcheck_eq_replica(var1, var2) dassert_replica(var1 == var2, "{} vs {}", var1, var2)
+#define dcheck_ge_replica(var1, var2) dassert_replica(var1 >= var2, "{} vs {}", var1, var2)
+#define dcheck_le_replica(var1, var2) dassert_replica(var1 <= var2, "{} vs {}", var1, var2)
+#define dcheck_gt_replica(var1, var2) dassert_replica(var1 > var2, "{} vs {}", var1, var2)
+#define dcheck_lt_replica(var1, var2) dassert_replica(var1 < var2, "{} vs {}", var1, var2)
+
 // Customized formatter for rDSN basic types, on which
 // users can easily call fmt::format("{}", xxx), without the effort
 // of converting them into string.
