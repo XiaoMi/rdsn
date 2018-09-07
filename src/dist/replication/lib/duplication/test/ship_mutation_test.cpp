@@ -75,7 +75,7 @@ struct ship_mutation_test : public replica_test_base
                     ASSERT_EQ(std::get<2>(expected[i]).to_string(), "hello");
                     i++;
                 }
-                cb(false, {});
+                cb();
             });
 
         shipper.run(2, std::move(in));

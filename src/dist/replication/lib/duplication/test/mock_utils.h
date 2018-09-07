@@ -140,6 +140,8 @@ public:
 
 struct mock_mutation_duplicator : public mutation_duplicator
 {
+    explicit mock_mutation_duplicator(const replica_base &r) : mutation_duplicator(r) {}
+
     void duplicate(mutation_tuple_set mut, callback cb) override { _func(mut, cb); }
 
     typedef std::function<void(mutation_tuple_set, callback)> duplicate_function;

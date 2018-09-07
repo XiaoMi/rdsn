@@ -29,6 +29,7 @@
 #include <dsn/utility/errors.h>
 #include <dsn/dist/replication/replication_types.h>
 #include <dsn/dist/replication/replica_base.h>
+#include <dsn/cpp/pipeline.h>
 
 namespace dsn {
 namespace replication {
@@ -57,10 +58,10 @@ typedef std::set<mutation_tuple, mutation_tuple_cmp> mutation_tuple_set;
 /// \brief This is an interface for handling the mutation logs intended to
 /// be duplicated to remote cluster.
 /// \see dsn::replication::replica_duplicator
-class mutation_duplicator
+class mutation_duplicator : public replica_base
 {
 public:
-    typedef std::function<void(bool /*failed*/, mutation_tuple_set)> callback;
+    typedef std::function<void()> callback;
 
     /// Duplicate the provided mutations to the remote cluster.
     /// The implementation must be non-blocking.
@@ -73,6 +74,18 @@ public:
     static std::function<std::unique_ptr<mutation_duplicator>(
         const replica_base &, string_view /*remote cluster*/, string_view /*app*/)>
         creator;
+
+    explicit mutation_duplicator(const replica_base &r) : replica_base(r) {}
+
+    void set_task_environment(pipeline::environment env) { _env = env; }
+
+    void schedule_task(std::function<void()> cb, std::chrono::milliseconds delay = 0_ms)
+    {
+        _env.schedule(std::move(cb), delay);
+    }
+
+private:
+    pipeline::environment _env;
 };
 
 inline std::unique_ptr<mutation_duplicator>

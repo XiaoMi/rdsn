@@ -75,6 +75,7 @@ struct ship_mutation : replica_base, pipeline::when<decree, mutation_tuple_set>,
             new_mutation_duplicator(*duplicator,
                                     _duplicator->remote_cluster_address(),
                                     _duplicator->_replica->get_app_info()->app_name);
+        _mutation_duplicator->set_task_environment(*this);
     }
 
     void ship(mutation_tuple_set &&in);

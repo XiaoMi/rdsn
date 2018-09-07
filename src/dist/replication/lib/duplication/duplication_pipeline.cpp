@@ -87,23 +87,10 @@ load_mutation::load_mutation(replica_duplicator *duplicator,
 
 void ship_mutation::ship(mutation_tuple_set &&in)
 {
-    _mutation_duplicator->duplicate(
-        std::move(in), [this](bool failed, mutation_tuple_set out) mutable {
-            if (!out.empty()) {
-                // retry infinitely whenever error occurs.
-                // delay 1 sec for retry.
-                auto delay = 0_s;
-                if (failed) {
-                    delay = 1_s;
-                }
-
-                schedule([ this, out = std::move(out) ]() mutable { ship(std::move(out)); }, delay);
-            } else {
-                _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree));
-
-                step_down_next_stage();
-            }
-        });
+    _mutation_duplicator->duplicate(std::move(in), [this]() mutable {
+        _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree));
+        step_down_next_stage();
+    });
 }
 
 void ship_mutation::run(decree &&last_decree, mutation_tuple_set &&in)
