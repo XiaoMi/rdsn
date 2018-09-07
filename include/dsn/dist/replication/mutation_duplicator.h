@@ -48,7 +48,7 @@ struct mutation_tuple_cmp
         // and sharing the same timestamp, so here we also compare
         // the data pointer.
         if (std::get<0>(lhs) == std::get<0>(rhs)) {
-            return std::get<2>(lhs).buffer_ptr() < std::get<2>(rhs).buffer_ptr();
+            return std::get<2>(lhs).data() < std::get<2>(rhs).data();
         }
         return std::get<0>(lhs) < std::get<0>(rhs);
     }
