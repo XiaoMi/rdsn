@@ -335,6 +335,11 @@ void meta_duplication_service::recover_from_meta_state()
 {
     ddebug_f("recovering duplication states from meta storage");
 
+    // /<app>/<dupid>/<partition_idx>
+    //           |         |-> confirmed_decree
+    //           |
+    //           |-> json of dup info
+
     for (auto kv : _state->_exist_apps) {
         std::shared_ptr<app_state> app = kv.second;
         if (app->status != app_status::AS_AVAILABLE) {
@@ -348,7 +353,10 @@ void meta_duplication_service::recover_from_meta_state()
                     // if there's no duplication
                     return;
                 }
-                app->envs["duplicating"] = "true";
+                {
+                    zauto_write_lock(app_lock());
+                    app->envs["duplicating"] = "true";
+                }
                 for (const std::string &raw_dup_id : dup_id_list) {
                     dupid_t dup_id;
                     dassert_f(buf2int32(raw_dup_id, dup_id),
@@ -361,6 +369,7 @@ void meta_duplication_service::recover_from_meta_state()
     }
 }
 
+// ThreadPool(WRITE): THREAD_POOL_META_STATE
 void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
                                                       std::shared_ptr<app_state> app)
 {
@@ -369,10 +378,14 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
                                            app->app_id,
                                            app->partition_count,
                                            get_duplication_path(*app, std::to_string(dup_id)));
-    app->duplications[dup_id] = dup;
+    {
+        zauto_write_lock(app_lock());
+        app->duplications[dup_id] = dup;
+    }
 
     // restore duplication info from json
     _meta_svc->get_meta_storage()->get_data(std::string(dup->store_path), [dup](const blob &json) {
+        zauto_write_lock(app_lock());
         json::json_forwarder<duplication_info>::decode(json, *dup);
     });
 
@@ -395,6 +408,7 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
                         binary_reader reader(value);
                         reader.read(confirmed_decree);
 
+                        zauto_write_lock(app_lock());
                         dup->init_progress(partition_idx, confirmed_decree);
                     });
             }
