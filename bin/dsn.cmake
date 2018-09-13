@@ -257,6 +257,7 @@ function(dsn_setup_compiler_flags)
     add_compile_options(-Wno-unused-variable)
     add_compile_options(-Wno-deprecated-declarations)
     add_compile_options(-Wno-inconsistent-missing-override)
+    add_compile_options(-Wno-attributes)
 
     find_program(CCACHE_FOUND ccache)
     if(CCACHE_FOUND)
