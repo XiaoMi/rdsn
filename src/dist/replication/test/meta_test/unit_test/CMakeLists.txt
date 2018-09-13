@@ -9,8 +9,8 @@ set(MY_PROJ_SRC ../misc/misc.cpp)
 # "GLOB" for non-recursive search
 set(MY_SRC_SEARCH_MODE "GLOB")
 
-ms_find_source_files("CXX" "${CMAKE_CURRENT_SOURCE_DIR}/../../../meta_server" "GLOB" MY_PROJ_SRC)
-ms_find_source_files("CXX" "${CMAKE_CURRENT_SOURCE_DIR}/../../../meta_server/duplication" "GLOB" MY_PROJ_SRC)
+ms_find_source_files("${CMAKE_CURRENT_SOURCE_DIR}/../../../meta_server" "GLOB" MY_PROJ_SRC)
+ms_find_source_files("${CMAKE_CURRENT_SOURCE_DIR}/../../../meta_server/duplication" "GLOB" MY_PROJ_SRC)
 
 set(MY_PROJ_INC_PATH "")
 
@@ -19,6 +19,7 @@ set(MY_PROJ_LIBS dsn.replication.zookeeper_provider
                  dsn.block_service.local
                  dsn.block_service.fds
                  dsn.failure_detector
+                 dsn_cli
                  zookeeper_mt
                  galaxy-fds-sdk-cpp
                  PocoNet
