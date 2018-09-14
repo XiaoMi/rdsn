@@ -58,6 +58,7 @@ namespace replication {
     __builtin_unreachable();
 }
 
+// lock held
 error_code duplication_info::do_alter_status(duplication_status::type to)
 {
     if (_is_altering) {
@@ -85,6 +86,8 @@ error_code duplication_info::do_alter_status(duplication_status::type to)
 
 bool duplication_info::alter_progress(int partition_index, decree d)
 {
+    service::zauto_write_lock l(_lock);
+
     partition_progress &p = _progress[partition_index];
     if (p.is_altering) {
         return false;
@@ -106,8 +109,9 @@ bool duplication_info::alter_progress(int partition_index, decree d)
 
 void duplication_info::stable_progress(int partition_index)
 {
-    auto &p = _progress[partition_index];
+    service::zauto_write_lock l(_lock);
 
+    auto &p = _progress[partition_index];
     dassert(p.is_altering, "partition_index: %d", partition_index);
     p.is_altering = false;
     p.stored_decree = p.volatile_decree;

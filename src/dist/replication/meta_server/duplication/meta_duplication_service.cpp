@@ -45,7 +45,7 @@ void meta_duplication_service::query_duplication_info(const duplication_query_re
 
     response.err = ERR_OK;
     {
-        zauto_read_lock l(app_lock());
+        service::zauto_read_lock l(app_lock());
         std::shared_ptr<app_state> app = _state->get_app(request.app_name);
         if (!app || app->status != app_status::AS_AVAILABLE) {
             response.err = ERR_APP_NOT_EXIST;
@@ -313,7 +313,7 @@ meta_duplication_service::new_dup_from_init(const std::string &remote_cluster_ad
     // use current time to identify this duplication.
     auto dupid = static_cast<dupid_t>(dsn_now_ms() / 1000);
     {
-        zauto_write_lock(app_lock());
+        service::zauto_write_lock l(app_lock());
 
         // hold write lock here to ensure that dupid is unique
         while (app->duplications.find(dupid) != app->duplications.end())
@@ -354,7 +354,7 @@ void meta_duplication_service::recover_from_meta_state()
                     return;
                 }
                 {
-                    zauto_write_lock(app_lock());
+                    service::zauto_write_lock l(app_lock());
                     app->envs["duplicating"] = "true";
                 }
                 for (const std::string &raw_dup_id : dup_id_list) {
@@ -379,15 +379,16 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
                                            app->partition_count,
                                            get_duplication_path(*app, std::to_string(dup_id)));
     {
-        zauto_write_lock(app_lock());
+        service::zauto_write_lock l(app_lock());
         app->duplications[dup_id] = dup;
     }
 
     // restore duplication info from json
-    _meta_svc->get_meta_storage()->get_data(std::string(dup->store_path), [dup](const blob &json) {
-        zauto_write_lock(app_lock());
-        json::json_forwarder<duplication_info>::decode(json, *dup);
-    });
+    _meta_svc->get_meta_storage()->get_data(
+        std::string(dup->store_path), [dup, this](const blob &json) {
+            service::zauto_write_lock l(app_lock());
+            json::json_forwarder<duplication_info>::decode(json, *dup);
+        });
 
     // restore progress
     _meta_svc->get_meta_storage()->get_children(
@@ -408,7 +409,6 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
                         binary_reader reader(value);
                         reader.read(confirmed_decree);
 
-                        zauto_write_lock(app_lock());
                         dup->init_progress(partition_idx, confirmed_decree);
                     });
             }
