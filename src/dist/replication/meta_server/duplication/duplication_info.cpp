@@ -90,8 +90,7 @@ void duplication_info::init_progress(int partition_index, decree d)
     auto &p = _progress[partition_index];
 
     if (d == 0) {
-        derror_f("fuck: how could decree be 0 [pid-{}]", partition_index);
-        return false;
+        dfatal_f("fuck: how could decree be 0 [pid-{}]", partition_index);
     }
     if (p.volatile_decree == 0) {
         dfatal_f("fuck: how could volatile decree be 0 [pid-{}]", partition_index);
