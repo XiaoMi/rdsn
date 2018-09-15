@@ -634,7 +634,7 @@ void rpc_engine::call(message_ex *request, const rpc_response_task_ptr &call)
 {
     auto &hdr = *request->header;
     hdr.from_address = primary_address();
-    hdr.trace_id = dsn_random64(std::numeric_limits<decltype(hdr.trace_id)>::min(),
+    hdr.trace_id = rand::uint64in(std::numeric_limits<decltype(hdr.trace_id)>::min(),
                                 std::numeric_limits<decltype(hdr.trace_id)>::max());
 
     call_address(request->server_address, request, call);

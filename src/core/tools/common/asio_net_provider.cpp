@@ -293,7 +293,7 @@ error_code asio_udp_provider::start(rpc_channel channel, int port, bool client_o
             // refactored
             _address.assign_ipv4(get_local_ipv4(),
                                  std::numeric_limits<uint16_t>::max() -
-                                     dsn_random64(std::numeric_limits<uint64_t>::min(),
+                                     rand::uint64in(std::numeric_limits<uint64_t>::min(),
                                                   std::numeric_limits<uint64_t>::max()) %
                                          5000);
             ::boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address_v4::any(),

@@ -248,7 +248,7 @@ void scheduler::schedule()
         }
 
         if (ready_workers.size() > 0) {
-            int i = dsn_random32(0, (uint32_t)ready_workers.size() - 1);
+            int i = rand::uint32in(0, (uint32_t)ready_workers.size() - 1);
             _running_thread = _threads[ready_workers[i]];
             _running_thread->runnable.release();
 
@@ -267,7 +267,7 @@ void scheduler::schedule()
 
             // randomize the events, and see
             std::random_shuffle(
-                events->begin(), events->end(), [](int n) { return dsn_random32(0, n - 1); });
+                events->begin(), events->end(), [](int n) { return rand::uint32in(0, n - 1); });
 
             for (auto e : *events) {
                 if (e.app_task != nullptr) {

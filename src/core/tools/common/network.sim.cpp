@@ -191,7 +191,7 @@ error_code sim_network_provider::start(rpc_channel channel, int port, bool clien
 uint32_t sim_network_provider::net_delay_milliseconds() const
 {
     return static_cast<uint32_t>(
-               dsn_random32(_min_message_delay_microseconds, _max_message_delay_microseconds)) /
+               rand::uint32in(_min_message_delay_microseconds, _max_message_delay_microseconds)) /
            1000;
 }
 }

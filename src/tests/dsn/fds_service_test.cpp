@@ -82,7 +82,7 @@ void FDSClientTest::SetUp()
 
     // generate a test file
     {
-        int lines = dsn_random32(1000, 2000);
+        int lines = rand::uint32in(1000, 2000);
         FILE *fp = fopen(f1.filename.c_str(), "wb");
         for (int i = 0; i < lines; ++i) {
             fprintf(fp, "%04d_this_is_a_simple_test_file\n", i);
@@ -98,7 +98,7 @@ void FDSClientTest::SetUp()
 
     // generate another test file
     {
-        int lines = dsn_random32(10, 20);
+        int lines = rand::uint32in(10, 20);
         FILE *fp = fopen(f2.filename.c_str(), "wb");
         for (int i = 0; i < lines; ++i) {
             fprintf(fp, "%04d_this_is_a_simple_test_file\n", i);
@@ -719,7 +719,7 @@ generate_file(const char *filename, unsigned long long file_size, char *block, u
         i += batch_size;
 
         for (int j = 0; j < batch_size; ++j) {
-            block[j] = (char)dsn_random32(0, 255);
+            block[j] = (char)rand::uint32in(0, 255);
         }
         write(fd, block, batch_size);
     }
@@ -758,7 +758,7 @@ TEST_F(FDSClientTest, test_concurrent_upload_download)
     for (int i = 0; i < total_files; ++i) {
         char index[64];
         snprintf(index, 64, "%04d", i);
-        unsigned long random_size = dsn_random64(min_size, max_size);
+        unsigned long random_size = rand::uint64in(min_size, max_size);
         std::string filename = "randomfile" + std::string(index);
         filenames.push_back(filename);
         filesize.push_back(random_size);

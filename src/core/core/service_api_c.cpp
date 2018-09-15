@@ -370,22 +370,6 @@ DSN_API void dsn_file_write_vector(dsn_handle_t file,
     ::dsn::task::get_current_disk()->write(cb);
 }
 
-//------------------------------------------------------------------------------
-//
-// env
-//
-//------------------------------------------------------------------------------
-DSN_API uint64_t dsn_now_ns()
-{
-    // return ::dsn::task::get_current_env()->now_ns();
-    return ::dsn::service_engine::instance().env()->now_ns();
-}
-
-DSN_API uint64_t dsn_random64(uint64_t min, uint64_t max) // [min, max]
-{
-    return ::dsn::service_engine::instance().env()->random64(min, max);
-}
-
 static uint64_t s_runtime_init_time_ms;
 DSN_API uint64_t dsn_runtime_init_time_ms() { return s_runtime_init_time_ms; }
 
