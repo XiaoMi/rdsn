@@ -32,6 +32,7 @@
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/rand.h>
 
 namespace dsn {
 namespace replication {

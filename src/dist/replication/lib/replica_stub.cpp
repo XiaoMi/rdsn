@@ -39,6 +39,7 @@
 #include "mutation.h"
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/filesystem.h>
+#include <dsn/utility/rand.h>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <vector>

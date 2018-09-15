@@ -52,6 +52,7 @@
 #include <dsn/tool-api/task_queue.h>
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/cpp/serialization.h>
+#include <dsn/utility/rand.h>
 #include <set>
 
 namespace dsn {

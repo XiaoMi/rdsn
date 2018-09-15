@@ -33,6 +33,7 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
+#include <dsn/utility/rand.h>
 #include <dsn/tool/simulator.h>
 #include <dsn/service_api_c.h>
 #include <dsn/tool/node_scoper.h>

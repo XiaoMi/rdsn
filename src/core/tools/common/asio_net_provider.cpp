@@ -33,6 +33,8 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
+#include <dsn/utility/rand.h>
+
 #include "asio_net_provider.h"
 #include "asio_rpc_session.h"
 

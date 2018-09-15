@@ -39,6 +39,7 @@
 #include <dsn/tool-api/env_provider.h>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/synchronize.h>
+#include <dsn/utility/rand.h>
 #include <dsn/tool/node_scoper.h>
 
 #include "task_engine.h"

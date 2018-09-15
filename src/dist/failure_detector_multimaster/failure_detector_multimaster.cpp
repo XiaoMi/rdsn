@@ -37,6 +37,7 @@
 #include <dsn/tool-api/rpc_address.h>
 #include <dsn/tool-api/group_address.h>
 #include <dsn/dist/failure_detector_multimaster.h>
+#include <dsn/utility/rand.h>
 
 namespace dsn {
 namespace dist {

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <dsn/utility/filesystem.h>
+#include <dsn/utility/rand.h>
 #include <dsn/dist/block_service.h>
 #include <memory>
 #include <fstream>
