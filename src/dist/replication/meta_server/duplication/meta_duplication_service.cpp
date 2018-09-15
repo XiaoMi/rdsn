@@ -301,6 +301,11 @@ void meta_duplication_service::do_update_partition_confirmed(duplication_info_s_
                 // duplication_sync_rpc will finally be replied when confirmed points
                 // of all partitions are stored.
             });
+    } else {
+        derror_f("fuck: busy updating progress (confirmed:{}, src:{}) [pid-{}]",
+                 confirmed_decree,
+                 rpc.request().node.to_string(),
+                 partition_idx);
     }
 }
 
