@@ -113,12 +113,7 @@ public:
 
     void stable_progress(int partition_index);
 
-    void init_progress(int partition_index, decree confirmed)
-    {
-        service::zauto_write_lock l(_lock);
-        auto &p = _progress[partition_index];
-        p.volatile_decree = p.stored_decree = confirmed;
-    }
+    void init_progress(int partition_index, decree confirmed);
 
     blob to_json_blob_in_status(duplication_status::type to_status) const;
 
