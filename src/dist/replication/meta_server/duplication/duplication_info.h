@@ -69,7 +69,7 @@ public:
           create_timestamp_ms(dsn_now_ms())
     {
         for (int i = 0; i < partition_count; i++) {
-            init_progress(i, invalid_decree);
+            _progress[i] = {};
         }
     }
 
@@ -170,6 +170,7 @@ private:
         int64_t stored_decree{invalid_decree};
         bool is_altering{false};
         uint64_t last_progress_update_ms{0};
+        bool is_inited{false};
     };
 
     // partition_idx => progress

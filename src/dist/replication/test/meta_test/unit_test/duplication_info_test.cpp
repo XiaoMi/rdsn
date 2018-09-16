@@ -37,8 +37,10 @@ public:
     void test_alter_progress()
     {
         duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+        ASSERT_FALSE(dup.alter_progress(1, 5));
 
-        dup.alter_progress(1, 5);
+        dup.init_progress(1, invalid_decree);
+        ASSERT_TRUE(dup.alter_progress(1, 5));
         ASSERT_EQ(dup._progress[1].volatile_decree, 5);
         ASSERT_TRUE(dup._progress[1].is_altering);
 

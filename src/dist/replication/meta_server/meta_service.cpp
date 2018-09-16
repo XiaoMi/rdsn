@@ -717,8 +717,10 @@ void meta_service::on_add_duplication(duplication_add_rpc rpc)
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
                      [this, rpc]() {
-                         dassert(_dup_svc, "duplication_impl is uninitialized");
-                         _dup_svc->add_duplication(std::move(rpc));
+                         if (_dup_svc) {
+                             _dup_svc->add_duplication(std::move(rpc));
+                         }
+                         // TODO(wutao1): return error
                      },
                      server_state::sStateHash);
 }
@@ -730,8 +732,9 @@ void meta_service::on_change_duplication_status(duplication_status_change_rpc rp
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
                      [this, rpc]() {
-                         dassert(_dup_svc, "duplication_impl is uninitialized");
-                         _dup_svc->change_duplication_status(std::move(rpc));
+                         if (_dup_svc) {
+                             _dup_svc->change_duplication_status(std::move(rpc));
+                         }
                      },
                      server_state::sStateHash);
 }
@@ -740,8 +743,9 @@ void meta_service::on_query_duplication_info(duplication_query_rpc rpc)
 {
     RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
 
-    dassert(_dup_svc, "duplication_impl is uninitialized");
-    _dup_svc->query_duplication_info(rpc.request(), rpc.response());
+    if (_dup_svc) {
+        _dup_svc->query_duplication_info(rpc.request(), rpc.response());
+    }
 }
 
 // SEE: replica_stub::duplication_impl::duplication_sync
@@ -752,16 +756,18 @@ void meta_service::on_duplication_sync(duplication_sync_rpc rpc)
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
                      [this, rpc]() {
-                         dassert(_dup_svc, "duplication_impl is uninitialized");
-                         _dup_svc->duplication_sync(std::move(rpc));
+                         if (_dup_svc) {
+                             _dup_svc->duplication_sync(std::move(rpc));
+                         }
                      },
                      server_state::sStateHash);
 }
 
 void meta_service::recover_duplication_from_meta_state()
 {
-    _dup_svc->recover_from_meta_state();
-    tracker()->wait_outstanding_tasks();
+    if (_dup_svc) {
+        _dup_svc->recover_from_meta_state();
+    }
 }
 
 void meta_service::register_duplication_rpc_handlers()

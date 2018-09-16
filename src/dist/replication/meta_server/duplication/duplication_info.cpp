@@ -87,19 +87,10 @@ error_code duplication_info::do_alter_status(duplication_status::type to)
 void duplication_info::init_progress(int partition_index, decree d)
 {
     service::zauto_write_lock l(_lock);
+
     auto &p = _progress[partition_index];
-
-    if (d == 0) {
-        dfatal_f("fuck: how could decree be 0 [pid-{}]", partition_index);
-    }
-    if (p.volatile_decree == 0) {
-        dfatal_f("fuck: how could volatile decree be 0 [pid-{}]", partition_index);
-    }
-    if (p.stored_decree == 0) {
-        dfatal_f("fuck: how could stored decree be 0 [pid-{}]", partition_index);
-    }
-
     p.volatile_decree = p.stored_decree = d;
+    p.is_inited = true;
 }
 
 bool duplication_info::alter_progress(int partition_index, decree d)
@@ -107,19 +98,11 @@ bool duplication_info::alter_progress(int partition_index, decree d)
     service::zauto_write_lock l(_lock);
 
     partition_progress &p = _progress[partition_index];
+    if (!p.is_inited) {
+        return false;
+    }
     if (p.is_altering) {
         return false;
-    }
-
-    if (d == 0) {
-        derror_f("fuck: how could decree be 0 [pid-{}]", partition_index);
-        return false;
-    }
-    if (p.volatile_decree == 0) {
-        dfatal_f("fuck: how could volatile decree be 0 [pid-{}]", partition_index);
-    }
-    if (p.stored_decree == 0) {
-        dfatal_f("fuck: how could stored decree be 0 [pid-{}]", partition_index);
     }
     if (p.volatile_decree < d) {
         p.volatile_decree = d;

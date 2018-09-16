@@ -301,11 +301,6 @@ void meta_duplication_service::do_update_partition_confirmed(duplication_info_s_
                 // duplication_sync_rpc will finally be replied when confirmed points
                 // of all partitions are stored.
             });
-    } else {
-        derror_f("fuck: busy updating progress (confirmed:{}, src:{}) [pid-{}]",
-                 confirmed_decree,
-                 rpc.request().node.to_string(),
-                 partition_idx);
     }
 }
 
@@ -398,15 +393,26 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
     // restore progress
     _meta_svc->get_meta_storage()->get_children(
         std::string(dup->store_path),
-        [dup, this](bool node_exists, const std::vector<std::string> &partition_idx_list) {
+        [dup, this, app](bool node_exists, const std::vector<std::string> &partition_idx_list) {
             dassert_f(node_exists, "node {} must exist on meta storage", dup->store_path);
 
+            std::set<int32_t> inited_set;
+            for (int i = 0; i < app->partition_count; i++) {
+                inited_set.insert(i);
+            }
             for (const std::string &str_pid : partition_idx_list) {
                 // <app_path>/duplication/<dup_id>/<partition_index>
                 std::string partition_path = get_partition_path(dup, str_pid);
 
                 int32_t partition_idx;
-                dassert_f(buf2int32(str_pid, partition_idx), "invalid path: {}", partition_path);
+                dassert_f(buf2int32(str_pid, partition_idx),
+                          "invalid path: {}/{}",
+                          dup->store_path,
+                          partition_path);
+                size_t erased = inited_set.erase(partition_idx);
+                if (erased == 0) {
+                    dfatal_f("invalid path: {}/{}", dup->store_path, partition_path);
+                }
 
                 _meta_svc->get_meta_storage()->get_data(
                     std::move(partition_path), [dup, partition_idx](const blob &value) {
@@ -414,8 +420,16 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
                         binary_reader reader(value);
                         reader.read(confirmed_decree);
 
+                        if (confirmed_decree <= 0) {
+                            derror_f("fuck: confirmed decree stored in zk is {} [pid-{}]",
+                                     confirmed_decree,
+                                     partition_idx);
+                        }
                         dup->init_progress(partition_idx, confirmed_decree);
                     });
+            }
+            for (int32_t partition_idx : inited_set) {
+                dup->init_progress(partition_idx, invalid_decree);
             }
         });
 }

@@ -349,7 +349,9 @@ TEST_F(meta_duplication_service_test, duplication_sync)
 
     dupid_t dupid = create_dup(test_app).dupid;
     auto dup = app->duplications[dupid];
-
+    for (int i = 0; i < app->partition_count; i++) {
+        dup->init_progress(i, invalid_decree);
+    }
     {
         std::map<gpid, std::vector<duplication_confirm_entry>> confirm_list;
 
