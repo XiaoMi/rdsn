@@ -163,6 +163,9 @@ void meta_options::initialize()
 
     cold_backup_disabled = dsn_config_get_value_bool(
         "meta_server", "cold_backup_disabled", true, "whether to disable cold backup");
+
+    duplication_enabled = dsn_config_get_value_bool(
+        "meta_server", "duplication_enabled", true, "is duplication enabled");
 }
 }
 }

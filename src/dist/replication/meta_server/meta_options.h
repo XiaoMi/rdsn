@@ -83,6 +83,7 @@ public:
     lb_suboptions _lb_opts;
 
     bool cold_backup_disabled;
+    bool duplication_enabled;
 
 public:
     void initialize();

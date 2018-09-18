@@ -786,7 +786,9 @@ void meta_service::register_duplication_rpc_handlers()
 
 void meta_service::initialize_duplication_service()
 {
-    _dup_svc = dsn::make_unique<meta_duplication_service>(_state.get(), this);
+    if (_meta_opts.duplication_enabled) {
+        _dup_svc = dsn::make_unique<meta_duplication_service>(_state.get(), this);
+    }
 }
 
 void meta_service::update_app_env(app_env_rpc env_rpc)
