@@ -140,30 +140,7 @@ void duplication_info::stable_status()
 
 std::string duplication_info::to_string() const
 {
-    rapidjson::Document doc;
-    doc.SetObject();
-    auto &alloc = doc.GetAllocator();
-
-    doc.AddMember("dupid", id, alloc);
-    doc.AddMember("status", rapidjson::StringRef(duplication_status_to_string(status)), alloc);
-    doc.AddMember("remote", rapidjson::StringRef(remote.data(), remote.length()), alloc);
-    doc.AddMember("create_ts", create_timestamp_ms, alloc);
-
-    doc.AddMember("progress", rapidjson::Value(), alloc);
-    auto &p = doc["progress"];
-    p.SetArray();
-    for (const auto &kv : _progress) {
-        rapidjson::Value part;
-        part.SetObject();
-        part.AddMember("pid", kv.first, alloc);
-        part.AddMember("confirmed", kv.second.stored_decree, alloc);
-        p.PushBack(std::move(part), alloc);
-    }
-
-    rapidjson::StringBuffer sb;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
-    doc.Accept(writer);
-    return sb.GetString();
+    return duplication_entry_to_string(to_duplication_entry());
 }
 
 blob duplication_info::to_json_blob_in_status(duplication_status::type to_status) const
@@ -173,6 +150,15 @@ blob duplication_info::to_json_blob_in_status(duplication_status::type to_status
     const_cast<std::string &>(copy.remote) = remote;
     copy.status = to_status;
     return json::json_forwarder<duplication_info>::encode(copy);
+}
+
+void duplication_info::report_progress_if_time_up()
+{
+    // progress report is not supposed to be too frequent.
+    if (dsn_now_ms() > _last_progress_report_ms + PROGRESS_REPORT_PERIOD_MS) {
+        _last_progress_report_ms = dsn_now_ms();
+        ddebug_f("duplication report: {}", to_string());
+    }
 }
 
 } // namespace replication

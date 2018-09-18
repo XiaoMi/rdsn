@@ -103,11 +103,9 @@ void meta_duplication_service::do_change_duplication_status(std::shared_ptr<app_
 
     _meta_svc->get_meta_storage()->set_data(
         std::string(dup->store_path), std::move(value), [rpc, app, dup]() {
-            ddebug_f("change duplication status on storage service successfully, app name: {}, "
-                     "appid: {} dupid: {}",
-                     app->app_name,
-                     app->app_id,
-                     dup->id);
+            ddebug_dup(dup,
+                       "change duplication status on metastore successfully [appname:{}]",
+                       app->app_name);
 
             dup->stable_status();
             rpc.response().err = ERR_OK;
@@ -181,12 +179,10 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
     std::queue<std::string> nodes({get_duplication_path(*app), std::to_string(dup->id)});
     _meta_svc->get_meta_storage()->create_node_recursively(
         std::move(nodes), std::move(value), [app, dup, rpc]() mutable {
-            ddebug_f("add duplication successfully, app name: {}, appid: {},"
-                     " remote cluster address: {}, dupid: {}",
-                     app->app_name,
-                     app->app_id,
-                     dup->remote,
-                     dup->id);
+            ddebug_dup(dup,
+                       "add duplication successfully [appname: {}, remote: {}]",
+                       app->app_name,
+                       dup->remote);
 
             // The duplication starts only after it's been persisted.
             dup->stable_status();
@@ -250,6 +246,9 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
             const auto &dup = kv2.second;
 
             response.dup_map[app_id][dup_id] = dup->to_duplication_entry();
+
+            // report progress for every duplications
+            dup->report_progress_if_time_up();
         }
     }
 
@@ -285,22 +284,28 @@ void meta_duplication_service::do_update_partition_confirmed(duplication_info_s_
 {
     if (dup->alter_progress(partition_idx, confirmed_decree)) {
         std::string path = get_partition_path(dup, std::to_string(partition_idx));
+        blob value = blob::create_from_bytes(std::to_string(confirmed_decree));
 
-        binary_writer writer;
-        writer.write(confirmed_decree);
+        _meta_svc->get_meta_storage()->get_data(std::string(path), [=](const blob &data) mutable {
+            if (data.length() == 0) {
+                _meta_svc->get_meta_storage()->create_node(
+                    std::string(path), std::move(value), [=]() mutable {
+                        dup->stable_progress(partition_idx);
+                        rpc.response().dup_map[dup->app_id][dup->id].progress[partition_idx] =
+                            confirmed_decree;
+                    });
+            } else {
+                _meta_svc->get_meta_storage()->set_data(
+                    std::string(path), std::move(value), [=]() mutable {
+                        dup->stable_progress(partition_idx);
+                        rpc.response().dup_map[dup->app_id][dup->id].progress[partition_idx] =
+                            confirmed_decree;
+                    });
+            }
 
-        _meta_svc->get_meta_storage()->create_node(
-            std::string(path),
-            writer.get_buffer(),
-            [dup, rpc, partition_idx, confirmed_decree]() mutable {
-                dup->stable_progress(partition_idx);
-
-                rpc.response().dup_map[dup->app_id][dup->id].progress[partition_idx] =
-                    confirmed_decree;
-
-                // duplication_sync_rpc will finally be replied when confirmed points
-                // of all partitions are stored.
-            });
+            // duplication_sync_rpc will finally be replied when confirmed points
+            // of all partitions are stored.
+        });
     }
 }
 
@@ -322,6 +327,9 @@ meta_duplication_service::new_dup_from_init(const std::string &remote_cluster_ad
         std::string dup_path = get_duplication_path(*app, std::to_string(dupid));
         dup = std::make_shared<duplication_info>(
             dupid, app->app_id, app->partition_count, remote_cluster_address, std::move(dup_path));
+        for (int32_t i = 0; i < app->partition_count; i++) {
+            dup->init_progress(i, invalid_decree);
+        }
 
         app->duplications.emplace(dup->id, dup);
         app->envs["duplicating"] = "true";
@@ -416,16 +424,17 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
 
                 _meta_svc->get_meta_storage()->get_data(
                     std::move(partition_path), [dup, partition_idx](const blob &value) {
-                        int64_t confirmed_decree;
-                        binary_reader reader(value);
-                        reader.read(confirmed_decree);
+                        dassert_f(value.length() > 0, "partition_idx: {}", partition_idx);
 
-                        if (confirmed_decree <= 0) {
-                            derror_f("fuck: confirmed decree stored in zk is {} [pid-{}]",
-                                     confirmed_decree,
-                                     partition_idx);
-                        }
+                        int64_t confirmed_decree = invalid_decree;
+                        dassert_f(buf2int64(value, confirmed_decree), "");
                         dup->init_progress(partition_idx, confirmed_decree);
+
+                        ddebug_dup(
+                            dup,
+                            "initialize progress from metastore [partition_idx: {}, confirmed: {}]",
+                            partition_idx,
+                            confirmed_decree);
                     });
             }
             for (int32_t partition_idx : inited_set) {

@@ -321,6 +321,11 @@ TEST_F(meta_duplication_service_test, new_dup_from_init)
         ASSERT_EQ(dup->status, duplication_status::DS_INIT);
         ASSERT_EQ(dup->next_status, duplication_status::DS_INIT);
 
+        auto ent = dup->to_duplication_entry();
+        for (int i = 0; i < app->partition_count; i++) {
+            ASSERT_EQ(ent.progress[i], invalid_decree);
+        }
+
         if (last_dup != 0) {
             ASSERT_GT(dup->id, last_dup);
         }

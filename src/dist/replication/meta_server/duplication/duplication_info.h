@@ -142,6 +142,8 @@ public:
         return entry;
     }
 
+    void report_progress_if_time_up();
+
     // This function should only be used for testing.
     // Not thread-safe.
     bool is_altering() const { return _is_altering; }
@@ -149,7 +151,7 @@ public:
     // Test util
     bool equals_to(const duplication_info &rhs) const { return to_string() == rhs.to_string(); }
 
-    // Test util.
+    // To json encoded string.
     std::string to_string() const;
 
 private:
@@ -162,7 +164,8 @@ private:
 
     mutable service::zrwlock_nr _lock;
 
-    static constexpr int PROGRESS_UPDATE_PERIOD_MS = 5000;
+    static constexpr int PROGRESS_UPDATE_PERIOD_MS = 5000;          // 5s
+    static constexpr int PROGRESS_REPORT_PERIOD_MS = 1000 * 60 * 5; // 5min
 
     struct partition_progress
     {
@@ -175,6 +178,8 @@ private:
 
     // partition_idx => progress
     std::map<int, partition_progress> _progress;
+
+    uint64_t _last_progress_report_ms{0};
 
 public:
     const dupid_t id{0};
@@ -198,6 +203,16 @@ using duplication_info_s_ptr = std::shared_ptr<duplication_info>;
 extern void json_encode(dsn::json::JsonWriter &out, const duplication_status::type &s);
 
 extern bool json_decode(const dsn::json::JsonObject &in, duplication_status::type &s);
+
+// Macros for writing log message prefixed by appid and dupid.
+#define ddebug_dup(_dup_, ...)                                                                     \
+    ddebug_f("[a{}d{}] {}", _dup_->app_id, _dup_->id, fmt::format(__VA_ARGS__));
+#define dwarn_dup(_dup_, ...)                                                                      \
+    dwarn_f("[a{}d{}] {}", _dup_->app_id, _dup_->id, fmt::format(__VA_ARGS__));
+#define derror_dup(_dup_, ...)                                                                     \
+    derror_f("[a{}d{}] {}", _dup_->app_id, _dup_->id, fmt::format(__VA_ARGS__));
+#define dfatal_dup(_dup_, ...)                                                                     \
+    dfatal_f("[a{}d{}] {}", _dup_->app_id, _dup_->id, fmt::format(__VA_ARGS__));
 
 } // namespace replication
 } // namespace dsn
