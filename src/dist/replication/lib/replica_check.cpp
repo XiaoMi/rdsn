@@ -104,12 +104,10 @@ void replica::broadcast_group_check()
             request->config.learner_signature = it->second.signature;
         }
 
-        ddebug_replica("send group check to {} with state({}), last_committed_decree({}), "
-                       "confirmed_decree({})",
-                       addr.to_string(),
-                       enum_to_string(it->second),
-                       request->last_committed_decree,
-                       request->confirmed_decree);
+        ddebug("%s: send group check to %s with state %s",
+               name(),
+               addr.to_string(),
+               enum_to_string(it->second));
 
         dsn::task_ptr callback_task =
             rpc::call(addr,

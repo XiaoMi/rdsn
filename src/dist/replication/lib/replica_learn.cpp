@@ -219,7 +219,7 @@ void replica::init_learn(uint64_t signature)
            _potential_secondary_states.learning_copy_file_size,
            _potential_secondary_states.learning_copy_buffer_size);
 
-    dsn::message_ex* msg = dsn::message_ex::create_request(RPC_LEARN, 0, get_gpid().thread_hash());
+    dsn::message_ex *msg = dsn::message_ex::create_request(RPC_LEARN, 0, get_gpid().thread_hash());
     dsn::marshall(msg, request);
     _potential_secondary_states.learning_task = rpc::call(
         _config.primary,
@@ -230,7 +230,7 @@ void replica::init_learn(uint64_t signature)
         });
 }
 
-void replica::on_learn(dsn::message_ex* msg, const learn_request &request)
+void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
 {
     _checker.only_one_thread_access();
 
@@ -321,7 +321,15 @@ void replica::on_learn(dsn::message_ex* msg, const learn_request &request)
     decree learn_start_decree = request.last_committed_decree_in_app + 1;
     decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
     if (min_confirmed_decree != invalid_decree) {
+        // learner should include the mutations not confirmed by meta server
+        // as well, in order to prevent data loss during duplication.
         learn_start_decree = std::min(learn_start_decree, min_confirmed_decree + 1);
+    } else {
+        std::map<std::string, std::string> envs;
+        query_app_envs(envs);
+        if (envs["duplicating"] == "true") {
+            learn_start_decree = 0;
+        }
     }
 
     dassert(learn_start_decree <= local_committed_decree + 1,
@@ -1240,7 +1248,7 @@ void replica::notify_learn_completion()
         _potential_secondary_states.completion_notify_task->cancel(false);
     }
 
-    dsn::message_ex* msg =
+    dsn::message_ex *msg =
         dsn::message_ex::create_request(RPC_LEARN_COMPLETION_NOTIFY, 0, get_gpid().thread_hash());
     dsn::marshall(msg, report);
 

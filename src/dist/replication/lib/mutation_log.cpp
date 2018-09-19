@@ -1375,14 +1375,14 @@ int mutation_log::garbage_collection(gpid gpid,
 
         // all decrees are durable, ok to delete
         else if (durable_decree >= max_decree) {
-            ddebug("gc_private @ %d.%d: max_decree for %s is %" PRId64 " vs %" PRId64
-                   " as app.durable decree,"
-                   " safe to delete this and all older logs",
-                   _private_gpid.get_app_id(),
-                   _private_gpid.get_partition_index(),
-                   mark_it->second->path().c_str(),
-                   max_decree,
-                   durable_decree);
+            dinfo("gc_private @ %d.%d: max_decree for %s is %" PRId64 " vs %" PRId64
+                  " as app.durable decree,"
+                  " safe to delete this and all older logs",
+                  _private_gpid.get_app_id(),
+                  _private_gpid.get_partition_index(),
+                  mark_it->second->path().c_str(),
+                  max_decree,
+                  durable_decree);
             break;
         }
 
