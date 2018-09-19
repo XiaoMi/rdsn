@@ -37,8 +37,6 @@
 
 #include "mutation_cache.h"
 
-#include <dsn/utility/errors.h>
-
 namespace dsn {
 namespace replication {
 

@@ -64,11 +64,6 @@ public:
     int count() const { return _interval; }
     int capacity() const { return _max_count; }
 
-    // Returns a copy of mutation_cache.
-    // This function is mainly used for testing.
-    // Not-Thread-Safe.
-    std::unique_ptr<mutation_cache> copy() const;
-
 private:
     std::vector<mutation_ptr> _array;
     int _max_count;

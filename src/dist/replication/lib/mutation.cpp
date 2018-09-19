@@ -24,7 +24,14 @@
  * THE SOFTWARE.
  */
 
-#include <fmt/ostream.h>
+/*
+ * Description:
+ *     What is this file about?
+ *
+ * Revision history:
+ *     xxxx-xx-xx, author, first version
+ *     xxxx-xx-xx, author, fix bug about xxx
+ */
 
 #include "mutation.h"
 #include "mutation_log.h"
@@ -295,11 +302,6 @@ void mutation::wait_log_task() const
     if (_log_task != nullptr) {
         _log_task->wait();
     }
-}
-
-std::string mutation::to_string() const
-{
-    return fmt::format("{is_logged: {}, mutation_data: {}}", is_logged(), data);
 }
 
 mutation_queue::mutation_queue(gpid gpid,
