@@ -16,9 +16,7 @@ TEST(random, sanity)
         ASSERT_EQ(rand::uint32n(0), 0);
         ASSERT_EQ(rand::uint32in(0, 0), 0);
 
-        ASSERT_EQ(rand::uint64n(12), 12);
         ASSERT_EQ(rand::uint64in(12, 12), 12);
-        ASSERT_EQ(rand::uint32n(12), 12);
         ASSERT_EQ(rand::uint32in(12, 12), 12);
     }
 
