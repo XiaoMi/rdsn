@@ -21,9 +21,16 @@ inline uint32_t uint32in(uint32_t min, uint32_t max)
 }
 
 // uint64n returns, as an uint64_t, a non-negative pseudo-random number in [0, n).
-inline uint64_t uint64n(uint64_t n) { return uint64in(0, n - 1); }
+// If n == 0, it returns 0.
+inline uint64_t uint64n(uint64_t n)
+{
+    if (n == 0)
+        return 0;
+    return uint64in(0, n - 1);
+}
 
 // uint32n returns, as an uint32_t, a non-negative pseudo-random number in [0, n).
+// If n == 0, it returns 0.
 inline uint32_t uint32n(uint32_t n) { return static_cast<uint32_t>(uint64n(n)); }
 
 // uint32 returns a pseudo-random 32-bit value as a uint32_t.
