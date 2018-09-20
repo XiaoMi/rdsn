@@ -8,7 +8,7 @@
 namespace dsn {
 namespace rand {
 
-thread_local std::ranlux48_base g_thread_local_rng;
+thread_local std::ranlux48_base g_thread_local_rng(std::random_device{}());
 
 /*extern*/ uint64_t uint64in(uint64_t min, uint64_t max)
 {
