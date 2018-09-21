@@ -36,6 +36,8 @@
 #pragma once
 #include <dsn/dist/replication/replication.codes.h>
 
+#include "simple_kv_types.h"
+
 namespace dsn {
 namespace replication {
 namespace application {

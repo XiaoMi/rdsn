@@ -44,6 +44,7 @@
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_other_types.h>
 #include <dsn/dist/replication/replication.codes.h>
+#include <dsn/dist/replication/replication_types.h>
 #include <dsn/dist/replication/replica_base.h>
 #include <atomic>
 
