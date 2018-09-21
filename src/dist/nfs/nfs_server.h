@@ -28,7 +28,6 @@
 #include <iostream>
 #include <dsn/cpp/serverlet.h>
 #include "nfs_code_definition.h"
-#include "nfs.types.h"
 
 namespace dsn {
 namespace service {

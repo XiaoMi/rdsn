@@ -1,6 +1,5 @@
 #pragma once
 #include "simple_kv.code.definition.h"
-#include "simple_kv.types.h"
 #include <iostream>
 #include <dsn/utility/optional.h>
 #include <dsn/tool-api/async_calls.h>

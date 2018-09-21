@@ -34,7 +34,6 @@
  */
 
 #pragma once
-#include <dsn/dist/failure_detector/fd.types.h>
 
 namespace dsn {
 namespace fd {

@@ -30,7 +30,6 @@
 #include <dsn/tool-api/async_calls.h>
 
 #include "simple_kv.code.definition.h"
-#include "simple_kv.types.h"
 #include "case.h"
 
 namespace dsn {

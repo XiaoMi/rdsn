@@ -40,7 +40,6 @@
 #include <dsn/dist/replication/storage_serverlet.h>
 
 #include "simple_kv.code.definition.h"
-#include "simple_kv.types.h"
 
 namespace dsn {
 namespace replication {
