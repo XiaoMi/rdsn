@@ -579,4 +579,29 @@ TEST_F(mutation_log_test, read_empty_block)
         //     end_offset);
         // ASSERT_EQ(err.code(), ERR_HANDLE_EOF) << err.description();
     }
+    mlog->close();
+
+    // reading logs
+    mlog = new mutation_log_private(logp, 4, gpid, nullptr, 1024, 512, 10000);
+
+    int mutation_index = -1;
+    mlog->open(
+        [&mutations, &mutation_index](int log_length, mutation_ptr &mu) -> bool {
+            mutation_ptr wmu = mutations[++mutation_index];
+            EXPECT_TRUE(wmu->data.header == mu->data.header);
+            EXPECT_TRUE(wmu->data.updates.size() == mu->data.updates.size());
+            EXPECT_TRUE(wmu->data.updates[0].data.length() == mu->data.updates[0].data.length());
+            EXPECT_TRUE(memcmp((const void *)wmu->data.updates[0].data.data(),
+                               (const void *)mu->data.updates[0].data.data(),
+                               mu->data.updates[0].data.length()) == 0);
+            EXPECT_TRUE(wmu->data.updates[0].code == mu->data.updates[0].code);
+            EXPECT_TRUE(wmu->client_requests.size() == mu->client_requests.size());
+            return true;
+        },
+        nullptr);
+    EXPECT_TRUE(mutation_index + 1 == (int)mutations.size());
+    mlog->close();
+
+    // clear all
+    utils::filesystem::remove_path(logp);
 }
