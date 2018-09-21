@@ -34,8 +34,9 @@
  */
 
 #pragma once
-#include "fd.code.definition.h"
+
 #include <iostream>
+#include <dsn/dist/failure_detector/fd.code.definition.h>
 #include <dsn/utility/optional.h>
 #include <dsn/tool-api/async_calls.h>
 

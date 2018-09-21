@@ -35,6 +35,9 @@
 
 #pragma once
 
+#include <dsn/tool-api/task_code.h>
+#include <dsn/dist/failure_detector/fd_types.h>
+
 namespace dsn {
 namespace fd {
 

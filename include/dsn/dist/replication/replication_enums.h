@@ -1,6 +1,7 @@
 #pragma once
 
 #include <dsn/utility/enum_helper.h>
+#include <dsn/dist/replication/replication_types.h>
 
 namespace dsn {
 ENUM_BEGIN2(app_status::type, app_status, app_status::AS_INVALID)
