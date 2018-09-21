@@ -30,6 +30,7 @@
 #include <dsn/tool-api/async_calls.h>
 
 #include "nfs_code_definition.h"
+#include "nfs_types.h"
 
 namespace dsn {
 namespace service {
