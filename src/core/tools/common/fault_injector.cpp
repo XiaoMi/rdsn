@@ -141,7 +141,7 @@ static void fault_on_task_begin(task *this_)
 {
     fj_opt &opt = s_fj_opts[this_->spec().code];
     if (opt.execution_extra_delay_us_max > 0) {
-        auto d = rand::uint32in(0, opt.execution_extra_delay_us_max);
+        auto d = rand::next_u32(0, opt.execution_extra_delay_us_max);
         ddebug(
             "fault inject %s at %s with delay %u us", this_->spec().name.c_str(), __FUNCTION__, d);
         std::this_thread::sleep_for(std::chrono::microseconds(d));
@@ -187,7 +187,7 @@ static void fault_on_aio_enqueue(aio_task *this_)
 {
     fj_opt &opt = s_fj_opts[this_->spec().code];
     if (this_->delay_milliseconds() == 0 && task_ext_for_fj::get(this_) == 0) {
-        this_->set_delay(rand::uint32in(opt.disk_io_delay_ms_min, opt.disk_io_delay_ms_max));
+        this_->set_delay(rand::next_u32(opt.disk_io_delay_ms_min, opt.disk_io_delay_ms_max));
         ddebug("fault inject %s at %s with delay %u ms",
                this_->spec().name.c_str(),
                __FUNCTION__,
@@ -210,13 +210,13 @@ static void replace_value(std::vector<blob> &buffer_list, unsigned int offset)
 static void corrupt_data(message_ex *request, const std::string &corrupt_type)
 {
     if (corrupt_type == "header")
-        replace_value(request->buffers, rand::uint32in(0, sizeof(message_header) - 1));
+        replace_value(request->buffers, rand::next_u32(0, sizeof(message_header) - 1));
     else if (corrupt_type == "body")
         replace_value(request->buffers,
-                      rand::uint32in(0, request->body_size() - 1) + sizeof(message_header));
+                      rand::next_u32(0, request->body_size() - 1) + sizeof(message_header));
     else if (corrupt_type == "random")
         replace_value(request->buffers,
-                      rand::uint32in(0, request->body_size() + sizeof(message_header) - 1));
+                      rand::next_u32(0, request->body_size() + sizeof(message_header) - 1));
     else {
         derror("try to inject an unknown data corrupt type: %s", corrupt_type.c_str());
     }
@@ -250,7 +250,7 @@ static void fault_on_rpc_request_enqueue(rpc_request_task *callee)
     if (callee->delay_milliseconds() == 0 && task_ext_for_fj::get(callee) == 0) {
         if (rand::next_double01() < opt.rpc_request_delay_ratio) {
             callee->set_delay(
-                rand::uint32in(opt.rpc_message_delay_ms_min, opt.rpc_message_delay_ms_max));
+                rand::next_u32(opt.rpc_message_delay_ms_min, opt.rpc_message_delay_ms_max));
             ddebug("fault inject %s at %s with delay %u ms",
                    callee->spec().name.c_str(),
                    __FUNCTION__,
@@ -288,7 +288,7 @@ static void fault_on_rpc_response_enqueue(rpc_response_task *resp)
     if (resp->delay_milliseconds() == 0 && task_ext_for_fj::get(resp) == 0) {
         if (rand::next_double01() < opt.rpc_response_delay_ratio) {
             resp->set_delay(
-                rand::uint32in(opt.rpc_message_delay_ms_min, opt.rpc_message_delay_ms_max));
+                rand::next_u32(opt.rpc_message_delay_ms_min, opt.rpc_message_delay_ms_max));
             ddebug("fault inject %s at %s with delay %u ms",
                    resp->spec().name.c_str(),
                    __FUNCTION__,

@@ -14,10 +14,10 @@ TEST(random, sanity)
         ASSERT_EQ(rand::next_u64(0), 0);
         ASSERT_EQ(rand::next_u64(0, 0), 0);
         ASSERT_EQ(rand::next_u32(0), 0);
-        ASSERT_EQ(rand::uint32in(0, 0), 0);
+        ASSERT_EQ(rand::next_u32(0, 0), 0);
 
         ASSERT_EQ(rand::next_u64(12, 12), 12);
-        ASSERT_EQ(rand::uint32in(12, 12), 12);
+        ASSERT_EQ(rand::next_u32(12, 12), 12);
     }
 
     constexpr int kTestSize = 1000;

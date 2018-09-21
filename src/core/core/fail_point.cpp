@@ -98,7 +98,7 @@ bool fail_point::parse_from_string(string_view action)
 
 const std::string *fail_point::eval()
 {
-    uint32_t r = rand::uint32in(0, 100);
+    uint32_t r = rand::next_u32(0, 100);
     if (r > _freq) {
         return nullptr;
     }

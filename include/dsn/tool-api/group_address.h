@@ -61,7 +61,7 @@ public:
     {
         alr_t l(_lock);
         return _members.empty() ? rpc_address::s_invalid_address
-                                : _members[rand::uint32in(0, (uint32_t)_members.size() - 1)];
+                                : _members[rand::next_u32(0, (uint32_t)_members.size() - 1)];
     }
     rpc_address next(rpc_address current) const;
     rpc_address leader() const
@@ -159,7 +159,7 @@ inline rpc_address rpc_group_address::possible_leader()
     if (_members.empty())
         return rpc_address::s_invalid_address;
     if (_leader_index == -1)
-        _leader_index = rand::uint32in(0, (uint32_t)_members.size() - 1);
+        _leader_index = rand::next_u32(0, (uint32_t)_members.size() - 1);
     return _members[_leader_index];
 }
 
@@ -195,11 +195,11 @@ inline rpc_address rpc_group_address::next(rpc_address current) const
     if (_members.empty())
         return rpc_address::s_invalid_address;
     if (current.is_invalid())
-        return _members[rand::uint32in(0, (uint32_t)_members.size() - 1)];
+        return _members[rand::next_u32(0, (uint32_t)_members.size() - 1)];
     else {
         auto it = std::find(_members.begin(), _members.end(), current);
         if (it == _members.end())
-            return _members[rand::uint32in(0, (uint32_t)_members.size() - 1)];
+            return _members[rand::next_u32(0, (uint32_t)_members.size() - 1)];
         else {
             it++;
             return it == _members.end() ? _members[0] : *it;

@@ -60,7 +60,7 @@ TEST(core, crc)
 {
     char buffer[24];
     for (int i = 0; i < sizeof(buffer) / sizeof(char); i++) {
-        buffer[i] = rand::uint32in(0, 200);
+        buffer[i] = rand::next_u32(0, 200);
     }
 
     auto c1 = dsn::utils::crc32_calc(buffer, 12, 0);

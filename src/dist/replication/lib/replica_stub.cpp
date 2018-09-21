@@ -537,7 +537,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
             [this] { on_gc(); },
             std::chrono::milliseconds(_options.gc_interval_ms),
             0,
-            std::chrono::milliseconds(rand::uint32in(0, _options.gc_interval_ms)));
+            std::chrono::milliseconds(rand::next_u32(0, _options.gc_interval_ms)));
     }
 
     // disk stat
@@ -1468,7 +1468,7 @@ void replica_stub::on_gc()
                     kv.second.rep->tracker(),
                     std::bind(&replica_stub::trigger_checkpoint, this, kv.second.rep, true),
                     kv.first.thread_hash(),
-                    std::chrono::milliseconds(rand::uint32in(0, _options.gc_interval_ms / 2)));
+                    std::chrono::milliseconds(rand::next_u32(0, _options.gc_interval_ms / 2)));
             }
         } else if (reserved_log_count > _options.log_shared_file_count_limit) {
             std::ostringstream oss;
@@ -1494,7 +1494,7 @@ void replica_stub::on_gc()
                         find->second.rep->tracker(),
                         std::bind(&replica_stub::trigger_checkpoint, this, find->second.rep, true),
                         id.thread_hash(),
-                        std::chrono::milliseconds(rand::uint32in(0, _options.gc_interval_ms / 2)));
+                        std::chrono::milliseconds(rand::next_u32(0, _options.gc_interval_ms / 2)));
                 }
             }
         }

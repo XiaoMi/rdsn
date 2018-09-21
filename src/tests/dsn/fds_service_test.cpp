@@ -83,7 +83,7 @@ void FDSClientTest::SetUp()
 
     // generate a test file
     {
-        int lines = rand::uint32in(1000, 2000);
+        int lines = rand::next_u32(1000, 2000);
         FILE *fp = fopen(f1.filename.c_str(), "wb");
         for (int i = 0; i < lines; ++i) {
             fprintf(fp, "%04d_this_is_a_simple_test_file\n", i);
@@ -99,7 +99,7 @@ void FDSClientTest::SetUp()
 
     // generate another test file
     {
-        int lines = rand::uint32in(10, 20);
+        int lines = rand::next_u32(10, 20);
         FILE *fp = fopen(f2.filename.c_str(), "wb");
         for (int i = 0; i < lines; ++i) {
             fprintf(fp, "%04d_this_is_a_simple_test_file\n", i);
@@ -720,7 +720,7 @@ generate_file(const char *filename, unsigned long long file_size, char *block, u
         i += batch_size;
 
         for (int j = 0; j < batch_size; ++j) {
-            block[j] = (char)rand::uint32in(0, 255);
+            block[j] = (char)rand::next_u32(0, 255);
         }
         write(fd, block, batch_size);
     }
