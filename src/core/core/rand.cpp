@@ -10,12 +10,12 @@ namespace rand {
 
 thread_local std::ranlux48_base g_thread_local_rng(std::random_device{}());
 
-/*extern*/ uint64_t uint64in(uint64_t min, uint64_t max)
+/*extern*/ uint64_t next_u64(uint64_t min, uint64_t max)
 {
     return std::uniform_int_distribution<uint64_t>(min, max)(g_thread_local_rng);
 }
 
-/*extern*/ void set_seed_thread_local_rng(uint64_t seed) { g_thread_local_rng.seed(seed); }
+/*extern*/ void reseed_thread_local_rng(uint64_t seed) { g_thread_local_rng.seed(seed); }
 
 } // namespace rand
 } // namespace dsn

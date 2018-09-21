@@ -45,10 +45,10 @@ TEST(core, env)
     uint64_t xs[] = {0, std::numeric_limits<uint64_t>::max() - 1, 0xdeadbeef};
 
     for (auto &x : xs) {
-        auto r = rand::uint64in(x, x);
+        auto r = rand::next_u64(x, x);
         EXPECT_EQ(r, x);
 
-        r = rand::uint64in(x, x + 1);
+        r = rand::next_u64(x, x + 1);
         EXPECT_TRUE(r == x || r == (x + 1));
     }
 }

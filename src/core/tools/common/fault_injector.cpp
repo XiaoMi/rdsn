@@ -163,14 +163,14 @@ static bool fault_on_aio_call(task *caller, aio_task *callee)
 {
     switch (callee->aio()->type) {
     case AIO_Read:
-        if (rand::float64n() < s_fj_opts[callee->spec().code].disk_read_fail_ratio) {
+        if (rand::next_double01() < s_fj_opts[callee->spec().code].disk_read_fail_ratio) {
             ddebug("fault inject %s at %s", callee->spec().name.c_str(), __FUNCTION__);
             callee->set_error_code(ERR_FILE_OPERATION_FAILED);
             return false;
         }
         break;
     case AIO_Write:
-        if (rand::float64n() < s_fj_opts[callee->spec().code].disk_write_fail_ratio) {
+        if (rand::next_double01() < s_fj_opts[callee->spec().code].disk_write_fail_ratio) {
             ddebug("fault inject %s at %s", callee->spec().name.c_str(), __FUNCTION__);
             callee->set_error_code(ERR_FILE_OPERATION_FAILED);
             return false;
@@ -226,7 +226,7 @@ static void corrupt_data(message_ex *request, const std::string &corrupt_type)
 static bool fault_on_rpc_call(task *caller, message_ex *req, rpc_response_task *callee)
 {
     fj_opt &opt = s_fj_opts[req->local_rpc_code];
-    if (rand::float64n() < opt.rpc_request_drop_ratio) {
+    if (rand::next_double01() < opt.rpc_request_drop_ratio) {
         ddebug("fault inject %s at %s: %s => %s",
                req->header->rpc_name,
                __FUNCTION__,
@@ -234,7 +234,7 @@ static bool fault_on_rpc_call(task *caller, message_ex *req, rpc_response_task *
                req->to_address.to_string());
         return false;
     } else {
-        if (rand::float64n() < opt.rpc_request_data_corrupted_ratio) {
+        if (rand::next_double01() < opt.rpc_request_data_corrupted_ratio) {
             ddebug("corrupt the rpc call message from: %s, type: %s",
                    req->header->from_address.to_string(),
                    opt.rpc_message_data_corrupted_type.c_str());
@@ -248,7 +248,7 @@ static void fault_on_rpc_request_enqueue(rpc_request_task *callee)
 {
     fj_opt &opt = s_fj_opts[callee->spec().code];
     if (callee->delay_milliseconds() == 0 && task_ext_for_fj::get(callee) == 0) {
-        if (rand::float64n() < opt.rpc_request_delay_ratio) {
+        if (rand::next_double01() < opt.rpc_request_delay_ratio) {
             callee->set_delay(
                 rand::uint32in(opt.rpc_message_delay_ms_min, opt.rpc_message_delay_ms_max));
             ddebug("fault inject %s at %s with delay %u ms",
@@ -264,7 +264,7 @@ static void fault_on_rpc_request_enqueue(rpc_request_task *callee)
 static bool fault_on_rpc_reply(task *caller, message_ex *msg)
 {
     fj_opt &opt = s_fj_opts[msg->local_rpc_code];
-    if (rand::float64n() < opt.rpc_response_drop_ratio) {
+    if (rand::next_double01() < opt.rpc_response_drop_ratio) {
         ddebug("fault inject %s at %s: %s => %s",
                msg->header->rpc_name,
                __FUNCTION__,
@@ -272,7 +272,7 @@ static bool fault_on_rpc_reply(task *caller, message_ex *msg)
                msg->to_address.to_string());
         return false;
     } else {
-        if (rand::float64n() < opt.rpc_response_data_corrupted_ratio) {
+        if (rand::next_double01() < opt.rpc_response_data_corrupted_ratio) {
             ddebug("fault injector corrupt the rpc reply message from: %s, type: %s",
                    msg->header->from_address.to_string(),
                    opt.rpc_message_data_corrupted_type.c_str());
@@ -286,7 +286,7 @@ static void fault_on_rpc_response_enqueue(rpc_response_task *resp)
 {
     fj_opt &opt = s_fj_opts[resp->spec().code];
     if (resp->delay_milliseconds() == 0 && task_ext_for_fj::get(resp) == 0) {
-        if (rand::float64n() < opt.rpc_response_delay_ratio) {
+        if (rand::next_double01() < opt.rpc_response_delay_ratio) {
             resp->set_delay(
                 rand::uint32in(opt.rpc_message_delay_ms_min, opt.rpc_message_delay_ms_max));
             ddebug("fault inject %s at %s with delay %u ms",

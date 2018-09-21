@@ -759,7 +759,7 @@ TEST_F(FDSClientTest, test_concurrent_upload_download)
     for (int i = 0; i < total_files; ++i) {
         char index[64];
         snprintf(index, 64, "%04d", i);
-        unsigned long random_size = rand::uint64in(min_size, max_size);
+        unsigned long random_size = rand::next_u64(min_size, max_size);
         std::string filename = "randomfile" + std::string(index);
         filenames.push_back(filename);
         filesize.push_back(random_size);

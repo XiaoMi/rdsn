@@ -289,7 +289,7 @@ TEST(core, dsn_env)
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
     uint64_t now2 = dsn_now_ns();
     ASSERT_LE(now1 + 1000000, now2);
-    uint64_t r = rand::uint64in(100, 200);
+    uint64_t r = rand::next_u64(100, 200);
     ASSERT_LE(100, r);
     ASSERT_GE(200, r);
 }

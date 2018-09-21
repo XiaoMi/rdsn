@@ -11,40 +11,40 @@ namespace dsn {
 TEST(random, sanity)
 {
     { // edge cases
-        ASSERT_EQ(rand::uint64n(0), 0);
-        ASSERT_EQ(rand::uint64in(0, 0), 0);
-        ASSERT_EQ(rand::uint32n(0), 0);
+        ASSERT_EQ(rand::next_u64(0), 0);
+        ASSERT_EQ(rand::next_u64(0, 0), 0);
+        ASSERT_EQ(rand::next_u32(0), 0);
         ASSERT_EQ(rand::uint32in(0, 0), 0);
 
-        ASSERT_EQ(rand::uint64in(12, 12), 12);
+        ASSERT_EQ(rand::next_u64(12, 12), 12);
         ASSERT_EQ(rand::uint32in(12, 12), 12);
     }
 
     constexpr int kTestSize = 1000;
 
     { // 32-bit repeatability, uniqueness
-        rand::set_seed_thread_local_rng(0xdeadbeef);
+        rand::reseed_thread_local_rng(0xdeadbeef);
         std::vector<uint32_t> vals(kTestSize);
         for (int i = 0; i < kTestSize; ++i) {
-            vals[i] = rand::uint32();
+            vals[i] = rand::next_u32();
         }
 
-        rand::set_seed_thread_local_rng(0xdeadbeef);
+        rand::reseed_thread_local_rng(0xdeadbeef);
         for (int i = 0; i < kTestSize; ++i) {
-            ASSERT_EQ(rand::uint32(), vals[i]);
+            ASSERT_EQ(rand::next_u32(), vals[i]);
         }
     }
 
     { // 64-bit repeatability, uniqueness
-        rand::set_seed_thread_local_rng(0xdeadbeef);
+        rand::reseed_thread_local_rng(0xdeadbeef);
         std::vector<uint64_t> vals(kTestSize);
         for (int i = 0; i < kTestSize; ++i) {
-            vals[i] = rand::uint64();
+            vals[i] = rand::next_u64();
         }
 
-        rand::set_seed_thread_local_rng(0xdeadbeef);
+        rand::reseed_thread_local_rng(0xdeadbeef);
         for (int i = 0; i < kTestSize; ++i) {
-            ASSERT_EQ(rand::uint64(), vals[i]);
+            ASSERT_EQ(rand::next_u64(), vals[i]);
         }
     }
 }
@@ -55,7 +55,7 @@ TEST(random, multi_threaded)
     std::vector<uint32_t> seeds(n);
     std::vector<std::thread> threads;
     for (int i = 0; i < n; ++i) {
-        threads.push_back(std::thread([i, &seeds] { seeds[i] = rand::uint32(); }));
+        threads.push_back(std::thread([i, &seeds] { seeds[i] = rand::next_u32(); }));
     }
     for (auto &t : threads) {
         t.join();
