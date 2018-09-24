@@ -38,6 +38,7 @@
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/dist/cli/cli.code.definition.h>
+#include <dsn/dist/cli/cli_types.h>
 #include <iostream>
 
 namespace dsn {
