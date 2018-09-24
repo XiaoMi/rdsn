@@ -35,7 +35,6 @@
 
 #pragma once
 #include "fd.code.definition.h"
-
 #include <iostream>
 #include <dsn/utility/optional.h>
 #include <dsn/tool-api/async_calls.h>
