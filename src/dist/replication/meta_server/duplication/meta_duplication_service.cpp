@@ -170,6 +170,7 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
 {
     dup->start();
     if (rpc.request().freezed) {
+        dup->stable_status();
         dup->alter_status(duplication_status::DS_PAUSE);
     }
 
