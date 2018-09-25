@@ -225,18 +225,16 @@ dsn::error_code replication_ddl_client::create_app(const std::string &app_name,
         return ERR_INVALID_PARAMETERS;
     }
 
-    if (app_name.empty() ||
-        !std::all_of(app_name.cbegin(),
-                     app_name.cend(),
-                     (bool (*)(int))replication_ddl_client::valid_app_char)) {
+    if (app_name.empty() || !std::all_of(app_name.cbegin(),
+                                         app_name.cend(),
+                                         (bool (*)(int))replication_ddl_client::valid_app_char)) {
         std::cout << "create app " << app_name << " failed: invalid app_name" << std::endl;
         return ERR_INVALID_PARAMETERS;
     }
 
-    if (app_type.empty() ||
-        !std::all_of(app_type.cbegin(),
-                     app_type.cend(),
-                     (bool (*)(int))replication_ddl_client::valid_app_char)) {
+    if (app_type.empty() || !std::all_of(app_type.cbegin(),
+                                         app_type.cend(),
+                                         (bool (*)(int))replication_ddl_client::valid_app_char)) {
         std::cout << "create app " << app_name << " failed: invalid app_type" << std::endl;
         return ERR_INVALID_PARAMETERS;
     }
@@ -278,10 +276,9 @@ dsn::error_code replication_ddl_client::create_app(const std::string &app_name,
 
 dsn::error_code replication_ddl_client::drop_app(const std::string &app_name, int reserve_seconds)
 {
-    if (app_name.empty() ||
-        !std::all_of(app_name.cbegin(),
-                     app_name.cend(),
-                     (bool (*)(int))replication_ddl_client::valid_app_char))
+    if (app_name.empty() || !std::all_of(app_name.cbegin(),
+                                         app_name.cend(),
+                                         (bool (*)(int))replication_ddl_client::valid_app_char))
         return ERR_INVALID_PARAMETERS;
 
     std::shared_ptr<configuration_drop_app_request> req(new configuration_drop_app_request());
@@ -848,10 +845,9 @@ dsn::error_code replication_ddl_client::list_app(const std::string &app_name,
                                                  int32_t &partition_count,
                                                  std::vector<partition_configuration> &partitions)
 {
-    if (app_name.empty() ||
-        !std::all_of(app_name.cbegin(),
-                     app_name.cend(),
-                     (bool (*)(int))replication_ddl_client::valid_app_char))
+    if (app_name.empty() || !std::all_of(app_name.cbegin(),
+                                         app_name.cend(),
+                                         (bool (*)(int))replication_ddl_client::valid_app_char))
         return ERR_INVALID_PARAMETERS;
 
     std::shared_ptr<configuration_query_by_index_request> req(
@@ -1384,12 +1380,13 @@ dsn::error_code replication_ddl_client::query_restore(int32_t restore_app_id, bo
     return ERR_OK;
 }
 
-error_with<duplication_add_response> replication_ddl_client::add_dup(std::string app_name,
-                                                                     std::string remote_address)
+error_with<duplication_add_response>
+replication_ddl_client::add_dup(std::string app_name, std::string remote_address, bool freezed)
 {
     auto req = make_unique<duplication_add_request>();
     req->app_name = std::move(app_name);
     req->remote_cluster_address = std::move(remote_address);
+    req->freezed = freezed;
     return call_rpc_sync(duplication_add_rpc(std::move(req), RPC_CM_ADD_DUPLICATION));
 }
 
@@ -1612,5 +1609,5 @@ replication_ddl_client::ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &
 
     return dsn::ERR_OK;
 }
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

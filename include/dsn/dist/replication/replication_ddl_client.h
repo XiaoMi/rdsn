@@ -109,7 +109,8 @@ public:
                                 bool skip_lost_partitions,
                                 const std::string &outfile);
 
-    error_with<duplication_add_response> add_dup(std::string app_name, std::string remote_address);
+    error_with<duplication_add_response>
+    add_dup(std::string app_name, std::string remote_address, bool freezed);
     error_with<duplication_status_change_response>
     change_dup_status(std::string app_name, int dupid, duplication_status::type status);
     error_with<duplication_query_response> query_dup(std::string app_name);
@@ -242,5 +243,5 @@ private:
     dsn::rpc_address _meta_server;
     dsn::task_tracker _tracker;
 };
-}
-} // namespace
+} // namespace replication
+} // namespace dsn
