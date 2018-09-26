@@ -32,6 +32,19 @@
 namespace dsn {
 namespace replication {
 
+/// On meta storage, duplication info are stored in the following layout:
+///
+///   <app_path>/duplication/<dup_id> -> {
+///                                         "remote": ...,
+///                                         "status": ...,
+///                                         "create_timestamp_ms": ...,
+///                                      }
+///
+///   <app_path>/duplication/<dup_id>/<partition_index> -> <confirmed_decree>
+///
+/// And each app has an enviroment variable called "duplicating" which indicates
+/// whether this app should prevent its unconfirmed WAL from being compacted.
+///
 class meta_duplication_service
 {
 public:
@@ -92,10 +105,23 @@ public:
     // Create a new duplication from INIT state.
     // Thread-Safe
     std::shared_ptr<duplication_info> new_dup_from_init(const std::string &remote_cluster_address,
-                                                        app_state *app) const;
+                                                        std::shared_ptr<app_state> &app) const;
 
     // get lock to protect access of app table
     zrwlock_nr &app_lock() const { return _state->_lock; }
+
+    // ensure app_lock (write lock) is held before calling this function
+    static void refresh_env_duplicating_no_lock(const std::shared_ptr<app_state> &app)
+    {
+        for (const auto &kv : app->duplications) {
+            const auto &dup = kv.second;
+            if (dup->is_valid()) {
+                app->envs["duplicating"] = "true";
+                return;
+            }
+        }
+        app->envs.erase("duplicating");
+    }
 
 private:
     friend class meta_duplication_service_test;

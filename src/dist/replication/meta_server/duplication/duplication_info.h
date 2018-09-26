@@ -40,18 +40,6 @@ namespace replication {
 
 class app_state;
 
-///
-/// On meta storage, duplication info are stored in the following layout:
-///
-///   <app_path>/duplication/<dup_id> -> {
-///                                         "remote": ...,
-///                                         "status": ...,
-///                                         "create_timestamp_ms": ...,
-///                                      }
-///
-///   <app_path>/duplication/<dup_id>/<partition_index> -> <confirmed_decree>
-///
-
 /// This class is thread-safe.
 class duplication_info
 {
@@ -103,6 +91,12 @@ public:
     // stable current status to `next_status`
     // call this function after data has been persisted on meta storage.
     void stable_status();
+
+    // if this duplication is in valid status.
+    bool is_valid() const
+    {
+        return status == duplication_status::DS_START || status == duplication_status::DS_PAUSE;
+    }
 
     ///
     /// alter_progress -> stable_progress

@@ -65,11 +65,9 @@ error_code duplication_info::do_alter_status(duplication_status::type to)
         return ERR_BUSY;
     }
 
-    if (status == duplication_status::DS_REMOVED || status == duplication_status::DS_INIT) {
+    if (!is_valid()) {
         return ERR_OBJECT_NOT_FOUND;
     }
-
-    dassert(status != duplication_status::DS_INIT, "state transition from DS_INIT");
 
     if (to == duplication_status::DS_INIT) {
         return ERR_INVALID_PARAMETERS;

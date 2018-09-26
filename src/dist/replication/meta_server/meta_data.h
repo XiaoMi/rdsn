@@ -324,6 +324,7 @@ public:
  *
  * Reserved keys for duplication:
  * envs["duplicating"] = <"true" or unset>
+ * \see meta_duplication_service
  */
 class app_state : public app_info
 {

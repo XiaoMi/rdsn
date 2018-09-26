@@ -314,7 +314,7 @@ TEST_F(meta_duplication_service_test, new_dup_from_init)
 
     int last_dup = 0;
     for (int i = 0; i < 1000; i++) {
-        auto dup = dup_svc().new_dup_from_init(remote_cluster_address, app.get());
+        auto dup = dup_svc().new_dup_from_init(remote_cluster_address, app);
 
         ASSERT_GT(dup->id, 0);
         ASSERT_FALSE(dup->is_altering());
@@ -331,6 +331,32 @@ TEST_F(meta_duplication_service_test, new_dup_from_init)
         }
         last_dup = dup->id;
     }
+}
+
+TEST_F(meta_duplication_service_test, remove_dup)
+{
+    std::string test_app = "test-app";
+    create_app(test_app);
+    auto app = find_app(test_app);
+
+    auto resp = create_dup(test_app);
+    ASSERT_EQ(ERR_OK, resp.err);
+    dupid_t dupid1 = resp.dupid;
+
+    ASSERT_EQ(app->envs["duplicating"], "true");
+
+    auto resp2 = change_dup_status(test_app, dupid1, duplication_status::DS_REMOVED);
+    ASSERT_EQ(ERR_OK, resp2.err);
+
+    ASSERT_EQ(app->envs["duplicating"], "");
+
+    // reset meta server states
+    _ss.reset();
+    _ms.reset(nullptr);
+    SetUp();
+    recover_from_meta_state();
+
+    ASSERT_EQ(app->envs["duplicating"], "");
 }
 
 TEST_F(meta_duplication_service_test, duplication_sync)
@@ -398,7 +424,7 @@ TEST_F(meta_duplication_service_test, duplication_sync)
         std::map<gpid, std::vector<duplication_confirm_entry>> confirm_list;
 
         duplication_confirm_entry ce;
-        ce.dupid = dupid + 1;
+        ce.dupid = dupid + 1; // not created
         ce.confirmed_decree = 5;
         confirm_list[gpid(app->app_id, 1)].push_back(ce);
 
@@ -420,6 +446,21 @@ TEST_F(meta_duplication_service_test, duplication_sync)
         ASSERT_EQ(resp.err, ERR_OK);
         ASSERT_EQ(resp.dup_map.size(), 1);
         ASSERT_TRUE(resp.dup_map.find(app->app_id + 1) == resp.dup_map.end());
+    }
+
+    { // duplication removed will be ignored
+        change_dup_status(test_app, dupid, duplication_status::DS_REMOVED);
+
+        std::map<gpid, std::vector<duplication_confirm_entry>> confirm_list;
+
+        duplication_confirm_entry ce;
+        ce.dupid = dupid;
+        ce.confirmed_decree = 5;
+        confirm_list[gpid(app->app_id, 1)].push_back(ce);
+
+        duplication_sync_response resp = duplication_sync(node, confirm_list);
+        ASSERT_EQ(resp.err, ERR_OK);
+        ASSERT_EQ(resp.dup_map.size(), 0);
     }
 }
 
