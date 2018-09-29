@@ -602,8 +602,10 @@ void replica_stub::initialize_start()
                                    std::chrono::milliseconds(_options.config_sync_interval_ms));
     }
 
-    _duplication_sync_timer.reset(new duplication_sync_timer(this));
-    _duplication_sync_timer->start();
+    if (!_options.duplication_disabled) {
+        _duplication_sync_timer.reset(new duplication_sync_timer(this));
+        _duplication_sync_timer->start();
+    }
 
     // init liveness monitor
     dassert(NS_Disconnected == _state, "");
@@ -2084,8 +2086,10 @@ void replica_stub::close()
         _config_sync_timer_task = nullptr;
     }
 
-    _duplication_sync_timer->close();
-    _duplication_sync_timer = nullptr;
+    if (_duplication_sync_timer != nullptr) {
+        _duplication_sync_timer->close();
+        _duplication_sync_timer = nullptr;
+    }
 
     if (_config_query_task != nullptr) {
         _config_query_task->cancel(true);
@@ -2172,5 +2176,5 @@ std::string replica_stub::get_replica_dir(const char *app_type, gpid id, bool cr
     }
     return ret_dir;
 }
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

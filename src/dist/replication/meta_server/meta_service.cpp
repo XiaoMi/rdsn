@@ -706,10 +706,6 @@ void meta_service::on_query_restore_status(dsn::message_ex *req)
                      std::bind(&server_state::on_query_restore_status, _state.get(), req));
 }
 
-/// ================================================================= ///
-/// ============== duplication related implementation =============== ///
-/// ================================================================= ///
-
 void meta_service::on_add_duplication(duplication_add_rpc rpc)
 {
     RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
@@ -786,8 +782,10 @@ void meta_service::register_duplication_rpc_handlers()
 
 void meta_service::initialize_duplication_service()
 {
-    if (_meta_opts.duplication_enabled) {
+    if (!_opts.duplication_disabled) {
         _dup_svc = dsn::make_unique<meta_duplication_service>(_state.get(), this);
+    } else {
+        _dup_svc.reset(nullptr);
     }
 }
 
@@ -830,5 +828,5 @@ void meta_service::ddd_diagnose(ddd_diagnose_rpc rpc)
     get_balancer()->get_ddd_partitions(rpc.request().pid, response.partitions);
     response.err = ERR_OK;
 }
-}
-}
+} // namespace replication
+} // namespace dsn

@@ -263,6 +263,12 @@ void replication_options::initialize()
                                   allow_non_idempotent_write,
                                   "whether to allow non-idempotent write, default is false");
 
+    duplication_disabled = dsn_config_get_value_bool(
+        "replication", "duplication_disabled", true, "is duplication disabled");
+    if (allow_non_idempotent_write && !duplication_disabled) {
+        dfatal("duplication and idempotent write cannot be enabled together");
+    }
+
     prepare_timeout_ms_for_secondaries = (int)dsn_config_get_value_uint64(
         "replication",
         "prepare_timeout_ms_for_secondaries",
@@ -676,6 +682,6 @@ std::string get_remote_chkpt_meta_file(const std::string &root,
     return ss.str();
 }
 
-} // end cold_backup namespace
-}
-} // end namespace
+} // namespace cold_backup
+} // namespace replication
+} // namespace dsn
