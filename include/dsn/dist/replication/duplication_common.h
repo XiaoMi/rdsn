@@ -26,9 +26,9 @@
 
 #pragma once
 
-#include <dsn/dist/replication/replication.types.h>
 #include <dsn/cpp/rpc_holder.h>
 #include <dsn/utility/errors.h>
+#include <dsn/dist/replication/replication_types.h>
 
 namespace dsn {
 namespace replication {
