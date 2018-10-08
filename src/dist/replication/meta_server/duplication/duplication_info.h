@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <dsn/dist/replication/replication.types.h>
+#include <dsn/dist/replication/replication_types.h>
 #include <dsn/dist/replication/replication_other_types.h>
 #include <dsn/dist/replication/duplication_common.h>
 #include <dsn/cpp/json_helper.h>
