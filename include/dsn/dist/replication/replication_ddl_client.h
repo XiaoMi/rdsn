@@ -222,7 +222,7 @@ private:
     error_with<TResponse> call_rpc_sync(TRpcHolder rpc, int reply_thread_hash = 0)
     {
         // Send rpc request synchronously. Retry at maximum 2 times when error occurred.
-        error_code err = ERR_OK;
+        error_code err = ERR_UNKNOWN;
         for (int retry = 0; retry < 2; retry++) {
             task_ptr task = rpc.call(_meta_server,
                                      &_tracker,

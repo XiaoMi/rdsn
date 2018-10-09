@@ -715,8 +715,9 @@ void meta_service::on_add_duplication(duplication_add_rpc rpc)
                      [this, rpc]() {
                          if (_dup_svc) {
                              _dup_svc->add_duplication(std::move(rpc));
+                         } else {
+                             rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
                          }
-                         // TODO(wutao1): return error
                      },
                      server_state::sStateHash);
 }
@@ -730,6 +731,8 @@ void meta_service::on_change_duplication_status(duplication_status_change_rpc rp
                      [this, rpc]() {
                          if (_dup_svc) {
                              _dup_svc->change_duplication_status(std::move(rpc));
+                         } else {
+                             rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
                          }
                      },
                      server_state::sStateHash);
@@ -741,6 +744,8 @@ void meta_service::on_query_duplication_info(duplication_query_rpc rpc)
 
     if (_dup_svc) {
         _dup_svc->query_duplication_info(rpc.request(), rpc.response());
+    } else {
+        rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
     }
 }
 
@@ -754,6 +759,8 @@ void meta_service::on_duplication_sync(duplication_sync_rpc rpc)
                      [this, rpc]() {
                          if (_dup_svc) {
                              _dup_svc->duplication_sync(std::move(rpc));
+                         } else {
+                             rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
                          }
                      },
                      server_state::sStateHash);

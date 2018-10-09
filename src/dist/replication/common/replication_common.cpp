@@ -264,7 +264,7 @@ void replication_options::initialize()
                                   "whether to allow non-idempotent write, default is false");
 
     duplication_disabled = dsn_config_get_value_bool(
-        "replication", "duplication_disabled", true, "is duplication disabled");
+        "replication", "duplication_disabled", false, "is duplication disabled");
     if (allow_non_idempotent_write && !duplication_disabled) {
         dfatal("duplication and idempotent write cannot be enabled together");
     }
