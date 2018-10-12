@@ -235,9 +235,6 @@ void nfs_service_impl::close_file() // release out-of-date file handle
             dsn_now_ms() - fptr->last_access_time > (uint64_t)_opts.file_close_expire_time_ms) {
             dinfo("nfs: close file handle %s", it->first.c_str());
             it = _handles_map.erase(it);
-
-            ::dsn::error_code err = dsn_file_close(fptr->file_handle);
-            dassert(err == ERR_OK, "dsn_file_close failed, err = %s", err.to_string());
         } else
             it++;
     }
