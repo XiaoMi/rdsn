@@ -119,8 +119,8 @@ function run_build()
                 NO_TEST=YES
                 shift
                 ;;
-            --with_valgrind)
-                WITH_VALGRIND=YES
+            --disable_gperf)
+                DISABLE_GPERF=YES
                 shift
                 ;;
             -m|--test_module)
@@ -174,7 +174,7 @@ function run_build()
         ONLY_BUILD="$ONLY_BUILD" CLEAR="$CLEAR" JOB_NUM="$JOB_NUM" \
         BOOST_DIR="$BOOST_DIR" ENABLE_GCOV="$ENABLE_GCOV" \
         RUN_VERBOSE="$RUN_VERBOSE" TEST_MODULE="$TEST_MODULE" NO_TEST="$NO_TEST" \
-        WITH_VALGRIND="$WITH_VALGRIND" $scripts_dir/build.sh
+        DISABLE_GPERF="$DISABLE_GPERF" $scripts_dir/build.sh
 }
 
 #####################

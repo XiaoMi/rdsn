@@ -80,11 +80,12 @@ else
 fi
 
 # valgrind can not work together with gpertools
-if [ "$WITH_VALGRIND" == "YES" ]
-    echo "WITH_VALGRIND=YES"
+# you may want to use this option when you want to run valgrind
+if [ "$DISABLE_GPERF" == "YES" ]
+    echo "DISABLE_GPERF=YES"
     CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_GPERF=Off"
 then
-    echo "WITH_VALGRIND=NO"
+    echo "DISABLE_GPERF=NO"
 fi
 
 # You can specify customized boost by defining BOOST_DIR.
