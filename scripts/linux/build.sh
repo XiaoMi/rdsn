@@ -79,6 +79,14 @@ else
     echo "NO_TEST=NO"
 fi
 
+# valgrind can not work together with gpertools
+if [ "$WITH_VALGRIND" == "YES" ]
+    echo "WITH_VALGRIND=YES"
+    CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_GPERF=Off"
+then
+    echo "WITH_VALGRIND=NO"
+fi
+
 # You can specify customized boost by defining BOOST_DIR.
 # Install boost like this:
 #   wget http://downloads.sourceforge.net/project/boost/boost/1.54.0/boost_1_54_0.zip?r=&ts=1442891144&use_mirror=jaist
