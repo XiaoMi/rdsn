@@ -307,23 +307,23 @@ DSN_API void dsn_rpc_forward(dsn::message_ex *request, dsn::rpc_address addr)
 //
 //------------------------------------------------------------------------------
 
-DSN_API dsn_handle_t dsn_file_open(const char *file_name, int flag, int pmode)
+DSN_API dsn::disk_file* dsn_file_open(const char *file_name, int flag, int pmode)
 {
     return ::dsn::task::get_current_disk()->open(file_name, flag, pmode);
 }
 
-DSN_API dsn::error_code dsn_file_close(dsn_handle_t file)
+DSN_API dsn::error_code dsn_file_close(dsn::disk_file* file)
 {
     return ::dsn::task::get_current_disk()->close(file);
 }
 
-DSN_API dsn::error_code dsn_file_flush(dsn_handle_t file)
+DSN_API dsn::error_code dsn_file_flush(dsn::disk_file* file)
 {
     return ::dsn::task::get_current_disk()->flush(file);
 }
 
 DSN_API void
-dsn_file_read(dsn_handle_t file, char *buffer, int count, uint64_t offset, dsn::aio_task *cb)
+dsn_file_read(dsn::disk_file* file, char *buffer, int count, uint64_t offset, dsn::aio_task *cb)
 {
     cb->aio()->buffer = buffer;
     cb->aio()->buffer_size = count;
@@ -336,7 +336,7 @@ dsn_file_read(dsn_handle_t file, char *buffer, int count, uint64_t offset, dsn::
 }
 
 DSN_API void
-dsn_file_write(dsn_handle_t file, const char *buffer, int count, uint64_t offset, dsn::aio_task *cb)
+dsn_file_write(dsn::disk_file* file, const char *buffer, int count, uint64_t offset, dsn::aio_task *cb)
 {
     cb->aio()->buffer = (char *)buffer;
     cb->aio()->buffer_size = count;
@@ -348,7 +348,7 @@ dsn_file_write(dsn_handle_t file, const char *buffer, int count, uint64_t offset
     ::dsn::task::get_current_disk()->write(cb);
 }
 
-DSN_API void dsn_file_write_vector(dsn_handle_t file,
+DSN_API void dsn_file_write_vector(dsn::disk_file* file,
                                    const dsn_file_buffer_t *buffers,
                                    int buffer_count,
                                    uint64_t offset,

@@ -236,7 +236,7 @@ create_aio_task(task_code code, task_tracker *tracker, aio_handler &&callback, i
     return t;
 }
 
-inline aio_task_ptr read(dsn_handle_t fh,
+inline aio_task_ptr read(disk_file *fh,
                          char *buffer,
                          int count,
                          uint64_t offset,
@@ -250,7 +250,7 @@ inline aio_task_ptr read(dsn_handle_t fh,
     return tsk;
 }
 
-inline aio_task_ptr write(dsn_handle_t fh,
+inline aio_task_ptr write(disk_file *fh,
                           const char *buffer,
                           int count,
                           uint64_t offset,
@@ -264,7 +264,7 @@ inline aio_task_ptr write(dsn_handle_t fh,
     return tsk;
 }
 
-inline aio_task_ptr write_vector(dsn_handle_t fh,
+inline aio_task_ptr write_vector(disk_file *fh,
                                  const dsn_file_buffer_t *buffers,
                                  int buffer_count,
                                  uint64_t offset,

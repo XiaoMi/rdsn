@@ -121,7 +121,7 @@ public:
 
     struct file_wrapper : public ::dsn::ref_counter
     {
-        dsn_handle_t file_handle;
+        disk_file *file_handle;
 
         file_wrapper() { file_handle = nullptr; }
         ~file_wrapper()

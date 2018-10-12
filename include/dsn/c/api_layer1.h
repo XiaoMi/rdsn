@@ -276,6 +276,11 @@ typedef struct
     int size;
 } dsn_file_buffer_t;
 
+namespace dsn {
+// forward declaration
+class disk_file;
+} // namespace dsn
+
 /*!
  open file
 
@@ -285,13 +290,13 @@ typedef struct
 
  \return file handle
  */
-extern DSN_API dsn_handle_t dsn_file_open(const char *file_name, int flag, int pmode);
+extern DSN_API dsn::disk_file *dsn_file_open(const char *file_name, int flag, int pmode);
 
 /*! close the file handle */
-extern DSN_API dsn::error_code dsn_file_close(dsn_handle_t file);
+extern DSN_API dsn::error_code dsn_file_close(dsn::disk_file *file);
 
 /*! flush the buffer of the given file */
-extern DSN_API dsn::error_code dsn_file_flush(dsn_handle_t file);
+extern DSN_API dsn::error_code dsn_file_flush(dsn::disk_file *file);
 
 /*!
  read file asynchronously
@@ -303,7 +308,7 @@ extern DSN_API dsn::error_code dsn_file_flush(dsn_handle_t file);
  \param cb     callback aio task to be executed on completion
  */
 extern DSN_API void
-dsn_file_read(dsn_handle_t file, char *buffer, int count, uint64_t offset, dsn::aio_task *cb);
+dsn_file_read(dsn::disk_file *file, char *buffer, int count, uint64_t offset, dsn::aio_task *cb);
 
 /*!
  write file asynchronously
@@ -315,7 +320,7 @@ dsn_file_read(dsn_handle_t file, char *buffer, int count, uint64_t offset, dsn::
  \param cb     callback aio task to be executed on completion
  */
 extern DSN_API void dsn_file_write(
-    dsn_handle_t file, const char *buffer, int count, uint64_t offset, dsn::aio_task *cb);
+    dsn::disk_file *file, const char *buffer, int count, uint64_t offset, dsn::aio_task *cb);
 
 /*!
  write file asynchronously with vector buffers
@@ -326,7 +331,7 @@ extern DSN_API void dsn_file_write(
  \param offset        offset in the file to start write
  \param cb            callback aio task to be executed on completion
  */
-extern DSN_API void dsn_file_write_vector(dsn_handle_t file,
+extern DSN_API void dsn_file_write_vector(dsn::disk_file *file,
                                           const dsn_file_buffer_t *buffers,
                                           int buffer_count,
                                           uint64_t offset,
