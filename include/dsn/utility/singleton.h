@@ -39,16 +39,15 @@ class singleton
 public:
     singleton() = default;
 
+    // disallow copy and assign
+    singleton(const singleton &) = delete;
+    singleton &operator=(const singleton &) = delete;
+
     static T &instance()
     {
         static T _instance;
         return _instance;
     }
-
-private:
-    // disallow copy and assign
-    singleton(const singleton &) = delete;
-    singleton &operator=(const singleton &) = delete;
 };
 
 } // namespace utils
