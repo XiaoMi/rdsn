@@ -35,7 +35,7 @@
 
 #include <dsn/service_api_c.h>
 #include <dsn/tool_api.h>
-#include <dsn/tool-api/task.h>
+#include <dsn/tool-api/file_io.h>
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/filesystem.h>

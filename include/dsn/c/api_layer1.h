@@ -276,68 +276,6 @@ typedef struct
     int size;
 } dsn_file_buffer_t;
 
-namespace dsn {
-// forward declaration
-class disk_file;
-} // namespace dsn
-
-/*!
- open file
-
- \param file_name filename of the file.
- \param flag      flags such as O_RDONLY | O_BINARY used by ::open
- \param pmode     permission mode used by ::open
-
- \return file handle
- */
-extern DSN_API dsn::disk_file *dsn_file_open(const char *file_name, int flag, int pmode);
-
-/*! close the file handle */
-extern DSN_API dsn::error_code dsn_file_close(dsn::disk_file *file);
-
-/*! flush the buffer of the given file */
-extern DSN_API dsn::error_code dsn_file_flush(dsn::disk_file *file);
-
-/*!
- read file asynchronously
-
- \param file   file handle
- \param buffer read buffer
- \param count  byte size of the read buffer
- \param offset offset in the file to start reading
- \param cb     callback aio task to be executed on completion
- */
-extern DSN_API void
-dsn_file_read(dsn::disk_file *file, char *buffer, int count, uint64_t offset, dsn::aio_task *cb);
-
-/*!
- write file asynchronously
-
- \param file   file handle
- \param buffer write buffer
- \param count  byte size of the to-be-written content
- \param offset offset in the file to start write
- \param cb     callback aio task to be executed on completion
- */
-extern DSN_API void dsn_file_write(
-    dsn::disk_file *file, const char *buffer, int count, uint64_t offset, dsn::aio_task *cb);
-
-/*!
- write file asynchronously with vector buffers
-
- \param file          file handle
- \param buffers       write buffers
- \param buffer_count  number of write buffers
- \param offset        offset in the file to start write
- \param cb            callback aio task to be executed on completion
- */
-extern DSN_API void dsn_file_write_vector(dsn::disk_file *file,
-                                          const dsn_file_buffer_t *buffers,
-                                          int buffer_count,
-                                          uint64_t offset,
-                                          dsn::aio_task *cb);
-/*@}*/
-
 /*!
 @defgroup env Environment
 

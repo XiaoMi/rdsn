@@ -28,7 +28,7 @@
 
 #include <dsn/service_api_c.h>
 #include <dsn/utility/function_traits.h>
-#include <dsn/tool-api/task.h>
+#include <dsn/tool-api/file_io.h>
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/cpp/serialization.h>
 
