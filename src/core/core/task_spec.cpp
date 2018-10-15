@@ -34,24 +34,23 @@
  */
 
 #include <dsn/tool-api/task_spec.h>
-#include <dsn/utility/singleton.h>
-#include <dsn/perf_counter/perf_counter.h>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/threadpool_spec.h>
-#include <sstream>
-#include <vector>
-#include <thread>
+#include <dsn/utility/smart_pointers.h>
 
 namespace dsn {
+
+// A sequential storage maps task_code to task_spec.
+static std::array<std::unique_ptr<task_spec>, 512> s_task_spec_store;
 
 void task_spec::register_task_code(task_code code,
                                    dsn_task_type_t type,
                                    dsn_task_priority_t pri,
                                    dsn::threadpool_code pool)
 {
-    if (!dsn::utils::singleton_vector_store<task_spec *, nullptr>::instance().contains(code)) {
-        task_spec *spec = new task_spec(code, code.to_string(), type, pri, pool);
-        dsn::utils::singleton_vector_store<task_spec *, nullptr>::instance().put(code, spec);
+    if (!s_task_spec_store[code]) {
+        s_task_spec_store[code] = make_unique<task_spec>(code, code.to_string(), type, pri, pool);
+        auto &spec = s_task_spec_store[code];
 
         if (type == TASK_TYPE_RPC_REQUEST) {
             std::string ack_name = std::string(code.to_string()) + std::string("_ACK");
@@ -112,10 +111,7 @@ void task_spec::register_storage_task_code(task_code code,
     spec->rpc_request_is_write_idempotent = is_idempotent;
 }
 
-task_spec *task_spec::get(int code)
-{
-    return dsn::utils::singleton_vector_store<task_spec *, nullptr>::instance().get(code);
-}
+task_spec *task_spec::get(int code) { return s_task_spec_store[code].get(); }
 
 task_spec::task_spec(int code,
                      const char *name,
