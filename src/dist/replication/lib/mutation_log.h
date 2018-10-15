@@ -608,8 +608,7 @@ public:
 
 private:
     // make private, user should create log_file through open_read() or open_write()
-    log_file(
-        const char *path, dsn::disk_file *handle, int index, int64_t start_offset, bool is_read);
+    log_file(const char *path, disk_file *handle, int index, int64_t start_offset, bool is_read);
 
 private:
     uint32_t _crc32;
