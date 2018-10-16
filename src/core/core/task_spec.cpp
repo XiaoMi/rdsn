@@ -48,6 +48,7 @@ void task_spec::register_task_code(task_code code,
                                    dsn_task_priority_t pri,
                                    dsn::threadpool_code pool)
 {
+    dassert(code < 512, "code = %d", code);
     if (!s_task_spec_store[code]) {
         s_task_spec_store[code] = make_unique<task_spec>(code, code.to_string(), type, pri, pool);
         auto &spec = s_task_spec_store[code];
@@ -111,7 +112,7 @@ void task_spec::register_storage_task_code(task_code code,
     spec->rpc_request_is_write_idempotent = is_idempotent;
 }
 
-task_spec *task_spec::get(int code) { return s_task_spec_store[code].get(); }
+task_spec *task_spec::get(int code) { return code < 512 ? s_task_spec_store[code].get() : nullptr; }
 
 task_spec::task_spec(int code,
                      const char *name,
