@@ -18,11 +18,14 @@ set(DSN_ROOT ${DSN_PROJECT_DIR}/DSN_ROOT)
 message(STATUS "DSN_ROOT = ${DSN_ROOT}")
 
 option(BUILD_TEST "build unit test" ON)
+message(STATUS "BUILD_TEST = ${BUILD_TEST}")
 
 option(ENABLE_GCOV "Enable gcov (for code coverage analysis)" OFF)
+message(STATUS "ENABLE_GCOV = ${ENABLE_GCOV}")
 
 # Disable this option before running valgrind.
 option(ENABLE_GPERF "Enable gperftools (for tcmalloc)" ON)
+message(STATUS "ENABLE_GPERF = ${ENABLE_GPERF}")
 
 # ================================================================== #
 
