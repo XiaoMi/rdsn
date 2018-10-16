@@ -26,10 +26,6 @@
 
 #pragma once
 
-#include <mutex>
-#include <atomic>
-#include <memory>
-
 namespace dsn {
 namespace utils {
 
