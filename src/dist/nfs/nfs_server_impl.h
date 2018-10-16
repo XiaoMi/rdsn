@@ -99,8 +99,8 @@ private:
 
         ~file_handle_info_on_server()
         {
-            error_code err = dsn_file_close(file_handle);
-            dassert(err == ERR_OK, "dsn_file_close failed, err = %s", err.to_string());
+            error_code err = file::close(file_handle);
+            dassert(err == ERR_OK, "file::close failed, err = %s", err.to_string());
         }
     };
 

@@ -127,8 +127,8 @@ public:
         ~file_wrapper()
         {
             if (file_handle != nullptr) {
-                auto err = dsn_file_close(file_handle);
-                dassert(err == ERR_OK, "dsn_file_close failed, err = %s", err.to_string());
+                auto err = file::close(file_handle);
+                dassert(err == ERR_OK, "file::close failed, err = %s", err.to_string());
             }
         }
     };

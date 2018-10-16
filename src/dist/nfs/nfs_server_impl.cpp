@@ -77,7 +77,7 @@ void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
 
         if (it == _handles_map.end()) // not found
         {
-            hfile = dsn_file_open(file_path.c_str(), O_RDONLY | O_BINARY, 0);
+            hfile = file::open(file_path.c_str(), O_RDONLY | O_BINARY, 0);
             if (hfile) {
 
                 auto fh = std::make_shared<file_handle_info_on_server>();

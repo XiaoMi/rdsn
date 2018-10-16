@@ -33,24 +33,23 @@ namespace dsn {
 // forward declaration
 class disk_file;
 
-/*!
- open file
-
- \param file_name filename of the file.
- \param flag      flags such as O_RDONLY | O_BINARY used by ::open
- \param pmode     permission mode used by ::open
-
- \return file handle
- */
-extern disk_file *dsn_file_open(const char *file_name, int flag, int pmode);
-
-/*! close the file handle */
-extern error_code dsn_file_close(disk_file *file);
-
-/*! flush the buffer of the given file */
-extern error_code dsn_file_flush(disk_file *file);
-
 namespace file {
+
+/// open file
+///
+/// \param file_name filename of the file.
+/// \param flag      flags such as O_RDONLY | O_BINARY used by ::open
+/// \param pmode     permission mode used by ::open
+///
+/// \return file handle
+///
+extern disk_file *open(const char *file_name, int flag, int pmode);
+
+/// close the file handle
+extern error_code close(disk_file *file);
+
+/// flush the buffer of the given file
+extern error_code flush(disk_file *file);
 
 inline aio_task_ptr
 create_aio_task(task_code code, task_tracker *tracker, aio_handler &&callback, int hash = 0)

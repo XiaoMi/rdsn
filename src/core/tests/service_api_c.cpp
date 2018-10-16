@@ -219,9 +219,9 @@ TEST(core, dsn_file)
     ASSERT_TRUE(utils::filesystem::file_size("command.txt", fin_size));
     ASSERT_LT(0, fin_size);
 
-    dsn::disk_file *fin = dsn_file_open("command.txt", O_RDONLY, 0);
+    dsn::disk_file *fin = file::open("command.txt", O_RDONLY, 0);
     ASSERT_NE(nullptr, fin);
-    dsn::disk_file *fout = dsn_file_open("command.copy.txt", O_RDWR | O_CREAT | O_TRUNC, 0666);
+    dsn::disk_file *fout = file::open("command.copy.txt", O_RDWR | O_CREAT | O_TRUNC, 0666);
     ASSERT_NE(nullptr, fout);
     char buffer[1024];
     uint64_t offset = 0;
@@ -281,14 +281,14 @@ TEST(core, dsn_file)
             ASSERT_EQ(1, tout->get_count());
         }
 
-        ASSERT_EQ(ERR_OK, dsn_file_flush(fout));
+        ASSERT_EQ(ERR_OK, file::flush(fout));
 
         offset += rin.sz;
     }
 
     ASSERT_EQ((uint64_t)fin_size, offset);
-    ASSERT_EQ(ERR_OK, dsn_file_close(fout));
-    ASSERT_EQ(ERR_OK, dsn_file_close(fin));
+    ASSERT_EQ(ERR_OK, file::close(fout));
+    ASSERT_EQ(ERR_OK, file::close(fin));
 
     ASSERT_TRUE(utils::filesystem::file_size("command.copy.txt", fout_size));
     ASSERT_EQ(fin_size, fout_size);

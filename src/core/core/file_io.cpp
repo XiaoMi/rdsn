@@ -29,23 +29,16 @@
 #include "disk_engine.h"
 
 namespace dsn {
+namespace file {
 
-/*extern*/ disk_file *dsn_file_open(const char *file_name, int flag, int pmode)
+/*extern*/ disk_file *open(const char *file_name, int flag, int pmode)
 {
     return task::get_current_disk()->open(file_name, flag, pmode);
 }
 
-/*extern*/ error_code dsn_file_close(disk_file *file)
-{
-    return task::get_current_disk()->close(file);
-}
+/*extern*/ error_code close(disk_file *file) { return task::get_current_disk()->close(file); }
 
-/*extern*/ error_code dsn_file_flush(disk_file *file)
-{
-    return task::get_current_disk()->flush(file);
-}
-
-namespace file {
+/*extern*/ error_code flush(disk_file *file) { return task::get_current_disk()->flush(file); }
 
 /*extern*/ aio_task_ptr read(disk_file *file,
                              char *buffer,
