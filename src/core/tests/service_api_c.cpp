@@ -227,15 +227,24 @@ TEST(core, dsn_file)
     uint64_t offset = 0;
     while (true) {
         aio_result rin;
-        dsn::aio_task_ptr tin = new dsn::aio_task(LPC_AIO_TEST_READ,
-                                                  [&rin](dsn::error_code err, size_t sz) {
-                                                      rin.err = err;
-                                                      rin.sz = sz;
-                                                  },
-                                                  0);
+        aio_task_ptr tin = file::read(fin,
+                                      buffer,
+                                      1024,
+                                      offset,
+                                      LPC_AIO_TEST_READ,
+                                      nullptr,
+                                      [&rin](dsn::error_code err, size_t sz) {
+                                          rin.err = err;
+                                          rin.sz = sz;
+                                      },
+                                      0);
         ASSERT_NE(nullptr, tin);
-        ASSERT_EQ(1, tin->get_count());
-        dsn_file_read(fin, buffer, 1024, offset, tin);
+
+        if (dsn::tools::get_current_tool()->name() != "simulator") {
+            // 1 for tin, 1 for disk_engine
+            ASSERT_EQ(2, tin->get_count());
+        }
+
         tin->wait();
         ASSERT_EQ(rin.err, tin->error());
         if (rin.err != ERR_OK) {
@@ -250,14 +259,18 @@ TEST(core, dsn_file)
         }
 
         aio_result rout;
-        dsn::aio_task_ptr tout = new dsn::aio_task(LPC_AIO_TEST_WRITE,
-                                                   [&rout](dsn::error_code err, size_t sz) {
-                                                       rout.err = err;
-                                                       rout.sz = sz;
-                                                   },
-                                                   0);
+        aio_task_ptr tout = file::write(fout,
+                                        buffer,
+                                        rin.sz,
+                                        offset,
+                                        LPC_AIO_TEST_WRITE,
+                                        nullptr,
+                                        [&rout](dsn::error_code err, size_t sz) {
+                                            rout.err = err;
+                                            rout.sz = sz;
+                                        },
+                                        0);
         ASSERT_NE(nullptr, tout);
-        dsn_file_write(fout, buffer, rin.sz, offset, tout);
         tout->wait();
         ASSERT_EQ(ERR_OK, rout.err);
         ASSERT_EQ(ERR_OK, tout->error());

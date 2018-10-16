@@ -50,42 +50,43 @@ extern error_code dsn_file_close(disk_file *file);
 /*! flush the buffer of the given file */
 extern error_code dsn_file_flush(disk_file *file);
 
-/*!
- read file asynchronously
+namespace file {
 
- \param file   file handle
- \param buffer read buffer
- \param count  byte size of the read buffer
- \param offset offset in the file to start reading
- \param cb     callback aio task to be executed on completion
- */
-extern void dsn_file_read(disk_file *file, char *buffer, int count, uint64_t offset, aio_task *cb);
+inline aio_task_ptr
+create_aio_task(task_code code, task_tracker *tracker, aio_handler &&callback, int hash = 0)
+{
+    aio_task_ptr t(new aio_task(code, std::move(callback), hash));
+    t->set_tracker((task_tracker *)tracker);
+    t->spec().on_task_create.execute(task::get_current_task(), t);
+    return t;
+}
 
-/*!
- write file asynchronously
+extern aio_task_ptr read(disk_file *file,
+                         char *buffer,
+                         int count,
+                         uint64_t offset,
+                         task_code callback_code,
+                         task_tracker *tracker,
+                         aio_handler &&callback,
+                         int hash = 0);
 
- \param file   file handle
- \param buffer write buffer
- \param count  byte size of the to-be-written content
- \param offset offset in the file to start write
- \param cb     callback aio task to be executed on completion
- */
-extern void
-dsn_file_write(disk_file *file, const char *buffer, int count, uint64_t offset, aio_task *cb);
+extern aio_task_ptr write(disk_file *file,
+                          const char *buffer,
+                          int count,
+                          uint64_t offset,
+                          task_code callback_code,
+                          task_tracker *tracker,
+                          aio_handler &&callback,
+                          int hash = 0);
 
-/*!
- write file asynchronously with vector buffers
+extern aio_task_ptr write_vector(disk_file *file,
+                                 const dsn_file_buffer_t *buffers,
+                                 int buffer_count,
+                                 uint64_t offset,
+                                 task_code callback_code,
+                                 task_tracker *tracker,
+                                 aio_handler &&callback,
+                                 int hash = 0);
 
- \param file          file handle
- \param buffers       write buffers
- \param buffer_count  number of write buffers
- \param offset        offset in the file to start write
- \param cb            callback aio task to be executed on completion
- */
-extern void dsn_file_write_vector(disk_file *file,
-                                  const dsn_file_buffer_t *buffers,
-                                  int buffer_count,
-                                  uint64_t offset,
-                                  aio_task *cb);
-
+} // namespace file
 } // namespace dsn

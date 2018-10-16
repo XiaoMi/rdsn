@@ -45,9 +45,18 @@ namespace dsn {
     return task::get_current_disk()->flush(file);
 }
 
-/*extern*/ void
-dsn_file_read(disk_file *file, char *buffer, int count, uint64_t offset, aio_task *cb)
+namespace file {
+
+/*extern*/ aio_task_ptr read(disk_file *file,
+                             char *buffer,
+                             int count,
+                             uint64_t offset,
+                             task_code callback_code,
+                             task_tracker *tracker,
+                             aio_handler &&callback,
+                             int hash /*= 0*/)
 {
+    auto cb = create_aio_task(callback_code, tracker, std::move(callback), hash);
     cb->aio()->buffer = buffer;
     cb->aio()->buffer_size = count;
     cb->aio()->engine = nullptr;
@@ -56,11 +65,19 @@ dsn_file_read(disk_file *file, char *buffer, int count, uint64_t offset, aio_tas
     cb->aio()->type = AIO_Read;
 
     task::get_current_disk()->read(cb);
+    return cb;
 }
 
-/*extern*/ void
-dsn_file_write(disk_file *file, const char *buffer, int count, uint64_t offset, aio_task *cb)
+/*extern*/ aio_task_ptr write(disk_file *file,
+                              const char *buffer,
+                              int count,
+                              uint64_t offset,
+                              task_code callback_code,
+                              task_tracker *tracker,
+                              aio_handler &&callback,
+                              int hash /*= 0*/)
 {
+    auto cb = create_aio_task(callback_code, tracker, std::move(callback), hash);
     cb->aio()->buffer = (char *)buffer;
     cb->aio()->buffer_size = count;
     cb->aio()->engine = nullptr;
@@ -69,14 +86,19 @@ dsn_file_write(disk_file *file, const char *buffer, int count, uint64_t offset, 
     cb->aio()->type = AIO_Write;
 
     task::get_current_disk()->write(cb);
+    return cb;
 }
 
-/*extern*/ void dsn_file_write_vector(disk_file *file,
-                                      const dsn_file_buffer_t *buffers,
-                                      int buffer_count,
-                                      uint64_t offset,
-                                      aio_task *cb)
+/*extern*/ aio_task_ptr write_vector(disk_file *file,
+                                     const dsn_file_buffer_t *buffers,
+                                     int buffer_count,
+                                     uint64_t offset,
+                                     task_code callback_code,
+                                     task_tracker *tracker,
+                                     aio_handler &&callback,
+                                     int hash /*= 0*/)
 {
+    auto cb = create_aio_task(callback_code, tracker, std::move(callback), hash);
     cb->aio()->buffer = nullptr;
     cb->aio()->buffer_size = 0;
     cb->aio()->engine = nullptr;
@@ -91,6 +113,8 @@ dsn_file_write(disk_file *file, const char *buffer, int count, uint64_t offset, 
     }
 
     task::get_current_disk()->write(cb);
+    return cb;
 }
 
+} // namespace file
 } // namespace dsn
