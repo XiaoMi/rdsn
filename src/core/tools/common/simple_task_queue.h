@@ -59,6 +59,8 @@ class simple_timer_service : public timer_service
 public:
     simple_timer_service(service_node *node, timer_service *inner_provider);
 
+    ~simple_timer_service();
+
     // after milliseconds, the provider should call task->enqueue()
     virtual void add_timer(task *task) override;
 
@@ -66,7 +68,7 @@ public:
 
 private:
     boost::asio::io_service _ios;
-    std::shared_ptr<std::thread> _worker;
+    std::thread _worker;
 };
 }
 }

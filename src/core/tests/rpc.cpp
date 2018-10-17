@@ -206,6 +206,7 @@ static void send_message(::dsn::rpc_address addr,
                     err, request, response, &q, action_on_succeed, action_on_failure);
             });
         q.enqueue(resp_task, 0);
+        request->release_ref();
     }
     while (q.count() != 0) {
         task_ptr p = q.dequeue();

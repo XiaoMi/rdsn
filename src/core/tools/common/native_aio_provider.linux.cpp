@@ -56,11 +56,12 @@ native_linux_aio_provider::~native_linux_aio_provider()
 {
     auto ret = io_destroy(_ctx);
     dassert(ret == 0, "io_destroy error, ret = %d", ret);
+    _worker.detach();
 }
 
 void native_linux_aio_provider::start()
 {
-    new std::thread([this]() {
+    _worker = std::thread([this]() {
         task::set_tls_dsn_context(node(), nullptr);
         get_event();
     });

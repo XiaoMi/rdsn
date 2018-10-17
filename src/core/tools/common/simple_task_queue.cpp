@@ -40,12 +40,11 @@ namespace tools {
 simple_timer_service::simple_timer_service(service_node *node, timer_service *inner_provider)
     : timer_service(node, inner_provider)
 {
-    _worker = nullptr;
 }
 
 void simple_timer_service::start()
 {
-    _worker = std::shared_ptr<std::thread>(new std::thread([this]() {
+    _worker = std::thread([this]() {
         task::set_tls_dsn_context(node(), nullptr);
 
         char buffer[128];
@@ -56,8 +55,10 @@ void simple_timer_service::start()
 
         boost::asio::io_service::work work(_ios);
         _ios.run();
-    }));
+    });
 }
+
+simple_timer_service::~simple_timer_service() { _worker.detach(); }
 
 void simple_timer_service::add_timer(task *task)
 {
