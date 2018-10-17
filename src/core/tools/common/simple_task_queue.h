@@ -59,7 +59,7 @@ class simple_timer_service : public timer_service
 public:
     simple_timer_service(service_node *node, timer_service *inner_provider);
 
-    ~simple_timer_service();
+    ~simple_timer_service() override;
 
     // after milliseconds, the provider should call task->enqueue()
     virtual void add_timer(task *task) override;
