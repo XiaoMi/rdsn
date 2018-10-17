@@ -56,6 +56,7 @@ native_linux_aio_provider::~native_linux_aio_provider()
 {
     auto ret = io_destroy(_ctx);
     dassert(ret == 0, "io_destroy error, ret = %d", ret);
+    _worker.detach();
 }
 
 void native_linux_aio_provider::start()
