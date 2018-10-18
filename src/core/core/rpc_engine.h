@@ -194,8 +194,10 @@ private:
 
 private:
     service_node *_node;
-    std::vector<std::vector<network *>> _client_nets;             // <format, <CHANNEL, network*>>
-    std::unordered_map<int, std::vector<network *>> _server_nets; // <port, <CHANNEL, network*>>
+    std::vector<std::vector<std::unique_ptr<network>>>
+        _client_nets; // <format, <CHANNEL, network*>>
+    std::unordered_map<int, std::vector<std::unique_ptr<network>>>
+        _server_nets; // <port, <CHANNEL, network*>>
     ::dsn::rpc_address _local_primary_address;
     rpc_client_matcher _rpc_matcher;
     rpc_server_dispatcher _rpc_dispatcher;
