@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #pragma once
 
 #include "service_engine.h"
@@ -57,13 +48,14 @@ class task_worker_pool
 public:
     task_worker_pool(const threadpool_spec &opts, task_engine *owner);
 
+    ~task_worker_pool();
+
     // service management
     void create();
     void start();
 
     // task procecessing
     void enqueue(task *task);
-    void on_dequeue(int count);
 
     // cached timer service access
     void add_timer(task *task);
@@ -73,24 +65,25 @@ public:
     bool shared_same_worker_with_current_task(task *task) const;
     task_engine *engine() const { return _owner; }
     service_node *node() const { return _node; }
+
     void get_runtime_info(const std::string &indent,
                           const std::vector<std::string> &args,
                           /*out*/ std::stringstream &ss);
     void get_queue_info(/*out*/ std::stringstream &ss);
-    std::vector<task_queue *> &queues() { return _queues; }
-    std::vector<task_worker *> &workers() { return _workers; }
-    std::vector<admission_controller *> &controllers() { return _controllers; }
+
+    std::vector<std::unique_ptr<task_queue>> &queues() { return _queues; }
+    std::vector<std::unique_ptr<task_worker>> &workers() { return _workers; }
+    std::vector<std::unique_ptr<admission_controller>> &controllers() { return _controllers; }
 
 private:
     threadpool_spec _spec;
     task_engine *_owner;
     service_node *_node;
 
-    std::vector<task_worker *> _workers;
-    std::vector<task_queue *> _queues;
-    std::vector<admission_controller *> _controllers;
-
-    std::vector<timer_service *> _per_queue_timer_svcs;
+    std::vector<std::unique_ptr<task_worker>> _workers;
+    std::vector<std::unique_ptr<task_queue>> _queues;
+    std::vector<std::unique_ptr<admission_controller>> _controllers;
+    std::vector<std::unique_ptr<timer_service>> _per_queue_timer_svcs;
 
     bool _is_running;
 };
@@ -98,7 +91,9 @@ private:
 class task_engine
 {
 public:
-    task_engine(service_node *node);
+    explicit task_engine(service_node *node);
+
+    ~task_engine();
 
     //
     // service management routines
@@ -128,6 +123,4 @@ private:
     service_node *_node;
 };
 
-// -------------------- inline implementation ----------------------------
-
-} // end namespace
+} // namespace dsn

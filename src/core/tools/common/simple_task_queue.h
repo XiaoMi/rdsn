@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #pragma once
 
 #include <dsn/tool_api.h>
@@ -45,6 +36,8 @@ class simple_task_queue : public task_queue
 {
 public:
     simple_task_queue(task_worker_pool *pool, int index, task_queue *inner_provider);
+
+    ~simple_task_queue() override = default;
 
     virtual void enqueue(task *task) override;
     virtual task *dequeue(/*inout*/ int &batch_size) override;
@@ -70,5 +63,6 @@ private:
     boost::asio::io_service _ios;
     std::thread _worker;
 };
-}
-}
+
+} // namespace tools
+} // namespace dsn

@@ -46,6 +46,8 @@ task_worker_pool::task_worker_pool(const threadpool_spec &opts, task_engine *own
 {
 }
 
+task_worker_pool::~task_worker_pool() = default;
+
 void task_worker_pool::create()
 {
     if (_is_running)
@@ -58,7 +60,7 @@ void task_worker_pool::create()
         for (auto it = _spec.queue_aspects.begin(); it != _spec.queue_aspects.end(); ++it) {
             q = factory_store<task_queue>::create(it->c_str(), PROVIDER_TYPE_ASPECT, this, i, q);
         }
-        _queues.push_back(q);
+        _queues.emplace_back(q);
 
         if (_spec.admission_controller_factory_name != "") {
             admission_controller *controller = factory_store<admission_controller>::create(
@@ -68,19 +70,19 @@ void task_worker_pool::create()
                 _spec.admission_controller_arguments.c_str());
 
             if (controller) {
-                _controllers.push_back(controller);
+                _controllers.emplace_back(controller);
                 q->set_controller(controller);
             } else {
-                _controllers.push_back(nullptr);
+                _controllers.emplace_back(nullptr);
             }
         } else {
-            _controllers.push_back(nullptr);
+            _controllers.emplace_back(nullptr);
         }
     }
 
     for (int i = 0; i < qCount; ++i) {
         auto tsvc = factory_store<timer_service>::create(
-                service_engine::instance().spec().timer_factory_name.c_str(),
+            service_engine::instance().spec().timer_factory_name.c_str(),
             PROVIDER_TYPE_MAIN,
             _node,
             nullptr);
@@ -88,11 +90,11 @@ void task_worker_pool::create()
             tsvc =
                 factory_store<timer_service>::create(s.c_str(), PROVIDER_TYPE_ASPECT, _node, tsvc);
         }
-        _per_queue_timer_svcs.push_back(tsvc);
+        _per_queue_timer_svcs.emplace_back(tsvc);
     }
 
     for (int i = 0; i < _spec.worker_count; i++) {
-        auto q = _queues[qCount == 1 ? 0 : i];
+        auto q = _queues[qCount == 1 ? 0 : i].get();
         task_worker *worker = factory_store<task_worker>::create(
             _spec.worker_factory_name.c_str(), PROVIDER_TYPE_MAIN, this, q, i, nullptr);
         for (auto it = _spec.worker_aspects.begin(); it != _spec.worker_aspects.end(); ++it) {
@@ -102,7 +104,7 @@ void task_worker_pool::create()
         task_worker::on_create.execute(worker);
         q->set_owner_worker(spec().partitioned ? worker : nullptr);
 
-        _workers.push_back(worker);
+        _workers.emplace_back(worker);
     }
 }
 
@@ -222,6 +224,15 @@ task_engine::task_engine(service_node *node)
     _node = node;
 }
 
+task_engine::~task_engine()
+{
+    for (auto p : _pools) {
+        if (p != nullptr) {
+            delete p;
+        }
+    }
+}
+
 void task_engine::create(const std::list<threadpool_code> &pools)
 {
     if (_is_running)
@@ -286,4 +297,4 @@ void task_engine::get_queue_info(/*out*/ std::stringstream &ss)
         }
     }
 }
-} // end namespace
+} // namespace dsn

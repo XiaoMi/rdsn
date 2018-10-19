@@ -102,14 +102,13 @@ TEST(core, task_engine)
     ASSERT_EQ("this is test argument", spec1.admission_controller_arguments);
     ASSERT_EQ(engine, pool1->engine());
     ASSERT_EQ(task::get_current_node2(), pool1->node());
-    std::vector<task_queue *> queues1 = pool1->queues();
+    auto &queues1 = pool1->queues();
     ASSERT_EQ(1u, queues1.size());
-    std::vector<task_worker *> workers1 = pool1->workers();
+    auto &workers1 = pool1->workers();
     ASSERT_EQ(2u, workers1.size());
-    std::vector<admission_controller *> controllers1 = pool1->controllers();
+    auto &controllers1 = pool1->controllers();
     ASSERT_EQ(1u, controllers1.size());
-    admission_controller_for_test *c1 =
-        dynamic_cast<admission_controller_for_test *>(controllers1[0]);
+    auto c1 = dynamic_cast<admission_controller_for_test *>(controllers1[0].get());
     ASSERT_NE(nullptr, c1);
     const std::vector<std::string> &a1 = c1->arguments();
     ASSERT_EQ(4u, a1.size());
@@ -122,11 +121,11 @@ TEST(core, task_engine)
     ASSERT_EQ("THREAD_POOL_FOR_TEST_2", spec2.name);
     ASSERT_EQ(engine, pool2->engine());
     ASSERT_EQ(task::get_current_node2(), pool2->node());
-    std::vector<task_queue *> queues2 = pool2->queues();
+    auto &queues2 = pool2->queues();
     ASSERT_EQ(2u, queues2.size());
-    std::vector<task_worker *> workers2 = pool2->workers();
+    auto &workers2 = pool2->workers();
     ASSERT_EQ(2u, workers2.size());
-    std::vector<admission_controller *> controllers2 = pool2->controllers();
+    auto &controllers2 = pool2->controllers();
     ASSERT_EQ(2u, controllers2.size());
     ASSERT_EQ(nullptr, controllers2[0]);
     ASSERT_EQ(nullptr, controllers2[1]);
