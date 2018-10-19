@@ -126,7 +126,7 @@ void native_linux_aio_provider::get_event()
     task_worker::set_name(buffer);
 
     while (true) {
-        if (!_is_running.load(std::memory_order_relaxed)) {
+        if (dsn_unlikely(!_is_running.load(std::memory_order_relaxed))) {
             break;
         }
         ret = io_getevents(_ctx, 1, 1, events, NULL);
