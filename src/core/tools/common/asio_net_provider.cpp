@@ -40,6 +40,9 @@ asio_network_provider::asio_network_provider(rpc_engine *srv, network *inner_pro
 
 asio_network_provider::~asio_network_provider()
 {
+    if (_acceptor) {
+        _acceptor->close();
+    }
     _io_service.stop();
     for (auto &w : _workers) {
         w->join();

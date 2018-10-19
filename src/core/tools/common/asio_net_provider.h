@@ -37,7 +37,7 @@ class asio_network_provider : public connection_oriented_network
 public:
     asio_network_provider(rpc_engine *srv, network *inner_provider);
 
-    ~asio_network_provider();
+    ~asio_network_provider() override;
 
     virtual error_code start(rpc_channel channel, int port, bool client_only) override;
     virtual ::dsn::rpc_address address() override { return _address; }
