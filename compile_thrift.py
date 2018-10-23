@@ -33,8 +33,8 @@ thrift_description = [
         }
     },
     {
-        "name": "fd", 
-        "path": "src/dist/failure_detector", 
+        "name": "fd",
+        "path": "src/dist/failure_detector",
         "file_move": {
             ".types.h _types.h": "include/dsn/dist/failure_detector"
         },
@@ -52,10 +52,10 @@ thrift_description = [
                 "remove": ["\"fd_types.h\""]
             }
         }
-    }, 
+    },
     {
-        "name": "replication", 
-        "path": "src/dist/replication", 
+        "name": "replication",
+        "path": "src/dist/replication",
         "file_move": {
             ".types.h _types.h": "include/dsn/dist/replication",
             "_types.cpp": "src/dist/replication/common"
@@ -75,17 +75,17 @@ thrift_description = [
             }
         },
         "add_end_newline": ["replication.types.h"]
-    }, 
+    },
     {
-        "name": "simple_kv", 
+        "name": "simple_kv",
         "path": "src/dist/replication/test/simple_kv"
-    }, 
+    },
     {
-        "name": "echo", 
+        "name": "echo",
         "path": "src/apps/echo"
-    }, 
+    },
     {
-        "name": "nfs", 
+        "name": "nfs",
         "path": "src/dist/nfs",
         "include_fix": {
             "_types.h": {
@@ -93,13 +93,13 @@ thrift_description = [
                 "remove": ["\"dsn_types.h\""]
             }
         }
-    }, 
+    },
     {
-        "name": "simple_kv", 
+        "name": "simple_kv",
         "path": "src/apps/skv"
-    }, 
+    },
     {
-        "name": "cli", 
+        "name": "cli",
         "path": "src/dist/cli",
         "file_move": {
             ".types.h _types.h": "include/dsn/dist/cli"
@@ -126,24 +126,30 @@ env_tools = {
     "root_dir": ""
 }
 
-class CompileError(Exception): 
+
+class CompileError(Exception):
     """ Raised when dealing with thrift idl have errors"""
+
     def __init__(self, msg):
         self.msg = msg
+
     def __str__(self):
         return self.msg
+
 
 def init_env():
     env_tools["dsn_gentool"] = os.getcwd() + "/bin/dsn.cg.sh"
     env_tools["thrift_exe"] = os.getcwd() + "/bin/Linux/thrift"
 
+
 def find_struct_define(line, enum_class_list):
-    if len(line)<7 or line[0:7] != "struct ":
+    if len(line) < 7 or line[0:7] != "struct ":
         return ""
     struct_name = line.strip().split()[1]
     if struct_name in enum_class_list:
         return struct_name
     return ""
+
 
 def modify_struct_define(header_file, enum_class):
     tmp_result = header_file + ".swapfile"
@@ -154,7 +160,7 @@ def modify_struct_define(header_file, enum_class):
     for line in src_fd:
         struct_name = find_struct_define(line, enum_class)
         if struct_name != "":
-            res_fd.write("enum %s {\n"%(struct_name))
+            res_fd.write("enum %s {\n" % (struct_name))
             in_enum_define = 1
         elif "enum type" in line and in_enum_define == 1:
             in_enum_define = 2
@@ -164,19 +170,24 @@ def modify_struct_define(header_file, enum_class):
             pass
         else:
             res_fd.write(line)
-    
+
     src_fd.close()
     res_fd.close()
 
-    os.system("rm %s"%(header_file))
-    os.system("mv %s %s"%(tmp_result, header_file))
+    os.system("rm %s" % (header_file))
+    os.system("mv %s %s" % (tmp_result, header_file))
+
 
 def remove_struct_impl(impl_file, enum_class):
-    os.system("sed -i \'/VALUES_TO_NAMES/\'d %s"%(impl_file))
+    os.system("sed -i \'/VALUES_TO_NAMES/\'d %s" % (impl_file))
+
 
 def replace_struct_usage(cpp_file, enum_class):
-    sed_exp = "sed -i " + " ".join(["-e \'s/%s::type/%s/\'"%(i,i) for i in enum_class]) + " " + cpp_file
+    sed_exp = "sed -i " + \
+        " ".join(["-e \'s/%s::type/%s/\'" % (i, i)
+                  for i in enum_class]) + " " + cpp_file
     os.system(sed_exp)
+
 
 def add_end_newline_file(filename):
     tmp_result = filename + ".swapfile"
@@ -184,13 +195,14 @@ def add_end_newline_file(filename):
 
     for line in from_fd:
         to_fd.write(line)
-    to_fd.write("\n");
+    to_fd.write("\n")
 
     from_fd.close()
     to_fd.close()
 
     os.remove(filename)
     os.rename(tmp_result, filename)
+
 
 def add_end_newline(thrift_name, add_end_newline_list):
     # current dir is thrift file dir
@@ -201,6 +213,7 @@ def add_end_newline(thrift_name, add_end_newline_list):
 
     os.chdir("..")
 
+
 def fix_include_file(filename, fix_commands):
     tmp_result = filename + ".swapfile"
     from_fd, to_fd = open(filename, "r"), open(tmp_result, "w")
@@ -209,18 +222,19 @@ def fix_include_file(filename, fix_commands):
 
     for line in from_fd:
         include_statement = False
-        if len(line.strip())>0:
+        if len(line.strip()) > 0:
             stripped_line = line.strip()
-            if stripped_line[0]=="#" and "include" in stripped_line:
+            if stripped_line[0] == "#" and "include" in stripped_line:
                 include_statement = True
 
-        if include_statement==True and add_ok==False:
-            add_includes = "\n".join(["#include %s"%(s) for s in fix_commands["add"]])
+        if include_statement == True and add_ok == False:
+            add_includes = "\n".join(["#include %s" % (s)
+                                      for s in fix_commands["add"]])
             to_fd.write(add_includes + "\n")
             add_ok = True
 
-        if include_statement==True and ("remove" in fix_commands):
-            if len(filter(lambda x: x in line, fix_commands["remove"]))==0:
+        if include_statement == True and ("remove" in fix_commands):
+            if len(filter(lambda x: x in line, fix_commands["remove"])) == 0:
                 to_fd.write(line)
         else:
             to_fd.write(line)
@@ -230,6 +244,7 @@ def fix_include_file(filename, fix_commands):
 
     os.remove(filename)
     os.rename(tmp_result, filename)
+
 
 def fix_include(thrift_name, include_fix_dict):
     # current dir is thrift file dir
@@ -241,26 +256,28 @@ def fix_include(thrift_name, include_fix_dict):
 
     os.chdir("..")
 
+
 def compile_thrift_file(thrift_info):
     thrift_name = thrift_info["name"]
-    print ">>>compiling thrift file %s.thrift ..."%(thrift_name)
+    print ">>>compiling thrift file %s.thrift ..." % (thrift_name)
 
     if "path" not in thrift_info:
         raise CompileError("can't find thrift file")
 
-    os.chdir( env_tools["root_dir"] + "/" + thrift_info["path"])
+    os.chdir(env_tools["root_dir"] + "/" + thrift_info["path"])
     if os.path.isfile(thrift_name+".thrift") == False:
         raise CompileError("can't find thrift file")
 
-    ## generate the files
+    # generate the files
     os.system("rm -rf output")
     os.system("mkdir output")
-    #### first generate .types.h
-    os.system("%s %s.thrift cpp build binary"%(env_tools["dsn_gentool"], thrift_name))
+    # first generate .types.h
+    os.system("%s %s.thrift cpp build binary" %
+              (env_tools["dsn_gentool"], thrift_name))
 
-    os.system("cp build/%s.types.h output"%(thrift_name))
-    os.system("cp build/%s_types.h output"%(thrift_name))
-    os.system("cp build/%s_types.cpp output"%(thrift_name))
+    os.system("cp build/%s.types.h output" % (thrift_name))
+    os.system("cp build/%s_types.h output" % (thrift_name))
+    os.system("cp build/%s_types.cpp output" % (thrift_name))
     os.system("rm -rf build")
 
     if "add_end_newline" in thrift_info:
@@ -279,15 +296,16 @@ def compile_thrift_file(thrift_info):
         for pair in thrift_info["file_move"].iteritems():
             dest_path = env_tools["root_dir"] + "/" + pair[1]
             for postfix in pair[0].split():
-                src_path = "output/%s%s"%(thrift_name, postfix)
-                cmd = "mv %s %s"%(src_path, dest_path)
+                src_path = "output/%s%s" % (thrift_name, postfix)
+                cmd = "mv %s %s" % (src_path, dest_path)
                 os.system(cmd)
 
-    if len(os.listdir("output"))>0:
+    if len(os.listdir("output")) > 0:
         os.system("mv output/* ./")
     os.system("rm -rf output")
 
-    os.chdir( env_tools["root_dir"] )
+    os.chdir(env_tools["root_dir"])
+
 
 def find_desc_from_path(path):
     ans = []
@@ -297,6 +315,8 @@ def find_desc_from_path(path):
     return ans
 
 # special hooks for thrift, all these are executed in the output dir
+
+
 def constructor_hook(args):
     generated_fname = args[0]
     class_name = args[1]
@@ -325,6 +345,7 @@ def constructor_hook(args):
     os.remove(generated_fname)
     os.rename(target_fname, generated_fname)
 
+
 def remove_all_enums_define_hook(args):
     generated_fname = args[0]
     target_fname = generated_fname + ".swapfile"
@@ -338,7 +359,7 @@ def remove_all_enums_define_hook(args):
             line = ""
         else:
             tokens = line.strip().split()
-            if len(tokens)>1 and tokens[0]=="enum":
+            if len(tokens) > 1 and tokens[0] == "enum":
                 in_enums = True
                 line = ""
         dst_fd.write(line)
@@ -349,6 +370,7 @@ def remove_all_enums_define_hook(args):
     os.remove(generated_fname)
     os.rename(target_fname, generated_fname)
 
+
 def remove_struct_define_hook(args):
     generated_fname = args[0]
     struct_defines = ["struct "+name+" {" for name in args[1:]]
@@ -358,11 +380,11 @@ def remove_struct_define_hook(args):
 
     in_class = 0
     for line in src_fd:
-        if in_class==0 and line.strip() in struct_defines:
+        if in_class == 0 and line.strip() in struct_defines:
             in_class = 1
-        if in_class==0:
+        if in_class == 0:
             dst_fd.write(line)
-        if in_class==1 and line.startswith("};"):
+        if in_class == 1 and line.startswith("};"):
             in_class = 0
 
     src_fd.close()
@@ -370,6 +392,7 @@ def remove_struct_define_hook(args):
 
     os.remove(generated_fname)
     os.rename(target_fname, generated_fname)
+
 
 def replace_hook(args):
     generated_fname = args[0]
@@ -385,9 +408,10 @@ def replace_hook(args):
 
     src_fd.close()
     dst_fd.close()
-    
+
     os.remove(generated_fname)
     os.rename(target_fname, generated_fname)
+
 
 def add_hook(name, path, func, args):
     for i in thrift_description:
@@ -397,16 +421,20 @@ def add_hook(name, path, func, args):
             else:
                 i["hook"].append((func, args))
 
+
 if __name__ == "__main__":
     init_env()
 
     ctor_kv_pair = "  kv_pair(const std::string& _key, const std::string& _val): key(_key), value(_val) {\n  }"
     ctor_configuration_proposal_action = "  configuration_proposal_action(::dsn::rpc_address t, ::dsn::rpc_address n, config_type::type tp): target(t), node(n), type(tp) {}"
-    add_hook("simple_kv", "src/apps/skv", constructor_hook, ["simple_kv_types.h", "kv_pair", ctor_kv_pair])
-    add_hook("replication", "src/dist/replication", constructor_hook, ["replication_types.h", "configuration_proposal_action", ctor_configuration_proposal_action])
-    add_hook("dsn.layer2", "src", replace_hook, ["dsn.layer2_types.h", {r"dsn\.layer2_TYPES_H": 'dsn_layer2_TYPES_H'}])
+    add_hook("simple_kv", "src/apps/skv", constructor_hook,
+             ["simple_kv_types.h", "kv_pair", ctor_kv_pair])
+    add_hook("replication", "src/dist/replication", constructor_hook,
+             ["replication_types.h", "configuration_proposal_action", ctor_configuration_proposal_action])
+    add_hook("dsn.layer2", "src", replace_hook, ["dsn.layer2_types.h", {
+             r"dsn\.layer2_TYPES_H": 'dsn_layer2_TYPES_H'}])
 
-    if len(sys.argv)>1:
+    if len(sys.argv) > 1:
         for i in sys.argv[1:]:
             for desc in find_desc_from_path(i):
                 compile_thrift_file(desc)
