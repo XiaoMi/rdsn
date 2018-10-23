@@ -24,24 +24,11 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     rpc engine implementation
- *
- * Revision history:
- *     Mar., 2015, @imzhenyu (Zhenyu Guo), first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
-#ifdef _WIN32
-#include <WinSock2.h>
-#else
 #include <sys/socket.h>
 #include <netdb.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif
 
 #include "rpc_engine.h"
 #include "service_engine.h"
@@ -976,4 +963,5 @@ void rpc_engine::forward(message_ex *request, rpc_address address)
         call_ip(address, copied_request, nullptr, false, true);
     }
 }
-}
+
+} // namespace dsn

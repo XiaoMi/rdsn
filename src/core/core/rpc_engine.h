@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     rpc service
- *
- * Revision history:
- *     Mar., 2015, @imzhenyu (Zhenyu Guo), first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #pragma once
 
 #include <dsn/utility/synchronize.h>
@@ -229,4 +220,4 @@ rpc_engine::call_address(rpc_address addr, message_ex *request, const rpc_respon
     }
 }
 
-} // end namespace
+} // namespace dsn
