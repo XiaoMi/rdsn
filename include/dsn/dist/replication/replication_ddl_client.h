@@ -40,6 +40,8 @@
 #include <dsn/dist/replication.h>
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/tool-api/async_calls.h>
+#include <dsn/utility/errors.h>
+#include <vector>
 
 namespace dsn {
 namespace replication {
@@ -106,6 +108,12 @@ public:
                                 bool skip_bad_nodes,
                                 bool skip_lost_partitions,
                                 const std::string &outfile);
+
+    error_with<duplication_add_response>
+    add_dup(std::string app_name, std::string remote_address, bool freezed);
+    error_with<duplication_status_change_response>
+    change_dup_status(std::string app_name, int dupid, duplication_status::type status);
+    error_with<duplication_query_response> query_dup(std::string app_name);
 
     // get host name from ip series
     // if can't get a hostname from ip(maybe no hostname or other errors), return UNRESOLVABLE
@@ -210,9 +218,30 @@ private:
         return task;
     }
 
+    template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
+    error_with<TResponse> call_rpc_sync(TRpcHolder rpc, int reply_thread_hash = 0)
+    {
+        // Send rpc request synchronously. Retry at maximum 2 times when error occurred.
+        error_code err = ERR_UNKNOWN;
+        for (int retry = 0; retry < 2; retry++) {
+            task_ptr task = rpc.call(_meta_server,
+                                     &_tracker,
+                                     [&err](error_code code) { err = code; },
+                                     reply_thread_hash);
+            task->wait();
+            if (err == ERR_OK) {
+                break;
+            }
+        }
+        if (err != ERR_OK) {
+            return error_s::make(err, "unable to send rpc to server");
+        }
+        return error_with<TResponse>(std::move(rpc.response()));
+    }
+
 private:
     dsn::rpc_address _meta_server;
     dsn::task_tracker _tracker;
 };
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

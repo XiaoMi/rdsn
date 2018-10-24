@@ -26,10 +26,9 @@
 
 #pragma once
 
-#include <dsn/dist/fmt_logging.h>
 #include <dsn/cpp/rpc_holder.h>
-#include <dsn/cpp/json_helper.h>
-#include <dsn/utility/string_conv.h>
+#include <dsn/utility/errors.h>
+#include <dsn/dist/replication/replication_types.h>
 
 namespace dsn {
 namespace replication {
@@ -42,42 +41,28 @@ typedef rpc_holder<duplication_sync_request, duplication_sync_response> duplicat
 
 typedef int32_t dupid_t;
 
-inline bool convert_str_to_dupid(string_view str, dupid_t *dupid) { return buf2int32(str, *dupid); }
+extern const char *duplication_status_to_string(duplication_status::type status);
 
-inline const char *duplication_status_to_string(const duplication_status::type &status)
-{
-    auto it = _duplication_status_VALUES_TO_NAMES.find(status);
-    dassert(it != _duplication_status_VALUES_TO_NAMES.end(),
-            "unexpected type of duplication_status: %d",
-            status);
-    return it->second;
-}
+/// This function returns the cluster name (i.e, "onebox") if it's configured under
+/// "replication" section:
+///    [replication]
+///      cluster_name = "onebox"
+extern const char *get_current_cluster_name();
 
-inline void json_encode(dsn::json::JsonWriter &out, const duplication_status::type &s)
-{
-    json_encode(out, duplication_status_to_string(s));
-}
+/// This function returns the cluster id of url specified in the duplication-group section
+/// of your configuration, for example:
+///
+/// ```
+///   [duplication-group]
+///       wuhan-mi-srv-ad = 3
+///       tianjin-mi-srv-ad = 4
+/// ```
+///
+/// The returned cluster id of get_duplication_cluster_id("wuhan-mi-srv-ad") is 3.
+extern error_with<uint8_t> get_duplication_cluster_id(string_view cluster_name);
 
-inline bool json_decode(const dsn::json::JsonObject &in, duplication_status::type &s)
-{
-    static const std::map<std::string, duplication_status::type>
-        _duplication_status_NAMES_TO_VALUES = {
-            {"DS_INIT", duplication_status::DS_INIT},
-            {"DS_PAUSE", duplication_status::DS_PAUSE},
-            {"DS_START", duplication_status::DS_START},
-            {"DS_REMOVED", duplication_status::DS_REMOVED},
-        };
-
-    std::string name;
-    json_decode(in, name);
-    auto it = _duplication_status_NAMES_TO_VALUES.find(name);
-    if (it != _duplication_status_NAMES_TO_VALUES.end()) {
-        s = it->second;
-        return true;
-    }
-    dfatal_f("unexpected duplication_status name: {}", name);
-    __builtin_unreachable();
-}
+/// Returns a displayable string for this duplication_entry.
+extern std::string duplication_entry_to_string(const duplication_entry &dup);
 
 } // namespace replication
 } // namespace dsn

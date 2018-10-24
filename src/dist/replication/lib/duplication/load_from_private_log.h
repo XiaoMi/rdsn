@@ -1,0 +1,92 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015 Microsoft Corporation
+ *
+ * -=- Robust Distributed System Nucleus (rDSN) -=-
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#pragma once
+
+#include <dsn/cpp/pipeline.h>
+#include <dsn/utility/errors.h>
+#include <dsn/dist/replication/mutation_duplicator.h>
+
+#include "dist/replication/lib/mutation_log.h"
+#include "mutation_batch.h"
+
+namespace dsn {
+namespace replication {
+
+class replica_duplicator;
+
+/// Loads mutations from private log into memory.
+/// It works in THREAD_POOL_REPLICATION_LONG (LPC_DUPLICATION_LOAD_MUTATIONS),
+/// which permits tasks to be executed in a blocking way.
+/// NOTE: The resulted `mutation_tuple_set` may be empty.
+struct load_from_private_log : replica_base,
+                               pipeline::when<>,
+                               pipeline::result<decree, mutation_tuple_set>
+{
+public:
+    load_from_private_log(replica *r, replica_duplicator *dup);
+
+    // Start loading block from private log file.
+    // The loaded mutations will be passed down to `ship_mutation`.
+    void run() override;
+
+    void set_start_decree(decree start_decree);
+
+    /// =================================== Implementation =================================== ///
+
+    /// Find the log file that contains decree `d`.
+    void find_log_file_to_start(const std::vector<std::string> &log_files);
+
+    void load_from_log_file();
+
+    error_s replay_log_block();
+
+    // Switches to the log file with index = current_log_index + 1.
+    void switch_to_next_log_file();
+
+    void start_from_log_file(log_file_ptr f)
+    {
+        _current = std::move(f);
+        _read_from_start = true;
+        _current_global_end_offset = _current->start_offset();
+    }
+
+private:
+    friend struct load_from_private_log_test;
+
+    mutation_log_ptr _private_log;
+    replica_duplicator *_duplicator;
+
+    log_file_ptr _current;
+    bool _read_from_start{true};
+    int64_t _current_global_end_offset{0};
+    mutation_batch _mutation_batch;
+
+    decree _start_decree{0};
+};
+
+} // namespace replication
+} // namespace dsn

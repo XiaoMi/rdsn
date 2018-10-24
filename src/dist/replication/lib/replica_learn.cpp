@@ -37,7 +37,9 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
-#include <dsn/utility/factory_store.h>
+
+#include "dist/replication/lib/duplication/replica_duplicator_manager.h"
+
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/replication/replication_app_base.h>
 
@@ -217,7 +219,7 @@ void replica::init_learn(uint64_t signature)
            _potential_secondary_states.learning_copy_file_size,
            _potential_secondary_states.learning_copy_buffer_size);
 
-    dsn::message_ex* msg = dsn::message_ex::create_request(RPC_LEARN, 0, get_gpid().thread_hash());
+    dsn::message_ex *msg = dsn::message_ex::create_request(RPC_LEARN, 0, get_gpid().thread_hash());
     dsn::marshall(msg, request);
     _potential_secondary_states.learning_task = rpc::call(
         _config.primary,
@@ -228,7 +230,7 @@ void replica::init_learn(uint64_t signature)
         });
 }
 
-void replica::on_learn(dsn::message_ex* msg, const learn_request &request)
+void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
 {
     _checker.only_one_thread_access();
 
@@ -317,6 +319,19 @@ void replica::on_learn(dsn::message_ex* msg, const learn_request &request)
             local_committed_decree);
 
     decree learn_start_decree = request.last_committed_decree_in_app + 1;
+    decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
+    if (min_confirmed_decree != invalid_decree) {
+        // learner should include the mutations not confirmed by meta server
+        // as well, in order to prevent data loss during duplication.
+        learn_start_decree = std::min(learn_start_decree, min_confirmed_decree + 1);
+    } else {
+        std::map<std::string, std::string> envs;
+        query_app_envs(envs);
+        if (envs["duplicating"] == "true") {
+            learn_start_decree = 0;
+        }
+    }
+
     dassert(learn_start_decree <= local_committed_decree + 1,
             "%" PRId64 " VS %" PRId64 "",
             learn_start_decree,
@@ -1233,7 +1248,7 @@ void replica::notify_learn_completion()
         _potential_secondary_states.completion_notify_task->cancel(false);
     }
 
-    dsn::message_ex* msg =
+    dsn::message_ex *msg =
         dsn::message_ex::create_request(RPC_LEARN_COMPLETION_NOTIFY, 0, get_gpid().thread_hash());
     dsn::marshall(msg, report);
 
@@ -1359,13 +1374,16 @@ void replica::on_learn_completion_notification_reply(error_code err,
 
 void replica::on_add_learner(const group_check_request &request)
 {
+    _checker.only_one_thread_access();
+
     ddebug("%s: process add learner, primary = %s, ballot = %" PRId64
-           ", status = %s, last_committed_decree = %" PRId64,
+           ", status = %s, last_committed_decree = %" PRId64 ", confirmed_decree = %" PRId64,
            name(),
            request.config.primary.to_string(),
            request.config.ballot,
            enum_to_string(request.config.status),
-           request.last_committed_decree);
+           request.last_committed_decree,
+           request.confirmed_decree);
 
     if (request.config.ballot < get_ballot()) {
         dwarn("%s: on_add_learner ballot is old, skipped", name());
@@ -1380,6 +1398,8 @@ void replica::on_add_learner(const group_check_request &request)
         dassert(partition_status::PS_POTENTIAL_SECONDARY == status(),
                 "invalid partition_status, status = %s",
                 enum_to_string(status()));
+
+        _duplication_mgr->set_confirmed_decree_non_primary(request.confirmed_decree);
         init_learn(request.config.learner_signature);
     }
 }

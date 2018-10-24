@@ -29,6 +29,7 @@
 #include <dsn/utility/error_code.h>
 #include <dsn/utility/smart_pointers.h>
 #include <dsn/utility/string_view.h>
+#include <dsn/c/api_utilities.h>
 
 #include <sstream>
 
@@ -187,13 +188,13 @@ public:
 
     const T &get_value() const
     {
-        assert(_err.is_ok());
+        dassert(_err.is_ok(), "%s", get_error().description().data());
         return *_value;
     }
 
     T &get_value()
     {
-        assert(_err.is_ok());
+        dassert(_err.is_ok(), "%s", get_error().description().data());
         return *_value;
     }
 

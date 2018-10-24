@@ -529,23 +529,23 @@ void replica::on_update_configuration_on_meta_server_reply(
     _primary_states.reconfiguration_task = nullptr;
 }
 
-bool replica::update_app_envs(const std::map<std::string, std::string> &envs)
+void replica::update_app_envs(const std::map<std::string, std::string> &envs)
 {
     if (_app) {
         _app->update_app_envs(envs);
-        return true;
-    } else {
-        return false;
+    }
+    for (const auto &kv : envs) {
+        _extra_envs[kv.first] = kv.second;
     }
 }
 
-bool replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
+void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
 {
     if (_app) {
         _app->query_app_envs(envs);
-        return true;
-    } else {
-        return false;
+    }
+    for (const auto &kv : _extra_envs) {
+        envs[kv.first] = kv.second;
     }
 }
 

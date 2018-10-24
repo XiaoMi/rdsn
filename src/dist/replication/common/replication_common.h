@@ -116,6 +116,8 @@ public:
     std::string cold_backup_root;
     int32_t max_concurrent_uploading_file_count;
 
+    bool duplication_disabled;
+
 public:
     replication_options();
     void initialize();
@@ -301,6 +303,6 @@ std::string get_remote_chkpt_meta_file(const std::string &root,
                                        const std::string &app_name,
                                        gpid pid,
                                        int64_t backup_id);
-} // end cold_backup namespace
-}
-} // namespace
+} // namespace cold_backup
+} // namespace replication
+} // namespace dsn

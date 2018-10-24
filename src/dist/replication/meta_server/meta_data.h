@@ -49,6 +49,8 @@
 #include <dsn/tool-api/zlocks.h>
 #include <dsn/dist/block_service.h>
 
+#include "duplication/duplication_info.h"
+
 namespace dsn {
 namespace replication {
 
@@ -319,6 +321,10 @@ public:
  *
  * after a newly assigned primary get these envs from app_info, it will try to
  * init a replica with data stored on the block_device
+ *
+ * Reserved keys for duplication:
+ * envs["duplicating"] = <"true" or unset>
+ * \see meta_duplication_service
  */
 class app_state : public app_info
 {
@@ -332,6 +338,8 @@ public:
     const char *get_logname() const { return log_name.c_str(); }
     std::shared_ptr<app_state_helper> helpers;
     std::vector<partition_configuration> partitions;
+    std::map<dupid_t, duplication_info_s_ptr> duplications;
+
     static std::shared_ptr<app_state> create(const app_info &info);
     dsn::blob to_json(app_status::type temp_status)
     {

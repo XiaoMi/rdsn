@@ -43,6 +43,10 @@
 namespace dsn {
 namespace replication {
 
+// mutation_cache is an in-memory array that stores a limited number
+// (SEE replication_options::max_mutation_count_in_prepare_list) of mutation log entries.
+//
+// Inherited by: prepare_list
 class mutation_cache
 {
 public:
