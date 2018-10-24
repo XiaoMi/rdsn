@@ -249,9 +249,7 @@ void service_engine::init_after_toollets()
 void service_engine::start_node(service_app_spec &app_spec)
 {
     auto it = _nodes_by_app_id.find(app_spec.id);
-    if (it != _nodes_by_app_id.end()) {
-        return;
-    } else {
+    if (it == _nodes_by_app_id.end()) {
         for (auto p : app_spec.ports) {
             // union to existing node if any port is shared
             if (_nodes_by_app_port.find(p) != _nodes_by_app_port.end()) {
