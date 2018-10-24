@@ -25,11 +25,8 @@
  */
 
 #include <sstream>
-#include <errno.h>
 #include <dsn/utility/process_utils.h>
-#include <dsn/tool-api/task_worker.h>
 #include <dsn/utility/smart_pointers.h>
-#include <pthread.h>
 
 #include "task_engine.h"
 
@@ -92,9 +89,7 @@ void task_worker::set_name(const char *name)
 {
     std::string sname(name);
     auto thread_name = sname.substr(0, (16 - 1));
-    auto tid = 
-    
-    _self();
+    auto tid = pthread_self();
     int err = pthread_setname_np(tid, thread_name.c_str());
     if (err != 0) {
         dwarn("Fail to set pthread name. err = %d", err);
