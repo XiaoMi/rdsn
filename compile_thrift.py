@@ -160,7 +160,7 @@ def fix_include(thrift_name, include_fix_dict):
 
 def compile_thrift_file(thrift_info):
     thrift_name = thrift_info["name"]
-    print ">>> compiling thrift file %s.thrift ..." % (thrift_name)
+    print "\n>>> compiling thrift file %s.thrift ..." % (thrift_name)
 
     if "path" not in thrift_info:
         raise CompileError("can't find thrift file")
@@ -173,13 +173,14 @@ def compile_thrift_file(thrift_info):
     # create tmp directory: <thrift_info["path"]>/output
     os.system("rm -rf output")
     os.system("mkdir output")
+    print "mkdir {}/output".format(os.getcwd())
 
     # generate files
     cmd = "{} -gen cpp:moveable_types -out output {}.thrift".format(thrift_exe, thrift_name)
     os.system(cmd)
     print cmd
 
-    # code format files
+    # TODO(wutao1): code format files
     # os.system("clang-format-3.9 -i output/*")
 
     if "include_fix" in thrift_info:
@@ -198,8 +199,10 @@ def compile_thrift_file(thrift_info):
                 src_path = "output/%s%s" % (thrift_name, postfix)
                 cmd = "mv %s %s" % (src_path, dest_path)
                 os.system(cmd)
+                print cmd
 
     os.system("rm -rf output")
+    print "rm -rf {}/output".format(os.getcwd())
 
     os.chdir(root_dir)
 
