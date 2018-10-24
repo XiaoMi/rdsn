@@ -176,7 +176,8 @@ def compile_thrift_file(thrift_info):
     print "mkdir {}/output".format(os.getcwd())
 
     # generate files
-    cmd = "{} -gen cpp:moveable_types -out output {}.thrift".format(thrift_exe, thrift_name)
+    cmd = "{} -gen cpp:moveable_types -out output {}.thrift".format(
+        thrift_exe, thrift_name)
     os.system(cmd)
     print cmd
 
