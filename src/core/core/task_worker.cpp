@@ -24,8 +24,12 @@
  * THE SOFTWARE.
  */
 
+#include <sstream>
+#include <errno.h>
+#include <dsn/utility/process_utils.h>
 #include <dsn/tool-api/task_worker.h>
 #include <dsn/utility/smart_pointers.h>
+#include <pthread.h>
 
 #include "task_engine.h"
 
@@ -42,7 +46,7 @@ task_worker::task_worker(task_worker_pool *pool,
     _owner_pool = pool;
     _input_queue = q;
     _index = index;
-    _native_tid = ::dsn::utils::get_invalid_tid();
+    _native_tid = ::dsn::utils::INVALID_TID;
 
     char name[256];
     sprintf(name, "%5s.%s.%u", pool->node()->full_name(), pool->spec().name.c_str(), index);
@@ -88,7 +92,9 @@ void task_worker::set_name(const char *name)
 {
     std::string sname(name);
     auto thread_name = sname.substr(0, (16 - 1));
-    auto tid = pthread_self();
+    auto tid = 
+    
+    _self();
     int err = pthread_setname_np(tid, thread_name.c_str());
     if (err != 0) {
         dwarn("Fail to set pthread name. err = %d", err);
