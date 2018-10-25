@@ -84,7 +84,7 @@ error_code duplication_info::do_alter_status(duplication_status::type to)
 
 void duplication_info::init_progress(int partition_index, decree d)
 {
-    service::zauto_write_lock l(_lock);
+    zauto_write_lock l(_lock);
 
     auto &p = _progress[partition_index];
     p.volatile_decree = p.stored_decree = d;
@@ -93,7 +93,7 @@ void duplication_info::init_progress(int partition_index, decree d)
 
 bool duplication_info::alter_progress(int partition_index, decree d)
 {
-    service::zauto_write_lock l(_lock);
+    zauto_write_lock l(_lock);
 
     partition_progress &p = _progress[partition_index];
     if (!p.is_inited) {
@@ -118,7 +118,7 @@ bool duplication_info::alter_progress(int partition_index, decree d)
 
 void duplication_info::stable_progress(int partition_index)
 {
-    service::zauto_write_lock l(_lock);
+    zauto_write_lock l(_lock);
 
     auto &p = _progress[partition_index];
     dassert(p.is_altering, "partition_index: %d", partition_index);
@@ -128,7 +128,7 @@ void duplication_info::stable_progress(int partition_index)
 
 void duplication_info::stable_status()
 {
-    service::zauto_write_lock l(_lock);
+    zauto_write_lock l(_lock);
 
     dassert(_is_altering, "");
     _is_altering = false;

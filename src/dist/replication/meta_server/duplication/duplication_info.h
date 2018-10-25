@@ -30,7 +30,7 @@
 #include <dsn/dist/replication/replication_other_types.h>
 #include <dsn/dist/replication/duplication_common.h>
 #include <dsn/cpp/json_helper.h>
-#include <dsn/cpp/zlocks.h>
+#include <dsn/tool-api/zlocks.h>
 
 #include <utility>
 #include <fmt/format.h>
@@ -75,7 +75,7 @@ public:
 
     void start()
     {
-        service::zauto_write_lock l(_lock);
+        zauto_write_lock l(_lock);
         _is_altering = true;
         next_status = duplication_status::DS_START;
     }
@@ -84,7 +84,7 @@ public:
     // error will be returned if this state transition is not allowed.
     error_code alter_status(duplication_status::type to)
     {
-        service::zauto_write_lock l(_lock);
+        zauto_write_lock l(_lock);
         return do_alter_status(to);
     }
 
@@ -115,7 +115,7 @@ public:
     // which is not thread safe for read.
     void to_duplication_entry_for_query(std::vector<duplication_entry> &entry_list) const
     {
-        service::zauto_read_lock l(_lock);
+        zauto_read_lock l(_lock);
 
         // the removed duplication is not visible to user.
         if (status != duplication_status::DS_REMOVED) {
@@ -156,7 +156,7 @@ private:
     // Whether there's ongoing meta storage update.
     bool _is_altering{false};
 
-    mutable service::zrwlock_nr _lock;
+    mutable zrwlock_nr _lock;
 
     static constexpr int PROGRESS_UPDATE_PERIOD_MS = 5000;          // 5s
     static constexpr int PROGRESS_REPORT_PERIOD_MS = 1000 * 60 * 5; // 5min

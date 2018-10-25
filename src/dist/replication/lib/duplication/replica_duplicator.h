@@ -30,6 +30,7 @@
 #include <dsn/cpp/pipeline.h>
 #include <dsn/dist/replication/replica_base.h>
 #include <dsn/dist/replication.h>
+#include <dsn/tool-api/zlocks.h>
 
 namespace dsn {
 namespace replication {
@@ -91,7 +92,7 @@ public:
     // Thread-safe
     duplication_progress progress() const
     {
-        service::zauto_read_lock l(_lock);
+        zauto_read_lock l(_lock);
         return _progress;
     }
 
@@ -128,7 +129,7 @@ private:
     duplication_status::type _status{duplication_status::DS_INIT};
 
     // protect the access of _progress.
-    mutable service::zrwlock_nr _lock;
+    mutable zrwlock_nr _lock;
     duplication_progress _progress;
 
     /// === pipeline === ///
