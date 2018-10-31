@@ -54,9 +54,7 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
 
     /// ===== pipeline declaration ===== ///
 
-    thread_pool(LPC_DUPLICATE_MUTATIONS)
-        .task_tracker(tracker())
-        .thread_hash(get_gpid().thread_hash());
+    thread_pool(LPC_REPLICATION_LOW).task_tracker(tracker()).thread_hash(get_gpid().thread_hash());
 
     // load -> ship -> load
     _ship = make_unique<ship_mutation>(this);
@@ -64,7 +62,7 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     _load = make_unique<load_mutation>(this, _replica, _load_private.get());
 
     from(*_load).link(*_ship).link(*_load);
-    fork(*_load_private, LPC_DUPLICATION_LOAD_MUTATIONS, 0).link(*_ship);
+    fork(*_load_private, LPC_REPLICATION_LONG_LOW, 0).link(*_ship);
 
     if (_status == duplication_status::DS_START) {
         start();

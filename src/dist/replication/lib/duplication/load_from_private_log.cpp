@@ -55,8 +55,7 @@ void load_from_private_log::run()
     dassert_replica(err.is_ok(), err.description());
 
     if (_current == nullptr) {
-        std::vector<std::string> log_files = log_utils::list_all_files_or_die(_private_log->dir());
-        find_log_file_to_start(log_files);
+        find_log_file_to_start();
         if (_current == nullptr) {
             ddebug_replica("no private log file is currently available");
             // wait 10 seconds if no log available.
@@ -68,8 +67,9 @@ void load_from_private_log::run()
     load_from_log_file();
 }
 
-void load_from_private_log::find_log_file_to_start(const std::vector<std::string> &log_files)
+void load_from_private_log::find_log_file_to_start()
 {
+    std::vector<std::string> log_files = log_utils::list_all_files_or_die(_private_log->dir());
     if (log_files.empty()) {
         return;
     }

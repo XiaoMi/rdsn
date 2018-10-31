@@ -42,7 +42,7 @@ namespace replication {
 prepare_list::prepare_list(decree init_decree, int max_count, mutation_committer committer)
     : mutation_cache(init_decree, max_count)
 {
-    _committer = committer;
+    _committer = std::move(committer);
     _last_committed_decree = init_decree;
 }
 
