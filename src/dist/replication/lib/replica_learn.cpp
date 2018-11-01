@@ -1411,7 +1411,8 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     error_code err;
 
     // temp prepare list for learning purpose
-    prepare_list plist(_app->last_committed_decree(),
+    prepare_list plist(this,
+                       _app->last_committed_decree(),
                        _options->max_mutation_count_in_prepare_list,
                        [this](mutation_ptr &mu) {
                            if (mu->data.header.decree == _app->last_committed_decree() + 1) {

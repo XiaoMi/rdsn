@@ -309,8 +309,7 @@ replication_app_base *replication_app_base::new_storage_instance(const std::stri
         name.c_str(), PROVIDER_TYPE_MAIN, r);
 }
 
-replication_app_base::replication_app_base(replica *replica)
-    : replica_base(replica->get_gpid(), replica->name())
+replication_app_base::replication_app_base(replica *replica) : replica_base(replica)
 {
     _dir_data = utils::filesystem::path_combine(replica->dir(), "data");
     _dir_learn = utils::filesystem::path_combine(replica->dir(), "learn");
