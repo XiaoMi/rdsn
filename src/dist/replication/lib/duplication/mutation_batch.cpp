@@ -60,6 +60,12 @@ error_s mutation_batch::add(mutation_ptr mu)
     return error_s::ok();
 }
 
+void mutation_batch::reset(decree d)
+{
+    dcheck_eq(_loaded_mutations.size(), 0);
+    _mutation_buffer->reset(d);
+}
+
 mutation_batch::mutation_batch()
 {
     _mutation_buffer =

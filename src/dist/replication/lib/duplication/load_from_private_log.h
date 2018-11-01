@@ -72,6 +72,7 @@ public:
         _current = std::move(f);
         _read_from_start = true;
         _current_global_end_offset = _current->start_offset();
+        _mutation_batch.reset(_start_decree);
     }
 
 private:
@@ -81,6 +82,8 @@ private:
     replica_duplicator *_duplicator;
 
     log_file_ptr _current;
+    std::map<int, log_file_ptr> _log_files;
+
     bool _read_from_start{true};
     int64_t _current_global_end_offset{0};
     mutation_batch _mutation_batch;
