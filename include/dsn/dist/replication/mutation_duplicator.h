@@ -72,10 +72,10 @@ public:
 
     // Singleton creator of mutation_duplicator.
     static std::function<std::unique_ptr<mutation_duplicator>(
-        const replica_base &, string_view /*remote cluster*/, string_view /*app*/)>
+        replica_base *, string_view /*remote cluster*/, string_view /*app*/)>
         creator;
 
-    explicit mutation_duplicator(const replica_base &r) : replica_base(r) {}
+    explicit mutation_duplicator(replica_base *r) : replica_base(r) {}
 
     void set_task_environment(pipeline::environment env) { _env = env; }
 
@@ -89,7 +89,7 @@ private:
 };
 
 inline std::unique_ptr<mutation_duplicator>
-new_mutation_duplicator(const replica_base &r, string_view remote_cluster_address, string_view app)
+new_mutation_duplicator(replica_base *r, string_view remote_cluster_address, string_view app)
 {
     return mutation_duplicator::creator(r, remote_cluster_address, app);
 }

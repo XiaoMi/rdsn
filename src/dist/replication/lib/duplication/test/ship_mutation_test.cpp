@@ -52,10 +52,10 @@ struct ship_mutation_test : public replica_test_base
         mock_stage end;
 
         pipeline::base base;
-        base.thread_pool(LPC_DUPLICATION_LOAD_MUTATIONS).task_tracker(_replica->tracker());
+        base.thread_pool(LPC_REPLICATION_LONG_LOW).task_tracker(_replica->tracker());
         base.from(shipper).link(end);
 
-        mutation_batch batch;
+        mutation_batch batch(duplicator.get());
         batch.add(create_test_mutation(1, "hello"));
         batch.add(create_test_mutation(2, "hello"));
         mutation_tuple_set in = batch.move_all_mutations();

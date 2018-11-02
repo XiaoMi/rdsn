@@ -39,7 +39,7 @@ struct mutation_batch
 {
     static constexpr int64_t PREPARE_LIST_NUM_ENTRIES{200};
 
-    mutation_batch();
+    explicit mutation_batch(replica_base *r);
 
     error_s add(mutation_ptr mu);
 

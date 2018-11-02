@@ -55,7 +55,11 @@ void load_from_private_log::run()
     dassert_replica(err.is_ok(), err.description());
 
     if (_current == nullptr) {
-        find_log_file_to_start();
+        std::vector<std::string> log_files = log_utils::list_all_files_or_die(_private_log->dir());
+        if (log_files.empty()) {
+            return;
+        }
+        find_log_file_to_start(log_files);
         if (_current == nullptr) {
             ddebug_replica("no private log file is currently available");
             // wait 10 seconds if no log available.
@@ -67,13 +71,9 @@ void load_from_private_log::run()
     load_from_log_file();
 }
 
-void load_from_private_log::find_log_file_to_start()
+void load_from_private_log::find_log_file_to_start(const std::vector<std::string> &log_files)
 {
     if (_log_files.empty() || _current == _log_files.rbegin()->second) {
-        std::vector<std::string> log_files = log_utils::list_all_files_or_die(_private_log->dir());
-        if (log_files.empty()) {
-            return;
-        }
         _log_files = log_utils::open_log_file_map(log_files);
         if (dsn_unlikely(_log_files.empty())) {
             derror_replica("unable to start duplication since no log file is available");
@@ -147,7 +147,7 @@ error_s load_from_private_log::replay_log_block()
 }
 
 load_from_private_log::load_from_private_log(replica *r, replica_duplicator *dup)
-    : replica_base(*r), _private_log(r->private_log()), _duplicator(dup)
+    : replica_base(r), _private_log(r->private_log()), _duplicator(dup), _mutation_batch(r)
 {
 }
 

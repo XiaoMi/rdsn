@@ -36,7 +36,7 @@ namespace dsn {
 namespace replication {
 
 replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
-    : replica_base(*r), _id(ent.dupid), _remote_cluster_address(ent.remote_address), _replica(r)
+    : replica_base(r), _id(ent.dupid), _remote_cluster_address(ent.remote_address), _replica(r)
 {
     dassert_replica(ent.status == duplication_status::DS_START ||
                         ent.status == duplication_status::DS_PAUSE,

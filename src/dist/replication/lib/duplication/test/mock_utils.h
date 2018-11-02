@@ -140,7 +140,7 @@ public:
 
 struct mock_mutation_duplicator : public mutation_duplicator
 {
-    explicit mock_mutation_duplicator(const replica_base &r) : mutation_duplicator(r) {}
+    explicit mock_mutation_duplicator(replica_base *r) : mutation_duplicator(r) {}
 
     void duplicate(mutation_tuple_set mut, callback cb) override { _func(mut, cb); }
 

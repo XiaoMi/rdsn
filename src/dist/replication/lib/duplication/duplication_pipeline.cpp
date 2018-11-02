@@ -34,7 +34,7 @@ namespace dsn {
 namespace replication {
 
 /*static*/ std::function<std::unique_ptr<mutation_duplicator>(
-    const replica_base &, string_view /*remote cluster*/, string_view /*app*/)>
+    replica_base *, string_view /*remote cluster*/, string_view /*app*/)>
     mutation_duplicator::creator;
 
 void load_mutation::run()
@@ -77,7 +77,7 @@ load_mutation::~load_mutation() = default;
 load_mutation::load_mutation(replica_duplicator *duplicator,
                              replica *r,
                              load_from_private_log *load_private)
-    : replica_base(*r),
+    : replica_base(r),
       _log_on_disk(load_private),
       _log_in_cache(r->_prepare_list),
       _replica(r),

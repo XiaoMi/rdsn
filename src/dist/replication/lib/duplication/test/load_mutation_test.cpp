@@ -38,7 +38,7 @@ struct load_mutation_test : public replica_test_base
 
     void test_load_mutation_from_cache()
     {
-        mutation_batch batch;
+        mutation_batch batch(duplicator.get());
         batch.add(create_test_mutation(2, "hello"));
         batch.add(create_test_mutation(3, "world"));
         batch.add(create_test_mutation(4, "")); // commit to 2
@@ -74,7 +74,7 @@ struct load_mutation_test : public replica_test_base
             });
 
         pipeline::base base;
-        base.thread_pool(LPC_DUPLICATION_LOAD_MUTATIONS).task_tracker(_replica->tracker());
+        base.thread_pool(LPC_REPLICATION_LONG_LOW).task_tracker(_replica->tracker());
         base.from(loader).link(end);
 
         loader.run();
@@ -84,7 +84,7 @@ struct load_mutation_test : public replica_test_base
 
     void test_load_write_empty_from_cache()
     {
-        mutation_batch batch;
+        mutation_batch batch(duplicator.get());
 
         // commit to 1
         batch.add(create_write_empty_mutation(1));
@@ -106,7 +106,7 @@ struct load_mutation_test : public replica_test_base
             });
 
         pipeline::base base;
-        base.thread_pool(LPC_DUPLICATION_LOAD_MUTATIONS)
+        base.thread_pool(LPC_REPLICATION_LONG_LOW)
             .task_tracker(_replica->tracker())
             .thread_hash(_replica->get_gpid().thread_hash()); // set hash to ensure thread safety
         base.from(loader).link(end);

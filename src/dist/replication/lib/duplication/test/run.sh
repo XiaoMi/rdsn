@@ -7,6 +7,6 @@ exit_if_fail() {
     fi
 }
 
-./dsn_replica_server_dup_test
+./dsn_replica_dup_test
 
 exit_if_fail $? "run unit test failed"

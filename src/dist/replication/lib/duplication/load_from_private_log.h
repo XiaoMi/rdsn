@@ -58,7 +58,7 @@ public:
     /// =================================== Implementation =================================== ///
 
     /// Find the log file that contains decree `d`.
-    void find_log_file_to_start();
+    void find_log_file_to_start(const std::vector<std::string> &log_files);
 
     void load_from_log_file();
 

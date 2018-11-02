@@ -45,10 +45,9 @@ struct replica_stub_test_base : ::testing::Test
     {
         stub = make_unique<mock_replica_stub>(); // mock mutation_duplicator
 
-        mutation_duplicator::creator =
-            [](const replica_base &r, dsn::string_view, dsn::string_view) {
-                return make_unique<mock_mutation_duplicator>(r);
-            };
+        mutation_duplicator::creator = [](replica_base *r, dsn::string_view, dsn::string_view) {
+            return make_unique<mock_mutation_duplicator>(r);
+        };
     }
 
     ~replica_stub_test_base() { stub.reset(); }

@@ -66,10 +66,12 @@ void mutation_batch::reset(decree d)
     _mutation_buffer->reset(d);
 }
 
-mutation_batch::mutation_batch()
+mutation_batch::mutation_batch(replica_base *r)
 {
+    // prepend a tag identifying the caller of prepare_list.
+    replica_base base(r->get_gpid(), std::string("mutation_batch@") + r->replica_name());
     _mutation_buffer =
-        make_unique<prepare_list>(0, PREPARE_LIST_NUM_ENTRIES, [this](mutation_ptr &mu) {
+        make_unique<prepare_list>(&base, 0, PREPARE_LIST_NUM_ENTRIES, [this](mutation_ptr &mu) {
             // committer
             add_mutation_if_valid(mu, _loaded_mutations);
         });

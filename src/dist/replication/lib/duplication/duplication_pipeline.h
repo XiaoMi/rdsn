@@ -69,10 +69,10 @@ struct ship_mutation : replica_base, pipeline::when<decree, mutation_tuple_set>,
     /// ==== Implementation ==== ///
 
     explicit ship_mutation(replica_duplicator *duplicator)
-        : replica_base(*duplicator), _duplicator(duplicator)
+        : replica_base(duplicator), _duplicator(duplicator)
     {
         _mutation_duplicator =
-            new_mutation_duplicator(*duplicator,
+            new_mutation_duplicator(duplicator,
                                     _duplicator->remote_cluster_address(),
                                     _duplicator->_replica->get_app_info()->app_name);
         _mutation_duplicator->set_task_environment(*this);
