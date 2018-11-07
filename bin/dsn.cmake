@@ -271,7 +271,7 @@ function(dsn_setup_system_libs)
 
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
-        message("set FIND_LIBRARY_USE_LIB64_PATHS ON")
+        message(STATUS "FIND_LIBRARY_USE_LIB64_PATHS = ON")
     endif()
 
     set(DSN_SYSTEM_LIBS "")
