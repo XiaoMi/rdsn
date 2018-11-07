@@ -322,7 +322,7 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
 
     decree learn_start_decree = request.last_committed_decree_in_app + 1;
     decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
-    if (min_confirmed_decree <= request.max_gced_decree) {
+    if (min_confirmed_decree + 1 <= request.max_gced_decree) {
         if (min_confirmed_decree != invalid_decree) {
             // learner should include the mutations not confirmed by meta server
             // so as to prevent data loss during duplication.
@@ -345,7 +345,7 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
     ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, remote_committed_decree = %" PRId64 ", "
            "remote_app_committed_decree = %" PRId64 ", local_committed_decree = %" PRId64 ", "
            "app_committed_decree = %" PRId64 ", app_durable_decree = %" PRId64 ", "
-           "prepare_min_decree = %" PRId64
+           "prepare_min_decree = %" PRId64 ", min_confirmed_decree = %" PRId64
            ", prepare_list_count = %d, learn_start_decree = %" PRId64,
            name(),
            request.signature,
@@ -356,6 +356,7 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
            _app->last_committed_decree(),
            _app->last_durable_decree(),
            _prepare_list->min_decree(),
+           min_confirmed_decree,
            _prepare_list->count(),
            learn_start_decree);
 
