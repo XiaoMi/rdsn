@@ -37,6 +37,8 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
+#include "duplication/replica_duplicator_manager.h"
+
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -237,8 +239,17 @@ error_code replica::init_app_and_prepare_list(bool create_new)
             {
                 ddebug("%s: start to replay private log", name());
 
+                decree replay_start_decree = _app->last_committed_decree();
+                {
+                    std::map<std::string, std::string> envs;
+                    query_app_envs(envs);
+                    if (envs["duplicating"] == "true") {
+                        replay_start_decree =
+                            std::min(replay_start_decree, _duplication_mgr->min_confirmed_decree());
+                    }
+                }
                 std::map<gpid, decree> replay_condition;
-                replay_condition[_config.pid] = _app->last_committed_decree();
+                replay_condition[_config.pid] = replay_start_decree;
 
                 uint64_t start_time = dsn_now_ms();
                 err = _private_log->open(
