@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #include "dist/replication/lib/mutation_log.h"
 #include "dist/replication/lib/mutation_log_utils.h"
 
@@ -575,7 +566,8 @@ TEST_F(mutation_log_test, read_empty_block)
 
         // TODO(wutao1): reading after EOF should return ERR_HANDLE_EOF
         // err = mutation_log::replay_block(
-        //     file, [](int log_length, mutation_ptr &mu) -> bool { return true; }, false,
+        //     file, [](int log_length, mutation_ptr &mu) -> bool { return true; },
+        //     false,
         //     end_offset);
         // ASSERT_EQ(err.code(), ERR_HANDLE_EOF) << err.description();
     }

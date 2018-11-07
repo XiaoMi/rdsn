@@ -196,6 +196,7 @@ void replica::init_learn(uint64_t signature)
 
     learn_request request;
     request.pid = get_gpid();
+    request.max_gced_decree = _private_log->max_gced_decree(get_gpid());
     request.last_committed_decree_in_app = _app->last_committed_decree();
     request.last_committed_decree_in_prepare_list = _prepare_list->last_committed_decree();
     request.learner = _stub->_primary_address;
@@ -203,7 +204,7 @@ void replica::init_learn(uint64_t signature)
     _app->prepare_get_checkpoint(request.app_specific_learn_request);
 
     ddebug("%s: init_learn[%016" PRIx64 "]: learnee = %s, learn_duration = %" PRIu64
-           " ms, local_committed_decree = %" PRId64 ", "
+           " ms, max_gced_decree = %" PRId64 ", local_committed_decree = %" PRId64 ", "
            "app_committed_decree = %" PRId64 ", app_durable_decree = %" PRId64
            ", current_learning_status = %s, total_copy_file_count = %" PRIu64
            ", total_copy_file_size = %" PRIu64 ", total_copy_buffer_size = %" PRIu64,
@@ -211,6 +212,7 @@ void replica::init_learn(uint64_t signature)
            request.signature,
            _config.primary.to_string(),
            _potential_secondary_states.duration_ms(),
+           request.max_gced_decree,
            last_committed_decree(),
            _app->last_committed_decree(),
            _app->last_durable_decree(),
@@ -320,15 +322,17 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
 
     decree learn_start_decree = request.last_committed_decree_in_app + 1;
     decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
-    if (min_confirmed_decree != invalid_decree) {
-        // learner should include the mutations not confirmed by meta server
-        // as well, in order to prevent data loss during duplication.
-        learn_start_decree = std::min(learn_start_decree, min_confirmed_decree + 1);
-    } else {
-        std::map<std::string, std::string> envs;
-        query_app_envs(envs);
-        if (envs["duplicating"] == "true") {
-            learn_start_decree = 0;
+    if (min_confirmed_decree <= request.max_gced_decree) {
+        if (min_confirmed_decree != invalid_decree) {
+            // learner should include the mutations not confirmed by meta server
+            // so as to prevent data loss during duplication.
+            learn_start_decree = std::min(learn_start_decree, min_confirmed_decree + 1);
+        } else {
+            std::map<std::string, std::string> envs;
+            query_app_envs(envs);
+            if (envs["duplicating"] == "true") {
+                learn_start_decree = 0;
+            }
         }
     }
 

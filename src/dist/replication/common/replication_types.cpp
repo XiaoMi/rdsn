@@ -1690,6 +1690,8 @@ void learn_request::__set_app_specific_learn_request(const ::dsn::blob &val)
     this->app_specific_learn_request = val;
 }
 
+void learn_request::__set_max_gced_decree(const int64_t val) { this->max_gced_decree = val; }
+
 uint32_t learn_request::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -1757,6 +1759,14 @@ uint32_t learn_request::read(::apache::thrift::protocol::TProtocol *iprot)
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 7:
+            if (ftype == ::apache::thrift::protocol::T_I64) {
+                xfer += iprot->readI64(this->max_gced_decree);
+                this->__isset.max_gced_decree = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -1802,6 +1812,10 @@ uint32_t learn_request::write(::apache::thrift::protocol::TProtocol *oprot) cons
     xfer += this->app_specific_learn_request.write(oprot);
     xfer += oprot->writeFieldEnd();
 
+    xfer += oprot->writeFieldBegin("max_gced_decree", ::apache::thrift::protocol::T_I64, 7);
+    xfer += oprot->writeI64(this->max_gced_decree);
+    xfer += oprot->writeFieldEnd();
+
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -1816,6 +1830,7 @@ void swap(learn_request &a, learn_request &b)
     swap(a.last_committed_decree_in_app, b.last_committed_decree_in_app);
     swap(a.last_committed_decree_in_prepare_list, b.last_committed_decree_in_prepare_list);
     swap(a.app_specific_learn_request, b.app_specific_learn_request);
+    swap(a.max_gced_decree, b.max_gced_decree);
     swap(a.__isset, b.__isset);
 }
 
@@ -1827,6 +1842,7 @@ learn_request::learn_request(const learn_request &other54)
     last_committed_decree_in_app = other54.last_committed_decree_in_app;
     last_committed_decree_in_prepare_list = other54.last_committed_decree_in_prepare_list;
     app_specific_learn_request = other54.app_specific_learn_request;
+    max_gced_decree = other54.max_gced_decree;
     __isset = other54.__isset;
 }
 learn_request::learn_request(learn_request &&other55)
@@ -1838,6 +1854,7 @@ learn_request::learn_request(learn_request &&other55)
     last_committed_decree_in_prepare_list =
         std::move(other55.last_committed_decree_in_prepare_list);
     app_specific_learn_request = std::move(other55.app_specific_learn_request);
+    max_gced_decree = std::move(other55.max_gced_decree);
     __isset = std::move(other55.__isset);
 }
 learn_request &learn_request::operator=(const learn_request &other56)
@@ -1848,6 +1865,7 @@ learn_request &learn_request::operator=(const learn_request &other56)
     last_committed_decree_in_app = other56.last_committed_decree_in_app;
     last_committed_decree_in_prepare_list = other56.last_committed_decree_in_prepare_list;
     app_specific_learn_request = other56.app_specific_learn_request;
+    max_gced_decree = other56.max_gced_decree;
     __isset = other56.__isset;
     return *this;
 }
@@ -1860,6 +1878,7 @@ learn_request &learn_request::operator=(learn_request &&other57)
     last_committed_decree_in_prepare_list =
         std::move(other57.last_committed_decree_in_prepare_list);
     app_specific_learn_request = std::move(other57.app_specific_learn_request);
+    max_gced_decree = std::move(other57.max_gced_decree);
     __isset = std::move(other57.__isset);
     return *this;
 }
@@ -1879,6 +1898,8 @@ void learn_request::printTo(std::ostream &out) const
         << to_string(last_committed_decree_in_prepare_list);
     out << ", "
         << "app_specific_learn_request=" << to_string(app_specific_learn_request);
+    out << ", "
+        << "max_gced_decree=" << to_string(max_gced_decree);
     out << ")";
 }
 
@@ -12257,26 +12278,26 @@ void swap(ddd_diagnose_request &a, ddd_diagnose_request &b)
     swap(a.__isset, b.__isset);
 }
 
-ddd_diagnose_request::ddd_diagnose_request(const ddd_diagnose_request &other539)
-{
-    pid = other539.pid;
-    __isset = other539.__isset;
-}
-ddd_diagnose_request::ddd_diagnose_request(ddd_diagnose_request &&other540)
-{
-    pid = std::move(other540.pid);
-    __isset = std::move(other540.__isset);
-}
-ddd_diagnose_request &ddd_diagnose_request::operator=(const ddd_diagnose_request &other541)
+ddd_diagnose_request::ddd_diagnose_request(const ddd_diagnose_request &other541)
 {
     pid = other541.pid;
     __isset = other541.__isset;
-    return *this;
 }
-ddd_diagnose_request &ddd_diagnose_request::operator=(ddd_diagnose_request &&other542)
+ddd_diagnose_request::ddd_diagnose_request(ddd_diagnose_request &&other542)
 {
     pid = std::move(other542.pid);
     __isset = std::move(other542.__isset);
+}
+ddd_diagnose_request &ddd_diagnose_request::operator=(const ddd_diagnose_request &other543)
+{
+    pid = other543.pid;
+    __isset = other543.__isset;
+    return *this;
+}
+ddd_diagnose_request &ddd_diagnose_request::operator=(ddd_diagnose_request &&other544)
+{
+    pid = std::move(other544.pid);
+    __isset = std::move(other544.__isset);
     return *this;
 }
 void ddd_diagnose_request::printTo(std::ostream &out) const
@@ -12448,29 +12469,7 @@ void swap(ddd_node_info &a, ddd_node_info &b)
     swap(a.__isset, b.__isset);
 }
 
-ddd_node_info::ddd_node_info(const ddd_node_info &other543)
-{
-    node = other543.node;
-    drop_time_ms = other543.drop_time_ms;
-    is_alive = other543.is_alive;
-    is_collected = other543.is_collected;
-    ballot = other543.ballot;
-    last_committed_decree = other543.last_committed_decree;
-    last_prepared_decree = other543.last_prepared_decree;
-    __isset = other543.__isset;
-}
-ddd_node_info::ddd_node_info(ddd_node_info &&other544)
-{
-    node = std::move(other544.node);
-    drop_time_ms = std::move(other544.drop_time_ms);
-    is_alive = std::move(other544.is_alive);
-    is_collected = std::move(other544.is_collected);
-    ballot = std::move(other544.ballot);
-    last_committed_decree = std::move(other544.last_committed_decree);
-    last_prepared_decree = std::move(other544.last_prepared_decree);
-    __isset = std::move(other544.__isset);
-}
-ddd_node_info &ddd_node_info::operator=(const ddd_node_info &other545)
+ddd_node_info::ddd_node_info(const ddd_node_info &other545)
 {
     node = other545.node;
     drop_time_ms = other545.drop_time_ms;
@@ -12480,9 +12479,8 @@ ddd_node_info &ddd_node_info::operator=(const ddd_node_info &other545)
     last_committed_decree = other545.last_committed_decree;
     last_prepared_decree = other545.last_prepared_decree;
     __isset = other545.__isset;
-    return *this;
 }
-ddd_node_info &ddd_node_info::operator=(ddd_node_info &&other546)
+ddd_node_info::ddd_node_info(ddd_node_info &&other546)
 {
     node = std::move(other546.node);
     drop_time_ms = std::move(other546.drop_time_ms);
@@ -12492,6 +12490,29 @@ ddd_node_info &ddd_node_info::operator=(ddd_node_info &&other546)
     last_committed_decree = std::move(other546.last_committed_decree);
     last_prepared_decree = std::move(other546.last_prepared_decree);
     __isset = std::move(other546.__isset);
+}
+ddd_node_info &ddd_node_info::operator=(const ddd_node_info &other547)
+{
+    node = other547.node;
+    drop_time_ms = other547.drop_time_ms;
+    is_alive = other547.is_alive;
+    is_collected = other547.is_collected;
+    ballot = other547.ballot;
+    last_committed_decree = other547.last_committed_decree;
+    last_prepared_decree = other547.last_prepared_decree;
+    __isset = other547.__isset;
+    return *this;
+}
+ddd_node_info &ddd_node_info::operator=(ddd_node_info &&other548)
+{
+    node = std::move(other548.node);
+    drop_time_ms = std::move(other548.drop_time_ms);
+    is_alive = std::move(other548.is_alive);
+    is_collected = std::move(other548.is_collected);
+    ballot = std::move(other548.ballot);
+    last_committed_decree = std::move(other548.last_committed_decree);
+    last_prepared_decree = std::move(other548.last_prepared_decree);
+    __isset = std::move(other548.__isset);
     return *this;
 }
 void ddd_node_info::printTo(std::ostream &out) const
@@ -12559,13 +12580,13 @@ uint32_t ddd_partition_info::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->dropped.clear();
-                    uint32_t _size547;
-                    ::apache::thrift::protocol::TType _etype550;
-                    xfer += iprot->readListBegin(_etype550, _size547);
-                    this->dropped.resize(_size547);
-                    uint32_t _i551;
-                    for (_i551 = 0; _i551 < _size547; ++_i551) {
-                        xfer += this->dropped[_i551].read(iprot);
+                    uint32_t _size549;
+                    ::apache::thrift::protocol::TType _etype552;
+                    xfer += iprot->readListBegin(_etype552, _size549);
+                    this->dropped.resize(_size549);
+                    uint32_t _i553;
+                    for (_i553 = 0; _i553 < _size549; ++_i553) {
+                        xfer += this->dropped[_i553].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -12608,9 +12629,9 @@ uint32_t ddd_partition_info::write(::apache::thrift::protocol::TProtocol *oprot)
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->dropped.size()));
-        std::vector<ddd_node_info>::const_iterator _iter552;
-        for (_iter552 = this->dropped.begin(); _iter552 != this->dropped.end(); ++_iter552) {
-            xfer += (*_iter552).write(oprot);
+        std::vector<ddd_node_info>::const_iterator _iter554;
+        for (_iter554 = this->dropped.begin(); _iter554 != this->dropped.end(); ++_iter554) {
+            xfer += (*_iter554).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -12634,34 +12655,34 @@ void swap(ddd_partition_info &a, ddd_partition_info &b)
     swap(a.__isset, b.__isset);
 }
 
-ddd_partition_info::ddd_partition_info(const ddd_partition_info &other553)
-{
-    config = other553.config;
-    dropped = other553.dropped;
-    reason = other553.reason;
-    __isset = other553.__isset;
-}
-ddd_partition_info::ddd_partition_info(ddd_partition_info &&other554)
-{
-    config = std::move(other554.config);
-    dropped = std::move(other554.dropped);
-    reason = std::move(other554.reason);
-    __isset = std::move(other554.__isset);
-}
-ddd_partition_info &ddd_partition_info::operator=(const ddd_partition_info &other555)
+ddd_partition_info::ddd_partition_info(const ddd_partition_info &other555)
 {
     config = other555.config;
     dropped = other555.dropped;
     reason = other555.reason;
     __isset = other555.__isset;
-    return *this;
 }
-ddd_partition_info &ddd_partition_info::operator=(ddd_partition_info &&other556)
+ddd_partition_info::ddd_partition_info(ddd_partition_info &&other556)
 {
     config = std::move(other556.config);
     dropped = std::move(other556.dropped);
     reason = std::move(other556.reason);
     __isset = std::move(other556.__isset);
+}
+ddd_partition_info &ddd_partition_info::operator=(const ddd_partition_info &other557)
+{
+    config = other557.config;
+    dropped = other557.dropped;
+    reason = other557.reason;
+    __isset = other557.__isset;
+    return *this;
+}
+ddd_partition_info &ddd_partition_info::operator=(ddd_partition_info &&other558)
+{
+    config = std::move(other558.config);
+    dropped = std::move(other558.dropped);
+    reason = std::move(other558.reason);
+    __isset = std::move(other558.__isset);
     return *this;
 }
 void ddd_partition_info::printTo(std::ostream &out) const
@@ -12716,13 +12737,13 @@ uint32_t ddd_diagnose_response::read(::apache::thrift::protocol::TProtocol *ipro
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->partitions.clear();
-                    uint32_t _size557;
-                    ::apache::thrift::protocol::TType _etype560;
-                    xfer += iprot->readListBegin(_etype560, _size557);
-                    this->partitions.resize(_size557);
-                    uint32_t _i561;
-                    for (_i561 = 0; _i561 < _size557; ++_i561) {
-                        xfer += this->partitions[_i561].read(iprot);
+                    uint32_t _size559;
+                    ::apache::thrift::protocol::TType _etype562;
+                    xfer += iprot->readListBegin(_etype562, _size559);
+                    this->partitions.resize(_size559);
+                    uint32_t _i563;
+                    for (_i563 = 0; _i563 < _size559; ++_i563) {
+                        xfer += this->partitions[_i563].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -12757,9 +12778,9 @@ uint32_t ddd_diagnose_response::write(::apache::thrift::protocol::TProtocol *opr
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->partitions.size()));
-        std::vector<ddd_partition_info>::const_iterator _iter562;
-        for (_iter562 = this->partitions.begin(); _iter562 != this->partitions.end(); ++_iter562) {
-            xfer += (*_iter562).write(oprot);
+        std::vector<ddd_partition_info>::const_iterator _iter564;
+        for (_iter564 = this->partitions.begin(); _iter564 != this->partitions.end(); ++_iter564) {
+            xfer += (*_iter564).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -12778,30 +12799,30 @@ void swap(ddd_diagnose_response &a, ddd_diagnose_response &b)
     swap(a.__isset, b.__isset);
 }
 
-ddd_diagnose_response::ddd_diagnose_response(const ddd_diagnose_response &other563)
-{
-    err = other563.err;
-    partitions = other563.partitions;
-    __isset = other563.__isset;
-}
-ddd_diagnose_response::ddd_diagnose_response(ddd_diagnose_response &&other564)
-{
-    err = std::move(other564.err);
-    partitions = std::move(other564.partitions);
-    __isset = std::move(other564.__isset);
-}
-ddd_diagnose_response &ddd_diagnose_response::operator=(const ddd_diagnose_response &other565)
+ddd_diagnose_response::ddd_diagnose_response(const ddd_diagnose_response &other565)
 {
     err = other565.err;
     partitions = other565.partitions;
     __isset = other565.__isset;
-    return *this;
 }
-ddd_diagnose_response &ddd_diagnose_response::operator=(ddd_diagnose_response &&other566)
+ddd_diagnose_response::ddd_diagnose_response(ddd_diagnose_response &&other566)
 {
     err = std::move(other566.err);
     partitions = std::move(other566.partitions);
     __isset = std::move(other566.__isset);
+}
+ddd_diagnose_response &ddd_diagnose_response::operator=(const ddd_diagnose_response &other567)
+{
+    err = other567.err;
+    partitions = other567.partitions;
+    __isset = other567.__isset;
+    return *this;
+}
+ddd_diagnose_response &ddd_diagnose_response::operator=(ddd_diagnose_response &&other568)
+{
+    err = std::move(other568.err);
+    partitions = std::move(other568.partitions);
+    __isset = std::move(other568.__isset);
     return *this;
 }
 void ddd_diagnose_response::printTo(std::ostream &out) const

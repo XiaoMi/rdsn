@@ -965,7 +965,8 @@ typedef struct _learn_request__isset
           signature(false),
           last_committed_decree_in_app(false),
           last_committed_decree_in_prepare_list(false),
-          app_specific_learn_request(false)
+          app_specific_learn_request(false),
+          max_gced_decree(false)
     {
     }
     bool pid : 1;
@@ -974,6 +975,7 @@ typedef struct _learn_request__isset
     bool last_committed_decree_in_app : 1;
     bool last_committed_decree_in_prepare_list : 1;
     bool app_specific_learn_request : 1;
+    bool max_gced_decree : 1;
 } _learn_request__isset;
 
 class learn_request
@@ -984,7 +986,10 @@ public:
     learn_request &operator=(const learn_request &);
     learn_request &operator=(learn_request &&);
     learn_request()
-        : signature(0), last_committed_decree_in_app(0), last_committed_decree_in_prepare_list(0)
+        : signature(0),
+          last_committed_decree_in_app(0),
+          last_committed_decree_in_prepare_list(0),
+          max_gced_decree(0)
     {
     }
 
@@ -995,6 +1000,7 @@ public:
     int64_t last_committed_decree_in_app;
     int64_t last_committed_decree_in_prepare_list;
     ::dsn::blob app_specific_learn_request;
+    int64_t max_gced_decree;
 
     _learn_request__isset __isset;
 
@@ -1010,6 +1016,8 @@ public:
 
     void __set_app_specific_learn_request(const ::dsn::blob &val);
 
+    void __set_max_gced_decree(const int64_t val);
+
     bool operator==(const learn_request &rhs) const
     {
         if (!(pid == rhs.pid))
@@ -1023,6 +1031,8 @@ public:
         if (!(last_committed_decree_in_prepare_list == rhs.last_committed_decree_in_prepare_list))
             return false;
         if (!(app_specific_learn_request == rhs.app_specific_learn_request))
+            return false;
+        if (!(max_gced_decree == rhs.max_gced_decree))
             return false;
         return true;
     }

@@ -310,6 +310,9 @@ public:
     // thread safe
     decree max_gced_decree(gpid gpid, int64_t valid_start_offset) const;
 
+    // not thread-safe & private log only
+    decree max_gced_decree(gpid gpid) const;
+
     // check the consistence of valid_start_offset
     // thread safe
     void check_valid_start_offset(gpid gpid, int64_t valid_start_offset) const;

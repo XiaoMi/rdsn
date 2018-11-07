@@ -1064,6 +1064,20 @@ decree mutation_log::max_gced_decree(gpid gpid, int64_t valid_start_offset) cons
     }
 }
 
+decree mutation_log::max_gced_decree(gpid gpid) const
+{
+    dassert(_is_private, "");
+
+    decree result = 0;
+    for (auto &log : _log_files) {
+        auto it = log.second->previous_log_max_decrees().find(gpid);
+        if (it != log.second->previous_log_max_decrees().end()) {
+            return it->second.max_decree;
+        }
+    }
+    return result;
+}
+
 void mutation_log::check_valid_start_offset(gpid gpid, int64_t valid_start_offset) const
 {
     zauto_lock l(_lock);

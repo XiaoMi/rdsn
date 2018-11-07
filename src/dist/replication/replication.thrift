@@ -124,6 +124,7 @@ struct learn_request
     4:i64                 last_committed_decree_in_app; // last committed decree of learner's app
     5:i64                 last_committed_decree_in_prepare_list; // last committed decree of learner's prepare list
     6:dsn.blob            app_specific_learn_request; // learning request data by app.prepare_learn_request()
+    7:i64                 max_gced_decree;
 }
 
 struct learn_response
