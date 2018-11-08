@@ -516,7 +516,7 @@ error_code mutation_log::open(replay_callback read_callback,
 
         if (_is_private) {
             ddebug("open private log %s succeed, start_offset = %" PRId64 ", end_offset = %" PRId64
-                   ", size = %" PRId64 ", privious_max_decree = %" PRId64,
+                   ", size = %" PRId64 ", previous_max_decree = %" PRId64,
                    fpath.c_str(),
                    log->start_offset(),
                    log->end_offset(),
