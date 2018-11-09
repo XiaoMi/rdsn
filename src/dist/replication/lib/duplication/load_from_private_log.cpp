@@ -56,9 +56,6 @@ void load_from_private_log::run()
 
     if (_current == nullptr) {
         std::vector<std::string> log_files = log_utils::list_all_files_or_die(_private_log->dir());
-        if (log_files.empty()) {
-            return;
-        }
         find_log_file_to_start(log_files);
         if (_current == nullptr) {
             ddebug_replica("no private log file is currently available");
@@ -73,16 +70,17 @@ void load_from_private_log::run()
 
 void load_from_private_log::find_log_file_to_start(const std::vector<std::string> &log_files)
 {
-    if (_log_files.empty() || _current == _log_files.rbegin()->second) {
-        _log_files = log_utils::open_log_file_map(log_files);
-        if (dsn_unlikely(_log_files.empty())) {
-            derror_replica("unable to start duplication since no log file is available");
-            return;
-        }
+    if (log_files.empty()) {
+        return;
+    }
+    std::map<int, log_file_ptr> log_file_map = log_utils::open_log_file_map(log_files);
+    if (dsn_unlikely(log_file_map.empty())) {
+        derror_replica("unable to start duplication since no log file is available");
+        return;
     }
 
     // ensure start decree is not compacted
-    auto begin = _log_files.begin();
+    auto begin = log_file_map.begin();
     decree first_log_decree = begin->second->previous_log_max_decree(get_gpid()) + 1;
     dassert_replica(
         first_log_decree <= _start_decree,
@@ -90,9 +88,9 @@ void load_from_private_log::find_log_file_to_start(const std::vector<std::string
         _start_decree,
         first_log_decree);
 
-    for (auto it = begin; it != _log_files.end(); it++) {
+    for (auto it = begin; it != log_file_map.end(); it++) {
         auto next_it = std::next(it);
-        if (next_it == _log_files.end()) {
+        if (next_it == log_file_map.end()) {
             // use the last file
             start_from_log_file(it->second);
             return;
