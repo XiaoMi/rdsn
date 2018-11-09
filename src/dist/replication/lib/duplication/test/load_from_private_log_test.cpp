@@ -24,6 +24,10 @@
  * THE SOFTWARE.
  */
 
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+#include <boost/filesystem/operations.hpp>
+#undef BOOST_NO_CXX11_SCOPED_ENUMS
+
 #include "dist/replication/lib/mutation_log_utils.h"
 #include "dist/replication/lib/duplication/load_from_private_log.h"
 
@@ -162,11 +166,6 @@ TEST_F(load_from_private_log_test, start_duplication_50000_1MB)
     test_start_duplication(50000, 1);
 }
 
-TEST_F(load_from_private_log_test, start_duplication_100000_1MB)
-{
-    test_start_duplication(100000, 1);
-}
-
 TEST_F(load_from_private_log_test, start_duplication_100000_4MB)
 {
     test_start_duplication(100000, 4);
@@ -192,10 +191,12 @@ TEST_F(load_from_private_log_test, handle_real_private_log)
     };
 
     for (auto tt : tests) {
-        ASSERT_TRUE(utils::filesystem::rename_path(tt.fname, _log_dir + "/log.1.0"));
+        boost::filesystem::path file(tt.fname);
+        boost::filesystem::copy_file(
+            file, _log_dir + "/log.1.0", boost::filesystem::copy_option::overwrite_if_exists);
 
         {
-            /// load log.1.0
+            // load log.1.0
             mutation_log_ptr mlog = new mutation_log_private(
                 _replica->dir(), 4, _replica->get_gpid(), nullptr, 1024, 512, 10000);
             _replica->init_private_log(mlog);

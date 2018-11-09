@@ -67,12 +67,7 @@ public:
     // Switches to the log file with index = current_log_index + 1.
     void switch_to_next_log_file();
 
-    void start_from_log_file(log_file_ptr f)
-    {
-        _current = std::move(f);
-        _read_from_start = true;
-        _current_global_end_offset = _current->start_offset();
-    }
+    void start_from_log_file(log_file_ptr f);
 
 private:
     friend struct load_from_private_log_test;

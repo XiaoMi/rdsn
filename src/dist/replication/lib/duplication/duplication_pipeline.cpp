@@ -47,7 +47,6 @@ void load_mutation::run()
         return;
     }
 
-    // mutation is not in cache, fallback to load from private log
     _log_on_disk->set_start_decree(_start_decree);
     _log_on_disk->async();
 }

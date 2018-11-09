@@ -43,7 +43,6 @@ void load_from_private_log::switch_to_next_log_file()
 
     if (utils::filesystem::file_exists(new_path)) {
         start_from_log_file(log_utils::open_read_or_die(new_path));
-        ddebug_replica("switched log file to: {}", new_path);
     } else {
         _current = nullptr;
     }
@@ -150,6 +149,15 @@ load_from_private_log::load_from_private_log(replica *r, replica_duplicator *dup
 }
 
 void load_from_private_log::set_start_decree(decree start_decree) { _start_decree = start_decree; }
+
+void load_from_private_log::start_from_log_file(log_file_ptr f)
+{
+    ddebug_replica("start loading from log file {}", f->path());
+
+    _current = std::move(f);
+    _read_from_start = true;
+    _current_global_end_offset = _current->start_offset();
+}
 
 } // namespace replication
 } // namespace dsn
