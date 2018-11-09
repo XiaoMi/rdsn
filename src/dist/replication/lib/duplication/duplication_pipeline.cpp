@@ -47,26 +47,6 @@ void load_mutation::run()
         return;
     }
 
-    // try load from cache
-    if (_start_decree >= _log_in_cache->min_decree()) {
-        dcheck_le_replica(_start_decree, _log_in_cache->max_decree());
-
-        for (decree d = _start_decree; d <= _log_in_cache->last_committed_decree(); d++) {
-            auto mu = _log_in_cache->get_mutation_by_decree(d);
-            dassert(mu != nullptr, "");
-
-            add_mutation_if_valid(mu, _loaded_mutations);
-        }
-
-        if (_loaded_mutations.empty()) {
-            repeat(10_s);
-            return;
-        }
-
-        step_down_next_stage(_log_in_cache->last_committed_decree(), std::move(_loaded_mutations));
-        return;
-    }
-
     // mutation is not in cache, fallback to load from private log
     _log_on_disk->set_start_decree(_start_decree);
     _log_on_disk->async();
@@ -79,7 +59,6 @@ load_mutation::load_mutation(replica_duplicator *duplicator,
                              load_from_private_log *load_private)
     : replica_base(r),
       _log_on_disk(load_private),
-      _log_in_cache(r->_prepare_list),
       _replica(r),
       _duplicator(duplicator)
 {

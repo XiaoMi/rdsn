@@ -53,9 +53,7 @@ private:
     friend struct load_mutation_test;
 
     load_from_private_log *_log_on_disk;
-    prepare_list *_log_in_cache{nullptr};
     decree _start_decree{0};
-    mutation_tuple_set _loaded_mutations;
 
     replica *_replica{nullptr};
     replica_duplicator *_duplicator{nullptr};
