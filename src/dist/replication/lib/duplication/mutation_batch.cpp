@@ -27,6 +27,7 @@
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/cpp/message_utils.h>
 
+#include "replica_duplicator.h"
 #include "mutation_batch.h"
 
 namespace dsn {
@@ -50,8 +51,7 @@ error_s mutation_batch::add(mutation_ptr mu)
     error_code ec = _mutation_buffer->prepare(mu, partition_status::PS_INACTIVE);
     if (ec != ERR_OK) {
         return FMT_ERR(ERR_INVALID_DATA,
-                       "mutation_batch: failed to add mutation [err: {}, mutation decree: "
-                       "{}, ballot: {}]",
+                       "failed to add mutation [err: {}, mutation decree: {}, ballot: {}]",
                        ec,
                        mu->get_decree(),
                        mu->get_ballot());
@@ -60,13 +60,14 @@ error_s mutation_batch::add(mutation_ptr mu)
     return error_s::ok();
 }
 
-void mutation_batch::reset(decree d)
+mutation_tuple_set mutation_batch::move_all_mutations()
 {
-    dcheck_eq(_loaded_mutations.size(), 0);
-    _mutation_buffer->reset(d);
+    // free the internal space
+    _mutation_buffer->truncate(last_decree());
+    return std::move(_loaded_mutations);
 }
 
-mutation_batch::mutation_batch(replica_base *r)
+mutation_batch::mutation_batch(replica_duplicator *r)
 {
     // prepend a tag identifying the caller of prepare_list.
     replica_base base(r->get_gpid(), std::string("mutation_batch@") + r->replica_name());
@@ -75,6 +76,9 @@ mutation_batch::mutation_batch(replica_base *r)
             // committer
             add_mutation_if_valid(mu, _loaded_mutations);
         });
+
+    // start duplication from confirmed_decree
+    _mutation_buffer->reset(r->progress().confirmed_decree);
 }
 
 /*extern*/ void add_mutation_if_valid(mutation_ptr &mu, mutation_tuple_set &mutations)

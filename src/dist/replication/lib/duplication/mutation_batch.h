@@ -33,19 +33,21 @@
 namespace dsn {
 namespace replication {
 
+class replica_duplicator;
+
 // A sorted array of committed mutations that are ready for duplication.
 // Not thread-safe.
 struct mutation_batch
 {
     static constexpr int64_t PREPARE_LIST_NUM_ENTRIES{200};
 
-    explicit mutation_batch(replica_base *r);
+    explicit mutation_batch(replica_duplicator *r);
 
     error_s add(mutation_ptr mu);
 
     bool empty() const { return _loaded_mutations.empty(); }
 
-    mutation_tuple_set move_all_mutations() { return std::move(_loaded_mutations); }
+    mutation_tuple_set move_all_mutations();
 
     decree last_decree() const { return _mutation_buffer->last_committed_decree(); }
 

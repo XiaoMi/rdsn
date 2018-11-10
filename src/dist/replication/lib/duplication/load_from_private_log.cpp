@@ -144,7 +144,7 @@ error_s load_from_private_log::replay_log_block()
 }
 
 load_from_private_log::load_from_private_log(replica *r, replica_duplicator *dup)
-    : replica_base(r), _private_log(r->private_log()), _duplicator(dup), _mutation_batch(r)
+    : replica_base(r), _private_log(r->private_log()), _duplicator(dup), _mutation_batch(dup)
 {
 }
 
