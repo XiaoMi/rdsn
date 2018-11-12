@@ -124,7 +124,7 @@ exit_if_fail $?
 
 #rapidjson
 check_and_download "rapidjson-v1.1.0.tar.gz"\
-    "https://codeload.github.com/Tencent/rapidjson/tar.gz/v1.1.0"\
+    "http://pegasus-thirdparties.oss-cn-beijing.aliyuncs.com/rapidjson-1.1.0.tar.gz"\
     "badd12c511e081fec6c89c43a7027bce"\
     "rapidjson-1.1.0"
 exit_if_fail $?
