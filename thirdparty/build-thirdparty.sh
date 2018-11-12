@@ -58,13 +58,6 @@ else
     echo "skip build concurrentqueue"
 fi
 
-## build gflags
-#mkdir -p $TP_BUILD/gflags
-#cd $TP_BUILD/gflags
-#cmake $TP_SRC/gflags -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT
-#make -j8 && make install
-#cd $TP_DIR
-
 # build gtest
 if [ ! -d $TP_OUTPUT/include/gtest ]; then
     mkdir -p $TP_BUILD/googletest
