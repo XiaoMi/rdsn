@@ -61,11 +61,14 @@ public:
     }
     int on_request(message_ex *request) override { return 0; }
     std::string query_compact_state() const { return ""; };
-    void update_app_envs(const std::map<std::string, std::string> &) override {}
-    void query_app_envs(std::map<std::string, std::string> &) override {}
 
-    // We only mock this.
+    // we mock the followings
+    void update_app_envs(const std::map<std::string, std::string> &envs) override { _envs = envs; }
+    void query_app_envs(std::map<std::string, std::string> &out) override { out = _envs; }
     decree last_durable_decree() const override { return 0; }
+
+private:
+    std::map<std::string, std::string> _envs;
 };
 
 class mock_replica : public replica

@@ -208,6 +208,9 @@ private:
     void notify_learn_completion();
     error_code apply_learned_state_from_private_log(learn_state &state);
 
+    // TODO(wutao1): mark it const
+    decree get_learn_start_decree(const learn_request &req);
+
     /////////////////////////////////////////////////////////////////
     // failure handling
     void handle_local_failure(error_code error);
@@ -311,6 +314,7 @@ private:
     friend class ::dsn::replication::mutation_queue;
     friend class ::dsn::replication::replica_stub;
     friend class mock_replica;
+    friend class replica_learn_test;
 
     friend struct load_mutation;
 

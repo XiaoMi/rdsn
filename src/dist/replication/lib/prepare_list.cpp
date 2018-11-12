@@ -63,7 +63,7 @@ void prepare_list::truncate(decree init_decree)
 error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status)
 {
     decree d = mu->data.header.decree;
-    dcheck_ge_replica(d, last_committed_decree());
+    dcheck_gt_replica(d, last_committed_decree());
 
     error_code err;
     switch (status) {

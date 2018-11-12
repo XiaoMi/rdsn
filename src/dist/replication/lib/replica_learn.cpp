@@ -42,6 +42,7 @@
 
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
@@ -232,6 +233,34 @@ void replica::init_learn(uint64_t signature)
         });
 }
 
+decree replica::get_learn_start_decree(const learn_request &request)
+{
+    decree local_committed_decree = last_committed_decree();
+    dcheck_le_replica(request.last_committed_decree_in_app, local_committed_decree);
+
+    decree learn_start_decree = request.last_committed_decree_in_app + 1;
+    decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
+    if (min_confirmed_decree != invalid_decree) {
+        ddebug_replica("min_confirmed_decree={}", min_confirmed_decree);
+    }
+    if (min_confirmed_decree + 1 <= request.max_gced_decree) {
+        if (min_confirmed_decree != invalid_decree) {
+            // learner should include the mutations not confirmed by meta server
+            // so as to prevent data loss during duplication.
+            learn_start_decree = std::min(learn_start_decree, min_confirmed_decree + 1);
+        } else {
+            std::map<std::string, std::string> envs;
+            query_app_envs(envs);
+            if (envs["duplicating"] == "true") {
+                learn_start_decree = 0;
+            }
+        }
+    }
+
+    dcheck_le_replica(learn_start_decree, local_committed_decree + 1);
+    return learn_start_decree;
+}
+
 void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
 {
     _checker.only_one_thread_access();
@@ -315,37 +344,13 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
         }
     }
 
-    dassert(request.last_committed_decree_in_app <= local_committed_decree,
-            "%" PRId64 " VS %" PRId64 "",
-            request.last_committed_decree_in_app,
-            local_committed_decree);
-
-    decree learn_start_decree = request.last_committed_decree_in_app + 1;
-    decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
-    if (min_confirmed_decree + 1 <= request.max_gced_decree) {
-        if (min_confirmed_decree != invalid_decree) {
-            // learner should include the mutations not confirmed by meta server
-            // so as to prevent data loss during duplication.
-            learn_start_decree = std::min(learn_start_decree, min_confirmed_decree + 1);
-        } else {
-            std::map<std::string, std::string> envs;
-            query_app_envs(envs);
-            if (envs["duplicating"] == "true") {
-                learn_start_decree = 0;
-            }
-        }
-    }
-
-    dassert(learn_start_decree <= local_committed_decree + 1,
-            "%" PRId64 " VS %" PRId64 "",
-            learn_start_decree,
-            local_committed_decree + 1);
+    decree learn_start_decree = get_learn_start_decree(request);
     bool delayed_replay_prepare_list = false;
 
     ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, remote_committed_decree = %" PRId64 ", "
            "remote_app_committed_decree = %" PRId64 ", local_committed_decree = %" PRId64 ", "
            "app_committed_decree = %" PRId64 ", app_durable_decree = %" PRId64 ", "
-           "prepare_min_decree = %" PRId64 ", min_confirmed_decree = %" PRId64
+           "prepare_min_decree = %" PRId64
            ", prepare_list_count = %d, learn_start_decree = %" PRId64,
            name(),
            request.signature,
@@ -356,7 +361,6 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
            _app->last_committed_decree(),
            _app->last_durable_decree(),
            _prepare_list->min_decree(),
-           min_confirmed_decree,
            _prepare_list->count(),
            learn_start_decree);
 
