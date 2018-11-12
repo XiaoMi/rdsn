@@ -63,7 +63,7 @@ void prepare_list::truncate(decree init_decree)
 error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status)
 {
     decree d = mu->data.header.decree;
-    dcheck_ge_replica(d, last_committed_decree());
+    dcheck_gt_replica(d, last_committed_decree());
 
     error_code err;
     switch (status) {
@@ -137,9 +137,10 @@ void prepare_list::commit(decree d, commit_type ct)
     case COMMIT_TO_DECREE_HARD: {
         for (decree d0 = last_committed_decree() + 1; d0 <= d; d0++) {
             mutation_ptr mu = get_mutation_by_decree(d0);
-            dassert_replica(mu != nullptr && (mu->is_logged()) && mu->data.header.ballot >= last_bt,
-                            "mutation {} is missing in prepare list",
-                            d0);
+
+            dassert_replica(
+                mu != nullptr && mu->is_logged(), "mutation {} is missing in prepare list", d0);
+            dcheck_ge_replica(mu->data.header.ballot, last_bt);
 
             _last_committed_decree++;
             last_bt = mu->data.header.ballot;
