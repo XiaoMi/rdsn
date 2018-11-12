@@ -103,21 +103,21 @@ fi
 cd $TP_SRC
 # concurrent queue
 check_and_download "concurrentqueue-v1.0.0-beta.tar.gz"\
-    "https://codeload.github.com/cameron314/concurrentqueue/tar.gz/v1.0.0-beta"\
+    "http://thirdparties.oss-cn-beijing.aliyuncs.com/concurrentqueue-1.0.0-beta.tar.gz"\
     "761446e2392942aa342f437697ddb72e"\
     "concurrentqueue-1.0.0-beta"
 exit_if_fail $?
 
 # googletest
 check_and_download "googletest-1.8.0.tar.gz"\
-    "https://codeload.github.com/google/googletest/tar.gz/release-1.8.0"\
+    "http://thirdparties.oss-cn-beijing.aliyuncs.com/googletest-release-1.8.0.tar.gz"\
     "16877098823401d1bf2ed7891d7dce36"\
     "googletest-release-1.8.0"
 exit_if_fail $?
 
 # gperftools
 check_and_download "gperftools-2.7.tar.gz"\
-    "https://github.com/gperftools/gperftools/releases/download/gperftools-2.7/gperftools-2.7.tar.gz"\
+    "http://thirdparties.oss-cn-beijing.aliyuncs.com/gperftools-2.7.tar.gz"\
     "c6a852a817e9160c79bdb2d3101b4601"\
     "gperftools-2.7"
 exit_if_fail $?
@@ -131,7 +131,7 @@ exit_if_fail $?
 
 # thrift 0.9.3
 check_and_download "thrift-0.9.3.tar.gz"\
-    "http://archive.apache.org/dist/thrift/0.9.3/thrift-0.9.3.tar.gz"\
+    "http://thirdparties.oss-cn-beijing.aliyuncs.com/thrift-0.9.3.tar.gz"\
     "88d667a8ae870d5adeca8cb7d6795442"\
     "thrift-0.9.3"
 ret_code=$?
@@ -150,21 +150,21 @@ fi
 
 # use zookeeper c client
 check_and_download "zookeeper-3.4.10.tar.gz"\
-    "http://ftp.jaist.ac.jp/pub/apache/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz"\
+    "http://thirdparties.oss-cn-beijing.aliyuncs.com/zookeeper-3.4.10.tar.gz"\
     "e4cf1b1593ca870bf1c7a75188f09678"\
     "zookeeper-3.4.10"
 exit_if_fail $?
 
 # libevent for send http request
 check_and_download "libevent-2.1.8.tar.gz"\
-    "https://github.com/libevent/libevent/archive/release-2.1.8-stable.tar.gz"\
+    "http://thirdparties.oss-cn-beijing.aliyuncs.com/libevent-release-2.1.8-stable.tar.gz"\
     "80f8652e4b08d2ec86a5f5eb46b74510"\
     "libevent-release-2.1.8-stable"
 exit_if_fail $?
 
 # poco 1.7.8
 check_and_download "poco-1.7.8.tar.gz"\
-    "https://codeload.github.com/pocoproject/poco/tar.gz/poco-1.7.8-release"\
+    "http://thirdparties.oss-cn-beijing.aliyuncs.com/poco-poco-1.7.8-release.tar.gz"\
     "4dbf02e14b9f20940ca0e8c70d8f6036"\
     "poco-poco-1.7.8-release"
 exit_if_fail $?
@@ -184,21 +184,21 @@ fi
 
 # fmtlib
 check_and_download "fmt-4.0.0.tar.gz"\
-    "https://codeload.github.com/fmtlib/fmt/tar.gz/4.0.0"\
+    "http://thirdparties.oss-cn-beijing.aliyuncs.com/fmt-4.0.0.tar.gz"\
     "c9be9a37bc85493d1116b0af59a25eba"\
     "fmt-4.0.0"
 exit_if_fail $?
 
 # gflags
 check_and_download "gflags-2.2.1.zip"\
-    "https://github.com/gflags/gflags/archive/v2.2.1.zip"\
+    "http://thirdparties.oss-cn-beijing.aliyuncs.com/gflags-2.2.1.zip"\
     "2d988ef0b50939fb50ada965dafce96b"\
     "gflags-2.2.1"
 exit_if_fail $?
 
 # s2geometry
 check_and_download "s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba.zip"\
-    "https://github.com/google/s2geometry/archive/0239455c1e260d6d2c843649385b4fb9f5b28dba.zip"\
+    "http://thirdparties.oss-cn-beijing.aliyuncs.com/s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba.zip"\
     "bfa5f1c08f535a72fb2c92ec16332c64"\
     "s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba"
 ret_code=$?
