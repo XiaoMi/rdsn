@@ -108,42 +108,52 @@ cd $TP_SRC
 
 # concurrent queue
 # from: https://codeload.github.com/cameron314/concurrentqueue/tar.gz/v1.0.0-beta
-check_and_download "concurrentqueue-v1.0.0-beta.tar.gz"\
-    "${OSS_URL_PREFIX}/concurrentqueue-1.0.0-beta.tar.gz"\
+CONCURRENT_QUEUE_NAME=concurrentqueue-1.0.0-beta
+CONCURRENT_QUEUE_PKG=${CONCURRENT_QUEUE_NAME}.tar.gz
+check_and_download "${CONCURRENT_QUEUE_PKG}"\
+    "${OSS_URL_PREFIX}/${CONCURRENT_QUEUE_PKG}"\
     "761446e2392942aa342f437697ddb72e"\
-    "concurrentqueue-1.0.0-beta"
+    "${CONCURRENT_QUEUE_NAME}"
 exit_if_fail $?
 
 # googletest
 # from: https://codeload.github.com/google/googletest/tar.gz/release-1.8.0
-check_and_download "googletest-1.8.0.tar.gz"\
-    "${OSS_URL_PREFIX}/googletest-release-1.8.0.tar.gz"\
+GOOGLETEST_NAME=googletest-release-1.8.0
+GOOGLETEST_PKG=${GOOGLETEST_NAME}.tar.gz
+check_and_download "${GOOGLETEST_PKG}"\
+    "${OSS_URL_PREFIX}/${GOOGLETEST_PKG}"\
     "16877098823401d1bf2ed7891d7dce36"\
-    "googletest-release-1.8.0"
+    "${GOOGLETEST_NAME}"
 exit_if_fail $?
 
 # gperftools
 # from: https://github.com/gperftools/gperftools/releases/download/gperftools-2.7/gperftools-2.7.tar.gz
-check_and_download "gperftools-2.7.tar.gz"\
-    "${OSS_URL_PREFIX}/gperftools-2.7.tar.gz"\
+GPERFTOOLS_NAME=gperftools-2.7
+GPERFTOOLS_PKG=${GPERFTOOLS_NAME}.tar.gz
+check_and_download "${GPERFTOOLS_PKG}"\
+    "${OSS_URL_PREFIX}/${GPERFTOOLS_PKG}"\
     "c6a852a817e9160c79bdb2d3101b4601"\
-    "gperftools-2.7"
+    "${GPERFTOOLS_NAME}"
 exit_if_fail $?
 
 # rapidjson
 # from: https://codeload.github.com/Tencent/rapidjson/tar.gz/v1.1.0
-check_and_download "rapidjson-v1.1.0.tar.gz"\
-    "${OSS_URL_PREFIX}/rapidjson-1.1.0.tar.gz"\
+RAPIDJSON_NAME=rapidjson-1.1.0
+RAPIDJSON_PKG=${RAPIDJSON_NAME}.tar.gz
+check_and_download "${RAPIDJSON_PKG}"\
+    "${OSS_URL_PREFIX}/${RAPIDJSON_PKG}"\
     "badd12c511e081fec6c89c43a7027bce"\
-    "rapidjson-1.1.0"
+    "${RAPIDJSON_NAME}"
 exit_if_fail $?
 
 # thrift 0.9.3
 # from: http://archive.apache.org/dist/thrift/0.9.3/thrift-0.9.3.tar.gz
-check_and_download "thrift-0.9.3.tar.gz"\
-    "${OSS_URL_PREFIX}/thrift-0.9.3.tar.gz"\
+THRIFT_NAME=thrift-0.9.3
+THRIFT_PKG=${THRIFT_NAME}.tar.gz
+check_and_download "${THRIFT_PKG}"\
+    "${OSS_URL_PREFIX}/${THRIFT_PKG}"\
     "88d667a8ae870d5adeca8cb7d6795442"\
-    "thrift-0.9.3"
+    "${THRIFT_NAME}"
 ret_code=$?
 if [ $ret_code -eq 2 ]; then
     exit 2
@@ -160,26 +170,32 @@ fi
 
 # zookeeper c client
 # from: http://ftp.jaist.ac.jp/pub/apache/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz
-check_and_download "zookeeper-3.4.10.tar.gz"\
-    "${OSS_URL_PREFIX}/zookeeper-3.4.10.tar.gz"\
+ZOOKEEPER_NAME=zookeeper-3.4.10
+ZOOKEEPER_PKG=${ZOOKEEPER_NAME}.tar.gz
+check_and_download "${ZOOKEEPER_PKG}"\
+    "${OSS_URL_PREFIX}/${ZOOKEEPER_PKG}"\
     "e4cf1b1593ca870bf1c7a75188f09678"\
-    "zookeeper-3.4.10"
+    "${ZOOKEEPER_NAME}"
 exit_if_fail $?
 
 # libevent
 # from: https://github.com/libevent/libevent/archive/release-2.1.8-stable.tar.gz
-check_and_download "libevent-2.1.8.tar.gz"\
-    "${OSS_URL_PREFIX}/libevent-release-2.1.8-stable.tar.gz"\
+LIBEVENT_NAME=libevent-release-2.1.8-stable
+LIBEVENT_PKG=${LIBEVENT_NAME}.tar.gz
+check_and_download "${LIBEVENT_PKG}"\
+    "${OSS_URL_PREFIX}/${LIBEVENT_PKG}"\
     "80f8652e4b08d2ec86a5f5eb46b74510"\
-    "libevent-release-2.1.8-stable"
+    "${LIBEVENT_NAME}"
 exit_if_fail $?
 
 # poco 1.7.8
 # from: https://codeload.github.com/pocoproject/poco/tar.gz/poco-1.7.8-release
-check_and_download "poco-1.7.8.tar.gz"\
-    "${OSS_URL_PREFIX}/poco-poco-1.7.8-release.tar.gz"\
+POCO_NAME=poco-poco-1.7.8-release
+POCO_PKG=${POCO_NAME}.tar.gz
+check_and_download "${POCO_PKG}"\
+    "${OSS_URL_PREFIX}/${POCO_PKG}"\
     "4dbf02e14b9f20940ca0e8c70d8f6036"\
-    "poco-poco-1.7.8-release"
+    "${POCO_NAME}"
 exit_if_fail $?
 
 # fds
@@ -197,26 +213,33 @@ fi
 
 # fmtlib
 # from: https://codeload.github.com/fmtlib/fmt/tar.gz/4.0.0
-check_and_download "fmt-4.0.0.tar.gz"\
-    "${OSS_URL_PREFIX}/fmt-4.0.0.tar.gz"\
+FMTLIB_NAME=fmt-4.0.0
+FMTLIB_PKG=${FMTLIB_NAME}.tar.gz
+check_and_download "${FMTLIB_PKG}"\
+    "${OSS_URL_PREFIX}/${FMTLIB_PKG}"\
     "c9be9a37bc85493d1116b0af59a25eba"\
-    "fmt-4.0.0"
+    "${FMTLIB_NAME}"
 exit_if_fail $?
 
 # gflags
 # from: https://github.com/gflags/gflags/archive/v2.2.1.zip
-check_and_download "gflags-2.2.1.zip"\
-    "${OSS_URL_PREFIX}/gflags-2.2.1.zip"\
+GFLAGS_NAME=gflags-2.2.1
+GFLAGS_PKG=${GFLAGS_NAME}.zip
+check_and_download "${GFLAGS_PKG}"\
+    "${OSS_URL_PREFIX}/${GFLAGS_PKG}"\
     "2d988ef0b50939fb50ada965dafce96b"\
-    "gflags-2.2.1"
+    "${GFLAGS_NAME}"
 exit_if_fail $?
 
 # s2geometry
 # from: https://github.com/google/s2geometry/archive/0239455c1e260d6d2c843649385b4fb9f5b28dba.zip
-check_and_download "s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba.zip"\
-    "${OSS_URL_PREFIX}/s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba.zip"\
-    "bfa5f1c08f535a72fb2c92ec16332c64"\
-    "s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba"
+S2GEOMETRY_NAME=s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba
+S2GEOMETRY_PKG=${S2GEOMETRY_NAME}.zip
+check_and_download "${S2GEOMETRY_PKG}" \
+    "${OSS_URL_PREFIX}/${S2GEOMETRY_PKG}" \
+    "bfa5f1c08f535a72fb2c92ec16332c64" \
+    "${S2GEOMETRY_NAME}"
+
 ret_code=$?
 if [ $ret_code -eq 2 ]; then
     exit 2
