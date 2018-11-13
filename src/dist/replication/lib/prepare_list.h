@@ -46,7 +46,7 @@ enum commit_type
 // The prefix of the prepared list up to a `committed point` is regarded as committed.
 // The prepare_list only stores the most updated part (the uncommitted suffix) of prepared list,
 // say, the committed prefix will be truncated automatically.
-class prepare_list : public mutation_cache, replica_base
+class prepare_list : public mutation_cache, private replica_base
 {
 public:
     typedef std::function<void(mutation_ptr &)> mutation_committer;

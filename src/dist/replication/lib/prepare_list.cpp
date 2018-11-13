@@ -24,9 +24,9 @@
  * THE SOFTWARE.
  */
 
-#include <dsn/dist/fmt_logging.h>
-
 #include "prepare_list.h"
+
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
@@ -146,6 +146,7 @@ void prepare_list::commit(decree d, commit_type ct)
             last_bt = mu->data.header.ballot;
             _committer(mu);
         }
+
         return;
     }
     case COMMIT_TO_DECREE_SOFT: {
@@ -158,6 +159,7 @@ void prepare_list::commit(decree d, commit_type ct)
             } else
                 break;
         }
+
         return;
     }
     case COMMIT_ALL_READY: {
@@ -174,12 +176,14 @@ void prepare_list::commit(decree d, commit_type ct)
             count++;
             mu = mutation_cache::get_mutation_by_decree(_last_committed_decree + 1);
         }
+
         return;
     }
     default:
         dassert(false, "invalid commit type %d", (int)ct);
     }
-}
 
+    return;
+}
 } // namespace replication
 } // namespace dsn
