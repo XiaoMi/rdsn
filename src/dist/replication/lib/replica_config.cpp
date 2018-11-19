@@ -38,7 +38,9 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
+#include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/utility/string_conv.h>
 
 namespace dsn {
 namespace replication {
@@ -532,6 +534,7 @@ void replica::on_update_configuration_on_meta_server_reply(
 void replica::update_app_envs(const std::map<std::string, std::string> &envs)
 {
     if (_app) {
+        update_app_envs_internal(envs);
         _app->update_app_envs(envs);
     }
     for (const auto &kv : envs) {
@@ -539,7 +542,21 @@ void replica::update_app_envs(const std::map<std::string, std::string> &envs)
     }
 }
 
+void replica::update_app_envs_internal(const std::map<std::string, std::string> &envs)
+{
+    bool deny_client_write = false;
+    auto find = envs.find(replica_envs::DENY_CLIENT_WRITE);
+    if (find != envs.end() && buf2bool(find->second, deny_client_write)) {
+        if (deny_client_write != _deny_client_write) {
+            _deny_client_write = deny_client_write;
+            ddebug_replica("switch _deny_client_write to {}", _deny_client_write);
+        }
+    }
+}
+
 void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
+
+bool replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
 {
     if (_app) {
         _app->query_app_envs(envs);

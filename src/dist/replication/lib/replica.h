@@ -239,7 +239,9 @@ private:
     bool is_same_ballot_status_change_allowed(partition_status::type olds,
                                               partition_status::type news);
 
+    // return false when update fails or replica is going to be closed
     void update_app_envs(const std::map<std::string, std::string> &envs);
+    void update_app_envs_internal(const std::map<std::string, std::string> &envs);
     void query_app_envs(/*out*/ std::map<std::string, std::string> &envs);
 
     bool update_configuration(const partition_configuration &config);
@@ -384,6 +386,7 @@ private:
 
     bool _inactive_is_transient; // upgrade to P/S is allowed only iff true
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
+    volatile bool _deny_client_write = false;
 
     // duplication
     friend class replica_duplicator_manager;
