@@ -85,6 +85,7 @@ std::string replica_duplicator::to_string() const
     doc.AddMember("status", rapidjson::StringRef(duplication_status_to_string(_status)), alloc);
     doc.AddMember("remote", rapidjson::StringRef(_remote_cluster_address.data()), alloc);
     doc.AddMember("confirmed", _progress.confirmed_decree, alloc);
+    doc.AddMember("app", rapidjson::StringRef(_replica->get_app_info()->app_name.data()), alloc);
 
     rapidjson::StringBuffer sb;
     rapidjson::Writer<rapidjson::StringBuffer> writer(sb);

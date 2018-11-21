@@ -555,8 +555,6 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
 }
 
 void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
-
-bool replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
 {
     if (_app) {
         _app->query_app_envs(envs);
