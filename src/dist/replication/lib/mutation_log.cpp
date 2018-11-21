@@ -47,7 +47,8 @@ namespace replication {
                                             dsn::task_code callback_code,
                                             dsn::task_tracker *tracker,
                                             aio_handler &&callback,
-                                            int hash)
+                                            int hash,
+                                            int64_t *pending_size)
 {
     auto d = mu->data.header.decree;
     ::dsn::aio_task_ptr cb =
@@ -83,7 +84,13 @@ namespace replication {
     // start to write if possible
     if (!_is_writing.load(std::memory_order_acquire)) {
         write_pending_mutations(true);
+        if (pending_size) {
+            *pending_size = 0;
+        }
     } else {
+        if (pending_size) {
+            *pending_size = _pending_write->size();
+        }
         _slock.unlock();
     }
     return cb;
@@ -176,6 +183,10 @@ void mutation_log_shared::write_pending_mutations(bool release_lock_required)
                     // FIXME : the file could have been closed
                     lf->flush();
                 }
+
+                if (_write_size_counter) {
+                    (*_write_size_counter)->add(sz);
+                }
             } else {
                 derror("write shared log failed, err = %s", err.to_string());
             }
@@ -211,7 +222,8 @@ void mutation_log_shared::write_pending_mutations(bool release_lock_required)
                                              dsn::task_code callback_code,
                                              dsn::task_tracker *tracker,
                                              aio_handler &&callback,
-                                             int hash)
+                                             int hash,
+                                             int64_t *pending_size)
 {
     dassert(nullptr == callback, "callback is not needed in private mutation log");
 
@@ -243,7 +255,13 @@ void mutation_log_shared::write_pending_mutations(bool release_lock_required)
          static_cast<uint32_t>(_pending_write->data().size()) >= _batch_buffer_max_count ||
          flush_interval_expired())) {
         write_pending_mutations(true);
+        if (pending_size) {
+            *pending_size = 0;
+        }
     } else {
+        if (pending_size) {
+            *pending_size = _pending_write->size();
+        }
         _plock.unlock();
     }
 
