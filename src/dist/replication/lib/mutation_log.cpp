@@ -1086,7 +1086,7 @@ decree mutation_log::max_gced_decree(gpid gpid) const
 {
     dassert(_is_private, "");
 
-    decree result = 0;
+    decree result = invalid_decree;
     for (auto &log : _log_files) {
         auto it = log.second->previous_log_max_decrees().find(gpid);
         if (it != log.second->previous_log_max_decrees().end()) {

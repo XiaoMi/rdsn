@@ -57,14 +57,13 @@ public:
         { // no duplication
             learn_request req;
             req.last_committed_decree_in_app = 5;
-            req.max_gced_decree = 0;
+            req.max_gced_decree = 3;
 
             // local_committed_decree = 5
             _replica->_prepare_list->reset(5);
 
             ASSERT_EQ(_replica->get_learn_start_decree(req), 6);
         }
-
         { // duplicating
             _replica = create_duplicating_replica();
 
@@ -79,61 +78,47 @@ public:
             ASSERT_EQ(_replica->get_learn_start_decree(req), 0);
         }
 
-        { // duplicating
-            _replica = create_duplicating_replica();
+        struct TestData
+        {
+            decree learner_last_committed_decree;
+            decree learner_max_gced_decree;
+            decree learnee_local_committed_decree;
+            decree min_confirmed_decree;
 
-            learn_request req;
-            req.last_committed_decree_in_app = 5;
-            req.max_gced_decree = 0;
-
-            // local_committed_decree = 5
-            _replica->_prepare_list->reset(5);
-
-            // min_confirmed_decree = 3
-            auto dup = create_test_duplicator();
-            dup->update_progress(duplication_progress().set_confirmed_decree(3).set_last_decree(3));
-            add_dup(_replica.get(), std::move(dup));
-
+            decree wlearn_start_decree;
+        } tests[] = {
+            // min_confirmed_decree > max_gced_decree,
             // continue learning from committed decree
-            ASSERT_EQ(_replica->get_learn_start_decree(req), 6);
-        }
+            {5, 0, 5, 3, 6},
 
-        { // duplicating
-            _replica = create_duplicating_replica();
+            // plog dir is empty, learn from confirmed decree
+            {5, invalid_decree, 5, 3, 4},
 
-            learn_request req;
-            req.last_committed_decree_in_app = 5;
-            req.max_gced_decree = 3;
-
-            // local_committed_decree = 5
-            _replica->_prepare_list->reset(5);
-
-            // min_confirmed_decree = 3
-            auto dup = create_test_duplicator();
-            dup->update_progress(duplication_progress().set_confirmed_decree(3).set_last_decree(3));
-            add_dup(_replica.get(), std::move(dup));
-
+            // min_confirmed_decree == max_gced_decree
             // continue learning from committed decree
-            ASSERT_EQ(_replica->get_learn_start_decree(req), 6);
-        }
+            {5, 3, 5, 3, 6},
 
-        { // duplicating
+            // min_confirmed_decree < max_gced_decree,
+            // learn from confirmed decree
+            {5, 4, 5, 3, 4},
+        };
+
+        for (auto tt : tests) {
             _replica = create_duplicating_replica();
 
             learn_request req;
-            req.last_committed_decree_in_app = 5;
-            req.max_gced_decree = 4;
+            req.last_committed_decree_in_app = tt.learner_last_committed_decree;
+            req.max_gced_decree = tt.learner_max_gced_decree;
 
-            // local_committed_decree = 5
-            _replica->_prepare_list->reset(5);
+            _replica->_prepare_list->reset(tt.learnee_local_committed_decree);
 
-            // min_confirmed_decree = 3
             auto dup = create_test_duplicator();
-            dup->update_progress(duplication_progress().set_confirmed_decree(3).set_last_decree(3));
+            dup->update_progress(duplication_progress()
+                                     .set_confirmed_decree(tt.min_confirmed_decree)
+                                     .set_last_decree(tt.min_confirmed_decree));
             add_dup(_replica.get(), std::move(dup));
 
-            // start learning from confirmed_decree + 1
-            ASSERT_EQ(_replica->get_learn_start_decree(req), 4);
+            ASSERT_EQ(_replica->get_learn_start_decree(req), tt.wlearn_start_decree);
         }
     }
 };

@@ -241,9 +241,14 @@ decree replica::get_learn_start_decree(const learn_request &request)
     decree learn_start_decree = request.last_committed_decree_in_app + 1;
     decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
     if (min_confirmed_decree != invalid_decree) {
-        ddebug_replica("min_confirmed_decree={}", min_confirmed_decree);
+        ddebug_replica("min_confirmed_decree={}, learner's max_gced_decree",
+                       min_confirmed_decree,
+                       request.max_gced_decree);
     }
-    if (min_confirmed_decree + 1 <= request.max_gced_decree) {
+    // max_gced_decree == invalid_decree indicates that learner's plog directory is empty.
+    // In that case we should copy all unconfirmed mutations during duplication.
+    if (min_confirmed_decree + 1 <= request.max_gced_decree ||
+        request.max_gced_decree == invalid_decree) {
         if (min_confirmed_decree != invalid_decree) {
             // learner should include the mutations not confirmed by meta server
             // so as to prevent data loss during duplication.

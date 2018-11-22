@@ -312,6 +312,8 @@ public:
     // thread safe
     decree max_gced_decree(gpid gpid, int64_t valid_start_offset) const;
 
+    // Returns `invalid_decree` when plog directory is empty, maybe data corruption occurred
+    // and the entire directory was tagged ".err".
     // not thread-safe & private log only
     decree max_gced_decree(gpid gpid) const;
 
