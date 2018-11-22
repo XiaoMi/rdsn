@@ -67,6 +67,21 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     if (_status == duplication_status::DS_START) {
         start();
     }
+
+    // update pending_duplicate_count periodically
+    _pending_duplicate_count.init_app_counter(
+        "eon.replica",
+        fmt::format("pending.duplicate.count@{}", get_gpid()).c_str(),
+        COUNTER_TYPE_NUMBER,
+        "number of mutations pending for duplication");
+    tasking::enqueue_timer(LPC_REPLICATION_LOW,
+                           tracker(),
+                           [this, r]() {
+                               _pending_duplicate_count->set(r->last_committed_decree() -
+                                                             _progress.confirmed_decree);
+                           },
+                           10_s,
+                           get_gpid().thread_hash());
 }
 
 void replica_duplicator::start()

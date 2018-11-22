@@ -123,6 +123,8 @@ private:
     const dupid_t _id;
     const std::string _remote_cluster_address;
 
+    perf_counter_wrapper _pending_duplicate_count;
+
     replica *_replica;
     dsn::task_tracker _tracker;
 

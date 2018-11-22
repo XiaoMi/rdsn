@@ -241,7 +241,7 @@ decree replica::get_learn_start_decree(const learn_request &request)
     decree learn_start_decree = request.last_committed_decree_in_app + 1;
     decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
     if (min_confirmed_decree != invalid_decree) {
-        ddebug_replica("min_confirmed_decree={}, learner's max_gced_decree",
+        ddebug_replica("min_confirmed_decree={}, learner's max_gced_decree={}",
                        min_confirmed_decree,
                        request.max_gced_decree);
     }
