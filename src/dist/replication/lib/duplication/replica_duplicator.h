@@ -124,6 +124,7 @@ private:
     const std::string _remote_cluster_address;
 
     perf_counter_wrapper _pending_duplicate_count;
+    task_ptr _pending_duplicate_count_timer;
 
     replica *_replica;
     dsn::task_tracker _tracker;
