@@ -155,7 +155,7 @@ struct load_from_private_log_test : public replica_test_base
         // start duplication from a compacted plog dir.
         // first log file is log.2.xxx
         {
-            for (int i = 0; i < 50 * 1000; i++) {
+            for (int i = 0; i < 100 * 1000; i++) {
                 std::string msg = "hello!";
                 mutations.push_back(msg);
                 mutation_ptr mu = create_test_mutation(39000 + i, msg);
