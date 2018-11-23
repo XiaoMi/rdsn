@@ -110,7 +110,6 @@ public:
     // to ensure mutation logs after start_decree is available for duplication
     error_s verify_start_decree(decree start_decree);
 
-private:
     decree get_max_gced_decree() const;
 
 private:

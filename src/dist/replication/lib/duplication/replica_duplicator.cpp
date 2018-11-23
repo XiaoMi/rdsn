@@ -52,6 +52,10 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
         _progress.last_decree = get_max_gced_decree();
     }
 
+    ddebug_replica("duplication started from progress [last_decree: {}, confirmed_decree: {}]",
+                   _progress.last_decree,
+                   _progress.confirmed_decree);
+
     /// ===== pipeline declaration ===== ///
 
     thread_pool(LPC_REPLICATION_LOW).task_tracker(tracker()).thread_hash(get_gpid().thread_hash());
@@ -64,10 +68,6 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     from(*_load).link(*_ship).link(*_load);
     fork(*_load_private, LPC_REPLICATION_LONG_LOW, 0).link(*_ship);
 
-    if (_status == duplication_status::DS_START) {
-        start();
-    }
-
     // update pending_duplicate_count periodically
     _pending_duplicate_count.init_app_counter(
         "eon.replica",
@@ -76,12 +76,16 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
         "number of mutations pending for duplication");
     _pending_duplicate_count_timer = tasking::enqueue_timer(
         LPC_REPLICATION_LOW,
-        tracker(),
+        nullptr, // cancel it manually
         [this, r]() {
             _pending_duplicate_count->set(r->last_committed_decree() - _progress.confirmed_decree);
         },
         10_s,
         get_gpid().thread_hash());
+
+    if (_status == duplication_status::DS_START) {
+        start();
+    }
 }
 
 void replica_duplicator::start()
@@ -175,8 +179,7 @@ error_s replica_duplicator::verify_start_decree(decree start_decree)
 
 decree replica_duplicator::get_max_gced_decree() const
 {
-    return _replica->private_log()->max_gced_decree(
-        _replica->get_gpid(), _replica->get_app()->init_info().init_offset_in_private_log);
+    return _replica->private_log()->max_gced_decree(_replica->get_gpid());
 }
 
 } // namespace replication

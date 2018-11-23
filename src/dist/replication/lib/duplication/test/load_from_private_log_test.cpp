@@ -141,6 +141,48 @@ struct load_from_private_log_test : public replica_test_base
         return loaded_mutations;
     }
 
+    void test_restart_duplication()
+    {
+        load_from_private_log load(_replica.get(), duplicator.get());
+
+        std::vector<std::string> mutations;
+        int max_log_file_mb = 1;
+
+        mutation_log_ptr mlog = new mutation_log_private(
+            _replica->dir(), max_log_file_mb, _replica->get_gpid(), nullptr, 1024, 512, 10000);
+        EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
+
+        // start duplication from a compacted plog dir.
+        // first log file is log.2.xxx
+        {
+            for (int i = 0; i < 50 * 1000; i++) {
+                std::string msg = "hello!";
+                mutations.push_back(msg);
+                mutation_ptr mu = create_test_mutation(39000 + i, msg);
+                mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
+            }
+            mlog->tracker()->wait_outstanding_tasks();
+        }
+        boost::filesystem::remove(_log_dir + "/log.1.0");
+
+        decree max_gced_dercee = invalid_decree;
+        auto files = log_utils::list_all_files_or_die(_log_dir);
+        for (auto &log : log_utils::open_log_file_map(files)) {
+            auto it = log.second->previous_log_max_decrees().find(gpid(1, 1));
+            if (it != log.second->previous_log_max_decrees().end()) {
+                max_gced_dercee = it->second.max_decree;
+                break;
+            }
+        }
+
+        // new duplication, start_decree = max_gced_decree + 1
+        // ensure we can find the first file.
+        load.set_start_decree(max_gced_dercee + 1);
+        load.find_log_file_to_start(files);
+        ASSERT_TRUE(load._current);
+        ASSERT_EQ(load._current->index(), 2);
+    }
+
     std::unique_ptr<replica_duplicator> duplicator;
 };
 
@@ -164,11 +206,6 @@ TEST_F(load_from_private_log_test, start_duplication_10000_1MB)
 TEST_F(load_from_private_log_test, start_duplication_50000_1MB)
 {
     test_start_duplication(50000, 1);
-}
-
-TEST_F(load_from_private_log_test, start_duplication_100000_4MB)
-{
-    test_start_duplication(100000, 4);
 }
 
 // Ensure replica_duplicator can correctly handle real-world log file
@@ -206,6 +243,8 @@ TEST_F(load_from_private_log_test, handle_real_private_log)
         load_and_wait_all_entries_loaded(tt.puts, tt.total);
     }
 }
+
+TEST_F(load_from_private_log_test, restart_duplication) { test_restart_duplication(); }
 
 } // namespace replication
 } // namespace dsn
