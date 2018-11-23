@@ -86,10 +86,12 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
 
 void replica_duplicator::start()
 {
-    ddebug_replica("starting duplication {} [last_decree: {}, confirmed_decree: {}]",
-                   to_string(),
-                   _progress.last_decree,
-                   _progress.confirmed_decree);
+    ddebug_replica(
+        "starting duplication {} [last_decree: {}, confirmed_decree: {}, max_gced_decree: {}]",
+        to_string(),
+        _progress.last_decree,
+        _progress.confirmed_decree,
+        get_max_gced_decree());
     run_pipeline();
 }
 
