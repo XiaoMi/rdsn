@@ -1084,6 +1084,7 @@ decree mutation_log::max_gced_decree(gpid gpid, int64_t valid_start_offset) cons
 
 decree mutation_log::max_gced_decree(gpid gpid) const
 {
+    zauto_lock l(_lock);
     dassert(_is_private, "");
 
     decree result = invalid_decree;

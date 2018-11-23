@@ -51,6 +51,12 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
         // initiates from a newly added duplication
         _progress.last_decree = get_max_gced_decree();
     }
+    ddebug_replica(
+        "initialize duplication progress [local_last_decree:{}, meta_confirmed_decree: {}, "
+        "max_gced_decree:{}]",
+        _progress.last_decree,
+        it->second,
+        get_max_gced_decree());
 
     /// ===== pipeline declaration ===== ///
 
