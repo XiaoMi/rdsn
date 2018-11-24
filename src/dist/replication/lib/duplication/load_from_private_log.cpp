@@ -78,7 +78,7 @@ void load_from_private_log::run()
 
 void load_from_private_log::find_log_file_to_start()
 {
-    // the file set already excluded the useless log file during replica init.
+    // the file set already excluded the useless log files during replica init.
     auto file_map = _private_log->log_file_map();
 
     // reopen the files, because the internal file handle of private_log->log_file_map()

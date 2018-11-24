@@ -317,7 +317,7 @@ public:
     // not thread-safe & private log only
     decree max_gced_decree(gpid gpid) const;
 
-    std::map<int, log_file_ptr> log_file_map();
+    std::map<int, log_file_ptr> log_file_map() const;
 
     // check the consistence of valid_start_offset
     // thread safe

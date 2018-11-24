@@ -1792,7 +1792,7 @@ int mutation_log::garbage_collection(const replica_log_info_map &gc_condition,
     return reserved_log_count;
 }
 
-std::map<int, log_file_ptr> mutation_log::log_file_map()
+std::map<int, log_file_ptr> mutation_log::log_file_map() const
 {
     zauto_lock l(_lock);
     return _log_files;
