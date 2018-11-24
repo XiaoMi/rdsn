@@ -47,6 +47,8 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     auto it = ent.progress.find(get_gpid().get_partition_index());
     dassert_replica(it != ent.progress.end(), "");
     _progress.last_decree = _progress.confirmed_decree = it->second;
+    ddebug_replica(
+        "initialize replica_duplicator [dupid:{}, meta_confirmed_decree:{}]", id(), it->second);
 
     /// ===== pipeline declaration ===== ///
 
