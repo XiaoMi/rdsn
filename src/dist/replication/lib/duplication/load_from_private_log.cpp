@@ -50,12 +50,21 @@ void load_from_private_log::switch_to_next_log_file()
 
 void load_from_private_log::run()
 {
+    auto progress = _duplicator->progress();
+    if (progress.last_decree == invalid_decree) {
+        decree d = _duplicator->get_max_gced_decree();
+        _duplicator->update_progress(progress.set_confirmed_decree(d).set_confirmed_decree(d));
+        _start_decree = d + 1;
+        ddebug_replica("this newly added duplication [dupid:{}] will start from {}",
+                       _duplicator->id(),
+                       _start_decree);
+    }
+
     auto err = _duplicator->verify_start_decree(_start_decree);
     dassert_replica(err.is_ok(), err.description());
 
     if (_current == nullptr) {
-        std::vector<std::string> log_files = log_utils::list_all_files_or_die(_private_log->dir());
-        find_log_file_to_start(log_files);
+        find_log_file_to_start();
         if (_current == nullptr) {
             ddebug_replica("no private log file is currently available");
             // wait 10 seconds if no log available.
@@ -67,12 +76,24 @@ void load_from_private_log::run()
     load_from_log_file();
 }
 
-void load_from_private_log::find_log_file_to_start(const std::vector<std::string> &log_files)
+void load_from_private_log::find_log_file_to_start()
 {
-    if (log_files.empty()) {
-        return;
+    // the file set already excluded the useless log file during replica init.
+    auto file_map = _private_log->log_file_map();
+
+    // reopen the files, because the internal file handle of private_log->log_file_map()
+    // is cleared and unable to be used for us.
+    std::map<int, log_file_ptr> new_file_map;
+    for (auto pr : file_map) {
+        log_file_ptr file = log_utils::open_read_or_die(pr.second->path());
+        new_file_map.emplace(pr.first, file);
     }
-    std::map<int, log_file_ptr> log_file_map = log_utils::open_log_file_map(log_files);
+
+    find_log_file_to_start(new_file_map);
+}
+
+void load_from_private_log::find_log_file_to_start(std::map<int, log_file_ptr> log_file_map)
+{
     if (dsn_unlikely(log_file_map.empty())) {
         derror_replica("unable to start duplication since no log file is available");
         return;

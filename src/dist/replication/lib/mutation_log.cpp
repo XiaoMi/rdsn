@@ -1197,7 +1197,10 @@ void mutation_log::update_max_decree_no_lock(gpid gpid, decree d)
             dassert(false, "replica has not been registered in the log before");
         }
     } else {
-        dassert(gpid == _private_gpid, "replica gpid does not match");
+        dassert(gpid == _private_gpid,
+                "replica gpid does not match [%s vs %s]",
+                gpid.to_string(),
+                _private_gpid.to_string());
         if (d > _private_log_info.max_decree) {
             _private_log_info.max_decree = d;
         }
@@ -1789,6 +1792,12 @@ int mutation_log::garbage_collection(const replica_log_info_map &gc_condition,
     return reserved_log_count;
 }
 
+std::map<int, log_file_ptr> mutation_log::log_file_map()
+{
+    zauto_lock l(_lock);
+    return _log_files;
+}
+
 // log_file::file_streamer
 class log_file::file_streamer
 {
@@ -2103,7 +2112,7 @@ void log_file::flush() const
 
 error_code log_file::read_next_log_block(/*out*/ ::dsn::blob &bb)
 {
-    dassert(_is_read, "log file must be of read mode");
+    dassert(_is_read, "log file must be in read mode");
     auto err = _stream->read_next(sizeof(log_block_header), bb);
     if (err != ERR_OK || bb.length() != sizeof(log_block_header)) {
         if (err == ERR_OK || err == ERR_HANDLE_EOF) {

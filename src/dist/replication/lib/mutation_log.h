@@ -317,6 +317,8 @@ public:
     // not thread-safe & private log only
     decree max_gced_decree(gpid gpid) const;
 
+    std::map<int, log_file_ptr> log_file_map();
+
     // check the consistence of valid_start_offset
     // thread safe
     void check_valid_start_offset(gpid gpid, int64_t valid_start_offset) const;
@@ -672,6 +674,8 @@ public:
     // set & get last write time, used for gc
     void set_last_write_time(uint64_t last_write_time) { _last_write_time = last_write_time; }
     uint64_t last_write_time() const { return _last_write_time; }
+
+    const disk_file *file_handle() const { return _handle; }
 
 private:
     // make private, user should create log_file through open_read() or open_write()

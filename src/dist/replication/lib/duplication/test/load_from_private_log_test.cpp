@@ -68,7 +68,7 @@ struct load_from_private_log_test : public replica_test_base
             mlog->tracker()->wait_outstanding_tasks();
         }
 
-        auto files = log_utils::list_all_files_or_die(_log_dir);
+        auto files = log_utils::open_log_file_map(log_utils::list_all_files_or_die(_log_dir));
 
         load.set_start_decree(1);
         load.find_log_file_to_start(files);
@@ -80,8 +80,7 @@ struct load_from_private_log_test : public replica_test_base
         ASSERT_TRUE(load._current);
         ASSERT_EQ(load._current->index(), 1);
 
-        std::map<int, log_file_ptr> log_file_map = log_utils::open_log_file_map(files);
-        int last_idx = log_file_map.rbegin()->first;
+        int last_idx = files.rbegin()->first;
         load.set_start_decree(1000 * 50 + 200);
         load.find_log_file_to_start(files);
         ASSERT_TRUE(load._current);
@@ -95,7 +94,6 @@ struct load_from_private_log_test : public replica_test_base
         mutation_log_ptr mlog = new mutation_log_private(
             _replica->dir(), private_log_size_mb, _replica->get_gpid(), nullptr, 1024, 512, 50000);
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
-        _replica->init_private_log(mlog);
 
         {
             for (int i = 1; i <= num_entries; i++) {
@@ -116,6 +114,19 @@ struct load_from_private_log_test : public replica_test_base
 
     mutation_tuple_set load_and_wait_all_entries_loaded(int total, int last_decree)
     {
+        return load_and_wait_all_entries_loaded(total, last_decree, _replica->get_gpid());
+    }
+    mutation_tuple_set load_and_wait_all_entries_loaded(int total, int last_decree, gpid id)
+    {
+        mutation_log::replay_callback cb = [](int, mutation_ptr &) { return true; };
+        mutation_log_ptr mlog =
+            new mutation_log_private(_replica->dir(), 4, id, nullptr, 1024, 512, 50000);
+        EXPECT_EQ(mlog->open(cb, nullptr), ERR_OK);
+        for (auto pr : mlog->log_file_map()) {
+            EXPECT_TRUE(pr.second->file_handle() == nullptr);
+        }
+        _replica->init_private_log(mlog);
+
         load_from_private_log load(_replica.get(), duplicator.get());
         load.set_start_decree(1);
 
@@ -168,7 +179,7 @@ struct load_from_private_log_test : public replica_test_base
         decree max_gced_dercee = invalid_decree;
         auto files = log_utils::list_all_files_or_die(_log_dir);
         for (auto &log : log_utils::open_log_file_map(files)) {
-            auto it = log.second->previous_log_max_decrees().find(gpid(1, 1));
+            auto it = log.second->previous_log_max_decrees().find(_replica->get_gpid());
             if (it != log.second->previous_log_max_decrees().end()) {
                 max_gced_dercee = it->second.max_decree;
                 break;
@@ -178,7 +189,7 @@ struct load_from_private_log_test : public replica_test_base
         // new duplication, start_decree = max_gced_decree + 1
         // ensure we can find the first file.
         load.set_start_decree(max_gced_dercee + 1);
-        load.find_log_file_to_start(files);
+        load.find_log_file_to_start(log_utils::open_log_file_map(files));
         ASSERT_TRUE(load._current);
         ASSERT_EQ(load._current->index(), 2);
     }
@@ -216,15 +227,16 @@ TEST_F(load_from_private_log_test, handle_real_private_log)
         std::string fname;
         int puts;
         int total;
+        gpid id;
     } tests[] = {
         // PUT, PUT, PUT, EMPTY, PUT, EMPTY, EMPTY
-        {"log.1.0.handle_real_private_log", 4, 6},
+        {"log.1.0.handle_real_private_log", 4, 6, gpid(1, 4)},
 
         // EMPTY, PUT, EMPTY
-        {"log.1.0.handle_real_private_log2", 1, 2},
+        {"log.1.0.handle_real_private_log2", 1, 2, gpid(1, 4)},
 
         // EMPTY, EMPTY, EMPTY
-        {"log.1.0.all_loaded_are_write_empties", 0, 2},
+        {"log.1.0.all_loaded_are_write_empties", 0, 2, gpid(1, 5)},
     };
 
     for (auto tt : tests) {
@@ -234,13 +246,13 @@ TEST_F(load_from_private_log_test, handle_real_private_log)
 
         {
             // load log.1.0
-            mutation_log_ptr mlog = new mutation_log_private(
-                _replica->dir(), 4, _replica->get_gpid(), nullptr, 1024, 512, 10000);
+            mutation_log_ptr mlog =
+                new mutation_log_private(_replica->dir(), 4, tt.id, nullptr, 1024, 512, 10000);
             _replica->init_private_log(mlog);
             mlog->update_max_commit_on_disk(1);
         }
 
-        load_and_wait_all_entries_loaded(tt.puts, tt.total);
+        load_and_wait_all_entries_loaded(tt.puts, tt.total, tt.id);
     }
 }
 

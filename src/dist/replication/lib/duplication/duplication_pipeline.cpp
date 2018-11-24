@@ -56,10 +56,7 @@ load_mutation::~load_mutation() = default;
 load_mutation::load_mutation(replica_duplicator *duplicator,
                              replica *r,
                              load_from_private_log *load_private)
-    : replica_base(r),
-      _log_on_disk(load_private),
-      _replica(r),
-      _duplicator(duplicator)
+    : replica_base(r), _log_on_disk(load_private), _replica(r), _duplicator(duplicator)
 {
 }
 

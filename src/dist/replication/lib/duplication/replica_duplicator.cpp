@@ -47,16 +47,6 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     auto it = ent.progress.find(get_gpid().get_partition_index());
     dassert_replica(it != ent.progress.end(), "");
     _progress.last_decree = _progress.confirmed_decree = it->second;
-    if (it->second == invalid_decree) {
-        // initiates from a newly added duplication
-        _progress.last_decree = get_max_gced_decree();
-    }
-    ddebug_replica(
-        "initialize duplication progress [local_last_decree:{}, meta_confirmed_decree: {}, "
-        "max_gced_decree:{}]",
-        _progress.last_decree,
-        it->second,
-        get_max_gced_decree());
 
     /// ===== pipeline declaration ===== ///
 
