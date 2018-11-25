@@ -161,7 +161,7 @@ struct load_from_private_log_test : public replica_test_base
             mutation_log_ptr mlog = create_private_log();
             for (int i = 0; i < 100; i++) {
                 std::string msg = "hello!";
-                mutation_ptr mu = create_test_mutation(39000 +100*f+ i, msg);
+                mutation_ptr mu = create_test_mutation(39000 + 100 * f + i, msg);
                 mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
             }
             mlog->tracker()->wait_outstanding_tasks();
@@ -202,7 +202,7 @@ struct load_from_private_log_test : public replica_test_base
             mutation_log_ptr mlog = create_private_log();
             for (int i = 0; i < 100; i++) {
                 std::string msg = "hello!";
-                mutation_ptr mu = create_test_mutation(38000 + 100*f+i, msg);
+                mutation_ptr mu = create_test_mutation(38000 + 100 * f + i, msg);
                 mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
             }
             mlog->tracker()->wait_outstanding_tasks();
@@ -221,7 +221,7 @@ struct load_from_private_log_test : public replica_test_base
                 mutation_log_ptr mlog = create_private_log();
                 for (int i = 0; i < 100; i++) {
                     std::string msg = "hello!";
-                    mutation_ptr mu = create_test_mutation(39000 + 100*f+ i, msg);
+                    mutation_ptr mu = create_test_mutation(39000 + 100 * f + i, msg);
                     mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
                 }
                 mlog->tracker()->wait_outstanding_tasks();

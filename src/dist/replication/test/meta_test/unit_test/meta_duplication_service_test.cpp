@@ -555,17 +555,36 @@ TEST_F(meta_duplication_service_test, re_add_duplication)
     auto app = find_app(test_app);
 
     auto test_dup = create_dup(test_app);
+    ASSERT_EQ(test_dup.err, ERR_OK);
+    ASSERT_TRUE(app->duplications[test_dup.dupid] != nullptr);
     auto resp = change_dup_status(test_app, test_dup.dupid, duplication_status::DS_REMOVED);
     ASSERT_EQ(resp.err, ERR_OK);
+    ASSERT_TRUE(app->duplications.find(test_dup.dupid) == app->duplications.end());
+
+    sleep(1);
 
     auto test_dup_2 = create_dup(test_app);
     ASSERT_EQ(test_dup_2.appid, app->app_id);
     ASSERT_EQ(test_dup_2.err, ERR_OK);
 
+    // once duplication is removed, all its state is not valid anymore.
+    ASSERT_EQ(app->duplications.size(), 1);
+    ASSERT_NE(test_dup.dupid, test_dup_2.dupid);
+
     auto dup_list = query_dup_info(test_app).entry_list;
     ASSERT_EQ(dup_list.size(), 1);
     ASSERT_EQ(dup_list.begin()->status, duplication_status::DS_START);
     ASSERT_EQ(dup_list.begin()->dupid, test_dup_2.dupid);
+
+    // reset meta server states
+    _ss.reset();
+    _ms.reset(nullptr);
+    SetUp();
+
+    recover_from_meta_state();
+    app = find_app(test_app);
+    ASSERT_TRUE(app->duplications.find(test_dup.dupid) == app->duplications.end());
+    ASSERT_EQ(app->duplications.size(), 1);
 }
 
 } // namespace replication
