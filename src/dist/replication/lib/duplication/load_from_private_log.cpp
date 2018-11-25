@@ -101,13 +101,6 @@ void load_from_private_log::find_log_file_to_start(std::map<int, log_file_ptr> l
 
     // ensure start decree is not compacted
     auto begin = log_file_map.begin();
-    decree first_log_decree = begin->second->previous_log_max_decree(get_gpid()) + 1;
-    dassert_replica(
-        first_log_decree <= _start_decree,
-        "log file containing decree({}) is possibly be compacted [first log decree: {}]",
-        _start_decree,
-        first_log_decree);
-
     for (auto it = begin; it != log_file_map.end(); it++) {
         auto next_it = std::next(it);
         if (next_it == log_file_map.end()) {
