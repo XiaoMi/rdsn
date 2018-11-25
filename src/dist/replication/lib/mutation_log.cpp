@@ -1085,13 +1085,22 @@ decree mutation_log::max_gced_decree(gpid gpid, int64_t valid_start_offset) cons
 decree mutation_log::max_gced_decree(gpid gpid) const
 {
     zauto_lock l(_lock);
+    return max_gced_decree_no_lock(gpid);
+}
+
+decree mutation_log::max_gced_decree_no_lock(gpid gpid) const
+{
     dassert(_is_private, "");
 
     decree result = invalid_decree;
     for (auto &log : _log_files) {
         auto it = log.second->previous_log_max_decrees().find(gpid);
         if (it != log.second->previous_log_max_decrees().end()) {
-            return it->second.max_decree;
+            if (result == invalid_decree) {
+                result = it->second.max_decree;
+            } else {
+                result = std::min(result, it->second.max_decree);
+            }
         }
     }
     return result;
