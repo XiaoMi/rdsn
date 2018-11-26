@@ -24,49 +24,41 @@
  * THE SOFTWARE.
  */
 
-#pragma once
+#include "duplication_test_base.h"
 
-#include <dsn/dist/replication/mutation_duplicator.h>
-
-#include "dist/replication/lib/prepare_list.h"
+#include "dist/replication/lib/duplication/mutation_batch.h"
 
 namespace dsn {
 namespace replication {
 
-class replica_duplicator;
-
-// A sorted array of committed mutations that are ready for duplication.
-// Not thread-safe.
-struct mutation_batch
+struct mutation_batch_test : public replica_test_base
 {
-    static constexpr int64_t PREPARE_LIST_NUM_ENTRIES{200};
-
-    explicit mutation_batch(replica_duplicator *r);
-
-    error_s add(mutation_ptr mu);
-
-    bool empty() const { return _loaded_mutations.empty(); }
-
-    mutation_tuple_set move_all_mutations();
-
-    decree last_decree() const { return _mutation_buffer->last_committed_decree(); }
-
-    // mutations with decree < d will be ignored.
-    void set_start_decree(decree d) { _start_decree = d; }
-
-private:
-    friend struct replica_duplicator_test;
-    friend struct load_mutation_test;
-
-    std::unique_ptr<prepare_list> _mutation_buffer;
-    mutation_tuple_set _loaded_mutations;
-    decree _start_decree{invalid_decree};
 };
 
-using mutation_batch_u_ptr = std::unique_ptr<mutation_batch>;
+TEST_F(mutation_batch_test, add_mutation_if_valid)
+{
+    mutation_tuple_set result;
 
-/// Extract mutations into mutation_tuple_set if they are not WRITE_EMPTY.
-extern void add_mutation_if_valid(mutation_ptr &, mutation_tuple_set &, decree start_decree);
+    std::string s = "hello";
+    mutation_ptr mu1 = create_test_mutation(1, s);
+    add_mutation_if_valid(mu1, result, 0);
+    mutation_tuple mt1 = *result.begin();
+
+    result.clear();
+
+    s = "world";
+    mutation_ptr mu2 = create_test_mutation(2, s);
+    add_mutation_if_valid(mu2, result, 0);
+    mutation_tuple mt2 = *result.begin();
+
+    ASSERT_EQ(std::get<2>(mt1).to_string(), "hello");
+    ASSERT_EQ(std::get<2>(mt2).to_string(), "world");
+
+    // decree 1 should be ignored
+    mutation_ptr mu3 = create_test_mutation(1, s);
+    add_mutation_if_valid(mu2, result, 2);
+    ASSERT_EQ(result.size(), 2);
+}
 
 } // namespace replication
 } // namespace dsn

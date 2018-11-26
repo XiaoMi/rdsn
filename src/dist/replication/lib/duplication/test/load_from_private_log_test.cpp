@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include <fmt/format.h>
+#include <dsn/dist/fmt_logging.h>
 
 #define BOOST_NO_CXX11_SCOPED_ENUMS
 #include <boost/filesystem/operations.hpp>
@@ -114,11 +114,18 @@ struct load_from_private_log_test : public replica_test_base
         load_and_wait_all_entries_loaded(num_entries, num_entries);
     }
 
+    mutation_tuple_set
+    load_and_wait_all_entries_loaded(int total, int last_decree, decree start_decree)
+    {
+        return load_and_wait_all_entries_loaded(
+            total, last_decree, _replica->get_gpid(), start_decree);
+    }
     mutation_tuple_set load_and_wait_all_entries_loaded(int total, int last_decree)
     {
-        return load_and_wait_all_entries_loaded(total, last_decree, _replica->get_gpid());
+        return load_and_wait_all_entries_loaded(total, last_decree, _replica->get_gpid(), 1);
     }
-    mutation_tuple_set load_and_wait_all_entries_loaded(int total, int last_decree, gpid id)
+    mutation_tuple_set
+    load_and_wait_all_entries_loaded(int total, int last_decree, gpid id, decree start_decree)
     {
         mutation_log_ptr mlog = create_private_log(id);
         for (auto pr : mlog->log_file_map()) {
@@ -127,7 +134,7 @@ struct load_from_private_log_test : public replica_test_base
         _replica->init_private_log(mlog);
 
         load_from_private_log load(_replica.get(), duplicator.get());
-        load.set_start_decree(1);
+        load.set_start_decree(start_decree);
 
         mutation_tuple_set loaded_mutations;
         pipeline::do_when<decree, mutation_tuple_set> end_stage(
@@ -313,13 +320,38 @@ TEST_F(load_from_private_log_test, handle_real_private_log)
             mlog->update_max_commit_on_disk(1);
         }
 
-        load_and_wait_all_entries_loaded(tt.puts, tt.total, tt.id);
+        load_and_wait_all_entries_loaded(tt.puts, tt.total, tt.id, 1);
     }
 }
 
 TEST_F(load_from_private_log_test, restart_duplication) { test_restart_duplication(); }
 
 TEST_F(load_from_private_log_test, restart_duplication2) { test_restart_duplication2(); }
+
+TEST_F(load_from_private_log_test, ignore_useless)
+{
+    mutation_log_ptr mlog = create_private_log();
+
+    int num_entries = 100;
+    for (int i = 1; i <= num_entries; i++) {
+        std::string msg = "hello!";
+        mutation_ptr mu = create_test_mutation(i, msg);
+        mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
+    }
+
+    // commit the last entry
+    mutation_ptr mu = create_test_mutation(1 + num_entries, "hello!");
+    mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
+    mlog->tracker()->wait_outstanding_tasks();
+
+    // starts from 51
+    mutation_tuple_set result = load_and_wait_all_entries_loaded(50, 100, 51);
+    ASSERT_EQ(result.size(), 50);
+
+    // starts from 100
+    result = load_and_wait_all_entries_loaded(1, 100, 100);
+    ASSERT_EQ(result.size(), 1);
+}
 
 } // namespace replication
 } // namespace dsn

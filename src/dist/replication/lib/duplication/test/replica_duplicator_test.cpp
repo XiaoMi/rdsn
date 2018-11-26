@@ -117,25 +117,5 @@ TEST_F(replica_duplicator_test, duplication_progress)
     ASSERT_EQ(duplicator->progress().last_decree, 10);
 }
 
-TEST_F(replica_duplicator_test, add_mutation_if_valid)
-{
-    mutation_tuple_set result;
-
-    std::string s = "hello";
-    mutation_ptr mu1 = create_test_mutation(1, s);
-    add_mutation_if_valid(mu1, result);
-    mutation_tuple mt1 = *result.begin();
-
-    result.clear();
-
-    s = "world";
-    mutation_ptr mu2 = create_test_mutation(2, s);
-    add_mutation_if_valid(mu2, result);
-    mutation_tuple mt2 = *result.begin();
-
-    ASSERT_EQ(std::get<2>(mt1).to_string(), "hello");
-    ASSERT_EQ(std::get<2>(mt2).to_string(), "world");
-}
-
 } // namespace replication
 } // namespace dsn

@@ -74,15 +74,19 @@ mutation_batch::mutation_batch(replica_duplicator *r)
     _mutation_buffer =
         make_unique<prepare_list>(&base, 0, PREPARE_LIST_NUM_ENTRIES, [this](mutation_ptr &mu) {
             // committer
-            add_mutation_if_valid(mu, _loaded_mutations);
+            add_mutation_if_valid(mu, _loaded_mutations, _start_decree);
         });
 
     // start duplication from confirmed_decree
     _mutation_buffer->reset(r->progress().confirmed_decree);
 }
 
-/*extern*/ void add_mutation_if_valid(mutation_ptr &mu, mutation_tuple_set &mutations)
+/*extern*/ void add_mutation_if_valid(mutation_ptr &mu, mutation_tuple_set &mutations, decree start_decree)
 {
+    if(mu->get_decree() < start_decree) {
+        // ignore
+        return;
+    }
     for (mutation_update &update : mu->data.updates) {
         // ignore WRITE_EMPTY (heartbeat)
         if (update.code == RPC_REPLICATION_WRITE_EMPTY) {
