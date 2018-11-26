@@ -162,6 +162,10 @@ public:
     // routine for get extra envs from replica
     const std::map<std::string, std::string> &get_replica_extra_envs() const { return _extra_envs; }
 
+protected:
+    // this method is marked protected to enable us to mock it in unit tests.
+    virtual decree max_gced_decree() const;
+
 private:
     // common helpers
     void init_state();

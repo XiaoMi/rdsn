@@ -51,8 +51,6 @@ struct mutation_batch
 
     decree last_decree() const { return _mutation_buffer->last_committed_decree(); }
 
-    void reset(decree d);
-
 private:
     friend struct replica_duplicator_test;
     friend struct load_mutation_test;

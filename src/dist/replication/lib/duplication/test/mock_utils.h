@@ -91,6 +91,19 @@ public:
     replica_duplicator_manager &get_replica_duplicator_manager() { return *_duplication_mgr; }
 
     void as_primary() { _config.status = partition_status::PS_PRIMARY; }
+
+    void set_max_gced_decree(decree d) { _max_gced_decree = d; }
+
+    decree max_gced_decree() const override
+    {
+        if (_max_gced_decree == invalid_decree - 1) {
+            return replica::max_gced_decree();
+        }
+        return _max_gced_decree;
+    }
+
+private:
+    decree _max_gced_decree{invalid_decree - 1};
 };
 
 inline std::unique_ptr<mock_replica> create_mock_replica(replica_stub *stub,
