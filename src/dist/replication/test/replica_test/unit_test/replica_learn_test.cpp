@@ -60,6 +60,7 @@ public:
             req.max_gced_decree = 3;
 
             // local_committed_decree = 5
+            _replica->set_max_gced_decree(0);
             _replica->_prepare_list->reset(5);
 
             ASSERT_EQ(_replica->get_learn_start_decree(req), 6);
@@ -77,6 +78,17 @@ public:
             // request.max_gced_decree == invalid_decree
             // plog dir is empty, learn from confirmed decree
             {5, invalid_decree, 5, 0, 3, 4},
+
+            // request.max_gced_decree == invalid_decree
+            // plog dir is empty, data_dir is empty, learn from 0 (LT_APP)
+            {0, invalid_decree, 5, 2, invalid_decree, 1},
+            // data_dir is not empty, but
+            // committed_decree_in_app + 1 < gced_decree + 1
+            {1, invalid_decree, 5, 2, invalid_decree, 2},
+
+            // request.max_gced_decree == invalid_decree
+            // plog dir is empty, learn from max_gced_decree (LT_LOG)
+            {5, invalid_decree, 5, 2, invalid_decree, 3},
 
             // min_confirmed_decree + 1 > request.max_gced_decree
             // continue learning from committed decree
@@ -110,7 +122,6 @@ public:
             add_dup(_replica.get(), std::move(dup));
 
             ASSERT_EQ(_replica->get_learn_start_decree(req), tt.wlearn_start_decree);
-            ASSERT_GT(_replica->get_learn_start_decree(req), _replica->max_gced_decree());
         }
     }
 };

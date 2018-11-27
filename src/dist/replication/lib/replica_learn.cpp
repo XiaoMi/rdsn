@@ -251,24 +251,21 @@ decree replica::get_learn_start_decree(const learn_request &request)
     if (min_confirmed_decree + 1 <= request.max_gced_decree ||
         request.max_gced_decree == invalid_decree) {
 
-        // TODO(wutao1): ensure we only copy logs.
-        // LT_APP will make the learn progress deadlocked:
-        // request.max_gced_decree always remains unchanged and causes
-        // learn_start_decree unable to progress for each round of learn.
-
-        if (min_confirmed_decree != invalid_decree) {
-            learn_start_decree = std::min(learn_start_decree, min_confirmed_decree + 1);
-            dcheck_gt_replica(learn_start_decree, max_gced_decree()); // log only
-
-            ddebug_replica("learn_start_decree steps back to {} to ensure learner have enough "
-                           "logs for duplication [confirmed_decree={}]",
-                           learn_start_decree,
-                           min_confirmed_decree);
+        if (min_confirmed_decree > 0) {
+            decree d = min_confirmed_decree + 1;
+            if (d <= learn_start_decree) {
+                learn_start_decree = d;
+                ddebug_replica("learn_start_decree steps back to {} to ensure learner have enough "
+                               "logs for duplication [confirmed_decree={}]",
+                               learn_start_decree,
+                               min_confirmed_decree);
+            }
         } else {
             std::map<std::string, std::string> envs;
             query_app_envs(envs);
-            if (envs["duplicating"] == "true") {
-                learn_start_decree = max_gced_decree() + 1;
+            decree d = max_gced_decree() + 1;
+            if (envs["duplicating"] == "true" && d <= learn_start_decree) {
+                learn_start_decree = d;
                 ddebug_replica("learn_start_decree steps back to {} to ensure learner have enough "
                                "logs for duplication",
                                learn_start_decree);

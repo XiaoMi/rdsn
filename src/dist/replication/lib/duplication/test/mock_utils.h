@@ -96,7 +96,7 @@ public:
 
     decree max_gced_decree() const override
     {
-        if (_max_gced_decree == invalid_decree - 1) {
+        if (_max_gced_decree == (invalid_decree - 1)) {
             return replica::max_gced_decree();
         }
         return _max_gced_decree;
