@@ -50,8 +50,6 @@ struct load_mutation : replica_base, pipeline::when<>, pipeline::result<decree, 
     ~load_mutation();
 
 private:
-    friend struct load_mutation_test;
-
     load_from_private_log *_log_on_disk;
     decree _start_decree{0};
 

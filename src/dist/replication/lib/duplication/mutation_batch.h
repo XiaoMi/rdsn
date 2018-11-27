@@ -37,8 +37,9 @@ class replica_duplicator;
 
 // A sorted array of committed mutations that are ready for duplication.
 // Not thread-safe.
-struct mutation_batch
+class mutation_batch : replica_base
 {
+public:
     static constexpr int64_t PREPARE_LIST_NUM_ENTRIES{200};
 
     explicit mutation_batch(replica_duplicator *r);
@@ -56,7 +57,6 @@ struct mutation_batch
 
 private:
     friend struct replica_duplicator_test;
-    friend struct load_mutation_test;
 
     std::unique_ptr<prepare_list> _mutation_buffer;
     mutation_tuple_set _loaded_mutations;

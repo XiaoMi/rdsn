@@ -1453,12 +1453,12 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                                [&plist](int log_length, mutation_ptr &mu) {
                                    auto d = mu->data.header.decree;
                                    if (d <= plist.last_committed_decree())
-                                       return false;
+                                       return true;
 
                                    auto old = plist.get_mutation_by_decree(d);
                                    if (old != nullptr &&
                                        old->data.header.ballot >= mu->data.header.ballot)
-                                       return false;
+                                       return true;
 
                                    plist.prepare(mu, partition_status::PS_SECONDARY);
                                    return true;

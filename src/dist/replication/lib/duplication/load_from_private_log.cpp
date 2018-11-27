@@ -129,7 +129,8 @@ void load_from_private_log::load_from_log_file()
             return;
         }
 
-        derror_replica("loading mutation logs failed: [err: {}, file: {}]", err, _current->path());
+        derror_replica(
+            "loading mutation logs failed: [err: {}, file: {}], try again", err, _current->path());
 
         _read_from_start = true;
         repeat(10_s);
@@ -148,8 +149,7 @@ error_s load_from_private_log::replay_log_block()
                                       [this](int log_length, mutation_ptr &mu) -> bool {
                                           auto es = _mutation_batch.add(std::move(mu));
                                           if (!es.is_ok()) {
-                                              dfatal_replica("invalid mutation was found. err: {}",
-                                                             es.description());
+                                              dfatal_replica(es.description());
                                           }
                                           return true;
                                       },

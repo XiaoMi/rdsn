@@ -166,14 +166,11 @@ void prepare_list::commit(decree d, commit_type ct)
         if (d != last_committed_decree() + 1)
             return;
 
-        int count = 0;
         mutation_ptr mu = get_mutation_by_decree(last_committed_decree() + 1);
-
         while (mu != nullptr && mu->is_ready_for_commit() && mu->data.header.ballot >= last_bt) {
             _last_committed_decree++;
             last_bt = mu->data.header.ballot;
             _committer(mu);
-            count++;
             mu = mutation_cache::get_mutation_by_decree(_last_committed_decree + 1);
         }
 
@@ -182,8 +179,7 @@ void prepare_list::commit(decree d, commit_type ct)
     default:
         dassert(false, "invalid commit type %d", (int)ct);
     }
-
-    return;
 }
+
 } // namespace replication
 } // namespace dsn

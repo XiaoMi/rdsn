@@ -31,7 +31,7 @@
 namespace dsn {
 namespace replication {
 
-struct mutation_batch_test : public replica_test_base
+class mutation_batch_test : public replica_test_base
 {
 };
 

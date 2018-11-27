@@ -67,7 +67,7 @@ mutation_tuple_set mutation_batch::move_all_mutations()
     return std::move(_loaded_mutations);
 }
 
-mutation_batch::mutation_batch(replica_duplicator *r)
+mutation_batch::mutation_batch(replica_duplicator *r) : replica_base(r)
 {
     // prepend a tag identifying the caller of prepare_list.
     replica_base base(r->get_gpid(), std::string("mutation_batch@") + r->replica_name());
@@ -81,9 +81,10 @@ mutation_batch::mutation_batch(replica_duplicator *r)
     _mutation_buffer->reset(r->progress().confirmed_decree);
 }
 
-/*extern*/ void add_mutation_if_valid(mutation_ptr &mu, mutation_tuple_set &mutations, decree start_decree)
+/*extern*/ void
+add_mutation_if_valid(mutation_ptr &mu, mutation_tuple_set &mutations, decree start_decree)
 {
-    if(mu->get_decree() < start_decree) {
+    if (mu->get_decree() < start_decree) {
         // ignore
         return;
     }
