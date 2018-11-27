@@ -164,7 +164,7 @@ public:
 
 protected:
     // this method is marked protected to enable us to mock it in unit tests.
-    virtual decree max_gced_decree() const;
+    virtual decree max_gced_decree_no_lock() const;
 
 private:
     // common helpers

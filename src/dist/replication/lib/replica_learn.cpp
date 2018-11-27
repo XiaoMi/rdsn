@@ -233,7 +233,7 @@ void replica::init_learn(uint64_t signature)
         });
 }
 
-decree replica::max_gced_decree() const { return _private_log->max_gced_decree(get_gpid()); }
+decree replica::max_gced_decree_no_lock() const { return _private_log->max_gced_decree_no_lock(get_gpid()); }
 
 decree replica::get_learn_start_decree(const learn_request &request)
 {
@@ -253,7 +253,7 @@ decree replica::get_learn_start_decree(const learn_request &request)
 
         if (min_confirmed_decree > 0) {
             decree d = min_confirmed_decree + 1;
-            if (d <= learn_start_decree) {
+            if (d < learn_start_decree) {
                 learn_start_decree = d;
                 ddebug_replica("learn_start_decree steps back to {} to ensure learner have enough "
                                "logs for duplication [confirmed_decree={}]",
@@ -263,8 +263,8 @@ decree replica::get_learn_start_decree(const learn_request &request)
         } else {
             std::map<std::string, std::string> envs;
             query_app_envs(envs);
-            decree d = max_gced_decree() + 1;
-            if (envs["duplicating"] == "true" && d <= learn_start_decree) {
+            decree d = max_gced_decree_no_lock() + 1;
+            if (envs["duplicating"] == "true" && d < learn_start_decree) {
                 learn_start_decree = d;
                 ddebug_replica("learn_start_decree steps back to {} to ensure learner have enough "
                                "logs for duplication",

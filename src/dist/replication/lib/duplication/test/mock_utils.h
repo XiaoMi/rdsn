@@ -94,10 +94,10 @@ public:
 
     void set_max_gced_decree(decree d) { _max_gced_decree = d; }
 
-    decree max_gced_decree() const override
+    decree max_gced_decree_no_lock() const override
     {
         if (_max_gced_decree == (invalid_decree - 1)) {
-            return replica::max_gced_decree();
+            return replica::max_gced_decree_no_lock();
         }
         return _max_gced_decree;
     }
