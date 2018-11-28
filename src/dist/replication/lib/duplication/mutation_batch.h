@@ -28,12 +28,13 @@
 
 #include <dsn/dist/replication/mutation_duplicator.h>
 
-#include "dist/replication/lib/prepare_list.h"
+#include "dist/replication/lib/mutation.h"
 
 namespace dsn {
 namespace replication {
 
 class replica_duplicator;
+class prepare_list;
 
 // A sorted array of committed mutations that are ready for duplication.
 // Not thread-safe.
@@ -50,10 +51,10 @@ public:
 
     mutation_tuple_set move_all_mutations();
 
-    decree last_decree() const { return _mutation_buffer->last_committed_decree(); }
+    decree last_decree() const;
 
     // mutations with decree < d will be ignored.
-    void set_start_decree(decree d) { _start_decree = d; }
+    void set_start_decree(decree d);
 
 private:
     friend struct replica_duplicator_test;

@@ -77,7 +77,8 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
     case partition_status::PS_SECONDARY:
     case partition_status::PS_POTENTIAL_SECONDARY:
         // all mutations with lower decree must be ready
-        commit(mu->data.header.last_committed_decree, COMMIT_TO_DECREE_HARD);
+        err = commit(mu->data.header.last_committed_decree, COMMIT_TO_DECREE_HARD);
+        dcheck_eq_replica(err, ERR_OK);
         // pop committed mutations if buffer is full
         while (d - min_decree() >= capacity() && last_committed_decree() > min_decree()) {
             pop_min();
@@ -108,7 +109,10 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
             reset(mu->data.header.last_committed_decree);
         } else if (mu->data.header.last_committed_decree > _last_committed_decree) {
             // all mutations with lower decree must be ready
-            commit(mu->data.header.last_committed_decree, COMMIT_TO_DECREE_HARD);
+            err = commit(mu->data.header.last_committed_decree, COMMIT_TO_DECREE_HARD);
+            if (err != ERR_OK) {
+                return err;
+            }
         }
         // pop committed mutations if buffer is full
         while (d - min_decree() >= capacity() && last_committed_decree() > min_decree()) {
@@ -127,10 +131,10 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
 //
 // ordered commit
 //
-void prepare_list::commit(decree d, commit_type ct)
+error_code prepare_list::commit(decree d, commit_type ct)
 {
     if (d <= last_committed_decree())
-        return;
+        return ERR_OK;
 
     ballot last_bt = 0;
     switch (ct) {
@@ -138,8 +142,10 @@ void prepare_list::commit(decree d, commit_type ct)
         for (decree d0 = last_committed_decree() + 1; d0 <= d; d0++) {
             mutation_ptr mu = get_mutation_by_decree(d0);
 
-            dassert_replica(
-                mu != nullptr && mu->is_logged(), "mutation {} is missing in prepare list", d0);
+            if (mu == nullptr || !mu->is_logged()) {
+                derror_f("mutation {} is missing in prepare list", d0);
+                return ERR_INVALID_DATA;
+            }
             dcheck_ge_replica(mu->data.header.ballot, last_bt);
 
             _last_committed_decree++;
@@ -147,7 +153,7 @@ void prepare_list::commit(decree d, commit_type ct)
             _committer(mu);
         }
 
-        return;
+        return ERR_OK;
     }
     case COMMIT_TO_DECREE_SOFT: {
         for (decree d0 = last_committed_decree() + 1; d0 <= d; d0++) {
@@ -160,11 +166,11 @@ void prepare_list::commit(decree d, commit_type ct)
                 break;
         }
 
-        return;
+        return ERR_OK;
     }
     case COMMIT_ALL_READY: {
         if (d != last_committed_decree() + 1)
-            return;
+            return ERR_OK;
 
         mutation_ptr mu = get_mutation_by_decree(last_committed_decree() + 1);
         while (mu != nullptr && mu->is_ready_for_commit() && mu->data.header.ballot >= last_bt) {
@@ -174,11 +180,12 @@ void prepare_list::commit(decree d, commit_type ct)
             mu = mutation_cache::get_mutation_by_decree(_last_committed_decree + 1);
         }
 
-        return;
+        return ERR_OK;
     }
     default:
         dassert(false, "invalid commit type %d", (int)ct);
     }
+    return ERR_OK;
 }
 
 } // namespace replication

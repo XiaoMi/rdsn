@@ -84,7 +84,7 @@ void load_from_private_log::find_log_file_to_start()
     // reopen the files, because the internal file handle of private_log->log_file_map()
     // is cleared and unable to be used for us.
     std::map<int, log_file_ptr> new_file_map;
-    for (auto pr : file_map) {
+    for (const auto &pr : file_map) {
         log_file_ptr file = log_utils::open_read_or_die(pr.second->path());
         new_file_map.emplace(pr.first, file);
     }

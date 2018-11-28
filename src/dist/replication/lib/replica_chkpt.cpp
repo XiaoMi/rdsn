@@ -73,7 +73,7 @@ void replica::on_checkpoint_timer()
         decree last_durable_decree = _app->last_durable_decree();
         decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
         decree cleanable_decree = last_durable_decree;
-        if (min_confirmed_decree != invalid_decree) {
+        if (min_confirmed_decree > 0) {
             if (min_confirmed_decree < last_durable_decree) {
                 ddebug_replica("gc_private {}: delay gc for duplication: min_confirmed_decree({}) "
                                "last_durable_decree({})",

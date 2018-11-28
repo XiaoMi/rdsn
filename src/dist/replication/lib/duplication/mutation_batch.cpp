@@ -29,6 +29,7 @@
 
 #include "replica_duplicator.h"
 #include "mutation_batch.h"
+#include "dist/replication/lib/prepare_list.h"
 
 namespace dsn {
 namespace replication {
@@ -49,16 +50,27 @@ error_s mutation_batch::add(mutation_ptr mu)
     }
 
     error_code ec = _mutation_buffer->prepare(mu, partition_status::PS_INACTIVE);
+    if (ec == ERR_INVALID_DATA && mu->data.header.last_committed_decree < _start_decree) {
+        _mutation_buffer->truncate(mu->data.header.last_committed_decree);
+        return error_s::ok();
+    }
     if (ec != ERR_OK) {
-        return FMT_ERR(ERR_INVALID_DATA,
-                       "failed to add mutation [err: {}, mutation decree: {}, ballot: {}]",
-                       ec,
-                       mu->get_decree(),
-                       mu->get_ballot());
+        return FMT_ERR(
+            ERR_INVALID_DATA,
+            "failed to add mutation [err:{}, logged:{}, decree:{}, committed:{}, start_decree:{}]",
+            ec.to_string(),
+            mu->is_logged(),
+            mu->get_decree(),
+            mu->data.header.last_committed_decree,
+            _start_decree);
     }
 
     return error_s::ok();
 }
+
+decree mutation_batch::last_decree() const { return _mutation_buffer->last_committed_decree(); }
+
+void mutation_batch::set_start_decree(decree d) { _start_decree = d; }
 
 mutation_tuple_set mutation_batch::move_all_mutations()
 {

@@ -61,8 +61,12 @@ public:
     //
     // for two-phase commit
     //
+
+    // Returns:
+    //  - ERR_CAPACITY_EXCEEDED
+    //  - ERR_INVALID_DATA
     error_code prepare(mutation_ptr &mu, partition_status::type status); // unordered prepare
-    void commit(decree decree, commit_type ct);                          // ordered commit
+    error_code commit(decree decree, commit_type ct);                    // ordered commit
 
 private:
     decree _last_committed_decree;
