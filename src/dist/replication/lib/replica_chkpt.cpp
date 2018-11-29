@@ -97,10 +97,9 @@ void replica::on_checkpoint_timer()
             }
         }
 
-        int64_t valid_start_offset = _app->init_info().init_offset_in_private_log;
         tasking::enqueue(LPC_GARBAGE_COLLECT_LOGS_AND_REPLICAS,
                          &_tracker,
-                         [this, plog, cleanable_decree, valid_start_offset] {
+                         [this, plog, cleanable_decree] {
                              // run in background thread to avoid file deletion operation blocking
                              // replication thread.
                              if (status() == partition_status::PS_ERROR ||
@@ -109,7 +108,6 @@ void replica::on_checkpoint_timer()
                              plog->garbage_collection(
                                  get_gpid(),
                                  cleanable_decree,
-                                 valid_start_offset,
                                  (int64_t)_options->log_private_reserve_max_size_mb * 1024 * 1024,
                                  (int64_t)_options->log_private_reserve_max_time_seconds);
                              if (status() == partition_status::PS_PRIMARY)

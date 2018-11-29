@@ -234,20 +234,6 @@ void replica::check_state_completeness()
             "%" PRId64 " VS %" PRId64 "",
             last_committed_decree(),
             last_durable_decree());
-
-    /*
-    auto mind = _stub->_log->max_gced_decree(get_gpid(),
-    _app->init_info().init_offset_in_shared_log);
-    dassert(mind <= last_durable_decree(), "%" PRId64 " VS %" PRId64, mind, last_durable_decree());
-
-    if (_private_log != nullptr)
-    {
-        auto mind = _private_log->max_gced_decree(get_gpid(),
-    _app->init_info().init_offset_in_private_log);
-        dassert(mind <= last_durable_decree(), "%" PRId64 " VS %" PRId64, mind,
-    last_durable_decree());
-    }
-    */
 }
 
 void replica::execute_mutation(mutation_ptr &mu)
