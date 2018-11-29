@@ -233,7 +233,10 @@ void replica::init_learn(uint64_t signature)
         });
 }
 
-decree replica::max_gced_decree_no_lock() const { return _private_log->max_gced_decree_no_lock(get_gpid()); }
+decree replica::max_gced_decree_no_lock() const
+{
+    return _private_log->max_gced_decree_no_lock(get_gpid());
+}
 
 decree replica::get_learn_start_decree(const learn_request &request)
 {
@@ -244,35 +247,37 @@ decree replica::get_learn_start_decree(const learn_request &request)
     decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
 
     // learner should include the mutations not confirmed by meta server
-    // so as to prevent data loss during duplication.
+    // so as to prevent data loss during duplication. For example, when
+    // the confirmed+1 decree has been GCed from plog, we need to learn
+    // back from it.
+    //                confirmed
+    //                    |
+    // learner's plog: ======[--------------]
+    //                       |              |
+    //                      gced           committed
 
-    // max_gced_decree == invalid_decree indicates that learner's plog directory is empty.
-    // In that case we should copy all unconfirmed mutations during duplication.
-    if (min_confirmed_decree + 1 <= request.max_gced_decree ||
-        request.max_gced_decree == invalid_decree) {
-
-        if (min_confirmed_decree > 0) {
-            decree d = min_confirmed_decree + 1;
-            if (d < learn_start_decree) {
-                learn_start_decree = d;
-                ddebug_replica("learn_start_decree steps back to {} to ensure learner have enough "
-                               "logs for duplication [confirmed_decree={}]",
-                               learn_start_decree,
-                               min_confirmed_decree);
-            }
-        } else {
-            std::map<std::string, std::string> envs;
-            query_app_envs(envs);
-            decree d = max_gced_decree_no_lock() + 1;
-            if (envs["duplicating"] == "true" && d < learn_start_decree) {
-                learn_start_decree = d;
-                ddebug_replica("learn_start_decree steps back to {} to ensure learner have enough "
-                               "logs for duplication",
-                               learn_start_decree);
-            }
+    decree new_learn_start_decree = learn_start_decree;
+    if (min_confirmed_decree > 0) {
+        new_learn_start_decree = min_confirmed_decree + 1;
+    } else {
+        std::map<std::string, std::string> envs;
+        query_app_envs(envs);
+        if (envs["duplicating"] == "true") {
+            new_learn_start_decree = max_gced_decree_no_lock() + 1;
         }
     }
 
+    // max_gced_decree == invalid_decree indicates that learner's plog directory is empty.
+    if (new_learn_start_decree < learn_start_decree &&
+        (new_learn_start_decree <= request.max_gced_decree ||
+         request.max_gced_decree == invalid_decree)) {
+        learn_start_decree = new_learn_start_decree;
+        ddebug_replica("learn_start_decree steps back to {} to ensure learner having enough "
+                       "logs for duplication [confirmed_decree={}, learner_gced_decree={}]",
+                       learn_start_decree,
+                       min_confirmed_decree,
+                       request.max_gced_decree);
+    }
     dcheck_le_replica(learn_start_decree, local_committed_decree + 1);
     return learn_start_decree;
 }
