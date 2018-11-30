@@ -263,7 +263,12 @@ decree replica::get_learn_start_decree(const learn_request &request)
         std::map<std::string, std::string> envs;
         query_app_envs(envs);
         if (envs["duplicating"] == "true") {
-            new_learn_start_decree = max_gced_decree_no_lock() + 1;
+            decree local_gced = max_gced_decree_no_lock();
+            if (local_gced == invalid_decree) {
+                ddebug_replica("no plog to be learned for duplication, continue as normal");
+            } else {
+                new_learn_start_decree = local_gced + 1;
+            }
         }
     }
 
@@ -460,6 +465,13 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
         } else if (_private_log->get_learn_state(get_gpid(), learn_start_decree, response.state)) {
             ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, choose to learn private logs, "
                    "because mutation_log::get_learn_state() returns true",
+                   name(),
+                   request.signature,
+                   request.learner.to_string());
+            response.type = learn_type::LT_LOG;
+        } else if (learn_start_decree < request.last_committed_decree_in_app + 1) {
+            ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, choose to learn private logs, "
+                   "because learn_start_decree steps back for duplication",
                    name(),
                    request.signature,
                    request.learner.to_string());
