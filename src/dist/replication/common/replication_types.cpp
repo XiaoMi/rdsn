@@ -1489,11 +1489,6 @@ void prepare_ack::printTo(std::ostream &out) const
 
 learn_state::~learn_state() throw() {}
 
-void learn_state::__set_from_decree_excluded(const int64_t val)
-{
-    this->from_decree_excluded = val;
-}
-
 void learn_state::__set_to_decree_included(const int64_t val) { this->to_decree_included = val; }
 
 void learn_state::__set_meta(const ::dsn::blob &val) { this->meta = val; }
@@ -1519,14 +1514,6 @@ uint32_t learn_state::read(::apache::thrift::protocol::TProtocol *iprot)
             break;
         }
         switch (fid) {
-        case 1:
-            if (ftype == ::apache::thrift::protocol::T_I64) {
-                xfer += iprot->readI64(this->from_decree_excluded);
-                this->__isset.from_decree_excluded = true;
-            } else {
-                xfer += iprot->skip(ftype);
-            }
-            break;
         case 2:
             if (ftype == ::apache::thrift::protocol::T_I64) {
                 xfer += iprot->readI64(this->to_decree_included);
@@ -1580,10 +1567,6 @@ uint32_t learn_state::write(::apache::thrift::protocol::TProtocol *oprot) const
     apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
     xfer += oprot->writeStructBegin("learn_state");
 
-    xfer += oprot->writeFieldBegin("from_decree_excluded", ::apache::thrift::protocol::T_I64, 1);
-    xfer += oprot->writeI64(this->from_decree_excluded);
-    xfer += oprot->writeFieldEnd();
-
     xfer += oprot->writeFieldBegin("to_decree_included", ::apache::thrift::protocol::T_I64, 2);
     xfer += oprot->writeI64(this->to_decree_included);
     xfer += oprot->writeFieldEnd();
@@ -1612,7 +1595,6 @@ uint32_t learn_state::write(::apache::thrift::protocol::TProtocol *oprot) const
 void swap(learn_state &a, learn_state &b)
 {
     using ::std::swap;
-    swap(a.from_decree_excluded, b.from_decree_excluded);
     swap(a.to_decree_included, b.to_decree_included);
     swap(a.meta, b.meta);
     swap(a.files, b.files);
@@ -1621,7 +1603,6 @@ void swap(learn_state &a, learn_state &b)
 
 learn_state::learn_state(const learn_state &other50)
 {
-    from_decree_excluded = other50.from_decree_excluded;
     to_decree_included = other50.to_decree_included;
     meta = other50.meta;
     files = other50.files;
@@ -1629,7 +1610,6 @@ learn_state::learn_state(const learn_state &other50)
 }
 learn_state::learn_state(learn_state &&other51)
 {
-    from_decree_excluded = std::move(other51.from_decree_excluded);
     to_decree_included = std::move(other51.to_decree_included);
     meta = std::move(other51.meta);
     files = std::move(other51.files);
@@ -1637,7 +1617,6 @@ learn_state::learn_state(learn_state &&other51)
 }
 learn_state &learn_state::operator=(const learn_state &other52)
 {
-    from_decree_excluded = other52.from_decree_excluded;
     to_decree_included = other52.to_decree_included;
     meta = other52.meta;
     files = other52.files;
@@ -1646,7 +1625,6 @@ learn_state &learn_state::operator=(const learn_state &other52)
 }
 learn_state &learn_state::operator=(learn_state &&other53)
 {
-    from_decree_excluded = std::move(other53.from_decree_excluded);
     to_decree_included = std::move(other53.to_decree_included);
     meta = std::move(other53.meta);
     files = std::move(other53.files);
@@ -1657,9 +1635,7 @@ void learn_state::printTo(std::ostream &out) const
 {
     using ::apache::thrift::to_string;
     out << "learn_state(";
-    out << "from_decree_excluded=" << to_string(from_decree_excluded);
-    out << ", "
-        << "to_decree_included=" << to_string(to_decree_included);
+    out << "to_decree_included=" << to_string(to_decree_included);
     out << ", "
         << "meta=" << to_string(meta);
     out << ", "

@@ -892,11 +892,7 @@ inline std::ostream &operator<<(std::ostream &out, const prepare_ack &obj)
 
 typedef struct _learn_state__isset
 {
-    _learn_state__isset()
-        : from_decree_excluded(false), to_decree_included(false), meta(false), files(false)
-    {
-    }
-    bool from_decree_excluded : 1;
+    _learn_state__isset() : to_decree_included(false), meta(false), files(false) {}
     bool to_decree_included : 1;
     bool meta : 1;
     bool files : 1;
@@ -909,17 +905,14 @@ public:
     learn_state(learn_state &&);
     learn_state &operator=(const learn_state &);
     learn_state &operator=(learn_state &&);
-    learn_state() : from_decree_excluded(0), to_decree_included(0) {}
+    learn_state() : to_decree_included(0) {}
 
     virtual ~learn_state() throw();
-    int64_t from_decree_excluded;
     int64_t to_decree_included;
     ::dsn::blob meta;
     std::vector<std::string> files;
 
     _learn_state__isset __isset;
-
-    void __set_from_decree_excluded(const int64_t val);
 
     void __set_to_decree_included(const int64_t val);
 
@@ -929,8 +922,6 @@ public:
 
     bool operator==(const learn_state &rhs) const
     {
-        if (!(from_decree_excluded == rhs.from_decree_excluded))
-            return false;
         if (!(to_decree_included == rhs.to_decree_included))
             return false;
         if (!(meta == rhs.meta))

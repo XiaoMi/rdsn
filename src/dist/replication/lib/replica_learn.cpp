@@ -966,7 +966,6 @@ void replica::on_copy_remote_state_completed(error_code err,
                 enum_to_string(resp.type));
 
         learn_state lstate;
-        lstate.from_decree_excluded = resp.state.from_decree_excluded;
         lstate.to_decree_included = resp.state.to_decree_included;
         lstate.meta = resp.state.meta;
 

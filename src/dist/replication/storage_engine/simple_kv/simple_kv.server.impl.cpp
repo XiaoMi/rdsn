@@ -251,12 +251,10 @@ void simple_kv_service_impl::recover(const std::string &name, int64_t version)
         char name[256];
         sprintf(name, "%s/checkpoint.%" PRId64, _dir_data.c_str(), last_durable_decree());
 
-        state.from_decree_excluded = 0;
         state.to_decree_included = last_durable_decree();
         state.files.push_back(std::string(name));
         return ERR_OK;
     } else {
-        state.from_decree_excluded = 0;
         state.to_decree_included = 0;
         return ERR_OBJECT_NOT_FOUND;
     }
