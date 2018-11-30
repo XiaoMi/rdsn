@@ -1483,16 +1483,20 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
 
     if (_potential_secondary_states.min_learn_start_decree < 0 ||
         _potential_secondary_states.min_learn_start_decree > state.learn_start_decree) {
+        ddebug_replica("the learn progress starts from {}", state.learn_start_decree);
         _potential_secondary_states.min_learn_start_decree = state.learn_start_decree;
     }
     ddebug("%s: apply_learned_state_from_private_log[%016" PRIx64 "]: learnee = %s, "
            "learn_duration = %" PRIu64 " ms, apply private log files done, "
-           "file_count = %d, app_committed_decree = %" PRId64,
+           "file_count = %d, min_learn_start_decree = %" PRId64 ", learn_start_decree = %" PRId64
+           ", app_committed_decree = %" PRId64,
            name(),
            _potential_secondary_states.learning_version,
            _config.primary.to_string(),
            _potential_secondary_states.duration_ms(),
            static_cast<int>(state.files.size()),
+           _potential_secondary_states.min_learn_start_decree,
+           state.learn_start_decree,
            _app->last_committed_decree());
 
     // apply in-buffer private logs
