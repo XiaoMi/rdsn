@@ -199,8 +199,8 @@ void replica::init_learn(uint64_t signature)
     request.pid = get_gpid();
     request.max_gced_decree = _private_log->max_gced_decree(get_gpid());
     if (_potential_secondary_states.min_learn_start_decree >= 0) {
-        request.max_gced_decree =
-            std::min(request.max_gced_decree, _potential_secondary_states.min_learn_start_decree);
+        request.max_gced_decree = std::min(request.max_gced_decree,
+                                           _potential_secondary_states.min_learn_start_decree - 1);
     }
     request.last_committed_decree_in_app = _app->last_committed_decree();
     request.last_committed_decree_in_prepare_list = _prepare_list->last_committed_decree();
@@ -288,6 +288,7 @@ decree replica::get_learn_start_decree(const learn_request &request)
                        request.max_gced_decree);
     }
     dcheck_le_replica(learn_start_decree, local_committed_decree + 1);
+    dcheck_gt_replica(learn_start_decree, 0);
     return learn_start_decree;
 }
 
@@ -1028,6 +1029,7 @@ void replica::on_copy_remote_state_completed(error_code err,
         lstate.from_decree_excluded = resp.state.from_decree_excluded;
         lstate.to_decree_included = resp.state.to_decree_included;
         lstate.meta = resp.state.meta;
+        lstate.learn_start_decree = resp.state.learn_start_decree;
 
         for (auto &f : resp.state.files) {
             std::string file = utils::filesystem::path_combine(_app->learn_dir(), f);
