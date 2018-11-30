@@ -130,7 +130,7 @@ public:
 class potential_secondary_context
 {
 public:
-    potential_secondary_context(replica *r)
+    explicit potential_secondary_context(replica *r)
         : owner_replica(r),
           learning_version(0),
           learning_start_ts_ns(0),
@@ -140,7 +140,8 @@ public:
           learning_status(learner_status::LearningInvalid),
           learning_round_is_running(false),
           learn_app_concurrent_count_increased(false),
-          learning_start_prepare_decree(invalid_decree)
+          learning_start_prepare_decree(invalid_decree),
+          min_learn_start_decree(invalid_decree)
     {
     }
 
@@ -162,6 +163,7 @@ public:
     volatile bool learning_round_is_running;
     volatile bool learn_app_concurrent_count_increased;
     decree learning_start_prepare_decree;
+    decree min_learn_start_decree;
 
     ::dsn::task_ptr delay_learning_task;
     ::dsn::task_ptr learning_task;

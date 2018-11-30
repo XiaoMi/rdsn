@@ -893,13 +893,18 @@ inline std::ostream &operator<<(std::ostream &out, const prepare_ack &obj)
 typedef struct _learn_state__isset
 {
     _learn_state__isset()
-        : from_decree_excluded(false), to_decree_included(false), meta(false), files(false)
+        : from_decree_excluded(false),
+          to_decree_included(false),
+          meta(false),
+          files(false),
+          learn_start_decree(false)
     {
     }
     bool from_decree_excluded : 1;
     bool to_decree_included : 1;
     bool meta : 1;
     bool files : 1;
+    bool learn_start_decree : 1;
 } _learn_state__isset;
 
 class learn_state
@@ -909,13 +914,14 @@ public:
     learn_state(learn_state &&);
     learn_state &operator=(const learn_state &);
     learn_state &operator=(learn_state &&);
-    learn_state() : from_decree_excluded(0), to_decree_included(0) {}
+    learn_state() : from_decree_excluded(0), to_decree_included(0), learn_start_decree(0) {}
 
     virtual ~learn_state() throw();
     int64_t from_decree_excluded;
     int64_t to_decree_included;
     ::dsn::blob meta;
     std::vector<std::string> files;
+    int64_t learn_start_decree;
 
     _learn_state__isset __isset;
 
@@ -927,6 +933,8 @@ public:
 
     void __set_files(const std::vector<std::string> &val);
 
+    void __set_learn_start_decree(const int64_t val);
+
     bool operator==(const learn_state &rhs) const
     {
         if (!(from_decree_excluded == rhs.from_decree_excluded))
@@ -936,6 +944,8 @@ public:
         if (!(meta == rhs.meta))
             return false;
         if (!(files == rhs.files))
+            return false;
+        if (!(learn_start_decree == rhs.learn_start_decree))
             return false;
         return true;
     }

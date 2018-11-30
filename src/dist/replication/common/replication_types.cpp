@@ -1500,6 +1500,8 @@ void learn_state::__set_meta(const ::dsn::blob &val) { this->meta = val; }
 
 void learn_state::__set_files(const std::vector<std::string> &val) { this->files = val; }
 
+void learn_state::__set_learn_start_decree(const int64_t val) { this->learn_start_decree = val; }
+
 uint32_t learn_state::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -1562,6 +1564,14 @@ uint32_t learn_state::read(::apache::thrift::protocol::TProtocol *iprot)
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 5:
+            if (ftype == ::apache::thrift::protocol::T_I64) {
+                xfer += iprot->readI64(this->learn_start_decree);
+                this->__isset.learn_start_decree = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -1604,6 +1614,10 @@ uint32_t learn_state::write(::apache::thrift::protocol::TProtocol *oprot) const
     }
     xfer += oprot->writeFieldEnd();
 
+    xfer += oprot->writeFieldBegin("learn_start_decree", ::apache::thrift::protocol::T_I64, 5);
+    xfer += oprot->writeI64(this->learn_start_decree);
+    xfer += oprot->writeFieldEnd();
+
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -1616,6 +1630,7 @@ void swap(learn_state &a, learn_state &b)
     swap(a.to_decree_included, b.to_decree_included);
     swap(a.meta, b.meta);
     swap(a.files, b.files);
+    swap(a.learn_start_decree, b.learn_start_decree);
     swap(a.__isset, b.__isset);
 }
 
@@ -1625,6 +1640,7 @@ learn_state::learn_state(const learn_state &other50)
     to_decree_included = other50.to_decree_included;
     meta = other50.meta;
     files = other50.files;
+    learn_start_decree = other50.learn_start_decree;
     __isset = other50.__isset;
 }
 learn_state::learn_state(learn_state &&other51)
@@ -1633,6 +1649,7 @@ learn_state::learn_state(learn_state &&other51)
     to_decree_included = std::move(other51.to_decree_included);
     meta = std::move(other51.meta);
     files = std::move(other51.files);
+    learn_start_decree = std::move(other51.learn_start_decree);
     __isset = std::move(other51.__isset);
 }
 learn_state &learn_state::operator=(const learn_state &other52)
@@ -1641,6 +1658,7 @@ learn_state &learn_state::operator=(const learn_state &other52)
     to_decree_included = other52.to_decree_included;
     meta = other52.meta;
     files = other52.files;
+    learn_start_decree = other52.learn_start_decree;
     __isset = other52.__isset;
     return *this;
 }
@@ -1650,6 +1668,7 @@ learn_state &learn_state::operator=(learn_state &&other53)
     to_decree_included = std::move(other53.to_decree_included);
     meta = std::move(other53.meta);
     files = std::move(other53.files);
+    learn_start_decree = std::move(other53.learn_start_decree);
     __isset = std::move(other53.__isset);
     return *this;
 }
@@ -1664,6 +1683,8 @@ void learn_state::printTo(std::ostream &out) const
         << "meta=" << to_string(meta);
     out << ", "
         << "files=" << to_string(files);
+    out << ", "
+        << "learn_start_decree=" << to_string(learn_start_decree);
     out << ")";
 }
 

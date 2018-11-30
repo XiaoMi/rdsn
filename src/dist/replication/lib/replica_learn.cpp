@@ -198,6 +198,10 @@ void replica::init_learn(uint64_t signature)
     learn_request request;
     request.pid = get_gpid();
     request.max_gced_decree = _private_log->max_gced_decree(get_gpid());
+    if (_potential_secondary_states.min_learn_start_decree >= 0) {
+        request.max_gced_decree =
+            std::min(request.max_gced_decree, _potential_secondary_states.min_learn_start_decree);
+    }
     request.last_committed_decree_in_app = _app->last_committed_decree();
     request.last_committed_decree_in_prepare_list = _prepare_list->last_committed_decree();
     request.learner = _stub->_primary_address;
@@ -370,7 +374,8 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
         }
     }
 
-    decree learn_start_decree = get_learn_start_decree(request);
+    const decree learn_start_decree = get_learn_start_decree(request);
+    response.state.learn_start_decree = learn_start_decree;
     bool delayed_replay_prepare_list = false;
 
     ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, remote_committed_decree = %" PRId64 ", "
@@ -1476,6 +1481,10 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                                },
                                offset);
 
+    if (_potential_secondary_states.min_learn_start_decree == invalid_decree ||
+        _potential_secondary_states.min_learn_start_decree < state.learn_start_decree) {
+        _potential_secondary_states.min_learn_start_decree = state.learn_start_decree;
+    }
     ddebug("%s: apply_learned_state_from_private_log[%016" PRIx64 "]: learnee = %s, "
            "learn_duration = %" PRIu64 " ms, apply private log files done, "
            "file_count = %d, app_committed_decree = %" PRId64,
