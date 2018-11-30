@@ -1481,8 +1481,8 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                                },
                                offset);
 
-    if (_potential_secondary_states.min_learn_start_decree == invalid_decree ||
-        _potential_secondary_states.min_learn_start_decree < state.learn_start_decree) {
+    if (_potential_secondary_states.min_learn_start_decree < 0 ||
+        _potential_secondary_states.min_learn_start_decree > state.learn_start_decree) {
         _potential_secondary_states.min_learn_start_decree = state.learn_start_decree;
     }
     ddebug("%s: apply_learned_state_from_private_log[%016" PRIx64 "]: learnee = %s, "
