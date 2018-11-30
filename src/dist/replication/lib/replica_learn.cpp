@@ -197,11 +197,19 @@ void replica::init_learn(uint64_t signature)
 
     learn_request request;
     request.pid = get_gpid();
+
     request.max_gced_decree = _private_log->max_gced_decree(get_gpid());
-    if (_potential_secondary_states.min_learn_start_decree >= 0) {
-        request.max_gced_decree = std::min(request.max_gced_decree,
-                                           _potential_secondary_states.min_learn_start_decree - 1);
+    decree learning_start = _potential_secondary_states.min_learn_start_decree;
+    if (learning_start >= 0) {
+        // the learned logs may still reside in learn_dir, and
+        // the actual plog dir may be empty.
+        if (request.max_gced_decree < 0) {
+            request.max_gced_decree = learning_start - 1;
+        } else {
+            request.max_gced_decree = std::min(request.max_gced_decree, learning_start - 1);
+        }
     }
+
     request.last_committed_decree_in_app = _app->last_committed_decree();
     request.last_committed_decree_in_prepare_list = _prepare_list->last_committed_decree();
     request.learner = _stub->_primary_address;
