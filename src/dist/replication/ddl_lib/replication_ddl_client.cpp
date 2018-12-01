@@ -596,7 +596,10 @@ dsn::error_code replication_ddl_client::list_nodes(const dsn::replication::node_
 
     std::map<dsn::rpc_address, list_nodes_helper> tmp_map;
     int node_name_width = 0;
+    int alive_node_count = 0;
     for (auto &kv : nodes) {
+        if (kv.second == dsn::replication::node_status::NS_ALIVE)
+            alive_node_count++;
         std::string status_str = enum_to_string(kv.second);
         status_str = status_str.substr(status_str.find("NS_") + 3);
         auto result = tmp_map.emplace(
@@ -671,6 +674,14 @@ dsn::error_code replication_ddl_client::list_nodes(const dsn::replication::node_
                 << std::setw(20) << std::left << kv.second.node_status << std::endl;
         }
     }
+    out << std::endl;
+    int width = strlen("unalive_node_count");
+    out << std::setw(width) << std::left << "total_node_count"
+        << " : " << nodes.size() << std::endl;
+    out << std::setw(width) << std::left << "alive_node_count"
+        << " : " << alive_node_count << std::endl;
+    out << std::setw(width) << std::left << "unalive_node_count"
+        << " : " << nodes.size() - alive_node_count << std::endl;
     out << std::endl << std::flush;
 
     return dsn::ERR_OK;
