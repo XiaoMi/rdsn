@@ -377,6 +377,9 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
     size_t max_app_name_size = 20;
     for (int i = 0; i < apps.size(); i++) {
         dsn::app_info info = apps[i];
+        if (!show_all && info.status != app_status::AS_AVAILABLE) {
+            continue;
+        }
         max_app_name_size = std::max(max_app_name_size, info.app_name.size() + 2);
     }
 
@@ -444,6 +447,10 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
     dassert(pr, "bad table format");
     out << std::endl;
 
+    int total_fully_healthy_app_count = 0;
+    int total_unhealthy_app_count = 0;
+    int total_write_unhealthy_app_count = 0;
+    int total_read_unhealthy_app_count = 0;
     if (detailed && available_app_count > 0) {
         std::vector<std::vector<std::string>> detail_table;
         std::vector<std::string> detail_head{"app_id",
@@ -500,12 +507,39 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
             row.push_back(std::to_string(write_unhealthy));
             row.push_back(std::to_string(read_unhealthy));
             detail_table.emplace_back(std::move(row));
+            if (fully_healthy == info.partition_count)
+                total_fully_healthy_app_count++;
+            else
+                total_unhealthy_app_count++;
+            if (write_unhealthy > 0)
+                total_write_unhealthy_app_count++;
+            if (read_unhealthy > 0)
+                total_read_unhealthy_app_count++;
         }
         out << "[App Healthy Info]" << std::endl;
         pr = print_table(detail_table, out);
         dassert(pr, "bad table format");
         out << std::endl;
     }
+
+    if (detailed && available_app_count > 0) {
+        int width = strlen("write_unhealthy_app_count");
+        out << std::setw(width) << std::left << "total_app_count"
+            << " : " << available_app_count << std::endl;
+        out << std::setw(width) << std::left << "fully_healthy_app_count"
+            << " : " << total_fully_healthy_app_count << std::endl;
+        out << std::setw(width) << std::left << "unhealthy_app_count"
+            << " : " << total_unhealthy_app_count << std::endl;
+        out << std::setw(width) << std::left << "write_unhealthy_app_count"
+            << " : " << total_write_unhealthy_app_count << std::endl;
+        out << std::setw(width) << std::left << "read_unhealthy_app_count"
+            << " : " << total_read_unhealthy_app_count << std::endl;
+    } else {
+        int width = strlen("total_app_count");
+        out << std::setw(width) << std::left << "total_app_count"
+            << " : " << available_app_count << std::endl;
+    }
+    out << std::endl;
 
     return dsn::ERR_OK;
 }
