@@ -547,6 +547,8 @@ public:
     // filled by apps
     dsn_handle_t file;
     void *buffer;
+    bool support_write_vec; // if the aio provider supports write buffer vector
+    std::vector<dsn_file_buffer_t> *write_buffer_vec; // only used if support_write_vec is true
     uint32_t buffer_size;
     uint64_t file_offset;
 
@@ -558,6 +560,8 @@ public:
     disk_aio()
         : file(nullptr),
           buffer(nullptr),
+          support_write_vec(false),
+          write_buffer_vec(nullptr),
           buffer_size(0),
           file_offset(0),
           type(AIO_Invalid),
@@ -583,25 +587,18 @@ public:
     size_t get_transferred_size() const { return _transferred_size; }
     disk_aio *aio() { return _aio; }
 
-    void copy_to(char *dest)
-    {
-        if (!_unmerged_write_buffers.empty()) {
-            for (auto &buffer : _unmerged_write_buffers) {
-                memcpy(dest, buffer.buffer, buffer.size);
-                dest += buffer.size;
-            }
-        } else {
-            memcpy(dest, _aio->buffer, _aio->buffer_size);
-        }
-    }
-
+    // merge buffers in _unmerged_write_buffers to a single merged buffer
     void collapse()
     {
         if (!_unmerged_write_buffers.empty()) {
             std::shared_ptr<char> buffer(dsn::utils::make_shared_array<char>(_aio->buffer_size));
             _merged_write_buffer_holder.assign(buffer, 0, _aio->buffer_size);
             _aio->buffer = buffer.get();
-            copy_to(buffer.get());
+            char *dest = buffer.get();
+            for (const dsn_file_buffer_t &b : _unmerged_write_buffers) {
+                ::memcpy(dest, b.buffer, b.size);
+                dest += b.size;
+            }
         }
     }
 
