@@ -1488,8 +1488,13 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
             auto old = plist.get_mutation_by_decree(d);
             if (old != nullptr && old->data.header.ballot >= mu->data.header.ballot)
                 return true;
-
-            dcheck_eq_replica(plist.prepare(mu, partition_status::PS_SECONDARY), ERR_OK);
+            auto ec = plist.prepare(mu, partition_status::PS_SECONDARY);
+            if (ec == ERR_INVALID_DATA &&
+                mu->data.header.last_committed_decree < last_committed_decree()) {
+                plist.truncate(mu->data.header.last_committed_decree);
+                return true;
+            }
+            dcheck_eq_replica(ec, ERR_OK);
             return true;
         },
         offset);
