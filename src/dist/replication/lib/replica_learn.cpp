@@ -845,7 +845,9 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
                            mu->name(),
                            existing_mutation->data.header.ballot);
                 } else {
-                    _prepare_list->prepare(mu, partition_status::PS_POTENTIAL_SECONDARY);
+                    dcheck_eq_replica(
+                        _prepare_list->prepare(mu, partition_status::PS_POTENTIAL_SECONDARY),
+                        ERR_OK);
                 }
 
                 if (cache_range.first == 0 || mu->data.header.decree < cache_range.first)
@@ -1476,21 +1478,21 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                            }
                        });
 
-    err = mutation_log::replay(state.files,
-                               [&plist](int log_length, mutation_ptr &mu) {
-                                   auto d = mu->data.header.decree;
-                                   if (d <= plist.last_committed_decree())
-                                       return true;
+    err = mutation_log::replay(
+        state.files,
+        [&plist, this](int log_length, mutation_ptr &mu) {
+            auto d = mu->data.header.decree;
+            if (d <= plist.last_committed_decree())
+                return true;
 
-                                   auto old = plist.get_mutation_by_decree(d);
-                                   if (old != nullptr &&
-                                       old->data.header.ballot >= mu->data.header.ballot)
-                                       return true;
+            auto old = plist.get_mutation_by_decree(d);
+            if (old != nullptr && old->data.header.ballot >= mu->data.header.ballot)
+                return true;
 
-                                   plist.prepare(mu, partition_status::PS_SECONDARY);
-                                   return true;
-                               },
-                               offset);
+            dcheck_eq_replica(plist.prepare(mu, partition_status::PS_SECONDARY), ERR_OK);
+            return true;
+        },
+        offset);
 
     if (_potential_secondary_states.min_learn_start_decree < 0 ||
         _potential_secondary_states.min_learn_start_decree > state.learn_start_decree) {
@@ -1525,7 +1527,7 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                 continue;
 
             mu->set_logged();
-            plist.prepare(mu, partition_status::PS_SECONDARY);
+            dcheck_eq_replica(plist.prepare(mu, partition_status::PS_SECONDARY), ERR_OK);
             ++replay_count;
         }
 

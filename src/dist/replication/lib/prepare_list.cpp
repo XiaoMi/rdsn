@@ -78,7 +78,14 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
     case partition_status::PS_POTENTIAL_SECONDARY:
         // all mutations with lower decree must be ready
         err = commit(mu->data.header.last_committed_decree, COMMIT_TO_DECREE_HARD);
-        dcheck_eq_replica(err, ERR_OK);
+        if (err != ERR_OK) {
+            derror_replica("{} failed to commit mutation [decree:{}, ballot:{}, committed:{}]",
+                           status,
+                           mu->get_decree(),
+                           mu->get_ballot(),
+                           mu->data.header.last_committed_decree);
+            return err;
+        }
         // pop committed mutations if buffer is full
         while (d - min_decree() >= capacity() && last_committed_decree() > min_decree()) {
             pop_min();
