@@ -105,12 +105,7 @@ error_code native_linux_aio_provider::flush(dsn_handle_t fh)
 
 disk_aio *native_linux_aio_provider::prepare_aio_context(aio_task *tsk)
 {
-    auto r = new linux_disk_aio_context;
-    r->support_write_vec = true;
-    bzero((char *)&r->cb, sizeof(r->cb));
-    r->tsk = tsk;
-    r->evt = nullptr;
-    return r;
+    return new linux_disk_aio_context(tsk);
 }
 
 void native_linux_aio_provider::aio(aio_task *aio_tsk) { aio_internal(aio_tsk, true); }

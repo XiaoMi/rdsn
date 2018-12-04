@@ -280,7 +280,6 @@ void disk_engine::process_write(aio_task *aio, uint32_t sz)
         auto new_dio = new_task->aio();
         new_dio->buffer_size = sz;
         new_dio->file_offset = dio->file_offset;
-
         new_dio->file = dio->file;
         new_dio->file_object = dio->file_object;
         new_dio->engine = dio->engine;

@@ -569,7 +569,6 @@ public:
           file_object(nullptr)
     {
     }
-    virtual ~disk_aio() {}
 };
 
 class aio_task : public task
@@ -587,22 +586,12 @@ public:
     size_t get_transferred_size() const { return _transferred_size; }
     disk_aio *aio() { return _aio; }
 
-    // merge buffers in _unmerged_write_buffers to a single merged buffer
-    void collapse()
-    {
-        if (!_unmerged_write_buffers.empty()) {
-            std::shared_ptr<char> buffer(dsn::utils::make_shared_array<char>(_aio->buffer_size));
-            _merged_write_buffer_holder.assign(buffer, 0, _aio->buffer_size);
-            _aio->buffer = buffer.get();
-            char *dest = buffer.get();
-            for (const dsn_file_buffer_t &b : _unmerged_write_buffers) {
-                ::memcpy(dest, b.buffer, b.size);
-                dest += b.size;
-            }
-        }
-    }
+    // merge buffers in _unmerged_write_buffers to a single merged buffer.
+    // and store it in _merged_write_buffer_holder.
+    void collapse();
 
-    virtual void exec() override // aio completed
+    // invoked on aio completed
+    virtual void exec() override
     {
         if (nullptr != _cb) {
             _cb(_error, _transferred_size);
