@@ -113,6 +113,9 @@ public:
     decree get_max_gced_decree() const;
 
 private:
+    void init_metrics_timer();
+
+private:
     friend struct replica_duplicator_test;
     friend struct duplication_sync_timer_test;
     friend class load_from_private_log_test;
@@ -124,7 +127,9 @@ private:
     const std::string _remote_cluster_address;
 
     perf_counter_wrapper _pending_duplicate_count;
-    task_ptr _pending_duplicate_count_timer;
+    perf_counter_wrapper _increased_confirmed_decree;
+    decree _last_recorded_confirmed_decree{0};
+    task_ptr _metrics_update_timer;
 
     replica *_replica;
     dsn::task_tracker _tracker;

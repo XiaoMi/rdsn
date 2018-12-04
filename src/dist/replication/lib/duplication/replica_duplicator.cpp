@@ -50,6 +50,8 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     ddebug_replica(
         "initialize replica_duplicator [dupid:{}, meta_confirmed_decree:{}]", id(), it->second);
 
+    init_metrics_timer();
+
     /// ===== pipeline declaration ===== ///
 
     thread_pool(LPC_REPLICATION_LOW).task_tracker(tracker()).thread_hash(get_gpid().thread_hash());
@@ -62,24 +64,44 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     from(*_load).link(*_ship).link(*_load);
     fork(*_load_private, LPC_REPLICATION_LONG_LOW, 0).link(*_ship);
 
-    // update pending_duplicate_count periodically
+    if (_status == duplication_status::DS_START) {
+        start();
+    }
+}
+
+void replica_duplicator::init_metrics_timer()
+{
+    constexpr int METRICS_UPDATE_INTERVAL = 10;
+
     _pending_duplicate_count.init_app_counter(
         "eon.replica",
         fmt::format("pending_duplicate_count@{}", get_gpid()).c_str(),
         COUNTER_TYPE_NUMBER,
         "number of mutations pending for duplication");
-    _pending_duplicate_count_timer = tasking::enqueue_timer(
+
+    _increased_confirmed_decree.init_app_counter(
+        "eon.replica",
+        fmt::format("increased_confirmed_decree@{}", get_gpid()).c_str(),
+        COUNTER_TYPE_NUMBER,
+        fmt::format("number of increased confirmed decree during last {}s", METRICS_UPDATE_INTERVAL)
+            .data());
+
+    _last_recorded_confirmed_decree = _progress.confirmed_decree;
+
+    // update the metrics periodically
+    _metrics_update_timer = tasking::enqueue_timer(
         LPC_REPLICATION_LOW,
         nullptr, // cancel it manually
-        [this, r]() {
-            _pending_duplicate_count->set(r->last_committed_decree() - _progress.confirmed_decree);
-        },
-        10_s,
-        get_gpid().thread_hash());
+        [this]() {
+            _pending_duplicate_count->set(_replica->last_committed_decree() -
+                                          _progress.confirmed_decree);
 
-    if (_status == duplication_status::DS_START) {
-        start();
-    }
+            auto p = progress();
+            _increased_confirmed_decree->set(p.confirmed_decree - _last_recorded_confirmed_decree);
+            _last_recorded_confirmed_decree = p.confirmed_decree;
+        },
+        METRICS_UPDATE_INTERVAL * 1_s,
+        get_gpid().thread_hash());
 }
 
 void replica_duplicator::start()
@@ -130,7 +152,7 @@ void replica_duplicator::update_status_if_needed(duplication_status::type next_s
 
 replica_duplicator::~replica_duplicator()
 {
-    _pending_duplicate_count_timer->cancel(true);
+    _metrics_update_timer->cancel(true);
 
     pause();
     wait_all();
