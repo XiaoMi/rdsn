@@ -270,6 +270,7 @@ void disk_engine::process_write(aio_task *aio, uint32_t sz)
                 aio->collapse();
             }
         }
+        dassert(dio->buffer || dio->write_buffer_vec, "");
         _provider->aio(aio);
     }
 
