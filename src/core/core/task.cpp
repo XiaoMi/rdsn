@@ -614,7 +614,10 @@ void aio_task::collapse()
             ::memcpy(dest, b.buffer, b.size);
             dest += b.size;
         }
-        dcheck_eq(dest - buffer.get(), _aio->buffer_size);
+        dassert(dest - buffer.get() == _aio->buffer_size,
+                "%u VS %u",
+                dest - buffer.get(),
+                _aio->buffer_size);
         _aio->buffer = buffer.get();
         _merged_write_buffer_holder.assign(std::move(buffer), 0, _aio->buffer_size);
     }
