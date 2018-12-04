@@ -46,7 +46,7 @@
 namespace dsn {
 namespace replication {
 
-// run in replica thread
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica::on_checkpoint_timer()
 {
     _checker.only_one_thread_access();
@@ -92,7 +92,7 @@ void replica::on_checkpoint_timer()
             // if this app is in duplication
             std::map<std::string, std::string> envs;
             query_app_envs(envs);
-            if (envs["duplicating"] == "true") {
+            if (envs[replica_envs::DUPLICATING] == "true" || _app->init_info().init_duplicating) {
                 return;
             }
         }
@@ -117,7 +117,7 @@ void replica::on_checkpoint_timer()
     }
 }
 
-// run in replica thread
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica::init_checkpoint(bool is_emergency)
 {
     // only applicable to primary and secondary replicas

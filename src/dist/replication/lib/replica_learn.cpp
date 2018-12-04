@@ -274,7 +274,7 @@ decree replica::get_learn_start_decree(const learn_request &request)
     } else {
         std::map<std::string, std::string> envs;
         query_app_envs(envs);
-        if (envs["duplicating"] == "true") {
+        if (envs[replica_envs::DUPLICATING] == "true") {
             decree local_gced = max_gced_decree_no_lock();
             if (local_gced == invalid_decree) {
                 ddebug_replica("no plog to be learned for duplication, continue as normal");
@@ -792,7 +792,8 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
         err = _app->update_init_info(
             this,
             _stub->_log->on_partition_reset(get_gpid(), _app->last_committed_decree()),
-            _app->last_committed_decree());
+            _app->last_committed_decree(),
+            _app->init_info().init_duplicating);
 
         // switch private log to make learning easier
         _private_log->demand_switch_file();

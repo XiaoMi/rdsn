@@ -63,10 +63,13 @@ public:
     decree init_durable_decree;
     int64_t init_offset_in_shared_log;
     int64_t init_offset_in_private_log;
+    bool init_duplicating;
+
     DEFINE_JSON_SERIALIZATION(init_ballot,
                               init_durable_decree,
                               init_offset_in_shared_log,
-                              init_offset_in_private_log)
+                              init_offset_in_private_log,
+                              init_duplicating)
 
 public:
     replica_init_info() { memset((void *)this, 0, sizeof(*this)); }
@@ -257,9 +260,16 @@ private:
     ::dsn::error_code open_new_internal(replica *r, int64_t shared_log_start);
 
     const replica_init_info &init_info() const { return _info; }
-    ::dsn::error_code
-    update_init_info(replica *r, int64_t shared_log_offset, int64_t durable_decree);
+
+    ::dsn::error_code update_init_info(replica *r,
+                                       int64_t shared_log_offset,
+                                       int64_t durable_decree,
+                                       bool duplicating);
+
     ::dsn::error_code update_init_info_ballot_and_decree(replica *r);
+
+    ::dsn::error_code update_init_info_duplicating(bool duplicating);
+
     void install_perf_counters();
 
 protected:

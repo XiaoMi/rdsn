@@ -531,6 +531,7 @@ void replica::on_update_configuration_on_meta_server_reply(
     _primary_states.reconfiguration_task = nullptr;
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica::update_app_envs(const std::map<std::string, std::string> &envs)
 {
     if (_app) {
@@ -550,6 +551,17 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
         if (deny_client_write != _deny_client_write) {
             _deny_client_write = deny_client_write;
             ddebug_replica("switch _deny_client_write to {}", _deny_client_write);
+        }
+    }
+
+    find = envs.find(replica_envs::DUPLICATING);
+    if (find != envs.end() && find->second == "true") {
+        if (!_app->init_info().init_duplicating) {
+            _app->update_init_info_duplicating(true);
+        }
+    } else {
+        if (_app->init_info().init_duplicating) {
+            _app->update_init_info_duplicating(false);
         }
     }
 }
@@ -963,6 +975,7 @@ bool replica::update_local_configuration_with_no_ballot_change(partition_status:
     return update_local_configuration(config, true);
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica::on_config_sync(const app_info &info, const partition_configuration &config)
 {
     ddebug("%s: configuration sync", name());

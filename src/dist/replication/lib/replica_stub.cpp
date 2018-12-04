@@ -1191,6 +1191,7 @@ void replica_stub::set_replica_state_subscriber_for_test(replica_state_subscribe
 
 // this_ is used to hold a ref to replica_stub so we don't need to cancel the task on
 // replica_stub::close
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
                                                const configuration_update_request &req)
 {
@@ -1212,6 +1213,7 @@ void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
     }
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica_stub::on_node_query_reply_scatter2(replica_stub_ptr this_, gpid id)
 {
     replica_ptr replica = get_replica(id);

@@ -157,6 +157,7 @@ class replica_envs
 {
 public:
     static const std::string DENY_CLIENT_WRITE;
+    static const std::string DUPLICATING;
 };
 
 namespace cold_backup {
