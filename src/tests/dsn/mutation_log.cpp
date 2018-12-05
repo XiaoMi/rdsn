@@ -572,3 +572,50 @@ TEST_F(mutation_log_test, read_empty_block)
         // ASSERT_EQ(err.code(), ERR_HANDLE_EOF) << err.description();
     }
 }
+
+TEST_F(mutation_log_test, reset_from)
+{
+    std::vector<mutation_ptr> expected;
+    { // writing logs
+        mutation_log_ptr mlog =
+            new mutation_log_private(log_dir, 4, gpid, nullptr, 1024, 512, 10000);
+
+        EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
+
+        for (int i = 0; i < 10; i++) {
+            mutation_ptr mu = create_test_mutation("hello!", 2 + i);
+            expected.push_back(mu);
+            mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
+        }
+        mlog->flush();
+
+        ASSERT_TRUE(utils::filesystem::rename_path(log_dir, log_dir + ".tmp"));
+    }
+
+    ASSERT_TRUE(utils::filesystem::directory_exists(log_dir + ".tmp"));
+    ASSERT_FALSE(utils::filesystem::directory_exists(log_dir));
+
+    // create another set of logs
+    mutation_log_ptr mlog = new mutation_log_private(log_dir, 4, gpid, nullptr, 1024, 512, 10000);
+    EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
+    for (int i = 0; i < 1000; i++) {
+        mutation_ptr mu = create_test_mutation("hello!", 2000 + i);
+        mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
+    }
+    mlog->flush();
+
+    // reset from the tmp log dir.
+    std::vector<mutation_ptr> actual;
+    auto err = mlog->reset_from(log_dir + ".tmp",
+                                [&](int, mutation_ptr &mu) -> bool {
+                                    actual.push_back(mu);
+                                    return true;
+                                },
+                                [](error_code err) { ASSERT_EQ(err, ERR_OK); });
+    ASSERT_EQ(err, ERR_OK);
+    ASSERT_EQ(actual.size(), expected.size());
+
+    // the tmp dir has been removed.
+    ASSERT_FALSE(utils::filesystem::directory_exists(log_dir + ".tmp"));
+    ASSERT_TRUE(utils::filesystem::directory_exists(log_dir));
+}

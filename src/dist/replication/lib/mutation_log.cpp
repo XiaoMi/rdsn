@@ -432,6 +432,38 @@ void mutation_log_private::write_pending_mutations(bool release_lock_required)
         0);
 }
 
+error_code mutation_log_private::reset_from(const std::string &dir,
+                                            replay_callback cb,
+                                            io_failure_callback fail_cb)
+{
+    close();
+
+    // move the original directory to a tmp position.
+    std::string temp_dir = _dir + '.' + boost::lexical_cast<std::string>(dsn_now_ns());
+    dassert(temp_dir != dir, "dir names collide: %s", temp_dir.c_str());
+    error_code err = ERR_FILE_OPERATION_FAILED;
+    if (!dsn::utils::filesystem::rename_path(_dir, temp_dir)) {
+        derror_f("failed to rename original path {} to {}", _dir, temp_dir);
+        return err;
+    }
+
+    // make the specified dir as our working dir.
+    if (!dsn::utils::filesystem::rename_path(dir, _dir)) {
+        derror_f("failed to rename path {} to {}", dir, _dir);
+        return err;
+    }
+
+    err = open(cb, fail_cb);
+    if (err != ERR_OK) {
+        derror_f("open files in {} failed: {}", _dir, err);
+    } else {
+        if (!dsn::utils::filesystem::remove_path(temp_dir)) {
+            derror_f("remove temp dir {} failed", temp_dir);
+        }
+    }
+    return err;
+}
+
 ///////////////////////////////////////////////////////////////
 
 mutation_log::mutation_log(const std::string &dir, int32_t max_log_file_mb, gpid gpid, replica *r)

@@ -221,6 +221,13 @@ public:
         return replay_block(log, callback, read_from_start, end_offset);
     }
 
+    // reset private-log with log files under `dir`
+    // private-log should be open before this method called
+    virtual error_code reset_from(const std::string &dir, replay_callback, io_failure_callback)
+    {
+        return ERR_NOT_IMPLEMENTED;
+    }
+
     //
     // maintain max_decree & valid_start_offset
     //
@@ -522,6 +529,8 @@ public:
 
     virtual void flush() override;
     virtual void flush_once() override;
+
+    error_code reset_from(const std::string &dir, replay_callback, io_failure_callback) override;
 
 private:
     // async write pending mutations into log file
