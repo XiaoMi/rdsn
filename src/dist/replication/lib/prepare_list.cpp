@@ -79,11 +79,12 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
         // all mutations with lower decree must be ready
         err = commit(mu->data.header.last_committed_decree, COMMIT_TO_DECREE_HARD);
         if (err != ERR_OK) {
-            derror_replica("{} failed to commit mutation [decree:{}, ballot:{}, committed:{}]",
-                           status,
+            derror_replica("failed to commit mutation [decree:{}, ballot:{}, committed:{}, "
+                           "replica_last_committed:{}]",
                            mu->get_decree(),
                            mu->get_ballot(),
-                           mu->data.header.last_committed_decree);
+                           mu->data.header.last_committed_decree,
+                           last_committed_decree());
             return err;
         }
         // pop committed mutations if buffer is full
@@ -93,23 +94,6 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
         err = mutation_cache::put(mu);
         dassert_replica(err == ERR_OK, "mutation_cache::put failed, err = {}", err);
         return err;
-
-    //// delayed commit - only when capacity is an issue
-    // case partition_status::PS_POTENTIAL_SECONDARY:
-    //    while (true)
-    //    {
-    //        err = mutation_cache::put(mu);
-    //        if (err == ERR_CAPACITY_EXCEEDED)
-    //        {
-    //            dassert(mu->data.header.last_committed_decree >= min_decree(), "");
-    //            commit (min_decree(), true);
-    //            pop_min();
-    //        }
-    //        else
-    //            break;
-    //    }
-    //    dassert (err == ERR_OK, "");
-    //    return err;
 
     case partition_status::PS_INACTIVE: // only possible during init
         if (mu->data.header.last_committed_decree > max_decree()) {

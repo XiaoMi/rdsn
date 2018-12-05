@@ -438,7 +438,7 @@ bool replica::replay_mutation(mutation_ptr &mu, bool is_private)
     // prepare
     _uniq_timestamp_us.try_update(mu->data.header.timestamp);
     error_code err = _prepare_list->prepare(mu, partition_status::PS_INACTIVE);
-    dassert(err == ERR_OK, "prepare failed, err = %s", err.to_string());
+    dcheck_eq_replica(err, ERR_OK);
 
     return true;
 }
