@@ -28,7 +28,7 @@
 
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/utility/errors.h>
-#include <fmt/format.h>
+#include <fmt/ostream.h>
 
 // The macros below no longer use the default snprintf method for log message formatting,
 // instead we use fmt::format.
@@ -77,11 +77,6 @@ inline void format_arg(fmt::BasicFormatter<char> &f, const char *format_str, dsn
 inline void format_arg(fmt::BasicFormatter<char> &f, const char *format_str, const dsn::error_s &p)
 {
     f.writer().write(p.description());
-}
-
-inline void format_arg(fmt::BasicFormatter<char> &f, const char *format_str, dsn::error_code p)
-{
-    f.writer().write(p.to_string());
 }
 
 inline void format_arg(fmt::BasicFormatter<char> &f, const char *format_str, dsn::task_code p)
