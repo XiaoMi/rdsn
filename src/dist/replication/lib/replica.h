@@ -65,6 +65,47 @@ namespace test {
 class test_checker;
 }
 
+class throttling_controller
+{
+public:
+    enum throttling_type
+    {
+        PASS,
+        DELAY,
+        REJECT
+    };
+
+public:
+    throttling_controller();
+
+    // return true if parse succeed
+    // return false if parse failed for the reason of invalid env_str, and reset the controller
+    bool parse_from_env(const std::string &env_str,
+                        int partition_count,
+                        bool &changed,
+                        std::string &old_str);
+
+    // reset to no throttling
+    void reset(bool &changed, std::string &old_str);
+
+    // if throttling is enabled
+    bool enabled() { return _enabled; }
+
+    // 'delay_ms' is out param when the return type is not PASS
+    throttling_type control(int64_t &delay_ms);
+
+private:
+    bool _enabled;
+    std::string _str;
+    int32_t _partition_count;
+    int32_t _delay_qps;
+    int64_t _delay_ms;
+    int32_t _reject_qps;
+    int64_t _reject_delay_ms;
+    int64_t _last_request_time;
+    int32_t _cur_request_count;
+};
+
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
 public:
@@ -93,7 +134,7 @@ public:
     //
     //    requests from clients
     //
-    void on_client_write(task_code code, dsn::message_ex *request);
+    void on_client_write(task_code code, dsn::message_ex *request, bool ignore_throttling = false);
     void on_client_read(task_code code, dsn::message_ex *request);
 
     //
@@ -373,10 +414,13 @@ private:
 
     bool _inactive_is_transient; // upgrade to P/S is allowed only iff true
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
-    volatile bool _deny_client_write = false;
+    bool _deny_client_write;     // if deny all write requests
+    throttling_controller _write_throttling_controller;
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
+    perf_counter_wrapper _counter_recent_throttling_delay_count;
+    perf_counter_wrapper _counter_recent_throttling_reject_count;
 
     dsn::task_tracker _tracker;
     // the thread access checker

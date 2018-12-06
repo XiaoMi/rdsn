@@ -112,9 +112,14 @@ public:
                         std::vector<bool> *found);
 
     // this function collects all counters to perf_counter_info which matches
-    // any of regular expression in args and returns the json representation
+    // any of the regular expressions in args and returns the json representation
     // of perf_counter_info
     std::string list_snapshot_by_regexp(const std::vector<std::string> &args);
+
+    // this function collects all counters to perf_counter_info which contains
+    // any of the sub strings and returns the json representation
+    // of perf_counter_info
+    std::string list_snapshot_by_substr(const std::vector<std::string> &args);
 
 private:
     // full_name = perf_counter::build_full_name(...);

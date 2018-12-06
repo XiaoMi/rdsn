@@ -33,17 +33,121 @@
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/rand.h>
+#include <dsn/utility/string_conv.h>
+#include <dsn/utility/strings.h>
 
 namespace dsn {
 namespace replication {
 
+throttling_controller::throttling_controller()
+    : _enabled(false),
+      _partition_count(0),
+      _delay_qps(0),
+      _delay_ms(0),
+      _reject_qps(0),
+      _reject_delay_ms(0),
+      _last_request_time(0),
+      _cur_request_count(0)
+{
+}
+
+bool throttling_controller::parse_from_env(const std::string &env_str,
+                                           int partition_count,
+                                           bool &changed,
+                                           std::string &old_str)
+{
+    if (_enabled && env_str == _str && partition_count == _partition_count) {
+        changed = false;
+        return true;
+    }
+    reset(changed, old_str);
+    std::vector<std::string> sargs;
+    ::dsn::utils::split_args(env_str.c_str(), sargs, ',', true);
+    if (sargs.empty())
+        return false;
+    _delay_qps = 0;
+    _delay_ms = 0;
+    _reject_qps = 0;
+    _reject_delay_ms = 0;
+    for (std::string &s : sargs) {
+        std::vector<std::string> sargs1;
+        ::dsn::utils::split_args(s.c_str(), sargs1, '*', true);
+        if (sargs1.size() != 3)
+            return false; // invalid field count
+        int32_t qps;
+        if (!::dsn::buf2int32(sargs1[0], qps) || qps <= 0)
+            return false; // invalid qps
+        int64_t ms;
+        if (!::dsn::buf2int64(sargs1[2], ms) || ms <= 0)
+            return false; // invalid delay ms
+        if (sargs1[1] == "delay") {
+            if (_delay_qps > 0)
+                return false; // duplicate delay
+            _delay_qps = qps / partition_count + 1;
+            _delay_ms = ms;
+        } else if (sargs1[1] == "reject") {
+            if (_reject_qps > 0)
+                return false; // duplicate reject
+            _reject_qps = qps / partition_count + 1;
+            _reject_delay_ms = ms;
+        } else {
+            return false; // invalid type
+        }
+    }
+    changed = true;
+    _enabled = true;
+    _str = env_str;
+    _partition_count = partition_count;
+    return true;
+}
+
+void throttling_controller::reset(bool &changed, std::string &old_str)
+{
+    if (_enabled) {
+        changed = true;
+        old_str = _str;
+        _enabled = false;
+        _str.clear();
+        _partition_count = 0;
+        _delay_qps = 0;
+        _delay_ms = 0;
+        _reject_qps = 0;
+        _reject_delay_ms = 0;
+        _last_request_time = 0;
+        _cur_request_count = 0;
+    } else {
+        changed = false;
+        old_str.clear();
+    }
+}
+
+throttling_controller::throttling_type throttling_controller::control(int64_t &delay_ms)
+{
+    int64_t now_s = dsn_now_s();
+    if (now_s != _last_request_time) {
+        _cur_request_count = 0;
+        _last_request_time = now_s;
+    }
+    _cur_request_count++;
+    if (_reject_qps > 0 && _cur_request_count > _reject_qps) {
+        _cur_request_count--;
+        delay_ms = _reject_delay_ms;
+        return REJECT;
+    }
+    if (_delay_qps > 0 && _cur_request_count > _delay_qps) {
+        delay_ms = _delay_ms;
+        return DELAY;
+    }
+    return PASS;
+}
+
 replica::replica(
-    replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool need_restore)
+    replica_stub *stub, gpid gpid_, const app_info &app, const char *dir, bool need_restore)
     : serverlet<replica>("replica"),
-      replica_base(gpid, fmt::format("{}@{}", gpid, stub->_primary_address.to_string())),
+      replica_base(gpid_, fmt::format("{}@{}", gpid_, stub->_primary_address.to_string())),
       _app_info(app),
       _primary_states(
-          gpid, stub->options().staleness_for_commit, stub->options().batch_write_disabled),
+          gpid_, stub->options().staleness_for_commit, stub->options().batch_write_disabled),
       _potential_secondary_states(this),
       _cold_backup_running_count(0),
       _cold_backup_max_duration_time_ms(0),
@@ -59,13 +163,20 @@ replica::replica(
     _dir = dir;
     _options = &stub->options();
     init_state();
-    _config.pid = gpid;
+    _config.pid = gpid_;
 
-    std::stringstream ss;
-    ss << "private.log.size(MB)"
-       << "@" << gpid.get_app_id() << "." << gpid.get_partition_index();
+    std::string counter_str = fmt::format("private.log.size(MB)@{}", gpid_);
     _counter_private_log_size.init_app_counter(
-        "eon.replica", ss.str().c_str(), COUNTER_TYPE_NUMBER, "private log size(MB)");
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_NUMBER, counter_str.c_str());
+
+    counter_str = fmt::format("recent.throttling.delay.count@{}", gpid_);
+    _counter_recent_throttling_delay_count.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
+
+    counter_str = fmt::format("recent.throttling.reject.count@{}", gpid_);
+    _counter_recent_throttling_reject_count.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
+
     if (need_restore) {
         // add an extra env for restore
         _extra_envs.insert(
@@ -97,6 +208,7 @@ void replica::init_state()
 {
     _inactive_is_transient = false;
     _is_initializing = false;
+    _deny_client_write = false;
     _prepare_list =
         new prepare_list(this,
                          0,

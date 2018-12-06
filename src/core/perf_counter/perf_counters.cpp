@@ -43,6 +43,7 @@
 
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/task.h>
+#include <dsn/utility/string_view.h>
 
 #include "perf_counter_atomic.h"
 #include "builtin_counters.h"
@@ -58,6 +59,13 @@ perf_counters::perf_counters()
         "perf-counters [name-filter]...",
         [](const std::vector<std::string> &args) {
             return dsn::perf_counters::instance().list_snapshot_by_regexp(args);
+        });
+    dsn::command_manager::instance().register_command(
+        {"perf-counters-by-substr"},
+        "perf-counters-by-substr - query perf counters, supporting filter by substr",
+        "perf-counters-by-substr [sub-str]...",
+        [](const std::vector<std::string> &args) {
+            return dsn::perf_counters::instance().list_snapshot_by_substr(args);
         });
 }
 
@@ -191,6 +199,38 @@ std::string perf_counters::list_snapshot_by_regexp(const std::vector<std::string
                 }
             }
 
+            if (matched) {
+                info.counters.emplace_back(ptr->full_name(), ptr->type(), val);
+            }
+        };
+        iterate_snapshot(visitor);
+        info.result = "OK";
+    }
+
+    std::stringstream ss;
+    info.timestamp = dsn_now_ms() / 1000;
+    char buf[20];
+    utils::time_ms_to_date_time(info.timestamp * 1000, buf, sizeof(buf));
+    info.timestamp_str = buf;
+    info.encode_json_state(ss);
+    return ss.str();
+}
+
+std::string perf_counters::list_snapshot_by_substr(const std::vector<std::string> &args)
+{
+    perf_counter_info info;
+
+    if (args.empty()) {
+        info.result = "ERROR: no substr specified";
+    } else {
+        snapshot_iterator visitor = [&args, &info](const dsn::perf_counter_ptr &ptr, double val) {
+            bool matched = false;
+            for (auto &s : args) {
+                if (string_view(ptr->full_name()).find(s) != string_view::npos) {
+                    matched = true;
+                    break;
+                }
+            }
             if (matched) {
                 info.counters.emplace_back(ptr->full_name(), ptr->type(), val);
             }
