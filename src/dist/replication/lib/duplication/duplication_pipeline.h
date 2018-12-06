@@ -64,15 +64,7 @@ struct ship_mutation : replica_base, pipeline::when<decree, mutation_tuple_set>,
 
     /// ==== Implementation ==== ///
 
-    explicit ship_mutation(replica_duplicator *duplicator)
-        : replica_base(duplicator), _duplicator(duplicator)
-    {
-        _mutation_duplicator =
-            new_mutation_duplicator(duplicator,
-                                    _duplicator->remote_cluster_address(),
-                                    _duplicator->_replica->get_app_info()->app_name);
-        _mutation_duplicator->set_task_environment(*this);
-    }
+    explicit ship_mutation(replica_duplicator *duplicator);
 
     void ship(mutation_tuple_set &&in);
 
@@ -80,6 +72,9 @@ private:
     friend struct ship_mutation_test;
 
     std::unique_ptr<mutation_duplicator> _mutation_duplicator;
+
+    perf_counter_wrapper _ship_latency;
+    int64_t _ship_start_ns;
 
     replica_duplicator *_duplicator{nullptr};
     decree _last_decree{invalid_decree};

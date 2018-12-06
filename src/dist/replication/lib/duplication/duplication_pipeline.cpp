@@ -62,8 +62,11 @@ load_mutation::load_mutation(replica_duplicator *duplicator,
 
 void ship_mutation::ship(mutation_tuple_set &&in)
 {
+    _ship_start_ns = dsn_now_ns();
     _mutation_duplicator->duplicate(std::move(in), [this]() mutable {
         _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree));
+        _ship_latency->set(dsn_now_ns() - _ship_start_ns);
+
         step_down_next_stage();
     });
 }
@@ -79,6 +82,20 @@ void ship_mutation::run(decree &&last_decree, mutation_tuple_set &&in)
     }
 
     ship(std::move(in));
+}
+
+ship_mutation::ship_mutation(replica_duplicator *duplicator)
+    : replica_base(duplicator), _duplicator(duplicator)
+{
+    _mutation_duplicator = new_mutation_duplicator(duplicator,
+                                                   _duplicator->remote_cluster_address(),
+                                                   _duplicator->_replica->get_app_info()->app_name);
+    _mutation_duplicator->set_task_environment(*this);
+
+    _ship_latency.init_app_counter("eon.replica",
+                                   fmt::format("dup.ship_latency@{}", get_gpid()).c_str(),
+                                   COUNTER_TYPE_NUMBER_PERCENTILES,
+                                   "latency for each round of ship_mutation::run()");
 }
 
 } // namespace replication
