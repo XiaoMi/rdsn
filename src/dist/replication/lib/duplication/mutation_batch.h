@@ -56,8 +56,10 @@ public:
     // mutations with decree < d will be ignored.
     void set_start_decree(decree d);
 
+    size_t size() const { return _loaded_mutations.size(); }
+
 private:
-    friend struct replica_duplicator_test;
+    friend class replica_duplicator_test;
 
     std::unique_ptr<prepare_list> _mutation_buffer;
     mutation_tuple_set _loaded_mutations;

@@ -116,8 +116,8 @@ private:
     void init_metrics_timer();
 
 private:
-    friend struct replica_duplicator_test;
-    friend struct duplication_sync_timer_test;
+    friend class replica_duplicator_test;
+    friend class duplication_sync_timer_test;
     friend class load_from_private_log_test;
 
     friend struct load_mutation;

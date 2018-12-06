@@ -64,7 +64,7 @@ private:
     std::vector<replica_ptr> get_all_primaries();
 
 private:
-    friend struct duplication_sync_timer_test;
+    friend class duplication_sync_timer_test;
 
     replica_stub *_stub{nullptr};
 

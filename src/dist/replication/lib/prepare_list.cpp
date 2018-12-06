@@ -134,7 +134,7 @@ error_code prepare_list::commit(decree d, commit_type ct)
             mutation_ptr mu = get_mutation_by_decree(d0);
 
             if (mu == nullptr || !mu->is_logged()) {
-                derror_f("mutation {} is missing in prepare list", d0);
+                derror_replica("mutation {} is missing in prepare list", d0);
                 return ERR_INVALID_DATA;
             }
             dcheck_ge_replica(mu->data.header.ballot, last_bt);

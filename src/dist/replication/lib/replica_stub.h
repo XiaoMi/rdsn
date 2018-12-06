@@ -211,8 +211,8 @@ private:
 
     friend class mock_replica_stub;
     friend class duplication_sync_timer;
-    friend struct duplication_sync_timer_test;
-    friend struct replica_duplicator_manager_test;
+    friend class duplication_sync_timer_test;
+    friend class replica_duplicator_manager_test;
 
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>

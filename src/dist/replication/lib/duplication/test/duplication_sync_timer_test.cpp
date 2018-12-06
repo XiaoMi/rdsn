@@ -31,8 +31,9 @@
 namespace dsn {
 namespace replication {
 
-struct duplication_sync_timer_test : public replica_stub_test_base
+class duplication_sync_timer_test : public replica_stub_test_base
 {
+public:
     void SetUp() override { dup_sync = make_unique<duplication_sync_timer>(stub.get()); }
 
     void TearDown() override { stub.reset(); }

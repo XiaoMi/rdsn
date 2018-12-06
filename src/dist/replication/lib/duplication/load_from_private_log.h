@@ -55,7 +55,7 @@ public:
 
     void set_start_decree(decree start_decree);
 
-    /// =================================== Implementation =================================== ///
+    /// ==== Implementation ==== ///
 
     void find_log_file_to_start();
 
@@ -84,6 +84,10 @@ private:
     mutation_batch _mutation_batch;
 
     decree _start_decree{0};
+
+    perf_counter_wrapper _plog_block_loaded_mutations_count;
+    perf_counter_wrapper _plog_block_loading_duration;
+    int64_t _plog_block_loading_start_ns;
 };
 
 } // namespace replication

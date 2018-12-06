@@ -43,8 +43,9 @@ DEFINE_TASK_CODE_RPC(RPC_RRDB_RRDB_PUT, TASK_PRIORITY_COMMON, ::dsn::THREAD_POOL
 namespace dsn {
 namespace replication {
 
-struct replica_duplicator_test : public replica_test_base
+class replica_duplicator_test : public replica_test_base
 {
+public:
     void SetUp() override
     {
         utils::filesystem::remove_path(_log_dir);
