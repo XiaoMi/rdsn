@@ -1464,6 +1464,37 @@ void replica::on_add_learner(const group_check_request &request)
 // in non-replication thread
 error_code replica::apply_learned_state_from_private_log(learn_state &state)
 {
+    //                confirmed  gced          committed
+    //                    |        |              |
+    // learner's plog: ============[--------------]
+    //                   |
+    //                   |                            <cache>
+    // learn_state:      [-----------log-------------]------]
+    //                   |                                  |
+    // ==>               |                                  |
+    // learner's plog    |                              committed
+    // after applied:    [---------------log----------------]
+
+    if (state.learn_start_decree <= _app->last_committed_decree()) {
+        // move the `learn/` dir to working dir (`plog/`).
+        _private_log->reset_from(
+            _app->learn_dir(),
+            [this](int log_length, mutation_ptr &mu) { return replay_mutation(mu, true); },
+            [this](error_code err) {
+                tasking::enqueue(LPC_REPLICATION_ERROR,
+                                 &_tracker,
+                                 [this, err]() { handle_local_failure(err); },
+                                 get_gpid().thread_hash());
+            });
+
+        // only the uncommitted logs will be applied to storage.
+        learn_state tmp_state;
+        _private_log->get_learn_state(get_gpid(), _app->last_committed_decree() + 1, tmp_state);
+        state.files = tmp_state.files;
+
+        ddebug_replica("reset private_log from learned logs");
+    }
+
     int64_t offset;
     error_code err;
 
@@ -1475,6 +1506,9 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                            if (mu->data.header.decree == _app->last_committed_decree() + 1) {
                                // TODO: assign the returned error_code to err and check it
                                _app->apply_mutation(mu);
+
+                               _private_log->append(
+                                   mu, LPC_WRITE_REPLICATION_LOG_COMMON, &_tracker, nullptr);
                            }
                        });
 
@@ -1569,6 +1603,9 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                _app->last_committed_decree());
     }
 
+    if (err == ERR_OK) {
+        _private_log->flush();
+    }
     return err;
 }
 }
