@@ -54,6 +54,7 @@
 #include "mutation_log.h"
 #include "prepare_list.h"
 #include "replica_context.h"
+#include "throttling_controller.h"
 
 namespace dsn {
 namespace replication {
@@ -64,47 +65,6 @@ class replication_checker;
 namespace test {
 class test_checker;
 }
-
-class throttling_controller
-{
-public:
-    enum throttling_type
-    {
-        PASS,
-        DELAY,
-        REJECT
-    };
-
-public:
-    throttling_controller();
-
-    // return true if parse succeed
-    // return false if parse failed for the reason of invalid env_str, and reset the controller
-    bool parse_from_env(const std::string &env_str,
-                        int partition_count,
-                        bool &changed,
-                        std::string &old_str);
-
-    // reset to no throttling
-    void reset(bool &changed, std::string &old_str);
-
-    // if throttling is enabled
-    bool enabled() { return _enabled; }
-
-    // 'delay_ms' is out param when the return type is not PASS
-    throttling_type control(int64_t &delay_ms);
-
-private:
-    bool _enabled;
-    std::string _str;
-    int32_t _partition_count;
-    int32_t _delay_qps;
-    int64_t _delay_ms;
-    int32_t _reject_qps;
-    int64_t _reject_delay_ms;
-    int64_t _last_request_time;
-    int32_t _cur_request_count;
-};
 
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
