@@ -567,7 +567,7 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
         if (!_write_throttling_controller.parse_from_env(
                 find->second, _app_info.partition_count, throttling_changed, old_throttling)) {
             dwarn_replica(
-                "invalue value of env {}: \"{}\"", replica_envs::WRITE_THROTTLING, find->second);
+                "invalid value of env {}: \"{}\"", replica_envs::WRITE_THROTTLING, find->second);
         }
     } else {
         _write_throttling_controller.reset(throttling_changed, old_throttling);

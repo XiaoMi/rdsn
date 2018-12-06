@@ -76,7 +76,7 @@ void replica::on_client_write(task_code code, dsn::message_ex *request, bool ign
         if (type != throttling_controller::PASS) {
             if (type == throttling_controller::DELAY) {
                 request->add_ref();
-                tasking::enqueue(LPC_THROTTLING_PENDING_TIMER,
+                tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
                                  &_tracker,
                                  [this, code, request]() {
                                      on_client_write(code, request, true);
@@ -87,7 +87,7 @@ void replica::on_client_write(task_code code, dsn::message_ex *request, bool ign
                 _counter_recent_throttling_delay_count->increment();
             } else { // type == throttling_controller::REJECT
                 request->add_ref();
-                tasking::enqueue(LPC_THROTTLING_PENDING_TIMER,
+                tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
                                  &_tracker,
                                  [this, request]() {
                                      response_client_message(false, request, ERR_BUSY);
