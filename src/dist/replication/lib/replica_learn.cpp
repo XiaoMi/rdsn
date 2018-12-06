@@ -1478,32 +1478,42 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                            }
                        });
 
-    err = mutation_log::replay(
-        state.files,
-        [&plist, this](int log_length, mutation_ptr &mu) {
-            auto d = mu->data.header.decree;
-            if (d <= plist.last_committed_decree())
-                return true;
+    err = mutation_log::replay(state.files,
+                               [&plist, this](int log_length, mutation_ptr &mu) {
+                                   auto d = mu->data.header.decree;
+                                   if (d <= plist.last_committed_decree())
+                                       return true;
 
-            auto old = plist.get_mutation_by_decree(d);
-            if (old != nullptr && old->data.header.ballot >= mu->data.header.ballot)
-                return true;
-            auto ec = plist.prepare(mu, partition_status::PS_SECONDARY);
-            if (ec == ERR_INVALID_DATA &&
-                mu->data.header.last_committed_decree < last_committed_decree()) {
-                plist.truncate(mu->data.header.last_committed_decree);
-                return true;
-            }
-            dcheck_eq_replica(ec, ERR_OK);
-            return true;
-        },
-        offset);
+                                   auto old = plist.get_mutation_by_decree(d);
+                                   if (old != nullptr &&
+                                       old->data.header.ballot >= mu->data.header.ballot)
+                                       return true;
+                                   auto ec = plist.prepare(mu, partition_status::PS_SECONDARY);
+                                   dcheck_eq_replica(ec, ERR_OK);
+                                   return true;
+                               },
+                               offset);
 
+    // update min_learn_start_decree, the position where the first round of LT_LOG starts from.
+    // we use this value to determine whether to learn back from min_confirmed_decree
+    // for duplication:
+    //
+    //                confirmed
+    //                    |
+    // learner's plog: ==[=========[--------------]
+    //                   |         |              |
+    //                   |       gced           committed
+    //     min_learn_start_decree
+    //
+    // because the learned logs (under `learn/` dir) have covered all the unconfirmed,
+    // the next round of learn will start from committed+1.
+    //
     if (_potential_secondary_states.min_learn_start_decree < 0 ||
         _potential_secondary_states.min_learn_start_decree > state.learn_start_decree) {
         ddebug_replica("the learn progress starts from {}", state.learn_start_decree);
         _potential_secondary_states.min_learn_start_decree = state.learn_start_decree;
     }
+
     ddebug("%s: apply_learned_state_from_private_log[%016" PRIx64 "]: learnee = %s, "
            "learn_duration = %" PRIu64 " ms, apply private log files done, "
            "file_count = %d, min_learn_start_decree = %" PRId64 ", learn_start_decree = %" PRId64
