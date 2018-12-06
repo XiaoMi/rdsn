@@ -439,19 +439,19 @@ error_code mutation_log_private::reset_from(const std::string &dir,
     close();
 
     // move the original directory to a tmp position.
-    std::string temp_dir = _dir + '.' + boost::lexical_cast<std::string>(dsn_now_ns());
-    dassert(temp_dir != dir, "dir names collide: %s", temp_dir.c_str());
+    std::string temp_dir = _dir + '.' + std::to_string(dsn_now_ns());
     error_code err = ERR_FILE_OPERATION_FAILED;
     if (!dsn::utils::filesystem::rename_path(_dir, temp_dir)) {
         derror_f("failed to rename original path {} to {}", _dir, temp_dir);
         return err;
     }
+    ddebug_f("move original working directory {} to {}", _dir, temp_dir);
 
-    // make the specified dir as our working dir.
     if (!dsn::utils::filesystem::rename_path(dir, _dir)) {
         derror_f("failed to rename path {} to {}", dir, _dir);
         return err;
     }
+    ddebug_f("make {} as our working directory {}", dir, _dir);
 
     err = open(cb, fail_cb);
     if (err != ERR_OK) {
@@ -461,6 +461,7 @@ error_code mutation_log_private::reset_from(const std::string &dir,
             derror_f("remove temp dir {} failed", temp_dir);
         }
     }
+    ddebug_f("successfully reset this plog with log files in {}", dir);
     return err;
 }
 
