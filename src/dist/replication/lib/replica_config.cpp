@@ -568,14 +568,17 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
                 find->second, _app_info.partition_count, throttling_changed, old_throttling)) {
             dwarn_replica(
                 "invalid value of env {}: \"{}\"", replica_envs::WRITE_THROTTLING, find->second);
+            // reset if parse failed
+            _write_throttling_controller.reset(throttling_changed, old_throttling);
         }
     } else {
+        // reset if env not found
         _write_throttling_controller.reset(throttling_changed, old_throttling);
     }
     if (throttling_changed) {
         ddebug_replica("switch _write_throttling_controller from \"{}\" to \"{}\"",
                        old_throttling,
-                       find->second);
+                       _write_throttling_controller.env_value());
     }
 }
 

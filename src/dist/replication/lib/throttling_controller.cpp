@@ -45,24 +45,22 @@ throttling_controller::throttling_controller()
 {
 }
 
-bool throttling_controller::parse_from_env(const std::string &env_str,
+bool throttling_controller::parse_from_env(const std::string &env_value,
                                            int partition_count,
                                            bool &changed,
-                                           std::string &old_str)
+                                           std::string &old_env_value)
 {
-    if (_enabled && env_str == _str && partition_count == _partition_count) {
-        changed = false;
+    changed = false;
+    if (_enabled && env_value == _env_value && partition_count == _partition_count)
         return true;
-    }
-    reset(changed, old_str);
     std::vector<std::string> sargs;
-    ::dsn::utils::split_args(env_str.c_str(), sargs, ',', true);
+    ::dsn::utils::split_args(env_value.c_str(), sargs, ',', true);
     if (sargs.empty())
         return false;
-    _delay_qps = 0;
-    _delay_ms = 0;
-    _reject_qps = 0;
-    _reject_delay_ms = 0;
+    int32_t delay_qps = 0;
+    int64_t delay_ms = 0;
+    int32_t reject_qps = 0;
+    int64_t reject_delay_ms = 0;
     for (std::string &s : sargs) {
         std::vector<std::string> sargs1;
         ::dsn::utils::split_args(s.c_str(), sargs1, '*', true);
@@ -75,33 +73,38 @@ bool throttling_controller::parse_from_env(const std::string &env_str,
         if (!::dsn::buf2int64(sargs1[2], ms) || ms <= 0)
             return false; // invalid delay ms
         if (sargs1[1] == "delay") {
-            if (_delay_qps > 0)
+            if (delay_qps > 0)
                 return false; // duplicate delay
-            _delay_qps = qps / partition_count + 1;
-            _delay_ms = ms;
+            delay_qps = qps / partition_count + 1;
+            delay_ms = ms;
         } else if (sargs1[1] == "reject") {
-            if (_reject_qps > 0)
+            if (reject_qps > 0)
                 return false; // duplicate reject
-            _reject_qps = qps / partition_count + 1;
-            _reject_delay_ms = ms;
+            reject_qps = qps / partition_count + 1;
+            reject_delay_ms = ms;
         } else {
             return false; // invalid type
         }
     }
     changed = true;
+    old_env_value = _env_value;
     _enabled = true;
-    _str = env_str;
+    _env_value = env_value;
     _partition_count = partition_count;
+    _delay_qps = delay_qps;
+    _delay_ms = delay_ms;
+    _reject_qps = reject_qps;
+    _reject_delay_ms = reject_delay_ms;
     return true;
 }
 
-void throttling_controller::reset(bool &changed, std::string &old_str)
+void throttling_controller::reset(bool &changed, std::string &old_env_value)
 {
     if (_enabled) {
         changed = true;
-        old_str = _str;
+        old_env_value = _env_value;
         _enabled = false;
-        _str.clear();
+        _env_value.clear();
         _partition_count = 0;
         _delay_qps = 0;
         _delay_ms = 0;
@@ -111,7 +114,6 @@ void throttling_controller::reset(bool &changed, std::string &old_str)
         _cur_request_count = 0;
     } else {
         changed = false;
-        old_str.clear();
     }
 }
 

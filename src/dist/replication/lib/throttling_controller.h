@@ -54,25 +54,29 @@ public:
 public:
     throttling_controller();
 
-    // return true if parse succeed
-    // return false if parse failed for the reason of invalid env_str, and reset the controller
-    bool parse_from_env(const std::string &env_str,
+    // return true if parse succeed.
+    // return false if parse failed for the reason of invalid env_value.
+    // 'changed' and 'old_env_value' is out param when return true.
+    bool parse_from_env(const std::string &env_value,
                         int partition_count,
                         bool &changed,
-                        std::string &old_str);
+                        std::string &old_env_value);
 
-    // reset to no throttling
-    void reset(bool &changed, std::string &old_str);
+    // reset to no throttling.
+    void reset(bool &changed, std::string &old_env_value);
 
-    // if throttling is enabled
-    bool enabled() { return _enabled; }
+    // if throttling is enabled.
+    bool enabled() const { return _enabled; }
 
-    // 'delay_ms' is out param when the return type is not PASS
+    // return the current env value.
+    const std::string &env_value() const { return _env_value; }
+
+    // 'delay_ms' is out param when the return type is not PASS.
     throttling_type control(int64_t &delay_ms);
 
 private:
     bool _enabled;
-    std::string _str;
+    std::string _env_value;
     int32_t _partition_count;
     int32_t _delay_qps;
     int64_t _delay_ms;
