@@ -67,12 +67,12 @@ replica::replica(
     _counter_private_log_size.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_NUMBER, counter_str.c_str());
 
-    counter_str = fmt::format("recent.throttling.delay.count@{}", gpid);
-    _counter_recent_throttling_delay_count.init_app_counter(
+    counter_str = fmt::format("recent.write.throttling.delay.count@{}", gpid);
+    _counter_recent_write_throttling_delay_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
-    counter_str = fmt::format("recent.throttling.reject.count@{}", gpid);
-    _counter_recent_throttling_reject_count.init_app_counter(
+    counter_str = fmt::format("recent.write.throttling.reject.count@{}", gpid);
+    _counter_recent_write_throttling_reject_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
     if (need_restore) {

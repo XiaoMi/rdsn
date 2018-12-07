@@ -84,7 +84,7 @@ void replica::on_client_write(task_code code, dsn::message_ex *request, bool ign
                                  },
                                  get_gpid().thread_hash(),
                                  std::chrono::milliseconds(delay_ms));
-                _counter_recent_throttling_delay_count->increment();
+                _counter_recent_write_throttling_delay_count->increment();
             } else { // type == throttling_controller::REJECT
                 request->add_ref();
                 tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
@@ -95,7 +95,7 @@ void replica::on_client_write(task_code code, dsn::message_ex *request, bool ign
                                  },
                                  get_gpid().thread_hash(),
                                  std::chrono::milliseconds(delay_ms));
-                _counter_recent_throttling_reject_count->increment();
+                _counter_recent_write_throttling_reject_count->increment();
             }
             return;
         }
