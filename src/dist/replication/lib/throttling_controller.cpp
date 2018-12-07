@@ -54,7 +54,7 @@ bool throttling_controller::parse_from_env(const std::string &env_value,
     if (_enabled && env_value == _env_value && partition_count == _partition_count)
         return true;
     std::vector<std::string> sargs;
-    ::dsn::utils::split_args(env_value.c_str(), sargs, ',', true);
+    utils::split_args(env_value.c_str(), sargs, ',', true);
     if (sargs.empty())
         return false;
     int32_t delay_qps = 0;
@@ -63,14 +63,14 @@ bool throttling_controller::parse_from_env(const std::string &env_value,
     int64_t reject_delay_ms = 0;
     for (std::string &s : sargs) {
         std::vector<std::string> sargs1;
-        ::dsn::utils::split_args(s.c_str(), sargs1, '*', true);
+        utils::split_args(s.c_str(), sargs1, '*', true);
         if (sargs1.size() != 3)
             return false; // invalid field count
         int32_t qps = 0;
-        if (!::dsn::buf2int32(sargs1[0], qps) || qps <= 0)
+        if (!buf2int32(sargs1[0], qps) || qps <= 0)
             return false; // invalid qps
         int64_t ms = 0;
-        if (!::dsn::buf2int64(sargs1[2], ms) || ms <= 0)
+        if (!buf2int64(sargs1[2], ms) || ms <= 0)
             return false; // invalid delay ms
         if (sargs1[1] == "delay") {
             if (delay_qps > 0)

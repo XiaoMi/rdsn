@@ -32,6 +32,8 @@
 namespace dsn {
 namespace replication {
 
+// used for replica throttling.
+// not thread safe
 class throttling_controller
 {
 public:
