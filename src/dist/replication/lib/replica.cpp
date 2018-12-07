@@ -40,12 +40,12 @@ namespace dsn {
 namespace replication {
 
 replica::replica(
-    replica_stub *stub, gpid gpid_, const app_info &app, const char *dir, bool need_restore)
+    replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool need_restore)
     : serverlet<replica>("replica"),
-      replica_base(gpid_, fmt::format("{}@{}", gpid_, stub->_primary_address.to_string())),
+      replica_base(gpid, fmt::format("{}@{}", gpid, stub->_primary_address.to_string())),
       _app_info(app),
       _primary_states(
-          gpid_, stub->options().staleness_for_commit, stub->options().batch_write_disabled),
+          gpid, stub->options().staleness_for_commit, stub->options().batch_write_disabled),
       _potential_secondary_states(this),
       _cold_backup_running_count(0),
       _cold_backup_max_duration_time_ms(0),
@@ -61,17 +61,17 @@ replica::replica(
     _dir = dir;
     _options = &stub->options();
     init_state();
-    _config.pid = gpid_;
+    _config.pid = gpid;
 
-    std::string counter_str = fmt::format("private.log.size(MB)@{}", gpid_);
+    std::string counter_str = fmt::format("private.log.size(MB)@{}", gpid);
     _counter_private_log_size.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_NUMBER, counter_str.c_str());
 
-    counter_str = fmt::format("recent.throttling.delay.count@{}", gpid_);
+    counter_str = fmt::format("recent.throttling.delay.count@{}", gpid);
     _counter_recent_throttling_delay_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
-    counter_str = fmt::format("recent.throttling.reject.count@{}", gpid_);
+    counter_str = fmt::format("recent.throttling.reject.count@{}", gpid);
     _counter_recent_throttling_reject_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
