@@ -136,7 +136,7 @@ void throttling_controller::reset(bool &changed, std::string &old_env_value)
     }
 }
 
-throttling_controller::throttling_type throttling_controller::control(message_ex *request,
+throttling_controller::throttling_type throttling_controller::control(const message_ex *request,
                                                                       int64_t &delay_ms)
 {
     int64_t now_s = dsn_now_s();

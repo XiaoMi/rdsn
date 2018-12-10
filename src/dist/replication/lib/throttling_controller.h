@@ -58,12 +58,12 @@ public:
     // 'old_env_value' is valid only when changed is true.
     bool parse_from_env(const std::string &env_value,
                         int partition_count,
-                        std::string &parse_error,
-                        bool &changed,
-                        std::string &old_env_value);
+                        /*out*/ std::string &parse_error,
+                        /*out*/ bool &changed,
+                        /*out*/ std::string &old_env_value);
 
     // reset to no throttling.
-    void reset(bool &changed, std::string &old_env_value);
+    void reset(/*out*/ bool &changed, /*out*/ std::string &old_env_value);
 
     // if throttling is enabled.
     bool enabled() const { return _enabled; }
@@ -72,7 +72,7 @@ public:
     const std::string &env_value() const { return _env_value; }
 
     // 'delay_ms' is out param when the return type is not PASS.
-    throttling_type control(message_ex *request, int64_t &delay_ms);
+    throttling_type control(const message_ex *request, /*out*/ int64_t &delay_ms);
 
 private:
     bool _enabled;
