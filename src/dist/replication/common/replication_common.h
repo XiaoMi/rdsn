@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #pragma once
 
 #include <dsn/dist/replication.h>
@@ -128,6 +119,8 @@ public:
 private:
     void sanity_check();
 };
+
+extern const char *partition_status_to_string(partition_status::type status);
 
 class cold_backup_constant
 {

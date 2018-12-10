@@ -27,6 +27,7 @@
 #include "prepare_list.h"
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/defer.h>
 
 namespace dsn {
 namespace replication {
@@ -65,7 +66,19 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
     decree d = mu->data.header.decree;
     dcheck_gt_replica(d, last_committed_decree());
 
-    error_code err;
+    error_code err = ERR_OK;
+    auto cleanup = defer([this, &err, status, &mu]() {
+        if (err != ERR_OK) {
+            derror_replica("{} failed to commit mutation [decree:{}, ballot:{}, committed:{}, "
+                           "replica_last_committed:{}]",
+                           partition_status_to_string(status),
+                           mu->get_decree(),
+                           mu->get_ballot(),
+                           mu->data.header.last_committed_decree,
+                           last_committed_decree());
+        }
+    });
+
     switch (status) {
     case partition_status::PS_PRIMARY:
         // pop committed mutations if buffer is full
@@ -79,12 +92,6 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
         // all mutations with lower decree must be ready
         err = commit(mu->data.header.last_committed_decree, COMMIT_TO_DECREE_HARD);
         if (err != ERR_OK) {
-            derror_replica("failed to commit mutation [decree:{}, ballot:{}, committed:{}, "
-                           "replica_last_committed:{}]",
-                           mu->get_decree(),
-                           mu->get_ballot(),
-                           mu->data.header.last_committed_decree,
-                           last_committed_decree());
             return err;
         }
         // pop committed mutations if buffer is full

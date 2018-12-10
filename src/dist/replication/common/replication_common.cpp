@@ -24,21 +24,21 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #include "replication_common.h"
 #include <dsn/utility/filesystem.h>
 #include <fstream>
 
 namespace dsn {
 namespace replication {
+
+/*extern*/ const char *partition_status_to_string(partition_status::type status)
+{
+    auto it = _partition_status_VALUES_TO_NAMES.find(status);
+    dassert(it != _partition_status_VALUES_TO_NAMES.end(),
+            "unexpected type of partition_status: %d",
+            status);
+    return it->second;
+}
 
 replication_options::replication_options()
 {
