@@ -30,6 +30,9 @@
 #include <string>
 
 namespace dsn {
+
+class message_ex;
+
 namespace replication {
 
 // used for replica throttling.
@@ -69,7 +72,7 @@ public:
     const std::string &env_value() const { return _env_value; }
 
     // 'delay_ms' is out param when the return type is not PASS.
-    throttling_type control(int64_t &delay_ms);
+    throttling_type control(message_ex *request, int64_t &delay_ms);
 
 private:
     bool _enabled;

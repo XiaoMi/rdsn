@@ -72,7 +72,7 @@ void replica::on_client_write(task_code code, dsn::message_ex *request, bool ign
 
     if (_write_throttling_controller.enabled() && !ignore_throttling) {
         int64_t delay_ms = 0;
-        auto type = _write_throttling_controller.control(delay_ms);
+        auto type = _write_throttling_controller.control(request, delay_ms);
         if (type != throttling_controller::PASS) {
             if (type == throttling_controller::DELAY) {
                 tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
