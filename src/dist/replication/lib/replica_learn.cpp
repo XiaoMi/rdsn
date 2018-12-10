@@ -1466,7 +1466,7 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
 {
     //                confirmed  gced          committed
     //                    |        |              |
-    // learner's plog: ============[--------------]
+    // learner's plog: ============[-----log------]
     //                   |
     //                   |                            <cache>
     // learn_state:      [-----------log-------------]------]
@@ -1475,17 +1475,19 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     // learner's plog    |                              committed
     // after applied:    [---------------log----------------]
 
-    if (state.learn_start_decree <= _app->last_committed_decree()) {
+    if (state.learn_start_decree < _app->last_committed_decree() + 1) {
+        // it means this round of learn must have stepped back
+        // to include all unconfirmed.
+
         // move the `learn/` dir to working dir (`plog/`).
-        _private_log->reset_from(
-            _app->learn_dir(),
-            [this](int log_length, mutation_ptr &mu) { return replay_mutation(mu, true); },
-            [this](error_code err) {
-                tasking::enqueue(LPC_REPLICATION_ERROR,
-                                 &_tracker,
-                                 [this, err]() { handle_local_failure(err); },
-                                 get_gpid().thread_hash());
-            });
+        _private_log->reset_from(_app->learn_dir(),
+                                 [this](int log_length, mutation_ptr &mu) { return true; },
+                                 [this](error_code err) {
+                                     tasking::enqueue(LPC_REPLICATION_ERROR,
+                                                      &_tracker,
+                                                      [this, err]() { handle_local_failure(err); },
+                                                      get_gpid().thread_hash());
+                                 });
 
         // only the uncommitted logs will be applied to storage.
         learn_state tmp_state;
@@ -1603,9 +1605,7 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                _app->last_committed_decree());
     }
 
-    if (err == ERR_OK) {
-        _private_log->flush();
-    }
+    _private_log->flush();
     return err;
 }
 } // namespace replication

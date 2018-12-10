@@ -1014,9 +1014,25 @@ inline static error_s read_log_block(log_file_ptr &log,
     }
 
     // check file index continuity
-    for (auto &kv : logs) {
+    for (const auto &kv : logs) {
         if (++last_file_index != kv.first) {
             derror("log file missing with index %u", last_file_index);
+
+            // this is a serious error, print all the files in list.
+            std::string all_log_files_str;
+            bool first = true;
+            for (const auto &id_file : logs) {
+                if (!first) {
+                    all_log_files_str += ", ";
+                    first = false;
+                }
+                all_log_files_str += fmt::format(
+                    "log.{}.{}", id_file.second->index(), id_file.second->start_offset());
+            }
+            derror_f("all the files under dir({}): [{}]",
+                     logs.begin()->second->path(),
+                     all_log_files_str);
+
             return ERR_OBJECT_NOT_FOUND;
         }
     }
