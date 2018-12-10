@@ -47,6 +47,7 @@ throttling_controller::throttling_controller()
 
 bool throttling_controller::parse_from_env(const std::string &env_value,
                                            int partition_count,
+                                           std::string &parse_error,
                                            bool &changed,
                                            std::string &old_env_value)
 {
@@ -55,35 +56,52 @@ bool throttling_controller::parse_from_env(const std::string &env_value,
         return true;
     std::vector<std::string> sargs;
     utils::split_args(env_value.c_str(), sargs, ',', true);
-    if (sargs.empty())
+    if (sargs.empty()) {
+        parse_error = "empty env value";
         return false;
+    }
+    bool delay_parsed = false;
     int32_t delay_qps = 0;
     int64_t delay_ms = 0;
+    bool reject_parsed = false;
     int32_t reject_qps = 0;
     int64_t reject_delay_ms = 0;
     for (std::string &s : sargs) {
         std::vector<std::string> sargs1;
         utils::split_args(s.c_str(), sargs1, '*', true);
-        if (sargs1.size() != 3)
-            return false; // invalid field count
+        if (sargs1.size() != 3) {
+            parse_error = "invalid field count, should be 3";
+            return false;
+        }
         int32_t qps = 0;
-        if (!buf2int32(sargs1[0], qps) || qps <= 0)
-            return false; // invalid qps
+        if (!buf2int32(sargs1[0], qps) || qps < 0) {
+            parse_error = "invalid qps, should be non-negative int";
+            return false;
+        }
         int64_t ms = 0;
-        if (!buf2int64(sargs1[2], ms) || ms <= 0)
-            return false; // invalid delay ms
+        if (!buf2int64(sargs1[2], ms) || ms < 0) {
+            parse_error = "invalid delay ms, should be non-negative int";
+            return false;
+        }
         if (sargs1[1] == "delay") {
-            if (delay_qps > 0)
-                return false; // duplicate delay
+            if (delay_parsed) {
+                parse_error = "duplicate delay config";
+                return false;
+            }
+            delay_parsed = true;
             delay_qps = qps / partition_count + 1;
             delay_ms = ms;
         } else if (sargs1[1] == "reject") {
-            if (reject_qps > 0)
-                return false; // duplicate reject
+            if (reject_parsed) {
+                parse_error = "duplicate reject config";
+                return false;
+            }
+            reject_parsed = true;
             reject_qps = qps / partition_count + 1;
             reject_delay_ms = ms;
         } else {
-            return false; // invalid type
+            parse_error = "invalid throttling type";
+            return false;
         }
     }
     changed = true;

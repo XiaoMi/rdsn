@@ -75,26 +75,26 @@ void replica::on_client_write(task_code code, dsn::message_ex *request, bool ign
         auto type = _write_throttling_controller.control(delay_ms);
         if (type != throttling_controller::PASS) {
             if (type == throttling_controller::DELAY) {
-                request->add_ref();
                 tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
                                  &_tracker,
-                                 [this, code, request]() {
-                                     on_client_write(code, request, true);
-                                     request->release_ref();
+                                 [ this, code, req = message_ptr(request) ]() {
+                                     on_client_write(code, req, true);
                                  },
                                  get_gpid().thread_hash(),
                                  std::chrono::milliseconds(delay_ms));
                 _counter_recent_write_throttling_delay_count->increment();
             } else { // type == throttling_controller::REJECT
-                request->add_ref();
-                tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
-                                 &_tracker,
-                                 [this, request]() {
-                                     response_client_message(false, request, ERR_BUSY);
-                                     request->release_ref();
-                                 },
-                                 get_gpid().thread_hash(),
-                                 std::chrono::milliseconds(delay_ms));
+                if (delay_ms > 0) {
+                    tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
+                                     &_tracker,
+                                     [ this, req = message_ptr(request) ]() {
+                                         response_client_message(false, req, ERR_BUSY);
+                                     },
+                                     get_gpid().thread_hash(),
+                                     std::chrono::milliseconds(delay_ms));
+                } else {
+                    response_client_message(false, request, ERR_BUSY);
+                }
                 _counter_recent_write_throttling_reject_count->increment();
             }
             return;

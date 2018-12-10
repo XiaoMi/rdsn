@@ -49,9 +49,13 @@ public:
 
     // return true if parse succeed.
     // return false if parse failed for the reason of invalid env_value.
+    // if return false, the original value will not be changed.
+    // 'parse_error' is out param when return false.
     // 'changed' and 'old_env_value' is out param when return true.
+    // 'old_env_value' is valid only when changed is true.
     bool parse_from_env(const std::string &env_value,
                         int partition_count,
+                        std::string &parse_error,
                         bool &changed,
                         std::string &old_env_value);
 
@@ -71,10 +75,10 @@ private:
     bool _enabled;
     std::string _env_value;
     int32_t _partition_count;
-    int32_t _delay_qps;
-    int64_t _delay_ms;
-    int32_t _reject_qps;
-    int64_t _reject_delay_ms;
+    int32_t _delay_qps;       // should >= 0
+    int64_t _delay_ms;        // should >= 0
+    int32_t _reject_qps;      // should >= 0
+    int64_t _reject_delay_ms; // should >= 0
     int64_t _last_request_time;
     int32_t _cur_request_count;
 };

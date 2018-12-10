@@ -562,12 +562,18 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
     // WRITE_THROTTLING
     bool throttling_changed = false;
     std::string old_throttling;
+    std::string parse_error;
     find = envs.find(replica_envs::WRITE_THROTTLING);
     if (find != envs.end()) {
-        if (!_write_throttling_controller.parse_from_env(
-                find->second, _app_info.partition_count, throttling_changed, old_throttling)) {
-            dwarn_replica(
-                "invalid value of env {}: \"{}\"", replica_envs::WRITE_THROTTLING, find->second);
+        if (!_write_throttling_controller.parse_from_env(find->second,
+                                                         _app_info.partition_count,
+                                                         parse_error,
+                                                         throttling_changed,
+                                                         old_throttling)) {
+            dwarn_replica("parse env failed, key = \"{}\", value = \"{}\", error = \"{}\"",
+                          replica_envs::WRITE_THROTTLING,
+                          find->second,
+                          parse_error);
             // reset if parse failed
             _write_throttling_controller.reset(throttling_changed, old_throttling);
         }
