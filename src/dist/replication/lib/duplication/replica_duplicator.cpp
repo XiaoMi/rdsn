@@ -75,13 +75,13 @@ void replica_duplicator::init_metrics_timer()
 
     _pending_duplicate_count.init_app_counter(
         "eon.replica",
-        fmt::format("pending_duplicate_count@{}", get_gpid()).c_str(),
+        fmt::format("dup.pending_duplicate_count@{}", get_gpid()).c_str(),
         COUNTER_TYPE_NUMBER,
         "number of mutations pending for duplication");
 
     _increased_confirmed_decree.init_app_counter(
         "eon.replica",
-        fmt::format("increased_confirmed_decree@{}", get_gpid()).c_str(),
+        fmt::format("dup.increased_confirmed_decree@{}", get_gpid()).c_str(),
         COUNTER_TYPE_NUMBER,
         fmt::format("number of increased confirmed decree during last {}s", METRICS_UPDATE_INTERVAL)
             .data());
@@ -125,7 +125,10 @@ std::string replica_duplicator::to_string() const
     doc.AddMember("status", rapidjson::StringRef(duplication_status_to_string(_status)), alloc);
     doc.AddMember("remote", rapidjson::StringRef(_remote_cluster_address.data()), alloc);
     doc.AddMember("confirmed", _progress.confirmed_decree, alloc);
-    doc.AddMember("app", rapidjson::StringRef(_replica->get_app_info()->app_name.data()), alloc);
+    doc.AddMember("app",
+                  rapidjson::StringRef(_replica->get_app_info()->app_name.data(),
+                                       _replica->get_app_info()->app_name.size()),
+                  alloc);
 
     rapidjson::StringBuffer sb;
     rapidjson::Writer<rapidjson::StringBuffer> writer(sb);

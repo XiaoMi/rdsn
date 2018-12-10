@@ -1508,7 +1508,7 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                                _app->apply_mutation(mu);
 
                                _private_log->append(
-                                   mu, LPC_WRITE_REPLICATION_LOG_COMMON, &_tracker, nullptr);
+                                   mu, LPC_WRITE_REPLICATION_LOG, &_tracker, nullptr);
                            }
                        });
 
@@ -1608,5 +1608,5 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     }
     return err;
 }
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

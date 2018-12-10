@@ -210,6 +210,22 @@ void mutation_log_shared::write_pending_mutations(bool release_lock_required)
 
 ////////////////////////////////////////////////////
 
+mutation_log_private::mutation_log_private(const std::string &dir,
+                                           int32_t max_log_file_mb,
+                                           gpid gpid,
+                                           replica *r,
+                                           uint32_t batch_buffer_bytes,
+                                           uint32_t batch_buffer_max_count,
+                                           uint64_t batch_buffer_flush_interval_ms)
+    : mutation_log(dir, max_log_file_mb, gpid, r),
+      replica_base(r),
+      _batch_buffer_bytes(batch_buffer_bytes),
+      _batch_buffer_max_count(batch_buffer_max_count),
+      _batch_buffer_flush_interval_ms(batch_buffer_flush_interval_ms)
+{
+    mutation_log_private::init_states();
+}
+
 ::dsn::task_ptr mutation_log_private::append(mutation_ptr &mu,
                                              dsn::task_code callback_code,
                                              dsn::task_tracker *tracker,
@@ -345,10 +361,7 @@ void mutation_log_private::write_pending_mutations(bool release_lock_required)
     dassert(_pending_write != nullptr, "");
     dassert(_pending_write->size() > 0, "pending write size = %d", (int)_pending_write->size());
     auto pr = mark_new_offset(_pending_write->size(), false);
-    dassert(pr.second == _pending_write_start_offset,
-            "%" PRId64 " VS %" PRId64 "",
-            pr.second,
-            _pending_write_start_offset);
+    dcheck_eq_replica(pr.second, _pending_write_start_offset);
 
     _is_writing.store(true, std::memory_order_release);
 
@@ -442,26 +455,26 @@ error_code mutation_log_private::reset_from(const std::string &dir,
     std::string temp_dir = _dir + '.' + std::to_string(dsn_now_ns());
     error_code err = ERR_FILE_OPERATION_FAILED;
     if (!dsn::utils::filesystem::rename_path(_dir, temp_dir)) {
-        derror_f("failed to rename original path {} to {}", _dir, temp_dir);
+        derror_replica("failed to rename original path {} to {}", _dir, temp_dir);
         return err;
     }
-    ddebug_f("move original working directory {} to {}", _dir, temp_dir);
+    ddebug_replica("move original working directory {} to {}", _dir, temp_dir);
 
     if (!dsn::utils::filesystem::rename_path(dir, _dir)) {
         derror_f("failed to rename path {} to {}", dir, _dir);
         return err;
     }
-    ddebug_f("make {} as our working directory {}", dir, _dir);
+    ddebug_replica("make {} as our working directory {}", dir, _dir);
 
     err = open(cb, fail_cb);
     if (err != ERR_OK) {
-        derror_f("open files in {} failed: {}", _dir, err);
+        derror_replica("open files in {} failed: {}", _dir, err);
     } else {
         if (!dsn::utils::filesystem::remove_path(temp_dir)) {
-            derror_f("remove temp dir {} failed", temp_dir);
+            derror_replica("remove temp dir {} failed", temp_dir);
         }
     }
-    ddebug_f("successfully reset this plog with log files in {}", dir);
+    ddebug_replica("successfully reset this plog with log files in {}", dir);
     return err;
 }
 
@@ -844,7 +857,10 @@ std::pair<log_file_ptr, int64_t> mutation_log::mark_new_offset(size_t size,
 
         if (create_file) {
             auto ec = create_new_log_file();
-            dassert(ec == ERR_OK, "create new log file failed");
+            dassert_f(ec == ERR_OK,
+                      "{} create new log file failed: {}",
+                      _is_private ? _private_gpid.to_string() : "",
+                      ec);
             _switch_file_hint = false;
             _switch_file_demand = false;
         }
@@ -2333,5 +2349,5 @@ int log_file::write_file_header(binary_writer &writer, const replica_log_info_ma
 
     return get_file_header_size();
 }
-}
-} // end namespace
+} // namespace replication
+} // namespace dsn

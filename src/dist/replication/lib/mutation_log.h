@@ -42,6 +42,7 @@
 #include <dsn/tool-api/zlocks.h>
 #include <dsn/utility/errors.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
+#include <dsn/dist/replication/replica_base.h>
 
 namespace dsn {
 namespace replication {
@@ -395,7 +396,7 @@ protected:
     dsn::task_tracker _tracker;
 
 private:
-    friend struct mutation_log_test;
+    friend class mutation_log_test;
 
     ///////////////////////////////////////////////
     //// memory states
@@ -488,7 +489,7 @@ private:
     perf_counter_wrapper *_write_size_counter;
 };
 
-class mutation_log_private : public mutation_log
+class mutation_log_private : public mutation_log, private replica_base
 {
 public:
     // Parameters:
@@ -502,14 +503,7 @@ public:
                          replica *r,
                          uint32_t batch_buffer_bytes,
                          uint32_t batch_buffer_max_count,
-                         uint64_t batch_buffer_flush_interval_ms)
-        : mutation_log(dir, max_log_file_mb, gpid, r),
-          _batch_buffer_bytes(batch_buffer_bytes),
-          _batch_buffer_max_count(batch_buffer_max_count),
-          _batch_buffer_flush_interval_ms(batch_buffer_flush_interval_ms)
-    {
-        mutation_log_private::init_states();
-    }
+                         uint64_t batch_buffer_flush_interval_ms);
 
     virtual ~mutation_log_private() override
     {
@@ -706,5 +700,5 @@ private:
     // for write, the value is set by write_file_header().
     replica_log_info_map _previous_log_max_decrees;
 };
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

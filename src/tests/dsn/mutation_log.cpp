@@ -26,6 +26,7 @@
 
 #include "dist/replication/lib/mutation_log.h"
 #include "dist/replication/lib/mutation_log_utils.h"
+#include "dist/replication/lib/duplication/test/duplication_test_base.h"
 
 #include <dsn/utility/filesystem.h>
 #include <gtest/gtest.h>
@@ -265,9 +266,10 @@ TEST(replication, log_file)
 namespace dsn {
 namespace replication {
 
-struct mutation_log_test : public ::testing::Test
+class mutation_log_test : public replica_test_base
 {
-    mutation_log_test() : log_dir("test_log_dir"), gpid(1, 0) {}
+public:
+    mutation_log_test() : log_dir(_log_dir), gpid(_replica->get_gpid()) {}
 
     void SetUp() override
     {
@@ -310,7 +312,7 @@ struct mutation_log_test : public ::testing::Test
 
         { // writing logs
             mutation_log_ptr mlog =
-                new mutation_log_private(log_dir, 1024, gpid, nullptr, 1024, 512, 10000);
+                new mutation_log_private(log_dir, 1024, gpid, _replica.get(), 1024, 512, 10000);
 
             EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
@@ -352,7 +354,7 @@ struct mutation_log_test : public ::testing::Test
 
         { // writing logs
             mutation_log_ptr mlog = new mutation_log_private(
-                log_dir, private_log_file_size_mb, gpid, nullptr, 1024, 512, 10000);
+                log_dir, private_log_file_size_mb, gpid, _replica.get(), 1024, 512, 10000);
             EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
             for (int i = 0; i < num_entries; i++) {
@@ -364,7 +366,7 @@ struct mutation_log_test : public ::testing::Test
 
         { // reading logs
             mutation_log_ptr mlog =
-                new mutation_log_private(log_dir, 4, gpid, nullptr, 1024, 512, 10000);
+                new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
 
             std::vector<std::string> log_files;
             ASSERT_TRUE(utils::filesystem::get_subfiles(mlog->dir(), log_files, false));
@@ -393,7 +395,7 @@ struct mutation_log_test : public ::testing::Test
     {
         { // generate multiple log files
             mutation_log_ptr mlog =
-                new mutation_log_private(log_dir, 1, gpid, nullptr, 1024, 512, 10000);
+                new mutation_log_private(log_dir, 1, gpid, _replica.get(), 1024, 512, 10000);
             ASSERT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
             for (int f = 0; f < num_files; f++) {
@@ -416,9 +418,6 @@ struct mutation_log_test : public ::testing::Test
     const dsn::gpid gpid;
 };
 
-} // namespace replication
-} // namespace dsn
-
 TEST_F(mutation_log_test, replay_block)
 {
     std::vector<mutation_ptr> mutations;
@@ -427,7 +426,7 @@ TEST_F(mutation_log_test, replay_block)
 
     { // writing logs
         mutation_log_ptr mlog = new mutation_log_private(
-            log_dir, 4, gpid, nullptr, batch_buffer_bytes, batch_buffer_count, 10000);
+            log_dir, 4, gpid, _replica.get(), batch_buffer_bytes, batch_buffer_count, 10000);
 
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
@@ -483,7 +482,7 @@ TEST_F(mutation_log_test, open)
 
     { // writing logs
         mutation_log_ptr mlog =
-            new mutation_log_private(log_dir, 4, gpid, nullptr, 1024, 512, 10000);
+            new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
 
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
@@ -496,7 +495,7 @@ TEST_F(mutation_log_test, open)
 
     { // reading logs
         mutation_log_ptr mlog =
-            new mutation_log_private(log_dir, 4, gpid, nullptr, 1024, 512, 10000);
+            new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
 
         int mutation_index = -1;
         mlog->open(
@@ -534,7 +533,7 @@ TEST_F(mutation_log_test, read_empty_block)
 
     { // writing logs
         mutation_log_ptr mlog =
-            new mutation_log_private(log_dir, 4, gpid, nullptr, 1024, 512, 10000);
+            new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
 
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
@@ -578,7 +577,7 @@ TEST_F(mutation_log_test, reset_from)
     std::vector<mutation_ptr> expected;
     { // writing logs
         mutation_log_ptr mlog =
-            new mutation_log_private(log_dir, 4, gpid, nullptr, 1024, 512, 10000);
+            new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
 
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
@@ -596,7 +595,8 @@ TEST_F(mutation_log_test, reset_from)
     ASSERT_FALSE(utils::filesystem::directory_exists(log_dir));
 
     // create another set of logs
-    mutation_log_ptr mlog = new mutation_log_private(log_dir, 4, gpid, nullptr, 1024, 512, 10000);
+    mutation_log_ptr mlog =
+        new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
     EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
     for (int i = 0; i < 1000; i++) {
         mutation_ptr mu = create_test_mutation("hello!", 2000 + i);
@@ -619,3 +619,6 @@ TEST_F(mutation_log_test, reset_from)
     ASSERT_FALSE(utils::filesystem::directory_exists(log_dir + ".tmp"));
     ASSERT_TRUE(utils::filesystem::directory_exists(log_dir));
 }
+
+} // namespace replication
+} // namespace dsn

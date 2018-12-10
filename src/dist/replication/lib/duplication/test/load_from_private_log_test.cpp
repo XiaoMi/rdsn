@@ -53,8 +53,13 @@ struct load_from_private_log_test : public replica_test_base
         std::vector<std::string> mutations;
         int max_log_file_mb = 1;
 
-        mutation_log_ptr mlog = new mutation_log_private(
-            _replica->dir(), max_log_file_mb, _replica->get_gpid(), nullptr, 1024, 512, 10000);
+        mutation_log_ptr mlog = new mutation_log_private(_replica->dir(),
+                                                         max_log_file_mb,
+                                                         _replica->get_gpid(),
+                                                         _replica.get(),
+                                                         1024,
+                                                         512,
+                                                         10000);
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
         load.find_log_file_to_start({});
@@ -93,8 +98,13 @@ struct load_from_private_log_test : public replica_test_base
     {
         std::vector<std::string> mutations;
 
-        mutation_log_ptr mlog = new mutation_log_private(
-            _replica->dir(), private_log_size_mb, _replica->get_gpid(), nullptr, 1024, 512, 50000);
+        mutation_log_ptr mlog = new mutation_log_private(_replica->dir(),
+                                                         private_log_size_mb,
+                                                         _replica->get_gpid(),
+                                                         _replica.get(),
+                                                         1024,
+                                                         512,
+                                                         50000);
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
         {
@@ -132,6 +142,7 @@ struct load_from_private_log_test : public replica_test_base
             EXPECT_TRUE(pr.second->file_handle() == nullptr);
         }
         _replica->init_private_log(mlog);
+        duplicator = create_test_duplicator();
 
         load_from_private_log load(_replica.get(), duplicator.get());
         load.set_start_decree(start_decree);
@@ -195,7 +206,7 @@ struct load_from_private_log_test : public replica_test_base
         replay_condition[id] = 0; // duplicating
         mutation_log::replay_callback cb = [](int, mutation_ptr &) { return true; };
         mutation_log_ptr mlog = new mutation_log_private(
-            _replica->dir(), private_log_size_mb, id, nullptr, 1024, 512, 10000);
+            _replica->dir(), private_log_size_mb, id, _replica.get(), 1024, 512, 10000);
         EXPECT_EQ(mlog->open(cb, nullptr, replay_condition), ERR_OK);
         return mlog;
     }
@@ -312,13 +323,10 @@ TEST_F(load_from_private_log_test, handle_real_private_log)
         boost::filesystem::copy_file(
             file, _log_dir + "/log.1.0", boost::filesystem::copy_option::overwrite_if_exists);
 
-        {
-            // load log.1.0
-            mutation_log_ptr mlog =
-                new mutation_log_private(_replica->dir(), 4, tt.id, nullptr, 1024, 512, 10000);
-            _replica->init_private_log(mlog);
-            mlog->update_max_commit_on_disk(1);
-        }
+        // reset replica to specified gpid
+        duplicator.reset(nullptr);
+        _replica = create_mock_replica(
+            stub.get(), tt.id.get_app_id(), tt.id.get_partition_index(), _log_dir.c_str());
 
         load_and_wait_all_entries_loaded(tt.puts, tt.total, tt.id, 1);
     }

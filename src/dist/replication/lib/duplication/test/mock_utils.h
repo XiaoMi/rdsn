@@ -114,6 +114,7 @@ inline std::unique_ptr<mock_replica> create_mock_replica(replica_stub *stub,
     gpid gpid(appid, partition_index);
     app_info app_info;
     app_info.app_type = "replica";
+    app_info.app_name = "temp";
 
     return make_unique<mock_replica>(stub, gpid, app_info, dir);
 }
