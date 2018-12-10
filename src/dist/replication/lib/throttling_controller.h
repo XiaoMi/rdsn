@@ -53,9 +53,9 @@ public:
     // return true if parse succeed.
     // return false if parse failed for the reason of invalid env_value.
     // if return false, the original value will not be changed.
-    // 'parse_error' is out param when return false.
-    // 'changed' and 'old_env_value' is out param when return true.
-    // 'old_env_value' is valid only when changed is true.
+    // 'parse_error' is set when return false.
+    // 'changed' is set when return true.
+    // 'old_env_value' is set when 'changed' is set to true.
     bool parse_from_env(const std::string &env_value,
                         int partition_count,
                         /*out*/ std::string &parse_error,
@@ -71,7 +71,8 @@ public:
     // return the current env value.
     const std::string &env_value() const { return _env_value; }
 
-    // 'delay_ms' is out param when the return type is not PASS.
+    // do throttling control, return throttling type.
+    // 'delay_ms' is set when the return type is not PASS.
     throttling_type control(const message_ex *request, /*out*/ int64_t &delay_ms);
 
 private:
