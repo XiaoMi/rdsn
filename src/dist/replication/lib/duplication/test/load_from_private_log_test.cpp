@@ -75,7 +75,7 @@ struct load_from_private_log_test : public replica_test_base
             mlog->tracker()->wait_outstanding_tasks();
         }
 
-        auto files = log_utils::open_log_file_map(log_utils::list_all_files_or_die(_log_dir));
+        auto files = open_log_file_map(_log_dir);
 
         load.set_start_decree(1);
         load.find_log_file_to_start(files);
@@ -184,7 +184,10 @@ struct load_from_private_log_test : public replica_test_base
             }
             mlog->tracker()->wait_outstanding_tasks();
         }
-        ASSERT_EQ(log_utils::list_all_files_or_die(_log_dir).size(), 2);
+
+        std::vector<std::string> files;
+        ASSERT_EQ(log_utils::list_all_files(_log_dir, files), error_s::ok());
+        ASSERT_EQ(files.size(), 2);
         boost::filesystem::remove(_log_dir + "/log.1.0");
 
         mutation_log_ptr mlog = create_private_log();
@@ -225,7 +228,7 @@ struct load_from_private_log_test : public replica_test_base
             }
             mlog->tracker()->wait_outstanding_tasks();
         }
-        auto files1 = log_utils::open_log_file_map(log_utils::list_all_files_or_die(_log_dir));
+        auto files1 = open_log_file_map(_log_dir);
         ASSERT_EQ(files1.size(), 3);
         boost::filesystem::remove(files1[1]->path());
         boost::filesystem::remove(files1[2]->path());

@@ -29,8 +29,10 @@
 #include <dsn/utility/smart_pointers.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/filesystem.h>
+#include <dsn/utility/errors.h>
 
 #include "dist/replication/lib/replica_stub.h"
+#include "dist/replication/lib/mutation_log_utils.h"
 #include "dist/replication/lib/duplication/replica_duplicator_manager.h"
 #include "dist/replication/test/replica_test/unit_test/test_utils.h"
 
@@ -114,6 +116,13 @@ struct replica_test_base : replica_stub_test_base
         dup_ent.status = duplication_status::DS_PAUSE;
         dup_ent.progress[_replica->get_gpid().get_partition_index()] = 0;
         return make_unique<replica_duplicator>(dup_ent, _replica.get());
+    }
+
+    std::map<int, log_file_ptr> open_log_file_map(const std::string &dir)
+    {
+        std::map<int, log_file_ptr> log_file_map;
+        EXPECT_EQ(log_utils::open_log_file_map(_log_dir, log_file_map), error_s::ok());
+        return log_file_map;
     }
 };
 

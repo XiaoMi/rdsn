@@ -28,6 +28,7 @@
 
 #include <dsn/utility/errors.h>
 #include <dsn/utility/filesystem.h>
+#include <dsn/dist/fmt_logging.h>
 
 #include "dist/replication/lib/mutation_log.h"
 
@@ -35,35 +36,60 @@ namespace dsn {
 namespace replication {
 namespace log_utils {
 
-/// open a private log to read, and the application will be aborted if get failed.
-inline log_file_ptr open_read_or_die(string_view path)
+inline error_s open_read(string_view path, /*out*/ log_file_ptr &file)
 {
     error_code ec;
-    log_file_ptr file = log_file::open_read(path.data(), ec);
+    file = log_file::open_read(path.data(), ec);
     if (ec != ERR_OK) {
-        derror("failed to open the log file (%s): %s", path.data(), ec.to_string());
+        return FMT_ERR(ec, "failed to open the log file ({})", path);
     }
-    return file;
+    return error_s::ok();
 }
 
-inline std::map<int, log_file_ptr> open_log_file_map(const std::vector<std::string> &log_files)
+inline error_s list_all_files(const std::string &dir, /*out*/ std::vector<std::string> &files)
 {
-    std::map<int, log_file_ptr> log_file_map;
+    if (!utils::filesystem::get_subfiles(dir, files, false)) {
+        return FMT_ERR(
+            ERR_FILE_OPERATION_FAILED, "unable to list the files under directory ({})", dir);
+    }
+    return error_s::ok();
+}
+
+inline error_s open_log_file_map(const std::vector<std::string> &log_files,
+                                 /*out*/ std::map<int, log_file_ptr> &log_file_map)
+{
     for (const std::string &fname : log_files) {
-        log_file_ptr lf = open_read_or_die(fname);
+        log_file_ptr lf;
+        error_s err = open_read(fname, lf);
+        if (!err.is_ok()) {
+            return err << "open_log_file_map(log_files)";
+        }
         log_file_map[lf->index()] = lf;
     }
-    return log_file_map;
+    return error_s::ok();
 }
 
-// TODO(wutao1): move it to filesystem module.
-inline std::vector<std::string> list_all_files_or_die(const std::string &dir)
+inline error_s open_log_file_map(const std::string &dir,
+                                 /*out*/ std::map<int, log_file_ptr> &log_file_map)
 {
-    std::vector<std::string> files;
-    if (!utils::filesystem::get_subfiles(dir, files, false)) {
-        dfatal("unable to list the files under directory (%s)", dir.c_str());
+    std::vector<std::string> log_files;
+    error_s es = list_all_files(dir, log_files);
+    if (!es.is_ok()) {
+        return es << "open_log_file_map(dir)";
     }
-    return files;
+    return open_log_file_map(log_files, log_file_map) << "open_log_file_map(dir)";
+}
+
+extern error_s check_log_files_continuity(const std::map<int, log_file_ptr> &logs);
+
+inline error_s check_log_files_continuity(const std::string &dir)
+{
+    std::map<int, log_file_ptr> log_file_map;
+    error_s es = open_log_file_map(dir, log_file_map);
+    if (!es.is_ok()) {
+        return es << "check_log_files_continuity(dir)";
+    }
+    return check_log_files_continuity(log_file_map) << "check_log_files_continuity(dir)";
 }
 
 } // namespace log_utils

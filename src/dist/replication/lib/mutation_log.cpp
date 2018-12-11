@@ -26,6 +26,8 @@
 
 #include "mutation_log.h"
 #include "replica.h"
+#include "mutation_log_utils.h"
+
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/crc.h>
 #include <dsn/dist/fmt_logging.h>
@@ -451,6 +453,12 @@ error_code mutation_log_private::reset_from(const std::string &dir,
 {
     close();
 
+    error_s es = log_utils::check_log_files_continuity(dir);
+    if (!es.is_ok()) {
+        derror_replica("{}", es);
+        return es.code();
+    }
+
     // move the original directory to a tmp position.
     std::string temp_dir = _dir + '.' + std::to_string(dsn_now_ns());
     error_code err = ERR_FILE_OPERATION_FAILED;
@@ -469,9 +477,14 @@ error_code mutation_log_private::reset_from(const std::string &dir,
     err = open(cb, fail_cb);
     if (err != ERR_OK) {
         derror_replica("open files in {} failed: {}", _dir, err);
+
+        if (!dsn::utils::filesystem::remove_path(_dir)) {
+            dassert_replica("rollback {} failed", _dir);
+        }
     } else {
         if (!dsn::utils::filesystem::remove_path(temp_dir)) {
             derror_replica("remove temp dir {} failed", temp_dir);
+            err = ERR_FILE_OPERATION_FAILED;
         }
     }
     ddebug_replica("successfully reset this plog with log files in {}", dir);
@@ -1005,36 +1018,16 @@ inline static error_s read_log_block(log_file_ptr &log,
     int64_t g_end_offset = 0;
     error_code err = ERR_OK;
     log_file_ptr last;
-    int last_file_index = 0;
 
     if (logs.size() > 0) {
         g_start_offset = logs.begin()->second->start_offset();
         g_end_offset = logs.rbegin()->second->end_offset();
-        last_file_index = logs.begin()->first - 1;
     }
 
-    // check file index continuity
-    for (const auto &kv : logs) {
-        if (++last_file_index != kv.first) {
-            derror("log file missing with index %u", last_file_index);
-
-            // this is a serious error, print all the files in list.
-            std::string all_log_files_str;
-            bool first = true;
-            for (const auto &id_file : logs) {
-                if (!first) {
-                    all_log_files_str += ", ";
-                    first = false;
-                }
-                all_log_files_str += fmt::format(
-                    "log.{}.{}", id_file.second->index(), id_file.second->start_offset());
-            }
-            derror_f("all the files under dir({}): [{}]",
-                     logs.begin()->second->path(),
-                     all_log_files_str);
-
-            return ERR_OBJECT_NOT_FOUND;
-        }
+    error_s error = log_utils::check_log_files_continuity(logs);
+    if (!error.is_ok()) {
+        derror_f("check_log_files_continuity failed: {}", error);
+        return error.code();
     }
 
     end_offset = g_start_offset;

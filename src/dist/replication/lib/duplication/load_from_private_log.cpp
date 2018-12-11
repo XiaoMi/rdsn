@@ -42,7 +42,14 @@ void load_from_private_log::switch_to_next_log_file()
         "{}/log.{}.{}", _private_log->dir(), _current->index() + 1, _current_global_end_offset);
 
     if (utils::filesystem::file_exists(new_path)) {
-        start_from_log_file(log_utils::open_read_or_die(new_path));
+        log_file_ptr file;
+        error_s es = log_utils::open_read(new_path, file);
+        if (!es.is_ok()) {
+            derror_replica("{}", es);
+            repeat(10_s);
+            return;
+        }
+        start_from_log_file(file);
     } else {
         _current = nullptr;
     }
@@ -87,7 +94,13 @@ void load_from_private_log::find_log_file_to_start()
     // is cleared and unable to be used for us.
     std::map<int, log_file_ptr> new_file_map;
     for (const auto &pr : file_map) {
-        log_file_ptr file = log_utils::open_read_or_die(pr.second->path());
+        log_file_ptr file;
+        error_s es = log_utils::open_read(pr.second->path(), file);
+        if (!es.is_ok()) {
+            derror_replica("{}", es);
+            repeat(10_s);
+            return;
+        }
         new_file_map.emplace(pr.first, file);
     }
 

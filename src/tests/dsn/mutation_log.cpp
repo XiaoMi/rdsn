@@ -406,10 +406,11 @@ public:
         }
 
         {
-            auto log_files = log_utils::list_all_files_or_die(log_dir);
+            std::vector<std::string> log_files;
+            ASSERT_EQ(log_utils::list_all_files(log_dir, log_files), error_s::ok());
             ASSERT_EQ(log_files.size(), num_files);
 
-            auto log_file_map = log_utils::open_log_file_map(log_files);
+            auto log_file_map = open_log_file_map(log_dir);
             ASSERT_EQ(log_file_map.size(), num_files);
         }
     }
