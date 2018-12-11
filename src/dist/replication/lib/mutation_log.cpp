@@ -453,6 +453,7 @@ error_code mutation_log_private::reset_from(const std::string &dir,
 {
     close();
 
+    // make sure logs in learn/ are valid.
     error_s es = log_utils::check_log_files_continuity(dir);
     if (!es.is_ok()) {
         derror_replica("{}", es);
@@ -487,6 +488,14 @@ error_code mutation_log_private::reset_from(const std::string &dir,
             err = ERR_FILE_OPERATION_FAILED;
         }
     }
+
+    // make sure plog validity.
+    es = log_utils::check_log_files_continuity(_dir);
+    if (!es.is_ok()) {
+        derror_replica("{}", es);
+        return es.code();
+    }
+
     ddebug_replica("successfully reset this plog with log files in {}", dir);
     return err;
 }
