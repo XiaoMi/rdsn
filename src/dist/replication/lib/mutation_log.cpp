@@ -467,13 +467,13 @@ error_code mutation_log_private::reset_from(const std::string &dir,
         derror_replica("failed to rename original path {} to {}", _dir, temp_dir);
         return err;
     }
-    ddebug_replica("move original working directory {} to {}", _dir, temp_dir);
+    ddebug_replica("move original plog directory to {}", temp_dir);
 
     if (!dsn::utils::filesystem::rename_path(dir, _dir)) {
         derror_f("failed to rename path {} to {}", dir, _dir);
         return err;
     }
-    ddebug_replica("make {} as our working directory {}", dir, _dir);
+    ddebug_replica("make {} as our plog directory", dir);
 
     err = open(cb, fail_cb);
     if (err != ERR_OK) {

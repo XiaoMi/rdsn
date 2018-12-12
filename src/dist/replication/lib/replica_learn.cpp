@@ -1461,9 +1461,18 @@ void replica::on_add_learner(const group_check_request &request)
     }
 }
 
+bool replica::is_duplicating()
+{
+    std::map<std::string, std::string> envs;
+    query_app_envs(envs);
+    return envs[replica_envs::DUPLICATING] == "true" || _app->init_info().init_duplicating;
+}
+
 // in non-replication thread
 error_code replica::apply_learned_state_from_private_log(learn_state &state)
 {
+    bool duplicating = is_duplicating();
+
     //                confirmed  gced          committed
     //                    |        |              |
     // learner's plog: ============[-----log------]
@@ -1475,7 +1484,7 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     // learner's plog    |                              committed
     // after applied:    [---------------log----------------]
 
-    if (state.learn_start_decree < _app->last_committed_decree() + 1) {
+    if (duplicating && state.learn_start_decree < _app->last_committed_decree() + 1) {
         // it means this round of learn must have stepped back
         // to include all unconfirmed.
 
@@ -1509,13 +1518,15 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     prepare_list plist(this,
                        _app->last_committed_decree(),
                        _options->max_mutation_count_in_prepare_list,
-                       [this](mutation_ptr &mu) {
+                       [this, duplicating](mutation_ptr &mu) {
                            if (mu->data.header.decree == _app->last_committed_decree() + 1) {
                                // TODO: assign the returned error_code to err and check it
                                _app->apply_mutation(mu);
 
-                               _private_log->append(
-                                   mu, LPC_WRITE_REPLICATION_LOG, &_tracker, nullptr);
+                               if (duplicating) {
+                                   _private_log->append(
+                                       mu, LPC_WRITE_REPLICATION_LOG, &_tracker, nullptr);
+                               }
                            }
                        });
 
@@ -1551,7 +1562,6 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     //
     if (_potential_secondary_states.min_learn_start_decree < 0 ||
         _potential_secondary_states.min_learn_start_decree > state.learn_start_decree) {
-        ddebug_replica("the learn progress starts from {}", state.learn_start_decree);
         _potential_secondary_states.min_learn_start_decree = state.learn_start_decree;
     }
 
@@ -1610,6 +1620,8 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                _app->last_committed_decree());
     }
 
+    // awaits for unfinished mutation writes.
+    _private_log->tracker()->wait_outstanding_tasks();
     _private_log->flush();
     return err;
 }

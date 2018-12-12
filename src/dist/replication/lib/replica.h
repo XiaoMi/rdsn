@@ -154,6 +154,7 @@ public:
     bool verbose_commit_log() const;
     dsn::task_tracker *tracker() { return &_tracker; }
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
+    bool is_duplicating();
 
     // void json_state(std::stringstream& out) const;
     void update_last_checkpoint_generate_time();
