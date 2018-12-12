@@ -43,13 +43,13 @@ typedef int32_t dupid_t;
 
 extern const char *duplication_status_to_string(duplication_status::type status);
 
-/// This function returns the cluster name (i.e, "onebox") if it's configured under
+/// Returns the cluster name (i.e, "onebox") if it's configured under
 /// "replication" section:
 ///    [replication]
 ///      cluster_name = "onebox"
 extern const char *get_current_cluster_name();
 
-/// This function returns the cluster id of url specified in the duplication-group section
+/// Returns the cluster id of url specified in the duplication-group section
 /// of your configuration, for example:
 ///
 /// ```
@@ -63,6 +63,16 @@ extern error_with<uint8_t> get_duplication_cluster_id(string_view cluster_name);
 
 /// Returns a displayable string for this duplication_entry.
 extern std::string duplication_entry_to_string(const duplication_entry &dup);
+
+/// Returns a mapping from cluster_name to cluster_id.
+extern const std::map<std::string, uint8_t> &get_duplication_group();
+
+extern const std::set<uint8_t> &get_distinct_cluster_id_set();
+
+inline bool is_cluster_id_configured(uint8_t cid)
+{
+    return get_distinct_cluster_id_set().find(cid) != get_distinct_cluster_id_set().end();
+}
 
 } // namespace replication
 } // namespace dsn

@@ -26,7 +26,8 @@
 
 #include <dsn/dist/replication/replication_types.h>
 #include <dsn/dist/replication/duplication_common.h>
-#include <fmt/format.h>
+#include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/singleton.h>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/prettywriter.h>
@@ -53,10 +54,11 @@ namespace replication {
 
 namespace internal {
 
-class duplication_group_registry
+class duplication_group_registry : public utils::singleton<duplication_group_registry>
 {
 private:
     std::map<std::string, uint8_t> _group;
+    std::set<uint8_t> _distinct_cids;
 
 public:
     duplication_group_registry()
@@ -72,6 +74,14 @@ public:
                     cluster.data());
             _group.emplace(cluster, static_cast<uint8_t>(cluster_id));
         }
+        dassert_f(clusters.size() == _group.size(),
+                  "there might be duplicate cluster_name in configuration");
+
+        for (const auto &kv : _group) {
+            _distinct_cids.insert(kv.second);
+        }
+        dassert_f(_distinct_cids.size() == _group.size(),
+                  "there might be duplicate cluster_id in configuration");
     }
 
     error_with<uint8_t> get_cluster_id(string_view cluster_name) const
@@ -90,14 +100,16 @@ public:
         }
         return it->second;
     }
+
+    const std::map<std::string, uint8_t> &get_duplication_group() { return _group; }
+    const std::set<uint8_t> &get_distinct_cluster_id_set() { return _distinct_cids; }
 };
 
 } // namespace internal
 
 /*extern*/ error_with<uint8_t> get_duplication_cluster_id(string_view cluster_name)
 {
-    static internal::duplication_group_registry REGISTRY;
-    return REGISTRY.get_cluster_id(cluster_name);
+    return internal::duplication_group_registry::instance().get_cluster_id(cluster_name);
 }
 
 /*extern*/ std::string duplication_entry_to_string(const duplication_entry &dup)
@@ -128,6 +140,16 @@ public:
     rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
     doc.Accept(writer);
     return sb.GetString();
+}
+
+/*extern*/ const std::map<std::string, uint8_t> &get_duplication_group()
+{
+    return internal::duplication_group_registry::instance().get_duplication_group();
+}
+
+/*extern*/ const std::set<uint8_t> &get_distinct_cluster_id_set()
+{
+    return internal::duplication_group_registry::instance().get_distinct_cluster_id_set();
 }
 
 } // namespace replication
