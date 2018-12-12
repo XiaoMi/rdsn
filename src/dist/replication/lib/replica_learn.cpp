@@ -1621,7 +1621,6 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     }
 
     // awaits for unfinished mutation writes.
-    _private_log->tracker()->wait_outstanding_tasks();
     _private_log->flush();
     return err;
 }

@@ -451,6 +451,9 @@ error_code mutation_log_private::reset_from(const std::string &dir,
                                             replay_callback cb,
                                             io_failure_callback fail_cb)
 {
+    // block incoming writes
+    zauto_lock l(_plock);
+
     close();
 
     // make sure logs in learn/ are valid.
