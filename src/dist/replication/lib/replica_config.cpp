@@ -38,6 +38,7 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
+#include "duplication/replica_duplicator_manager.h"
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/string_conv.h>
@@ -208,6 +209,7 @@ void replica::add_potential_secondary(configuration_update_request &proposal)
     _primary_states.get_replica_config(
         partition_status::PS_POTENTIAL_SECONDARY, request.config, state.signature);
     request.last_committed_decree = last_committed_decree();
+    request.confirmed_decree = _duplication_mgr->min_confirmed_decree();
 
     ddebug("%s: call one way %s to start learning with signature [%016" PRIx64 "]",
            name(),
@@ -555,15 +557,7 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
     }
 
     find = envs.find(replica_envs::DUPLICATING);
-    if (find != envs.end() && find->second == "true") {
-        if (!_app->init_info().init_duplicating) {
-            _app->update_init_info_duplicating(true);
-        }
-    } else {
-        if (_app->init_info().init_duplicating) {
-            _app->update_init_info_duplicating(false);
-        }
-    }
+    update_init_info_duplicating(find != envs.end() && find->second == "true");
 }
 
 void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)

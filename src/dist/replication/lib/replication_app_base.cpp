@@ -223,7 +223,8 @@ std::string replica_init_info::to_string()
     std::ostringstream oss;
     oss << "init_ballot = " << init_ballot << ", init_durable_decree = " << init_durable_decree
         << ", init_offset_in_shared_log = " << init_offset_in_shared_log
-        << ", init_offset_in_private_log = " << init_offset_in_private_log;
+        << ", init_offset_in_private_log = " << init_offset_in_private_log
+        << ", init_duplicating = " << init_duplicating;
     return oss.str();
 }
 

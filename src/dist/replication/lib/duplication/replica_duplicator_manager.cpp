@@ -88,7 +88,7 @@ int64_t replica_duplicator_manager::min_confirmed_decree() const
                 min_decree = std::min(min_decree, p.confirmed_decree);
             }
         }
-    } else if (_replica->status() == partition_status::PS_SECONDARY) {
+    } else {
         if (_primary_confirmed_decree > 0) {
             min_decree = _primary_confirmed_decree;
         }
@@ -119,7 +119,12 @@ void replica_duplicator_manager::set_confirmed_decree_non_primary(decree confirm
     dassert_replica(_replica->status() != partition_status::PS_PRIMARY, "");
 
     zauto_lock l(_lock);
-    _primary_confirmed_decree = confirmed;
+    if (confirmed >= 0) {
+        // confirmed decree never decreases
+        dcheck_le_replica(_primary_confirmed_decree, confirmed);
+        _primary_confirmed_decree = confirmed;
+    }
+    _replica->update_init_info_duplicating(confirmed >= 0);
 }
 
 } // namespace replication

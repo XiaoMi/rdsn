@@ -269,12 +269,10 @@ decree replica::get_learn_start_decree(const learn_request &request)
     //                      gced           committed
 
     decree new_learn_start_decree = learn_start_decree;
-    if (min_confirmed_decree > 0) {
+    if (min_confirmed_decree >= 0) {
         new_learn_start_decree = min_confirmed_decree + 1;
     } else {
-        std::map<std::string, std::string> envs;
-        query_app_envs(envs);
-        if (envs[replica_envs::DUPLICATING] == "true") {
+        if (is_duplicating()) {
             decree local_gced = max_gced_decree_no_lock();
             if (local_gced == invalid_decree) {
                 ddebug_replica("no plog to be learned for duplication, continue as normal");
@@ -1461,13 +1459,6 @@ void replica::on_add_learner(const group_check_request &request)
     }
 }
 
-bool replica::is_duplicating()
-{
-    std::map<std::string, std::string> envs;
-    query_app_envs(envs);
-    return envs[replica_envs::DUPLICATING] == "true" || _app->init_info().init_duplicating;
-}
-
 // in non-replication thread
 error_code replica::apply_learned_state_from_private_log(learn_state &state)
 {
@@ -1507,8 +1498,6 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
         learn_state tmp_state;
         _private_log->get_learn_state(get_gpid(), _app->last_committed_decree() + 1, tmp_state);
         state.files = tmp_state.files;
-
-        ddebug_replica("reset private_log from learned logs");
     }
 
     int64_t offset;

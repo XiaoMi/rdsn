@@ -608,7 +608,7 @@ void replica_stub::initialize_start()
     }
 
     if (!_options.duplication_disabled) {
-        _duplication_sync_timer.reset(new duplication_sync_timer(this));
+        _duplication_sync_timer = std::make_unique<duplication_sync_timer>(this);
         _duplication_sync_timer->start();
     }
 
@@ -964,13 +964,14 @@ void replica_stub::on_add_learner(const group_check_request &request)
     }
 
     ddebug("%s@%s: received add learner, primary = %s, ballot = %" PRId64
-           ", status = %s, last_committed_decree = %" PRId64,
+           ", status = %s, last_committed_decree = %" PRId64 ", confirmed_decree = %" PRId64,
            request.config.pid.to_string(),
            _primary_address.to_string(),
            request.config.primary.to_string(),
            request.config.ballot,
            enum_to_string(request.config.status),
-           request.last_committed_decree);
+           request.last_committed_decree,
+           request.confirmed_decree);
 
     replica_ptr rep = get_replica(request.config.pid);
     if (rep != nullptr) {

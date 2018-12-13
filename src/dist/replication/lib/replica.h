@@ -153,8 +153,11 @@ public:
     replica_stub *get_replica_stub() { return _stub; }
     bool verbose_commit_log() const;
     dsn::task_tracker *tracker() { return &_tracker; }
+
+    // duplicate
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
     bool is_duplicating();
+    void update_init_info_duplicating(bool duplicating);
 
     // void json_state(std::stringstream& out) const;
     void update_last_checkpoint_generate_time();
