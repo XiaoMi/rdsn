@@ -451,10 +451,12 @@ error_code mutation_log_private::reset_from(const std::string &dir,
                                             replay_callback cb,
                                             io_failure_callback fail_cb)
 {
+    close();
+
     // block incoming writes
     zauto_lock l(_plock);
-
-    close();
+    _tracker.cancel_outstanding_tasks();;
+    init_states();
 
     // make sure logs in learn/ are valid.
     error_s es = log_utils::check_log_files_continuity(dir);

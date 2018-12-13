@@ -269,15 +269,17 @@ namespace replication {
 class mutation_log_test : public replica_test_base
 {
 public:
-    mutation_log_test() : log_dir(_log_dir), gpid(_replica->get_gpid()) {}
+    mutation_log_test() : gpid(_replica->get_gpid()) {}
 
     void SetUp() override
     {
-        utils::filesystem::remove_path(log_dir);
-        utils::filesystem::create_directory(log_dir);
+        utils::filesystem::remove_path(_log_dir);
+        utils::filesystem::create_directory(_log_dir);
+
+        utils::filesystem::remove_path(_log_dir + ".tmp");
     }
 
-    void TearDown() override { utils::filesystem::remove_path(log_dir); }
+    void TearDown() override { utils::filesystem::remove_path(_log_dir); }
 
     mutation_ptr create_test_mutation(const std::string &data, decree d)
     {
@@ -312,7 +314,7 @@ public:
 
         { // writing logs
             mutation_log_ptr mlog =
-                new mutation_log_private(log_dir, 1024, gpid, _replica.get(), 1024, 512, 10000);
+                new mutation_log_private(_log_dir, 1024, gpid, _replica.get(), 1024, 512, 10000);
 
             EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
@@ -324,7 +326,7 @@ public:
         }
 
         { // replaying logs
-            std::string log_file_path = log_dir + "/log.1.0";
+            std::string log_file_path = _log_dir + "/log.1.0";
 
             error_code ec;
             log_file_ptr file = log_file::open_read(log_file_path.c_str(), ec);
@@ -354,7 +356,7 @@ public:
 
         { // writing logs
             mutation_log_ptr mlog = new mutation_log_private(
-                log_dir, private_log_file_size_mb, gpid, _replica.get(), 1024, 512, 10000);
+                _log_dir, private_log_file_size_mb, gpid, _replica.get(), 1024, 512, 10000);
             EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
             for (int i = 0; i < num_entries; i++) {
@@ -366,7 +368,7 @@ public:
 
         { // reading logs
             mutation_log_ptr mlog =
-                new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
+                new mutation_log_private(_log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
 
             std::vector<std::string> log_files;
             ASSERT_TRUE(utils::filesystem::get_subfiles(mlog->dir(), log_files, false));
@@ -395,7 +397,7 @@ public:
     {
         { // generate multiple log files
             mutation_log_ptr mlog =
-                new mutation_log_private(log_dir, 1, gpid, _replica.get(), 1024, 512, 10000);
+                new mutation_log_private(_log_dir, 1, gpid, _replica.get(), 1024, 512, 10000);
             ASSERT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
             for (int f = 0; f < num_files; f++) {
@@ -407,15 +409,14 @@ public:
 
         {
             std::vector<std::string> log_files;
-            ASSERT_EQ(log_utils::list_all_files(log_dir, log_files), error_s::ok());
+            ASSERT_EQ(log_utils::list_all_files(_log_dir, log_files), error_s::ok());
             ASSERT_EQ(log_files.size(), num_files);
 
-            auto log_file_map = open_log_file_map(log_dir);
+            auto log_file_map = open_log_file_map(_log_dir);
             ASSERT_EQ(log_file_map.size(), num_files);
         }
     }
 
-    const std::string log_dir;
     const dsn::gpid gpid;
 };
 
@@ -427,7 +428,7 @@ TEST_F(mutation_log_test, replay_block)
 
     { // writing logs
         mutation_log_ptr mlog = new mutation_log_private(
-            log_dir, 4, gpid, _replica.get(), batch_buffer_bytes, batch_buffer_count, 10000);
+            _log_dir, 4, gpid, _replica.get(), batch_buffer_bytes, batch_buffer_count, 10000);
 
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
@@ -439,7 +440,7 @@ TEST_F(mutation_log_test, replay_block)
     }
 
     { // replaying logs
-        std::string log_file_path = log_dir + "/log.1.0";
+        std::string log_file_path = _log_dir + "/log.1.0";
 
         error_code ec;
         log_file_ptr file = log_file::open_read(log_file_path.c_str(), ec);
@@ -483,7 +484,7 @@ TEST_F(mutation_log_test, open)
 
     { // writing logs
         mutation_log_ptr mlog =
-            new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
+            new mutation_log_private(_log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
 
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
@@ -496,7 +497,7 @@ TEST_F(mutation_log_test, open)
 
     { // reading logs
         mutation_log_ptr mlog =
-            new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
+            new mutation_log_private(_log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
 
         int mutation_index = -1;
         mlog->open(
@@ -530,11 +531,11 @@ TEST_F(mutation_log_test, open_log_file_map_20) { test_open_log_file_map(20); }
 // Ensure reading empty block will cause ERR_HANDLE_EOF
 TEST_F(mutation_log_test, read_empty_block)
 {
-    std::string log_file_path = log_dir + "/log.1.0";
+    std::string log_file_path = _log_dir + "/log.1.0";
 
     { // writing logs
         mutation_log_ptr mlog =
-            new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
+            new mutation_log_private(_log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
 
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
@@ -578,7 +579,7 @@ TEST_F(mutation_log_test, reset_from)
     std::vector<mutation_ptr> expected;
     { // writing logs
         mutation_log_ptr mlog =
-            new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
+            new mutation_log_private(_log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
 
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
@@ -589,15 +590,15 @@ TEST_F(mutation_log_test, reset_from)
         }
         mlog->flush();
 
-        ASSERT_TRUE(utils::filesystem::rename_path(log_dir, log_dir + ".tmp"));
+        ASSERT_TRUE(utils::filesystem::rename_path(_log_dir, _log_dir + ".tmp"));
     }
 
-    ASSERT_TRUE(utils::filesystem::directory_exists(log_dir + ".tmp"));
-    ASSERT_FALSE(utils::filesystem::directory_exists(log_dir));
+    ASSERT_TRUE(utils::filesystem::directory_exists(_log_dir + ".tmp"));
+    ASSERT_FALSE(utils::filesystem::directory_exists(_log_dir));
 
     // create another set of logs
     mutation_log_ptr mlog =
-        new mutation_log_private(log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
+        new mutation_log_private(_log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
     EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
     for (int i = 0; i < 1000; i++) {
         mutation_ptr mu = create_test_mutation("hello!", 2000 + i);
@@ -607,7 +608,7 @@ TEST_F(mutation_log_test, reset_from)
 
     // reset from the tmp log dir.
     std::vector<mutation_ptr> actual;
-    auto err = mlog->reset_from(log_dir + ".tmp",
+    auto err = mlog->reset_from(_log_dir + ".tmp",
                                 [&](int, mutation_ptr &mu) -> bool {
                                     actual.push_back(mu);
                                     return true;
@@ -617,8 +618,54 @@ TEST_F(mutation_log_test, reset_from)
     ASSERT_EQ(actual.size(), expected.size());
 
     // the tmp dir has been removed.
-    ASSERT_FALSE(utils::filesystem::directory_exists(log_dir + ".tmp"));
-    ASSERT_TRUE(utils::filesystem::directory_exists(log_dir));
+    ASSERT_FALSE(utils::filesystem::directory_exists(_log_dir + ".tmp"));
+    ASSERT_TRUE(utils::filesystem::directory_exists(_log_dir));
+}
+
+// multi-threaded testing. ensure reset_from will wait until
+// all previous writes complete.
+TEST_F(mutation_log_test, reset_from_while_writing)
+{
+    std::vector<mutation_ptr> expected;
+    { // writing logs
+        mutation_log_ptr mlog =
+            new mutation_log_private(_log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
+        EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
+
+        for (int i = 0; i < 10; i++) {
+            mutation_ptr mu = create_test_mutation("hello!", 2 + i);
+            expected.push_back(mu);
+            mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
+        }
+        mlog->flush();
+
+        ASSERT_TRUE(utils::filesystem::rename_path(_log_dir, _log_dir + ".tmp"));
+    }
+
+    // create another set of logs
+    mutation_log_ptr mlog =
+        new mutation_log_private(_log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
+    EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
+
+    tasking::enqueue(LPC_REPLICATION_LONG_COMMON, mlog->tracker(), [this, &mlog]() {
+        for (int i = 0; i < 1000; i++) {
+            mutation_ptr mu = create_test_mutation("hello!", 2000 + i);
+            mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, mlog->tracker(), nullptr, 0);
+        }
+    });
+
+    // reset from the tmp log dir.
+    std::vector<mutation_ptr> actual;
+    auto err = mlog->reset_from(_log_dir + ".tmp",
+                                [&](int, mutation_ptr &mu) -> bool {
+                                    actual.push_back(mu);
+                                    return true;
+                                },
+                                [](error_code err) { ASSERT_EQ(err, ERR_OK); });
+    ASSERT_EQ(err, ERR_OK);
+
+    mlog->flush();
+    ASSERT_EQ(actual.size(), expected.size());
 }
 
 } // namespace replication

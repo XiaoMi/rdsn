@@ -1525,7 +1525,7 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
 
                                if (duplicating) {
                                    _private_log->append(
-                                       mu, LPC_WRITE_REPLICATION_LOG, &_tracker, nullptr);
+                                       mu, LPC_WRITE_REPLICATION_LOG_COMMON, &_tracker, nullptr);
                                }
                            }
                        });
