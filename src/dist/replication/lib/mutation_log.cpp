@@ -209,7 +209,7 @@ void mutation_log_shared::write_pending_mutations(bool release_lock_required)
         },
         0);
     if (ret == nullptr) {
-        _is_writing.store(false, std::memory_order_acquire);
+        _is_writing.store(false, std::memory_order_release);
     }
 }
 
@@ -449,7 +449,7 @@ void mutation_log_private::write_pending_mutations(bool release_lock_required)
         },
         0);
     if (ret == nullptr) {
-        _is_writing.store(false, std::memory_order_acquire);
+        _is_writing.store(false, std::memory_order_release);
     }
 }
 
