@@ -275,6 +275,7 @@ decree replica::get_learn_start_decree(const learn_request &request)
         if (is_duplicating()) {
             decree local_gced = max_gced_decree_no_lock();
             if (local_gced == invalid_decree) {
+                // abnormal case
                 ddebug_replica("no plog to be learned for duplication, continue as normal");
             } else {
                 new_learn_start_decree = local_gced + 1;

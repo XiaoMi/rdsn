@@ -75,36 +75,62 @@ public:
 
             decree wlearn_start_decree;
         } tests[] = {
+            // min_confirmed_decree(3) >= 0
+            // new_learn_start_decree(4) < learn_start_decree(6)
             // request.max_gced_decree == invalid_decree
-            // plog dir is empty, learn from confirmed decree
             {5, invalid_decree, 5, 0, 3, 4},
 
-            // request.max_gced_decree == invalid_decree
-            // plog dir is empty, data_dir is empty, learn from 0 (LT_APP)
-            {0, invalid_decree, 5, 2, invalid_decree, 1},
-            // data_dir is not empty, but
-            // committed_decree_in_app + 1 < gced_decree + 1
-            {1, invalid_decree, 5, 2, invalid_decree, 2},
+            // min_confirmed_decree(3) >= 0
+            // new_learn_start_decree(4) < learn_start_decree(6)
+            // new_learn_start_decree(4) <= request.max_gced_decree(4)
+            {5, 4, 5, 0, 3, 4},
 
-            // request.max_gced_decree == invalid_decree
-            // plog dir is empty, learn from max_gced_decree (LT_LOG)
-            {5, invalid_decree, 5, 2, invalid_decree, 3},
-
-            // min_confirmed_decree + 1 > request.max_gced_decree
-            // continue learning from committed decree
+            // min_confirmed_decree(3) >= 0
+            // new_learn_start_decree(4) < learn_start_decree(6)
+            // new_learn_start_decree(4) > request.max_gced_decree(0)
             {5, 0, 5, 0, 3, 6},
 
-            // min_confirmed_decree + 1 <= request.max_gced_decree
+            // min_confirmed_decree(3) >= 0
+            // new_learn_start_decree(4) > learn_start_decree(1)
+            {0, 4, 5, 0, 3, 1},
+
             // min_confirmed_decree == invalid_decree
-            // learn from max_gced_decree
+            // local_gced == invalid_decree
+            // abnormal case
+            {5, invalid_decree, 5, invalid_decree, invalid_decree, 6},
+
+            // min_confirmed_decree == invalid_decree
+            // local_gced(2) != invalid_decree
+            // new_learn_start_decree(3) < learn_start_decree(6)
+            // request.max_gced_decree == invalid_decree
+            {5, invalid_decree, 5, 2, invalid_decree, 3},
+
+            // min_confirmed_decree == invalid_decree
+            // local_gced(2) != invalid_decree
+            // new_learn_start_decree(3) < learn_start_decree(6)
+            // new_learn_start_decree(3) <= request.max_gced_decree(3)
+            {5, 3, 5, 2, invalid_decree, 3},
+            // local_gced(0) != invalid_decree
+            // new_learn_start_decree(1) < learn_start_decree(6)
+            // new_learn_start_decree(1) <= request.max_gced_decree(3)
             {5, 3, 5, 0, invalid_decree, 1},
 
-            // min_confirmed_decree + 1 <= request.max_gced_decree
-            // min_confirmed_decree != invalid_decree
-            // learn from confirmed decree
-            {5, 4, 5, 0, 3, 4},
+            // min_confirmed_decree == invalid_decree
+            // local_gced(2) != invalid_decree
+            // new_learn_start_decree(3) < learn_start_decree(6)
+            // new_learn_start_decree(3) > request.max_gced_decree(0)
+            {5, 0, 5, 2, invalid_decree, 6},
+
+            // min_confirmed_decree == invalid_decree
+            // local_gced(2) != invalid_decree
+            // new_learn_start_decree(3) > learn_start_decree(1)
+            {0, invalid_decree, 5, 2, invalid_decree, 1},
+            // new_learn_start_decree(3) > learn_start_decree(2)
+            {1, invalid_decree, 5, 2, invalid_decree, 2},
+
         };
 
+        int id = 1;
         for (auto tt : tests) {
             _replica = create_duplicating_replica();
             _replica->set_max_gced_decree(tt.learnee_max_gced_decree);
@@ -121,7 +147,9 @@ public:
                                      .set_last_decree(tt.min_confirmed_decree));
             add_dup(_replica.get(), std::move(dup));
 
-            ASSERT_EQ(_replica->get_learn_start_decree(req), tt.wlearn_start_decree);
+            ASSERT_EQ(_replica->get_learn_start_decree(req), tt.wlearn_start_decree) << "case #"
+                                                                                     << id;
+            id++;
         }
     }
 };

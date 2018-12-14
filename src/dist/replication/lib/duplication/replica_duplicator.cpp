@@ -168,7 +168,7 @@ void replica_duplicator::update_progress(const duplication_progress &p)
 {
     zauto_write_lock l(_lock);
 
-    dassert_replica(p.confirmed_decree <= 0 || _progress.confirmed_decree <= p.confirmed_decree,
+    dassert_replica(p.confirmed_decree < 0 || _progress.confirmed_decree <= p.confirmed_decree,
                     "never decrease confirmed_decree: new({}) old({})",
                     p.confirmed_decree,
                     _progress.confirmed_decree);
