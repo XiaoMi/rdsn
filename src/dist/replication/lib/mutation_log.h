@@ -689,11 +689,13 @@ private:
     class file_streamer;
     std::unique_ptr<file_streamer> _stream;
     disk_file *_handle;        // file handle
-    bool _is_read;             // if opened for read or write
+    const bool _is_read;       // if opened for read or write
     std::string _path;         // file path
     int _index;                // file index
     log_file_header _header;   // file header
     uint64_t _last_write_time; // seconds from epoch time
+
+    mutable zlock _write_lock;
 
     // this data is used for garbage collection, and is part of file header.
     // for read, the value is read from file header.

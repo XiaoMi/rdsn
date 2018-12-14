@@ -142,7 +142,7 @@ void mutation_log_shared::write_pending_mutations(bool release_lock_required)
     // seperate commit_log_block from within the lock
     _slock.unlock();
 
-    pr.first->commit_log_block(
+    task_ptr ret = pr.first->commit_log_block(
         *blk,
         start_offset,
         LPC_WRITE_REPLICATION_LOG_SHARED,
@@ -208,6 +208,9 @@ void mutation_log_shared::write_pending_mutations(bool release_lock_required)
             }
         },
         0);
+    if (ret == nullptr) {
+        _is_writing.store(false, std::memory_order_acquire);
+    }
 }
 
 ////////////////////////////////////////////////////
@@ -383,7 +386,7 @@ void mutation_log_private::write_pending_mutations(bool release_lock_required)
     // seperate commit_log_block from within the lock
     _plock.unlock();
 
-    pr.first->commit_log_block(
+    task_ptr ret = pr.first->commit_log_block(
         *blk,
         start_offset,
         LPC_WRITE_REPLICATION_LOG_PRIVATE,
@@ -445,18 +448,17 @@ void mutation_log_private::write_pending_mutations(bool release_lock_required)
             }
         },
         0);
+    if (ret == nullptr) {
+        _is_writing.store(false, std::memory_order_acquire);
+    }
 }
 
 error_code mutation_log_private::reset_from(const std::string &dir,
                                             replay_callback cb,
                                             io_failure_callback fail_cb)
 {
-    close();
-
     // block incoming writes
-    zauto_lock l(_plock);
-    _tracker.cancel_outstanding_tasks();;
-    init_states();
+    close();
 
     // make sure logs in learn/ are valid.
     error_s es = log_utils::check_log_files_continuity(dir);
@@ -2129,11 +2131,11 @@ log_file::~log_file() { close(); }
 
 log_file::log_file(
     const char *path, disk_file *handle, int index, int64_t start_offset, bool is_read)
+    : _is_read(is_read)
 {
     _start_offset = start_offset;
     _end_offset = start_offset;
     _handle = handle;
-    _is_read = is_read;
     _path = path;
     _index = index;
     _crc32 = 0;
@@ -2151,6 +2153,8 @@ log_file::log_file(
 
 void log_file::close()
 {
+    zauto_lock lock(_write_lock);
+
     //_stream implicitly refer to _handle so it needs to be cleaned up first.
     // TODO: We need better abstraction to avoid those manual stuffs..
     _stream.reset(nullptr);
@@ -2165,6 +2169,7 @@ void log_file::close()
 void log_file::flush() const
 {
     dassert(!_is_read, "log file must be of write mode");
+    zauto_lock lock(_write_lock);
 
     if (_handle) {
         error_code err = file::flush(_handle);
@@ -2244,6 +2249,11 @@ aio_task_ptr log_file::commit_log_block(log_block &block,
 {
     dassert(!_is_read, "log file must be of write mode");
     dassert(block.size() > 0, "log_block can not be empty");
+
+    zauto_lock lock(_write_lock);
+    if (!_handle) {
+        return nullptr;
+    }
 
     auto size = (long long)block.size();
     int64_t local_offset = offset - start_offset();

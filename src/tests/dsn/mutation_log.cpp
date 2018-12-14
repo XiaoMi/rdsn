@@ -276,7 +276,7 @@ public:
         utils::filesystem::remove_path(_log_dir);
         utils::filesystem::create_directory(_log_dir);
 
-        utils::filesystem::remove_path(_log_dir + ".tmp");
+        utils::filesystem::remove_path(_log_dir + ".test");
     }
 
     void TearDown() override { utils::filesystem::remove_path(_log_dir); }
@@ -639,7 +639,7 @@ TEST_F(mutation_log_test, reset_from_while_writing)
         }
         mlog->flush();
 
-        ASSERT_TRUE(utils::filesystem::rename_path(_log_dir, _log_dir + ".tmp"));
+        ASSERT_TRUE(utils::filesystem::rename_path(_log_dir, _log_dir + ".test"));
     }
 
     // create another set of logs
@@ -647,16 +647,16 @@ TEST_F(mutation_log_test, reset_from_while_writing)
         new mutation_log_private(_log_dir, 4, gpid, _replica.get(), 1024, 512, 10000);
     EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
-    tasking::enqueue(LPC_REPLICATION_LONG_COMMON, mlog->tracker(), [this, &mlog]() {
-        for (int i = 0; i < 1000; i++) {
-            mutation_ptr mu = create_test_mutation("hello!", 2000 + i);
-            mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, mlog->tracker(), nullptr, 0);
-        }
-    });
+    // given with a large number of mutation to ensure
+    // plog::reset_from will face many uncompleted writes.
+    for (int i = 0; i < 1000 * 100; i++) {
+        mutation_ptr mu = create_test_mutation("hello!", 2000 + i);
+        mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, mlog->tracker(), nullptr, 0);
+    }
 
     // reset from the tmp log dir.
     std::vector<mutation_ptr> actual;
-    auto err = mlog->reset_from(_log_dir + ".tmp",
+    auto err = mlog->reset_from(_log_dir + ".test",
                                 [&](int, mutation_ptr &mu) -> bool {
                                     actual.push_back(mu);
                                     return true;
