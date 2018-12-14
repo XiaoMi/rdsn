@@ -608,7 +608,7 @@ void replica_stub::initialize_start()
     }
 
     if (!_options.duplication_disabled) {
-        _duplication_sync_timer = std::make_unique<duplication_sync_timer>(this);
+        _duplication_sync_timer = dsn::make_unique<duplication_sync_timer>(this);
         _duplication_sync_timer->start();
     }
 
