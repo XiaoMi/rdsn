@@ -104,7 +104,7 @@ struct learn_state
     2:i64            to_decree_included;
     3:dsn.blob       meta;
     4:list<string>   files;
-    5:i64            learn_start_decree;
+    5:optional i64   learn_start_decree;
 }
 
 enum learner_status

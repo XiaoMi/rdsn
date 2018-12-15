@@ -1500,7 +1500,11 @@ void learn_state::__set_meta(const ::dsn::blob &val) { this->meta = val; }
 
 void learn_state::__set_files(const std::vector<std::string> &val) { this->files = val; }
 
-void learn_state::__set_learn_start_decree(const int64_t val) { this->learn_start_decree = val; }
+void learn_state::__set_learn_start_decree(const int64_t val)
+{
+    this->learn_start_decree = val;
+    __isset.learn_start_decree = true;
+}
 
 uint32_t learn_state::read(::apache::thrift::protocol::TProtocol *iprot)
 {
@@ -1614,10 +1618,11 @@ uint32_t learn_state::write(::apache::thrift::protocol::TProtocol *oprot) const
     }
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("learn_start_decree", ::apache::thrift::protocol::T_I64, 5);
-    xfer += oprot->writeI64(this->learn_start_decree);
-    xfer += oprot->writeFieldEnd();
-
+    if (this->__isset.learn_start_decree) {
+        xfer += oprot->writeFieldBegin("learn_start_decree", ::apache::thrift::protocol::T_I64, 5);
+        xfer += oprot->writeI64(this->learn_start_decree);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -1684,7 +1689,8 @@ void learn_state::printTo(std::ostream &out) const
     out << ", "
         << "files=" << to_string(files);
     out << ", "
-        << "learn_start_decree=" << to_string(learn_start_decree);
+        << "learn_start_decree=";
+    (__isset.learn_start_decree ? (out << to_string(learn_start_decree)) : (out << "<null>"));
     out << ")";
 }
 

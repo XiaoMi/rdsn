@@ -295,7 +295,7 @@ decree replica::get_learn_start_decree(const learn_request &request)
                        request.max_gced_decree);
     }
     dcheck_le_replica(learn_start_decree, local_committed_decree + 1);
-    dcheck_gt_replica(learn_start_decree, 0);
+    dcheck_gt_replica(learn_start_decree, 0); // learn_start_decree can never be invalid_decree
     return learn_start_decree;
 }
 
@@ -1039,7 +1039,9 @@ void replica::on_copy_remote_state_completed(error_code err,
         lstate.from_decree_excluded = resp.state.from_decree_excluded;
         lstate.to_decree_included = resp.state.to_decree_included;
         lstate.meta = resp.state.meta;
-        lstate.learn_start_decree = resp.state.learn_start_decree;
+        if (resp.state.__isset.learn_start_decree) {
+            lstate.__set_learn_start_decree(resp.state.learn_start_decree);
+        }
 
         for (auto &f : resp.state.files) {
             std::string file = utils::filesystem::path_combine(_app->learn_dir(), f);
@@ -1476,7 +1478,8 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     // learner's plog    |                              committed
     // after applied:    [---------------log----------------]
 
-    if (duplicating && state.learn_start_decree < _app->last_committed_decree() + 1) {
+    if (duplicating && state.__isset.learn_start_decree &&
+        state.learn_start_decree < _app->last_committed_decree() + 1) {
         // it means this round of learn must have stepped back
         // to include all unconfirmed.
 

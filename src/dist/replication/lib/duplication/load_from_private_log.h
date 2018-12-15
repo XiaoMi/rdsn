@@ -72,7 +72,7 @@ public:
     void start_from_log_file(log_file_ptr f);
 
 private:
-    friend struct load_from_private_log_test;
+    friend class load_from_private_log_test;
 
     mutation_log_ptr _private_log;
     replica_duplicator *_duplicator;

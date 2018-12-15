@@ -38,8 +38,9 @@
 namespace dsn {
 namespace replication {
 
-struct load_from_private_log_test : public replica_test_base
+class load_from_private_log_test : public replica_test_base
 {
+public:
     load_from_private_log_test() : duplicator(create_test_duplicator())
     {
         utils::filesystem::remove_path(_log_dir);

@@ -945,7 +945,9 @@ public:
             return false;
         if (!(files == rhs.files))
             return false;
-        if (!(learn_start_decree == rhs.learn_start_decree))
+        if (__isset.learn_start_decree != rhs.__isset.learn_start_decree)
+            return false;
+        else if (__isset.learn_start_decree && !(learn_start_decree == rhs.learn_start_decree))
             return false;
         return true;
     }
