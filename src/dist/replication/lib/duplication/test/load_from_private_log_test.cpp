@@ -118,10 +118,11 @@ struct load_from_private_log_test : public replica_test_base
             // commit the last entry
             mutation_ptr mu = create_test_mutation(1 + num_entries, "hello!");
             mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
-            mlog->tracker()->wait_outstanding_tasks();
+
+            mlog->close();
         }
 
-        load_and_wait_all_entries_loaded(num_entries, num_entries);
+        load_and_wait_all_entries_loaded(num_entries, num_entries, 1);
     }
 
     mutation_tuple_set
@@ -143,6 +144,9 @@ struct load_from_private_log_test : public replica_test_base
         }
         _replica->init_private_log(mlog);
         duplicator = create_test_duplicator();
+        duplicator->update_progress(duplication_progress()
+                                        .set_confirmed_decree(start_decree - 1)
+                                        .set_last_decree(start_decree - 1));
 
         load_from_private_log load(_replica.get(), duplicator.get());
         load.set_start_decree(start_decree);
