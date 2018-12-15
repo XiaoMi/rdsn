@@ -63,7 +63,7 @@ void load_from_private_log::run()
     if (progress.last_decree == invalid_decree) {
         decree d = _private_log->max_commit_on_disk();
         _duplicator->update_progress(progress.set_confirmed_decree(d).set_last_decree(d));
-        _start_decree = d + 1;
+        set_start_decree(d + 1);
         ddebug_replica("this newly added duplication [dupid:{}] will start from {}",
                        _duplicator->id(),
                        _start_decree);

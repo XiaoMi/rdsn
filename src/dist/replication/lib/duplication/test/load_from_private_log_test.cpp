@@ -357,7 +357,7 @@ TEST_F(load_from_private_log_test, ignore_useless)
     // commit the last entry
     mutation_ptr mu = create_test_mutation(1 + num_entries, "hello!");
     mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
-    mlog->tracker()->wait_outstanding_tasks();
+    mlog->close();
 
     // starts from 51
     mutation_tuple_set result = load_and_wait_all_entries_loaded(50, 100, 51);
@@ -366,6 +366,13 @@ TEST_F(load_from_private_log_test, ignore_useless)
     // starts from 100
     result = load_and_wait_all_entries_loaded(1, 100, 100);
     ASSERT_EQ(result.size(), 1);
+
+    // a new duplication's confirmed_decree is invalid_decree,
+    // so start_decree is 0.
+    // In this case duplication will starts from last_commit(100),
+    // no mutation will be loaded.
+    result = load_and_wait_all_entries_loaded(0, 100, 0);
+    ASSERT_EQ(result.size(), 0);
 }
 
 } // namespace replication
