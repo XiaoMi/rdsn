@@ -364,7 +364,9 @@ error_code replication_app_base::open_internal(replica *r)
     return err;
 }
 
-error_code replication_app_base::open_new_internal(replica *r, int64_t shared_log_start)
+error_code replication_app_base::open_new_internal(replica *r,
+                                                   int64_t shared_log_start,
+                                                   int64_t private_log_start)
 {
     dsn::utils::filesystem::remove_path(_dir_data);
     dsn::utils::filesystem::create_directory(_dir_data);
@@ -377,7 +379,7 @@ error_code replication_app_base::open_new_internal(replica *r, int64_t shared_lo
     auto err = open();
     if (err == ERR_OK) {
         _last_committed_decree = last_durable_decree();
-        err = update_init_info(_replica, shared_log_start, 0, false);
+        err = update_init_info(_replica, shared_log_start, private_log_start, 0, false);
     }
 
     if (err != ERR_OK) {
@@ -556,6 +558,7 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
 
 ::dsn::error_code replication_app_base::update_init_info(replica *r,
                                                          int64_t shared_log_offset,
+                                                         int64_t private_log_offset,
                                                          int64_t durable_decree,
                                                          bool duplicating)
 {
@@ -565,6 +568,7 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
     _info.init_durable_decree = durable_decree;
     _info.init_offset_in_shared_log = shared_log_offset;
     _info.init_duplicating = duplicating;
+    _info.init_offset_in_private_log = private_log_offset;
 
     error_code err = _info.store(r->dir());
     if (err != ERR_OK) {
@@ -576,14 +580,21 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
 
 ::dsn::error_code replication_app_base::update_init_info_ballot_and_decree(replica *r)
 {
-    return update_init_info(
-        r, _info.init_offset_in_shared_log, r->last_durable_decree(), _info.init_duplicating);
+    return update_init_info(r,
+                            _info.init_offset_in_shared_log,
+                            _info.init_offset_in_private_log,
+                            r->last_durable_decree(),
+                            _info.init_duplicating);
 }
 
 ::dsn::error_code replication_app_base::update_init_info_duplicating(bool duplicating)
 {
-    return update_init_info(
-        _replica, _info.init_offset_in_shared_log, _replica->last_durable_decree(), duplicating);
+    return update_init_info(_replica,
+                            _info.init_offset_in_shared_log,
+                            _info.init_offset_in_private_log,
+                            _replica->last_durable_decree(),
+                            duplicating);
 }
-}
-} // end namespace
+
+} // namespace replication
+} // namespace dsn

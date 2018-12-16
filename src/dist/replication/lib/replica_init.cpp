@@ -219,7 +219,7 @@ error_code replica::init_app_and_prepare_list(bool create_new)
     dassert(nullptr == _private_log, "private log must not be initialized yet");
 
     if (create_new) {
-        err = _app->open_new_internal(this, _stub->_log->on_partition_reset(get_gpid(), 0));
+        err = _app->open_new_internal(this, _stub->_log->on_partition_reset(get_gpid(), 0), 0);
         // two case:
         //      1, just open a new app, in this case, the last_committed_decree and
         //      last_durable_decree
@@ -253,6 +253,8 @@ error_code replica::init_app_and_prepare_list(bool create_new)
             // sync valid_start_offset between app and logs
             _stub->_log->set_valid_start_offset_on_open(
                 get_gpid(), _app->init_info().init_offset_in_shared_log);
+            _private_log->set_valid_start_offset_on_open(
+                get_gpid(), _app->init_info().init_offset_in_private_log);
 
             // replay the logs
             {
@@ -275,7 +277,8 @@ error_code replica::init_app_and_prepare_list(bool create_new)
                 if (err == ERR_OK) {
                     ddebug("%s: replay private log succeed, durable = %" PRId64
                            ", committed = %" PRId64 ", "
-                           "max_prepared = %" PRId64 ", ballot = %" PRId64 ", "
+                           "max_prepared = %" PRId64 ", ballot = %" PRId64
+                           ", valid_offset_in_plog = %" PRId64 ", "
                            "max_decree_in_plog = %" PRId64 ", max_commit_on_disk_in_plog = %" PRId64
                            ", "
                            "time_used = %" PRIu64 " ms",
@@ -284,9 +287,13 @@ error_code replica::init_app_and_prepare_list(bool create_new)
                            _app->last_committed_decree(),
                            max_prepared_decree(),
                            get_ballot(),
+                           _app->init_info().init_offset_in_private_log,
                            _private_log->max_decree(get_gpid()),
                            _private_log->max_commit_on_disk(),
                            finish_time - start_time);
+
+                    _private_log->check_valid_start_offset(
+                        get_gpid(), _app->init_info().init_offset_in_private_log);
 
                     set_inactive_state_transient(true);
                 }
@@ -294,7 +301,8 @@ error_code replica::init_app_and_prepare_list(bool create_new)
                 else {
                     derror("%s: replay private log failed, err = %s, durable = %" PRId64
                            ", committed = %" PRId64 ", "
-                           "maxpd = %" PRId64 ", ballot = %" PRId64 ", "
+                           "maxpd = %" PRId64 ", ballot = %" PRId64
+                           ", valid_offset_in_plog = %" PRId64 ", "
                            "time_used = %" PRIu64 " ms",
                            name(),
                            err.to_string(),
@@ -302,6 +310,7 @@ error_code replica::init_app_and_prepare_list(bool create_new)
                            _app->last_committed_decree(),
                            max_prepared_decree(),
                            get_ballot(),
+                           _app->init_info().init_offset_in_private_log,
                            finish_time - start_time);
 
                     _private_log->close();
@@ -372,6 +381,7 @@ error_code replica::init_app_and_prepare_list(bool create_new)
 }
 
 // return false only when the log is invalid:
+// - for private log, return false if offset < init_offset_in_private_log
 // - for shared log, return false if offset < init_offset_in_shared_log
 bool replica::replay_mutation(mutation_ptr &mu, bool is_private)
 {
@@ -384,6 +394,17 @@ bool replica::replay_mutation(mutation_ptr &mu, bool is_private)
         _config.ballot = mu->data.header.ballot;
         bool ret = update_local_configuration(_config, true);
         dassert(ret, "");
+    }
+
+    if (is_private && offset < _app->init_info().init_offset_in_private_log) {
+        dinfo("%s: replay mutation skipped1 as offset is invalid in private log, ballot = %" PRId64
+              ", decree = %" PRId64 ", last_committed_decree = %" PRId64 ", offset = %" PRId64,
+              name(),
+              mu->data.header.ballot,
+              d,
+              mu->data.header.last_committed_decree,
+              offset);
+        return false;
     }
 
     if (!is_private && offset < _app->init_info().init_offset_in_shared_log) {

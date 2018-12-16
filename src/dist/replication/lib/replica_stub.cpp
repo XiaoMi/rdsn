@@ -498,7 +498,8 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
 
         ddebug("%s: load replica done, err = %s, durable = %" PRId64 ", committed = %" PRId64 ", "
                "prepared = %" PRId64 ", ballot = %" PRId64 ", "
-               "max_decree_in_plog = %" PRId64 ", max_commit_on_disk_in_plog = %" PRId64 ", "
+               "valid_offset_in_plog = %" PRId64 ", max_decree_in_plog = %" PRId64
+               ", max_commit_on_disk_in_plog = %" PRId64 ", "
                "valid_offset_in_slog = %" PRId64 ", max_decree_in_slog = %" PRId64 "",
                it->second->name(),
                err.to_string(),
@@ -506,6 +507,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
                it->second->last_committed_decree(),
                it->second->max_prepared_decree(),
                it->second->get_ballot(),
+               it->second->get_app()->init_info().init_offset_in_private_log,
                pmax,
                pmax_commit,
                it->second->get_app()->init_info().init_offset_in_shared_log,

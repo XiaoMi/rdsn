@@ -257,12 +257,14 @@ private:
     friend class replica_duplicator;
 
     ::dsn::error_code open_internal(replica *r);
-    ::dsn::error_code open_new_internal(replica *r, int64_t shared_log_start);
+    ::dsn::error_code
+    open_new_internal(replica *r, int64_t shared_log_start, int64_t private_log_start);
 
     const replica_init_info &init_info() const { return _info; }
 
     ::dsn::error_code update_init_info(replica *r,
                                        int64_t shared_log_offset,
+                                       int64_t private_log_offset,
                                        int64_t durable_decree,
                                        bool duplicating);
 
@@ -284,5 +286,5 @@ protected:
 };
 
 //------------------ inline implementation ---------------------
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

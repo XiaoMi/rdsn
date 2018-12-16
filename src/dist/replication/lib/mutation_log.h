@@ -272,6 +272,7 @@ public:
     // thread safe
     int garbage_collection(gpid gpid,
                            decree durable_decree,
+                           int64_t valid_start_offset,
                            int64_t reserve_max_size,
                            int64_t reserve_max_time);
 
@@ -302,6 +303,9 @@ public:
     // log dir
     // thread safe (because nerver changed)
     const std::string &dir() const { return _dir; }
+
+    // replica
+    replica *owner_replica() const { return _owner_replica; }
 
     // get current max decree for gpid
     // returns 0 if not found
@@ -385,7 +389,8 @@ private:
 protected:
     std::string _dir;
     bool _is_private;
-    gpid _private_gpid; // only used for private log
+    gpid _private_gpid;      // only used for private log
+    replica *_owner_replica; // only used for private log
     io_failure_callback _io_error_callback;
 
     // options

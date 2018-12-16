@@ -515,6 +515,7 @@ mutation_log::mutation_log(const std::string &dir, int32_t max_log_file_mb, gpid
     _is_private = (gpid.value() != 0);
     _max_log_file_size_in_bytes = static_cast<int64_t>(max_log_file_mb) * 1024L * 1024L;
     _min_log_file_size_in_bytes = _max_log_file_size_in_bytes / 10;
+    _owner_replica = r;
     _private_gpid = gpid;
 
     if (r) {
@@ -1174,7 +1175,12 @@ decree mutation_log::max_gced_decree_no_lock(gpid gpid) const
 void mutation_log::check_valid_start_offset(gpid gpid, int64_t valid_start_offset) const
 {
     zauto_lock l(_lock);
-    if (!_is_private) {
+    if (_is_private) {
+        dassert(valid_start_offset == _private_log_info.valid_start_offset,
+                "valid start offset mismatch: %" PRId64 " vs %" PRId64,
+                valid_start_offset,
+                _private_log_info.valid_start_offset);
+    } else {
         auto it = _shared_log_info_map.find(gpid);
         if (it != _shared_log_info_map.end()) {
             dassert(valid_start_offset == it->second.valid_start_offset,
@@ -1199,7 +1205,10 @@ int64_t mutation_log::total_size_no_lock() const
 void mutation_log::set_valid_start_offset_on_open(gpid gpid, int64_t valid_start_offset)
 {
     zauto_lock l(_lock);
-    if (!_is_private) {
+    if (_is_private) {
+        dassert(gpid == _private_gpid, "replica gpid does not match");
+        _private_log_info.valid_start_offset = valid_start_offset;
+    } else {
         _shared_log_info_map[gpid] = replica_log_info(0, valid_start_offset);
     }
 }
@@ -1328,8 +1337,11 @@ bool mutation_log::get_learn_state(gpid gpid, decree start, /*out*/ learn_state 
     decree last_max_decree = 0;
     int learned_file_head_index = 0;
     int learned_file_tail_index = 0;
+    int64_t learned_file_start_offset = 0;
     for (auto itr = files.rbegin(); itr != files.rend(); ++itr) {
         log = itr->second;
+        if (log->end_offset() <= _private_log_info.valid_start_offset)
+            break;
 
         if (skip_next) {
             skip_next = (log->previous_log_max_decrees().size() == 0);
@@ -1342,6 +1354,7 @@ bool mutation_log::get_learn_state(gpid gpid, decree start, /*out*/ learn_state 
             if (learned_file_tail_index == 0)
                 learned_file_tail_index = log->index();
             learned_file_head_index = log->index();
+            learned_file_start_offset = log->start_offset();
         }
 
         skip_next = (log->previous_log_max_decrees().size() == 0);
@@ -1365,9 +1378,11 @@ bool mutation_log::get_learn_state(gpid gpid, decree start, /*out*/ learn_state 
         state.files.push_back(*it);
     }
 
-    bool ret = (last_max_decree > 0 && last_max_decree < start);
+    bool ret = (learned_file_start_offset >= _private_log_info.valid_start_offset &&
+                last_max_decree > 0 && last_max_decree < start);
     ddebug("gpid(%d.%d) get_learn_state returns %s, "
            "private logs count %d (%d => %d), learned files count %d (%d => %d): "
+           "learned_file_start_offset(%" PRId64 ") >= valid_start_offset(%" PRId64 ") && "
            "last_max_decree(%" PRId64 ") > 0 && last_max_decree(%" PRId64
            ") < learn_start_decree(%" PRId64 ")",
            gpid.get_app_id(),
@@ -1379,6 +1394,8 @@ bool mutation_log::get_learn_state(gpid gpid, decree start, /*out*/ learn_state 
            (int)learn_files.size(),
            learned_file_head_index,
            learned_file_tail_index,
+           learned_file_start_offset,
+           _private_log_info.valid_start_offset,
            last_max_decree,
            last_max_decree,
            start);
@@ -1424,6 +1441,7 @@ static bool should_reserve_file(log_file_ptr log,
 
 int mutation_log::garbage_collection(gpid gpid,
                                      decree durable_decree,
+                                     int64_t valid_start_offset,
                                      int64_t reserve_max_size,
                                      int64_t reserve_max_time)
 {
