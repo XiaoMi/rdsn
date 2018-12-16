@@ -1553,8 +1553,9 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     // because the learned logs (under `learn/` dir) have covered all the unconfirmed,
     // the next round of learn will start from committed+1.
     //
-    if (_potential_secondary_states.min_learn_start_decree < 0 ||
-        _potential_secondary_states.min_learn_start_decree > state.learn_start_decree) {
+    if (state.__isset.learn_start_decree &&
+        (_potential_secondary_states.min_learn_start_decree < 0 ||
+         _potential_secondary_states.min_learn_start_decree > state.learn_start_decree)) {
         _potential_secondary_states.min_learn_start_decree = state.learn_start_decree;
     }
 
