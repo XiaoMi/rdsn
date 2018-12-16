@@ -590,8 +590,8 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
     ddebug("%s: on_learn_reply[%016" PRIx64 "]: learnee = %s, learn_duration = %" PRIu64
            " ms, response_err = %s, remote_committed_decree = %" PRId64 ", "
            "prepare_start_decree = %" PRId64 ", learn_type = %s, learned_buffer_size = %u, "
-           "learned_file_count = %u, to_decree_included = % " PRId64
-           ", current_learning_status = %s",
+           "learned_file_count = %u, to_decree_included = %" PRId64
+           ", learn_start_decree = %" PRId64 ", current_learning_status = %s",
            name(),
            req.signature,
            resp.config.primary.to_string(),
@@ -603,6 +603,7 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
            resp.state.meta.length(),
            static_cast<uint32_t>(resp.state.files.size()),
            resp.state.to_decree_included,
+           resp.state.learn_start_decree,
            enum_to_string(_potential_secondary_states.learning_status));
 
     _potential_secondary_states.learning_copy_buffer_size += resp.state.meta.length();
