@@ -568,7 +568,8 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
     _info.init_durable_decree = durable_decree;
     _info.init_offset_in_shared_log = shared_log_offset;
     _info.init_duplicating = duplicating;
-    _info.init_offset_in_private_log = private_log_offset;
+    // reserve all private log during duplication even they are from last ballot.
+    _info.init_offset_in_private_log = duplicating ? 0 : private_log_offset;
 
     error_code err = _info.store(r->dir());
     if (err != ERR_OK) {

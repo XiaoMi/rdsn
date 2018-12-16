@@ -1483,6 +1483,19 @@ int mutation_log::garbage_collection(gpid gpid,
             // not break, go to update max decree
         }
 
+        // log is invalid, ok to delete
+        else if (valid_start_offset >= log->end_offset()) {
+            dinfo("gc_private @ %d.%d: max_offset for %s is %" PRId64 " vs %" PRId64
+                  " as app.valid_start_offset.private,"
+                  " safe to delete this and all older logs",
+                  _private_gpid.get_app_id(),
+                  _private_gpid.get_partition_index(),
+                  mark_it->second->path().c_str(),
+                  mark_it->second->end_offset(),
+                  valid_start_offset);
+            break;
+        }
+
         // reserve if the file is covered by both reserve_max_size and reserve_max_time
         else if (should_reserve_file(
                      log, already_reserved_size, reserve_max_size, reserve_max_time)) {
