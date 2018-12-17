@@ -77,6 +77,8 @@ public:
 
     explicit mutation_duplicator(replica_base *r) : replica_base(r) {}
 
+    virtual ~mutation_duplicator() = default;
+
     void set_task_environment(pipeline::environment env) { _env = env; }
 
     void schedule_task(std::function<void()> cb, std::chrono::milliseconds delay = 0_ms)
