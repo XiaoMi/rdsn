@@ -383,7 +383,7 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
     }
 
     const decree learn_start_decree = get_learn_start_decree(request);
-    response.state.learn_start_decree = learn_start_decree;
+    response.state.__set_learn_start_decree(learn_start_decree);
     bool delayed_replay_prepare_list = false;
 
     ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, remote_committed_decree = %" PRId64 ", "
