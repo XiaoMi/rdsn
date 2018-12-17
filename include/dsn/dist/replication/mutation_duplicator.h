@@ -81,12 +81,7 @@ public:
 
     void set_task_environment(pipeline::environment env) { _env = env; }
 
-    void schedule_task(std::function<void()> cb, std::chrono::milliseconds delay = 0_ms)
-    {
-        _env.schedule(std::move(cb), delay);
-    }
-
-private:
+protected:
     pipeline::environment _env;
 };
 
