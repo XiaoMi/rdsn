@@ -91,16 +91,16 @@ void duplication_info::init_progress(int partition_index, decree d)
     p.is_inited = true;
 }
 
-error_code duplication_info::alter_progress(int partition_index, decree d)
+bool duplication_info::alter_progress(int partition_index, decree d)
 {
     zauto_write_lock l(_lock);
 
     partition_progress &p = _progress[partition_index];
     if (!p.is_inited) {
-        return ERR_INVALID_STATE;
+        return false;
     }
     if (p.is_altering) {
-        return ERR_BUSY;
+        return false;
     }
     if (p.volatile_decree < d) {
         p.volatile_decree = d;
@@ -110,12 +110,10 @@ error_code duplication_info::alter_progress(int partition_index, decree d)
         if (dsn_now_ms() > p.last_progress_update_ms + PROGRESS_UPDATE_PERIOD_MS) {
             p.is_altering = true;
             p.last_progress_update_ms = dsn_now_ms();
-            return ERR_OK;
-        } else {
-            return ERR_BUSY;
+            return true;
         }
     }
-    return ERR_OK;
+    return false;
 }
 
 void duplication_info::stable_progress(int partition_index)
@@ -123,7 +121,7 @@ void duplication_info::stable_progress(int partition_index)
     zauto_write_lock l(_lock);
 
     auto &p = _progress[partition_index];
-    dassert_dup(p.is_altering, this, "partition_index: {}", partition_index);
+    dassert(p.is_altering, "partition_index: %d", partition_index);
     p.is_altering = false;
     p.stored_decree = p.volatile_decree;
 }
@@ -132,7 +130,7 @@ void duplication_info::stable_status()
 {
     zauto_write_lock l(_lock);
 
-    dassert_dup(_is_altering, this, "");
+    dassert(_is_altering, "");
     _is_altering = false;
     status = next_status;
     next_status = duplication_status::DS_INIT;

@@ -297,7 +297,7 @@ void meta_duplication_service::do_update_partition_confirmed(duplication_info_s_
                                                              int32_t partition_idx,
                                                              int64_t confirmed_decree)
 {
-    if (dup->alter_progress(partition_idx, confirmed_decree) == ERR_OK) {
+    if (dup->alter_progress(partition_idx, confirmed_decree)) {
         std::string path = get_partition_path(dup, std::to_string(partition_idx));
         blob value = blob::create_from_bytes(std::to_string(confirmed_decree));
 

@@ -37,15 +37,15 @@ public:
     void test_alter_progress()
     {
         duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
-        ASSERT_EQ(dup.alter_progress(1, 5), ERR_INVALID_STATE);
+        ASSERT_FALSE(dup.alter_progress(1, 5));
 
         dup.init_progress(1, invalid_decree);
-        ASSERT_EQ(dup.alter_progress(1, 5), ERR_OK);
+        ASSERT_TRUE(dup.alter_progress(1, 5));
         ASSERT_EQ(dup._progress[1].volatile_decree, 5);
         ASSERT_TRUE(dup._progress[1].is_altering);
 
         // busy updating
-        ASSERT_EQ(dup.alter_progress(1, 10), ERR_BUSY);
+        ASSERT_FALSE(dup.alter_progress(1, 10));
         ASSERT_EQ(dup._progress[1].volatile_decree, 5);
         ASSERT_TRUE(dup._progress[1].is_altering);
 
@@ -54,12 +54,12 @@ public:
         ASSERT_FALSE(dup._progress[1].is_altering);
 
         // too frequent to update
-        ASSERT_EQ(dup.alter_progress(1, 10), ERR_BUSY);
+        ASSERT_FALSE(dup.alter_progress(1, 10));
         ASSERT_FALSE(dup._progress[1].is_altering);
 
         dup._progress[1].last_progress_update_ms -=
             duplication_info::PROGRESS_UPDATE_PERIOD_MS + 100;
-        ASSERT_EQ(dup.alter_progress(1, 15), ERR_OK);
+        ASSERT_TRUE(dup.alter_progress(1, 15));
         ASSERT_TRUE(dup._progress[1].is_altering);
     }
 };
