@@ -164,22 +164,28 @@ replica_duplicator::~replica_duplicator()
     _pending_duplicate_count.clear();
 }
 
-void replica_duplicator::update_progress(const duplication_progress &p)
+error_s replica_duplicator::update_progress(const duplication_progress &p)
 {
     zauto_write_lock l(_lock);
 
-    dassert_replica(p.confirmed_decree < 0 || _progress.confirmed_decree <= p.confirmed_decree,
-                    "never decrease confirmed_decree: new({}) old({})",
-                    p.confirmed_decree,
-                    _progress.confirmed_decree);
+    if (p.confirmed_decree >= 0 && p.confirmed_decree < _progress.confirmed_decree) {
+        return FMT_ERR(ERR_INVALID_STATE,
+                       "never decrease confirmed_decree: new({}) old({})",
+                       p.confirmed_decree,
+                       _progress.confirmed_decree);
+    }
 
     _progress.confirmed_decree = std::max(_progress.confirmed_decree, p.confirmed_decree);
     _progress.last_decree = std::max(_progress.last_decree, p.last_decree);
 
-    dassert_replica(_progress.confirmed_decree <= _progress.last_decree,
-                    "last_decree({}) should always larger than confirmed_decree({})",
-                    _progress.last_decree,
-                    _progress.confirmed_decree);
+    if (_progress.confirmed_decree > _progress.last_decree) {
+        return FMT_ERR(ERR_INVALID_STATE,
+                       "last_decree({}) should always larger than confirmed_decree({})",
+                       _progress.last_decree,
+                       _progress.confirmed_decree);
+    }
+
+    return error_s::ok();
 }
 
 error_s replica_duplicator::verify_start_decree(decree start_decree)
@@ -188,15 +194,14 @@ error_s replica_duplicator::verify_start_decree(decree start_decree)
     decree last_decree = progress().last_decree;
     decree max_gced_decree = get_max_gced_decree();
     if (max_gced_decree >= start_decree) {
-        return error_s::make(
+        return FMT_ERR(
             ERR_CORRUPTION,
-            fmt::format(
-                "the logs haven't yet duplicated were accidentally truncated "
-                "[max_gced_decree: {}, start_decree: {}, confirmed_decree: {}, last_decree: {}]",
-                max_gced_decree,
-                start_decree,
-                confirmed_decree,
-                last_decree));
+            "the logs haven't yet duplicated were accidentally truncated "
+            "[max_gced_decree: {}, start_decree: {}, confirmed_decree: {}, last_decree: {}]",
+            max_gced_decree,
+            start_decree,
+            confirmed_decree,
+            last_decree);
     }
     return error_s::ok();
 }

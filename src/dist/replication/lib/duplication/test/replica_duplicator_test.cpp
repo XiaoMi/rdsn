@@ -116,6 +116,13 @@ TEST_F(replica_duplicator_test, duplication_progress)
     duplicator->update_progress(duplicator->progress().set_confirmed_decree(10));
     ASSERT_EQ(duplicator->progress().confirmed_decree, 10);
     ASSERT_EQ(duplicator->progress().last_decree, 10);
+
+    ASSERT_EQ(duplicator->update_progress(duplicator->progress().set_confirmed_decree(1)),
+              error_s::make(ERR_INVALID_STATE, "never decrease confirmed_decree: new(1) old(10)"));
+
+    ASSERT_EQ(duplicator->update_progress(duplicator->progress().set_confirmed_decree(12)),
+              error_s::make(ERR_INVALID_STATE,
+                            "last_decree(10) should always larger than confirmed_decree(12)"));
 }
 
 } // namespace replication

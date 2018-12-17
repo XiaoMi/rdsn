@@ -97,7 +97,7 @@ public:
     }
 
     // Thread-safe
-    void update_progress(const duplication_progress &p);
+    error_s update_progress(const duplication_progress &p);
 
     void start();
 

@@ -68,7 +68,7 @@ void replica_duplicator_manager::sync_duplication(const duplication_entry &ent)
         if (it != ent.progress.end()) {
             // update progress
             duplication_progress newp = dup->progress().set_confirmed_decree(it->second);
-            dup->update_progress(newp);
+            dcheck_eq_replica(dup->update_progress(newp), error_s::ok());
         }
         dup->update_status_if_needed(next_status);
     }
@@ -119,6 +119,7 @@ void replica_duplicator_manager::set_confirmed_decree_non_primary(decree confirm
     dassert_replica(_replica->status() != partition_status::PS_PRIMARY, "");
 
     zauto_lock l(_lock);
+    remove_all_duplications();
     if (confirmed >= 0) {
         // confirmed decree never decreases
         dcheck_le_replica(_primary_confirmed_decree, confirmed);

@@ -64,7 +64,9 @@ void ship_mutation::ship(mutation_tuple_set &&in)
 {
     _ship_start_ns = dsn_now_ns();
     _mutation_duplicator->duplicate(std::move(in), [this]() mutable {
-        _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree));
+        dcheck_eq_replica(
+            _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree)),
+            error_s::ok());
         _ship_latency->set(dsn_now_ns() - _ship_start_ns);
 
         step_down_next_stage();
@@ -76,7 +78,9 @@ void ship_mutation::run(decree &&last_decree, mutation_tuple_set &&in)
     _last_decree = last_decree;
 
     if (in.empty()) {
-        _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree));
+        dcheck_eq_replica(
+            _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree)),
+            error_s::ok());
         step_down_next_stage();
         return;
     }
