@@ -70,6 +70,7 @@ struct ship_mutation : replica_base, pipeline::when<decree, mutation_tuple_set>,
 
 private:
     friend struct ship_mutation_test;
+    friend class replica_duplicator_test;
 
     std::unique_ptr<mutation_duplicator> _mutation_duplicator;
 

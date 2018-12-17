@@ -82,6 +82,8 @@ public:
     void set_task_environment(pipeline::environment env) { _env = env; }
 
 protected:
+    friend class replica_duplicator_test;
+
     pipeline::environment _env;
 };
 

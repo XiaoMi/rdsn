@@ -30,6 +30,7 @@
 
 #include "dist/replication/lib/mutation_log_utils.h"
 #include "dist/replication/lib/duplication/load_from_private_log.h"
+#include "dist/replication/lib/duplication/duplication_pipeline.h"
 
 namespace dsn {
 namespace apps {
@@ -76,6 +77,10 @@ public:
         ASSERT_EQ(duplicator->_status, status);
         ASSERT_EQ(duplicator->progress().confirmed_decree, confirmed_decree);
         ASSERT_EQ(duplicator->progress().last_decree, confirmed_decree);
+
+        auto expected_env = duplicator->_ship->_mutation_duplicator->_env;
+        ASSERT_EQ(duplicator->tracker(), expected_env.__conf.tracker);
+        ASSERT_EQ(duplicator->get_gpid().thread_hash(), expected_env.__conf.thread_hash);
     }
 
     void test_pause_start_duplication()

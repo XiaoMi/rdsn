@@ -94,7 +94,7 @@ ship_mutation::ship_mutation(replica_duplicator *duplicator)
     _mutation_duplicator = new_mutation_duplicator(duplicator,
                                                    _duplicator->remote_cluster_address(),
                                                    _duplicator->_replica->get_app_info()->app_name);
-    _mutation_duplicator->set_task_environment(*this);
+    _mutation_duplicator->set_task_environment(*duplicator);
 
     _ship_latency.init_app_counter("eon.replica",
                                    fmt::format("dup.ship_latency@{}", get_gpid()).c_str(),
