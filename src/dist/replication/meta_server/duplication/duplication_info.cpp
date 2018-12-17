@@ -121,7 +121,7 @@ void duplication_info::stable_progress(int partition_index)
     zauto_write_lock l(_lock);
 
     auto &p = _progress[partition_index];
-    dassert(p.is_altering, "partition_index: %d", partition_index);
+    dassert_dup(p.is_altering, this, "partition_index: {}", partition_index);
     p.is_altering = false;
     p.stored_decree = p.volatile_decree;
 }
@@ -130,7 +130,7 @@ void duplication_info::stable_status()
 {
     zauto_write_lock l(_lock);
 
-    dassert(_is_altering, "");
+    dassert_dup(_is_altering, this, "");
     _is_altering = false;
     status = next_status;
     next_status = duplication_status::DS_INIT;

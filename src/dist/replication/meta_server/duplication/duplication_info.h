@@ -207,6 +207,8 @@ extern bool json_decode(const dsn::json::JsonObject &in, duplication_status::typ
     derror_f("[a{}d{}] {}", _dup_->app_id, _dup_->id, fmt::format(__VA_ARGS__));
 #define dfatal_dup(_dup_, ...)                                                                     \
     dfatal_f("[a{}d{}] {}", _dup_->app_id, _dup_->id, fmt::format(__VA_ARGS__));
+#define dassert_dup(_pred_, _dup_, ...)                                                            \
+    dassert_f(_pred_, "[a{}d{}] {}", _dup_->app_id, _dup_->id, fmt::format(__VA_ARGS__));
 
 } // namespace replication
 } // namespace dsn
