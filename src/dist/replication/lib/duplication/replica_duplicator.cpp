@@ -158,8 +158,8 @@ replica_duplicator::~replica_duplicator()
     _metrics_update_timer->cancel(true);
 
     pause();
-    wait_all();
-    ddebug_replica("Closing duplication {}", to_string());
+    cancel_all();
+    ddebug_replica("closing duplication {}", to_string());
 
     _pending_duplicate_count.clear();
 }

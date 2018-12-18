@@ -79,7 +79,7 @@ public:
 
     virtual ~mutation_duplicator() = default;
 
-    void set_task_environment(pipeline::environment env) { _env = env; }
+    void set_task_environment(pipeline::environment *env) { _env = *env; }
 
 protected:
     friend class replica_duplicator_test;
