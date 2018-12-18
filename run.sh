@@ -125,6 +125,7 @@ function run_build()
                 ;;
             --skip_thirdparty)
                 SKIP_THIRDPARTY=YES
+                echo "run.sh build: skip building third-parties"
                 ;;
             -m|--test_module)
                 if [ "$ONLY_BUILD" == "YES" ]; then
@@ -236,7 +237,9 @@ function run_start_zk()
     # download zk before start zk service
     # as zk is a 3rdparty dependency of rdsn project,
     # so we simply download the whole thirdparty for simplicity
-    `pwd`/thirdparty/download-thirdparty.sh
+    if [[ ${SKIP_THIRDPARTY} != "YES" ]]; then
+        `pwd`/thirdparty/download-thirdparty.sh
+    fi
     exit_if_fail $?
 
     DOWNLOADED_DIR=`pwd`/thirdparty/src
