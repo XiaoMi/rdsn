@@ -1220,15 +1220,12 @@ int64_t mutation_log::on_partition_reset(gpid gpid, decree max_decree)
         dassert(_private_gpid == gpid, "replica gpid does not match");
         replica_log_info old_info = _private_log_info;
         _private_log_info.max_decree = max_decree;
-        _private_log_info.valid_start_offset = _global_end_offset;
-        dwarn("replica %d.%d has changed private log max_decree from %" PRId64 " to %" PRId64
-              ", valid_start_offset from %" PRId64 " to %" PRId64,
+        _private_log_info.valid_start_offset = 0;
+        dwarn("replica %d.%d has changed private log max_decree from %" PRId64 " to %" PRId64,
               gpid.get_app_id(),
               gpid.get_partition_index(),
               old_info.max_decree,
-              _private_log_info.max_decree,
-              old_info.valid_start_offset,
-              _private_log_info.valid_start_offset);
+              _private_log_info.max_decree);
     } else {
         replica_log_info info(max_decree, _global_end_offset);
         auto it = _shared_log_info_map.insert(replica_log_info_map::value_type(gpid, info));
