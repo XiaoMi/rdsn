@@ -234,11 +234,12 @@ function usage_start_zk()
 }
 function run_start_zk()
 {
-    # download zk before start zk service
-    # as zk is a 3rdparty dependency of rdsn project,
-    # so we simply download the whole thirdparty for simplicity
-    if [[ ${SKIP_THIRDPARTY} != "YES" ]]; then
+    if [[ ! -d `pwd`/thirdparty/src/zookeeper-3.4.10/bin ]]; then
+        # download zk before starting zk service
+        # here we simply download all the third-parties
         `pwd`/thirdparty/download-thirdparty.sh
+    else
+        echo "skip download zookeeper"
     fi
     exit_if_fail $?
 
