@@ -28,9 +28,10 @@
 ///   add_definition(-DENABLE_FAIL)
 /// ```
 /// When a fail point is defined, it's referenced via the name.
-#ifdef ENABLE_FAIL
 #define FAIL_POINT_INJECT_F(name, lambda)                                                          \
     do {                                                                                           \
+        if (dsn_likely(!::dsn::fail::_S_FAIL_POINT_ENABLED))                                       \
+            break;                                                                                 \
         auto __Func = lambda;                                                                      \
         auto __Res = ::dsn::fail::eval(name);                                                      \
         if (__Res != nullptr) {                                                                    \
@@ -38,10 +39,6 @@
         }                                                                                          \
     } while (0)
 #define FAIL_POINT_INJECT(name) ::dsn::fail::eval(name)
-#else
-#define FAIL_POINT_INJECT_F(name, lambda)
-#define FAIL_POINT_INJECT(name)
-#endif
 
 namespace dsn {
 namespace fail {
@@ -59,6 +56,8 @@ extern void setup();
 
 /// Tear down the fail point system.
 extern void teardown();
+
+extern bool _S_FAIL_POINT_ENABLED;
 
 } // namespace fail
 } // namespace dsn

@@ -88,6 +88,8 @@ private:
     perf_counter_wrapper _plog_block_loaded_mutations_count;
     perf_counter_wrapper _plog_block_loading_duration;
     int64_t _plog_block_loading_start_ns;
+
+    std::chrono::milliseconds _repeat_delay;
 };
 
 } // namespace replication

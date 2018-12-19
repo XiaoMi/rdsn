@@ -196,13 +196,16 @@ decree replica::get_replay_start_decree()
     std::map<std::string, std::string> envs;
     query_app_envs(envs);
     if (envs[replica_envs::DUPLICATING] == "true" || _app->init_info().init_duplicating) {
-        replay_start_decree = _duplication_mgr->min_confirmed_decree();
+        decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
+        if(min_confirmed_decree < replay_start_decree) {
+            replay_start_decree = min_confirmed_decree;
 
-        ddebug_replica("log replaying steps back from {} for duplication [init_info.duplicating:{}, "
-                       "envs.duplicating:{}]",
-                       replay_start_decree,
-                       _app->init_info().init_duplicating,
-                       envs[replica_envs::DUPLICATING]);
+            ddebug_replica("log replaying steps back from {} for duplication [init_info.duplicating:{}, "
+                           "envs.duplicating:{}]",
+                           replay_start_decree,
+                           _app->init_info().init_duplicating,
+                           envs[replica_envs::DUPLICATING]);
+        }
     }
 
     ddebug_replica("start to replay private log [replay_start_decree: {}]", replay_start_decree);

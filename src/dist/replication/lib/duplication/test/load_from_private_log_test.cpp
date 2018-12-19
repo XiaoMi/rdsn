@@ -25,6 +25,8 @@
  */
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/defer.h>
+#include <dsn/utility/fail_point.h>
 
 #define BOOST_NO_CXX11_SCOPED_ENUMS
 #include <boost/filesystem/operations.hpp>
@@ -139,8 +141,13 @@ public:
     mutation_tuple_set
     load_and_wait_all_entries_loaded(int total, int last_decree, gpid id, decree start_decree)
     {
+        // inject some failures
+        fail::setup();
+        auto cleanup = defer([]() { fail::teardown(); });
+        fail::cfg("open_read", "50%2*return()");
+
         mutation_log_ptr mlog = create_private_log(id);
-        for (auto pr : mlog->log_file_map()) {
+        for (const auto &pr : mlog->log_file_map()) {
             EXPECT_TRUE(pr.second->file_handle() == nullptr);
         }
         _replica->init_private_log(mlog);
@@ -150,6 +157,7 @@ public:
                                         .set_last_decree(start_decree - 1));
 
         load_from_private_log load(_replica.get(), duplicator.get());
+        const_cast<std::chrono::milliseconds &>(load._repeat_delay) = 1_s;
         load.set_start_decree(start_decree);
 
         mutation_tuple_set loaded_mutations;
@@ -304,6 +312,11 @@ TEST_F(load_from_private_log_test, start_duplication_10000_1MB)
 TEST_F(load_from_private_log_test, start_duplication_50000_1MB)
 {
     test_start_duplication(50000, 1);
+}
+
+TEST_F(load_from_private_log_test, start_duplication_100000_4MB)
+{
+    test_start_duplication(100000, 4);
 }
 
 // Ensure replica_duplicator can correctly handle real-world log file

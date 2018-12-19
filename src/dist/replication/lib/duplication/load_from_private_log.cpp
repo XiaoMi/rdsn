@@ -46,7 +46,6 @@ void load_from_private_log::switch_to_next_log_file()
         error_s es = log_utils::open_read(new_path, file);
         if (!es.is_ok()) {
             derror_replica("{}", es);
-            repeat(10_s);
             return;
         }
         start_from_log_file(file);
@@ -79,7 +78,7 @@ void load_from_private_log::run()
         if (_current == nullptr) {
             ddebug_replica("no private log file is currently available");
             // wait 10 seconds if no log available.
-            repeat(10_s);
+            repeat(_repeat_delay);
             return;
         }
     }
@@ -100,7 +99,6 @@ void load_from_private_log::find_log_file_to_start()
         error_s es = log_utils::open_read(pr.second->path(), file);
         if (!es.is_ok()) {
             derror_replica("{}", es);
-            repeat(10_s);
             return;
         }
         new_file_map.emplace(pr.first, file);
@@ -142,7 +140,7 @@ void load_from_private_log::load_from_log_file()
         // EOF appears only when end of log file is reached.
         if (err.code() == ERR_HANDLE_EOF) {
             switch_to_next_log_file();
-            repeat(10_s);
+            repeat(_repeat_delay);
             return;
         }
 
@@ -150,7 +148,7 @@ void load_from_private_log::load_from_log_file()
             "loading mutation logs failed: [err: {}, file: {}], try again", err, _current->path());
 
         _read_from_start = true;
-        repeat(10_s);
+        repeat(_repeat_delay);
         return;
     }
 
@@ -181,7 +179,11 @@ error_s load_from_private_log::replay_log_block()
 }
 
 load_from_private_log::load_from_private_log(replica *r, replica_duplicator *dup)
-    : replica_base(r), _private_log(r->private_log()), _duplicator(dup), _mutation_batch(dup)
+    : replica_base(r),
+      _private_log(r->private_log()),
+      _duplicator(dup),
+      _mutation_batch(dup),
+      _repeat_delay(10_s)
 {
     _plog_block_loading_duration.init_app_counter(
         "eon.replica",

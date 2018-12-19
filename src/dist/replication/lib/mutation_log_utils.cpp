@@ -25,12 +25,40 @@
  */
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/fail_point.h>
 
 #include "mutation_log_utils.h"
 
 namespace dsn {
 namespace replication {
 namespace log_utils {
+
+/*extern*/ error_s open_read(string_view path, /*out*/ log_file_ptr &file)
+{
+    FAIL_POINT_INJECT_F("open_read", [](string_view) -> error_s {
+        return error_s::make(ERR_FILE_OPERATION_FAILED, "open_read");
+    });
+
+    error_code ec;
+    file = log_file::open_read(path.data(), ec);
+    if (ec != ERR_OK) {
+        return FMT_ERR(ec, "failed to open the log file ({})", path);
+    }
+    return error_s::ok();
+}
+
+/*extern*/ error_s list_all_files(const std::string &dir, /*out*/ std::vector<std::string> &files)
+{
+    FAIL_POINT_INJECT_F("list_all_files", [](string_view) -> error_s {
+        return error_s::make(ERR_FILE_OPERATION_FAILED, "list_all_files");
+    });
+
+    if (!utils::filesystem::get_subfiles(dir, files, false)) {
+        return FMT_ERR(
+            ERR_FILE_OPERATION_FAILED, "unable to list the files under directory ({})", dir);
+    }
+    return error_s::ok();
+}
 
 /*extern*/
 error_s check_log_files_continuity(const std::map<int, log_file_ptr> &logs)

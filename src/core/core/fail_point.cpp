@@ -41,9 +41,15 @@ static fail_point_registry REGISTRY;
     p.set_action(action);
 }
 
-/*extern*/ void setup() {}
+/*static*/ bool _S_FAIL_POINT_ENABLED = false;
 
-/*extern*/ void teardown() { REGISTRY.clear(); }
+/*extern*/ void setup() { _S_FAIL_POINT_ENABLED = true; }
+
+/*extern*/ void teardown()
+{
+    REGISTRY.clear();
+    _S_FAIL_POINT_ENABLED = false;
+}
 
 void fail_point::set_action(string_view action)
 {

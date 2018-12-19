@@ -36,24 +36,9 @@ namespace dsn {
 namespace replication {
 namespace log_utils {
 
-inline error_s open_read(string_view path, /*out*/ log_file_ptr &file)
-{
-    error_code ec;
-    file = log_file::open_read(path.data(), ec);
-    if (ec != ERR_OK) {
-        return FMT_ERR(ec, "failed to open the log file ({})", path);
-    }
-    return error_s::ok();
-}
+extern error_s open_read(string_view path, /*out*/ log_file_ptr &file);
 
-inline error_s list_all_files(const std::string &dir, /*out*/ std::vector<std::string> &files)
-{
-    if (!utils::filesystem::get_subfiles(dir, files, false)) {
-        return FMT_ERR(
-            ERR_FILE_OPERATION_FAILED, "unable to list the files under directory ({})", dir);
-    }
-    return error_s::ok();
-}
+extern error_s list_all_files(const std::string &dir, /*out*/ std::vector<std::string> &files);
 
 inline error_s open_log_file_map(const std::vector<std::string> &log_files,
                                  /*out*/ std::map<int, log_file_ptr> &log_file_map)

@@ -21,7 +21,7 @@ set(MY_PROJ_LIBS dsn_meta_server
         gtest
         fmt)
 
-set(MY_BOOST_PACKAGES system filesystem)
+set(MY_BOOST_PACKAGES system filesystem regex)
 
 set(MY_BINPLACES
         config-test.ini
