@@ -240,7 +240,7 @@ function usage_start_zk()
     echo "   -d|--install_dir <dir>"
     echo "                     zookeeper install directory,"
     echo "                     if not set, then default is './.zk_install'"
-    echo "   -p|--port <port>  listen port of zookeeper, default is 22181"
+    echo "   -p|--port <port>  listen port of zookeeper, default is 12181"
 }
 
 function run_start_zk()
@@ -253,7 +253,7 @@ function run_start_zk()
     type nc >/dev/null 2>&1 || { echo >&2 "start zk failed, need install netcat command..."; exit 1;}
 
     INSTALL_DIR=`pwd`/.zk_install
-    PORT=22181
+    PORT=12181
     while [[ $# > 0 ]]; do
         key="$1"
         case $key in
