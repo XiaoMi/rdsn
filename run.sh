@@ -274,7 +274,7 @@ function run_start_zk()
         esac
         shift
     done
-    INSTALL_DIR="$INSTALL_DIR" PORT="$PORT" ./scripts/start_zk.sh
+    INSTALL_DIR="$INSTALL_DIR" PORT="$PORT" ./scripts/linux/start_zk.sh
 }
 
 #####################
@@ -311,7 +311,7 @@ function run_stop_zk()
         esac
         shift
     done
-    INSTALL_DIR="$INSTALL_DIR" ./scripts/stop_zk.sh
+    INSTALL_DIR="$INSTALL_DIR" ./scripts/linux/stop_zk.sh
 }
 
 #####################
@@ -348,7 +348,7 @@ function run_clear_zk()
         esac
         shift
     done
-    INSTALL_DIR="$INSTALL_DIR" ./scripts/clear_zk.sh
+    INSTALL_DIR="$INSTALL_DIR" ./scripts/linux/clear_zk.sh
 }
 
 ####################################################################
