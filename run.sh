@@ -70,9 +70,10 @@ function run_build()
     JOB_NUM=8
     BOOST_DIR=""
     ENABLE_GCOV=NO
-    SKIP_THIRDPARTY=NO
     RUN_VERBOSE=NO
     NO_TEST=NO
+    DISABLE_GPERF=NO
+    SKIP_THIRDPARTY=NO
     TEST_MODULE=""
     while [[ $# > 0 ]]; do
         key="$1"
@@ -125,7 +126,6 @@ function run_build()
                 ;;
             --skip_thirdparty)
                 SKIP_THIRDPARTY=YES
-                echo "run.sh build: skip building third-parties"
                 ;;
             -m|--test_module)
                 if [ "$ONLY_BUILD" == "YES" ]; then
@@ -147,7 +147,9 @@ function run_build()
         shift
     done
 
-    if [[ ${SKIP_THIRDPARTY} != "YES" ]]; then
+    if [[ ${SKIP_THIRDPARTY} == "YES" ]]; then
+        echo "Skip building thirdparty..."
+    else
         # build thirdparty first
         cd thirdparty
         if [[ "$CLEAR_THIRDPARTY" == "YES" ]]; then
@@ -155,6 +157,7 @@ function run_build()
             rm -rf src build output &>/dev/null
             CLEAR=YES
         fi
+        echo "Start building thirdparty..."
         ./download-thirdparty.sh
         exit_if_fail $?
         if [[ "x"$BOOST_DIR != "x" ]]; then
