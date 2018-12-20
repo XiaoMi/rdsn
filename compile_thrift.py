@@ -102,7 +102,7 @@ print "root_dir = " + root_dir
 
 if not os.path.isfile(thrift_exe):
     os.system("wget --no-check-certificate "
-              "https://github.com/imzhenyu/thrift/raw/master/pre-built/ubuntu14.04/thrift "
+              "https://github.com/xiaomi/pegasus-common/raw/master/pre-built/ubuntu14.04/thrift "
               "&& chmod u+x thrift "
               "&& mv thrift "+thrift_exe)
 
