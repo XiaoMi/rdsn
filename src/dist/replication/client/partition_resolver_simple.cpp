@@ -1,46 +1,36 @@
 /*
-* The MIT License (MIT)
-*
-* Copyright (c) 2015 Microsoft Corporation
-*
-* -=- Robust Distributed System Nucleus (rDSN) -=-
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015 Microsoft Corporation
+ *
+ * -=- Robust Distributed System Nucleus (rDSN) -=-
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
-/*
-* Description:
-*     partition resolver simple provider implementation
-*
-* Revision history:
-*     Feb., 2016, @imzhenyu (Zhenyu Guo), first draft
-*     xxxx-xx-xx, author, fix bug about xxx
-*/
-
-#include "partition_resolver_simple.h"
 #include <dsn/utility/utils.h>
 #include <dsn/utility/rand.h>
 #include <dsn/tool-api/async_calls.h>
+#include "dist/replication/client/partition_resolver_simple.h"
 
 namespace dsn {
-namespace dist {
-//------------------------------------------------------------------------------------
+namespace replication {
 
 partition_resolver_simple::partition_resolver_simple(rpc_address meta_server, const char *app_path)
     : partition_resolver(meta_server, app_path),
@@ -48,7 +38,6 @@ partition_resolver_simple::partition_resolver_simple(rpc_address meta_server, co
       _app_partition_count(-1),
       _app_is_stateful(true)
 {
-    dassert(meta_server.type() != HOST_TYPE_URI, "can not use uri address here");
 }
 
 void partition_resolver_simple::resolve(uint64_t partition_hash,
@@ -180,7 +169,7 @@ void partition_resolver_simple::call(request_context_ptr &&request, bool from_me
     if (from_meta_ack) {
         tasking::enqueue(LPC_REPLICATION_DELAY_QUERY_CONFIG,
                          &_tracker,
-                         [ =, req2 = request ]() mutable { call(std::move(req2), false); },
+                         [=, req2 = request]() mutable { call(std::move(req2), false); },
                          0,
                          std::chrono::seconds(1));
         return;
@@ -200,7 +189,7 @@ void partition_resolver_simple::call(request_context_ptr &&request, bool from_me
             request->timeout_timer =
                 tasking::enqueue(LPC_REPLICATION_CLIENT_REQUEST_TIMEOUT,
                                  &_tracker,
-                                 [ =, req2 = request ]() mutable { on_timeout(std::move(req2)); },
+                                 [=, req2 = request]() mutable { on_timeout(std::move(req2)); },
                                  0,
                                  std::chrono::milliseconds(timeout_ms));
         }
@@ -424,34 +413,8 @@ rpc_address partition_resolver_simple::get_address(const partition_configuration
             return config.last_drops[rand::next_u32(0, config.last_drops.size() - 1)];
         }
     }
-
-    // if (is_write || semantic == read_semantic::ReadLastUpdate)
-    //    return config.primary;
-
-    //// readsnapshot or readoutdated, using random
-    // else
-    //{
-    //    bool has_primary = false;
-    //    int N = static_cast<int>(config.secondaries.size());
-    //    if (!config.primary.is_invalid())
-    //    {
-    //        N++;
-    //        has_primary = true;
-    //    }
-
-    //    if (0 == N) return config.primary;
-
-    //    int r = random32(0, 1000) % N;
-    //    if (has_primary && r == N - 1)
-    //        return config.primary;
-    //    else
-    //        return config.secondaries[r];
-    //}
 }
 
-// ERR_OBJECT_NOT_FOUND  not in cache.
-// ERR_IO_PENDING        in cache but invalid, remove from cache.
-// ERR_OK                in cache and valid
 error_code partition_resolver_simple::get_address(int partition_index, /*out*/ rpc_address &addr)
 {
     // partition_configuration config;
@@ -476,5 +439,5 @@ int partition_resolver_simple::get_partition_index(int partition_count, uint64_t
 {
     return partition_hash % static_cast<uint64_t>(partition_count);
 }
-}
-}
+} // namespace replication
+} // namespace dsn
