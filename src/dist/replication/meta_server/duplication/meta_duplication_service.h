@@ -119,11 +119,11 @@ public:
         for (const auto &kv : app->duplications) {
             const auto &dup = kv.second;
             if (dup->is_valid()) {
-                app->envs["duplicating"] = "true";
+                app->duplicating = true;
                 return;
             }
         }
-        app->envs.erase("duplicating");
+        app->duplicating = false;
     }
 
 private:

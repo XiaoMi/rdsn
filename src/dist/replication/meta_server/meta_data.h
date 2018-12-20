@@ -321,10 +321,6 @@ public:
  *
  * after a newly assigned primary get these envs from app_info, it will try to
  * init a replica with data stored on the block_device
- *
- * Reserved keys for duplication:
- * envs["duplicating"] = <"true" or unset>
- * \see meta_duplication_service
  */
 class app_state : public app_info
 {

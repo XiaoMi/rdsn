@@ -246,7 +246,7 @@ TEST_F(meta_duplication_service_test, add_duplication)
             ASSERT_EQ(dup->status, duplication_status::DS_START);
             ASSERT_EQ(dup->remote, ok_remote);
             ASSERT_EQ(resp.dupid, dup->id);
-            ASSERT_EQ(app->envs["duplicating"], "true");
+            ASSERT_EQ(app->duplicating, true);
         }
     }
 }
@@ -343,12 +343,12 @@ TEST_F(meta_duplication_service_test, remove_dup)
     ASSERT_EQ(ERR_OK, resp.err);
     dupid_t dupid1 = resp.dupid;
 
-    ASSERT_EQ(app->envs["duplicating"], "true");
+    ASSERT_EQ(app->duplicating, true);
 
     auto resp2 = change_dup_status(test_app, dupid1, duplication_status::DS_REMOVED);
     ASSERT_EQ(ERR_OK, resp2.err);
 
-    ASSERT_EQ(app->envs["duplicating"], "");
+    ASSERT_EQ(app->duplicating, false);
 
     // reset meta server states
     _ss.reset();
@@ -356,7 +356,7 @@ TEST_F(meta_duplication_service_test, remove_dup)
     SetUp();
     recover_from_meta_state();
 
-    ASSERT_EQ(app->envs["duplicating"], "");
+    ASSERT_EQ(app->duplicating, false);
 }
 
 TEST_F(meta_duplication_service_test, duplication_sync)
@@ -507,7 +507,7 @@ TEST_F(meta_duplication_service_test, recover_from_meta_state)
 
     for (int i = 0; i < test_apps.size(); i++) {
         auto app = find_app(test_apps[i]);
-        ASSERT_EQ(app->envs["duplicating"], "true");
+        ASSERT_EQ(app->duplicating, true);
 
         auto &before = meta_state[test_apps[i]];
         auto &after = app->duplications;

@@ -58,4 +58,5 @@ struct app_info
     // new fields added from v1.11.0
     10:i64          create_second;
     11:i64          drop_second;
+    12:bool         duplicating;
 }

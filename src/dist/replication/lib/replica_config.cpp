@@ -555,9 +555,6 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
             ddebug_replica("switch _deny_client_write to {}", _deny_client_write);
         }
     }
-
-    find = envs.find(replica_envs::DUPLICATING);
-    update_init_info_duplicating(find != envs.end() && find->second == "true");
 }
 
 void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
@@ -979,6 +976,7 @@ void replica::on_config_sync(const app_info &info, const partition_configuration
         return;
 
     update_app_envs(info.envs);
+    update_init_info_duplicating(info.duplicating);
 
     if (status() == partition_status::PS_PRIMARY ||
         nullptr != _primary_states.reconfiguration_task) {

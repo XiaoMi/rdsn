@@ -90,9 +90,7 @@ void replica::on_checkpoint_timer()
         } else {
             // protect the logs from being truncated
             // if this app is in duplication
-            std::map<std::string, std::string> envs;
-            query_app_envs(envs);
-            if (envs[replica_envs::DUPLICATING] == "true" || _app->init_info().init_duplicating) {
+            if (is_duplicating()) {
                 return;
             }
         }

@@ -31,6 +31,10 @@
 namespace dsn {
 namespace replication {
 
+// `duplicating` is actually a field in app_info, but on the principle
+// of changing app_info as less as possible, we store it in .init_info
+// instead.
+
 void replica::update_init_info_duplicating(bool duplicating)
 {
     if (duplicating) {
@@ -44,12 +48,7 @@ void replica::update_init_info_duplicating(bool duplicating)
     }
 }
 
-bool replica::is_duplicating()
-{
-    std::map<std::string, std::string> envs;
-    query_app_envs(envs);
-    return envs[replica_envs::DUPLICATING] == "true" || _app->init_info().init_duplicating;
-}
+bool replica::is_duplicating() const { return _app->init_info().init_duplicating; }
 
 } // namespace replication
 } // namespace dsn

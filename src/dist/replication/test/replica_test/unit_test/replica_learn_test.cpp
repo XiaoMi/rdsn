@@ -45,10 +45,10 @@ public:
         gpid gpid(1, 1);
         app_info app_info;
         app_info.app_type = "replica";
-        app_info.envs["duplicating"] = "true";
+        app_info.duplicating = true;
         auto r = make_unique<mock_replica>(stub.get(), gpid, app_info, "./");
         r->as_primary();
-        r->update_app_envs(app_info.envs);
+        r->update_init_info_duplicating(app_info.duplicating);
         return r;
     }
 
