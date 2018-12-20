@@ -178,6 +178,10 @@ function run_build()
     fi
     if [ "$ONLY_BUILD" == "NO" ]; then
         run_start_zk
+        if [ $? -ne 0 ]; then
+            echo "ERROR: start zk failed"
+            exit 1
+        fi
     fi
     C_COMPILER="$C_COMPILER" CXX_COMPILER="$CXX_COMPILER" BUILD_TYPE="$BUILD_TYPE" \
         ONLY_BUILD="$ONLY_BUILD" CLEAR="$CLEAR" JOB_NUM="$JOB_NUM" \

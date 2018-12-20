@@ -57,7 +57,7 @@ sed -i "s@clientPort=2181@clientPort=$ZOOKEEPER_PORT@" $ZOOKEEPER_HOME/conf/zoo.
 
 mkdir -p $ZOOKEEPER_HOME/data
 $ZOOKEEPER_HOME/bin/zkServer.sh start
-sleep 0.1
+sleep 1
 
 if echo ruok | nc localhost $ZOOKEEPER_PORT | grep -q imok; then
     echo "Zookeeper started at port $ZOOKEEPER_PORT"

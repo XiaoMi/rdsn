@@ -13,7 +13,8 @@ cache:
 
 before_install:
     - wget https://raw.githubusercontent.com/xiaomi/pegasus-common/master/build-depends.tar.gz
-    - tar xf build-depends.tar.gz
+    - tar xfz build-depends.tar.gz
+    - rm -f build-depends.tar.gz
     - cd packages
     - ls | xargs sudo dpkg -i --force-depends
     - cd ..
