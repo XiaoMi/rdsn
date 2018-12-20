@@ -141,11 +141,6 @@ public:
     mutation_tuple_set
     load_and_wait_all_entries_loaded(int total, int last_decree, gpid id, decree start_decree)
     {
-        // inject some failures
-        fail::setup();
-        auto cleanup = defer([]() { fail::teardown(); });
-        fail::cfg("open_read", "50%2*return()");
-
         mutation_log_ptr mlog = create_private_log(id);
         for (const auto &pr : mlog->log_file_map()) {
             EXPECT_TRUE(pr.second->file_handle() == nullptr);
@@ -176,8 +171,14 @@ public:
             });
 
         duplicator->from(load).link(end_stage);
+
+        // inject some faults
+        fail::setup();
+        fail::cfg("open_read", "25%1*return()");
+        fail::cfg("mutation_log_read_log_block", "25%1*return()");
         duplicator->run_pipeline();
         duplicator->wait_all();
+        fail::teardown();
 
         return loaded_mutations;
     }

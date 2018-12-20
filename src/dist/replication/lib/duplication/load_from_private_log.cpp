@@ -34,8 +34,8 @@
 namespace dsn {
 namespace replication {
 
-/// Fast path to next file. If next file (_current->index + 1) is invalid,
-/// we try to list all files and select a new one to start (find_log_file_to_start).
+// Fast path to next file. If next file (_current->index + 1) is invalid,
+// we try to list all files and select a new one to start (find_log_file_to_start).
 void load_from_private_log::switch_to_next_log_file()
 {
     std::string new_path = fmt::format(
@@ -46,6 +46,7 @@ void load_from_private_log::switch_to_next_log_file()
         error_s es = log_utils::open_read(new_path, file);
         if (!es.is_ok()) {
             derror_replica("{}", es);
+            _current = nullptr;
             return;
         }
         start_from_log_file(file);
@@ -77,7 +78,6 @@ void load_from_private_log::run()
         find_log_file_to_start();
         if (_current == nullptr) {
             ddebug_replica("no private log file is currently available");
-            // wait 10 seconds if no log available.
             repeat(_repeat_delay);
             return;
         }

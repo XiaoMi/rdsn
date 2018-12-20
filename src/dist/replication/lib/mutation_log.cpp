@@ -30,6 +30,7 @@
 
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/crc.h>
+#include <dsn/utility/fail_point.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/async_calls.h>
 #include <fmt/format.h>
@@ -911,6 +912,10 @@ inline static error_s read_log_block(log_file_ptr &log,
                                      std::unique_ptr<binary_reader> &reader,
                                      blob &bb)
 {
+    FAIL_POINT_INJECT_F("mutation_log_read_log_block", [](string_view) -> error_s {
+        return error_s::make(ERR_INCOMPLETE_DATA, "mutation_log_read_log_block");
+    });
+
     error_code err = log->read_next_log_block(bb);
     if (err != ERR_OK) {
         return error_s::make(err, "failed to read log block");
@@ -928,6 +933,10 @@ inline static error_s read_log_block(log_file_ptr &log,
                                               bool read_from_start,
                                               int64_t &end_offset)
 {
+    FAIL_POINT_INJECT_F("mutation_log_replay_block", [](string_view) -> error_s {
+        return error_s::make(ERR_INCOMPLETE_DATA, "mutation_log_replay_block");
+    });
+
     blob bb;
     std::unique_ptr<binary_reader> reader;
 

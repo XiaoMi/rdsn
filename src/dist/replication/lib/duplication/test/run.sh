@@ -1,12 +1,11 @@
 #!/bin/sh
 
-exit_if_fail() {
-    if [ $1 != 0 ]; then
-        echo $2
-        exit 1
-    fi
-}
-
 ./dsn_replica_dup_test
 
-exit_if_fail $? "run unit test failed"
+if [ $? -ne 0 ]; then
+    tail -n 100 data/log/log.1.txt
+    if [ -f core ]; then
+        gdb ./dsn_replica_dup_test core -ex "bt"
+    fi
+    exit 1
+fi
