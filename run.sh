@@ -233,27 +233,33 @@ function usage_start_zk()
 {
     echo "Options for subcommand 'start_zk':"
     echo "   -h|--help         print the help info"
-    echo "   -p|--port <port>  listen port of zookeeper, default is 12181"
+    echo "   -d|--install_dir <dir>"
+    echo "                     zookeeper install directory,"
+    echo "                     if not set, then default is './.zk_install'"
+    echo "   -p|--port <port>  listen port of zookeeper, default is 22181"
 }
+
 function run_start_zk()
 {
-    if [[ ! -d `pwd`/thirdparty/src/zookeeper-3.4.10/bin ]]; then
-        # download zk before starting zk service
-        # here we simply download all the third-parties
-        `pwd`/thirdparty/download-thirdparty.sh
-    else
-        echo "skip download zookeeper"
-    fi
-    exit_if_fail $?
+    # first we check the environment that zk need: java and nc command
+    # check java
+    type java >/dev/null 2>&1 || { echo >&2 "start zk failed, need install jre..."; exit 1;}
 
-    DOWNLOADED_DIR=`pwd`/thirdparty/src
-    PORT=12181
+    # check nc command
+    type nc >/dev/null 2>&1 || { echo >&2 "start zk failed, need install netcat command..."; exit 1;}
+
+    INSTALL_DIR=`pwd`/.zk_install
+    PORT=22181
     while [[ $# > 0 ]]; do
         key="$1"
         case $key in
             -h|--help)
                 usage_start_zk
                 exit 0
+                ;;
+            -d|--install_dir)
+                INSTALL_DIR=$2
+                shift
                 ;;
             -p|--port)
                 PORT=$2
@@ -268,7 +274,7 @@ function run_start_zk()
         esac
         shift
     done
-    DOWNLOADED_DIR="$DOWNLOADED_DIR" PORT="$PORT" $scripts_dir/start_zk.sh
+    INSTALL_DIR="$INSTALL_DIR" PORT="$PORT" ./scripts/start_zk.sh
 }
 
 #####################
@@ -278,16 +284,23 @@ function usage_stop_zk()
 {
     echo "Options for subcommand 'stop_zk':"
     echo "   -h|--help         print the help info"
+    echo "   -d|--install_dir <dir>"
+    echo "                     zookeeper install directory,"
+    echo "                     if not set, then default is './.zk_install'"
 }
 function run_stop_zk()
 {
-    DOWNLOADED_DIR=`pwd`/thirdparty/src
+    INSTALL_DIR=`pwd`/.zk_install
     while [[ $# > 0 ]]; do
         key="$1"
         case $key in
             -h|--help)
                 usage_stop_zk
                 exit 0
+                ;;
+            -d|--install_dir)
+                INSTALL_DIR=$2
+                shift
                 ;;
             *)
                 echo "ERROR: unknown option \"$key\""
@@ -298,7 +311,7 @@ function run_stop_zk()
         esac
         shift
     done
-    DOWNLOADED_DIR="$DOWNLOADED_DIR" $scripts_dir/stop_zk.sh
+    INSTALL_DIR="$INSTALL_DIR" ./scripts/stop_zk.sh
 }
 
 #####################
@@ -308,16 +321,23 @@ function usage_clear_zk()
 {
     echo "Options for subcommand 'clear_zk':"
     echo "   -h|--help         print the help info"
+    echo "   -d|--install_dir <dir>"
+    echo "                     zookeeper install directory,"
+    echo "                     if not set, then default is './.zk_install'"
 }
 function run_clear_zk()
 {
-    DOWNLOADED_DIR=`pwd`/thirdparty/src
+    INSTALL_DIR=`pwd`/.zk_install
     while [[ $# > 0 ]]; do
         key="$1"
         case $key in
             -h|--help)
                 usage_clear_zk
                 exit 0
+                ;;
+            -d|--install_dir)
+                INSTALL_DIR=$2
+                shift
                 ;;
             *)
                 echo "ERROR: unknown option \"$key\""
@@ -328,7 +348,7 @@ function run_clear_zk()
         esac
         shift
     done
-    DOWNLOADED_DIR="$DOWNLOADED_DIR" $scripts_dir/clear_zk.sh
+    INSTALL_DIR="$INSTALL_DIR" ./scripts/clear_zk.sh
 }
 
 ####################################################################
