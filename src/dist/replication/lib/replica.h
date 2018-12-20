@@ -54,6 +54,7 @@
 #include "mutation_log.h"
 #include "prepare_list.h"
 #include "replica_context.h"
+#include "throttling_controller.h"
 
 namespace dsn {
 namespace replication {
@@ -94,7 +95,7 @@ public:
     //
     //    requests from clients
     //
-    void on_client_write(task_code code, dsn::message_ex *request);
+    void on_client_write(task_code code, dsn::message_ex *request, bool ignore_throttling = false);
     void on_client_read(task_code code, dsn::message_ex *request);
 
     //
@@ -127,7 +128,6 @@ public:
     //
     //  routine for testing purpose only
     //
-    void send_group_check_once_for_test(int delay_milliseconds);
     void inject_error(error_code err);
 
     //
@@ -143,10 +143,7 @@ public:
     decree last_durable_decree() const;
     decree last_flushed_decree() const;
     const std::string &dir() const { return _dir; }
-    bool group_configuration(/*out*/ partition_configuration &config) const;
     uint64_t create_time_milliseconds() const { return _create_time_ms; }
-    uint64_t last_config_change_time_milliseconds() const { return _last_config_change_time_ms; }
-    uint64_t last_checkpoint_generate_time_ms() const { return _last_checkpoint_generate_time_ms; }
     const char *name() const { return replica_name(); }
     mutation_log_ptr private_log() const { return _private_log; }
     const replication_options *options() const { return _options; }
@@ -395,7 +392,8 @@ private:
 
     bool _inactive_is_transient; // upgrade to P/S is allowed only iff true
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
-    volatile bool _deny_client_write = false;
+    bool _deny_client_write;     // if deny all write requests
+    throttling_controller _write_throttling_controller;
 
     // duplication
     friend class replica_duplicator_manager;
@@ -403,6 +401,8 @@ private:
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
+    perf_counter_wrapper _counter_recent_write_throttling_delay_count;
+    perf_counter_wrapper _counter_recent_write_throttling_reject_count;
 
     dsn::task_tracker _tracker;
     // the thread access checker

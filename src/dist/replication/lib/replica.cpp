@@ -33,6 +33,8 @@
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/rand.h>
+#include <dsn/utility/string_conv.h>
+#include <dsn/utility/strings.h>
 
 #include "dist/replication/lib/duplication/replica_duplicator_manager.h"
 
@@ -64,11 +66,18 @@ replica::replica(
     init_state();
     _config.pid = gpid;
 
-    std::stringstream ss;
-    ss << "private.log.size(MB)"
-       << "@" << gpid.get_app_id() << "." << gpid.get_partition_index();
+    std::string counter_str = fmt::format("private.log.size(MB)@{}", gpid);
     _counter_private_log_size.init_app_counter(
-        "eon.replica", ss.str().c_str(), COUNTER_TYPE_NUMBER, "private log size(MB)");
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_NUMBER, counter_str.c_str());
+
+    counter_str = fmt::format("recent.write.throttling.delay.count@{}", gpid);
+    _counter_recent_write_throttling_delay_count.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
+
+    counter_str = fmt::format("recent.write.throttling.reject.count@{}", gpid);
+    _counter_recent_write_throttling_reject_count.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
+
     if (need_restore) {
         // add an extra env for restore
         _extra_envs.insert(
@@ -100,6 +109,7 @@ void replica::init_state()
 {
     _inactive_is_transient = false;
     _is_initializing = false;
+    _deny_client_write = false;
     _prepare_list =
         new prepare_list(this,
                          0,
@@ -354,15 +364,6 @@ mutation_ptr replica::new_mutation(decree decree)
     mu->data.header.decree = decree;
     mu->data.header.log_offset = invalid_offset;
     return mu;
-}
-
-bool replica::group_configuration(/*out*/ partition_configuration &config) const
-{
-    if (partition_status::PS_PRIMARY != status())
-        return false;
-
-    config = _primary_states.membership;
-    return true;
 }
 
 decree replica::last_durable_decree() const { return _app->last_durable_decree(); }
