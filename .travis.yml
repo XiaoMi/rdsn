@@ -11,6 +11,11 @@ compiler:
 cache:
     - ccache
 
+addons:
+    apt:
+        packages:
+            - clang-format-3.9
+
 before_install:
     - wget https://raw.githubusercontent.com/xiaomi/pegasus-common/master/build-depends.tar.gz
     - tar xfz build-depends.tar.gz
