@@ -8,7 +8,7 @@
 find src include -name "*.h" -or -name "*.cpp" | xargs clang-format-3.9 -i
 
 effected_files=$(git status -s)
-echo -ne "Checking for files that need clang-format... "
+echo "Checking for files that need clang-format..."
 if [ -z "${effected_files}" ]; then
 	echo "All files are well formatted"
 	exit 0
