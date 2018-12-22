@@ -169,7 +169,7 @@ void partition_resolver_simple::call(request_context_ptr &&request, bool from_me
     if (from_meta_ack) {
         tasking::enqueue(LPC_REPLICATION_DELAY_QUERY_CONFIG,
                          &_tracker,
-                         [=, req2 = request]() mutable { call(std::move(req2), false); },
+                         [ =, req2 = request ]() mutable { call(std::move(req2), false); },
                          0,
                          std::chrono::seconds(1));
         return;
@@ -189,7 +189,7 @@ void partition_resolver_simple::call(request_context_ptr &&request, bool from_me
             request->timeout_timer =
                 tasking::enqueue(LPC_REPLICATION_CLIENT_REQUEST_TIMEOUT,
                                  &_tracker,
-                                 [=, req2 = request]() mutable { on_timeout(std::move(req2)); },
+                                 [ =, req2 = request ]() mutable { on_timeout(std::move(req2)); },
                                  0,
                                  std::chrono::milliseconds(timeout_ms));
         }
