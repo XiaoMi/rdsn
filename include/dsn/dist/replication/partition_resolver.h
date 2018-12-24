@@ -62,6 +62,11 @@ public:
         return response_task;
     }
 
+    // choosing a proper replica server from meta server or local route cache
+    // and send the read/write request.
+    // if got reply or error, call the callback.
+    // parameters like request data, timeout, callback handler are all wrapped
+    // into "task", you may want to refer to dsn::rpc_response_task for details.
     void call_task(const dsn::rpc_response_task_ptr &task);
 
     std::string get_app_name() const { return _app_name; }
