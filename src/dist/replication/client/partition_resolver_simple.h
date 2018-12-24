@@ -38,7 +38,7 @@ namespace replication {
 class partition_resolver_simple : public partition_resolver
 {
 public:
-    partition_resolver_simple(rpc_address meta_server, const char *app_path);
+    partition_resolver_simple(rpc_address meta_server, const char *app_name);
 
     virtual ~partition_resolver_simple();
 

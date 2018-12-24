@@ -36,9 +36,9 @@ namespace replication {
 /*static*/
 partition_resolver_ptr partition_resolver::get_resolver(const char *cluster_name,
                                                         const std::vector<rpc_address> &meta_list,
-                                                        const char *app_path)
+                                                        const char *app_name)
 {
-    return partition_resolver_manager::instance().find_or_create(cluster_name, meta_list, app_path);
+    return partition_resolver_manager::instance().find_or_create(cluster_name, meta_list, app_name);
 }
 
 DEFINE_TASK_CODE(LPC_RPC_DELAY_CALL, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
@@ -54,7 +54,6 @@ void partition_resolver::call_task(const rpc_response_task_ptr &t)
     {
         if (req->header->gpid.value() != 0 && err != ERR_OK && err != ERR_HANDLER_NOT_FOUND &&
             err != ERR_APP_NOT_EXIST && err != ERR_OPERATION_DISABLED) {
-
             on_access_failure(req->header->gpid.get_partition_index(), err);
             // still got time, retry
             uint64_t nms = dsn_now_ms();
@@ -67,7 +66,7 @@ void partition_resolver::call_task(const rpc_response_task_ptr &t)
 
                 rpc_response_task_ptr ctask =
                     dynamic_cast<rpc_response_task *>(task::get_current_task());
-                partition_resolver *r = this;
+                partition_resolver_ptr r(this);
 
                 dassert(ctask != nullptr, "current task must be rpc_response_task");
                 ctask->replace_callback(std::move(oc));

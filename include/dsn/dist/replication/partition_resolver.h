@@ -42,7 +42,7 @@ public:
     static dsn::ref_ptr<partition_resolver>
     get_resolver(const char *cluster_name,
                  const std::vector<dsn::rpc_address> &meta_list,
-                 const char *app_path);
+                 const char *app_name);
 
     template <typename TReq, typename TCallback>
     dsn::rpc_response_task_ptr call_op(dsn::task_code code,
@@ -64,13 +64,13 @@ public:
 
     void call_task(const dsn::rpc_response_task_ptr &task);
 
-    std::string get_app_path() const { return _app_path; }
+    std::string get_app_name() const { return _app_name; }
 
     dsn::rpc_address get_meta_server() const { return _meta_server; }
 
 protected:
-    partition_resolver(rpc_address meta_server, const char *app_path)
-        : _app_path(app_path), _meta_server(meta_server)
+    partition_resolver(rpc_address meta_server, const char *app_name)
+        : _app_name(app_name), _meta_server(meta_server)
     {
     }
 
@@ -124,7 +124,7 @@ protected:
     virtual int get_partition_index(int partition_count, uint64_t partition_hash) = 0;
 
     std::string _cluster_name;
-    std::string _app_path;
+    std::string _app_name;
     rpc_address _meta_server;
 };
 

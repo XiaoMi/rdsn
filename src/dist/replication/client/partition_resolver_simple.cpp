@@ -32,8 +32,8 @@
 namespace dsn {
 namespace replication {
 
-partition_resolver_simple::partition_resolver_simple(rpc_address meta_server, const char *app_path)
-    : partition_resolver(meta_server, app_path),
+partition_resolver_simple::partition_resolver_simple(rpc_address meta_server, const char *app_name)
+    : partition_resolver(meta_server, app_name),
       _app_id(-1),
       _app_partition_count(-1),
       _app_is_stateful(true)
@@ -101,7 +101,7 @@ partition_resolver_simple::~partition_resolver_simple()
 
 void partition_resolver_simple::clear_all_pending_requests()
 {
-    dinfo("%s.client: clear all pending tasks", _app_path.c_str());
+    dinfo("%s.client: clear all pending tasks", _app_name.c_str());
     zauto_lock l(_requests_lock);
     // clear _pending_requests
     for (auto &pc : _pending_requests) {
@@ -227,11 +227,11 @@ DEFINE_TASK_CODE_RPC(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
 task_ptr partition_resolver_simple::query_config(int partition_index)
 {
     dinfo(
-        "%s.client: start query config, gpid = %d.%d", _app_path.c_str(), _app_id, partition_index);
+        "%s.client: start query config, gpid = %d.%d", _app_name.c_str(), _app_id, partition_index);
     auto msg = dsn::message_ex::create_request(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX);
 
     configuration_query_by_index_request req;
-    req.app_name = _app_path;
+    req.app_name = _app_name;
     if (partition_index != -1) {
         req.partition_indices.push_back(partition_index);
     }
@@ -282,7 +282,7 @@ void partition_resolver_simple::query_config_reply(error_code err,
 
                 dinfo("%s.client: query config reply, gpid = %d.%d, ballot = %" PRId64
                       ", primary = %s",
-                      _app_path.c_str(),
+                      _app_name.c_str(),
                       new_config.pid.get_app_id(),
                       new_config.pid.get_partition_index(),
                       new_config.ballot,
@@ -306,7 +306,7 @@ void partition_resolver_simple::query_config_reply(error_code err,
             }
         } else if (resp.err == ERR_OBJECT_NOT_FOUND) {
             derror("%s.client: query config reply, gpid = %d.%d, err = %s",
-                   _app_path.c_str(),
+                   _app_name.c_str(),
                    _app_id,
                    partition_index,
                    resp.err.to_string());
@@ -314,7 +314,7 @@ void partition_resolver_simple::query_config_reply(error_code err,
             client_err = ERR_APP_NOT_EXIST;
         } else {
             derror("%s.client: query config reply, gpid = %d.%d, err = %s",
-                   _app_path.c_str(),
+                   _app_name.c_str(),
                    _app_id,
                    partition_index,
                    resp.err.to_string());
@@ -323,7 +323,7 @@ void partition_resolver_simple::query_config_reply(error_code err,
         }
     } else {
         derror("%s.client: query config reply, gpid = %d.%d, err = %s",
-               _app_path.c_str(),
+               _app_name.c_str(),
                _app_id,
                partition_index,
                err.to_string());

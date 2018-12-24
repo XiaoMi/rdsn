@@ -41,11 +41,11 @@ class partition_resolver_manager : public dsn::utils::singleton<partition_resolv
 public:
     partition_resolver_ptr find_or_create(const char *cluster_name,
                                           const std::vector<rpc_address> &meta_list,
-                                          const char *app_path);
+                                          const char *app_name);
 
 private:
     dsn::zlock _lock;
-    // cluster_name -> <app_path, resolver>
+    // cluster_name -> <app_name, resolver>
     std::map<std::string, std::map<std::string, partition_resolver_ptr>> _resolvers;
 };
 
