@@ -26,11 +26,13 @@
 
 #pragma once
 
-#include <dsn/utility/error_code.h>
-#include <dsn/utility/smart_pointers.h>
-#include <dsn/utility/string_view.h>
-
 #include <sstream>
+#include <string>
+#include <algorithm>
+
+#include "dsn/utility/error_code.h"
+#include "dsn/utility/smart_pointers.h"
+#include "dsn/utility/string_view.h"
 
 namespace dsn {
 
@@ -178,12 +180,18 @@ class error_with
 {
 public:
     // for ok case
-    error_with(const T &value) : _value(new T(value)) {}
-    error_with(T &&value) : _value(new T(std::move(value))) {}
+    error_with(const T &value) : _value(new T(value)) {}       // NOLINT(runtime/explicit)
+    error_with(T &&value) : _value(new T(std::move(value))) {} // NOLINT(runtime/explicit)
 
     // for error case
-    error_with(error_s &&err) : _err(std::move(err)) { assert(!_err.is_ok()); }
-    error_with(const error_s &status) : _err(status) { assert(!_err.is_ok()); }
+    error_with(error_s &&err) : _err(std::move(err)) // NOLINT(runtime/explicit)
+    {
+        assert(!_err.is_ok());
+    }
+    error_with(const error_s &status) : _err(status) // NOLINT(runtime/explicit)
+    {
+        assert(!_err.is_ok());
+    }
 
     const T &get_value() const
     {

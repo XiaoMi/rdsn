@@ -20,7 +20,9 @@
 /// A fail point implementation in C++.
 /// This lib is ported from https://github.com/pingcap/fail-rs.
 
-#include <dsn/utility/string_view.h>
+#include <string>
+
+#include "dsn/utility/string_view.h"
 
 /// The only entry to define a fail point.
 /// Add following line to cmake to compile target with fault injection.

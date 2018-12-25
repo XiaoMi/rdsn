@@ -26,8 +26,11 @@
 
 #pragma once
 
-#include <dsn/utility/config_api.h>
-#include <dsn/utility/strings.h>
+#include <list>
+#include <string>
+
+#include "dsn/utility/config_api.h"
+#include "dsn/utility/strings.h"
 
 /// you can use following macros to implement a function called "read_config"
 /// to initialize a structure from the configuration file quickly
@@ -38,7 +41,6 @@
     inline bool read_config(                                                                       \
         const char *section, /*out*/ t_struct &val, t_struct *default_value = nullptr)             \
     {
-
 #define CONFIG_END                                                                                 \
     return true;                                                                                   \
     }
@@ -72,8 +74,9 @@
             if (!type::is_exist(v.c_str())) {                                                      \
                 printf("invalid enum configuration '[%s] %s = %s'\n", section, #fld, v.c_str());   \
                 return false;                                                                      \
-            } else                                                                                 \
+            } else {                                                                               \
                 val.fld = type(v.c_str());                                                         \
+            }                                                                                      \
         }                                                                                          \
     }
 
@@ -94,8 +97,9 @@
             if (v2 == invalid_enum) {                                                              \
                 printf("invalid enum configuration '[%s] %s = %s'\n", section, #fld, v.c_str());   \
                 return false;                                                                      \
-            } else                                                                                 \
+            } else {                                                                               \
                 val.fld = v2;                                                                      \
+            }                                                                                      \
         }                                                                                          \
     }
 
@@ -110,8 +114,9 @@
             if (!type::is_exist(v.c_str())) {                                                      \
                 printf("invalid enum configuration '[%s] %s = %s'\n", section, #fld, v.c_str());   \
                 return false;                                                                      \
-            } else                                                                                 \
+            } else {                                                                               \
                 val.fld.push_back(type(v.c_str()));                                                \
+            }                                                                                      \
         }                                                                                          \
         if (val.fld.size() == 0 && default_value)                                                  \
             val.fld = default_value->fld;                                                          \
@@ -132,9 +137,9 @@
         std::string vv = dsn_config_get_value_string(section, #fld, "", dsptr);                    \
         std::list<std::string> lv;                                                                 \
         ::dsn::utils::split_args(vv.c_str(), lv, ',');                                             \
-        if (lv.size() == 0 && default_value)                                                       \
+        if (lv.size() == 0 && default_value) {                                                     \
             val.fld = default_value->fld;                                                          \
-        else {                                                                                     \
+        } else {                                                                                   \
             for (auto &s : lv) {                                                                   \
                 val.fld.push_back(atoi(s.c_str()));                                                \
             }                                                                                      \

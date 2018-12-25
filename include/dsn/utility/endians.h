@@ -4,10 +4,12 @@
 
 #pragma once
 
+#include <endian.h>
 #include <cstdint>
 #include <cassert>
-#include <endian.h>
-#include <dsn/utility/string_view.h>
+#include <string>
+
+#include "dsn/utility/string_view.h"
 
 namespace dsn {
 

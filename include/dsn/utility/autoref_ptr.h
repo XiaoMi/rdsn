@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #pragma once
 
 #include <atomic>
@@ -83,11 +74,11 @@ public:
         }
     }
 
-    long get_count() const { return _counter.load(); }
+    int32_t get_count() const { return _counter.load(); }
 
 protected:
     unsigned int _magic;
-    std::atomic<long> _counter;
+    std::atomic<int32_t> _counter;
 
 public:
     ref_counter(const ref_counter &) = delete;
@@ -100,14 +91,14 @@ class ref_ptr
 public:
     ref_ptr() : _obj(nullptr) {}
 
-    ref_ptr(T *obj) : _obj(obj)
+    ref_ptr(T *obj) : _obj(obj) // NOLINT(runtime/explicit)
     {
         if (nullptr != _obj)
             _obj->add_ref();
     }
 
     template <typename U>
-    ref_ptr(U *obj) : _obj(obj)
+    ref_ptr(U *obj) : _obj(obj) // NOLINT(runtime/explicit)
     {
         if (nullptr != _obj)
             _obj->add_ref();
@@ -229,4 +220,4 @@ private:
     friend class ref_ptr;
 };
 
-} // end namespace dsn
+} // namespace dsn

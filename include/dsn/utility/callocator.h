@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <dsn/utility/transient_memory.h>
+#include "dsn/utility/transient_memory.h"
 
 namespace dsn {
 
@@ -53,4 +53,5 @@ public:
 /// are derived from transient_objects,
 /// so that their memory can be mamanged by trans_memory_allocator
 typedef callocator_object<tls_trans_malloc, tls_trans_free> transient_object;
-}
+
+} // namespace dsn

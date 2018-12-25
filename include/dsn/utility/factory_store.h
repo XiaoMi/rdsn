@@ -35,7 +35,10 @@
 
 #pragma once
 
-#include <dsn/utility/singleton_store.h>
+#include <vector>
+#include <string>
+
+#include "dsn/utility/singleton_store.h"
 
 namespace dsn {
 
@@ -56,7 +59,7 @@ public:
     {
         factory_entry entry;
         entry.dummy = nullptr;
-        entry.factory = (void *)factory;
+        entry.factory = reinterpret_cast<void *>(factory);
         entry.type = type;
         return singleton_store<std::string, factory_entry>::instance().put(std::string(name),
                                                                            entry);
@@ -72,7 +75,7 @@ public:
                 return nullptr;
             } else {
                 TFactory f;
-                f = *(TFactory *)&entry.factory;
+                f = *reinterpret_cast<TFactory *>(&entry.factory);
                 return f;
             }
         } else {
@@ -165,5 +168,6 @@ private:
         }
     };
 };
-}
-} // end namespace dsn::utils
+
+} // namespace utils
+} // namespace dsn

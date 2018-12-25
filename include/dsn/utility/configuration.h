@@ -35,7 +35,8 @@
 #include <string>
 #include <list>
 #include <mutex>
-#include <dsn/utility/string_conv.h>
+
+#include "dsn/utility/string_conv.h"
 
 namespace dsn {
 
@@ -134,7 +135,7 @@ inline double configuration::get_value<double>(const char *section,
 {
     const char *value;
     char defaultstr[32];
-    sprintf(defaultstr, "%lf", default_value);
+    snprintf(defaultstr, sizeof(defaultstr), "%lf", default_value);
 
     if (!get_string_value_internal(section, key, defaultstr, &value, dsptr)) {
         if (_warning) {
@@ -158,7 +159,7 @@ inline int64_t configuration::get_value<int64_t>(const char *section,
 {
     const char *value;
     char defaultstr[32];
-    sprintf(defaultstr, "%" PRId64, default_value);
+    snprintf(defaultstr, sizeof(defaultstr), "%" PRId64, default_value);
 
     if (!get_string_value_internal(section, key, defaultstr, &value, dsptr)) {
         if (_warning) {
@@ -186,7 +187,7 @@ inline uint64_t configuration::get_value<uint64_t>(const char *section,
 {
     const char *value;
     char defaultstr[32];
-    sprintf(defaultstr, "%" PRIu64, default_value);
+    snprintf(defaultstr, sizeof(defaultstr), "%" PRIu64, default_value);
 
     if (!get_string_value_internal(section, key, defaultstr, &value, dsptr)) {
         if (_warning) {

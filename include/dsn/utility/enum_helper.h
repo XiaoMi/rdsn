@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #pragma once
 
 #include <map>
@@ -76,7 +67,7 @@ private:
     };
 
 public:
-    enum_helper_xxx(TEnum invalid) : _invalid(invalid) {}
+    explicit enum_helper_xxx(TEnum invalid) : _invalid(invalid) {}
 
     void register_enum(const char *name, TEnum v)
     {

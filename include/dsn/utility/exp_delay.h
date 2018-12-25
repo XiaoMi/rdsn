@@ -35,27 +35,31 @@
 
 #pragma once
 
-#include <dsn/utility/singleton.h>
 #include <vector>
 #include <cassert>
+
+#include "dsn/utility/singleton.h"
 
 namespace dsn {
 #define DELAY_COUNT 6
 const double s_default_delay_points[DELAY_COUNT] = {1.0, 1.2, 1.4, 1.6, 1.8, 2.0};
 const int s_default_delay[DELAY_COUNT] = {0, 0, 1, 2, 5, 10}; // millieseconds
 
+// TODO(wutao1): remove this class
 class exp_delay
 {
 public:
     exp_delay()
     {
-        memcpy((void *)_delay, (const void *)s_default_delay, sizeof(_delay));
+        memcpy(reinterpret_cast<void *>(_delay),
+               reinterpret_cast<const void *>(s_default_delay),
+               sizeof(_delay));
         _threshold = 0x0fffffff;
     }
 
     void initialize(const std::vector<int> &delays, int threshold)
     {
-        assert((int)delays.size() == DELAY_COUNT);
+        assert(static_cast<int>(delays.size()) == DELAY_COUNT);
 
         int i = 0;
         for (auto &d : delays) {
@@ -69,7 +73,7 @@ public:
     inline int delay(int value)
     {
         if (value >= _threshold) {
-            double f = (double)value / (double)_threshold;
+            double f = static_cast<double>(value) / static_cast<double>(_threshold);
             int delay_milliseconds;
 
             if (f < s_default_delay_points[DELAY_COUNT - 1]) {
@@ -93,11 +97,16 @@ private:
 class shared_exp_delay
 {
 public:
-    shared_exp_delay() { memcpy((void *)_delay, (const void *)s_default_delay, sizeof(_delay)); }
+    shared_exp_delay()
+    {
+        memcpy(reinterpret_cast<void *>(_delay),
+               reinterpret_cast<const void *>(s_default_delay),
+               sizeof(_delay));
+    }
 
     void initialize(const std::vector<int> &delays)
     {
-        assert((int)delays.size() == DELAY_COUNT);
+        assert(static_cast<int>(delays.size()) == DELAY_COUNT);
 
         int i = 0;
         for (auto &d : delays) {
@@ -108,7 +117,7 @@ public:
     inline int delay(int value, int threshold)
     {
         if (value >= threshold) {
-            double f = (double)value / (double)threshold;
+            double f = static_cast<double>(value) / static_cast<double>(threshold);
             int delay_milliseconds;
 
             if (f < s_default_delay_points[DELAY_COUNT - 1]) {
@@ -127,4 +136,5 @@ public:
 private:
     int _delay[DELAY_COUNT];
 };
-}
+
+} // namespace dsn

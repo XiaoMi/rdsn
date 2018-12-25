@@ -36,11 +36,12 @@
 
 #pragma once
 
-#include <dsn/utility/singleton.h>
-#include <dsn/utility/ports.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "dsn/utility/singleton.h"
+#include "dsn/utility/ports.h"
 
 namespace dsn {
 namespace utils {
@@ -73,7 +74,7 @@ private:
 template <typename T>
 struct customized_id
 {
-    customized_id(const char *name);
+    explicit customized_id(const char *name);
     customized_id(const customized_id &source);
     operator int() const;
     operator T() const { return T(_internal_code); }
@@ -87,7 +88,7 @@ struct customized_id
 
 protected:
     static int assign(const char *xxx);
-    customized_id(int code);
+    explicit customized_id(int code);
 
 protected:
     int _internal_code;
@@ -208,5 +209,5 @@ int customized_id_mgr<T>::register_id(const char *name)
     _names2.push_back(std::string(name));
     return code;
 }
-}
-} // end namespace dsn::utils
+} // namespace utils
+} // namespace dsn

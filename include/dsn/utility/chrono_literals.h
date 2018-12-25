@@ -45,34 +45,35 @@ namespace dsn {
 
 inline namespace literals {
 inline namespace chrono_literals {
+constexpr std::chrono::hours operator"" _h(unsigned long long v) // NOLINT(runtime/int)
+{
+    return std::chrono::hours{v};
+}
 
-constexpr std::chrono::hours operator"" _h(unsigned long long v) { return std::chrono::hours{v}; }
-
-constexpr std::chrono::minutes operator"" _min(unsigned long long v)
+constexpr std::chrono::minutes operator"" _min(unsigned long long v) // NOLINT(runtime/int)
 {
     return std::chrono::minutes{v};
 }
 
-constexpr std::chrono::seconds operator"" _s(unsigned long long v)
+constexpr std::chrono::seconds operator"" _s(unsigned long long v) // NOLINT(runtime/int)
 {
     return std::chrono::seconds{v};
 }
 
-constexpr std::chrono::milliseconds operator"" _ms(unsigned long long v)
+constexpr std::chrono::milliseconds operator"" _ms(unsigned long long v) // NOLINT(runtime/int)
 {
     return std::chrono::milliseconds{v};
 }
 
-constexpr std::chrono::microseconds operator"" _us(unsigned long long v)
+constexpr std::chrono::microseconds operator"" _us(unsigned long long v) // NOLINT(runtime/int)
 {
     return std::chrono::microseconds{v};
 }
 
-constexpr std::chrono::nanoseconds operator"" _ns(unsigned long long v)
+constexpr std::chrono::nanoseconds operator"" _ns(unsigned long long v) // NOLINT(runtime/int)
 {
     return std::chrono::nanoseconds{v};
 }
-
 } // inline namespace chrono_literals
 } // inline namespace literals
 } // namespace dsn
