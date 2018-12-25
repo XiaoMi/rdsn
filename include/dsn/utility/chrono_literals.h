@@ -74,6 +74,6 @@ constexpr std::chrono::nanoseconds operator"" _ns(unsigned long long v) // NOLIN
 {
     return std::chrono::nanoseconds{v};
 }
-} // inline namespace chrono_literals
-} // inline namespace literals
+} // namespace chrono_literals
+} // namespace literals
 } // namespace dsn

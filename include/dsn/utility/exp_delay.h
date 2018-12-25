@@ -59,7 +59,7 @@ public:
 
     void initialize(const std::vector<int> &delays, int threshold)
     {
-        assert(static_cast<int>(delays.size()) == DELAY_COUNT);
+        assert(delays.size() == DELAY_COUNT);
 
         int i = 0;
         for (auto &d : delays) {
@@ -97,16 +97,11 @@ private:
 class shared_exp_delay
 {
 public:
-    shared_exp_delay()
-    {
-        memcpy(reinterpret_cast<void *>(_delay),
-               reinterpret_cast<const void *>(s_default_delay),
-               sizeof(_delay));
-    }
+    shared_exp_delay() { memcpy(_delay, s_default_delay, sizeof(_delay)); }
 
     void initialize(const std::vector<int> &delays)
     {
-        assert(static_cast<int>(delays.size()) == DELAY_COUNT);
+        assert(delays.size() == DELAY_COUNT);
 
         int i = 0;
         for (auto &d : delays) {

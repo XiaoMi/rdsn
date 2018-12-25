@@ -86,7 +86,7 @@ public:
 public:
     extensible_object() : extensible(_extensions, MAX_EXTENSION_COUNT)
     {
-        memset(reinterpret_cast<void *>(_extensions), 0, sizeof(_extensions));
+        memset(_extensions, 0, sizeof(_extensions));
     }
 
     ~extensible_object()
@@ -96,7 +96,7 @@ public:
         for (int i = 0; i < maxId; i++) {
             if (_extensions[i] != extensible_object::INVALID_VALUE &&
                 s_extensionDeletors[i] != nullptr) {
-                s_extensionDeletors[i](reinterpret_cast<void *>(_extensions[i]));
+                s_extensionDeletors[i] = reinterpret_cast<extension_deletor *>(_extensions[i]);
             }
         }
     }

@@ -92,7 +92,7 @@ template <typename T>
 inline int binary_reader::read_pod(/*out*/ T &val)
 {
     if (sizeof(T) <= get_remaining_size()) {
-        memcpy(reinterpret_cast<void *>(&val), _ptr, sizeof(T));
+        memcpy(&val, _ptr, sizeof(T));
         _ptr += sizeof(T);
         _remaining_size -= sizeof(T);
         return static_cast<int>(sizeof(T));

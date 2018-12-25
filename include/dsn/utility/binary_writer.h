@@ -69,8 +69,11 @@ public:
     bool next(void **data, int *size);
     bool backup(int count);
 
+    void get_buffers(/*out*/ std::vector<blob> &buffers);
+    int get_buffer_count() const { return static_cast<int>(_buffers.size()); }
     blob get_buffer();
     blob get_current_buffer(); // without commit, write can be continued on the last buffer
+    blob get_first_buffer() const;
 
     int total_size() const { return _total_size; }
 
@@ -99,13 +102,13 @@ inline void binary_writer::write_pod(const T &val)
     write(reinterpret_cast<const char *>(&val), static_cast<int>(sizeof(T)));
 }
 
-inline void binary_writer::write(const std::string &val)
+inline void binary_writer::get_buffers(/*out*/ std::vector<blob> &buffers)
 {
-    int len = static_cast<int>(val.length());
-    write((const char *)&len, sizeof(int));
-    if (len > 0)
-        write(&val[0], len);
+    commit();
+    buffers = _buffers;
 }
+
+inline blob binary_writer::get_first_buffer() const { return _buffers[0]; }
 
 inline void binary_writer::write(const blob &val)
 {
