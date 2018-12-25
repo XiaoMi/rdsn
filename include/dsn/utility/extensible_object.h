@@ -96,7 +96,7 @@ public:
         for (int i = 0; i < maxId; i++) {
             if (_extensions[i] != extensible_object::INVALID_VALUE &&
                 s_extensionDeletors[i] != nullptr) {
-                s_extensionDeletors[i] = reinterpret_cast<extension_deletor *>(_extensions[i]);
+                s_extensionDeletors[i] = reinterpret_cast<extension_deletor>(_extensions[i]);
             }
         }
     }
