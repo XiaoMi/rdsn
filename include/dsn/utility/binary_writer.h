@@ -110,6 +110,14 @@ inline void binary_writer::get_buffers(/*out*/ std::vector<blob> &buffers)
 
 inline blob binary_writer::get_first_buffer() const { return _buffers[0]; }
 
+inline void binary_writer::write(const std::string &val)
+{
+    int len = static_cast<int>(val.length());
+    write(reinterpret_cast<const char *>(&len), sizeof(int));
+    if (len > 0)
+        write(&val[0], len);
+}
+
 inline void binary_writer::write(const blob &val)
 {
     // TODO(wutao1): optimization by not memcpy

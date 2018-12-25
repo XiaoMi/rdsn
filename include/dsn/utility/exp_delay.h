@@ -51,9 +51,7 @@ class exp_delay
 public:
     exp_delay()
     {
-        memcpy(reinterpret_cast<void *>(_delay),
-               reinterpret_cast<const void *>(s_default_delay),
-               sizeof(_delay));
+        memcpy(_delay, s_default_delay, sizeof(_delay));
         _threshold = 0x0fffffff;
     }
 
