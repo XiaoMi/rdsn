@@ -397,11 +397,10 @@ bool failure_detector::end_ping_internal(::dsn::error_code err, const beacon_ack
         return true;
     }
 
-    // TODO(hyc): try to fix 189
     // when ack is not master, it should not modify last_send_time_for_beacon_with_ack, otherwise
-    // worker may not suside before master consider it disconnected, which may cause two primary replica bug
-    // but 10s may be not enough to switch meta and connect zk, so that may add unavailable time during rolling-update
-    // so we should length lease time to avoid possible no-meta situation
+    // worker may not suside before master consider it disconnected, which may cause two primary
+    // replica, but 10s may be not enough to switch meta and connect zk, so we should length lease
+    // time to avoid possible no-meta situation
     if (!ack.is_master) {
         dwarn("node[%s] is not master, ack.primary_node[%s] is real master",
               node.to_string(),
