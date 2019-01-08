@@ -76,7 +76,8 @@ public:
     // ret:
     //   if any balancer proposal is generated, return true. Or-else, false
     //
-    virtual bool balance(meta_view view, migration_list &list, int &score, bool balance_checker) = 0;
+    virtual bool
+    balance(meta_view view, migration_list &list, int &score, bool balance_checker) = 0;
 
     //
     // When replica infos are collected from replica servers, meta-server

@@ -2485,7 +2485,8 @@ bool server_state::check_all_partitions()
     // if balance can help
     int round_score = 0;
     if (unbalanced &&
-        _meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list, round_score, false)) {
+        _meta_svc->get_balancer()->balance(
+            {&_all_apps, &_nodes}, _temporary_list, round_score, false)) {
         _meta_svc->get_balancer()->apply_balancer({&_all_apps, &_nodes}, _temporary_list);
         if (_replica_migration_subscriber)
             _replica_migration_subscriber(_temporary_list);
