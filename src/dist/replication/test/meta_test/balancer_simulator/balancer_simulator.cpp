@@ -149,14 +149,22 @@ void greedy_balancer_perfect_move_primary()
     // test the greedy balancer's move primary
     greedy_load_balancer glb(nullptr);
     migration_list ml;
+    int score = 0;
 
-    while (glb.balance({&apps, &nodes}, ml)) {
+    glb.balance({&apps, &nodes}, ml, score, true);
+    dinfo("balance operation count = %d, balance score = %d", ml.size(), score);
+    int i = 0;
+
+    while (glb.balance({&apps, &nodes}, ml, score, false)) {
         for (const auto &kv : ml) {
             const std::shared_ptr<configuration_balancer_request> &req = kv.second;
             for (const configuration_proposal_action &act : req->action_list) {
                 ASSERT_TRUE(act.type != config_type::CT_ADD_SECONDARY_FOR_LB);
             }
         }
+        glb.balance({&apps, &nodes}, ml, score, true);
+        i++;
+        dinfo("round %d: balance operation count = %d, balance score = %d", i, ml.size(), score);
     }
 }
 

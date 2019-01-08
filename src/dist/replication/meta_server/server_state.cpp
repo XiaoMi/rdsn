@@ -157,6 +157,9 @@ void server_state::initialize(meta_service *meta_svc, const std::string &apps_ro
     _add_secondary_max_count_for_one_node =
         _meta_svc->get_meta_options().add_secondary_max_count_for_one_node;
 
+    _balance_score.init_app_counter(
+        "eon.server_state", "balance_score", COUNTER_TYPE_NUMBER, "current balance score");
+
     _dead_partition_count.init_app_counter("eon.server_state",
                                            "dead_partition_count",
                                            COUNTER_TYPE_NUMBER,
@@ -2307,6 +2310,8 @@ void server_state::update_partition_perf_counter()
     _healthy_partition_count->set(counters[HS_HEALTHY]);
 }
 
+void server_state::update_balance_perf_counter(int score) { _balance_score->set(score); }
+
 bool server_state::check_all_partitions()
 {
     int healthy_partitions = 0;
@@ -2439,7 +2444,7 @@ bool server_state::check_all_partitions()
            ignored_add_secondary_count);
 
     // then the balancer stage
-    if (level <= meta_function_level::fl_steady) {
+    if (level < meta_function_level::fl_steady) {
         ddebug("don't do replica migration coz meta server is in level(%s)",
                _meta_function_level_VALUES_TO_NAMES.find(level)->second);
         return false;
@@ -2457,8 +2462,30 @@ bool server_state::check_all_partitions()
         return false;
     }
 
+    if (level == meta_function_level::fl_steady) {
+        ddebug("check if balanced without doing replica migration coz meta server is in level(%s)",
+               _meta_function_level_VALUES_TO_NAMES.find(level)->second);
+        _meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list, _score, true);
+        ddebug("balance checker operation count = %d, balance score = %d",
+               _temporary_list.size(),
+               _score);
+        // update cluster balance score to _score
+        update_balance_perf_counter(_score);
+        return false;
+    }
+
     ddebug("try to do replica migration");
-    if (_meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list)) {
+    bool unbalanced =
+        _meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list, _score, true);
+    ddebug(
+        "balance checker operation count = %d, balance score = %d", _temporary_list.size(), _score);
+    // update cluster balance score to _score
+    update_balance_perf_counter(_score);
+
+    // if balance can help
+    int round_score = 0;
+    if (unbalanced &&
+        _meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list, round_score, false)) {
         _meta_svc->get_balancer()->apply_balancer({&_all_apps, &_nodes}, _temporary_list);
         if (_replica_migration_subscriber)
             _replica_migration_subscriber(_temporary_list);

@@ -45,7 +45,7 @@ class greedy_load_balancer : public simple_load_balancer
 public:
     greedy_load_balancer(meta_service *svc);
     virtual ~greedy_load_balancer();
-    bool balance(meta_view view, migration_list &list) override;
+    bool balance(meta_view view, migration_list &list, int &score, bool balance_checker) override;
 
     void register_ctrl_commands() override;
     void unregister_ctrl_commands() override;
@@ -102,13 +102,13 @@ private:
     bool copy_primary_per_app(const std::shared_ptr<app_state> &app,
                               bool still_have_less_than_average,
                               int replicas_low);
-    bool primary_balancer_per_app(const std::shared_ptr<app_state> &app);
+    bool primary_balancer_per_app(const std::shared_ptr<app_state> &app, bool balance_checker = false);
     bool primary_balancer_globally();
 
     bool copy_secondary_per_app(const std::shared_ptr<app_state> &app);
     bool secondary_balancer_globally();
 
-    void greedy_balancer();
+    void greedy_balancer(bool balance_checker = false);
 
     bool all_replica_infos_collected(const node_state &ns);
     // using t_global_view to get disk_tag of node's pid

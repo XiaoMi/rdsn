@@ -219,6 +219,7 @@ void meta_service_test_app::balancer_validator()
         generate_node_mapper(nodes, apps, node_list);
         generate_node_fs_manager(apps, nodes, manager, disk_on_node);
         migration_list ml;
+        int score = 0;
 
         for (auto &iter : nodes) {
             dinfo("node(%s) have %d primaries, %d partitions",
@@ -228,9 +229,10 @@ void meta_service_test_app::balancer_validator()
         }
 
         // iterate 1000000 times
-        for (int i = 0; i < 1000000 && lb->balance({&apps, &nodes}, ml); ++i) {
-            dinfo("the %dth round of balancer", i);
+        for (int i = 0; i < 1000000 && lb->balance({&apps, &nodes}, ml, score, false); ++i) {
             migration_check_and_apply(apps, nodes, ml, &manager);
+            lb->balance({&apps, &nodes}, ml, score, true);
+            dinfo("cluster balance score = %d", score);
         }
 
         for (auto &iter : nodes) {
@@ -323,11 +325,13 @@ void meta_service_test_app::balance_config_file()
         greedy_load_balancer greedy_lb(nullptr);
         server_load_balancer *lb = &greedy_lb;
         migration_list ml;
+        int score = 0;
 
         // iterate 1000 times
-        for (int i = 0; i < 1000 && lb->balance({&apps, &nodes}, ml); ++i) {
-            dinfo("the %dth round of balancer", i);
+        for (int i = 0; i < 1000 && lb->balance({&apps, &nodes}, ml, score, false); ++i) {
             migration_check_and_apply(apps, nodes, ml, nullptr);
+            lb->balance({&apps, &nodes}, ml, score, true);
+            dinfo("cluster balance score = %d", score);
         }
     }
 }

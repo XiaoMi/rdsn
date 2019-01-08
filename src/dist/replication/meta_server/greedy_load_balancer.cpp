@@ -619,7 +619,8 @@ void greedy_load_balancer::shortest_path(std::vector<bool> &visit,
 }
 
 // load balancer based on ford-fulkerson
-bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_state> &app)
+bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_state> &app,
+                                                    bool balance_checker)
 {
     dassert(t_alive_nodes > 2, "too few alive nodes will lead to freeze");
     ddebug("primary balancer for app(%s:%d)", app->app_name.c_str(), app->app_id);
@@ -684,7 +685,7 @@ bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_st
     // we can't make the server load more balanced
     // by moving primaries to secondaries
     if (!visit[graph_nodes - 1] || flow[graph_nodes - 1] == 0) {
-        if (!_only_move_primary) {
+        if (!_only_move_primary || balance_checker) {
             return copy_primary_per_app(app, lower_count != 0, replicas_low);
         } else {
             ddebug("stop to move primary for app(%s) coz it is disabled", app->get_logname());
@@ -833,7 +834,7 @@ bool greedy_load_balancer::all_replica_infos_collected(const node_state &ns)
     });
 }
 
-void greedy_load_balancer::greedy_balancer()
+void greedy_load_balancer::greedy_balancer(bool balance_checker)
 {
     const app_mapper &apps = *t_global_view->apps;
 
@@ -852,14 +853,14 @@ void greedy_load_balancer::greedy_balancer()
         if (app->status != app_status::AS_AVAILABLE)
             continue;
 
-        bool enough_information = primary_balancer_per_app(app);
+        bool enough_information = primary_balancer_per_app(app, balance_checker);
         if (!enough_information) {
             // Even if we don't have enough info for current app,
             // the decisions made by previous apps are kept.
             // t_migration_result->empty();
             return;
         }
-        if (!t_migration_result->empty()) {
+        if (!t_migration_result->empty() && !balance_checker) {
             if (_balancer_in_turn) {
                 ddebug("stop to handle more apps after we found some actions for %s",
                        app->get_logname());
@@ -872,11 +873,11 @@ void greedy_load_balancer::greedy_balancer()
     // make decision according to disk load.
     // primary_balancer_globally();
 
-    if (!t_migration_result->empty()) {
+    if (!t_migration_result->empty() && !balance_checker) {
         ddebug("stop to do secondary balance coz we already has actions to do");
         return;
     }
-    if (_only_primary_balancer) {
+    if (_only_primary_balancer && !balance_checker) {
         ddebug("stop to do secondary balancer coz it is not allowed");
         return;
     }
@@ -897,7 +898,7 @@ void greedy_load_balancer::greedy_balancer()
             // t_migration_result->empty();
             return;
         }
-        if (!t_migration_result->empty()) {
+        if (!t_migration_result->empty() && !balance_checker) {
             if (_balancer_in_turn) {
                 ddebug("stop to handle more apps after we found some actions for %s",
                        app->get_logname());
@@ -907,10 +908,18 @@ void greedy_load_balancer::greedy_balancer()
     }
 }
 
-bool greedy_load_balancer::balance(meta_view view, migration_list &list)
+bool greedy_load_balancer::balance(meta_view view,
+                                   migration_list &list,
+                                   int &score,
+                                   bool balance_checker)
 {
-    ddebug("balancer round");
+    if (balance_checker)
+        ddebug("balance checker round");
+    else
+        ddebug("balancer round");
+
     list.clear();
+    score = 0;
 
     t_total_partitions = count_partitions(*(view.apps));
     t_alive_nodes = view.nodes->size();
@@ -918,7 +927,19 @@ bool greedy_load_balancer::balance(meta_view view, migration_list &list)
     t_migration_result = &list;
     t_migration_result->clear();
 
-    greedy_balancer();
+    greedy_balancer(balance_checker);
+
+    // calculate balance score here
+    int total_partitions = 0;
+    for (const auto &pair : *(t_global_view->nodes)) {
+        const node_state &ns = pair.second;
+        for (const auto &app : *(t_global_view->apps)) {
+            total_partitions += ns.partition_count(app.first);
+        }
+    }
+    if (total_partitions != 0)
+        score = t_migration_result->size() * 100 / total_partitions;
+
     return !t_migration_result->empty();
 }
 }
