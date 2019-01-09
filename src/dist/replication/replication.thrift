@@ -333,7 +333,8 @@ struct configuration_proposal_action
     // 4:i64 period_ts;
 }
 
-enum balancer_request_type {
+enum balancer_request_type
+{
     move_primary,
     copy_primary,
     copy_secondary,
@@ -341,10 +342,10 @@ enum balancer_request_type {
 
 struct configuration_balancer_request
 {
-    1 : dsn.gpid gpid;
-    2 : list<configuration_proposal_action> action_list;
-    3 : optional bool force = false;
-    4 : balancer_request_type balance_type;
+    1:dsn.gpid gpid;
+    2:list<configuration_proposal_action> action_list;
+    3:optional bool force = false;
+    4:balancer_request_type balance_type;
 }
 
 struct configuration_balancer_response
