@@ -124,7 +124,8 @@ public:
 
     void lock_read(zauto_read_lock &other);
     void lock_write(zauto_write_lock &other);
-    int get_balance_score() { return _score; }
+    int get_balance_checker_operation_count() { return _balance_checker_operation_count; }
+    int get_balance_score() { return _balance_score; }
     const meta_view get_meta_view() { return {&_all_apps, &_nodes}; }
     std::shared_ptr<app_state> get_app(const std::string &name)
     {
@@ -198,8 +199,8 @@ private:
 
     // user should lock it first
     void update_partition_perf_counter();
-    void update_balance_perf_counter(int score);
-    void update_recent_balance_perf_counters();
+    void update_balance_checker_perf_counter();
+    void update_balancer_perf_counters();
 
     error_code dump_app_states(const char *local_path,
                                const std::function<app_state *()> &iterator);
@@ -319,7 +320,8 @@ private:
 
     // for load balancer
     migration_list _temporary_list;
-    int _score;
+    int _balance_checker_operation_count;
+    int _balance_score;
 
     // for test
     config_change_subscriber _config_change_subscriber;
@@ -331,7 +333,7 @@ private:
     dsn_handle_t _ctrl_add_secondary_enable_flow_control;
     dsn_handle_t _ctrl_add_secondary_max_count_for_one_node;
 
-    perf_counter_wrapper _balance_score;
+    perf_counter_wrapper _balance_operation_count;
     perf_counter_wrapper _recent_balance_move_primary_count;
     perf_counter_wrapper _recent_balance_copy_primary_count;
     perf_counter_wrapper _recent_balance_copy_secondary_count;

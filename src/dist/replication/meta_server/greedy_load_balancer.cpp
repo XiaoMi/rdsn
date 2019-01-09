@@ -827,7 +827,7 @@ bool greedy_load_balancer::all_replica_infos_collected(const node_state &ns)
     return ns.for_each_partition([this, n](const dsn::gpid &pid) {
         config_context &cc = *get_config_context(*(t_global_view->apps), pid);
         if (cc.find_from_serving(n) == cc.serving.end()) {
-            ddebug("meta server hasn't colected gpid(%d.%d)'s info of %s",
+            ddebug("meta server hasn't collected gpid(%d.%d)'s info of %s",
                    pid.get_app_id(),
                    pid.get_partition_index(),
                    n.to_string());
@@ -911,10 +911,7 @@ void greedy_load_balancer::greedy_balancer(bool balance_checker)
     }
 }
 
-bool greedy_load_balancer::balance(meta_view view,
-                                   migration_list &list,
-                                   int &score,
-                                   bool balance_checker)
+bool greedy_load_balancer::balance(meta_view view, migration_list &list, bool balance_checker)
 {
     if (balance_checker)
         ddebug("balance checker round");
@@ -922,7 +919,6 @@ bool greedy_load_balancer::balance(meta_view view,
         ddebug("balancer round");
 
     list.clear();
-    score = 0;
 
     t_total_partitions = count_partitions(*(view.apps));
     t_alive_nodes = view.nodes->size();
@@ -931,17 +927,6 @@ bool greedy_load_balancer::balance(meta_view view,
     t_migration_result->clear();
 
     greedy_balancer(balance_checker);
-
-    // calculate balance score here
-    int total_partitions = 0;
-    for (const auto &pair : *(t_global_view->nodes)) {
-        const node_state &ns = pair.second;
-        for (const auto &app : *(t_global_view->apps)) {
-            total_partitions += ns.partition_count(app.first);
-        }
-    }
-    if (total_partitions != 0)
-        score = t_migration_result->size() * 100 / total_partitions;
 
     return !t_migration_result->empty();
 }

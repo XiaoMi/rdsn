@@ -45,7 +45,7 @@ class greedy_load_balancer : public simple_load_balancer
 public:
     greedy_load_balancer(meta_service *svc);
     virtual ~greedy_load_balancer();
-    bool balance(meta_view view, migration_list &list, int &score, bool balance_checker) override;
+    bool balance(meta_view view, migration_list &list, bool balance_checker) override;
 
     void register_ctrl_commands() override;
     void unregister_ctrl_commands() override;

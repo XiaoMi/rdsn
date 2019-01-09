@@ -76,8 +76,7 @@ public:
     // ret:
     //   if any balancer proposal is generated, return true. Or-else, false
     //
-    virtual bool
-    balance(meta_view view, migration_list &list, int &score, bool balance_checker) = 0;
+    virtual bool balance(meta_view view, migration_list &list, bool balance_checker) = 0;
 
     //
     // When replica infos are collected from replica servers, meta-server
@@ -207,10 +206,9 @@ public:
     }
     virtual ~simple_load_balancer() { UNREGISTER_VALID_HANDLER(_ctrl_assign_delay_ms); }
 
-    bool balance(meta_view, migration_list &list, int &score, bool balance_checker) override
+    bool balance(meta_view, migration_list &list, bool balance_checker) override
     {
         list.clear();
-        score = 0;
         return false;
     }
 

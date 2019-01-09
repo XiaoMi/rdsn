@@ -96,7 +96,7 @@ public:
         return pc_status::ill;
     }
     virtual void reconfig(meta_view view, const configuration_update_request &request) {}
-    virtual bool balance(meta_view view, migration_list &list, int &score, bool balance_checker)
+    virtual bool balance(meta_view view, migration_list &list, bool balance_checker)
     {
         return false;
     }
