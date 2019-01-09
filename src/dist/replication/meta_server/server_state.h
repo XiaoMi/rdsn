@@ -199,6 +199,7 @@ private:
     // user should lock it first
     void update_partition_perf_counter();
     void update_balance_perf_counter(int score);
+    void update_recent_balance_perf_counters();
 
     error_code dump_app_states(const char *local_path,
                                const std::function<app_state *()> &iterator);
@@ -331,6 +332,9 @@ private:
     dsn_handle_t _ctrl_add_secondary_max_count_for_one_node;
 
     perf_counter_wrapper _balance_score;
+    perf_counter_wrapper _recent_balance_move_primary_count;
+    perf_counter_wrapper _recent_balance_copy_primary_count;
+    perf_counter_wrapper _recent_balance_copy_secondary_count;
 
     perf_counter_wrapper _dead_partition_count;
     perf_counter_wrapper _unreadable_partition_count;

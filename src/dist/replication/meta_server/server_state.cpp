@@ -160,6 +160,22 @@ void server_state::initialize(meta_service *meta_svc, const std::string &apps_ro
     _balance_score.init_app_counter(
         "eon.server_state", "balance_score", COUNTER_TYPE_NUMBER, "current balance score");
 
+    _recent_balance_move_primary_count.init_app_counter(
+        "eon.server_state",
+        "recent_balance_move_primary_count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "move primary count by balancer in the recent period");
+    _recent_balance_copy_primary_count.init_app_counter(
+        "eon.server_state",
+        "recent_balance_copy_primary_count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "copy primary count by balancer in the recent period");
+    _recent_balance_copy_secondary_count.init_app_counter(
+        "eon.server_state",
+        "recent_balance_copy_secondary_count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "copy secondary count by balancer in the recent period");
+
     _dead_partition_count.init_app_counter("eon.server_state",
                                            "dead_partition_count",
                                            COUNTER_TYPE_NUMBER,
@@ -2312,6 +2328,25 @@ void server_state::update_partition_perf_counter()
 
 void server_state::update_balance_perf_counter(int score) { _balance_score->set(score); }
 
+void server_state::update_recent_balance_perf_counters()
+{
+    for (auto action : _temporary_list) {
+        switch (action.second.get()->balance_type) {
+        case balancer_request_type::move_primary:
+            _recent_balance_move_primary_count->increment();
+            break;
+        case balancer_request_type::copy_primary:
+            _recent_balance_copy_primary_count->increment();
+            break;
+        case balancer_request_type::copy_secondary:
+            _recent_balance_copy_secondary_count->increment();
+            break;
+        default:
+            dassert(false, "");
+        }
+    }
+}
+
 bool server_state::check_all_partitions()
 {
     int healthy_partitions = 0;
@@ -2488,6 +2523,7 @@ bool server_state::check_all_partitions()
         _meta_svc->get_balancer()->balance(
             {&_all_apps, &_nodes}, _temporary_list, round_score, false)) {
         _meta_svc->get_balancer()->apply_balancer({&_all_apps, &_nodes}, _temporary_list);
+        update_recent_balance_perf_counters();
         if (_replica_migration_subscriber)
             _replica_migration_subscriber(_temporary_list);
         tasking::enqueue(LPC_META_STATE_NORMAL,

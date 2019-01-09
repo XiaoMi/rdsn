@@ -120,6 +120,7 @@ greedy_load_balancer::generate_balancer_request(const partition_configuration &p
     switch (type) {
     case balance_type::move_primary:
         ans = "move_primary";
+        result.balance_type = balancer_request_type::move_primary;
         result.action_list.emplace_back(
             configuration_proposal_action{from, from, config_type::CT_DOWNGRADE_TO_SECONDARY});
         result.action_list.emplace_back(
@@ -127,6 +128,7 @@ greedy_load_balancer::generate_balancer_request(const partition_configuration &p
         break;
     case balance_type::copy_primary:
         ans = "copy_primary";
+        result.balance_type = balancer_request_type::copy_primary;
         result.action_list.emplace_back(
             configuration_proposal_action{from, to, config_type::CT_ADD_SECONDARY_FOR_LB});
         result.action_list.emplace_back(
@@ -138,6 +140,7 @@ greedy_load_balancer::generate_balancer_request(const partition_configuration &p
         break;
     case balance_type::copy_secondary:
         ans = "copy_secondary";
+        result.balance_type = balancer_request_type::copy_secondary;
         result.action_list.emplace_back(
             configuration_proposal_action{pc.primary, to, config_type::CT_ADD_SECONDARY_FOR_LB});
         result.action_list.emplace_back(
