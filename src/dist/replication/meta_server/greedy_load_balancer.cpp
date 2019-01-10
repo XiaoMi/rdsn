@@ -140,7 +140,7 @@ void greedy_load_balancer::unregister_ctrl_commands()
 std::string greedy_load_balancer::get_balance_operation_count(const std::vector<std::string> &args)
 {
     std::string result("unknown");
-    if (args.size() <= 0) {
+    if (args.empty()) {
         result = std::to_string(t_operation_counters[ALL_COUNT]);
     } else {
         if (args[0] == "all") {
