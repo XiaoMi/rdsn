@@ -2432,7 +2432,9 @@ public:
             return false;
         else if (__isset.force && !(force == rhs.force))
             return false;
-        if (!(balance_type == rhs.balance_type))
+        if (__isset.balance_type != rhs.__isset.balance_type)
+            return false;
+        else if (__isset.balance_type && !(balance_type == rhs.balance_type))
             return false;
         return true;
     }

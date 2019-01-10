@@ -59,8 +59,6 @@ static const char *unlock_state = "unlock";
 
 server_state::server_state()
     : _meta_svc(nullptr),
-      _balance_checker_operation_count(0),
-      _balance_score(0),
       _add_secondary_enable_flow_control(false),
       _add_secondary_max_count_for_one_node(0),
       _cli_dump_handle(nullptr),
@@ -159,27 +157,6 @@ void server_state::initialize(meta_service *meta_svc, const std::string &apps_ro
         _meta_svc->get_meta_options().add_secondary_enable_flow_control;
     _add_secondary_max_count_for_one_node =
         _meta_svc->get_meta_options().add_secondary_max_count_for_one_node;
-
-    _balance_operation_count.init_app_counter("eon.server_state",
-                                              "balance_operation_count",
-                                              COUNTER_TYPE_NUMBER,
-                                              "balance operation count to be done");
-
-    _recent_balance_move_primary_count.init_app_counter(
-        "eon.server_state",
-        "recent_balance_move_primary_count",
-        COUNTER_TYPE_VOLATILE_NUMBER,
-        "move primary count by balancer in the recent period");
-    _recent_balance_copy_primary_count.init_app_counter(
-        "eon.server_state",
-        "recent_balance_copy_primary_count",
-        COUNTER_TYPE_VOLATILE_NUMBER,
-        "copy primary count by balancer in the recent period");
-    _recent_balance_copy_secondary_count.init_app_counter(
-        "eon.server_state",
-        "recent_balance_copy_secondary_count",
-        COUNTER_TYPE_VOLATILE_NUMBER,
-        "copy secondary count by balancer in the recent period");
 
     _dead_partition_count.init_app_counter("eon.server_state",
                                            "dead_partition_count",
@@ -2331,30 +2308,6 @@ void server_state::update_partition_perf_counter()
     _healthy_partition_count->set(counters[HS_HEALTHY]);
 }
 
-void server_state::update_balance_checker_perf_counter()
-{
-    _balance_operation_count->set(_balance_checker_operation_count);
-}
-
-void server_state::update_balancer_perf_counters()
-{
-    for (auto action : _temporary_list) {
-        switch (action.second.get()->balance_type) {
-        case balancer_request_type::move_primary:
-            _recent_balance_move_primary_count->increment();
-            break;
-        case balancer_request_type::copy_primary:
-            _recent_balance_copy_primary_count->increment();
-            break;
-        case balancer_request_type::copy_secondary:
-            _recent_balance_copy_secondary_count->increment();
-            break;
-        default:
-            dassert(false, "");
-        }
-    }
-}
-
 bool server_state::check_all_partitions()
 {
     int healthy_partitions = 0;
@@ -2510,25 +2463,24 @@ bool server_state::check_all_partitions()
                _meta_function_level_VALUES_TO_NAMES.find(level)->second);
         _meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list, true);
         ddebug("balance checker operation count = %d", _temporary_list.size());
-        // update cluster balance operation counter
-        _balance_checker_operation_count = _temporary_list.size();
-        update_balance_checker_perf_counter();
+        // update balance checker operation count
+        _meta_svc->get_balancer()->report(_temporary_list, true);
         return false;
     }
 
-    ddebug("try to do replica migration");
     bool unbalanced =
         _meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list, true);
     ddebug("balance checker operation count = %d", _temporary_list.size());
-    // update cluster balance operation counter
-    _balance_checker_operation_count = _temporary_list.size();
-    update_balance_checker_perf_counter();
+    // update balance checker operation count
+    _meta_svc->get_balancer()->report(_temporary_list, true);
 
     // if balance can help
     if (unbalanced &&
         _meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list, false)) {
+        ddebug("try to do replica migration");
         _meta_svc->get_balancer()->apply_balancer({&_all_apps, &_nodes}, _temporary_list);
-        update_balancer_perf_counters();
+        // update balancer action details
+        _meta_svc->get_balancer()->report(_temporary_list, false);
         if (_replica_migration_subscriber)
             _replica_migration_subscriber(_temporary_list);
         tasking::enqueue(LPC_META_STATE_NORMAL,

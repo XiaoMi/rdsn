@@ -5159,6 +5159,7 @@ void configuration_balancer_request::__set_force(const bool val)
 void configuration_balancer_request::__set_balance_type(const balancer_request_type::type val)
 {
     this->balance_type = val;
+    __isset.balance_type = true;
 }
 
 uint32_t configuration_balancer_request::read(::apache::thrift::protocol::TProtocol *iprot)
@@ -5265,10 +5266,11 @@ uint32_t configuration_balancer_request::write(::apache::thrift::protocol::TProt
         xfer += oprot->writeBool(this->force);
         xfer += oprot->writeFieldEnd();
     }
-    xfer += oprot->writeFieldBegin("balance_type", ::apache::thrift::protocol::T_I32, 4);
-    xfer += oprot->writeI32((int32_t)this->balance_type);
-    xfer += oprot->writeFieldEnd();
-
+    if (this->__isset.balance_type) {
+        xfer += oprot->writeFieldBegin("balance_type", ::apache::thrift::protocol::T_I32, 4);
+        xfer += oprot->writeI32((int32_t)this->balance_type);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -5333,7 +5335,8 @@ void configuration_balancer_request::printTo(std::ostream &out) const
         << "force=";
     (__isset.force ? (out << to_string(force)) : (out << "<null>"));
     out << ", "
-        << "balance_type=" << to_string(balance_type);
+        << "balance_type=";
+    (__isset.balance_type ? (out << to_string(balance_type)) : (out << "<null>"));
     out << ")";
 }
 

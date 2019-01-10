@@ -201,7 +201,7 @@ struct configuration_update_request
     2:dsn.layer2.partition_configuration  config;
     3:config_type              type = config_type.CT_INVALID;
     4:dsn.rpc_address          node;
-    5:dsn.rpc_address          host_node; // only used by stateless apps
+    5:dsn.rpc_address          host_node; // depreciated, only used by stateless apps
 }
 
 // meta server (config mgr) => primary | secondary (downgrade) (w/ new config)
@@ -345,7 +345,7 @@ struct configuration_balancer_request
     1:dsn.gpid gpid;
     2:list<configuration_proposal_action> action_list;
     3:optional bool force = false;
-    4:balancer_request_type balance_type;
+    4:optional balancer_request_type balance_type;
 }
 
 struct configuration_balancer_response
