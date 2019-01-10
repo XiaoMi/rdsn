@@ -40,6 +40,7 @@
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
+#include <dsn/utility/string_conv.h>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <vector>
@@ -60,7 +61,7 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _trigger_chkpt_command(nullptr),
       _query_compact_command(nullptr),
       _query_app_envs_command(nullptr),
-      _garbage_dir_reserve_seconds_command(nullptr),
+      _useless_dir_reserve_seconds_command(nullptr),
       _deny_client(false),
       _verbose_client_log(false),
       _verbose_commit_log(false),
@@ -1956,17 +1957,18 @@ void replica_stub::open_service()
             });
         });
 
-    _garbage_dir_reserve_seconds_command = dsn::command_manager::instance().register_app_command(
-        {"garbage-dir-reserve-seconds"},
-        "garbage-dir-reserve-seconds [num | DEFAULT]",
+    _useless_dir_reserve_seconds_command = dsn::command_manager::instance().register_app_command(
+        {"useless-dir-reserve-seconds"},
+        "useless-dir-reserve-seconds [num | DEFAULT]",
         "control gc_disk_error_replica_interval_seconds and "
         "gc_disk_garbage_replica_interval_seconds",
         [this](const std::vector<std::string> &args) {
             std::string result("OK");
-            if (args.size() <= 0) {
-                result = "error(" + std::to_string(_gc_disk_error_replica_interval_seconds) +
-                         "),garbage(" + std::to_string(_gc_disk_garbage_replica_interval_seconds) +
-                         ")";
+            if (args.empty()) {
+                result = "error_dir_reserve_seconds=" +
+                         std::to_string(_gc_disk_error_replica_interval_seconds) +
+                         ",garbage_dir_reserve_seconds=" +
+                         std::to_string(_gc_disk_garbage_replica_interval_seconds);
             } else {
                 if (args[0] == "DEFAULT") {
                     _gc_disk_error_replica_interval_seconds =
@@ -1974,12 +1976,12 @@ void replica_stub::open_service()
                     _gc_disk_garbage_replica_interval_seconds =
                         _options.gc_disk_garbage_replica_interval_seconds;
                 } else {
-                    int v = atoi(args[0].c_str());
-                    if (v < 0) {
+                    int32_t seconds = 0;
+                    if (!dsn::buf2int32(args[0], seconds) || seconds < 0) {
                         result = std::string("ERR: invalid arguments");
                     } else {
-                        _gc_disk_error_replica_interval_seconds = v;
-                        _gc_disk_garbage_replica_interval_seconds = v;
+                        _gc_disk_error_replica_interval_seconds = seconds;
+                        _gc_disk_garbage_replica_interval_seconds = seconds;
                     }
                 }
             }
@@ -2109,7 +2111,7 @@ void replica_stub::close()
     dsn::command_manager::instance().deregister_command(_trigger_chkpt_command);
     dsn::command_manager::instance().deregister_command(_query_compact_command);
     dsn::command_manager::instance().deregister_command(_query_app_envs_command);
-    dsn::command_manager::instance().deregister_command(_garbage_dir_reserve_seconds_command);
+    dsn::command_manager::instance().deregister_command(_useless_dir_reserve_seconds_command);
 
     _kill_partition_command = nullptr;
     _deny_client_command = nullptr;
@@ -2118,7 +2120,7 @@ void replica_stub::close()
     _trigger_chkpt_command = nullptr;
     _query_compact_command = nullptr;
     _query_app_envs_command = nullptr;
-    _garbage_dir_reserve_seconds_command = nullptr;
+    _useless_dir_reserve_seconds_command = nullptr;
 
     if (_config_sync_timer_task != nullptr) {
         _config_sync_timer_task->cancel(true);

@@ -243,7 +243,7 @@ private:
     dsn_handle_t _trigger_chkpt_command;
     dsn_handle_t _query_compact_command;
     dsn_handle_t _query_app_envs_command;
-    dsn_handle_t _garbage_dir_reserve_seconds_command;
+    dsn_handle_t _useless_dir_reserve_seconds_command;
 
     bool _deny_client;
     bool _verbose_client_log;
