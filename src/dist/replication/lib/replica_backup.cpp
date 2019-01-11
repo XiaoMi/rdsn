@@ -23,8 +23,9 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
     cold_backup_context_ptr new_context(
         new cold_backup_context(this, request, _options->max_concurrent_uploading_file_count));
 
-    ddebug("%s: received cold backup request, partition_status = %s",
+    ddebug("%s: received cold backup request%s, partition_status = %s",
            new_context->name,
+           backup_id == INT64_MAX ? " (this is a clear request)" : "",
            enum_to_string(status()));
 
     if (status() == partition_status::type::PS_PRIMARY ||
