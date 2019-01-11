@@ -368,7 +368,9 @@ static bool backup_parse_dir_name(const char *name,
 // clear checkpoint dirs with backup_id <= backup_context.request.backup_id
 void replica::clear_backup_checkpoint(cold_backup_context_ptr backup_context)
 {
-    ddebug("%s: clear all checkpoint dirs", backup_context->name);
+    ddebug("%s: clear checkpoint dirs with backup_id <= %" PRId64,
+           backup_context->name,
+           backup_context->request.backup_id);
     auto backup_dir = _app->backup_dir();
     if (!dsn::utils::filesystem::directory_exists(backup_dir)) {
         return;
