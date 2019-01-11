@@ -13,7 +13,7 @@
 namespace dsn {
 namespace replication {
 
-// backup_id == -1 means clear backup context and checkpoint dirs for this policy.
+// backup_id == INT64_MAX means clear backup context and checkpoint dirs for this policy.
 void replica::on_cold_backup(const backup_request &request, /*out*/ backup_response &response)
 {
     _checker.only_one_thread_access();
@@ -34,9 +34,9 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
         if (find != _cold_backup_contexts.end()) {
             backup_context = find->second;
         } else {
-            if (backup_id == -1) {
+            if (backup_id == INT64_MAX) {
                 // clear local checkpoint dirs
-                clear_backup_checkpoint(backup_context);
+                clear_backup_checkpoint(new_context);
                 if (status() == partition_status::type::PS_PRIMARY) {
                     // clear secondaries' checkpoint dirs
                     send_backup_request_to_secondary(request);
@@ -70,7 +70,7 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
                 policy_name.c_str());
         cold_backup_status backup_status = backup_context->status();
 
-        if (backup_id == -1 || backup_context->request.backup_id < backup_id ||
+        if (backup_id == INT64_MAX || backup_context->request.backup_id < backup_id ||
             backup_status == ColdBackupCanceled) {
             // clear obsoleted backup context firstly
             ddebug("%s: clear obsoleted cold backup, old_backup_id = %" PRId64
@@ -80,12 +80,12 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
                    cold_backup_status_to_string(backup_status));
             backup_context->cancel();
             _cold_backup_contexts.erase(policy_name);
-            // clear local checkpoint dirs
-            clear_backup_checkpoint(backup_context);
-            if (backup_id != -1) {
+            if (backup_id != INT64_MAX) {
                 // go to another round
                 on_cold_backup(request, response);
-            } else {
+            } else { // backup_id == INT64_MAX
+                // clear local checkpoint dirs
+                clear_backup_checkpoint(new_context);
                 if (status() == partition_status::type::PS_PRIMARY) {
                     // clear secondaries' checkpoint dirs
                     send_backup_request_to_secondary(request);
@@ -173,7 +173,7 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
             clear_backup_checkpoint(backup_context);
             // clear secondaries' checkpoint dirs
             backup_request new_request = request;
-            new_request.backup_id = -1;
+            new_request.backup_id = INT64_MAX;
             send_backup_request_to_secondary(new_request);
             response.err = ERR_OK;
         } else {
@@ -365,7 +365,7 @@ static bool backup_parse_dir_name(const char *name,
     }
 }
 
-// clear all checkpoint dirs for this policy
+// clear checkpoint dirs with backup_id <= backup_context.request.backup_id
 void replica::clear_backup_checkpoint(cold_backup_context_ptr backup_context)
 {
     ddebug("%s: clear all checkpoint dirs", backup_context->name);
