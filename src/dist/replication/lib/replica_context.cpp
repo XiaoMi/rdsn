@@ -378,6 +378,8 @@ bool cold_backup_context::complete_upload()
         if (_owner_replica != nullptr) {
             _owner_replica->get_replica_stub()->_counter_cold_backup_recent_succ_count->increment();
         }
+        // delete checkpoint dir when backup completed
+        dsn::utils::filesystem::remove_path(checkpoint_dir);
         return true;
     } else {
         return false;
