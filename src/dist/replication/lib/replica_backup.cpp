@@ -174,7 +174,7 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
             // clear secondaries' checkpoint dirs
             backup_request new_request = request;
             new_request.backup_id = -1;
-            send_backup_request_to_secondary(request);
+            send_backup_request_to_secondary(new_request);
             response.err = ERR_OK;
         } else {
             dwarn(
