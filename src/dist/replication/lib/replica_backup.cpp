@@ -13,6 +13,7 @@
 namespace dsn {
 namespace replication {
 
+// backup_id == -1 means clear backup context and checkpoint dirs for this policy.
 void replica::on_cold_backup(const backup_request &request, /*out*/ backup_response &response)
 {
     _checker.only_one_thread_access();
@@ -22,6 +23,10 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
     cold_backup_context_ptr new_context(
         new cold_backup_context(this, request, _options->max_concurrent_uploading_file_count));
 
+    ddebug("%s: received cold backup request, partition_status = %s",
+           new_context->name,
+           enum_to_string(status()));
+
     if (status() == partition_status::type::PS_PRIMARY ||
         status() == partition_status::type::PS_SECONDARY) {
         cold_backup_context_ptr backup_context = nullptr;
@@ -29,6 +34,16 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
         if (find != _cold_backup_contexts.end()) {
             backup_context = find->second;
         } else {
+            if (backup_id == -1) {
+                // clear local checkpoint dirs
+                clear_backup_checkpoint(backup_context);
+                if (status() == partition_status::type::PS_PRIMARY) {
+                    // clear secondaries' checkpoint dirs
+                    send_backup_request_to_secondary(request);
+                }
+                return;
+            }
+
             /// TODO: policy may change provider
             dist::block_service::block_filesystem *block_service =
                 _stub->_block_service_manager.get_block_filesystem(
@@ -55,9 +70,9 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
                 policy_name.c_str());
         cold_backup_status backup_status = backup_context->status();
 
-        if (backup_context->request.backup_id < backup_id || backup_status == ColdBackupCanceled) {
-            // clear obsoleted backup firstly
-            /// TODO: clear dir
+        if (backup_id == -1 || backup_context->request.backup_id < backup_id ||
+            backup_status == ColdBackupCanceled) {
+            // clear obsoleted backup context firstly
             ddebug("%s: clear obsoleted cold backup, old_backup_id = %" PRId64
                    ", old_backup_status = %s",
                    new_context->name,
@@ -65,7 +80,17 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
                    cold_backup_status_to_string(backup_status));
             backup_context->cancel();
             _cold_backup_contexts.erase(policy_name);
-            on_cold_backup(request, response);
+            // clear local checkpoint dirs
+            clear_backup_checkpoint(backup_context);
+            if (backup_id != -1) {
+                // go to another round
+                on_cold_backup(request, response);
+            } else {
+                if (status() == partition_status::type::PS_PRIMARY) {
+                    // clear secondaries' checkpoint dirs
+                    send_backup_request_to_secondary(request);
+                }
+            }
             return;
         }
 
@@ -144,6 +169,12 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
             _cold_backup_contexts.erase(policy_name);
         } else if (backup_status == ColdBackupCompleted) {
             ddebug("%s: upload checkpoint completed, response ERR_OK", backup_context->name);
+            // clear local checkpoint dirs
+            clear_backup_checkpoint(backup_context);
+            // clear secondaries' checkpoint dirs
+            backup_request new_request = request;
+            new_request.backup_id = -1;
+            send_backup_request_to_secondary(request);
             response.err = ERR_OK;
         } else {
             dwarn(
@@ -331,6 +362,40 @@ static bool backup_parse_dir_name(const char *name,
         timestamp = boost::lexical_cast<int64_t>(strs[4]);
         return (std::string(name) ==
                 backup_get_dir_name(policy_name, backup_id, decree, timestamp));
+    }
+}
+
+// clear all checkpoint dirs for this policy
+void replica::clear_backup_checkpoint(cold_backup_context_ptr backup_context)
+{
+    ddebug("%s: clear all checkpoint dirs", backup_context->name);
+    auto backup_dir = _app->backup_dir();
+    if (!dsn::utils::filesystem::directory_exists(backup_dir)) {
+        return;
+    }
+    std::vector<std::string> related_backup_chkpt_dirname;
+    std::string valid_backup_chkpt_dirname;
+    if (!filter_checkpoint(
+            backup_dir, backup_context, related_backup_chkpt_dirname, valid_backup_chkpt_dirname)) {
+        dwarn("%s: list sub checkpoint dirs of backup dir(%s) failed",
+              backup_context->name,
+              backup_dir.c_str());
+        return;
+    }
+    if (!valid_backup_chkpt_dirname.empty()) {
+        related_backup_chkpt_dirname.push_back(valid_backup_chkpt_dirname);
+    }
+    for (const std::string &dirname : related_backup_chkpt_dirname) {
+        std::string full_path = ::dsn::utils::filesystem::path_combine(backup_dir, dirname);
+        if (dsn::utils::filesystem::remove_path(full_path)) {
+            ddebug("%s: remove backup checkpoint dir(%s) succeed",
+                   backup_context->name,
+                   full_path.c_str());
+        } else {
+            dwarn("%s: remove backup checkpoint dir(%s) failed",
+                  backup_context->name,
+                  full_path.c_str());
+        }
     }
 }
 
