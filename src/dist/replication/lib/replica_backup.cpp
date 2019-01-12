@@ -1,6 +1,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include <dsn/utility/filesystem.h>
+#include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
 
 #include "dist/replication/common/block_service_manager.h"
@@ -76,7 +77,7 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
         if (backup_id == 0 || backup_context->request.backup_id < backup_id ||
             backup_status == ColdBackupCanceled) {
             // clear obsoleted backup context firstly
-            ddebug("%s: clear obsoleted cold backup, old_backup_id = %" PRId64
+            ddebug("%s: clear obsoleted cold backup context, old_backup_id = %" PRId64
                    ", old_backup_status = %s",
                    new_context->name,
                    backup_context->request.backup_id,
@@ -408,22 +409,22 @@ static bool backup_parse_dir_name(const char *name,
 // clear all checkpoint dirs of the policy
 void replica::clear_backup_checkpoint(const std::string &policy_name)
 {
-    ddebug("clear all checkpoint dirs of policy(%s)", policy_name.c_str());
+    ddebug_replica("clear all checkpoint dirs of policy({})", policy_name);
     auto backup_dir = _app->backup_dir();
     if (!dsn::utils::filesystem::directory_exists(backup_dir)) {
         return;
     }
     std::vector<std::string> chkpt_dirs;
     if (!get_policy_checkpoint_dirs(backup_dir, policy_name, chkpt_dirs)) {
-        dwarn("get checkpoint dirs in backup dir(%s) failed", backup_dir.c_str());
+        dwarn_replica("get checkpoint dirs in backup dir({}) failed", backup_dir);
         return;
     }
     for (const std::string &dirname : chkpt_dirs) {
         std::string full_path = ::dsn::utils::filesystem::path_combine(backup_dir, dirname);
         if (dsn::utils::filesystem::remove_path(full_path)) {
-            ddebug("remove backup checkpoint dir(%s) succeed", full_path.c_str());
+            ddebug_replica("remove backup checkpoint dir({}) succeed", full_path);
         } else {
-            dwarn("remove backup checkpoint dir(%s) failed", full_path.c_str());
+            dwarn_replica("remove backup checkpoint dir({}) failed", full_path);
         }
     }
 }
