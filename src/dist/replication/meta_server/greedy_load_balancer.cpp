@@ -165,6 +165,68 @@ std::string greedy_load_balancer::get_balance_operation_count(const std::vector<
     return result;
 }
 
+std::string greedy_load_balancer::score(meta_view view)
+{
+    // Calculate stddev of primary and partition count for current meta-view
+    std::string result("unknown");
+    std::vector<unsigned> primary_count;
+    std::vector<unsigned> partition_count;
+    bool partial_sample = false;
+
+    for (auto iter = view.nodes->begin(); iter != view.nodes->end();) {
+        if (iter->second.alive()) {
+            if (iter->second.partition_count() != 0) {
+                primary_count.emplace_back(iter->second.primary_count());
+                partition_count.emplace_back(iter->second.partition_count());
+            }
+        } else {
+            if (iter->second.partition_count() != 0) {
+                partial_sample = true;
+            }
+        }
+        ++iter;
+    }
+
+    if (primary_count.size() <= 1 || partition_count.size() <= 1)
+        return result;
+
+    double primary_stddev = mean_stddev(primary_count, partial_sample);
+    double all_stddev = mean_stddev(partition_count, partial_sample);
+
+    result = std::string("\n\tpri_balance_score: " + std::to_string(primary_stddev) +
+                         "\n\tall_balance_score: " + std::to_string(all_stddev));
+
+    return result;
+}
+
+double greedy_load_balancer::mean_stddev(std::vector<unsigned> result_set, bool partial_sample)
+{
+    double sum = std::accumulate(std::begin(result_set), std::end(result_set), 0.0);
+    double mean = sum / result_set.size();
+
+    double accum = 0.0;
+    std::for_each(std::begin(result_set), std::end(result_set), [&](const double d) {
+        accum += (d - mean) * (d - mean);
+    });
+
+    double stddev;
+    if (partial_sample)
+        stddev = sqrt(accum / (result_set.size() - 1));
+    else
+        stddev = sqrt(accum / (result_set.size()));
+
+    ddebug("balance score: partial_sample = %s, result_set.size = %d, sum = %f, mean = %f, accum = "
+           "%f, stddev = %f",
+           partial_sample ? "true" : "false",
+           result_set.size(),
+           sum,
+           mean,
+           accum,
+           stddev);
+
+    return stddev;
+}
+
 std::shared_ptr<configuration_balancer_request>
 greedy_load_balancer::generate_balancer_request(const partition_configuration &pc,
                                                 const balance_type &type,
@@ -1015,9 +1077,9 @@ void greedy_load_balancer::report(dsn::replication::migration_list list, bool ba
     // update perf counters
     _balance_operation_count->set(list.size());
     if (!balance_checker) {
-        _recent_balance_move_primary_count->add(counters[0]);
-        _recent_balance_copy_primary_count->add(counters[1]);
-        _recent_balance_copy_secondary_count->add(counters[2]);
+        _recent_balance_move_primary_count->add(MOVE_PRI_COUNT);
+        _recent_balance_copy_primary_count->add(COPY_PRI_COUNT);
+        _recent_balance_copy_secondary_count->add(COPY_SEC_COUNT);
     }
 }
 }

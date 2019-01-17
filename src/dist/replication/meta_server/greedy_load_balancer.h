@@ -52,6 +52,7 @@ public:
     void unregister_ctrl_commands() override;
 
     std::string get_balance_operation_count(const std::vector<std::string> &args) override;
+    std::string score(meta_view view) override;
 
 private:
     enum class balance_type
@@ -148,6 +149,8 @@ private:
                               const balance_type &type,
                               const rpc_address &from,
                               const rpc_address &to);
+
+    double mean_stddev(std::vector<unsigned> resultSet, bool partial_sample);
 };
 }
 }

@@ -474,6 +474,8 @@ void meta_service::on_query_cluster_info(dsn::message_ex *req)
     std::vector<std::string> balance_operation_type;
     // balance_operation_type.emplace_back(std::string("detail"));
     response.values.push_back(_balancer->get_balance_operation_count(balance_operation_type));
+    response.keys.push_back("cluster_balance_score");
+    response.values.push_back(_state->get_cluster_balance_score());
     response.err = dsn::ERR_OK;
 
     reply(req, response);

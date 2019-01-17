@@ -2491,6 +2491,12 @@ bool server_state::check_all_partitions()
     return true;
 }
 
+std::string server_state::get_cluster_balance_score()
+{
+    zauto_read_lock l(_lock);
+    return _meta_svc->get_balancer()->score({&_all_apps, &_nodes});
+}
+
 void server_state::check_consistency(const dsn::gpid &gpid)
 {
     auto iter = _all_apps.find(gpid.get_app_id());
