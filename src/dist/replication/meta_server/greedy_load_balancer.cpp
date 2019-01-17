@@ -1077,9 +1077,9 @@ void greedy_load_balancer::report(dsn::replication::migration_list list, bool ba
     // update perf counters
     _balance_operation_count->set(list.size());
     if (!balance_checker) {
-        _recent_balance_move_primary_count->add(MOVE_PRI_COUNT);
-        _recent_balance_copy_primary_count->add(COPY_PRI_COUNT);
-        _recent_balance_copy_secondary_count->add(COPY_SEC_COUNT);
+        _recent_balance_move_primary_count->add(counters[MOVE_PRI_COUNT]);
+        _recent_balance_copy_primary_count->add(counters[COPY_PRI_COUNT]);
+        _recent_balance_copy_secondary_count->add(counters[COPY_SEC_COUNT]);
     }
 }
 }
