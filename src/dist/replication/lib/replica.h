@@ -69,10 +69,6 @@ class test_checker;
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
 public:
-    static const bool READ = true;
-    static const bool WRITE = false;
-
-public:
     ~replica(void);
 
     //
@@ -164,7 +160,8 @@ public:
 private:
     // common helpers
     void init_state();
-    void response_client(bool is_read, dsn::message_ex *request, error_code error);
+    void response_client_read(dsn::message_ex *request, error_code error);
+    void response_client_write(dsn::message_ex *request, error_code error);
     void execute_mutation(mutation_ptr &mu);
     mutation_ptr new_mutation(decree decree);
 

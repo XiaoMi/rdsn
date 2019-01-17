@@ -978,7 +978,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
             _primary_states.write_queue.clear(queued);
             for (auto &m : queued) {
                 for (auto &r : m->client_requests) {
-                    response_client(WRITE, r, ERR_NOT_ENOUGH_MEMBER);
+                    response_client_write(r, ERR_NOT_ENOUGH_MEMBER);
                 }
             }
         }

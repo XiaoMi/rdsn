@@ -140,7 +140,7 @@ void replica::on_client_read(task_code code, dsn::message_ex *request)
 {
     if (status() == partition_status::PS_INACTIVE ||
         status() == partition_status::PS_POTENTIAL_SECONDARY) {
-        response_client(READ, request, ERR_INVALID_STATE);
+        response_client_read(request, ERR_INVALID_STATE);
         return;
     }
 
@@ -149,7 +149,7 @@ void replica::on_client_read(task_code code, dsn::message_ex *request)
         // a small window where the state is not the latest yet
         last_committed_decree() < _primary_states.last_prepare_decree_on_new_primary) {
         if (status() != partition_status::PS_PRIMARY) {
-            response_client(READ, request, ERR_INVALID_STATE);
+            response_client_read(request, ERR_INVALID_STATE);
             return;
         }
 
@@ -158,7 +158,7 @@ void replica::on_client_read(task_code code, dsn::message_ex *request)
                            ") < last_prepare_decree_on_new_primary(%" PRId64 ")",
                            last_committed_decree(),
                            _primary_states.last_prepare_decree_on_new_primary);
-            response_client(READ, request, ERR_INVALID_STATE);
+            response_client_read(request, ERR_INVALID_STATE);
             return;
         }
     }
@@ -167,9 +167,14 @@ void replica::on_client_read(task_code code, dsn::message_ex *request)
     _app->on_request(request);
 }
 
-void replica::response_client(bool is_read, dsn::message_ex *request, error_code error)
+void replica::response_client_read(dsn::message_ex *request, error_code error)
 {
-    _stub->response_client(get_gpid(), is_read, request, status(), error);
+    _stub->response_client(get_gpid(), true, request, status(), error);
+}
+
+void replica::response_client_write(dsn::message_ex *request, error_code error)
+{
+    _stub->response_client(get_gpid(), false, request, status(), error);
 }
 
 // error_code replica::check_and_fix_private_log_completeness()
