@@ -293,7 +293,7 @@ function(dsn_setup_system_libs)
 
     # for md5 calculation
     find_package(OpenSSL REQUIRED)
-    set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${OPENSSL_LIBRARIES})
+    set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
 
     if(ENABLE_GPERF)
         set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} tcmalloc)
