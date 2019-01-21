@@ -100,7 +100,7 @@ public:
     {
         return false;
     }
-    virtual void report(migration_list list, bool balance_checker) {}
+    virtual void report(const migration_list &list, bool balance_checker) {}
     virtual std::string get_balance_operation_count(const std::vector<std::string> &args)
     {
         return std::string("unknown");

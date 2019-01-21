@@ -2468,15 +2468,7 @@ bool server_state::check_all_partitions()
         return false;
     }
 
-    bool unbalanced =
-        _meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list, true);
-    ddebug("balance checker operation count = %d", _temporary_list.size());
-    // update balance checker operation count
-    _meta_svc->get_balancer()->report(_temporary_list, true);
-
-    // if balance can help
-    if (unbalanced &&
-        _meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list, false)) {
+    if (_meta_svc->get_balancer()->balance({&_all_apps, &_nodes}, _temporary_list, false)) {
         ddebug("try to do replica migration");
         _meta_svc->get_balancer()->apply_balancer({&_all_apps, &_nodes}, _temporary_list);
         // update balancer action details

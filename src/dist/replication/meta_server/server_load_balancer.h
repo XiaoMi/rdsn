@@ -75,7 +75,7 @@ public:
     //   view: current meta-view
     //   list: the returned balance results
     //   balance_checker: make proposals for balance checker if true, otherwise make real balancer
-    //   proposals
+    //   proposals according to configurations
     // ret:
     //   if any balancer proposal is generated, return true. Or-else, false
     //
@@ -86,9 +86,9 @@ public:
     // params:
     //   list: balancer proposals
     //   balance_checker: report the count of balance operation to be done if true, otherwise report
-    //   both the operation count and action details done done balancer
+    //   both the operation count and action details done by balancer
     //
-    virtual void report(migration_list list, bool balance_checker) = 0;
+    virtual void report(const migration_list &list, bool balance_checker) = 0;
 
     //
     // When replica infos are collected from replica servers, meta-server
@@ -240,7 +240,7 @@ public:
         return false;
     }
 
-    void report(migration_list list, bool balance_checker) override {}
+    void report(const migration_list &list, bool balance_checker) override {}
 
     void reconfig(meta_view view, const configuration_update_request &request) override;
 

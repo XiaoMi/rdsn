@@ -46,7 +46,7 @@ public:
     greedy_load_balancer(meta_service *svc);
     virtual ~greedy_load_balancer();
     bool balance(meta_view view, migration_list &list, bool balance_checker) override;
-    void report(migration_list list, bool balance_checker) override;
+    void report(const migration_list &list, bool balance_checker) override;
 
     void register_ctrl_commands() override;
     void unregister_ctrl_commands() override;
@@ -149,8 +149,6 @@ private:
                               const balance_type &type,
                               const rpc_address &from,
                               const rpc_address &to);
-
-    double mean_stddev(std::vector<unsigned> resultSet, bool partial_sample);
 };
 }
 }

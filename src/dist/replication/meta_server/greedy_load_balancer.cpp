@@ -38,6 +38,7 @@
 #include <iostream>
 #include <queue>
 #include <dsn/tool-api/command_manager.h>
+#include <dsn/utility/stddev.h>
 #include "greedy_load_balancer.h"
 #include "meta_data.h"
 
@@ -63,22 +64,22 @@ greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
     ::memset(t_operation_counters, 0, sizeof(t_operation_counters));
 
     // init perf counters
-    _balance_operation_count.init_app_counter("eon.server_state",
+    _balance_operation_count.init_app_counter("eon.greedy_balancer",
                                               "balance_operation_count",
                                               COUNTER_TYPE_NUMBER,
                                               "balance operation count to be done");
     _recent_balance_move_primary_count.init_app_counter(
-        "eon.server_state",
+        "eon.greedy_balancer",
         "recent_balance_move_primary_count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "move primary count by balancer in the recent period");
     _recent_balance_copy_primary_count.init_app_counter(
-        "eon.server_state",
+        "eon.greedy_balancer",
         "recent_balance_copy_primary_count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "copy primary count by balancer in the recent period");
     _recent_balance_copy_secondary_count.init_app_counter(
-        "eon.server_state",
+        "eon.greedy_balancer",
         "recent_balance_copy_secondary_count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "copy secondary count by balancer in the recent period");
@@ -190,41 +191,13 @@ std::string greedy_load_balancer::score(meta_view view)
     if (primary_count.size() <= 1 || partition_count.size() <= 1)
         return result;
 
-    double primary_stddev = mean_stddev(primary_count, partial_sample);
-    double all_stddev = mean_stddev(partition_count, partial_sample);
+    double primary_stddev = stddev::mean_stddev(primary_count, partial_sample);
+    double all_stddev = stddev::mean_stddev(partition_count, partial_sample);
 
     result = std::string("\n\tpri_balance_score: " + std::to_string(primary_stddev) +
                          "\n\tall_balance_score: " + std::to_string(all_stddev));
 
     return result;
-}
-
-double greedy_load_balancer::mean_stddev(std::vector<unsigned> result_set, bool partial_sample)
-{
-    double sum = std::accumulate(std::begin(result_set), std::end(result_set), 0.0);
-    double mean = sum / result_set.size();
-
-    double accum = 0.0;
-    std::for_each(std::begin(result_set), std::end(result_set), [&](const double d) {
-        accum += (d - mean) * (d - mean);
-    });
-
-    double stddev;
-    if (partial_sample)
-        stddev = sqrt(accum / (result_set.size() - 1));
-    else
-        stddev = sqrt(accum / (result_set.size()));
-
-    ddebug("balance score: partial_sample = %s, result_set.size = %d, sum = %f, mean = %f, accum = "
-           "%f, stddev = %f",
-           partial_sample ? "true" : "false",
-           result_set.size(),
-           sum,
-           mean,
-           accum,
-           stddev);
-
-    return stddev;
 }
 
 std::shared_ptr<configuration_balancer_request>
@@ -1051,7 +1024,8 @@ bool greedy_load_balancer::balance(meta_view view, migration_list &list, bool ba
     return !t_migration_result->empty();
 }
 
-void greedy_load_balancer::report(dsn::replication::migration_list list, bool balance_checker)
+void greedy_load_balancer::report(const dsn::replication::migration_list &list,
+                                  bool balance_checker)
 {
     int counters[MAX_COUNT];
     ::memset(counters, 0, sizeof(counters));
