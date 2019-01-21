@@ -228,9 +228,9 @@ void meta_service_test_app::balancer_validator()
         }
 
         // iterate 1000000 times
-        for (int i = 0; i < 1000000 && lb->balance({&apps, &nodes}, ml, false); ++i) {
+        for (int i = 0; i < 1000000 && lb->balance({&apps, &nodes}, ml); ++i) {
             migration_check_and_apply(apps, nodes, ml, &manager);
-            lb->balance({&apps, &nodes}, ml, true);
+            lb->check({&apps, &nodes}, ml);
             dinfo("balance checker operation count = %d", ml.size());
         }
 
@@ -326,9 +326,9 @@ void meta_service_test_app::balance_config_file()
         migration_list ml;
 
         // iterate 1000 times
-        for (int i = 0; i < 1000 && lb->balance({&apps, &nodes}, ml, false); ++i) {
+        for (int i = 0; i < 1000 && lb->balance({&apps, &nodes}, ml); ++i) {
             migration_check_and_apply(apps, nodes, ml, nullptr);
-            lb->balance({&apps, &nodes}, ml, true);
+            lb->check({&apps, &nodes}, ml);
             dinfo("balance checker operation count = %d", ml.size());
         }
     }

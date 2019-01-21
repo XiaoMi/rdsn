@@ -96,10 +96,8 @@ public:
         return pc_status::ill;
     }
     virtual void reconfig(meta_view view, const configuration_update_request &request) {}
-    virtual bool balance(meta_view view, migration_list &list, bool balance_checker)
-    {
-        return false;
-    }
+    virtual bool balance(meta_view view, migration_list &list) { return false; }
+    virtual bool check(meta_view view, migration_list &list) { return false; }
     virtual void report(const migration_list &list, bool balance_checker) {}
     virtual std::string get_balance_operation_count(const std::vector<std::string> &args)
     {

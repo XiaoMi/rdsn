@@ -198,8 +198,6 @@ private:
 
     // user should lock it first
     void update_partition_perf_counter();
-    void update_balance_checker_perf_counter();
-    void update_balancer_perf_counters();
 
     error_code dump_app_states(const char *local_path,
                                const std::function<app_state *()> &iterator);

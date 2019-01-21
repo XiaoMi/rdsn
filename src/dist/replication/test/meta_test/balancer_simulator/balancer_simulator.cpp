@@ -150,18 +150,18 @@ void greedy_balancer_perfect_move_primary()
     greedy_load_balancer glb(nullptr);
     migration_list ml;
 
-    glb.balance({&apps, &nodes}, ml, true);
+    glb.check({&apps, &nodes}, ml);
     dinfo("balance checker operation count = %d", ml.size());
     int i = 0;
 
-    while (glb.balance({&apps, &nodes}, ml, false)) {
+    while (glb.balance({&apps, &nodes}, ml)) {
         for (const auto &kv : ml) {
             const std::shared_ptr<configuration_balancer_request> &req = kv.second;
             for (const configuration_proposal_action &act : req->action_list) {
                 ASSERT_TRUE(act.type != config_type::CT_ADD_SECONDARY_FOR_LB);
             }
         }
-        glb.balance({&apps, &nodes}, ml, true);
+        glb.check({&apps, &nodes}, ml);
         i++;
         dinfo("round %d: balance checker operation count = %d", ml.size());
     }

@@ -70,16 +70,24 @@ public:
     cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action /*out*/) = 0;
 
     //
-    // Make balancer according to current meta-view
+    // Make balancer proposals by round according to current meta-view
     // params:
     //   view: current meta-view
     //   list: the returned balance results
-    //   balance_checker: make proposals for balance checker if true, otherwise make real balancer
-    //   proposals according to configurations
     // ret:
     //   if any balancer proposal is generated, return true. Or-else, false
     //
-    virtual bool balance(meta_view view, migration_list &list, bool balance_checker) = 0;
+    virtual bool balance(meta_view view, migration_list &list) = 0;
+
+    //
+    // Make full balancer proposals according to current meta-view
+    // params:
+    //   view: current meta-view
+    //   list: the returned balance results
+    // ret:
+    //   if any balancer proposal is generated, return true. Or-else, false
+    //
+    virtual bool check(meta_view view, migration_list &list) = 0;
 
     //
     // Report balancer proposals
@@ -234,7 +242,13 @@ public:
     }
     virtual ~simple_load_balancer() { UNREGISTER_VALID_HANDLER(_ctrl_assign_delay_ms); }
 
-    bool balance(meta_view, migration_list &list, bool balance_checker) override
+    bool balance(meta_view, migration_list &list) override
+    {
+        list.clear();
+        return false;
+    }
+
+    bool check(meta_view view, migration_list &list) override
     {
         list.clear();
         return false;

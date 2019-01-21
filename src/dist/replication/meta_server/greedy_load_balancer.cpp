@@ -715,8 +715,7 @@ void greedy_load_balancer::shortest_path(std::vector<bool> &visit,
 }
 
 // load balancer based on ford-fulkerson
-bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_state> &app,
-                                                    bool balance_checker)
+bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_state> &app)
 {
     dassert(t_alive_nodes > 2, "too few alive nodes will lead to freeze");
     ddebug("primary balancer for app(%s:%d)", app->app_name.c_str(), app->app_id);
@@ -781,7 +780,7 @@ bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_st
     // we can't make the server load more balanced
     // by moving primaries to secondaries
     if (!visit[graph_nodes - 1] || flow[graph_nodes - 1] == 0) {
-        if (!_only_move_primary || balance_checker) {
+        if (!_only_move_primary) {
             return copy_primary_per_app(app, lower_count != 0, replicas_low);
         } else {
             ddebug("stop to move primary for app(%s) coz it is disabled", app->get_logname());
@@ -930,7 +929,7 @@ bool greedy_load_balancer::all_replica_infos_collected(const node_state &ns)
     });
 }
 
-void greedy_load_balancer::greedy_balancer(bool balance_checker)
+void greedy_load_balancer::greedy_balancer(const bool balance_checker)
 {
     const app_mapper &apps = *t_global_view->apps;
 
@@ -949,18 +948,20 @@ void greedy_load_balancer::greedy_balancer(bool balance_checker)
         if (app->status != app_status::AS_AVAILABLE)
             continue;
 
-        bool enough_information = primary_balancer_per_app(app, balance_checker);
+        bool enough_information = primary_balancer_per_app(app);
         if (!enough_information) {
             // Even if we don't have enough info for current app,
             // the decisions made by previous apps are kept.
             // t_migration_result->empty();
             return;
         }
-        if (!t_migration_result->empty() && !balance_checker) {
-            if (_balancer_in_turn) {
-                ddebug("stop to handle more apps after we found some actions for %s",
-                       app->get_logname());
-                return;
+        if (!balance_checker) {
+            if (!t_migration_result->empty()) {
+                if (_balancer_in_turn) {
+                    ddebug("stop to handle more apps after we found some actions for %s",
+                           app->get_logname());
+                    return;
+                }
             }
         }
     }
@@ -969,11 +970,13 @@ void greedy_load_balancer::greedy_balancer(bool balance_checker)
     // make decision according to disk load.
     // primary_balancer_globally();
 
-    if (!t_migration_result->empty() && !balance_checker) {
-        ddebug("stop to do secondary balance coz we already has actions to do");
-        return;
+    if (!balance_checker) {
+        if (!t_migration_result->empty()) {
+            ddebug("stop to do secondary balance coz we already has actions to do");
+            return;
+        }
     }
-    if (_only_primary_balancer && !balance_checker) {
+    if (_only_primary_balancer) {
         ddebug("stop to do secondary balancer coz it is not allowed");
         return;
     }
@@ -994,22 +997,21 @@ void greedy_load_balancer::greedy_balancer(bool balance_checker)
             // t_migration_result->empty();
             return;
         }
-        if (!t_migration_result->empty() && !balance_checker) {
-            if (_balancer_in_turn) {
-                ddebug("stop to handle more apps after we found some actions for %s",
-                       app->get_logname());
-                return;
+        if (!balance_checker) {
+            if (!t_migration_result->empty()) {
+                if (_balancer_in_turn) {
+                    ddebug("stop to handle more apps after we found some actions for %s",
+                           app->get_logname());
+                    return;
+                }
             }
         }
     }
 }
 
-bool greedy_load_balancer::balance(meta_view view, migration_list &list, bool balance_checker)
+bool greedy_load_balancer::balance(meta_view view, migration_list &list)
 {
-    if (balance_checker)
-        ddebug("balance checker round");
-    else
-        ddebug("balancer round");
+    ddebug("balancer round");
 
     list.clear();
 
@@ -1019,6 +1021,25 @@ bool greedy_load_balancer::balance(meta_view view, migration_list &list, bool ba
     t_migration_result = &list;
     t_migration_result->clear();
 
+    bool balance_checker = false;
+    greedy_balancer(balance_checker);
+
+    return !t_migration_result->empty();
+}
+
+bool greedy_load_balancer::check(meta_view view, migration_list &list)
+{
+    ddebug("balance checker round");
+
+    list.clear();
+
+    t_total_partitions = count_partitions(*(view.apps));
+    t_alive_nodes = view.nodes->size();
+    t_global_view = &view;
+    t_migration_result = &list;
+    t_migration_result->clear();
+
+    bool balance_checker = true;
     greedy_balancer(balance_checker);
 
     return !t_migration_result->empty();
