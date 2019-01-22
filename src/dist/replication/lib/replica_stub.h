@@ -202,6 +202,12 @@ private:
     replica_life_cycle get_replica_life_cycle(gpid id);
     void on_gc_replica(replica_stub_ptr this_, gpid id);
 
+    void response_client(gpid id,
+                         bool is_read,
+                         dsn::message_ex *request,
+                         partition_status::type status,
+                         error_code error);
+
 private:
     friend class ::dsn::replication::replication_checker;
     friend class ::dsn::replication::test::test_checker;
@@ -228,6 +234,7 @@ private:
 
     mutation_log_ptr _log;
     ::dsn::rpc_address _primary_address;
+    char _primary_address_str[64];
 
     ::dsn::dist::slave_failure_detector_with_multimaster *_failure_detector;
     mutable zlock _state_lock;
@@ -254,10 +261,13 @@ private:
     dsn_handle_t _trigger_chkpt_command;
     dsn_handle_t _query_compact_command;
     dsn_handle_t _query_app_envs_command;
+    dsn_handle_t _useless_dir_reserve_seconds_command;
 
     bool _deny_client;
     bool _verbose_client_log;
     bool _verbose_commit_log;
+    int32_t _gc_disk_error_replica_interval_seconds;
+    int32_t _gc_disk_garbage_replica_interval_seconds;
 
     // we limit LT_APP max concurrent count, because nfs service implementation is
     // too simple, it do not support priority.
@@ -320,10 +330,10 @@ private:
     perf_counter_wrapper _counter_cold_backup_max_duration_time_ms;
     perf_counter_wrapper _counter_cold_backup_max_upload_file_size;
 
-    dsn::task_tracker _tracker;
+    perf_counter_wrapper _counter_recent_read_fail_count;
+    perf_counter_wrapper _counter_recent_write_fail_count;
 
-private:
-    void response_client_error(gpid id, bool is_read, dsn::message_ex *request, error_code error);
+    dsn::task_tracker _tracker;
 };
 //------------ inline impl ----------------------
 }

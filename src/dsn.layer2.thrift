@@ -22,6 +22,8 @@ struct configuration_query_by_index_request
     2:list<i32>        partition_indices;
 }
 
+// for server version > 1.11.2, if err == ERR_FORWARD_TO_OTHERS,
+// then the forward address will be put in partitions[0].primary if exist.
 struct configuration_query_by_index_response
 {
     1:dsn.error_code                err;
