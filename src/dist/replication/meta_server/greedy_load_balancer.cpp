@@ -49,7 +49,8 @@ greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
     : simple_load_balancer(_svc),
       _ctrl_balancer_in_turn(nullptr),
       _ctrl_only_primary_balancer(nullptr),
-      _ctrl_only_move_primary(nullptr)
+      _ctrl_only_move_primary(nullptr),
+      _get_balance_operation_count(nullptr)
 {
     if (_svc != nullptr) {
         _balancer_in_turn = _svc->get_meta_options()._lb_opts.balancer_in_turn;
