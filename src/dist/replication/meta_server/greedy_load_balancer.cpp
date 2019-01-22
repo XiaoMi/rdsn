@@ -88,8 +88,9 @@ greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
 greedy_load_balancer::~greedy_load_balancer()
 {
     UNREGISTER_VALID_HANDLER(_ctrl_balancer_in_turn);
+    UNREGISTER_VALID_HANDLER(_ctrl_only_primary_balancer);
     UNREGISTER_VALID_HANDLER(_ctrl_only_move_primary);
-    UNREGISTER_VALID_HANDLER(_ctrl_only_move_primary);
+    UNREGISTER_VALID_HANDLER(_get_balance_operation_count);
 }
 
 void greedy_load_balancer::register_ctrl_commands()
@@ -131,7 +132,7 @@ void greedy_load_balancer::register_ctrl_commands()
 void greedy_load_balancer::unregister_ctrl_commands()
 {
     UNREGISTER_VALID_HANDLER(_ctrl_balancer_in_turn);
-    UNREGISTER_VALID_HANDLER(_ctrl_only_move_primary);
+    UNREGISTER_VALID_HANDLER(_ctrl_only_primary_balancer);
     UNREGISTER_VALID_HANDLER(_ctrl_only_move_primary);
     UNREGISTER_VALID_HANDLER(_get_balance_operation_count);
 
