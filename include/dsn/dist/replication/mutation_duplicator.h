@@ -66,8 +66,7 @@ public:
     /// Duplicate the provided mutations to the remote cluster.
     /// The implementation must be non-blocking.
     ///
-    /// \param cb: Call it when all the given mutations were sent successfully or
-    ///            failed with an error.
+    /// \param cb: Call it when all the given mutations were sent successfully
     virtual void duplicate(mutation_tuple_set mutations, callback cb) = 0;
 
     // Singleton creator of mutation_duplicator.

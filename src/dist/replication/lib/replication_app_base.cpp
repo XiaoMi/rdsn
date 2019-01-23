@@ -26,6 +26,8 @@
 
 #include "replica.h"
 #include "mutation.h"
+#include "replica_stub.h"
+
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>
@@ -595,6 +597,11 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
                             _info.init_offset_in_private_log,
                             _replica->last_durable_decree(),
                             duplicating);
+}
+
+void replication_app_base::update_stub_counter_dup_time_lag(uint64_t time_lag_in_us)
+{
+    _replica->get_replica_stub()->_counter_dup_time_lag->set(time_lag_in_us);
 }
 
 } // namespace replication

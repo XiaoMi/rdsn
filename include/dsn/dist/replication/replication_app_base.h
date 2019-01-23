@@ -250,6 +250,8 @@ public:
     }
     void reset_counters_after_learning();
 
+    void update_stub_counter_dup_time_lag(uint64_t time_lag_in_us);
+
 private:
     // routines for replica internal usage
     friend class replica;

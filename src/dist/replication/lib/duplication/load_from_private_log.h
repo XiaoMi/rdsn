@@ -37,14 +37,15 @@ namespace dsn {
 namespace replication {
 
 class replica_duplicator;
+class replica_stub;
 
 /// Loads mutations from private log into memory.
 /// It works in THREAD_POOL_REPLICATION_LONG (LPC_DUPLICATION_LOAD_MUTATIONS),
 /// which permits tasks to be executed in a blocking way.
 /// NOTE: The resulted `mutation_tuple_set` may be empty.
-struct load_from_private_log : replica_base,
-                               pipeline::when<>,
-                               pipeline::result<decree, mutation_tuple_set>
+class load_from_private_log : public replica_base,
+                              public pipeline::when<>,
+                              public pipeline::result<decree, mutation_tuple_set>
 {
 public:
     load_from_private_log(replica *r, replica_duplicator *dup);
@@ -76,6 +77,7 @@ private:
 
     mutation_log_ptr _private_log;
     replica_duplicator *_duplicator;
+    replica_stub *_stub;
 
     log_file_ptr _current;
 
@@ -84,10 +86,6 @@ private:
     mutation_batch _mutation_batch;
 
     decree _start_decree{0};
-
-    perf_counter_wrapper _plog_block_loaded_mutations_count;
-    perf_counter_wrapper _plog_block_loading_duration;
-    int64_t _plog_block_loading_start_ns;
 
     std::chrono::milliseconds _repeat_delay;
 };

@@ -27,6 +27,7 @@
 #include "replica_duplicator.h"
 #include "load_from_private_log.h"
 #include "duplication_pipeline.h"
+#include "dist/replication/lib/replica_stub.h"
 
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>
@@ -36,7 +37,11 @@ namespace dsn {
 namespace replication {
 
 replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
-    : replica_base(r), _id(ent.dupid), _remote_cluster_address(ent.remote_address), _replica(r)
+    : replica_base(r),
+      _id(ent.dupid),
+      _remote_cluster_address(ent.remote_address),
+      _replica(r),
+      _stub(r->get_replica_stub())
 {
     dassert_replica(ent.status == duplication_status::DS_START ||
                         ent.status == duplication_status::DS_PAUSE,
@@ -49,8 +54,6 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     _progress.last_decree = _progress.confirmed_decree = it->second;
     ddebug_replica(
         "initialize replica_duplicator [dupid:{}, meta_confirmed_decree:{}]", id(), it->second);
-
-    init_metrics_timer();
 
     /// ===== pipeline declaration ===== ///
 
@@ -67,41 +70,6 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     if (_status == duplication_status::DS_START) {
         start();
     }
-}
-
-void replica_duplicator::init_metrics_timer()
-{
-    constexpr int METRICS_UPDATE_INTERVAL = 10;
-
-    _pending_duplicate_count.init_app_counter(
-        "eon.replica",
-        fmt::format("dup.pending_duplicate_count@{}", get_gpid()).c_str(),
-        COUNTER_TYPE_NUMBER,
-        "number of mutations pending for duplication");
-
-    _increased_confirmed_decree.init_app_counter(
-        "eon.replica",
-        fmt::format("dup.increased_confirmed_decree@{}", get_gpid()).c_str(),
-        COUNTER_TYPE_NUMBER,
-        fmt::format("number of increased confirmed decree during last {}s", METRICS_UPDATE_INTERVAL)
-            .data());
-
-    _last_recorded_confirmed_decree = _progress.confirmed_decree;
-
-    // update the metrics periodically
-    _metrics_update_timer = tasking::enqueue_timer(
-        LPC_REPLICATION_LOW,
-        nullptr, // cancel it manually
-        [this]() {
-            _pending_duplicate_count->set(_replica->last_committed_decree() -
-                                          _progress.confirmed_decree);
-
-            auto p = progress();
-            _increased_confirmed_decree->set(p.confirmed_decree - _last_recorded_confirmed_decree);
-            _last_recorded_confirmed_decree = p.confirmed_decree;
-        },
-        METRICS_UPDATE_INTERVAL * 1_s,
-        get_gpid().thread_hash());
 }
 
 void replica_duplicator::start()
@@ -155,13 +123,9 @@ void replica_duplicator::update_status_if_needed(duplication_status::type next_s
 
 replica_duplicator::~replica_duplicator()
 {
-    _metrics_update_timer->cancel(true);
-
     pause();
     cancel_all();
     ddebug_replica("closing duplication {}", to_string());
-
-    _pending_duplicate_count.clear();
 }
 
 error_s replica_duplicator::update_progress(const duplication_progress &p)
@@ -175,6 +139,7 @@ error_s replica_duplicator::update_progress(const duplication_progress &p)
                        _progress.confirmed_decree);
     }
 
+    decree last_confirmed_decree = _progress.confirmed_decree;
     _progress.confirmed_decree = std::max(_progress.confirmed_decree, p.confirmed_decree);
     _progress.last_decree = std::max(_progress.last_decree, p.last_decree);
 
@@ -183,6 +148,9 @@ error_s replica_duplicator::update_progress(const duplication_progress &p)
                        "last_decree({}) should always larger than confirmed_decree({})",
                        _progress.last_decree,
                        _progress.confirmed_decree);
+    }
+    if (_progress.confirmed_decree > last_confirmed_decree) {
+        _stub->_counter_dup_confirmed_rate->add(_progress.confirmed_decree - last_confirmed_decree);
     }
 
     return error_s::ok();

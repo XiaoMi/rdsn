@@ -215,6 +215,11 @@ private:
     friend class ::dsn::replication::potential_secondary_context;
     friend class ::dsn::replication::cold_backup_context;
 
+    friend class replication_app_base;
+    friend class load_from_private_log;
+    friend class ship_mutation;
+    friend class replica_duplicator;
+
     friend class mock_replica_stub;
     friend class duplication_sync_timer;
     friend class duplication_sync_timer_test;
@@ -317,6 +322,16 @@ private:
     perf_counter_wrapper _counter_shared_log_size;
     perf_counter_wrapper _counter_shared_log_recent_write_size;
     perf_counter_wrapper _counter_recent_trigger_emergency_checkpoint_count;
+
+    // <- Duplication Metrics ->
+    // TODO(wutao1): calculate the counters independently for each cluster
+    //               if we need to duplicate to multiple clusters someday.
+    perf_counter_wrapper _counter_dup_log_read_in_bytes_rate;
+    perf_counter_wrapper _counter_dup_log_mutations_read_rate;
+    perf_counter_wrapper _counter_dup_shipped_size_in_bytes_rate;
+    perf_counter_wrapper _counter_dup_confirmed_rate;
+    perf_counter_wrapper _counter_dup_pending_mutations_count;
+    perf_counter_wrapper _counter_dup_time_lag;
 
     perf_counter_wrapper _counter_cold_backup_running_count;
     perf_counter_wrapper _counter_cold_backup_recent_start_count;

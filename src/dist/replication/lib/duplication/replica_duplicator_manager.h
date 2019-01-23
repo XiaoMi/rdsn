@@ -69,13 +69,16 @@ public:
     /// THREAD_POOL_REPLICATION
     void set_confirmed_decree_non_primary(decree confirmed);
 
+    /// THREAD_POOL_DEFAULT
+    uint64_t get_all_pending_count_primary() const;
+
     replica *_replica;
 
     std::map<dupid_t, replica_duplicator_u_ptr> _duplications;
 
     decree _primary_confirmed_decree{invalid_decree};
 
-    // avoid thread confliction between replica::on_checkpoint_timer and
+    // avoid thread conflict between replica::on_checkpoint_timer and
     // duplication_sync_timer.
     mutable zlock _lock;
 };

@@ -57,10 +57,11 @@ public:
     }
 };
 
-struct load_mutation;
-struct ship_mutation;
-struct load_from_private_log;
+class load_mutation;
+class ship_mutation;
+class load_from_private_log;
 class replica;
+class replica_stub;
 
 // Each replica_duplicator is responsible for one duplication.
 // It works in THREAD_POOL_REPLICATION (LPC_DUPLICATE_MUTATIONS),
@@ -112,26 +113,31 @@ public:
 
     decree get_max_gced_decree() const;
 
-private:
-    void init_metrics_timer();
+    // <- helpers for metric "dup.pending_mutations_count" ->
+
+    void update_pending_mutations_count(uint64_t cnt)
+    {
+        _pending_muts_cnt.store(cnt, std::memory_order_relaxed);
+    }
+
+    uint64_t get_pending_mutations_count() const
+    {
+        return _pending_muts_cnt.load(std::memory_order_relaxed);
+    }
 
 private:
     friend class replica_duplicator_test;
     friend class duplication_sync_timer_test;
     friend class load_from_private_log_test;
 
-    friend struct load_mutation;
-    friend struct ship_mutation;
+    friend class load_mutation;
+    friend class ship_mutation;
 
     const dupid_t _id;
     const std::string _remote_cluster_address;
 
-    perf_counter_wrapper _pending_duplicate_count;
-    perf_counter_wrapper _increased_confirmed_decree;
-    decree _last_recorded_confirmed_decree{0};
-    task_ptr _metrics_update_timer;
-
     replica *_replica;
+    replica_stub *_stub;
     dsn::task_tracker _tracker;
 
     duplication_status::type _status{duplication_status::DS_INIT};
@@ -139,6 +145,7 @@ private:
     // protect the access of _progress.
     mutable zrwlock_nr _lock;
     duplication_progress _progress;
+    std::atomic<uint64_t> _pending_muts_cnt;
 
     /// === pipeline === ///
     std::unique_ptr<load_mutation> _load;

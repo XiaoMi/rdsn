@@ -27,6 +27,7 @@
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>
 
+#include "dist/replication/lib/replica_stub.h"
 #include "duplication_pipeline.h"
 #include "load_from_private_log.h"
 
@@ -62,13 +63,15 @@ load_mutation::load_mutation(replica_duplicator *duplicator,
 
 void ship_mutation::ship(mutation_tuple_set &&in)
 {
-    _ship_start_ns = dsn_now_ns();
-    _mutation_duplicator->duplicate(std::move(in), [this]() mutable {
-        dcheck_eq_replica(
-            _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree)),
-            error_s::ok());
-        _ship_latency->set(dsn_now_ns() - _ship_start_ns);
+    // calculate the batch size
+    size_t total_size = 0;
+    for (const mutation_tuple &mt : in) {
+        total_size += std::get<2>(mt).length();
+    }
 
+    _mutation_duplicator->duplicate(std::move(in), [this, total_size]() mutable {
+        update_progress();
+        _stub->_counter_dup_shipped_size_in_bytes_rate->add(total_size);
         step_down_next_stage();
     });
 }
@@ -78,9 +81,7 @@ void ship_mutation::run(decree &&last_decree, mutation_tuple_set &&in)
     _last_decree = last_decree;
 
     if (in.empty()) {
-        dcheck_eq_replica(
-            _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree)),
-            error_s::ok());
+        update_progress();
         step_down_next_stage();
         return;
     }
@@ -88,18 +89,24 @@ void ship_mutation::run(decree &&last_decree, mutation_tuple_set &&in)
     ship(std::move(in));
 }
 
+void ship_mutation::update_progress()
+{
+    dcheck_eq_replica(
+        _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree)),
+        error_s::ok());
+    _duplicator->update_pending_mutations_count(_duplicator->_replica->last_committed_decree() -
+                                                _last_decree);
+}
+
 ship_mutation::ship_mutation(replica_duplicator *duplicator)
-    : replica_base(duplicator), _duplicator(duplicator)
+    : replica_base(duplicator),
+      _duplicator(duplicator),
+      _stub(duplicator->_replica->get_replica_stub())
 {
     _mutation_duplicator = new_mutation_duplicator(duplicator,
                                                    _duplicator->remote_cluster_address(),
                                                    _duplicator->_replica->get_app_info()->app_name);
     _mutation_duplicator->set_task_environment(duplicator);
-
-    _ship_latency.init_app_counter("eon.replica",
-                                   fmt::format("dup.ship_latency@{}", get_gpid()).c_str(),
-                                   COUNTER_TYPE_NUMBER_PERCENTILES,
-                                   "latency for each round of ship_mutation::run()");
 }
 
 } // namespace replication

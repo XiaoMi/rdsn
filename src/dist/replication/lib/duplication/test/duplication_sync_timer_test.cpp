@@ -201,7 +201,17 @@ public:
         {
             dup_map.erase(3);
             dup_sync->update_duplication_map(dup_map);
+            ASSERT_TRUE(find_dup(stub->find_replica(1, 1), 2) != nullptr);
             ASSERT_TRUE(find_dup(stub->find_replica(3, 1), 2) == nullptr);
+            ASSERT_TRUE(find_dup(stub->find_replica(5, 1), 2) != nullptr);
+        }
+
+        {
+            dup_map.clear();
+            dup_sync->update_duplication_map(dup_map);
+            ASSERT_TRUE(find_dup(stub->find_replica(1, 1), 2) == nullptr);
+            ASSERT_TRUE(find_dup(stub->find_replica(3, 1), 2) == nullptr);
+            ASSERT_TRUE(find_dup(stub->find_replica(5, 1), 2) == nullptr);
         }
     }
 

@@ -47,8 +47,6 @@ public:
 
     error_s add(mutation_ptr mu);
 
-    bool empty() const { return _loaded_mutations.empty(); }
-
     mutation_tuple_set move_all_mutations();
 
     decree last_decree() const;

@@ -39,8 +39,11 @@ namespace replication {
 using namespace literals::chrono_literals;
 
 // ThreadPool: THREAD_POOL_REPLICATION
-struct load_mutation : replica_base, pipeline::when<>, pipeline::result<decree, mutation_tuple_set>
+class load_mutation : public replica_base,
+                      public pipeline::when<>,
+                      public pipeline::result<decree, mutation_tuple_set>
 {
+public:
     void run() override;
 
     /// ==== Implementation ==== ///
@@ -58,8 +61,11 @@ private:
 };
 
 // ThreadPool: THREAD_POOL_REPLICATION
-struct ship_mutation : replica_base, pipeline::when<decree, mutation_tuple_set>, pipeline::result<>
+class ship_mutation : public replica_base,
+                      public pipeline::when<decree, mutation_tuple_set>,
+                      public pipeline::result<>
 {
+public:
     void run(decree &&last_decree, mutation_tuple_set &&in) override;
 
     /// ==== Implementation ==== ///
@@ -69,15 +75,16 @@ struct ship_mutation : replica_base, pipeline::when<decree, mutation_tuple_set>,
     void ship(mutation_tuple_set &&in);
 
 private:
+    void update_progress();
+
     friend struct ship_mutation_test;
     friend class replica_duplicator_test;
 
     std::unique_ptr<mutation_duplicator> _mutation_duplicator;
 
-    perf_counter_wrapper _ship_latency;
-    int64_t _ship_start_ns;
+    replica_duplicator *_duplicator;
+    replica_stub *_stub;
 
-    replica_duplicator *_duplicator{nullptr};
     decree _last_decree{invalid_decree};
 };
 

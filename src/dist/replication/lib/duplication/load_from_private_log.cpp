@@ -26,6 +26,7 @@
 
 #include <dsn/dist/fmt_logging.h>
 
+#include "dist/replication/lib/replica_stub.h"
 #include "dist/replication/lib/replica.h"
 #include "dist/replication/lib/mutation_log_utils.h"
 #include "load_from_private_log.h"
@@ -57,8 +58,6 @@ void load_from_private_log::switch_to_next_log_file()
 
 void load_from_private_log::run()
 {
-    _plog_block_loading_start_ns = dsn_now_ns();
-
     auto progress = _duplicator->progress();
     if (progress.last_decree == invalid_decree) {
         decree d = _private_log->max_commit_on_disk();
@@ -154,12 +153,6 @@ void load_from_private_log::load_from_log_file()
 
     _read_from_start = false;
 
-    if (!_mutation_batch.empty()) {
-        // useless loading will not be calculated.
-        _plog_block_loading_duration->set(dsn_now_ns() - _plog_block_loading_start_ns);
-        _plog_block_loaded_mutations_count->set(_mutation_batch.size());
-    }
-
     // update last_decree even for empty batch.
     step_down_next_stage(_mutation_batch.last_decree(), _mutation_batch.move_all_mutations());
 }
@@ -172,6 +165,8 @@ error_s load_from_private_log::replay_log_block()
                                           if (!es.is_ok()) {
                                               dfatal_replica(es.description());
                                           }
+                                          _stub->_counter_dup_log_read_in_bytes_rate->add(log_length);
+                                          _stub->_counter_dup_log_mutations_read_rate->increment();
                                           return true;
                                       },
                                       _read_from_start,
@@ -182,20 +177,10 @@ load_from_private_log::load_from_private_log(replica *r, replica_duplicator *dup
     : replica_base(r),
       _private_log(r->private_log()),
       _duplicator(dup),
+      _stub(r->get_replica_stub()),
       _mutation_batch(dup),
       _repeat_delay(10_s)
 {
-    _plog_block_loading_duration.init_app_counter(
-        "eon.replica",
-        fmt::format("dup.plog_block_loading_duration@{}", get_gpid()).c_str(),
-        COUNTER_TYPE_NUMBER_PERCENTILES,
-        "duration for each round of plog block loading for duplication");
-
-    _plog_block_loaded_mutations_count.init_app_counter(
-        "eon.replica",
-        fmt::format("dup.plog_block_loaded_mutations_count@{}", get_gpid()).c_str(),
-        COUNTER_TYPE_NUMBER,
-        "number of mutations in each plog block");
 }
 
 void load_from_private_log::set_start_decree(decree start_decree)

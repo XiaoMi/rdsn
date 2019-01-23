@@ -128,5 +128,19 @@ void replica_duplicator_manager::set_confirmed_decree_non_primary(decree confirm
     _replica->update_init_info_duplicating(confirmed >= 0);
 }
 
+uint64_t replica_duplicator_manager::get_all_pending_count_primary() const
+{
+    dcheck_eq_replica(_replica->status(), partition_status::PS_PRIMARY);
+
+    zauto_lock l(_lock);
+
+    uint64_t total = 0;
+    for (const auto &kv : _duplications) {
+        const auto &dup = kv.second;
+        total += dup->get_pending_mutations_count();
+    }
+    return total;
+}
+
 } // namespace replication
 } // namespace dsn

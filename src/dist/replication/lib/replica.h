@@ -326,7 +326,7 @@ private:
     friend class mock_replica;
     friend class replica_learn_test;
 
-    friend struct load_mutation;
+    friend class load_mutation;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;

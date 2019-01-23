@@ -87,11 +87,7 @@ void duplication_sync_timer::on_duplication_sync_reply(error_code err,
 void duplication_sync_timer::update_duplication_map(
     const std::map<int32_t, std::map<int32_t, duplication_entry>> &dup_map)
 {
-    // fast path
-    if (dup_map.empty()) {
-        return;
-    }
-
+    uint64_t total_pending = 0;
     for (replica_ptr &r : get_all_primaries()) {
         // no duplication assigned to this app
         auto it = dup_map.find(r->get_gpid().get_app_id());
@@ -106,7 +102,10 @@ void duplication_sync_timer::update_duplication_map(
         for (const auto &kv2 : new_dup_map) {
             r->get_duplication_manager()->sync_duplication(kv2.second);
         }
+
+        total_pending += r->get_duplication_manager()->get_all_pending_count_primary();
     }
+    _stub->_counter_dup_pending_mutations_count->set(total_pending);
 }
 
 duplication_sync_timer::duplication_sync_timer(replica_stub *stub) : _stub(stub) {}
