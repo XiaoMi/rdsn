@@ -23,10 +23,6 @@
 #include <dsn/utility/string_view.h>
 
 /// The only entry to define a fail point.
-/// Add following line to cmake to compile target with fault injection.
-/// ```
-///   add_definition(-DENABLE_FAIL)
-/// ```
 /// When a fail point is defined, it's referenced via the name.
 #define FAIL_POINT_INJECT_F(name, lambda)                                                          \
     do {                                                                                           \
