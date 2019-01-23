@@ -1048,7 +1048,7 @@ void greedy_load_balancer::report(const dsn::replication::migration_list &list,
     ::memset(counters, 0, sizeof(counters));
 
     counters[ALL_COUNT] = list.size();
-    for (const auto& action : list) {
+    for (const auto &action : list) {
         switch (action.second.get()->balance_type) {
         case balancer_request_type::move_primary:
             counters[MOVE_PRI_COUNT]++;
