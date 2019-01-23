@@ -1014,7 +1014,6 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
 bool greedy_load_balancer::balance(meta_view view, migration_list &list)
 {
     ddebug("balancer round");
-
     list.clear();
 
     t_total_partitions = count_partitions(*(view.apps));
@@ -1023,16 +1022,13 @@ bool greedy_load_balancer::balance(meta_view view, migration_list &list)
     t_migration_result = &list;
     t_migration_result->clear();
 
-    bool balance_checker = false;
-    greedy_balancer(balance_checker);
-
+    greedy_balancer(false);
     return !t_migration_result->empty();
 }
 
 bool greedy_load_balancer::check(meta_view view, migration_list &list)
 {
     ddebug("balance checker round");
-
     list.clear();
 
     t_total_partitions = count_partitions(*(view.apps));
@@ -1041,9 +1037,7 @@ bool greedy_load_balancer::check(meta_view view, migration_list &list)
     t_migration_result = &list;
     t_migration_result->clear();
 
-    bool balance_checker = true;
-    greedy_balancer(balance_checker);
-
+    greedy_balancer(true);
     return !t_migration_result->empty();
 }
 
@@ -1054,7 +1048,7 @@ void greedy_load_balancer::report(const dsn::replication::migration_list &list,
     ::memset(counters, 0, sizeof(counters));
 
     counters[ALL_COUNT] = list.size();
-    for (auto action : list) {
+    for (const auto& action : list) {
         switch (action.second.get()->balance_type) {
         case balancer_request_type::move_primary:
             counters[MOVE_PRI_COUNT]++;
