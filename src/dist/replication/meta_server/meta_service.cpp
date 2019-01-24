@@ -472,10 +472,14 @@ void meta_service::on_query_cluster_info(dsn::message_ex *req)
         _meta_function_level_VALUES_TO_NAMES.find(get_function_level())->second + 3);
     response.keys.push_back("balance_operation_count");
     std::vector<std::string> balance_operation_type;
-    // balance_operation_type.emplace_back(std::string("detail"));
+    balance_operation_type.emplace_back(std::string("detail"));
     response.values.push_back(_balancer->get_balance_operation_count(balance_operation_type));
-    response.keys.push_back("cluster_balance_score");
-    response.values.push_back(_state->get_cluster_balance_score());
+    double primary_stddev, total_stddev;
+    _state->get_cluster_balance_score(primary_stddev, total_stddev);
+    response.keys.push_back("primary_replica_count_stddev");
+    response.values.push_back(utils::to_string_with_precision(primary_stddev, 2));
+    response.keys.push_back("total_replica_count_stddev");
+    response.values.push_back(utils::to_string_with_precision(total_stddev, 2));
     response.err = dsn::ERR_OK;
 
     reply(req, response);

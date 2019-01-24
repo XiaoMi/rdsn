@@ -103,7 +103,7 @@ public:
     {
         return std::string("unknown");
     }
-    virtual std::string score(meta_view view) { return std::string("unknown"); };
+    virtual void score(meta_view view, double &primary_stddev, double &total_stddev) {}
     virtual bool
     collect_replica(meta_view view, const dsn::rpc_address &node, const replica_info &info)
     {

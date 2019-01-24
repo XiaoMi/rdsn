@@ -48,12 +48,12 @@ public:
     bool balance(meta_view view, migration_list &list) override;
     bool check(meta_view view, migration_list &list) override;
     void report(const migration_list &list, bool balance_checker) override;
+    void score(meta_view view, double &primary_stddev, double &total_stddev) override;
 
     void register_ctrl_commands() override;
     void unregister_ctrl_commands() override;
 
     std::string get_balance_operation_count(const std::vector<std::string> &args) override;
-    std::string score(meta_view view) override;
 
 private:
     enum class balance_type

@@ -125,7 +125,7 @@ void greedy_load_balancer::register_ctrl_commands()
 
     _get_balance_operation_count = dsn::command_manager::instance().register_app_command(
         {"lb.get_balance_operation_count"},
-        "lb.get_balance_operation_count [all | move_pri | copy_pri | copy_sec | detail]",
+        "lb.get_balance_operation_count [total | move_pri | copy_pri | copy_sec | detail]",
         "get balance operation count",
         [this](const std::vector<std::string> &args) { return get_balance_operation_count(args); });
 }
@@ -144,23 +144,26 @@ std::string greedy_load_balancer::get_balance_operation_count(const std::vector<
 {
     std::string result("unknown");
     if (args.empty()) {
-        result = std::to_string(t_operation_counters[ALL_COUNT]);
+        result = std::string("total=" + std::to_string(t_operation_counters[ALL_COUNT]));
     } else {
-        if (args[0] == "all") {
-            result = std::to_string(t_operation_counters[ALL_COUNT]);
+        if (args[0] == "total") {
+            result = std::string("total=" + std::to_string(t_operation_counters[ALL_COUNT]));
         } else {
             if (args[0] == "move_pri")
-                result = std::to_string(t_operation_counters[MOVE_PRI_COUNT]);
+                result =
+                    std::string("move_pri=" + std::to_string(t_operation_counters[MOVE_PRI_COUNT]));
             else if (args[0] == "copy_pri")
-                result = std::to_string(t_operation_counters[COPY_PRI_COUNT]);
+                result =
+                    std::string("copy_pri=" + std::to_string(t_operation_counters[COPY_PRI_COUNT]));
             else if (args[0] == "copy_sec")
-                result = std::to_string(t_operation_counters[COPY_SEC_COUNT]);
+                result =
+                    std::string("copy_sec=" + std::to_string(t_operation_counters[COPY_SEC_COUNT]));
             else if (args[0] == "detail")
                 result = std::string(
-                    "\n\tmove_pri: " + std::to_string(t_operation_counters[MOVE_PRI_COUNT]) +
-                    "\n\tcopy_pri: " + std::to_string(t_operation_counters[COPY_PRI_COUNT]) +
-                    "\n\tcopy_sec: " + std::to_string(t_operation_counters[COPY_SEC_COUNT]) +
-                    "\n\tall     : " + std::to_string(t_operation_counters[ALL_COUNT]));
+                    "move_pri=" + std::to_string(t_operation_counters[MOVE_PRI_COUNT]) +
+                    ",copy_pri=" + std::to_string(t_operation_counters[COPY_PRI_COUNT]) +
+                    ",copy_sec=" + std::to_string(t_operation_counters[COPY_SEC_COUNT]) +
+                    ",total=" + std::to_string(t_operation_counters[ALL_COUNT]));
             else
                 result = std::string("ERR: invalid arguments");
         }
@@ -168,12 +171,15 @@ std::string greedy_load_balancer::get_balance_operation_count(const std::vector<
     return result;
 }
 
-std::string greedy_load_balancer::score(meta_view view)
+void greedy_load_balancer::score(meta_view view, double &primary_stddev, double &total_stddev)
 {
     // Calculate stddev of primary and partition count for current meta-view
-    std::string result("unknown");
     std::vector<unsigned> primary_count;
     std::vector<unsigned> partition_count;
+
+    primary_stddev = 0.0;
+    total_stddev = 0.0;
+
     bool partial_sample = false;
 
     for (auto iter = view.nodes->begin(); iter != view.nodes->end();) {
@@ -191,15 +197,10 @@ std::string greedy_load_balancer::score(meta_view view)
     }
 
     if (primary_count.size() <= 1 || partition_count.size() <= 1)
-        return result;
+        return;
 
-    double primary_stddev = stddev::mean_stddev(primary_count, partial_sample);
-    double all_stddev = stddev::mean_stddev(partition_count, partial_sample);
-
-    result = std::string("\n\tpri_balance_score: " + std::to_string(primary_stddev) +
-                         "\n\tall_balance_score: " + std::to_string(all_stddev));
-
-    return result;
+    primary_stddev = stddev::mean_stddev(primary_count, partial_sample);
+    total_stddev = stddev::mean_stddev(partition_count, partial_sample);
 }
 
 std::shared_ptr<configuration_balancer_request>

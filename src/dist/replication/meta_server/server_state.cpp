@@ -2490,10 +2490,10 @@ bool server_state::check_all_partitions()
     return true;
 }
 
-std::string server_state::get_cluster_balance_score()
+void server_state::get_cluster_balance_score(double &primary_stddev, double &total_stddev)
 {
     zauto_read_lock l(_lock);
-    return _meta_svc->get_balancer()->score({&_all_apps, &_nodes});
+    _meta_svc->get_balancer()->score({&_all_apps, &_nodes}, primary_stddev, total_stddev);
 }
 
 void server_state::check_consistency(const dsn::gpid &gpid)

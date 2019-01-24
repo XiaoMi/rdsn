@@ -26,6 +26,7 @@ double mean_stddev(const std::vector<unsigned> &result_set, bool partial_sample)
     else
         stddev = sqrt(accum / (result_set.size()));
 
+    stddev = ((double)((int)((stddev + 0.005) * 100))) / 100;
     return stddev;
 }
 

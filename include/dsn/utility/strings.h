@@ -49,5 +49,7 @@ char *trim_string(char *s);
 
 // calculate the md5 checksum of buffer
 std::string string_md5(const char *buffer, unsigned int length);
+
+std::string to_string_with_precision(const double double_val, const int precision);
 }
 }
