@@ -5,10 +5,10 @@
 #include <numeric>
 #include <algorithm>
 #include <math.h>
-#include <dsn/utility/stddev.h>
+#include <dsn/utility/math.h>
 
 namespace dsn {
-namespace math {
+namespace utils {
 
 double mean_stddev(const std::vector<unsigned> &result_set, bool partial_sample)
 {
@@ -30,5 +30,5 @@ double mean_stddev(const std::vector<unsigned> &result_set, bool partial_sample)
     return stddev;
 }
 
-} // namespace math
+} // namespace utils
 } // namespace dsn

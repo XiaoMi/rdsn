@@ -7,9 +7,9 @@
 #include <vector>
 
 namespace dsn {
-namespace math {
+namespace utils {
 
 double mean_stddev(const std::vector<unsigned> &result_set, bool partial_sample);
 
-} // namespace math
+} // namespace utils
 } // namespace dsn
