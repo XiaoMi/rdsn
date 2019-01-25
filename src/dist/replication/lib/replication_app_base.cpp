@@ -601,7 +601,7 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
 
 void replication_app_base::update_stub_counter_dup_time_lag(uint64_t time_lag_in_us)
 {
-    _replica->get_replica_stub()->_counter_dup_time_lag->set(time_lag_in_us);
+    _replica->get_replica_stub()->_counter_dup_time_lag->set(time_lag_in_us / 1000);
 }
 
 } // namespace replication

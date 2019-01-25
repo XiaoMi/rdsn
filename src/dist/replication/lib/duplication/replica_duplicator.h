@@ -113,18 +113,6 @@ public:
 
     decree get_max_gced_decree() const;
 
-    // <- helpers for metric "dup.pending_mutations_count" ->
-
-    void update_pending_mutations_count(uint64_t cnt)
-    {
-        _pending_muts_cnt.store(cnt, std::memory_order_relaxed);
-    }
-
-    uint64_t get_pending_mutations_count() const
-    {
-        return _pending_muts_cnt.load(std::memory_order_relaxed);
-    }
-
 private:
     friend class replica_duplicator_test;
     friend class duplication_sync_timer_test;
@@ -145,7 +133,6 @@ private:
     // protect the access of _progress.
     mutable zrwlock_nr _lock;
     duplication_progress _progress;
-    std::atomic<uint64_t> _pending_muts_cnt;
 
     /// === pipeline === ///
     std::unique_ptr<load_mutation> _load;

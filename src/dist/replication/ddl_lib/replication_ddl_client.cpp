@@ -225,16 +225,18 @@ dsn::error_code replication_ddl_client::create_app(const std::string &app_name,
         return ERR_INVALID_PARAMETERS;
     }
 
-    if (app_name.empty() || !std::all_of(app_name.cbegin(),
-                                         app_name.cend(),
-                                         (bool (*)(int))replication_ddl_client::valid_app_char)) {
+    if (app_name.empty() ||
+        !std::all_of(app_name.cbegin(),
+                     app_name.cend(),
+                     (bool (*)(int))replication_ddl_client::valid_app_char)) {
         std::cout << "create app " << app_name << " failed: invalid app_name" << std::endl;
         return ERR_INVALID_PARAMETERS;
     }
 
-    if (app_type.empty() || !std::all_of(app_type.cbegin(),
-                                         app_type.cend(),
-                                         (bool (*)(int))replication_ddl_client::valid_app_char)) {
+    if (app_type.empty() ||
+        !std::all_of(app_type.cbegin(),
+                     app_type.cend(),
+                     (bool (*)(int))replication_ddl_client::valid_app_char)) {
         std::cout << "create app " << app_name << " failed: invalid app_type" << std::endl;
         return ERR_INVALID_PARAMETERS;
     }
@@ -276,9 +278,10 @@ dsn::error_code replication_ddl_client::create_app(const std::string &app_name,
 
 dsn::error_code replication_ddl_client::drop_app(const std::string &app_name, int reserve_seconds)
 {
-    if (app_name.empty() || !std::all_of(app_name.cbegin(),
-                                         app_name.cend(),
-                                         (bool (*)(int))replication_ddl_client::valid_app_char))
+    if (app_name.empty() ||
+        !std::all_of(app_name.cbegin(),
+                     app_name.cend(),
+                     (bool (*)(int))replication_ddl_client::valid_app_char))
         return ERR_INVALID_PARAMETERS;
 
     std::shared_ptr<configuration_drop_app_request> req(new configuration_drop_app_request());
@@ -891,9 +894,10 @@ dsn::error_code replication_ddl_client::list_app(const std::string &app_name,
                                                  int32_t &partition_count,
                                                  std::vector<partition_configuration> &partitions)
 {
-    if (app_name.empty() || !std::all_of(app_name.cbegin(),
-                                         app_name.cend(),
-                                         (bool (*)(int))replication_ddl_client::valid_app_char))
+    if (app_name.empty() ||
+        !std::all_of(app_name.cbegin(),
+                     app_name.cend(),
+                     (bool (*)(int))replication_ddl_client::valid_app_char))
         return ERR_INVALID_PARAMETERS;
 
     std::shared_ptr<configuration_query_by_index_request> req(

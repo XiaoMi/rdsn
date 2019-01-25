@@ -94,18 +94,24 @@ void ship_mutation::update_progress()
     dcheck_eq_replica(
         _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree)),
         error_s::ok());
-    _duplicator->update_pending_mutations_count(_duplicator->_replica->last_committed_decree() -
-                                                _last_decree);
+
+    int64_t update =
+        static_cast<int64_t>(_replica->last_committed_decree() - _prev_last_committed) -
+        (_last_decree - _prev_last_decree);
+    _stub->_counter_dup_pending_mutations_count->add(update);
+    _prev_last_decree = _last_decree;
+    _prev_last_committed = _replica->last_committed_decree();
 }
 
 ship_mutation::ship_mutation(replica_duplicator *duplicator)
     : replica_base(duplicator),
       _duplicator(duplicator),
+      _replica(duplicator->_replica),
       _stub(duplicator->_replica->get_replica_stub())
 {
     _mutation_duplicator = new_mutation_duplicator(duplicator,
                                                    _duplicator->remote_cluster_address(),
-                                                   _duplicator->_replica->get_app_info()->app_name);
+                                                   _replica->get_app_info()->app_name);
     _mutation_duplicator->set_task_environment(duplicator);
 }
 

@@ -44,9 +44,12 @@ void duplication_sync_timer::run()
         return;
     }
 
-    if (_stub->_state == replica_stub::NS_Disconnected) {
-        // retry if disconnected from meta server
-        return;
+    {
+        zauto_lock l(_stub->_state_lock);
+        if (_stub->_state == replica_stub::NS_Disconnected) {
+            // retry if disconnected from meta server
+            return;
+        }
     }
 
     auto req = make_unique<duplication_sync_request>();
@@ -64,7 +67,6 @@ void duplication_sync_timer::run()
     rpc_address meta_server_address(_stub->get_meta_server_address());
     _rpc_task =
         rpc.call(meta_server_address, &_stub->_tracker, [this, rpc](error_code err) mutable {
-            zauto_lock l(_stub->_state_lock);
             on_duplication_sync_reply(err, rpc.response());
         });
 }
@@ -87,7 +89,6 @@ void duplication_sync_timer::on_duplication_sync_reply(error_code err,
 void duplication_sync_timer::update_duplication_map(
     const std::map<int32_t, std::map<int32_t, duplication_entry>> &dup_map)
 {
-    uint64_t total_pending = 0;
     for (replica_ptr &r : get_all_primaries()) {
         // no duplication assigned to this app
         auto it = dup_map.find(r->get_gpid().get_app_id());
@@ -102,10 +103,7 @@ void duplication_sync_timer::update_duplication_map(
         for (const auto &kv2 : new_dup_map) {
             r->get_duplication_manager()->sync_duplication(kv2.second);
         }
-
-        total_pending += r->get_duplication_manager()->get_all_pending_count_primary();
     }
-    _stub->_counter_dup_pending_mutations_count->set(total_pending);
 }
 
 duplication_sync_timer::duplication_sync_timer(replica_stub *stub) : _stub(stub) {}
@@ -128,15 +126,15 @@ std::vector<replica_ptr> duplication_sync_timer::get_all_primaries()
 
 void duplication_sync_timer::close()
 {
-    zauto_lock l(_stub->_state_lock);
-
     if (_rpc_task) {
         _rpc_task->cancel(true);
         _rpc_task = nullptr;
     }
 
-    _timer_task->cancel(true);
-    _timer_task = nullptr;
+    if (_timer_task) {
+        _timer_task->cancel(true);
+        _timer_task = nullptr;
+    }
 }
 
 void duplication_sync_timer::start()
@@ -145,10 +143,7 @@ void duplication_sync_timer::start()
 
     _timer_task = tasking::enqueue_timer(LPC_DUPLICATION_SYNC_TIMER,
                                          &_stub->_tracker,
-                                         [this]() {
-                                             zauto_lock l(_stub->_state_lock);
-                                             run();
-                                         },
+                                         [this]() { run(); },
                                          DUPLICATION_SYNC_PERIOD_SECOND * 1_s,
                                          0,
                                          DUPLICATION_SYNC_PERIOD_SECOND * 1_s);

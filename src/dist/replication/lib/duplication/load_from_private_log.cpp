@@ -160,12 +160,13 @@ void load_from_private_log::load_from_log_file()
 error_s load_from_private_log::replay_log_block()
 {
     return mutation_log::replay_block(_current,
-                                      [this](int log_length, mutation_ptr &mu) -> bool {
+                                      [this](int log_bytes_length, mutation_ptr &mu) -> bool {
                                           auto es = _mutation_batch.add(std::move(mu));
                                           if (!es.is_ok()) {
                                               dfatal_replica(es.description());
                                           }
-                                          _stub->_counter_dup_log_read_in_bytes_rate->add(log_length);
+                                          _stub->_counter_dup_log_read_in_bytes_rate->add(
+                                              log_bytes_length);
                                           _stub->_counter_dup_log_mutations_read_rate->increment();
                                           return true;
                                       },

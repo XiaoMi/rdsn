@@ -36,14 +36,14 @@ namespace replication {
 std::vector<duplication_confirm_entry>
 replica_duplicator_manager::get_duplication_confirms_to_update() const
 {
+    zauto_lock l(_lock);
+
     std::vector<duplication_confirm_entry> updates;
     for (const auto &kv : _duplications) {
         replica_duplicator *duplicator = kv.second.get();
         duplication_progress p = duplicator->progress();
         if (p.last_decree != p.confirmed_decree) {
-            // TODO(wutao1): remove this when code is stable
-            dassert_replica(
-                p.last_decree > p.confirmed_decree, "{} vs {}", p.last_decree, p.confirmed_decree);
+            dcheck_gt_replica(p.last_decree, p.confirmed_decree);
             duplication_confirm_entry entry;
             entry.dupid = duplicator->id();
             entry.confirmed_decree = p.last_decree;
@@ -101,6 +101,8 @@ int64_t replica_duplicator_manager::min_confirmed_decree() const
 void replica_duplicator_manager::remove_non_existed_duplications(
     const std::map<dupid_t, duplication_entry> &new_dup_map)
 {
+    zauto_lock l(_lock);
+
     std::vector<dupid_t> removal_set;
     for (auto &pair : _duplications) {
         dupid_t cur_dupid = pair.first;
@@ -126,20 +128,6 @@ void replica_duplicator_manager::set_confirmed_decree_non_primary(decree confirm
         _primary_confirmed_decree = confirmed;
     }
     _replica->update_init_info_duplicating(confirmed >= 0);
-}
-
-uint64_t replica_duplicator_manager::get_all_pending_count_primary() const
-{
-    dcheck_eq_replica(_replica->status(), partition_status::PS_PRIMARY);
-
-    zauto_lock l(_lock);
-
-    uint64_t total = 0;
-    for (const auto &kv : _duplications) {
-        const auto &dup = kv.second;
-        total += dup->get_pending_mutations_count();
-    }
-    return total;
 }
 
 } // namespace replication

@@ -67,10 +67,8 @@ public:
     }
 
     /// THREAD_POOL_REPLICATION
+    /// \see replica_check.cpp
     void set_confirmed_decree_non_primary(decree confirmed);
-
-    /// THREAD_POOL_DEFAULT
-    uint64_t get_all_pending_count_primary() const;
 
     replica *_replica;
 

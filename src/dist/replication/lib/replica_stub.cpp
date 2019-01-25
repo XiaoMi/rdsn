@@ -242,9 +242,9 @@ void replica_stub::install_perf_counters()
         "number of mutations pending for duplication");
     _counter_dup_time_lag.init_app_counter(
         "eon.replica_stub",
-        "dup.time_lag(us)",
+        "dup.time_lag(ms)",
         COUNTER_TYPE_NUMBER_PERCENTILES,
-        "time (in us) lag between master and slave in the duplication");
+        "time (in ms) lag between master and slave in the duplication");
 
     // <- Cold Backup Metrics ->
 
