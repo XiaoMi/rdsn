@@ -10,7 +10,7 @@
 namespace dsn {
 namespace utils {
 
-double mean_stddev(const std::vector<unsigned> &result_set, bool partial_sample)
+double mean_stddev(const std::vector<uint32_t> &result_set, bool partial_sample)
 {
     double sum = std::accumulate(result_set.begin(), result_set.end(), 0.0);
     double mean = sum / result_set.size();

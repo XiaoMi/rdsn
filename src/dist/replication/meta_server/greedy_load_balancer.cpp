@@ -174,12 +174,13 @@ std::string greedy_load_balancer::get_balance_operation_count(const std::vector<
 void greedy_load_balancer::score(meta_view view, double &primary_stddev, double &total_stddev)
 {
     // Calculate stddev of primary and partition count for current meta-view
-    std::vector<unsigned> primary_count;
-    std::vector<unsigned> partition_count;
+    std::vector<uint32_t> primary_count;
+    std::vector<uint32_t> partition_count;
 
     primary_stddev = 0.0;
     total_stddev = 0.0;
 
+    bool primary_partial_sample = false;
     bool partial_sample = false;
 
     for (auto iter = view.nodes->begin(); iter != view.nodes->end();) {
@@ -189,6 +190,9 @@ void greedy_load_balancer::score(meta_view view, double &primary_stddev, double 
                 partition_count.emplace_back(iter->second.partition_count());
             }
         } else {
+            if (iter->second.primary_count() != 0) {
+                primary_partial_sample = true;
+            }
             if (iter->second.partition_count() != 0) {
                 partial_sample = true;
             }
@@ -199,7 +203,7 @@ void greedy_load_balancer::score(meta_view view, double &primary_stddev, double 
     if (primary_count.size() <= 1 || partition_count.size() <= 1)
         return;
 
-    primary_stddev = utils::mean_stddev(primary_count, partial_sample);
+    primary_stddev = utils::mean_stddev(primary_count, primary_partial_sample);
     total_stddev = utils::mean_stddev(partition_count, partial_sample);
 }
 
