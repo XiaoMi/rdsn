@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 
 #include <boost/lexical_cast.hpp>
+#include <fmt/format.h>
 
 #include <dsn/utility/factory_store.h>
 #include <dsn/dist/meta_state_service.h>
@@ -477,9 +478,9 @@ void meta_service::on_query_cluster_info(dsn::message_ex *req)
     double primary_stddev, total_stddev;
     _state->get_cluster_balance_score(primary_stddev, total_stddev);
     response.keys.push_back("primary_replica_count_stddev");
-    response.values.push_back(utils::to_string_with_precision(primary_stddev, 2));
+    response.values.push_back(fmt::format("{:.{}f}", primary_stddev, 2));
     response.keys.push_back("total_replica_count_stddev");
-    response.values.push_back(utils::to_string_with_precision(total_stddev, 2));
+    response.values.push_back(fmt::format("{:.{}f}", total_stddev, 2));
     response.err = dsn::ERR_OK;
 
     reply(req, response);

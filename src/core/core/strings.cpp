@@ -183,13 +183,5 @@ std::string string_md5(const char *buffer, unsigned length)
 
     return result;
 }
-
-std::string to_string_with_precision(const double double_val, const int precision)
-{
-    std::ostringstream out;
-    out.precision(precision);
-    out << std::fixed << double_val;
-    return out.str();
-}
 }
 }
