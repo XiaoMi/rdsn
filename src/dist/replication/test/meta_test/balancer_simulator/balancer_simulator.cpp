@@ -162,8 +162,7 @@ void greedy_balancer_perfect_move_primary()
             }
         }
         glb.check({&apps, &nodes}, ml);
-        i++;
-        dinfo("round %d: balance checker operation count = %d", ml.size());
+        dinfo("round %d: balance checker operation count = %d", ++i, ml.size());
     }
 }
 
