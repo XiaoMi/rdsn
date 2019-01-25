@@ -8,7 +8,7 @@
 #include <dsn/utility/stddev.h>
 
 namespace dsn {
-namespace stddev {
+namespace math {
 
 double mean_stddev(const std::vector<unsigned> &result_set, bool partial_sample)
 {
@@ -30,5 +30,5 @@ double mean_stddev(const std::vector<unsigned> &result_set, bool partial_sample)
     return stddev;
 }
 
-} // namespace stddev
+} // namespace math
 } // namespace dsn

@@ -199,8 +199,8 @@ void greedy_load_balancer::score(meta_view view, double &primary_stddev, double 
     if (primary_count.size() <= 1 || partition_count.size() <= 1)
         return;
 
-    primary_stddev = stddev::mean_stddev(primary_count, partial_sample);
-    total_stddev = stddev::mean_stddev(partition_count, partial_sample);
+    primary_stddev = math::mean_stddev(primary_count, partial_sample);
+    total_stddev = math::mean_stddev(partition_count, partial_sample);
 }
 
 std::shared_ptr<configuration_balancer_request>
