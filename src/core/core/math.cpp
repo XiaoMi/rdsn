@@ -5,6 +5,7 @@
 #include <numeric>
 #include <algorithm>
 #include <math.h>
+#include <dsn/c/api_utilities.h>
 #include <dsn/utility/math.h>
 
 namespace dsn {
@@ -12,6 +13,8 @@ namespace utils {
 
 double mean_stddev(const std::vector<uint32_t> &result_set, bool partial_sample)
 {
+    dassert(result_set.size() > 1, "invalid sample data input for stddev");
+
     double sum = std::accumulate(result_set.begin(), result_set.end(), 0.0);
     double mean = sum / result_set.size();
 
