@@ -58,18 +58,7 @@ void load_from_private_log::switch_to_next_log_file()
 
 void load_from_private_log::run()
 {
-    auto progress = _duplicator->progress();
-    if (progress.last_decree == invalid_decree) {
-        decree d = _private_log->max_commit_on_disk();
-        dcheck_eq_replica(
-            _duplicator->update_progress(progress.set_confirmed_decree(d).set_last_decree(d)),
-            error_s::ok());
-        set_start_decree(d + 1);
-        ddebug_replica("this newly added duplication [dupid:{}] will start from {}",
-                       _duplicator->id(),
-                       _start_decree);
-    }
-
+    dassert_replica(_start_decree != invalid_decree, "{}", _start_decree);
     auto err = _duplicator->verify_start_decree(_start_decree);
     dassert_replica(err.is_ok(), err.description());
 

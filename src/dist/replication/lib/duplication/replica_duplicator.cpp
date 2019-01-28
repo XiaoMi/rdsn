@@ -51,7 +51,12 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
 
     auto it = ent.progress.find(get_gpid().get_partition_index());
     dassert_replica(it != ent.progress.end(), "");
-    _progress.last_decree = _progress.confirmed_decree = it->second;
+    if (it->second == invalid_decree) {
+        // keep current max committed_decree as start point.
+        _progress.last_decree = _replica->private_log()->max_commit_on_disk();
+    } else {
+        _progress.last_decree = _progress.confirmed_decree = it->second;
+    }
     ddebug_replica(
         "initialize replica_duplicator [dupid:{}, meta_confirmed_decree:{}]", id(), it->second);
 
