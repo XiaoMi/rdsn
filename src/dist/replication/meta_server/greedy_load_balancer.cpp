@@ -142,32 +142,29 @@ void greedy_load_balancer::unregister_ctrl_commands()
 
 std::string greedy_load_balancer::get_balance_operation_count(const std::vector<std::string> &args)
 {
-    std::string result("unknown");
     if (args.empty()) {
         return std::string("total=" + std::to_string(t_operation_counters[ALL_COUNT]));
-    } else {
-        if (args[0] == "total") {
-            return std::string("total=" + std::to_string(t_operation_counters[ALL_COUNT]));
-        } else {
-            if (args[0] == "move_pri")
-                result =
-                    std::string("move_pri=" + std::to_string(t_operation_counters[MOVE_PRI_COUNT]));
-            else if (args[0] == "copy_pri")
-                result =
-                    std::string("copy_pri=" + std::to_string(t_operation_counters[COPY_PRI_COUNT]));
-            else if (args[0] == "copy_sec")
-                result =
-                    std::string("copy_sec=" + std::to_string(t_operation_counters[COPY_SEC_COUNT]));
-            else if (args[0] == "detail")
-                result = std::string(
-                    "move_pri=" + std::to_string(t_operation_counters[MOVE_PRI_COUNT]) +
-                    ",copy_pri=" + std::to_string(t_operation_counters[COPY_PRI_COUNT]) +
-                    ",copy_sec=" + std::to_string(t_operation_counters[COPY_SEC_COUNT]) +
-                    ",total=" + std::to_string(t_operation_counters[ALL_COUNT]));
-            else
-                result = std::string("ERR: invalid arguments");
-        }
     }
+
+    if (args[0] == "total") {
+        return std::string("total=" + std::to_string(t_operation_counters[ALL_COUNT]));
+    }
+
+    std::string result("unknown");
+    if (args[0] == "move_pri")
+        result = std::string("move_pri=" + std::to_string(t_operation_counters[MOVE_PRI_COUNT]));
+    else if (args[0] == "copy_pri")
+        result = std::string("copy_pri=" + std::to_string(t_operation_counters[COPY_PRI_COUNT]));
+    else if (args[0] == "copy_sec")
+        result = std::string("copy_sec=" + std::to_string(t_operation_counters[COPY_SEC_COUNT]));
+    else if (args[0] == "detail")
+        result = std::string("move_pri=" + std::to_string(t_operation_counters[MOVE_PRI_COUNT]) +
+                             ",copy_pri=" + std::to_string(t_operation_counters[COPY_PRI_COUNT]) +
+                             ",copy_sec=" + std::to_string(t_operation_counters[COPY_SEC_COUNT]) +
+                             ",total=" + std::to_string(t_operation_counters[ALL_COUNT]));
+    else
+        result = std::string("ERR: invalid arguments");
+
     return result;
 }
 
