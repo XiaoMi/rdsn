@@ -98,7 +98,7 @@ void ship_mutation::update_progress()
     int64_t update =
         static_cast<int64_t>(_replica->last_committed_decree() - _prev_last_committed) -
         (_last_decree - _prev_last_decree);
-    _stub->_counter_dup_pending_mutations_count->add(update);
+    _stub->_dup_pending_muts_cnt += update;
     _prev_last_decree = _last_decree;
     _prev_last_committed = _replica->last_committed_decree();
 }

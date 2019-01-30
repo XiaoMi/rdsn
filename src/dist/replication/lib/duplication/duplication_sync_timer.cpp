@@ -63,6 +63,10 @@ void duplication_sync_timer::run()
         }
     }
 
+    int64_t dup_pending_muts_cnt = _stub->_dup_pending_muts_cnt.load(std::memory_order_relaxed);
+    dcheck_ge(dup_pending_muts_cnt, 0);
+    _stub->_counter_dup_pending_mutations_count->set(dup_pending_muts_cnt);
+
     duplication_sync_rpc rpc(std::move(req), RPC_CM_DUPLICATION_SYNC);
     rpc_address meta_server_address(_stub->get_meta_server_address());
     _rpc_task =
