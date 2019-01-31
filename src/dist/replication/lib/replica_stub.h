@@ -280,7 +280,7 @@ private:
 
     // counter for _counter_dup_pending_mutations_count, accumulating the
     // total number of pending mutations in duplication.
-    std::atomic_int64_t _dup_pending_muts_cnt;
+    std::atomic<int64_t> _dup_pending_muts_cnt;
 
     // handle all the data dirs
     fs_manager _fs_manager;
