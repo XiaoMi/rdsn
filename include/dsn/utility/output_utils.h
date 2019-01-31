@@ -1,0 +1,146 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015 Microsoft Corporation
+ *
+ * -=- Robust Distributed System Nucleus (rDSN) -=-
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#pragma once
+
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <vector>
+
+namespace dsn {
+namespace utils {
+
+template <typename T>
+std::string to_string(T data)
+{
+    return std::to_string(data);
+}
+
+template <>
+std::string to_string<bool>(bool data);
+
+template <>
+std::string to_string<double>(double data);
+
+template <>
+std::string to_string<std::string>(std::string data);
+
+template <>
+std::string to_string<char *>(char *data);
+
+template <>
+std::string to_string<const char *>(const char *data);
+
+/// A tool to print data in a table form.
+///
+/// Example usage 1:
+///    table_printer tp;
+///    tp.add_title("table_title");
+///    tp.add_column("column_name1");
+///    tp.add_column("column_name2");
+///    for (...) {
+///        tp.add_row("row_name_i");
+///        tp.append_data(int_data);
+///        tp.append_data(double_data);
+///    }
+///
+///    std::ostream out(...);
+///    tp.output(out);
+///
+/// Output looks like:
+///    table_title  column_name1  column_name2
+///    row_name_1   123           45.67
+///    row_name_2   456           45.68
+///
+/// Example usage 2:
+///    table_printer tp;
+///    tp.add_row_name_and_data("row_name1", int_value);
+///    tp.add_row_name_and_data("row_name1", double_value);
+///
+///    std::ostream out(...);
+///    tp.output(out, " :");
+///
+/// Output looks like:
+///    row_name_1 :  4567
+///    row_name_2 :  hello
+///
+class table_printer
+{
+public:
+    table_printer(int space_width = 2, int precision = 2)
+        : space_width_(space_width), precision_(precision)
+    {
+    }
+
+    // MULTI_COLUMNS
+    void add_title(const std::string &title);
+    void add_column(const std::string &col_name);
+    template <typename T>
+    void add_row(const T &row_name)
+    {
+        //    check_mode(data_mode::MULTI_COLUMNS);
+        matrix_data_.emplace_back(std::vector<std::string>());
+        append_data(row_name);
+    }
+    template <typename T>
+    void append_data(const T &data)
+    {
+        append_string_data(::dsn::utils::to_string(data));
+    }
+
+    // SINGLE_COLUMN
+    template <typename T>
+    void add_row_name_and_data(const std::string &row_name, const T &data)
+    {
+        add_row_name_and_string_data(row_name, ::dsn::utils::to_string(data));
+    }
+
+    void output(std::ostream &out, const std::string &separator = "") const;
+
+private:
+    enum class data_mode;
+    void check_mode(data_mode mode);
+    void append_string_data(const std::string &data);
+    void add_row_name_and_string_data(const std::string &row_name, const std::string &data);
+
+private:
+    enum class data_mode
+    {
+        UNINITIALIZED = 0,
+        SINGLE_COLUMN = 1,
+        MULTI_COLUMNS = 2
+    };
+
+    data_mode mode_ = data_mode::UNINITIALIZED;
+    int space_width_;
+    int precision_;
+    std::vector<int> max_col_width_;
+    std::vector<std::vector<std::string>> matrix_data_;
+};
+
+} // namespace utils
+} // namespace dsn
