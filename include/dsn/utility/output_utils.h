@@ -34,6 +34,7 @@
 namespace dsn {
 namespace utils {
 
+namespace output_utils {
 template <typename T>
 std::string to_string(T data)
 {
@@ -50,12 +51,10 @@ template <>
 std::string to_string<std::string>(std::string data);
 
 template <>
-std::string to_string<char *>(char *data);
-
-template <>
 std::string to_string<const char *>(const char *data);
+} // namespace output_utils
 
-/// A tool to print data in a table form.
+/// A tool used to print data in a table form.
 ///
 /// Example usage 1:
 ///    table_printer tp;
@@ -78,11 +77,11 @@ std::string to_string<const char *>(const char *data);
 ///
 /// Example usage 2:
 ///    table_printer tp;
-///    tp.add_row_name_and_data("row_name1", int_value);
-///    tp.add_row_name_and_data("row_name1", double_value);
+///    tp.add_row_name_and_data("row_name_1", int_value);
+///    tp.add_row_name_and_data("row_name_2", string_value);
 ///
 ///    std::ostream out(...);
-///    tp.output(out, " :");
+///    tp.output(out, ": ");
 ///
 /// Output looks like:
 ///    row_name_1 :  4567
@@ -90,52 +89,54 @@ std::string to_string<const char *>(const char *data);
 ///
 class table_printer
 {
+private:
+    enum class data_mode
+    {
+        kUninitialized = 0,
+        KSingleColumn = 1,
+        KMultiColumns = 2
+    };
+
 public:
     table_printer(int space_width = 2, int precision = 2)
-        : space_width_(space_width), precision_(precision)
+        : mode_(data_mode::kUninitialized), space_width_(space_width), precision_(precision)
     {
     }
 
-    // MULTI_COLUMNS
+    // KMultiColumns
     void add_title(const std::string &title);
     void add_column(const std::string &col_name);
     template <typename T>
     void add_row(const T &row_name)
     {
-        //    check_mode(data_mode::MULTI_COLUMNS);
+        check_mode(data_mode::KMultiColumns);
         matrix_data_.emplace_back(std::vector<std::string>());
         append_data(row_name);
     }
     template <typename T>
     void append_data(const T &data)
     {
-        append_string_data(::dsn::utils::to_string(data));
+        check_mode(data_mode::KMultiColumns);
+        append_string_data(output_utils::to_string(data));
     }
 
-    // SINGLE_COLUMN
+    // KSingleColumn
     template <typename T>
     void add_row_name_and_data(const std::string &row_name, const T &data)
     {
-        add_row_name_and_string_data(row_name, ::dsn::utils::to_string(data));
+        check_mode(data_mode::KSingleColumn);
+        add_row_name_and_string_data(row_name, output_utils::to_string(data));
     }
 
     void output(std::ostream &out, const std::string &separator = "") const;
 
 private:
-    enum class data_mode;
     void check_mode(data_mode mode);
     void append_string_data(const std::string &data);
     void add_row_name_and_string_data(const std::string &row_name, const std::string &data);
 
 private:
-    enum class data_mode
-    {
-        UNINITIALIZED = 0,
-        SINGLE_COLUMN = 1,
-        MULTI_COLUMNS = 2
-    };
-
-    data_mode mode_ = data_mode::UNINITIALIZED;
+    data_mode mode_;
     int space_width_;
     int precision_;
     std::vector<int> max_col_width_;

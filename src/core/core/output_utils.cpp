@@ -9,6 +9,7 @@
 namespace dsn {
 namespace utils {
 
+namespace output_utils {
 template <>
 std::string to_string<bool>(bool data)
 {
@@ -16,7 +17,7 @@ std::string to_string<bool>(bool data)
 }
 
 template <>
-std::string to_string<double>(double data)   // TODO size数据加','
+std::string to_string<double>(double data)
 {
     if (std::abs(data) < 1e-6) {
         return "0.00";
@@ -34,20 +35,16 @@ std::string to_string<std::string>(std::string data)
 }
 
 template <>
-std::string to_string<char *>(char *data)
-{
-    return std::string(data);
-}
-
-template <>
 std::string to_string<const char *>(const char *data)
 {
     return std::string(data);
 }
 
+} // namespace output_utils
+
 void table_printer::add_title(const std::string &title)
 {
-    check_mode(data_mode::MULTI_COLUMNS);
+    check_mode(data_mode::KMultiColumns);
     dassert(matrix_data_.empty() && max_col_width_.empty(), "`add_title` must be called only once");
     max_col_width_.push_back(title.length());
     add_row(title);
@@ -55,7 +52,7 @@ void table_printer::add_title(const std::string &title)
 
 void table_printer::add_column(const std::string &col_name)
 {
-    check_mode(data_mode::MULTI_COLUMNS);
+    check_mode(data_mode::KMultiColumns);
     dassert(matrix_data_.size() == 1, "`add_column` must be called before real data appendding");
     max_col_width_.emplace_back(col_name.length());
     append_data(col_name);
@@ -64,7 +61,6 @@ void table_printer::add_column(const std::string &col_name)
 void table_printer::add_row_name_and_string_data(const std::string &row_name,
                                                  const std::string &data)
 {
-    check_mode(data_mode::SINGLE_COLUMN);
     max_col_width_.push_back(row_name.length());
     max_col_width_.push_back(data.length());
     add_row(row_name);
@@ -101,7 +97,7 @@ void table_printer::append_string_data(const std::string &data)
 
 void table_printer::check_mode(data_mode mode)
 {
-    if (mode_ == data_mode::UNINITIALIZED) {
+    if (mode_ == data_mode::kUninitialized) {
         mode_ = mode;
         return;
     }
