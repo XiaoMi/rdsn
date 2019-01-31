@@ -40,14 +40,16 @@ DEFINE_TASK_CODE(LPC_DUPLICATION_SYNC_TIMER, TASK_PRIORITY_LOW, THREAD_POOL_DEFA
 
 void duplication_sync_timer::run()
 {
-    if (_rpc_task) { // if sync is ongoing.
+    if (_rpc_task) {
+        ddebug_f("a duplication sync is already ongoing");
         return;
     }
 
     {
         zauto_lock l(_stub->_state_lock);
         if (_stub->_state == replica_stub::NS_Disconnected) {
-            // retry if disconnected from meta server
+            ddebug_f("stop this round of duplication sync because this server is disconnected from "
+                     "meta server");
             return;
         }
     }
@@ -84,6 +86,7 @@ void duplication_sync_timer::on_duplication_sync_reply(error_code err,
     if (err != ERR_OK) {
         dwarn_f("on_duplication_sync_reply: err({})", err.to_string());
     } else {
+        dwarn("on_duplication_sync_reply");
         update_duplication_map(resp.dup_map);
     }
     _rpc_task = nullptr;
