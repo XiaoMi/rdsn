@@ -63,8 +63,10 @@ void table_printer::add_row_name_and_string_data(const std::string &row_name,
 {
     max_col_width_.push_back(row_name.length());
     max_col_width_.push_back(data.length());
-    add_row(row_name);
-    append_data(data);
+
+    matrix_data_.emplace_back(std::vector<std::string>());
+    append_string_data(row_name);
+    append_string_data(data);
 }
 
 void table_printer::output(std::ostream &out, const std::string &separator) const
@@ -74,8 +76,6 @@ void table_printer::output(std::ostream &out, const std::string &separator) cons
     }
 
     for (const auto &row : matrix_data_) {
-        //        dassert(!row.empty(), "Row name must be exist at least");
-        //        out << std::setw(max_col_width_[0] + space_width_) << std::left << row[0];
         for (size_t i = 0; i < row.size(); ++i) {
             auto data = (i == 0 ? "" : separator) + row[i];
             out << std::setw(max_col_width_[i] + space_width_) << std::left << data;
