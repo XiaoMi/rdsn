@@ -28,6 +28,8 @@
 
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/replication/mutation_duplicator.h>
+#include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/filesystem.h>
 
 #include "dist/replication/lib/replica.h"
 #include "dist/replication/lib/replica_stub.h"
@@ -86,7 +88,25 @@ public:
         _app.reset(nullptr);
     }
 
-    void init_private_log(mutation_log_ptr log) { _private_log = log; }
+    void init_private_log(const std::string &log_dir)
+    {
+        utils::filesystem::remove_path(log_dir);
+
+        _private_log =
+            new mutation_log_private(log_dir,
+                                     _options->log_private_file_size_mb,
+                                     get_gpid(),
+                                     this,
+                                     _options->log_private_batch_buffer_kb * 1024,
+                                     _options->log_private_batch_buffer_count,
+                                     _options->log_private_batch_buffer_flush_interval_ms);
+
+        error_code err =
+            _private_log->open(nullptr, [this](error_code err) { dcheck_eq_replica(err, ERR_OK); });
+        dcheck_eq_replica(err, ERR_OK);
+    }
+
+    void init_private_log(mutation_log_ptr log) { _private_log = std::move(log); }
 
     replica_duplicator_manager &get_replica_duplicator_manager() { return *_duplication_mgr; }
 

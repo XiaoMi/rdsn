@@ -141,10 +141,8 @@ public:
 
             _replica->_prepare_list->reset(tt.learnee_local_committed_decree);
 
-            auto dup = create_test_duplicator();
-            dup->update_progress(duplication_progress()
-                                     .set_confirmed_decree(tt.min_confirmed_decree)
-                                     .set_last_decree(tt.min_confirmed_decree));
+            _replica->init_private_log(_log_dir);
+            auto dup = create_test_duplicator(tt.min_confirmed_decree);
             add_dup(_replica.get(), std::move(dup));
 
             ASSERT_EQ(_replica->get_learn_start_decree(req), tt.wlearn_start_decree) << "case #"

@@ -47,16 +47,7 @@ namespace replication {
 class replica_duplicator_test : public replica_test_base
 {
 public:
-    void SetUp() override
-    {
-        utils::filesystem::remove_path(_log_dir);
-        utils::filesystem::create_directory(_log_dir);
-    }
-
-    void TearDown() override
-    {
-        //        utils::filesystem::remove_path(log_dir);
-    }
+    replica_duplicator_test() { _replica->init_private_log(_log_dir); }
 
     void test_new_duplicator()
     {
@@ -111,7 +102,7 @@ TEST_F(replica_duplicator_test, pause_start_duplication) { test_pause_start_dupl
 TEST_F(replica_duplicator_test, duplication_progress)
 {
     auto duplicator = create_test_duplicator();
-    ASSERT_EQ(duplicator->progress().last_decree, invalid_decree);
+    ASSERT_EQ(duplicator->progress().last_decree, 0); // start duplication from empty plog
     ASSERT_EQ(duplicator->progress().confirmed_decree, invalid_decree);
 
     duplicator->update_progress(duplicator->progress().set_last_decree(10));

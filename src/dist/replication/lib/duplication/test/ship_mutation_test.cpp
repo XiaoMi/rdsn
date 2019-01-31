@@ -41,7 +41,11 @@ struct mock_stage : pipeline::when<>
 
 struct ship_mutation_test : public replica_test_base
 {
-    ship_mutation_test() : duplicator(create_test_duplicator()) {}
+    ship_mutation_test()
+    {
+        _replica->init_private_log(_log_dir);
+        duplicator = create_test_duplicator();
+    }
 
     // ensure ship_mutation retries after error.
     // ensure it clears up all pending mutations after stage ends.

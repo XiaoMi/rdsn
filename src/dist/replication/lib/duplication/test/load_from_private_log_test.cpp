@@ -43,10 +43,10 @@ namespace replication {
 class load_from_private_log_test : public replica_test_base
 {
 public:
-    load_from_private_log_test() : duplicator(create_test_duplicator())
+    load_from_private_log_test()
     {
-        utils::filesystem::remove_path(_log_dir);
-        utils::filesystem::create_directory(_log_dir);
+        _replica->init_private_log(_log_dir);
+        duplicator = create_test_duplicator();
     }
 
     void test_find_log_file_to_start()
@@ -146,14 +146,11 @@ public:
             EXPECT_TRUE(pr.second->file_handle() == nullptr);
         }
         _replica->init_private_log(mlog);
-        duplicator = create_test_duplicator();
-        duplicator->update_progress(duplication_progress()
-                                        .set_confirmed_decree(start_decree - 1)
-                                        .set_last_decree(start_decree - 1));
+        duplicator = create_test_duplicator(start_decree - 1);
 
         load_from_private_log load(_replica.get(), duplicator.get());
         const_cast<std::chrono::milliseconds &>(load._repeat_delay) = 1_s;
-        load.set_start_decree(start_decree);
+        load.set_start_decree(duplicator->progress().last_decree + 1);
 
         mutation_tuple_set loaded_mutations;
         pipeline::do_when<decree, mutation_tuple_set> end_stage(
@@ -360,6 +357,8 @@ TEST_F(load_from_private_log_test, restart_duplication2) { test_restart_duplicat
 
 TEST_F(load_from_private_log_test, ignore_useless)
 {
+    utils::filesystem::remove_path(_log_dir);
+
     mutation_log_ptr mlog = create_private_log();
 
     int num_entries = 100;
