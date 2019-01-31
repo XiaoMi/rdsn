@@ -232,6 +232,8 @@ TEST_F(meta_duplication_service_test, add_duplication)
         {test_app, ok_remote, ERR_OK},
 
         {test_app, invalid_remote, ERR_INVALID_PARAMETERS},
+
+        {test_app, get_current_cluster_name(), ERR_INVALID_PARAMETERS},
     };
 
     for (auto tt : tests) {

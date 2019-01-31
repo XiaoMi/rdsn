@@ -30,13 +30,23 @@
 namespace dsn {
 namespace replication {
 
-TEST(get_duplication_cluster_id, basic)
+TEST(duplication_common, get_duplication_cluster_id)
 {
     ASSERT_EQ(get_duplication_cluster_id("master-cluster").get_value(), 1);
     ASSERT_EQ(get_duplication_cluster_id("slave-cluster").get_value(), 2);
 
     ASSERT_EQ(get_duplication_cluster_id("").get_error().code(), ERR_INVALID_PARAMETERS);
     ASSERT_EQ(get_duplication_cluster_id("unknown").get_error().code(), ERR_OBJECT_NOT_FOUND);
+}
+
+TEST(duplication_common, get_current_cluster_name)
+{
+    ASSERT_STREQ(get_current_cluster_name(), "master-cluster");
+}
+
+TEST(duplication_common, get_distinct_cluster_id_set)
+{
+    ASSERT_EQ(get_distinct_cluster_id_set(), std::set<uint8_t>({1, 2}));
 }
 
 } // namespace replication

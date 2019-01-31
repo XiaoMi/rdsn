@@ -133,6 +133,12 @@ void meta_duplication_service::add_duplication(duplication_add_rpc rpc)
 
     response.err = ERR_OK;
 
+    if (request.remote_cluster_address == get_current_cluster_name()) {
+        dwarn("illegal operation: adding duplication to itself");
+        response.err = ERR_INVALID_PARAMETERS;
+        return;
+    }
+
     auto remote_cluster_id = get_duplication_cluster_id(request.remote_cluster_address);
     if (!remote_cluster_id.is_ok()) {
         dwarn("get_duplication_cluster_id(%s) failed: err_ret: %s",
