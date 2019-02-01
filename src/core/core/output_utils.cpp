@@ -4,6 +4,8 @@
 
 #include "dsn/utility/output_utils.h"
 
+#include <sstream>
+
 #include <dsn/c/api_utilities.h>
 
 namespace dsn {
