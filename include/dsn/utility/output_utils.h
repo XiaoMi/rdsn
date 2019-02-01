@@ -26,33 +26,15 @@
 
 #pragma once
 
+#include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
 namespace dsn {
 namespace utils {
-
-namespace output_utils {
-template <typename T>
-std::string to_string(T data)
-{
-    return std::to_string(data);
-}
-
-template <>
-std::string to_string<bool>(bool data);
-
-template <>
-std::string to_string<double>(double data);
-
-template <>
-std::string to_string<std::string>(std::string data);
-
-template <>
-std::string to_string<const char *>(const char *data);
-} // namespace output_utils
 
 /// A tool used to print data in a table form.
 ///
@@ -117,7 +99,7 @@ public:
     void append_data(const T &data)
     {
         check_mode(data_mode::KMultiColumns);
-        append_string_data(output_utils::to_string(data));
+        append_string_data(to_string(data));
     }
 
     // KSingleColumn
@@ -125,12 +107,18 @@ public:
     void add_row_name_and_data(const std::string &row_name, const T &data)
     {
         check_mode(data_mode::KSingleColumn);
-        add_row_name_and_string_data(row_name, output_utils::to_string(data));
+        add_row_name_and_string_data(row_name, to_string(data));
     }
 
     void output(std::ostream &out, const std::string &separator = "") const;
 
 private:
+    template <typename T>
+    std::string to_string(T data)
+    {
+        return std::to_string(data);
+    }
+
     void check_mode(data_mode mode);
     void append_string_data(const std::string &data);
     void add_row_name_and_string_data(const std::string &row_name, const std::string &data);
@@ -142,6 +130,36 @@ private:
     std::vector<int> max_col_width_;
     std::vector<std::vector<std::string>> matrix_data_;
 };
+
+template <>
+inline std::string table_printer::to_string<bool>(bool data)
+{
+    return data ? "true" : "false";
+}
+
+template <>
+inline std::string table_printer::to_string<double>(double data)
+{
+    if (std::abs(data) < 1e-6) {
+        return "0.00";
+    } else {
+        std::stringstream s;
+        s << std::fixed << std::setprecision(precision_) << data;
+        return s.str();
+    }
+}
+
+template <>
+inline std::string table_printer::to_string<std::string>(std::string data)
+{
+    return data;
+}
+
+template <>
+inline std::string table_printer::to_string<const char *>(const char *data)
+{
+    return std::string(data);
+}
 
 } // namespace utils
 } // namespace dsn
