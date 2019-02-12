@@ -33,8 +33,17 @@
 #include <string>
 #include <vector>
 
+#include <dsn/cpp/json_helper.h>
+
 namespace dsn {
 namespace utils {
+
+class table_printer;
+class table_printer_container;
+
+// Keep the same code style with dsn/cpp/json_helper.h
+template <typename JsonWriter>
+void json_encode(JsonWriter &out, const table_printer &tp);
 
 /// A tool used to print data in a table form.
 ///
@@ -86,12 +95,22 @@ public:
         kRight = 1,
     };
 
-    table_printer(int space_width = 2, int precision = 2)
-        : mode_(data_mode::kUninitialized), space_width_(space_width), precision_(precision)
+    enum class output_format
+    {
+        kSpace = 0,
+        kJsonCompact = 1,
+        kJsonPretty = 2,
+    };
+
+    table_printer(std::string name = "", int space_width = 2, int precision = 2)
+        : name_(std::move(name)),
+          mode_(data_mode::kUninitialized),
+          space_width_(space_width),
+          precision_(precision)
     {
     }
 
-    // KMultiColumns
+    // KMultiColumns mode.
     void add_title(const std::string &title, alignment align = alignment::kLeft);
     void add_column(const std::string &col_name, alignment align = alignment::kLeft);
     template <typename T>
@@ -108,7 +127,7 @@ public:
         append_string_data(to_string(data));
     }
 
-    // KSingleColumn
+    // KSingleColumn mode.
     template <typename T>
     void add_row_name_and_data(const std::string &row_name, const T &data)
     {
@@ -116,7 +135,8 @@ public:
         add_row_name_and_string_data(row_name, to_string(data));
     }
 
-    void output(std::ostream &out, const std::string &separator = "") const;
+    // Output result.
+    void output(std::ostream &out, output_format format = output_format::kSpace) const;
 
 private:
     template <typename T>
@@ -126,10 +146,19 @@ private:
     }
 
     void check_mode(data_mode mode);
+
     void append_string_data(const std::string &data);
     void add_row_name_and_string_data(const std::string &row_name, const std::string &data);
 
+    void output_in_space(std::ostream &out) const;
+    void output_in_json(std::ostream &out, output_format format) const;
+
 private:
+    friend class table_printer_container;
+    template <typename Writer>
+    friend void json_encode(Writer &out, const table_printer &tp);
+
+    std::string name_;
     data_mode mode_;
     int space_width_;
     int precision_;
@@ -168,5 +197,18 @@ inline std::string table_printer::to_string<const char *>(const char *data)
     return std::string(data);
 }
 
+class table_printer_container
+{
+public:
+    void add(table_printer &&tp);
+    void output(std::ostream &out, table_printer::output_format format) const;
+
+private:
+    void output_in_space(std::ostream &out) const;
+    void output_in_json(std::ostream &out, table_printer::output_format format) const;
+
+private:
+    std::vector<table_printer> tps_;
+};
 } // namespace utils
 } // namespace dsn
