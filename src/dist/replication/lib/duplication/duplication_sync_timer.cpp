@@ -31,6 +31,8 @@
 #include "replica_duplicator_manager.h"
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/tool-api/command_manager.h>
+#include <dsn/utility/output_utils.h>
 
 namespace dsn {
 namespace replication {
@@ -86,7 +88,7 @@ void duplication_sync_timer::on_duplication_sync_reply(error_code err,
     if (err != ERR_OK) {
         dwarn_f("on_duplication_sync_reply: err({})", err.to_string());
     } else {
-        dwarn("on_duplication_sync_reply");
+        ddebug("on_duplication_sync_reply");
         update_duplication_map(resp.dup_map);
     }
     _rpc_task = nullptr;
@@ -96,10 +98,10 @@ void duplication_sync_timer::on_duplication_sync_reply(error_code err,
 void duplication_sync_timer::update_duplication_map(
     const std::map<int32_t, std::map<int32_t, duplication_entry>> &dup_map)
 {
-    for (replica_ptr &r : get_all_primaries()) {
+    for (replica_ptr &r : get_all_replicas()) {
         // no duplication assigned to this app
         auto it = dup_map.find(r->get_gpid().get_app_id());
-        if (dup_map.end() == it) {
+        if (r->status() != partition_status::PS_PRIMARY || dup_map.end() == it) {
             r->get_duplication_manager()->remove_all_duplications();
             continue;
         }
@@ -113,7 +115,26 @@ void duplication_sync_timer::update_duplication_map(
     }
 }
 
-duplication_sync_timer::duplication_sync_timer(replica_stub *stub) : _stub(stub) {}
+duplication_sync_timer::duplication_sync_timer(replica_stub *stub) : _stub(stub)
+{
+    _cmd_enable_dup_sync = command_manager::instance().register_app_command(
+        {"enable_dup_sync"},
+        "enable_dup_sync <true|false>",
+        "whether to schedule the duplication-sync timer",
+        std::bind(&duplication_sync_timer::enable_dup_sync, this, std::placeholders::_1));
+
+    _cmd_dup_state = command_manager::instance().register_app_command(
+        {"dup_state"},
+        "dup_state",
+        "view the state of all duplications on this replica server",
+        std::bind(&duplication_sync_timer::dup_state, this, std::placeholders::_1));
+}
+
+duplication_sync_timer::~duplication_sync_timer()
+{
+    command_manager::instance().deregister_command(_cmd_dup_state);
+    command_manager::instance().deregister_command(_cmd_enable_dup_sync);
+}
 
 std::vector<replica_ptr> duplication_sync_timer::get_all_primaries()
 {
@@ -131,8 +152,23 @@ std::vector<replica_ptr> duplication_sync_timer::get_all_primaries()
     return replica_vec;
 }
 
+std::vector<replica_ptr> duplication_sync_timer::get_all_replicas()
+{
+    std::vector<replica_ptr> replica_vec;
+    {
+        zauto_read_lock l(_stub->_replicas_lock);
+        for (auto &kv : _stub->_replicas) {
+            replica_ptr r = kv.second;
+            replica_vec.emplace_back(std::move(r));
+        }
+    }
+    return replica_vec;
+}
+
 void duplication_sync_timer::close()
 {
+    ddebug("stop duplication sync");
+
     if (_rpc_task) {
         _rpc_task->cancel(true);
         _rpc_task = nullptr;
@@ -141,6 +177,10 @@ void duplication_sync_timer::close()
     if (_timer_task) {
         _timer_task->cancel(true);
         _timer_task = nullptr;
+    }
+
+    for (replica_ptr &r : get_all_replicas()) {
+        r->get_duplication_manager()->remove_all_duplications();
     }
 }
 
@@ -154,6 +194,82 @@ void duplication_sync_timer::start()
                                          DUPLICATION_SYNC_PERIOD_SECOND * 1_s,
                                          0,
                                          DUPLICATION_SYNC_PERIOD_SECOND * 1_s);
+}
+
+std::string duplication_sync_timer::enable_dup_sync(const std::vector<std::string> &args)
+{
+    auto enabled = bool(_timer_task);
+    bool old_enabled = enabled;
+    std::string ret_msg = remote_command_set_bool_flag(enabled, "dup_sync_enabled", args);
+    if (old_enabled == enabled) {
+        // the value was unchanged
+        return ret_msg;
+    }
+    if (enabled) {
+        start();
+    } else {
+        close();
+    }
+    return ret_msg;
+}
+
+std::string duplication_sync_timer::dup_state(const std::vector<std::string> &args)
+{
+    // dup(0):
+    // | replica           | duplicating | last_decree | confirmed_decree |
+    // | PS_SECONDARY(1.2) | true        | 12300       | 12299            |
+    // | ... |
+    //
+    // dup(192140001):
+    // | replica         | duplicating | last_decree | confirmed_decree |
+    // | PS_PRIMARY(1.1) | true        | 12300       | 12299            |
+    // | ... |
+
+    std::set<dupid_t> dup_id_set;
+    std::multimap<dupid_t, std::tuple<gpid, partition_status::type, bool, decree, decree>> states;
+    std::stringstream ret;
+
+    for (const replica_ptr &r : get_all_replicas()) {
+        auto dups = r->get_duplication_manager()->dup_state();
+        gpid rid = r->get_gpid();
+        partition_status::type ps = r->status();
+
+        for (const auto &dup : dups) {
+            dupid_t dupid = dup.first;
+            bool duplicating = std::get<0>(dup.second);
+            decree last_decree = std::get<1>(dup.second);
+            decree confirmed_decree = std::get<2>(dup.second);
+
+            dup_id_set.insert(dupid);
+            states.emplace(std::make_pair(
+                dupid, std::make_tuple(rid, ps, duplicating, last_decree, confirmed_decree)));
+        }
+    }
+
+    for (dupid_t dupid : dup_id_set) {
+        ret << fmt::format("\ndup({}):\n", dupid);
+
+        utils::table_printer printer;
+        printer.add_title("replica");
+        printer.add_column("duplicating");
+        printer.add_column("last_decree");
+        printer.add_column("confirmed_decree");
+
+        auto replica_list = states.equal_range(dupid);
+        for (auto it = replica_list.first; it != replica_list.second; it++) {
+            const auto &state = it->second;
+
+            printer.add_row(fmt::format(
+                "{}({})", partition_status_to_string(std::get<1>(state)), std::get<0>(state)));
+            printer.append_data(std::get<2>(state));
+            printer.append_data(std::get<3>(state));
+            printer.append_data(std::get<4>(state));
+        }
+        printer.output(ret);
+        ret << std::endl;
+    }
+
+    return ret.str();
 }
 
 } // namespace replication

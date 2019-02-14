@@ -28,6 +28,8 @@
 
 #include "duplication_test_base.h"
 
+#include <dsn/tool-api/command_manager.h>
+
 namespace dsn {
 namespace replication {
 
@@ -269,6 +271,35 @@ public:
         }
     }
 
+    void test_enable_dup_sync()
+    {
+        std::vector<std::string> args({"true"});
+        ASSERT_EQ(dup_sync->enable_dup_sync(args), "OK");
+        ASSERT_TRUE(dup_sync->_timer_task);
+        args = {};
+        ASSERT_EQ(dup_sync->enable_dup_sync(args), "true");
+        ASSERT_TRUE(dup_sync->_timer_task);
+
+        args = {"false"};
+        ASSERT_EQ(dup_sync->enable_dup_sync(args), "OK");
+        ASSERT_FALSE(dup_sync->_timer_task);
+        args = {};
+        ASSERT_EQ(dup_sync->enable_dup_sync(args), "false");
+        ASSERT_FALSE(dup_sync->_timer_task);
+
+        args = {"true_1"};
+        ASSERT_NE(dup_sync->enable_dup_sync(args), "OK");
+        ASSERT_FALSE(dup_sync->_timer_task);
+
+        args = {"true"};
+        std::string output;
+        command_manager::instance().run_command("enable_dup_sync", args, output);
+        ASSERT_EQ(output, "OK");
+        args = {"false"};
+        command_manager::instance().run_command("enable_dup_sync", args, output);
+        ASSERT_EQ(output, "OK");
+    }
+
 protected:
     std::unique_ptr<duplication_sync_timer> dup_sync;
 };
@@ -282,6 +313,8 @@ TEST_F(duplication_sync_timer_test, update_on_non_primary) { test_update_on_non_
 TEST_F(duplication_sync_timer_test, update_confirmed_points) { test_update_confirmed_points(); }
 
 TEST_F(duplication_sync_timer_test, on_duplication_sync_reply) { test_on_duplication_sync_reply(); }
+
+TEST_F(duplication_sync_timer_test, enable_dup_sync) { test_enable_dup_sync(); }
 
 } // namespace replication
 } // namespace dsn

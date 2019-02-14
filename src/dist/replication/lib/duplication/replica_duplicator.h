@@ -72,7 +72,7 @@ class replica_stub;
 // TODO(wutao1): optimize for multi-duplication
 // Currently we create duplicator for every duplication.
 // They're isolated even if they share the same private log.
-class replica_duplicator : public replica_base, pipeline::base
+class replica_duplicator : public replica_base, public pipeline::base
 {
 public:
     replica_duplicator(const duplication_entry &ent, replica *r);

@@ -130,5 +130,24 @@ void replica_duplicator_manager::set_confirmed_decree_non_primary(decree confirm
     _replica->update_init_info_duplicating(confirmed >= 0);
 }
 
+std::map<dupid_t, std::tuple<bool, decree, decree>> replica_duplicator_manager::dup_state()
+{
+    zauto_lock l(_lock);
+
+    std::map<dupid_t, std::tuple<bool, decree, decree>> ret;
+    for (auto &dup : _duplications) {
+        dupid_t dup_id = dup.first;
+        bool duplicating = !dup.second->paused();
+        auto progress = dup.second->progress();
+
+        ret[dup_id] = std::make_tuple(duplicating, progress.last_decree, progress.confirmed_decree);
+    }
+
+    if (_replica->status() != partition_status::PS_PRIMARY) {
+        ret[0] = std::make_tuple(false, invalid_decree, _primary_confirmed_decree);
+    }
+    return ret;
+}
+
 } // namespace replication
 } // namespace dsn

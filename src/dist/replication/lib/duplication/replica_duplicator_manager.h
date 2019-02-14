@@ -70,6 +70,11 @@ public:
     /// \see replica_check.cpp
     void set_confirmed_decree_non_primary(decree confirmed);
 
+    /// Generate the states for remote command 'dup_state'
+    /// \returns
+    ///   dupid -> <duplicating, last_decree, confirmed_decree>
+    std::map<dupid_t, std::tuple<bool, decree, decree>> dup_state();
+
     replica *_replica;
 
     std::map<dupid_t, replica_duplicator_u_ptr> _duplications;

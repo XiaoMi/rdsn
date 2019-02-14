@@ -325,7 +325,7 @@ private:
     friend class ::dsn::replication::replica_stub;
     friend class mock_replica;
     friend class replica_learn_test;
-
+    friend class replica_duplicator_manager;
     friend class load_mutation;
 
     // replica configuration, updated by update_local_configuration ONLY
@@ -398,7 +398,6 @@ private:
     throttling_controller _write_throttling_controller;
 
     // duplication
-    friend class replica_duplicator_manager;
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
 
     // perf counters

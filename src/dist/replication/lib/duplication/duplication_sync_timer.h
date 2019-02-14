@@ -46,6 +46,8 @@ class duplication_sync_timer
 public:
     explicit duplication_sync_timer(replica_stub *stub);
 
+    ~duplication_sync_timer();
+
     void start();
 
     void close();
@@ -63,6 +65,14 @@ private:
 
     std::vector<replica_ptr> get_all_primaries();
 
+    std::vector<replica_ptr> get_all_replicas();
+
+    // == remote commands == //
+
+    std::string enable_dup_sync(const std::vector<std::string> &args);
+
+    std::string dup_state(const std::vector<std::string> &args);
+
 private:
     friend class duplication_sync_timer_test;
 
@@ -70,6 +80,9 @@ private:
 
     task_ptr _timer_task;
     task_ptr _rpc_task;
+
+    dsn_handle_t _cmd_enable_dup_sync;
+    dsn_handle_t _cmd_dup_state;
 };
 
 } // namespace replication
