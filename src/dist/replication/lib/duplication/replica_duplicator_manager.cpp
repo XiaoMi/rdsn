@@ -55,6 +55,12 @@ replica_duplicator_manager::get_duplication_confirms_to_update() const
 
 void replica_duplicator_manager::sync_duplication(const duplication_entry &ent)
 {
+    // state is inconsistent with meta-server
+    if (ent.progress.find(get_gpid().get_partition_index()) == ent.progress.end()) {
+        _duplications.erase(ent.dupid);
+        return;
+    }
+
     zauto_lock l(_lock);
 
     dupid_t dupid = ent.dupid;

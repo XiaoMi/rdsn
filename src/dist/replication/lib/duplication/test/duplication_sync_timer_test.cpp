@@ -293,11 +293,73 @@ public:
 
         args = {"true"};
         std::string output;
-        command_manager::instance().run_command("enable_dup_sync", args, output);
+        command_manager::instance().run_command("replica.enable_dup_sync", args, output);
         ASSERT_EQ(output, "OK");
         args = {"false"};
-        command_manager::instance().run_command("enable_dup_sync", args, output);
+        command_manager::instance().run_command("replica.enable_dup_sync", args, output);
         ASSERT_EQ(output, "OK");
+    }
+
+    // ensure dup-sync behaves correctly regardless
+    // replica status transition (PRIMARY->SECONDARY/SECONDARY->PRIMARY)
+    void test_replica_status_transition()
+    {
+        // 10 primaries
+        int appid = 1;
+        for (int partition_id = 0; partition_id < 10; partition_id++) {
+            stub->add_primary_replica(appid, partition_id);
+        }
+
+        duplication_entry ent;
+        ent.dupid = 2;
+        ent.status = duplication_status::DS_PAUSE;
+        for (int i = 0; i < 10; i++) {
+            ent.progress[i] = 0;
+        }
+        std::map<int32_t, std::map<dupid_t, duplication_entry>> dup_map;
+        dup_map[appid][ent.dupid] = ent;
+
+        dup_sync->update_duplication_map(dup_map);
+        for (int partition_id = 0; partition_id < 10; partition_id++) {
+            ASSERT_NE(find_dup(stub->find_replica(1, partition_id), 2), nullptr) << partition_id;
+            ASSERT_EQ(find_dup(stub->find_replica(1, partition_id), 2)->id(), 2);
+        }
+
+        // primary -> secondary
+        for (int partition_id = 0; partition_id < 10; partition_id++) {
+            stub->find_replica(1, partition_id)->as_secondary();
+        }
+        dup_sync->update_duplication_map(dup_map);
+        for (int partition_id = 0; partition_id < 10; partition_id++) {
+            ASSERT_TRUE(stub->find_replica(1, partition_id)
+                            ->get_duplication_manager()
+                            ->_duplications.empty());
+        }
+
+        // secondary back to primary
+        for (int partition_id = 0; partition_id < 10; partition_id++) {
+            stub->find_replica(1, partition_id)->as_primary();
+        }
+        dup_sync->update_duplication_map(dup_map);
+        for (int partition_id = 0; partition_id < 10; partition_id++) {
+            ASSERT_EQ(find_dup(stub->find_replica(1, partition_id), 2)->id(), 2);
+        }
+
+        // on meta's perspective, only 3 partitions are hosted on this server
+        ent.progress.clear();
+        for (int i = 0; i < 3; i++) {
+            ent.progress[i] = 0;
+        }
+        dup_map[appid][ent.dupid] = ent;
+        dup_sync->update_duplication_map(dup_map);
+        for (int partition_id = 0; partition_id < 3; partition_id++) {
+            ASSERT_EQ(find_dup(stub->find_replica(1, partition_id), 2)->id(), 2);
+        }
+        for (int partition_id = 3; partition_id < 10; partition_id++) {
+            ASSERT_TRUE(stub->find_replica(1, partition_id)
+                            ->get_duplication_manager()
+                            ->_duplications.empty());
+        }
     }
 
 protected:
@@ -315,6 +377,8 @@ TEST_F(duplication_sync_timer_test, update_confirmed_points) { test_update_confi
 TEST_F(duplication_sync_timer_test, on_duplication_sync_reply) { test_on_duplication_sync_reply(); }
 
 TEST_F(duplication_sync_timer_test, enable_dup_sync) { test_enable_dup_sync(); }
+
+TEST_F(duplication_sync_timer_test, replica_status_transition) { test_replica_status_transition(); }
 
 } // namespace replication
 } // namespace dsn

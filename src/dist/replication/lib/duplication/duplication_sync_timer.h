@@ -59,7 +59,9 @@ private:
     // the entire set of duplications on this server.
     void run();
 
-    void update_duplication_map(const std::map<app_id, std::map<dupid_t, duplication_entry>> &);
+    /// \param dup_map: <appid -> list<dup_entry>>
+    void
+    update_duplication_map(const std::map<app_id, std::map<dupid_t, duplication_entry>> &dup_map);
 
     void on_duplication_sync_reply(error_code err, const duplication_sync_response &resp);
 

@@ -94,7 +94,10 @@ void duplication_sync_timer::on_duplication_sync_reply(error_code err,
     _rpc_task = nullptr;
 }
 
-// dup_map: <appid -> list<dup_entry>>
+// Immediately stop duplication in the following conditions:
+// - replica is not primary on replica-server perspective (status != PRIMARY)
+// - replica is not primary on meta-server perspective (progress.find(partition_id) == end())
+// - the app is not assigned with duplication (dup_map.find(app_id) == end())
 void duplication_sync_timer::update_duplication_map(
     const std::map<int32_t, std::map<int32_t, duplication_entry>> &dup_map)
 {

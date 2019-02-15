@@ -112,6 +112,8 @@ public:
 
     void as_primary() { _config.status = partition_status::PS_PRIMARY; }
 
+    void as_secondary() { _config.status = partition_status::PS_SECONDARY; }
+
     void set_max_gced_decree(decree d) { _max_gced_decree = d; }
 
     decree max_gced_decree_no_lock() const override
