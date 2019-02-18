@@ -82,6 +82,7 @@ private:
 
     task_ptr _timer_task;
     task_ptr _rpc_task;
+    mutable zlock _lock; // protect _rpc_task
 
     dsn_handle_t _cmd_enable_dup_sync;
     dsn_handle_t _cmd_dup_state;

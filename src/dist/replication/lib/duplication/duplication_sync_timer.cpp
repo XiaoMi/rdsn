@@ -33,12 +33,12 @@
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/utility/output_utils.h>
+#include <dsn/utility/string_conv.h>
 
 namespace dsn {
 namespace replication {
 
-// duplication sync is a lazy job that doesn't require quick response.
-DEFINE_TASK_CODE(LPC_DUPLICATION_SYNC_TIMER, TASK_PRIORITY_LOW, THREAD_POOL_DEFAULT)
+DEFINE_TASK_CODE(LPC_DUPLICATION_SYNC_TIMER, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
 
 void duplication_sync_timer::run()
 {
@@ -71,8 +71,11 @@ void duplication_sync_timer::run()
     dcheck_ge(dup_pending_muts_cnt, 0);
     _stub->_counter_dup_pending_mutations_count->set(dup_pending_muts_cnt);
 
-    duplication_sync_rpc rpc(std::move(req), RPC_CM_DUPLICATION_SYNC);
+    duplication_sync_rpc rpc(std::move(req), RPC_CM_DUPLICATION_SYNC, 3_s);
     rpc_address meta_server_address(_stub->get_meta_server_address());
+    ddebug_f("duplication_sync to meta({})", meta_server_address.to_string());
+
+    zauto_lock l(_lock);
     _rpc_task =
         rpc.call(meta_server_address, &_stub->_tracker, [this, rpc](error_code err) mutable {
             on_duplication_sync_reply(err, rpc.response());
@@ -86,11 +89,13 @@ void duplication_sync_timer::on_duplication_sync_reply(error_code err,
         err = resp.err;
     }
     if (err != ERR_OK) {
-        dwarn_f("on_duplication_sync_reply: err({})", err.to_string());
+        derror_f("on_duplication_sync_reply: err({})", err.to_string());
     } else {
         ddebug("on_duplication_sync_reply");
         update_duplication_map(resp.dup_map);
     }
+
+    zauto_lock l(_lock);
     _rpc_task = nullptr;
 }
 
@@ -128,7 +133,7 @@ duplication_sync_timer::duplication_sync_timer(replica_stub *stub) : _stub(stub)
 
     _cmd_dup_state = command_manager::instance().register_app_command(
         {"dup_state"},
-        "dup_state",
+        "dup_state <app_id>",
         "view the state of all duplications on this replica server",
         std::bind(&duplication_sync_timer::dup_state, this, std::placeholders::_1));
 }
@@ -172,9 +177,12 @@ void duplication_sync_timer::close()
 {
     ddebug("stop duplication sync");
 
-    if (_rpc_task) {
-        _rpc_task->cancel(true);
-        _rpc_task = nullptr;
+    {
+        zauto_lock l(_lock);
+        if (_rpc_task) {
+            _rpc_task->cancel(true);
+            _rpc_task = nullptr;
+        }
     }
 
     if (_timer_task) {
@@ -228,13 +236,25 @@ std::string duplication_sync_timer::dup_state(const std::vector<std::string> &ar
     // | PS_PRIMARY(1.1) | true        | 12300       | 12299            |
     // | ... |
 
+    if (args.size() != 1) {
+        return "invalid number of arguments";
+    }
+    int app_id = -1;
+    if (!buf2int32(args[0], app_id)) {
+        return "invalid app_id";
+    }
+
     std::set<dupid_t> dup_id_set;
     std::multimap<dupid_t, std::tuple<gpid, partition_status::type, bool, decree, decree>> states;
     std::stringstream ret;
 
     for (const replica_ptr &r : get_all_replicas()) {
-        auto dups = r->get_duplication_manager()->dup_state();
         gpid rid = r->get_gpid();
+        if (rid.get_app_id() != app_id) {
+            continue;
+        }
+        auto dups = r->get_duplication_manager()->dup_state();
+
         partition_status::type ps = r->status();
 
         for (const auto &dup : dups) {
