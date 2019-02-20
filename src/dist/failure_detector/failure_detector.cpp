@@ -55,6 +55,31 @@ failure_detector::failure_detector()
     _is_started = false;
 }
 
+void failure_detector::register_ctrl_commands()
+{
+    _get_allow_list = dsn::command_manager::instance().register_app_command(
+        {"fd.allow_list"},
+        "fd.allow_list",
+        "show allow list of replica",
+        [this](const std::vector<std::string> &args) { return get_allow_list(args); });
+}
+
+std::string failure_detector::get_allow_list(const std::vector<std::string> &args)
+{
+    if (!_is_started)
+        return "error: fd is not started";
+
+    std::stringstream oss;
+    dsn::zauto_lock l(_lock);
+    oss << "get ok: allow list " << (_use_allow_list ? "enabled. list: " : "disabled.");
+    for (auto iter = _allow_list.begin(); iter != _allow_list.end(); ++iter) {
+        if (iter != _allow_list.begin())
+            oss << ",";
+        oss << iter->to_string();
+    }
+    return oss.str();
+}
+
 error_code failure_detector::start(uint32_t check_interval_seconds,
                                    uint32_t beacon_interval_seconds,
                                    uint32_t lease_seconds,

@@ -214,16 +214,21 @@ error_code meta_service::start()
     dreturn_not_ok_logged(err, "init remote storage failed, err = %s", err.to_string());
     ddebug("remote storage is successfully initialized");
 
-    // start failure detector, and try to acqure the leader lock
+    // start failure detector, and try to acquire the leader lock
     _failure_detector.reset(new meta_server_failure_detector(this));
+    if (_meta_opts.enable_white_list && !_meta_opts.replica_white_list.empty())
+        _failure_detector->set_allow_list(_meta_opts.replica_white_list);
+    _failure_detector->register_ctrl_commands();
+
     err = _failure_detector->start(_opts.fd_check_interval_seconds,
                                    _opts.fd_beacon_interval_seconds,
                                    _opts.fd_lease_seconds,
                                    _opts.fd_grace_seconds,
-                                   false);
+                                   _meta_opts.enable_white_list);
 
     dreturn_not_ok_logged(err, "start failure_detector failed, err = %s", err.to_string());
-    ddebug("meta service failure detector is successfully started");
+    ddebug("meta service failure detector is successfully started %s",
+           _meta_opts.enable_white_list ? "with whitelist enabled" : "");
 
     // should register rpc handlers before acquiring leader lock, so that this meta service
     // can tell others who is the current leader

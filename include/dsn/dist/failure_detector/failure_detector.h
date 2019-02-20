@@ -61,10 +61,11 @@
  */
 #pragma once
 
-#include <dsn/tool-api/zlocks.h>
 #include <dsn/dist/failure_detector/fd.client.h>
 #include <dsn/dist/failure_detector/fd.server.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
+#include <dsn/tool-api/zlocks.h>
+#include <dsn/tool-api/command_manager.h>
 
 namespace dsn {
 namespace fd {
@@ -93,11 +94,14 @@ class failure_detector : public failure_detector_service,
 {
 public:
     failure_detector();
-    virtual ~failure_detector() {}
+    virtual ~failure_detector() { unregister_ctrl_commands(); }
 
     virtual void on_ping(const beacon_msg &beacon, ::dsn::rpc_replier<beacon_ack> &reply);
 
     virtual void end_ping(::dsn::error_code err, const beacon_ack &ack, void *context);
+
+    virtual void register_ctrl_commands();
+    virtual void unregister_ctrl_commands() { UNREGISTER_VALID_HANDLER(_get_allow_list); }
 
 public:
     error_code start(uint32_t check_interval_seconds,
@@ -136,6 +140,15 @@ public:
 
     bool remove_from_allow_list(::dsn::rpc_address node);
 
+    void set_allow_list(const std::vector<std::string> &replica_addrs)
+    {
+        for (auto &addr : replica_addrs) {
+            dsn::rpc_address node;
+            if (node.from_string_ipv4(addr.c_str()))
+                add_allow_list(node);
+        }
+    }
+
     int worker_count() const { return static_cast<int>(_workers.size()); }
 
     int master_count() const { return static_cast<int>(_masters.size()); }
@@ -152,6 +165,8 @@ protected:
 
 private:
     void check_all_records();
+
+    std::string get_allow_list(const std::vector<std::string> &args);
 
 private:
     class master_record
@@ -213,6 +228,8 @@ private:
     allow_list _allow_list;
 
     perf_counter_wrapper _recent_beacon_fail_count;
+
+    dsn_handle_t _get_allow_list = nullptr;
 
 protected:
     mutable zlock _lock;
