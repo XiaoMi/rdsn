@@ -95,12 +95,9 @@ void ship_mutation::update_progress()
         _duplicator->update_progress(duplication_progress().set_last_decree(_last_decree)),
         error_s::ok());
 
-    int64_t update =
-        static_cast<int64_t>(_replica->last_committed_decree() - _prev_last_committed) -
-        (_last_decree - _prev_last_decree);
-    _stub->_dup_pending_muts_cnt += update;
-    _prev_last_decree = _last_decree;
-    _prev_last_committed = _replica->last_committed_decree();
+    decree last_committed_decree = _replica->last_committed_decree();
+    dcheck_ge_replica(last_committed_decree, _last_decree);
+    _duplicator->set_pending_mutations_count(last_committed_decree - _last_decree);
 }
 
 ship_mutation::ship_mutation(replica_duplicator *duplicator)

@@ -63,6 +63,7 @@ struct ship_mutation_test : public replica_test_base
         batch.add(create_test_mutation(1, "hello"));
         batch.add(create_test_mutation(2, "hello"));
         mutation_tuple_set in = batch.move_all_mutations();
+        _replica->set_last_committed_decree(2);
 
         std::vector<mutation_tuple> expected;
         for (auto mut : in) {

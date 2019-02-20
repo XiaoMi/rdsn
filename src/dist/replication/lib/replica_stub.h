@@ -278,10 +278,6 @@ private:
     // too simple, it do not support priority.
     std::atomic_int _learn_app_concurrent_count;
 
-    // counter for _counter_dup_pending_mutations_count, accumulating the
-    // total number of pending mutations in duplication.
-    std::atomic<int64_t> _dup_pending_muts_cnt;
-
     // handle all the data dirs
     fs_manager _fs_manager;
 

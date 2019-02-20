@@ -155,5 +155,14 @@ std::map<dupid_t, std::tuple<bool, decree, decree>> replica_duplicator_manager::
     return ret;
 }
 
+int64_t replica_duplicator_manager::get_pending_mutations_count() const
+{
+    int64_t total = 0;
+    for (auto &dup : _duplications) {
+        total += dup.second->get_pending_mutations_count();
+    }
+    return total;
+}
+
 } // namespace replication
 } // namespace dsn

@@ -29,6 +29,7 @@
 #include "duplication_test_base.h"
 
 #include <dsn/tool-api/command_manager.h>
+#include <dsn/tool-api/rpc_message.h>
 
 namespace dsn {
 namespace replication {
@@ -112,6 +113,10 @@ public:
 
             // ensure confirm list is empty when no progress
             ASSERT_EQ(req.confirm_list.size(), 0);
+
+            // ensure this rpc has timeout set.
+            auto &rpc = duplication_sync_rpc::mail_box().back();
+            ASSERT_GT(rpc.dsn_request()->header->client.timeout_ms, 0);
         }
 
         RPC_MOCKING(duplication_sync_rpc)

@@ -124,6 +124,8 @@ public:
         return _max_gced_decree;
     }
 
+    void set_last_committed_decree(decree d) { _prepare_list->reset(d); }
+
 private:
     decree _max_gced_decree{invalid_decree - 1};
 };

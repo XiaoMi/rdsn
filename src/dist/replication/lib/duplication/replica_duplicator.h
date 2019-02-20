@@ -113,6 +113,18 @@ public:
 
     decree get_max_gced_decree() const;
 
+    // == For metric "dup.pending_mutations_count" == //
+
+    void set_pending_mutations_count(int64_t cnt)
+    {
+        _pending_muts_cnt.store(cnt, std::memory_order_relaxed);
+    }
+
+    int64_t get_pending_mutations_count() const
+    {
+        return _pending_muts_cnt.load(std::memory_order_relaxed);
+    }
+
 private:
     friend class replica_duplicator_test;
     friend class duplication_sync_timer_test;
@@ -127,6 +139,8 @@ private:
     replica *_replica;
     replica_stub *_stub;
     dsn::task_tracker _tracker;
+
+    std::atomic<int64_t> _pending_muts_cnt{0};
 
     duplication_status::type _status{duplication_status::DS_INIT};
 

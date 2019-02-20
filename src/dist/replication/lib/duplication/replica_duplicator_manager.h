@@ -70,6 +70,10 @@ public:
     /// \see replica_check.cpp
     void set_confirmed_decree_non_primary(decree confirmed);
 
+    /// Accumulates the number of pending mutations for all duplications
+    /// on this replica, for metric "dup.pending_mutations_count".
+    int64_t get_pending_mutations_count() const;
+
     /// Generate the states for remote command 'dup_state'
     /// \returns
     ///   dupid -> <duplicating, last_decree, confirmed_decree>

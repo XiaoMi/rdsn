@@ -82,9 +82,6 @@ private:
 
     std::unique_ptr<mutation_duplicator> _mutation_duplicator;
 
-    decree _prev_last_committed{0};
-    decree _prev_last_decree{invalid_decree};
-
     replica_duplicator *_duplicator;
     replica *_replica;
     replica_stub *_stub;

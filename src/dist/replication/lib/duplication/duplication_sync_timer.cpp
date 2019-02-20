@@ -60,16 +60,17 @@ void duplication_sync_timer::run()
     req->node = _stub->primary_address();
 
     // collects confirm points from all primaries on this server
+    int64_t pending_muts_cnt = 0;
     for (const replica_ptr &r : get_all_primaries()) {
         auto confirmed = r->get_duplication_manager()->get_duplication_confirms_to_update();
         if (!confirmed.empty()) {
             req->confirm_list[r->get_gpid()] = std::move(confirmed);
         }
+        pending_muts_cnt += r->get_duplication_manager()->get_pending_mutations_count();
     }
 
-    int64_t dup_pending_muts_cnt = _stub->_dup_pending_muts_cnt.load(std::memory_order_relaxed);
-    dcheck_ge(dup_pending_muts_cnt, 0);
-    _stub->_counter_dup_pending_mutations_count->set(dup_pending_muts_cnt);
+    dcheck_ge(pending_muts_cnt, 0);
+    _stub->_counter_dup_pending_mutations_count->set(pending_muts_cnt);
 
     duplication_sync_rpc rpc(std::move(req), RPC_CM_DUPLICATION_SYNC, 3_s);
     rpc_address meta_server_address(_stub->get_meta_server_address());
