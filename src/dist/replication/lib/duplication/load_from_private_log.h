@@ -63,9 +63,7 @@ public:
     /// Find the log file that contains decree `d`.
     void find_log_file_to_start(std::map<int, log_file_ptr> log_files);
 
-    void load_from_log_file();
-
-    error_s replay_log_block();
+    void replay_log_block();
 
     // Switches to the log file with index = current_log_index + 1.
     void switch_to_next_log_file();
@@ -81,13 +79,13 @@ private:
 
     log_file_ptr _current;
 
-    bool _read_from_start{true};
+    size_t _start_offset{0};
     int64_t _current_global_end_offset{0};
     mutation_batch _mutation_batch;
 
     decree _start_decree{0};
 
-    std::chrono::milliseconds _repeat_delay;
+    std::chrono::milliseconds _repeat_delay{10_s};
 };
 
 } // namespace replication

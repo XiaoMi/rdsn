@@ -459,7 +459,7 @@ TEST_F(mutation_log_test, replay_block)
                 EXPECT_EQ(wmu->client_requests.size(), mu->client_requests.size());
                 return true;
             },
-            true,
+            0,
             end_offset);
         ASSERT_TRUE(err.is_ok()) << err.description();
     }
@@ -548,22 +548,35 @@ TEST_F(mutation_log_test, read_empty_block)
         log_file_ptr file = log_file::open_read(log_file_path.c_str(), ec);
         ASSERT_EQ(ec, ERR_OK);
 
+        size_t start_offset = 0;
         int64_t end_offset;
 
         // header block
         error_s err = mutation_log::replay_block(
-            file, [](int log_length, mutation_ptr &mu) -> bool { return true; }, true, end_offset);
+            file,
+            [](int log_length, mutation_ptr &mu) -> bool { return true; },
+            start_offset,
+            end_offset);
         ASSERT_TRUE(err.is_ok()) << err.description();
+        start_offset = end_offset - file->start_offset();
 
         // data block
         err = mutation_log::replay_block(
-            file, [](int log_length, mutation_ptr &mu) -> bool { return true; }, false, end_offset);
+            file,
+            [](int log_length, mutation_ptr &mu) -> bool { return true; },
+            start_offset,
+            end_offset);
         ASSERT_TRUE(err.is_ok()) << err.description();
+        start_offset = end_offset - file->start_offset();
 
         // EOF
         err = mutation_log::replay_block(
-            file, [](int log_length, mutation_ptr &mu) -> bool { return true; }, false, end_offset);
+            file,
+            [](int log_length, mutation_ptr &mu) -> bool { return true; },
+            start_offset,
+            end_offset);
         ASSERT_EQ(err.code(), ERR_HANDLE_EOF) << err.description();
+        start_offset = end_offset - file->start_offset();
 
         // TODO(wutao1): reading after EOF should return ERR_HANDLE_EOF
         // err = mutation_log::replay_block(

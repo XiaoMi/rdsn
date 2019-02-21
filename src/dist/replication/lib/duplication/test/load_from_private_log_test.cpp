@@ -262,8 +262,9 @@ public:
         }
 
         {
-            // but after some sort of failure, the replica became learner and copied plogs starting
-            // from 38200
+            // This test simulates the following case:
+            // the replica has written logs [39100 -> 39199], but after some sort of failure,
+            // it became learner and copied plogs starting from 38200.
             boost::filesystem::rename(
                 fmt::format("./log.{}.{}", files1[3]->index(), files1[3]->start_offset()),
                 files1[3]->path());

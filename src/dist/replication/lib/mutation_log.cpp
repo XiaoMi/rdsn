@@ -930,7 +930,7 @@ inline static error_s read_log_block(log_file_ptr &log,
 
 /*static*/ error_s mutation_log::replay_block(log_file_ptr &log,
                                               replay_callback &callback,
-                                              bool read_from_start,
+                                              size_t start_offset,
                                               int64_t &end_offset)
 {
     FAIL_POINT_INJECT_F("mutation_log_replay_block", [](string_view) -> error_s {
@@ -940,10 +940,12 @@ inline static error_s read_log_block(log_file_ptr &log,
     blob bb;
     std::unique_ptr<binary_reader> reader;
 
-    if (read_from_start) {
-        end_offset = log->start_offset();
-        log->reset_stream();
+    // read from start
+    int64_t global_start_offset = start_offset + log->start_offset();
+    if (global_start_offset != end_offset) {
+        end_offset = global_start_offset;
     }
+    log->reset_stream(start_offset);
 
     error_s err = internal::read_log_block(log, end_offset, reader, bb);
     if (!err.is_ok()) {
@@ -951,7 +953,7 @@ inline static error_s read_log_block(log_file_ptr &log,
     }
 
     // first block is log_file_header
-    if (read_from_start) {
+    if (global_start_offset == log->start_offset()) {
         end_offset += log->read_file_header(*reader);
         if (!log->is_right_header()) {
             return error_s::make(ERR_INVALID_DATA, "failed to read log file header");
@@ -994,14 +996,14 @@ inline static error_s read_log_block(log_file_ptr &log,
     ::dsn::blob bb;
     log->reset_stream();
     error_s err;
-    bool start = true;
+    size_t start_offset = 0;
     while (true) {
-        err = replay_block(log, callback, start, end_offset);
+        err = replay_block(log, callback, start_offset, end_offset);
         if (!err.is_ok()) {
             break;
         }
 
-        start = false;
+        start_offset = static_cast<size_t>(end_offset - log->start_offset());
     }
 
     ddebug("finish to replay mutation log (%s) [err: %s]",
@@ -2343,14 +2345,16 @@ aio_task_ptr log_file::commit_log_block(log_block &block,
     return tsk;
 }
 
-void log_file::reset_stream()
+void log_file::reset_stream(size_t offset /*default = 0*/)
 {
     if (_stream == nullptr) {
-        _stream.reset(new file_streamer(_handle, 0));
+        _stream.reset(new file_streamer(_handle, offset));
     } else {
-        _stream->reset(0);
+        _stream->reset(offset);
     }
-    _crc32 = 0;
+    if (offset == 0) {
+        _crc32 = 0;
+    }
 }
 
 decree log_file::previous_log_max_decree(const dsn::gpid &pid)

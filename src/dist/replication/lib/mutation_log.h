@@ -200,9 +200,7 @@ public:
     // `log_private_batch_buffer_kb` and `log_private_batch_buffer_count`.
     //
     // Parameters:
-    // - read_from_start:
-    // If `read_from_start` is not specified, the reading will continue from the
-    // current offset, otherwise it will start from `log->start_offset()`.
+    // - start_offset: file offset to start.
     //
     // Returns:
     // - ERR_INVALID_DATA: if the loaded data is incorrect or invalid.
@@ -212,14 +210,14 @@ public:
     //
     static error_s replay_block(log_file_ptr &log,
                                 replay_callback &callback,
-                                bool read_from_start,
+                                size_t start_offset,
                                 /*out*/ int64_t &end_offset);
     static error_s replay_block(log_file_ptr &log,
                                 replay_callback &&callback,
-                                bool read_from_start,
+                                size_t start_offset,
                                 /*out*/ int64_t &end_offset)
     {
-        return replay_block(log, callback, read_from_start, end_offset);
+        return replay_block(log, callback, start_offset, end_offset);
     }
 
     // reset private-log with log files under `dir`
@@ -651,7 +649,7 @@ public:
     // others
     //
     // reset file_streamer to point to the start of this log file.
-    void reset_stream();
+    void reset_stream(size_t offset = 0);
     // end offset in the global space: end_offset = start_offset + file_size
     int64_t end_offset() const { return _end_offset.load(); }
     // start offset in the global space

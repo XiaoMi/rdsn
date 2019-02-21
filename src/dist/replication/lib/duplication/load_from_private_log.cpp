@@ -71,7 +71,7 @@ void load_from_private_log::run()
         }
     }
 
-    load_from_log_file();
+    replay_log_block();
 }
 
 void load_from_private_log::find_log_file_to_start()
@@ -121,9 +121,21 @@ void load_from_private_log::find_log_file_to_start(std::map<int, log_file_ptr> l
     __builtin_unreachable();
 }
 
-void load_from_private_log::load_from_log_file()
+void load_from_private_log::replay_log_block()
 {
-    error_s err = replay_log_block();
+    error_s err = mutation_log::replay_block(
+        _current,
+        [this](int log_bytes_length, mutation_ptr &mu) -> bool {
+            auto es = _mutation_batch.add(std::move(mu));
+            if (!es.is_ok()) {
+                dfatal_replica(es.description());
+            }
+            _stub->_counter_dup_log_read_in_bytes_rate->add(log_bytes_length);
+            _stub->_counter_dup_log_mutations_read_rate->increment();
+            return true;
+        },
+        _start_offset,
+        _current_global_end_offset);
     if (!err.is_ok()) {
         // EOF appears only when end of log file is reached.
         if (err.code() == ERR_HANDLE_EOF) {
@@ -135,32 +147,14 @@ void load_from_private_log::load_from_log_file()
         derror_replica(
             "loading mutation logs failed: [err: {}, file: {}], try again", err, _current->path());
 
-        _read_from_start = true;
         repeat(_repeat_delay);
         return;
     }
 
-    _read_from_start = false;
+    _start_offset = static_cast<size_t>(_current_global_end_offset - _current->start_offset());
 
     // update last_decree even for empty batch.
     step_down_next_stage(_mutation_batch.last_decree(), _mutation_batch.move_all_mutations());
-}
-
-error_s load_from_private_log::replay_log_block()
-{
-    return mutation_log::replay_block(_current,
-                                      [this](int log_bytes_length, mutation_ptr &mu) -> bool {
-                                          auto es = _mutation_batch.add(std::move(mu));
-                                          if (!es.is_ok()) {
-                                              dfatal_replica(es.description());
-                                          }
-                                          _stub->_counter_dup_log_read_in_bytes_rate->add(
-                                              log_bytes_length);
-                                          _stub->_counter_dup_log_mutations_read_rate->increment();
-                                          return true;
-                                      },
-                                      _read_from_start,
-                                      _current_global_end_offset);
 }
 
 load_from_private_log::load_from_private_log(replica *r, replica_duplicator *dup)
@@ -168,8 +162,7 @@ load_from_private_log::load_from_private_log(replica *r, replica_duplicator *dup
       _private_log(r->private_log()),
       _duplicator(dup),
       _stub(r->get_replica_stub()),
-      _mutation_batch(dup),
-      _repeat_delay(10_s)
+      _mutation_batch(dup)
 {
 }
 
@@ -184,7 +177,7 @@ void load_from_private_log::start_from_log_file(log_file_ptr f)
     ddebug_replica("start loading from log file {}", f->path());
 
     _current = std::move(f);
-    _read_from_start = true;
+    _start_offset = 0;
     _current_global_end_offset = _current->start_offset();
 }
 
