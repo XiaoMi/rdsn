@@ -64,8 +64,8 @@
 #include <dsn/dist/failure_detector/fd.client.h>
 #include <dsn/dist/failure_detector/fd.server.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
-#include <dsn/tool-api/zlocks.h>
 #include <dsn/tool-api/command_manager.h>
+#include <dsn/tool-api/zlocks.h>
 
 namespace dsn {
 namespace fd {
@@ -140,14 +140,7 @@ public:
 
     bool remove_from_allow_list(::dsn::rpc_address node);
 
-    void set_allow_list(const std::vector<std::string> &replica_addrs)
-    {
-        for (auto &addr : replica_addrs) {
-            dsn::rpc_address node;
-            if (node.from_string_ipv4(addr.c_str()))
-                add_allow_list(node);
-        }
-    }
+    void set_allow_list(const std::vector<std::string> &replica_addrs);
 
     int worker_count() const { return static_cast<int>(_workers.size()); }
 

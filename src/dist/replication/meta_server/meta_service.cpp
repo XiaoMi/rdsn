@@ -216,7 +216,7 @@ error_code meta_service::start()
 
     // start failure detector, and try to acquire the leader lock
     _failure_detector.reset(new meta_server_failure_detector(this));
-    if (_meta_opts.enable_white_list && !_meta_opts.replica_white_list.empty())
+    if (_meta_opts.enable_white_list)
         _failure_detector->set_allow_list(_meta_opts.replica_white_list);
     _failure_detector->register_ctrl_commands();
 

@@ -316,6 +316,20 @@ bool failure_detector::remove_from_allow_list(::dsn::rpc_address node)
     return _allow_list.erase(node) > 0;
 }
 
+void failure_detector::set_allow_list(const std::vector<std::string> &replica_addrs)
+{
+    if(_is_started){
+        dwarn("FD is already started, the allow list should really not be modified");
+        return;
+    }
+    
+    for (auto &addr : replica_addrs) {
+        dsn::rpc_address node;
+        if (node.from_string_ipv4(addr.c_str()))
+            add_allow_list(node);
+    }
+}
+
 void failure_detector::on_ping_internal(const beacon_msg &beacon, /*out*/ beacon_ack &ack)
 {
     ack.time = beacon.time;
