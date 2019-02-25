@@ -212,9 +212,7 @@ function(dsn_setup_compiler_flags)
     # -fno-omit-frame-pointer
     #   use frame pointers to allow simple stack frame walking for backtraces.
     #   This has a small perf hit but worth it for the ability to profile in production
-    add_definitions(-fno-omit-frame-pointer)
-
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y" CACHE STRING "" FORCE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -fno-omit-frame-pointer" CACHE STRING "" FORCE)
 
     #  -Wall: Enable all warnings.
     add_compile_options(-Wall)
@@ -296,7 +294,7 @@ function(dsn_setup_system_libs)
     set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
 
     if(ENABLE_GPERF)
-        set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} tcmalloc)
+        set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} tcmalloc tcmalloc_and_profiler)
     endif()
 
     set(DSN_SYSTEM_LIBS
