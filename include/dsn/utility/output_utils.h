@@ -153,7 +153,7 @@ private:
     void add_row_name_and_string_data(const std::string &row_name, const std::string &data);
 
     void output_in_tabular(std::ostream &out) const;
-    template<typename Writer>
+    template <typename Writer>
     void output_in_json(std::ostream &out) const
     {
         Writer writer(out);
@@ -213,7 +213,7 @@ public:
 
 private:
     void output_in_tabular(std::ostream &out) const;
-    template<typename Writer>
+    template <typename Writer>
     void output_in_json(std::ostream &out) const
     {
         Writer writer(out);
