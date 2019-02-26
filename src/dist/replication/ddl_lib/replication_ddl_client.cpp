@@ -380,7 +380,7 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
         max_app_name_size = std::max(max_app_name_size, info.app_name.size() + 2);
     }
 
-    dsn::utils::table_printer_container tp_container;
+    dsn::utils::multi_table_printer mtp;
     dsn::utils::table_printer tp_general("general_info");
     tp_general.add_title("app_id");
     tp_general.add_column("status");
@@ -439,7 +439,7 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
         tp_general.append_data(drop_expire_time);
         tp_general.append_data(info.envs.size());
     }
-    tp_container.add(std::move(tp_general));
+    mtp.add(std::move(tp_general));
 
     int total_fully_healthy_app_count = 0;
     int total_unhealthy_app_count = 0;
@@ -508,7 +508,7 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
             if (read_unhealthy > 0)
                 total_read_unhealthy_app_count++;
         }
-        tp_container.add(std::move(tp_health));
+        mtp.add(std::move(tp_health));
         out << std::endl;
     }
 
@@ -521,9 +521,9 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
                                        total_write_unhealthy_app_count);
         tp_count.add_row_name_and_data("read_unhealthy_app_count", total_read_unhealthy_app_count);
     }
-    tp_container.add(std::move(tp_count));
+    mtp.add(std::move(tp_count));
 
-    tp_container.output(out, json ? tp_output_format::kJsonPretty : tp_output_format::kSpace);
+    mtp.output(out, json ? tp_output_format::kJsonPretty : tp_output_format::kTabular);
     out << std::endl;
 
     return dsn::ERR_OK;

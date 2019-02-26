@@ -34,18 +34,18 @@ namespace utils {
 void table_printer::add_title(const std::string &title, alignment align)
 {
     check_mode(data_mode::KMultiColumns);
-    dassert(matrix_data_.empty() && max_col_width_.empty(), "`add_title` must be called only once");
-    max_col_width_.push_back(title.length());
-    align_left_.push_back(align == alignment::kLeft);
+    dassert(_matrix_data.empty() && _max_col_width.empty(), "`add_title` must be called only once");
+    _max_col_width.push_back(title.length());
+    _align_left.push_back(align == alignment::kLeft);
     add_row(title);
 }
 
 void table_printer::add_column(const std::string &col_name, alignment align)
 {
     check_mode(data_mode::KMultiColumns);
-    dassert(matrix_data_.size() == 1, "`add_column` must be called before real data appendding");
-    max_col_width_.emplace_back(col_name.length());
-    align_left_.push_back(align == alignment::kLeft);
+    dassert(_matrix_data.size() == 1, "`add_column` must be called before real data appendding");
+    _max_col_width.emplace_back(col_name.length());
+    _align_left.push_back(align == alignment::kLeft);
     append_data(col_name);
 }
 
@@ -53,14 +53,14 @@ void table_printer::add_row_name_and_string_data(const std::string &row_name,
                                                  const std::string &data)
 {
     // The first row added to the table.
-    if (max_col_width_.empty()) {
-        max_col_width_.push_back(row_name.length());
-        align_left_.push_back(true);
-        max_col_width_.push_back(data.length());
-        align_left_.push_back(true);
+    if (_max_col_width.empty()) {
+        _max_col_width.push_back(row_name.length());
+        _align_left.push_back(true);
+        _max_col_width.push_back(data.length());
+        _align_left.push_back(true);
     }
 
-    matrix_data_.emplace_back(std::vector<std::string>());
+    _matrix_data.emplace_back(std::vector<std::string>());
     append_string_data(row_name);
     append_string_data(data);
 }
@@ -68,65 +68,50 @@ void table_printer::add_row_name_and_string_data(const std::string &row_name,
 void table_printer::output(std::ostream &out, output_format format) const
 {
     switch (format) {
-    case output_format::kSpace:
-        output_in_space(out);
+    case output_format::kTabular:
+        output_in_tabular(out);
         break;
     case output_format::kJsonCompact:
+        output_in_json<dsn::json::json_writer<dsn::json::JsonWriter>>(out);
+        break;
     case output_format::kJsonPretty:
-        output_in_json(out, format);
+        output_in_json<dsn::json::json_writer<dsn::json::PrettyJsonWriter>>(out);
         break;
     default:
         dassert(false, "Unknown format");
     }
 }
 
-void table_printer::output_in_space(std::ostream &out) const
+void table_printer::output_in_tabular(std::ostream &out) const
 {
-    if (max_col_width_.empty()) {
+    if (_max_col_width.empty()) {
         return;
     }
 
     std::string separator;
-    if (mode_ == data_mode::KSingleColumn) {
+    if (_mode == data_mode::KSingleColumn) {
         separator = ": ";
     } else {
-        dassert(mode_ == data_mode::KMultiColumns, "Unknown mode");
+        dassert(_mode == data_mode::KMultiColumns, "Unknown mode");
     }
 
-    out << name_ << std::endl;
-    for (const auto &row : matrix_data_) {
+    out << _name << std::endl;
+    for (const auto &row : _matrix_data) {
         for (size_t col = 0; col < row.size(); ++col) {
             auto data = (col == 0 ? "" : separator) + row[col];
-            out << std::setw(max_col_width_[col] + space_width_)
-                << (align_left_[col] ? std::left : std::right) << data;
+            out << std::setw(_max_col_width[col] + _tabular_width)
+                << (_align_left[col] ? std::left : std::right) << data;
         }
         out << std::endl;
     }
 }
 
-void table_printer::output_in_json(std::ostream &out, output_format format) const
-{
-    std::unique_ptr<dsn::json::JsonWriterIf> writer;
-    switch (format) {
-    case output_format::kJsonCompact:
-        writer.reset(new dsn::json::GeneralJsonWriter<dsn::json::JsonWriter>(out));
-        break;
-    case output_format::kJsonPretty:
-        writer.reset(new dsn::json::GeneralJsonWriter<dsn::json::PrettyJsonWriter>(out));
-        break;
-    default:
-        dassert(false, "Unknown format");
-    }
-
-    json_encode(*writer, *this);
-}
-
 void table_printer::append_string_data(const std::string &data)
 {
-    matrix_data_.rbegin()->emplace_back(data);
+    _matrix_data.rbegin()->emplace_back(data);
 
     // update column max length
-    int &cur_len = max_col_width_[matrix_data_.rbegin()->size() - 1];
+    int &cur_len = _max_col_width[_matrix_data.rbegin()->size() - 1];
     if (cur_len < data.size()) {
         cur_len = data.size();
     }
@@ -134,35 +119,35 @@ void table_printer::append_string_data(const std::string &data)
 
 void table_printer::check_mode(data_mode mode)
 {
-    if (mode_ == data_mode::kUninitialized) {
-        mode_ = mode;
+    if (_mode == data_mode::kUninitialized) {
+        _mode = mode;
         return;
     }
-    dassert(mode_ == mode, "");
+    dassert(_mode == mode, "");
 }
 
 template <typename Writer>
 void json_encode(Writer &writer, const table_printer &tp)
 {
-    writer.String(tp.name_); // table_printer name
-    if (tp.mode_ == table_printer::data_mode::KMultiColumns) {
+    writer.String(tp._name); // table_printer name
+    if (tp._mode == table_printer::data_mode::KMultiColumns) {
         writer.StartObject();
         // The 1st row elements are column names, skip it.
-        for (size_t row = 1; row < tp.matrix_data_.size(); ++row) {
-            writer.String(tp.matrix_data_[row][0]); // row name
+        for (size_t row = 1; row < tp._matrix_data.size(); ++row) {
+            writer.String(tp._matrix_data[row][0]); // row name
             writer.StartObject();
-            for (int col = 0; col < tp.matrix_data_[row].size(); col++) {
-                writer.String(tp.matrix_data_[0][col]);   // column name
-                writer.String(tp.matrix_data_[row][col]); // column data
+            for (int col = 0; col < tp._matrix_data[row].size(); col++) {
+                writer.String(tp._matrix_data[0][col]);   // column name
+                writer.String(tp._matrix_data[row][col]); // column data
             }
             writer.EndObject();
         }
         writer.EndObject();
-    } else if (tp.mode_ == table_printer::data_mode::KSingleColumn) {
+    } else if (tp._mode == table_printer::data_mode::KSingleColumn) {
         writer.StartObject();
-        for (size_t row = 0; row < tp.matrix_data_.size(); ++row) {
-            writer.String(tp.matrix_data_[row][0]); // row name
-            writer.String(tp.matrix_data_[row][1]); // row data
+        for (size_t row = 0; row < tp._matrix_data.size(); ++row) {
+            writer.String(tp._matrix_data[row][0]); // row name
+            writer.String(tp._matrix_data[row][1]); // row data
         }
         writer.EndObject();
     } else {
@@ -170,51 +155,31 @@ void json_encode(Writer &writer, const table_printer &tp)
     }
 }
 
-void table_printer_container::add(table_printer &&tp) { tps_.emplace_back(std::move(tp)); }
+void multi_table_printer::add(table_printer &&tp) { _tps.emplace_back(std::move(tp)); }
 
-void table_printer_container::output(std::ostream &out,
-                                     table_printer::table_printer::output_format format) const
+void multi_table_printer::output(std::ostream &out,
+                                 table_printer::table_printer::output_format format) const
 {
     switch (format) {
-    case table_printer::output_format::kSpace:
-        output_in_space(out);
+    case table_printer::output_format::kTabular:
+        output_in_tabular(out);
         break;
     case table_printer::output_format::kJsonCompact:
+        output_in_json<dsn::json::json_writer<dsn::json::JsonWriter>>(out);
+        break;
     case table_printer::output_format::kJsonPretty:
-        output_in_json(out, format);
+        output_in_json<dsn::json::json_writer<dsn::json::PrettyJsonWriter>>(out);
         break;
     default:
         dassert(false, "Unknown format");
     }
 }
 
-void table_printer_container::output_in_space(std::ostream &out) const
+void multi_table_printer::output_in_tabular(std::ostream &out) const
 {
-    for (const auto &tp : tps_) {
-        tp.output_in_space(out);
+    for (const auto &tp : _tps) {
+        tp.output_in_tabular(out);
     }
-}
-
-void table_printer_container::output_in_json(std::ostream &out,
-                                             table_printer::output_format format) const
-{
-    std::unique_ptr<dsn::json::JsonWriterIf> writer;
-    switch (format) {
-    case table_printer::output_format::kJsonCompact:
-        writer.reset(new dsn::json::GeneralJsonWriter<dsn::json::JsonWriter>(out));
-        break;
-    case table_printer::output_format::kJsonPretty:
-        writer.reset(new dsn::json::GeneralJsonWriter<dsn::json::PrettyJsonWriter>(out));
-        break;
-    default:
-        dassert(false, "Unknown format");
-    }
-
-    writer->StartObject();
-    for (const auto &tp : tps_) {
-        json_encode(*writer, tp);
-    }
-    writer->EndObject();
 }
 
 } // namespace utils

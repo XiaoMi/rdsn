@@ -210,7 +210,7 @@ class json_forwarder;
 // please notice when we call rapidjson::Writer::String, with 3rd parameter with "true",
 // which means that we will COPY string to writer
 template <typename Writer>
-inline void json_encode(Writer &out, const std::string &str)
+void json_encode(Writer &out, const std::string &str)
 {
     out.String(str.c_str(), str.length(), true);
 }
@@ -603,37 +603,26 @@ NON_MEMBER_JSON_SERIALIZATION(dsn::app_info,
                               create_second,
                               drop_second)
 
-class JsonWriterIf
-{
-public:
-    virtual void StartObject() = 0;
-    virtual void EndObject() = 0;
-    virtual void StartArray() = 0;
-    virtual void EndArray() = 0;
-
-    virtual void String(const std::string &str) = 0;
-};
-
 // Could create template instantiation class with JsonWriter or PrettyJsonWriter.
 template <typename Writer>
-class GeneralJsonWriter : public JsonWriterIf
+class json_writer
 {
 public:
-    explicit GeneralJsonWriter(std::ostream &os)
+    explicit json_writer(std::ostream &os)
     {
         rapidjson::OStreamWrapper wrapper(os);
-        writer_.reset(new Writer(wrapper));
+        _writer.reset(new Writer(wrapper));
     }
 
-    virtual void StartObject() { writer_->StartObject(); }
-    virtual void EndObject() { writer_->EndObject(); }
-    virtual void StartArray() { writer_->StartArray(); }
-    virtual void EndArray() { writer_->EndArray(); }
+    virtual void StartObject() { _writer->StartObject(); }
+    virtual void EndObject() { _writer->EndObject(); }
+    virtual void StartArray() { _writer->StartArray(); }
+    virtual void EndArray() { _writer->EndArray(); }
 
-    virtual void String(const std::string &str) { json_encode(*writer_, str); }
+    virtual void String(const std::string &str) { json_encode(*_writer, str); }
 
 private:
-    std::shared_ptr<Writer> writer_;
+    std::unique_ptr<Writer> _writer;
 };
 } // namaspace json
 } // namaspace dsn
