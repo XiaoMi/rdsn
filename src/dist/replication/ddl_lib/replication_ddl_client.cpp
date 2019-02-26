@@ -523,8 +523,7 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
     }
     tp_container.add(std::move(tp_count));
 
-    tp_container.output(
-        out, json ? tp_output_format::kJsonPretty: tp_output_format::kSpace);
+    tp_container.output(out, json ? tp_output_format::kJsonPretty : tp_output_format::kSpace);
     out << std::endl;
 
     return dsn::ERR_OK;

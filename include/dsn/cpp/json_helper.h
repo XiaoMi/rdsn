@@ -603,34 +603,37 @@ NON_MEMBER_JSON_SERIALIZATION(dsn::app_info,
                               create_second,
                               drop_second)
 
-class JsonWriterIf {
+class JsonWriterIf
+{
 public:
-  virtual void StartObject() = 0;
-  virtual void EndObject() = 0;
-  virtual void StartArray() = 0;
-  virtual void EndArray() = 0;
+    virtual void StartObject() = 0;
+    virtual void EndObject() = 0;
+    virtual void StartArray() = 0;
+    virtual void EndArray() = 0;
 
-  virtual void String(const std::string& str) = 0;
+    virtual void String(const std::string &str) = 0;
 };
 
 // Could create template instantiation class with JsonWriter or PrettyJsonWriter.
-template<typename Writer>
-class GeneralJsonWriter : public JsonWriterIf {
+template <typename Writer>
+class GeneralJsonWriter : public JsonWriterIf
+{
 public:
-  explicit GeneralJsonWriter(std::ostream &os) {
-    rapidjson::OStreamWrapper wrapper(os);
-    writer_.reset(new Writer(wrapper));
-  }
+    explicit GeneralJsonWriter(std::ostream &os)
+    {
+        rapidjson::OStreamWrapper wrapper(os);
+        writer_.reset(new Writer(wrapper));
+    }
 
-  virtual void StartObject() { writer_->StartObject(); }
-  virtual void EndObject() { writer_->EndObject(); }
-  virtual void StartArray() { writer_->StartArray(); }
-  virtual void EndArray() { writer_->EndArray(); }
+    virtual void StartObject() { writer_->StartObject(); }
+    virtual void EndObject() { writer_->EndObject(); }
+    virtual void StartArray() { writer_->StartArray(); }
+    virtual void EndArray() { writer_->EndArray(); }
 
-  virtual void String(const std::string& str) { json_encode(*writer_, str); }
+    virtual void String(const std::string &str) { json_encode(*writer_, str); }
 
 private:
-  std::shared_ptr<Writer> writer_;
+    std::shared_ptr<Writer> writer_;
 };
-}  // namaspace json
-}  // namaspace dsn
+} // namaspace json
+} // namaspace dsn

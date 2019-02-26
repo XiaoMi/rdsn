@@ -170,10 +170,7 @@ void json_encode(Writer &writer, const table_printer &tp)
     }
 }
 
-void table_printer_container::add(table_printer &&tp)
-{
-    tps_.emplace_back(std::move(tp));
-}
+void table_printer_container::add(table_printer &&tp) { tps_.emplace_back(std::move(tp)); }
 
 void table_printer_container::output(std::ostream &out,
                                      table_printer::table_printer::output_format format) const
