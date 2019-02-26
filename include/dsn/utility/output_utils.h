@@ -50,8 +50,8 @@ void json_encode(Writer &out, const table_printer &tp);
 /// Example usage 1:
 ///    table_printer tp("sample_data");
 ///    tp.add_title("table_title");
-///    tp.add_column("column_name_1");
-///    tp.add_column("column_name_2");
+///    tp.add_column("column_name1");
+///    tp.add_column("column_name2");
 ///    for (...) {
 ///        tp.add_row("row_name_i");
 ///        tp.append_data(int_data);
