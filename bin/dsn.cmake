@@ -294,7 +294,7 @@ function(dsn_setup_system_libs)
     set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
 
     if(ENABLE_GPERF)
-        set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} tcmalloc tcmalloc_and_profiler)
+        set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} tcmalloc_and_profiler)
     endif()
 
     set(DSN_SYSTEM_LIBS
