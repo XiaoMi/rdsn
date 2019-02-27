@@ -125,7 +125,7 @@ void table_printer::output_in_tabular(std::ostream &out) const
     }
 
     if (!_name.empty()) {
-      out << "[" << _name << "]" << std::endl;
+        out << "[" << _name << "]" << std::endl;
     }
     for (const auto &row : _matrix_data) {
         for (size_t col = 0; col < row.size(); ++col) {

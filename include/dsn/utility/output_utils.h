@@ -224,6 +224,7 @@ private:
             json_encode(writer, tp);
         }
         writer.EndObject();
+        out << std::endl;
     }
 
 private:

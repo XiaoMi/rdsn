@@ -509,7 +509,6 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
                 total_read_unhealthy_app_count++;
         }
         mtp.add(std::move(tp_health));
-        out << std::endl;
     }
 
     dsn::utils::table_printer tp_count("summary");
@@ -524,7 +523,6 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
     mtp.add(std::move(tp_count));
 
     mtp.output(out, json ? tp_output_format::kJsonPretty : tp_output_format::kTabular);
-    out << std::endl;
 
     return dsn::ERR_OK;
 }
