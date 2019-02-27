@@ -72,10 +72,10 @@ void table_printer::output(std::ostream &out, output_format format) const
         output_in_tabular(out);
         break;
     case output_format::kJsonCompact:
-        output_in_json<dsn::json::json_writer<dsn::json::JsonWriter>>(out);
+        output_in_json<dsn::json::JsonWriter>(out);
         break;
     case output_format::kJsonPretty:
-        output_in_json<dsn::json::json_writer<dsn::json::PrettyJsonWriter>>(out);
+        output_in_json<dsn::json::PrettyJsonWriter>(out);
         break;
     default:
         dassert(false, "Unknown format");
@@ -129,16 +129,16 @@ void table_printer::check_mode(data_mode mode)
 template <typename Writer>
 void json_encode(Writer &writer, const table_printer &tp)
 {
-    writer.String(tp._name); // table_printer name
+    dsn::json::json_encode(writer, tp._name); // table_printer name
     if (tp._mode == table_printer::data_mode::KMultiColumns) {
         writer.StartObject();
         // The 1st row elements are column names, skip it.
         for (size_t row = 1; row < tp._matrix_data.size(); ++row) {
-            writer.String(tp._matrix_data[row][0]); // row name
+            dsn::json::json_encode(writer, tp._matrix_data[row][0]); // row name
             writer.StartObject();
             for (int col = 0; col < tp._matrix_data[row].size(); col++) {
-                writer.String(tp._matrix_data[0][col]);   // column name
-                writer.String(tp._matrix_data[row][col]); // column data
+                dsn::json::json_encode(writer, tp._matrix_data[0][col]);   // column name
+                dsn::json::json_encode(writer, tp._matrix_data[row][col]); // column data
             }
             writer.EndObject();
         }
@@ -146,8 +146,8 @@ void json_encode(Writer &writer, const table_printer &tp)
     } else if (tp._mode == table_printer::data_mode::KSingleColumn) {
         writer.StartObject();
         for (size_t row = 0; row < tp._matrix_data.size(); ++row) {
-            writer.String(tp._matrix_data[row][0]); // row name
-            writer.String(tp._matrix_data[row][1]); // row data
+            dsn::json::json_encode(writer, tp._matrix_data[row][0]); // row name
+            dsn::json::json_encode(writer, tp._matrix_data[row][1]); // row data
         }
         writer.EndObject();
     } else {
@@ -165,10 +165,10 @@ void multi_table_printer::output(std::ostream &out,
         output_in_tabular(out);
         break;
     case table_printer::output_format::kJsonCompact:
-        output_in_json<dsn::json::json_writer<dsn::json::JsonWriter>>(out);
+        output_in_json<dsn::json::JsonWriter>(out);
         break;
     case table_printer::output_format::kJsonPretty:
-        output_in_json<dsn::json::json_writer<dsn::json::PrettyJsonWriter>>(out);
+        output_in_json<dsn::json::PrettyJsonWriter>(out);
         break;
     default:
         dassert(false, "Unknown format");

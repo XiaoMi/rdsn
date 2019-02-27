@@ -602,27 +602,5 @@ NON_MEMBER_JSON_SERIALIZATION(dsn::app_info,
                               expire_second,
                               create_second,
                               drop_second)
-
-// Could create template instantiation class with JsonWriter or PrettyJsonWriter.
-template <typename Writer>
-class json_writer
-{
-public:
-    explicit json_writer(std::ostream &os)
-    {
-        rapidjson::OStreamWrapper wrapper(os);
-        _writer.reset(new Writer(wrapper));
-    }
-
-    virtual void StartObject() { _writer->StartObject(); }
-    virtual void EndObject() { _writer->EndObject(); }
-    virtual void StartArray() { _writer->StartArray(); }
-    virtual void EndArray() { _writer->EndArray(); }
-
-    virtual void String(const std::string &str) { json_encode(*_writer, str); }
-
-private:
-    std::unique_ptr<Writer> _writer;
-};
-} // namaspace json
-} // namaspace dsn
+} // namespace json
+} // namespace dsn

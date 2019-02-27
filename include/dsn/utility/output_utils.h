@@ -104,7 +104,7 @@ public:
         kJsonPretty = 2,
     };
 
-    table_printer(std::string name = "", int tabular_width = 2, int precision = 2)
+    explicit table_printer(std::string name = "", int tabular_width = 2, int precision = 2)
         : _name(std::move(name)),
           _mode(data_mode::kUninitialized),
           _tabular_width(tabular_width),
@@ -156,7 +156,8 @@ private:
     template <typename Writer>
     void output_in_json(std::ostream &out) const
     {
-        Writer writer(out);
+        rapidjson::OStreamWrapper wrapper(out);
+        Writer writer(wrapper);
         json_encode(writer, *this);
     }
 
@@ -216,7 +217,8 @@ private:
     template <typename Writer>
     void output_in_json(std::ostream &out) const
     {
-        Writer writer(out);
+        rapidjson::OStreamWrapper wrapper(out);
+        Writer writer(wrapper);
         writer.StartObject();
         for (const auto &tp : _tps) {
             json_encode(writer, tp);
