@@ -31,6 +31,35 @@
 namespace dsn {
 namespace utils {
 
+template <typename Writer>
+void json_encode(Writer &writer, const table_printer &tp)
+{
+    dsn::json::json_encode(writer, tp._name); // table_printer name
+    if (tp._mode == table_printer::data_mode::KMultiColumns) {
+        writer.StartObject();
+        // The 1st row elements are column names, skip it.
+        for (size_t row = 1; row < tp._matrix_data.size(); ++row) {
+            dsn::json::json_encode(writer, tp._matrix_data[row][0]); // row name
+            writer.StartObject();
+            for (int col = 0; col < tp._matrix_data[row].size(); col++) {
+                dsn::json::json_encode(writer, tp._matrix_data[0][col]);   // column name
+                dsn::json::json_encode(writer, tp._matrix_data[row][col]); // column data
+            }
+            writer.EndObject();
+        }
+        writer.EndObject();
+    } else if (tp._mode == table_printer::data_mode::KSingleColumn) {
+        writer.StartObject();
+        for (size_t row = 0; row < tp._matrix_data.size(); ++row) {
+            dsn::json::json_encode(writer, tp._matrix_data[row][0]); // row name
+            dsn::json::json_encode(writer, tp._matrix_data[row][1]); // row data
+        }
+        writer.EndObject();
+    } else {
+        dassert(false, "Unknown mode");
+    }
+}
+
 void table_printer::add_title(const std::string &title, alignment align)
 {
     check_mode(data_mode::KMultiColumns);
@@ -95,7 +124,9 @@ void table_printer::output_in_tabular(std::ostream &out) const
         dassert(_mode == data_mode::KMultiColumns, "Unknown mode");
     }
 
-    out << _name << std::endl;
+    if (!_name.empty()) {
+      out << "[" << _name << "]" << std::endl;
+    }
     for (const auto &row : _matrix_data) {
         for (size_t col = 0; col < row.size(); ++col) {
             auto data = (col == 0 ? "" : separator) + row[col];
@@ -124,35 +155,6 @@ void table_printer::check_mode(data_mode mode)
         return;
     }
     dassert(_mode == mode, "");
-}
-
-template <typename Writer>
-void json_encode(Writer &writer, const table_printer &tp)
-{
-    dsn::json::json_encode(writer, tp._name); // table_printer name
-    if (tp._mode == table_printer::data_mode::KMultiColumns) {
-        writer.StartObject();
-        // The 1st row elements are column names, skip it.
-        for (size_t row = 1; row < tp._matrix_data.size(); ++row) {
-            dsn::json::json_encode(writer, tp._matrix_data[row][0]); // row name
-            writer.StartObject();
-            for (int col = 0; col < tp._matrix_data[row].size(); col++) {
-                dsn::json::json_encode(writer, tp._matrix_data[0][col]);   // column name
-                dsn::json::json_encode(writer, tp._matrix_data[row][col]); // column data
-            }
-            writer.EndObject();
-        }
-        writer.EndObject();
-    } else if (tp._mode == table_printer::data_mode::KSingleColumn) {
-        writer.StartObject();
-        for (size_t row = 0; row < tp._matrix_data.size(); ++row) {
-            dsn::json::json_encode(writer, tp._matrix_data[row][0]); // row name
-            dsn::json::json_encode(writer, tp._matrix_data[row][1]); // row data
-        }
-        writer.EndObject();
-    } else {
-        dassert(false, "Unknown mode");
-    }
 }
 
 void multi_table_printer::add(table_printer &&tp) { _tps.emplace_back(std::move(tp)); }
