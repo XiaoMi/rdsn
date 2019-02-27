@@ -118,7 +118,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
     uint8_t count = 0;
     mu->data.header.last_committed_decree = last_committed_decree();
 
-    dsn_log_level_t level = LOG_LEVEL_INFORMATION;
+    log_level_t level = LOG_LEVEL_INFORMATION;
     if (mu->data.header.decree == invalid_decree) {
         mu->set_id(get_ballot(), _prepare_list->max_decree() + 1);
         // print a debug log if necessary

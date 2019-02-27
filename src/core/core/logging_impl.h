@@ -24,74 +24,47 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #pragma once
 
-#include <dsn/tool_api.h>
 #include <thread>
 #include <cstdio>
 
+#include <dsn/utility/logging.h>
+#include <dsn/utility/synchronize.h>
+
 namespace dsn {
-namespace tools {
-
-class screen_logger : public logging_provider
-{
-public:
-    screen_logger(const char *log_dir);
-    virtual ~screen_logger(void);
-
-    virtual void dsn_logv(const char *file,
-                          const char *function,
-                          const int line,
-                          dsn_log_level_t log_level,
-                          const char *fmt,
-                          va_list args);
-
-    virtual void flush();
-
-private:
-    ::dsn::utils::ex_lock_nr _lock;
-    bool _short_header;
-};
 
 class simple_logger : public logging_provider
 {
 public:
-    simple_logger(const char *log_dir);
-    virtual ~simple_logger(void);
+    explicit simple_logger(const char *log_dir);
 
-    virtual void dsn_logv(const char *file,
-                          const char *function,
-                          const int line,
-                          dsn_log_level_t log_level,
-                          const char *fmt,
-                          va_list args);
+    ~simple_logger() override;
 
-    virtual void flush();
+    void logv(const char *file,
+              const char *function,
+              int line,
+              log_level_t log_level,
+              const char *fmt,
+              va_list args) override;
+
+    void flush() override;
 
 private:
     void create_log_file();
 
 private:
     std::string _log_dir;
-    ::dsn::utils::ex_lock _lock; // use recursive lock to avoid dead lock when flush() is called
-                                 // in signal handler if cored for bad logging format reason.
+    utils::ex_lock _lock; // use recursive lock to avoid dead lock when flush() is called
+                          // in signal handler if cored for bad logging format reason.
     FILE *_log;
     int _start_index;
     int _index;
     int _lines;
     bool _short_header;
     bool _fast_flush;
-    dsn_log_level_t _stderr_start_level;
+    log_level_t _stderr_start_level;
     int _max_number_of_log_files_on_disk;
 };
-}
-}
+
+} // namespace dsn

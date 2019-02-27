@@ -283,7 +283,6 @@ tool_app *get_current_tool() { return dsn_all.tool.get(); }
 } // namespace tools
 } // namespace dsn
 
-extern void dsn_log_init();
 extern void dsn_core_init();
 
 inline void dsn_global_init()
@@ -358,10 +357,6 @@ bool run(const char *config_file,
     dsn::utils::filesystem::create_directory(spec.dir_coredump);
     ::dsn::utils::coredump::init(spec.dir_coredump.c_str());
 
-    // setup log dir
-    spec.dir_log = ::dsn::utils::filesystem::path_combine(cdir, "log");
-    dsn::utils::filesystem::create_directory(spec.dir_log);
-
     // init tools
     dsn_all.tool.reset(::dsn::utils::factory_store<::dsn::tools::tool_app>::create(
         spec.tool.c_str(), ::dsn::PROVIDER_TYPE_MAIN, spec.tool.c_str()));
@@ -385,7 +380,8 @@ bool run(const char *config_file,
     ::dsn::service_engine::instance().init_before_toollets(spec);
 
     // init logging
-    dsn_log_init();
+    std::string log_dir = ::dsn::utils::filesystem::path_combine(cdir, "log");
+    dsn::logging_init(log_dir.c_str());
 
     ddebug("process(%ld) start: %" PRIu64 ", date: %s",
            getpid(),

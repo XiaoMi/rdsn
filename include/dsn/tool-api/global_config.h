@@ -159,7 +159,6 @@ struct service_spec
     std::string rwlock_nr_factory_name;
     std::string semaphore_factory_name;
     std::string nfs_factory_name;
-    std::string logging_factory_name;
 
     std::list<std::string> network_aspects; // toollets compatible to the above network main
                                             // providers in network configs
@@ -180,7 +179,6 @@ struct service_spec
 
     // auto-set
     std::string dir_coredump;
-    std::string dir_log;
 
     service_spec() {}
     DSN_API bool init();
@@ -208,7 +206,6 @@ CONFIG_FLD_STRING(lock_nr_factory_name, "", "non-recurisve exclusive lock provid
 CONFIG_FLD_STRING(rwlock_nr_factory_name, "", "non-recurisve rwlock provider")
 CONFIG_FLD_STRING(semaphore_factory_name, "", "semaphore provider")
 CONFIG_FLD_STRING(nfs_factory_name, "", "nfs provider")
-CONFIG_FLD_STRING(logging_factory_name, "", "logging provider")
 
 CONFIG_FLD_STRING_LIST(network_aspects, "network aspect providers, usually for tooling purpose")
 CONFIG_FLD_STRING_LIST(aio_aspects, "aio aspect providers, usually for tooling purpose")

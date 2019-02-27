@@ -78,9 +78,6 @@ void nativerun::install(service_spec &spec)
         spec.network_default_server_cfs[cs2] = cs2;
     }
 
-    if (spec.logging_factory_name == "")
-        spec.logging_factory_name = "dsn::tools::simple_logger";
-
     if (spec.lock_factory_name == "")
         spec.lock_factory_name = ("dsn::tools::std_lock_provider");
 

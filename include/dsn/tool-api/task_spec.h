@@ -47,14 +47,6 @@
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/c/api_utilities.h>
 
-ENUM_BEGIN(dsn_log_level_t, LOG_LEVEL_INVALID)
-ENUM_REG(LOG_LEVEL_INFORMATION)
-ENUM_REG(LOG_LEVEL_DEBUG)
-ENUM_REG(LOG_LEVEL_WARNING)
-ENUM_REG(LOG_LEVEL_ERROR)
-ENUM_REG(LOG_LEVEL_FATAL)
-ENUM_END(dsn_log_level_t)
-
 namespace dsn {
 
 enum task_state
