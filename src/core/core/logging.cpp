@@ -80,7 +80,7 @@ static void log_on_sys_exit(sys_exit_type)
                 start_level = enum_from_string(
                     dsn_config_get_value_string("core",
                                                 "logging_start_level",
-                                                enum_to_string(start_level),
+                                                enum_to_string(s_log_start_level),
                                                 "logs with level below this will not be logged"),
                     log_level_t::LOG_LEVEL_INVALID);
             } else {

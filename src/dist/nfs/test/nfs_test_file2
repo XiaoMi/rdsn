@@ -44,7 +44,6 @@ cli_remote = true
 
 logging_start_level = LOG_LEVEL_DEBUG
 
-
 disk_io_mode = IOE_PER_QUEUE
 ;rpc_io_mode = IOE_PER_QUEUE
 nfs_io_mode = IOE_PER_QUEUE

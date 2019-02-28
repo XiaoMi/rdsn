@@ -57,7 +57,6 @@ cli_remote = true
 
 logging_start_level = LOG_LEVEL_DEBUG
 
-
 io_worker_count = 1
 
 [tools.simulator]

@@ -81,7 +81,7 @@ simple_logger::simple_logger(const char *log_dir)
 {
     // setup log dir
     _log_dir = std::string(log_dir);
-    dsn::utils::filesystem::create_directory(_log_dir);
+    utils::filesystem::create_directory(_log_dir);
 
     // we assume all valid entries are positive
     _start_index = 0;
@@ -113,11 +113,11 @@ simple_logger::simple_logger(const char *log_dir)
 
     // check existing log files
     std::vector<std::string> sub_list;
-    if (!dsn::utils::filesystem::get_subfiles(_log_dir, sub_list, false)) {
+    if (!utils::filesystem::get_subfiles(_log_dir, sub_list, false)) {
         dassert(false, "Fail to get subfiles in %s.", _log_dir.c_str());
     }
     for (auto &fpath : sub_list) {
-        auto &&name = dsn::utils::filesystem::get_file_name(fpath);
+        auto &&name = utils::filesystem::get_file_name(fpath);
         if (name.length() <= 8 || name.substr(0, 4) != "log.")
             continue;
 
