@@ -37,8 +37,6 @@ namespace dsn {
 
 static std::unique_ptr<logging_provider> s_logging_provider;
 
-/*extern*/ log_level_t s_log_start_level = LOG_LEVEL_INVALID;
-
 static void log_on_sys_exit(sys_exit_type)
 {
     logging_provider *logger = s_logging_provider.get();
@@ -47,13 +45,11 @@ static void log_on_sys_exit(sys_exit_type)
     }
 }
 
-/*extern*/ void logging_init(const char *log_dir, logging_provider *provider /*default = nullptr*/)
+/*extern*/ log_level_t s_log_start_level = LOG_LEVEL_INVALID;
+
+/*extern*/ void logging_init(const char *log_dir)
 {
-    if (provider == nullptr) {
-        s_logging_provider = dsn::make_unique<simple_logger>(log_dir);
-    } else {
-        s_logging_provider.reset(provider);
-    }
+    s_logging_provider = dsn::make_unique<simple_logger>(log_dir);
 
     // initialize logging start level
     log_level_t log_start_level = enum_from_string(
@@ -97,6 +93,11 @@ static void log_on_sys_exit(sys_exit_type)
             s_log_start_level = start_level;
             return std::string("OK, current level is ") + enum_to_string(start_level);
         });
+}
+
+/*extern*/ void set_logging_provider(std::unique_ptr<logging_provider> provider)
+{
+    s_logging_provider = std::move(provider);
 }
 
 } // namespace dsn

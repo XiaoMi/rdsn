@@ -53,6 +53,7 @@ ENUM_END(log_level_t)
 // logs with level smaller than  `s_log_start_level` will not be logged
 extern log_level_t s_log_start_level;
 
+/// An interface for logging messages.
 class logging_provider
 {
 public:
@@ -68,9 +69,11 @@ public:
     virtual void flush() = 0;
 };
 
-// Initializes logger for rDSN. If no provider is specified,
-// the default implementation will be used.
-extern void logging_init(const char *log_dir, logging_provider *provider = nullptr);
+/// Initializes default logger for rDSN.
+extern void logging_init(const char *log_dir);
+
+/// Customize the logging implementation.
+extern void set_logging_provider(std::unique_ptr<logging_provider> provider);
 
 } // namespace dsn
 
