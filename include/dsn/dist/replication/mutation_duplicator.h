@@ -61,7 +61,7 @@ typedef std::set<mutation_tuple, mutation_tuple_cmp> mutation_tuple_set;
 class mutation_duplicator : public replica_base
 {
 public:
-    typedef std::function<void()> callback;
+    typedef std::function<void(size_t /*total_shipped_size*/)> callback;
 
     /// Duplicate the provided mutations to the remote cluster.
     /// The implementation must be non-blocking.

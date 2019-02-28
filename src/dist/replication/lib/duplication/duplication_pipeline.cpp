@@ -63,15 +63,9 @@ load_mutation::load_mutation(replica_duplicator *duplicator,
 
 void ship_mutation::ship(mutation_tuple_set &&in)
 {
-    // calculate the batch size
-    size_t total_size = 0;
-    for (const mutation_tuple &mt : in) {
-        total_size += std::get<2>(mt).length();
-    }
-
-    _mutation_duplicator->duplicate(std::move(in), [this, total_size]() mutable {
+    _mutation_duplicator->duplicate(std::move(in), [this](size_t total_shipped_size) mutable {
         update_progress();
-        _stub->_counter_dup_shipped_size_in_bytes_rate->add(total_size);
+        _stub->_counter_dup_shipped_size_in_bytes_rate->add(total_shipped_size);
         step_down_next_stage();
     });
 }
