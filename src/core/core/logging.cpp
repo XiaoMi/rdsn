@@ -37,6 +37,8 @@ namespace dsn {
 
 static std::unique_ptr<logging_provider> s_logging_provider;
 
+/*extern*/ log_level_t s_log_start_level = LOG_LEVEL_INVALID;
+
 static void log_on_sys_exit(sys_exit_type)
 {
     logging_provider *logger = s_logging_provider.get();

@@ -51,7 +51,7 @@ ENUM_REG(LOG_LEVEL_FATAL)
 ENUM_END(log_level_t)
 
 // logs with level smaller than  `s_log_start_level` will not be logged
-static log_level_t s_log_start_level = LOG_LEVEL_INVALID;
+extern log_level_t s_log_start_level;
 
 class logging_provider
 {
