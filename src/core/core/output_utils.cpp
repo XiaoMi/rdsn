@@ -181,6 +181,7 @@ void multi_table_printer::output_in_tabular(std::ostream &out) const
 {
     for (const auto &tp : _tps) {
         tp.output_in_tabular(out);
+        out << std::endl;
     }
 }
 
