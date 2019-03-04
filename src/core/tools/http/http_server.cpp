@@ -37,7 +37,10 @@ http_server::http_server() : serverlet<http_server>("http_server")
 
     // add builtin services
     add_service(new root_http_service());
+
+#ifdef DSN_ENABLE_GPERF
     add_service(new pprof_http_service());
+#endif // DSN_ENABLE_GPERF
 }
 
 void http_server::serve(message_ex *msg)

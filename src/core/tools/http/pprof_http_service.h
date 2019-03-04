@@ -4,6 +4,8 @@
 
 #pragma once
 
+#ifdef DSN_ENABLE_GPERF
+
 #include <dsn/tool-api/http_server.h>
 
 namespace dsn {
@@ -54,3 +56,5 @@ public:
 };
 
 } // namespace dsn
+
+#endif // DSN_ENABLE_GPERF

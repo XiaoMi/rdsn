@@ -16,6 +16,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifdef DSN_ENABLE_GPERF
+
 #include <cstdlib>
 #include <chrono>
 
@@ -405,3 +407,5 @@ void pprof_http_service::growth_handler(const http_request &req, http_response &
 }
 
 } // namespace dsn
+
+#endif // DSN_ENABLE_GPERF
