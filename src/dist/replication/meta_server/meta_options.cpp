@@ -164,8 +164,11 @@ void meta_options::initialize()
     cold_backup_disabled = dsn_config_get_value_bool(
         "meta_server", "cold_backup_disabled", true, "whether to disable cold backup");
 
-    enable_white_list = dsn_config_get_value_bool(
-        "meta_server", "enable_white_list", false, "whether to enable white list of replica servers");
+    enable_white_list =
+        dsn_config_get_value_bool("meta_server",
+                                  "enable_white_list",
+                                  false,
+                                  "whether to enable white list of replica servers");
 
     const char *replica_white_list_raw = dsn_config_get_value_string(
         "meta_server", "replica_white_list", "", "distributed_lock_service provider parameters");

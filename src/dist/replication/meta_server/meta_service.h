@@ -130,7 +130,7 @@ private:
     void register_rpc_handlers();
     void register_ctrl_commands();
     void unregister_ctrl_commands();
-    
+
     // client => meta server
     // query partition configuration
     void on_query_configuration_by_node(dsn::message_ex *req);
