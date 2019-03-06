@@ -187,7 +187,7 @@ private:
     replication_options _opts;
     meta_options _meta_opts;
     uint64_t _node_live_percentage_threshold_for_update;
-    dsn_handle_t _ctrl_node_live_percentage_threshold_for_update;
+    dsn_handle_t _ctrl_node_live_percentage_threshold_for_update = nullptr;
 
     std::shared_ptr<server_state> _state;
     std::shared_ptr<meta_server_failure_detector> _failure_detector;
