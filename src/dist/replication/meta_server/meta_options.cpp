@@ -171,7 +171,7 @@ void meta_options::initialize()
                                   "whether to enable white list of replica servers");
 
     const char *replica_white_list_raw = dsn_config_get_value_string(
-        "meta_server", "replica_white_list", "", "distributed_lock_service provider parameters");
+        "meta_server", "replica_white_list", "", "white list of replica-servers in meta-server");
     utils::split_args(replica_white_list_raw, replica_white_list, ',');
 }
 }

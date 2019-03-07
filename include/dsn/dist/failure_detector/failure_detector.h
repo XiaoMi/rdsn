@@ -64,7 +64,6 @@
 #include <dsn/dist/failure_detector/fd.client.h>
 #include <dsn/dist/failure_detector/fd.server.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
-#include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/zlocks.h>
 
 namespace dsn {
@@ -101,7 +100,7 @@ public:
     virtual void end_ping(::dsn::error_code err, const beacon_ack &ack, void *context);
 
     virtual void register_ctrl_commands();
-    virtual void unregister_ctrl_commands() { UNREGISTER_VALID_HANDLER(_get_allow_list); }
+    virtual void unregister_ctrl_commands();
 
 public:
     error_code start(uint32_t check_interval_seconds,
@@ -159,7 +158,7 @@ protected:
 private:
     void check_all_records();
 
-    std::string get_allow_list(const std::vector<std::string> &args);
+    std::string get_allow_list(const std::vector<std::string> &args) const;
 
 private:
     class master_record

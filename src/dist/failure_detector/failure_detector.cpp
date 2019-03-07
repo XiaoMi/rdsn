@@ -34,6 +34,7 @@
  */
 
 #include <dsn/dist/failure_detector.h>
+#include <dsn/tool-api/command_manager.h>
 #include <chrono>
 #include <ctime>
 
@@ -64,7 +65,9 @@ void failure_detector::register_ctrl_commands()
         [this](const std::vector<std::string> &args) { return get_allow_list(args); });
 }
 
-std::string failure_detector::get_allow_list(const std::vector<std::string> &args)
+void failure_detector::unregister_ctrl_commands() { UNREGISTER_VALID_HANDLER(_get_allow_list); }
+
+std::string failure_detector::get_allow_list(const std::vector<std::string> &args) const
 {
     if (!_is_started)
         return "error: fd is not started";
@@ -240,7 +243,7 @@ void failure_detector::check_all_records()
         return;
     }
 
-    std::vector<::dsn::rpc_address> expire;
+    std::vector<rpc_address> expire;
     uint64_t now = dsn_now_ms();
 
     {
@@ -318,16 +321,21 @@ bool failure_detector::remove_from_allow_list(::dsn::rpc_address node)
 
 void failure_detector::set_allow_list(const std::vector<std::string> &replica_addrs)
 {
-    if (_is_started) {
-        dwarn("FD is already started, the allow list should really not be modified");
-        return;
+    dassert(_is_started, "FD is already started, the allow list should really not be modified");
+
+    std::vector<rpc_address> nodes;
+    for (auto &addr : replica_addrs) {
+        rpc_address node;
+        if (!node.from_string_ipv4(addr.c_str())) {
+            dwarn("replica_white_list has invalid ip %s, the allow list won't be modified",
+                  addr.c_str());
+            return;
+        }
+        nodes.push_back(node);
     }
 
-    for (auto &addr : replica_addrs) {
-        dsn::rpc_address node;
-        if (node.from_string_ipv4(addr.c_str()))
-            add_allow_list(node);
-    }
+    for (auto &node : nodes)
+        add_allow_list(node);
 }
 
 void failure_detector::on_ping_internal(const beacon_msg &beacon, /*out*/ beacon_ack &ack)
