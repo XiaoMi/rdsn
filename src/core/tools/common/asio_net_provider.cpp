@@ -59,6 +59,12 @@ error_code asio_network_provider::start(rpc_channel channel, int port, bool clie
                                          "io_service_worker_count",
                                          1,
                                          "thread number for io service (timer and boost network)");
+    _connection_threshold_endpoint =
+            (uint32_t)dsn_config_get_value_uint64("network",
+                                                  "connection_threshold_endpoint",
+                                                  0,
+                                                  "max connection count to each server per endpoint");
+
     for (int i = 0; i < io_service_worker_count; i++) {
         _workers.push_back(std::make_shared<std::thread>([this, i]() {
             task::set_tls_dsn_context(node(), nullptr);
@@ -148,10 +154,20 @@ void asio_network_provider::do_accept()
                                          (std::shared_ptr<boost::asio::ip::tcp::socket> &)socket,
                                          null_parser,
                                          false);
-                on_server_session_accepted(s);
 
-                // we should start read immediately after the rpc session is completely created.
-                s->start_read_next();
+                // when server connection threshold is hit, close the session, otherwise accept it
+                if (connection_threshold(s->remote_address())) {
+                    dwarn("close rpc connection from %s to %s due to hitting server "
+                          "connection threshold per endpoint",
+                          s->remote_address().to_string(),
+                          address().to_string());
+                    s->close();
+                } else {
+                    on_server_session_accepted(s);
+
+                    // we should start read immediately after the rpc session is completely created.
+                    s->start_read_next();
+                }
             }
         }
 
