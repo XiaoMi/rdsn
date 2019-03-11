@@ -37,6 +37,7 @@ class command_manager : public ::dsn::utils::singleton<command_manager>
 {
 public:
     typedef std::function<std::string(const std::vector<std::string> &)> command_handler;
+
     command_manager();
 
     ~command_manager();
@@ -45,11 +46,13 @@ public:
                                   const std::string &help_one_line,
                                   const std::string &help_long,
                                   command_handler handler);
+
     dsn_handle_t register_app_command(const std::vector<std::string> &commands,
                                       const std::string &help_one_line,
                                       const std::string &help_long,
                                       command_handler handler);
     void deregister_command(dsn_handle_t handle);
+
     bool run_command(const std::string &cmd,
                      const std::vector<std::string> &args,
                      /*out*/ std::string &output);
@@ -67,7 +70,8 @@ private:
     std::map<std::string, command_instance *> _handlers;
     std::vector<command_instance *> _commands;
 };
-}
+
+} // namespace dsn
 
 #define UNREGISTER_VALID_HANDLER(ptr)                                                              \
     do {                                                                                           \
@@ -99,8 +103,3 @@ inline std::string remote_command_set_bool_flag(bool &flag,
     }
     return ret_msg;
 }
-
-#define HANDLE_CLI_FLAGS(flag, args)                                                               \
-    do {                                                                                           \
-        return remote_command_set_bool_flag(flag, #flag, args);                                    \
-    } while (0)
