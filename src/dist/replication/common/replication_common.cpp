@@ -48,6 +48,7 @@ replication_options::replication_options()
     delay_for_fd_timeout_on_start = false;
     empty_write_disabled = false;
     allow_non_idempotent_write = false;
+    duplication_disabled = false;
 
     prepare_timeout_ms_for_secondaries = 1000;
     prepare_timeout_ms_for_potential_secondaries = 3000;
@@ -264,6 +265,12 @@ void replication_options::initialize()
                                   "allow_non_idempotent_write",
                                   allow_non_idempotent_write,
                                   "whether to allow non-idempotent write, default is false");
+
+    duplication_disabled = dsn_config_get_value_bool(
+        "replication", "duplication_disabled", false, "is duplication disabled");
+    if (allow_non_idempotent_write && !duplication_disabled) {
+        dfatal("duplication and idempotent write cannot be enabled together");
+    }
 
     prepare_timeout_ms_for_secondaries = (int)dsn_config_get_value_uint64(
         "replication",
@@ -484,12 +491,6 @@ void replication_options::initialize()
                                              "max_concurrent_uploading_file_count",
                                              max_concurrent_uploading_file_count,
                                              "concurrent uploading file count");
-
-    duplication_disabled = dsn_config_get_value_bool(
-        "replication", "duplication_disabled", false, "is duplication disabled");
-    if (allow_non_idempotent_write && !duplication_disabled) {
-        dfatal("duplication and idempotent write cannot be enabled together");
-    }
 
     replica_helper::load_meta_servers(meta_servers);
 

@@ -52,6 +52,7 @@ public:
     bool delay_for_fd_timeout_on_start;
     bool empty_write_disabled;
     bool allow_non_idempotent_write;
+    bool duplication_disabled;
 
     int32_t prepare_timeout_ms_for_secondaries;
     int32_t prepare_timeout_ms_for_potential_secondaries;
@@ -108,8 +109,6 @@ public:
 
     std::string cold_backup_root;
     int32_t max_concurrent_uploading_file_count;
-
-    bool duplication_disabled;
 
 public:
     replication_options();
