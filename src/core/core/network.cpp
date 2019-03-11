@@ -644,10 +644,9 @@ void connection_oriented_network::on_server_session_disconnected(rpc_session_ptr
 bool connection_oriented_network::connection_threshold(::dsn::rpc_address ep)
 {
     if (_connection_threshold_endpoint <= 0) {
-        ddebug(
-            "new client from endpoint %s is connecting to server %s, no connection threshold",
-            ep.ipv4_str(),
-            address().to_string());
+        ddebug("new client from endpoint %s is connecting to server %s, no connection threshold",
+               ep.ipv4_str(),
+               address().to_string());
         return false;
     }
 

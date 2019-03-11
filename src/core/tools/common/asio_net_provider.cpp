@@ -64,6 +64,7 @@ error_code asio_network_provider::start(rpc_channel channel, int port, bool clie
                                                   "connection_threshold_endpoint",
                                                   0,
                                                   "max connection count to each server per endpoint");
+    ddebug("_connection_threshold_endpoint = %d", _connection_threshold_endpoint);
 
     for (int i = 0; i < io_service_worker_count; i++) {
         _workers.push_back(std::make_shared<std::thread>([this, i]() {
