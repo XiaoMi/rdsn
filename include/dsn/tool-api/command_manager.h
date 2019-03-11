@@ -103,5 +103,3 @@ inline std::string remote_command_set_bool_flag(bool &flag,
     }
     return ret_msg;
 }
-
-#define HANDLE_CLI_FLAGS(flag, args) remote_command_set_bool_flag(flag, #flag, args)
