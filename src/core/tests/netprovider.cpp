@@ -75,8 +75,9 @@ void response_handler(dsn::error_code ec,
 
 void reject_response_handler(dsn::error_code ec)
 {
-    ASSERT_TRUE(ERR_TIMEOUT == ec);
     wait_flag = 1;
+    ASSERT_TRUE(ERR_TIMEOUT == ec);
+    ddebug("error msg: %s", ec.to_string());
 }
 
 void rpc_server_response(dsn::message_ex *request)
@@ -111,20 +112,14 @@ void rpc_client_session_send(rpc_session_ptr client_session, bool reject = false
                                                                std::placeholders::_3,
                                                                buf.get()),
                                                      0);
-
         client_session->net().engine()->matcher()->on_call(msg, t);
-        client_session->send_message(msg);
-
-        wait_response();
     } else {
         rpc_response_task *t = new rpc_response_task(
             msg, std::bind(&reject_response_handler, std::placeholders::_1), 0);
-
         client_session->net().engine()->matcher()->on_call(msg, t);
-        client_session->send_message(msg);
-
-        wait_response();
     }
+    client_session->send_message(msg);
+    wait_response();
 }
 
 TEST(tools_common, asio_net_provider)
@@ -264,7 +259,7 @@ TEST(tools_common, asio_network_provider_connection_threshold)
     for (int count = 0; count < 20; count++) {
         ddebug("client # %d", count);
         rpc_session_ptr client_session =
-                asio_network->create_client_session(rpc_address("localhost", TEST_PORT));
+            asio_network->create_client_session(rpc_address("localhost", TEST_PORT));
         client_session->connect();
 
         rpc_client_session_send(client_session);
