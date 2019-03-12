@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include <dsn/tool-api/auto_codes.h>
-#include <dsn/utility/errors.h>
 #include <fmt/ostream.h>
 
 // The macros below no longer use the default snprintf method for log message formatting,
@@ -62,31 +60,3 @@
 #define dcheck_le_replica(var1, var2) dassert_replica(var1 <= var2, "{} vs {}", var1, var2)
 #define dcheck_gt_replica(var1, var2) dassert_replica(var1 > var2, "{} vs {}", var1, var2)
 #define dcheck_lt_replica(var1, var2) dassert_replica(var1 < var2, "{} vs {}", var1, var2)
-
-// Customized formatter for rDSN basic types, on which
-// users can easily call fmt::format("{}", xxx), without the effort
-// of converting them into string.
-
-namespace fmt {
-
-inline void format_arg(fmt::BasicFormatter<char> &f, const char *format_str, dsn::gpid p)
-{
-    f.writer().write("{}.{}", p.get_app_id(), p.get_partition_index());
-}
-
-inline void format_arg(fmt::BasicFormatter<char> &f, const char *format_str, const dsn::error_s &p)
-{
-    f.writer().write(p.description());
-}
-
-inline void format_arg(fmt::BasicFormatter<char> &f, const char *format_str, dsn::task_code p)
-{
-    f.writer().write(p.to_string());
-}
-
-inline void format_arg(fmt::BasicFormatter<char> &f, const char *format_str, dsn::string_view p)
-{
-    f.writer().write(std::string(p));
-}
-
-} // namespace fmt

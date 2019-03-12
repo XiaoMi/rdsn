@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#include <dsn/utility/string_view.h>
+#include <dsn/utility/errors.h>
 #include <dsn/dist/fmt_logging.h>
 #include <gtest/gtest.h>
 #include <dsn/dist/replication/replication.codes.h>
@@ -39,6 +41,7 @@ TEST(fmt_logging, basic)
     ASSERT_EQ(fmt::format("{}", ERR_OK), "ERR_OK");
     ASSERT_EQ(fmt::format("{}", LPC_REPLICATION_LOW), "LPC_REPLICATION_LOW");
     ASSERT_EQ(string_view("yes"), "yes");
+    ASSERT_EQ(fmt::format("{}", string_view("yes\0yes")), "yes\0yes");
 }
 
 } // namespace replication
