@@ -1056,7 +1056,9 @@ public:
             return false;
         if (!(app_specific_learn_request == rhs.app_specific_learn_request))
             return false;
-        if (!(max_gced_decree == rhs.max_gced_decree))
+        if (__isset.max_gced_decree != rhs.__isset.max_gced_decree)
+            return false;
+        else if (__isset.max_gced_decree && !(max_gced_decree == rhs.max_gced_decree))
             return false;
         return true;
     }
@@ -1296,7 +1298,9 @@ public:
             return false;
         if (!(last_committed_decree == rhs.last_committed_decree))
             return false;
-        if (!(confirmed_decree == rhs.confirmed_decree))
+        if (__isset.confirmed_decree != rhs.__isset.confirmed_decree)
+            return false;
+        else if (__isset.confirmed_decree && !(confirmed_decree == rhs.confirmed_decree))
             return false;
         return true;
     }
