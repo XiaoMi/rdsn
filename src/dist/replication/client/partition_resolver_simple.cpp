@@ -158,13 +158,10 @@ void partition_resolver_simple::call(request_context_ptr &&request, bool from_me
 
     auto nts = dsn_now_us();
 
-    //    // timeout will happen very soon, no way to get the rpc call done
-    //    if (nts + 100 >= request->timeout_ts_us) // within 100 us
-    // timeout will happen soon, probably cannot get the request done
-    if (nts + 3000 >= request->timeout_ts_us) // within 3 ms
+    // timeout will happen very soon, no way to get the rpc call done
+    if (nts + 100 >= request->timeout_ts_us) // within 100 us
     {
-        // wait for timer to end up request
-        // end_request(std::move(request), ERR_TIMEOUT, rpc_address());
+        end_request(std::move(request), ERR_TIMEOUT, rpc_address());
         return;
     }
 
@@ -199,8 +196,6 @@ void partition_resolver_simple::call(request_context_ptr &&request, bool from_me
     }
 
     {
-        // need to make sure timeout query_config rpc call before on_timeout is called, timeout_ms
-        // >= 3
         zauto_lock l(_requests_lock);
         if (-1 != pindex) {
             // put into pending queue of querying target partition
@@ -213,12 +208,12 @@ void partition_resolver_simple::call(request_context_ptr &&request, bool from_me
 
             // init configuration query task if necessary
             if (nullptr == it->second->query_config_task) {
-                it->second->query_config_task = query_config(pindex, timeout_ms - 2);
+                it->second->query_config_task = query_config(pindex, timeout_ms);
             }
         } else {
             _pending_requests_before_partition_count_unknown.push_back(std::move(request));
             if (_pending_requests_before_partition_count_unknown.size() == 1) {
-                _query_config_task = query_config(pindex, timeout_ms - 2);
+                _query_config_task = query_config(pindex, timeout_ms);
             }
         }
     }
