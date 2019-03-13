@@ -198,7 +198,7 @@ void replica::init_learn(uint64_t signature)
     learn_request request;
     request.pid = get_gpid();
 
-    request.max_gced_decree = _private_log->max_gced_decree(get_gpid());
+    request.__set_max_gced_decree(_private_log->max_gced_decree(get_gpid()));
     decree learning_start = _potential_secondary_states.min_learn_start_decree;
     if (learning_start >= 0) {
         // the learned logs may still reside in learn_dir, and
@@ -256,6 +256,12 @@ decree replica::get_learn_start_decree(const learn_request &request)
     dcheck_le_replica(request.last_committed_decree_in_app, local_committed_decree);
 
     decree learn_start_decree = request.last_committed_decree_in_app + 1;
+    if (!is_duplicating()) {
+        // fast path for no duplication case
+        dcheck_le_replica(learn_start_decree, local_committed_decree + 1);
+        return learn_start_decree;
+    }
+
     decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
 
     // learner should include the mutations not confirmed by meta server
@@ -272,14 +278,12 @@ decree replica::get_learn_start_decree(const learn_request &request)
     if (min_confirmed_decree >= 0) {
         new_learn_start_decree = min_confirmed_decree + 1;
     } else {
-        if (is_duplicating()) {
-            decree local_gced = max_gced_decree_no_lock();
-            if (local_gced == invalid_decree) {
-                // abnormal case
-                ddebug_replica("no plog to be learned for duplication, continue as normal");
-            } else {
-                new_learn_start_decree = local_gced + 1;
-            }
+        decree local_gced = max_gced_decree_no_lock();
+        if (local_gced == invalid_decree) {
+            // abnormal case
+            ddebug_replica("no plog to be learned for duplication, continue as normal");
+        } else {
+            new_learn_start_decree = local_gced + 1;
         }
     }
 

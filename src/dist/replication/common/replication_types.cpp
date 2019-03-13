@@ -1725,7 +1725,11 @@ void learn_request::__set_app_specific_learn_request(const ::dsn::blob &val)
     this->app_specific_learn_request = val;
 }
 
-void learn_request::__set_max_gced_decree(const int64_t val) { this->max_gced_decree = val; }
+void learn_request::__set_max_gced_decree(const int64_t val)
+{
+    this->max_gced_decree = val;
+    __isset.max_gced_decree = true;
+}
 
 uint32_t learn_request::read(::apache::thrift::protocol::TProtocol *iprot)
 {
@@ -1847,10 +1851,11 @@ uint32_t learn_request::write(::apache::thrift::protocol::TProtocol *oprot) cons
     xfer += this->app_specific_learn_request.write(oprot);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("max_gced_decree", ::apache::thrift::protocol::T_I64, 7);
-    xfer += oprot->writeI64(this->max_gced_decree);
-    xfer += oprot->writeFieldEnd();
-
+    if (this->__isset.max_gced_decree) {
+        xfer += oprot->writeFieldBegin("max_gced_decree", ::apache::thrift::protocol::T_I64, 7);
+        xfer += oprot->writeI64(this->max_gced_decree);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -1934,7 +1939,8 @@ void learn_request::printTo(std::ostream &out) const
     out << ", "
         << "app_specific_learn_request=" << to_string(app_specific_learn_request);
     out << ", "
-        << "max_gced_decree=" << to_string(max_gced_decree);
+        << "max_gced_decree=";
+    (__isset.max_gced_decree ? (out << to_string(max_gced_decree)) : (out << "<null>"));
     out << ")";
 }
 
@@ -2341,6 +2347,7 @@ void group_check_request::__set_last_committed_decree(const int64_t val)
 void group_check_request::__set_confirmed_decree(const int64_t val)
 {
     this->confirmed_decree = val;
+    __isset.confirmed_decree = true;
 }
 
 uint32_t group_check_request::read(::apache::thrift::protocol::TProtocol *iprot)
@@ -2436,10 +2443,11 @@ uint32_t group_check_request::write(::apache::thrift::protocol::TProtocol *oprot
     xfer += oprot->writeI64(this->last_committed_decree);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("confirmed_decree", ::apache::thrift::protocol::T_I64, 5);
-    xfer += oprot->writeI64(this->confirmed_decree);
-    xfer += oprot->writeFieldEnd();
-
+    if (this->__isset.confirmed_decree) {
+        xfer += oprot->writeFieldBegin("confirmed_decree", ::apache::thrift::protocol::T_I64, 5);
+        xfer += oprot->writeI64(this->confirmed_decree);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -2506,7 +2514,8 @@ void group_check_request::printTo(std::ostream &out) const
     out << ", "
         << "last_committed_decree=" << to_string(last_committed_decree);
     out << ", "
-        << "confirmed_decree=" << to_string(confirmed_decree);
+        << "confirmed_decree=";
+    (__isset.confirmed_decree ? (out << to_string(confirmed_decree)) : (out << "<null>"));
     out << ")";
 }
 

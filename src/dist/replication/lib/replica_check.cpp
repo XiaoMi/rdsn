@@ -95,7 +95,7 @@ void replica::broadcast_group_check()
         request->node = addr;
         _primary_states.get_replica_config(it->second, request->config);
         request->last_committed_decree = last_committed_decree();
-        request->confirmed_decree = _duplication_mgr->min_confirmed_decree();
+        request->__set_confirmed_decree(_duplication_mgr->min_confirmed_decree());
 
         if (request->config.status == partition_status::PS_POTENTIAL_SECONDARY) {
             auto it = _primary_states.learners.find(addr);
@@ -144,7 +144,7 @@ void replica::on_group_check(const group_check_request &request,
                    request.config.ballot,
                    enum_to_string(request.config.status),
                    request.last_committed_decree,
-                   request.confirmed_decree);
+                   request.__isset.confirmed_decree ? request.confirmed_decree : invalid_decree);
 
     if (request.config.ballot < get_ballot()) {
         response.err = ERR_VERSION_OUTDATED;
@@ -159,7 +159,9 @@ void replica::on_group_check(const group_check_request &request,
     } else if (is_same_ballot_status_change_allowed(status(), request.config.status)) {
         update_local_configuration(request.config, true);
     }
-    _duplication_mgr->set_confirmed_decree_non_primary(request.confirmed_decree);
+    if (request.__isset.confirmed_decree) {
+        _duplication_mgr->set_confirmed_decree_non_primary(request.confirmed_decree);
+    }
 
     switch (status()) {
     case partition_status::PS_INACTIVE:
