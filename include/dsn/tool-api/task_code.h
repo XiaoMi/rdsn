@@ -116,11 +116,6 @@ public:
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
 
-    friend std::ostream &operator<<(std::ostream &os, const task_code &tc)
-    {
-        return os << std::string(tc.to_string());
-    }
-
     static int max();
     static bool is_exist(const char *name);
     static task_code try_get(const char *name, task_code default_value);
