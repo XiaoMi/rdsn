@@ -131,7 +131,7 @@ struct learn_request
     // Used by duplication to determine if learner has enough logs on disk to
     // be duplicated (ie. max_gced_decree < confirmed_decree), if not,
     // learnee will copy the missing logs.
-    7:i64                 max_gced_decree;
+    7:optional i64        max_gced_decree;
 }
 
 struct learn_response
@@ -155,7 +155,7 @@ struct learn_notify_response
 
 struct group_check_request
 {
-    1:dsn.layer2.app_info          app;
+    1:dsn.layer2.app_info   app;
     2:dsn.rpc_address       node;
     3:replica_configuration config;
     4:i64                   last_committed_decree;
@@ -163,7 +163,7 @@ struct group_check_request
     // Used to sync duplication progress between primaries
     // and secondaries, so that secondaries can be allowed to GC
     // their WALs after this decree.
-    5:i64                   confirmed_decree;
+    5:optional i64          confirmed_decree;
 }
 
 struct group_check_response
