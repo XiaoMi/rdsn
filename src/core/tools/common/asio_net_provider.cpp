@@ -60,10 +60,10 @@ error_code asio_network_provider::start(rpc_channel channel, int port, bool clie
                                          1,
                                          "thread number for io service (timer and boost network)");
     _connection_threshold_endpoint =
-            (uint32_t)dsn_config_get_value_uint64("network",
-                                                  "connection_threshold_endpoint",
-                                                  0,
-                                                  "max connection count to each server per endpoint");
+        (uint32_t)dsn_config_get_value_uint64("network",
+                                              "connection_threshold_endpoint",
+                                              0,
+                                              "max connection count to each server per endpoint");
     ddebug("_connection_threshold_endpoint = %d", _connection_threshold_endpoint);
 
     for (int i = 0; i < io_service_worker_count; i++) {
