@@ -24,81 +24,38 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
-#include <iostream>
-
-#ifndef _WIN32
-#include <sys/types.h>
-#include <signal.h>
-#endif
-
 #include <gtest/gtest.h>
+
 #include <dsn/service_api_cpp.h>
 
 int g_test_count = 0;
 int g_test_ret = 0;
 
-extern void lock_test_init();
-extern void fd_test_init();
-
-class test_client : public ::dsn::service_app
+class gtest_app : public dsn::service_app
 {
 public:
-    test_client(const dsn::service_app_info *info) : ::dsn::service_app(info) {}
+    explicit gtest_app(const dsn::service_app_info *info) : ::dsn::service_app(info) {}
 
-    ::dsn::error_code start(const std::vector<std::string> &args)
+    dsn::error_code start(const std::vector<std::string> &args) override
     {
-        int argc = args.size();
-        char *argv[20];
-        for (int i = 0; i < argc; ++i) {
-            argv[i] = (char *)(args[i].c_str());
-        }
-        testing::InitGoogleTest(&argc, argv);
         g_test_ret = RUN_ALL_TESTS();
         g_test_count = 1;
-        /*
-                // exit without any destruction
-        # if defined(_WIN32)
-                ::ExitProcess(0);
-        # else
-                kill(getpid(), SIGKILL);
-        # endif
-        */
-        return ::dsn::ERR_OK;
+        return dsn::ERR_OK;
     }
 
-    ::dsn::error_code stop(bool cleanup = false) { return ::dsn::ERR_OK; }
+    dsn::error_code stop(bool) override { return dsn::ERR_OK; }
 };
 
 GTEST_API_ int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);
 
-    // register all possible services
-    dsn::service_app::register_factory<test_client>("test");
-    lock_test_init();
-    fd_test_init();
+    dsn::service_app::register_factory<gtest_app>("replica");
 
-    // specify what services and tools will run in config file, then run
-    if (argc < 2)
-        dsn_run_config("config-test.ini", false);
-    else
-        dsn_run_config(argv[1], false);
-
+    dsn_run_config("config-test.ini", false);
     while (g_test_count == 0) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-#ifndef ENABLE_GCOV
     dsn_exit(g_test_ret);
-#endif
-    return g_test_ret;
 }
