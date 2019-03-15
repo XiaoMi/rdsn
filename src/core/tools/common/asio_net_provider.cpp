@@ -59,6 +59,8 @@ error_code asio_network_provider::start(rpc_channel channel, int port, bool clie
                                          "io_service_worker_count",
                                          1,
                                          "thread number for io service (timer and boost network)");
+
+    // get connection threshold from config, default value 0 means no threshold
     _connection_threshold_endpoint =
         (uint32_t)dsn_config_get_value_uint64("network",
                                               "connection_threshold_endpoint",
