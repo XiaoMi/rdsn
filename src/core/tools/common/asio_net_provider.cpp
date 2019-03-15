@@ -61,11 +61,8 @@ error_code asio_network_provider::start(rpc_channel channel, int port, bool clie
                                          "thread number for io service (timer and boost network)");
 
     // get connection threshold from config, default value 0 means no threshold
-    _cfg_conn_threshold_per_ip =
-        (uint32_t)dsn_config_get_value_uint64("network",
-                                              "conn_threshold_per_ip",
-                                              0,
-                                              "max connection count to each server per ip");
+    _cfg_conn_threshold_per_ip = (uint32_t)dsn_config_get_value_uint64(
+        "network", "conn_threshold_per_ip", 0, "max connection count to each server per ip");
     ddebug("_cfg_conn_threshold_per_ip = %d", _cfg_conn_threshold_per_ip);
 
     for (int i = 0; i < io_service_worker_count; i++) {
@@ -176,6 +173,12 @@ void asio_network_provider::do_accept()
 
         do_accept();
     });
+}
+
+void asio_network_provider_test::change_test_cfg_conn_threshold_per_ip(uint32_t n)
+{
+    ddebug("change _cfg_conn_threshold_per_ip %d -> %d for test", _cfg_conn_threshold_per_ip, n);
+    this->_cfg_conn_threshold_per_ip = n;
 }
 
 void asio_udp_provider::send_message(message_ex *request)

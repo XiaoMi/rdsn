@@ -249,12 +249,13 @@ TEST(tools_common, asio_network_provider_connection_threshold)
     ASSERT_TRUE(dsn_rpc_register_handler(
         RPC_TEST_NETPROVIDER, "rpc.test.netprovider", rpc_server_response));
 
-    asio_network_provider *asio_network =
-        new asio_network_provider(task::get_current_rpc(), nullptr);
+    asio_network_provider_test *asio_network =
+        new asio_network_provider_test(task::get_current_rpc(), nullptr);
 
     error_code start_result;
     start_result = asio_network->start(RPC_CHANNEL_TCP, TEST_PORT, false);
     ASSERT_TRUE(start_result == ERR_OK);
+    asio_network->change_test_cfg_conn_threshold_per_ip(10);
 
     for (int count = 0; count < 20; count++) {
         ddebug("client # %d", count);
