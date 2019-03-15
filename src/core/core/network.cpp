@@ -502,7 +502,7 @@ uint32_t network::get_local_ipv4()
 connection_oriented_network::connection_oriented_network(rpc_engine *srv, network *inner_provider)
     : network(srv, inner_provider)
 {
-    _connection_threshold_endpoint = 0;
+    _cfg_conn_threshold_per_ip = 0;
 }
 
 void connection_oriented_network::inject_drop_message(message_ex *msg, bool is_send)
@@ -591,7 +591,7 @@ void connection_oriented_network::on_server_session_accepted(rpc_session_ptr &s)
         }
         scount = (int)_servers.size();
 
-        auto pr2 = _endpoints.insert(endpoint_sessions::value_type(s->remote_address().ip(), 1));
+        auto pr2 = _ips.insert(ip_sessions::value_type(s->remote_address().ip(), 1));
         if (!pr2.second) {
             ecount = ++pr2.first->second;
         }
@@ -601,7 +601,7 @@ void connection_oriented_network::on_server_session_accepted(rpc_session_ptr &s)
            s->remote_address().to_string(),
            scount);
 
-    ddebug("endpoint session %s, remote_client = %s, current_count = %d",
+    ddebug("ip session %s, remote_client = %s, current_count = %d",
            ecount == 1 ? "inserted" : "increased",
            s->remote_address().to_string(),
            ecount);
@@ -621,12 +621,12 @@ void connection_oriented_network::on_server_session_disconnected(rpc_session_ptr
         }
         scount = (int)_servers.size();
 
-        auto it2 = _endpoints.find(s->remote_address().ip());
-        if (it2 != _endpoints.end()) {
+        auto it2 = _ips.find(s->remote_address().ip());
+        if (it2 != _ips.end()) {
             if (it2->second > 1) {
                 ecount = --it2->second;
             } else {
-                _endpoints.erase(it2);
+                _ips.erase(it2);
             }
         }
     }
@@ -638,42 +638,42 @@ void connection_oriented_network::on_server_session_disconnected(rpc_session_ptr
     }
 
     if (ecount == 0)
-        ddebug("endpoint session erased, remote_client = %s", s->remote_address().to_string());
+        ddebug("ip session erased, remote_client = %s", s->remote_address().to_string());
     else
-        ddebug("endpoint session decreased, remote_client = %s, current_count = %d",
+        ddebug("ip session decreased, remote_client = %s, current_count = %d",
                s->remote_address().to_string(),
                ecount);
 }
 
-bool connection_oriented_network::connection_threshold(::dsn::rpc_address ep)
+bool connection_oriented_network::is_conn_threshold_exceeded(::dsn::rpc_address ep)
 {
-    if (_connection_threshold_endpoint <= 0) {
-        ddebug("new client from endpoint %s is connecting to server %s, no connection threshold",
+    if (_cfg_conn_threshold_per_ip <= 0) {
+        ddebug("new client from %s is connecting to server %s, no connection threshold",
                ep.ipv4_str(),
                address().to_string());
         return false;
     }
 
-    bool threshold = false;
+    bool exceeded = false;
     int scount = 0;
     {
         utils::auto_read_lock l(_servers_lock);
-        auto it = _endpoints.find(ep.ip());
-        if (it != _endpoints.end()) {
+        auto it = _ips.find(ep.ip());
+        if (it != _ips.end()) {
             scount = it->second;
-            if (scount >= _connection_threshold_endpoint)
-                threshold = true;
+            if (scount >= _cfg_conn_threshold_per_ip)
+                exceeded = true;
         }
     }
 
-    ddebug("new client from endpoint %s is connecting to server %s, existing connection count "
+    ddebug("new client from %s is connecting to server %s, existing connection count "
            "= %d, threshold = %d",
            ep.ipv4_str(),
            address().to_string(),
            scount,
-           _connection_threshold_endpoint);
+           _cfg_conn_threshold_per_ip);
 
-    return threshold;
+    return exceeded;
 }
 
 rpc_session_ptr connection_oriented_network::get_client_session(::dsn::rpc_address ep)

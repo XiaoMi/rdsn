@@ -61,12 +61,12 @@ error_code asio_network_provider::start(rpc_channel channel, int port, bool clie
                                          "thread number for io service (timer and boost network)");
 
     // get connection threshold from config, default value 0 means no threshold
-    _connection_threshold_endpoint =
+    _cfg_conn_threshold_per_ip =
         (uint32_t)dsn_config_get_value_uint64("network",
-                                              "connection_threshold_endpoint",
+                                              "conn_threshold_per_ip",
                                               0,
-                                              "max connection count to each server per endpoint");
-    ddebug("_connection_threshold_endpoint = %d", _connection_threshold_endpoint);
+                                              "max connection count to each server per ip");
+    ddebug("_cfg_conn_threshold_per_ip = %d", _cfg_conn_threshold_per_ip);
 
     for (int i = 0; i < io_service_worker_count; i++) {
         _workers.push_back(std::make_shared<std::thread>([this, i]() {
@@ -159,9 +159,9 @@ void asio_network_provider::do_accept()
                                          false);
 
                 // when server connection threshold is hit, close the session, otherwise accept it
-                if (connection_threshold(s->remote_address())) {
+                if (is_conn_threshold_exceeded(s->remote_address())) {
                     dwarn("close rpc connection from %s to %s due to hitting server "
-                          "connection threshold per endpoint",
+                          "connection threshold per ip",
                           s->remote_address().to_string(),
                           address().to_string());
                     s->close();
