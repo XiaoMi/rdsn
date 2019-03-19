@@ -146,6 +146,8 @@ private:
         bool updated_recently{false};
     };
     std::unordered_map<std::string, counter_snapshot> _snapshots;
+
+    int64_t _timestamp;  // in seconds
 };
 
 } // end namespace dsn::utils
