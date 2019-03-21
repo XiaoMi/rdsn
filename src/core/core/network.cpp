@@ -591,7 +591,7 @@ void connection_oriented_network::on_server_session_accepted(rpc_session_ptr &s)
         }
         scount = (int)_servers.size();
 
-        auto pr2 = _ips.insert(ip_sessions::value_type(s->remote_address().ip(), 1));
+        auto pr2 = _ip_conn_count.insert(ip_connection_count::value_type(s->remote_address().ip(), 1));
         if (!pr2.second) {
             ecount = ++pr2.first->second;
         }
@@ -621,12 +621,12 @@ void connection_oriented_network::on_server_session_disconnected(rpc_session_ptr
         }
         scount = (int)_servers.size();
 
-        auto it2 = _ips.find(s->remote_address().ip());
-        if (it2 != _ips.end()) {
+        auto it2 = _ip_conn_count.find(s->remote_address().ip());
+        if (it2 != _ip_conn_count.end()) {
             if (it2->second > 1) {
                 ecount = --it2->second;
             } else {
-                _ips.erase(it2);
+                _ip_conn_count.erase(it2);
             }
         }
     }
@@ -658,8 +658,8 @@ bool connection_oriented_network::is_conn_threshold_exceeded(::dsn::rpc_address 
     int scount = 0;
     {
         utils::auto_read_lock l(_servers_lock);
-        auto it = _ips.find(ep.ip());
-        if (it != _ips.end()) {
+        auto it = _ip_conn_count.find(ep.ip());
+        if (it != _ip_conn_count.end()) {
             scount = it->second;
             if (scount >= _cfg_conn_threshold_per_ip)
                 exceeded = true;

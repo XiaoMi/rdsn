@@ -190,8 +190,8 @@ protected:
 
     typedef std::unordered_map<::dsn::rpc_address, rpc_session_ptr> server_sessions;
     server_sessions _servers; // from_address => rpc_session
-    typedef std::unordered_map<uint32_t, uint32_t> ip_sessions;
-    ip_sessions _ips; // from_ip => connection count
+    typedef std::unordered_map<uint32_t, uint32_t> ip_connection_count;
+    ip_connection_count _ip_conn_count; // from_ip => connection count
     utils::rw_lock_nr _servers_lock;
 
     uint32_t _cfg_conn_threshold_per_ip;

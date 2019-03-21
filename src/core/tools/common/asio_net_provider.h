@@ -56,18 +56,6 @@ private:
     ::dsn::rpc_address _address;
 };
 
-class asio_network_provider_test : public asio_network_provider
-{
-public:
-    asio_network_provider_test(rpc_engine *srv, network *inner_provider)
-        : asio_network_provider(srv, inner_provider)
-    {
-    }
-
-public:
-    void change_test_cfg_conn_threshold_per_ip(uint32_t n);
-};
-
 class asio_udp_provider : public network
 {
 public:

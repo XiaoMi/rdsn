@@ -53,6 +53,23 @@
 using namespace dsn;
 using namespace dsn::tools;
 
+class asio_network_provider_test : public asio_network_provider
+{
+public:
+    asio_network_provider_test(rpc_engine *srv, network *inner_provider)
+        : asio_network_provider(srv, inner_provider)
+    {
+    }
+
+public:
+    void change_test_cfg_conn_threshold_per_ip(uint32_t n)
+    {
+        ddebug(
+            "change _cfg_conn_threshold_per_ip %d -> %d for test", (int)_cfg_conn_threshold_per_ip, n);
+        _cfg_conn_threshold_per_ip = n;
+    }
+};
+
 static int TEST_PORT = 20401;
 DEFINE_TASK_CODE_RPC(RPC_TEST_NETPROVIDER, TASK_PRIORITY_COMMON, THREAD_POOL_TEST_SERVER)
 
