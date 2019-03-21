@@ -64,8 +64,9 @@ public:
 public:
     void change_test_cfg_conn_threshold_per_ip(uint32_t n)
     {
-        ddebug(
-            "change _cfg_conn_threshold_per_ip %d -> %d for test", (int)_cfg_conn_threshold_per_ip, n);
+        ddebug("change _cfg_conn_threshold_per_ip %d -> %d for test",
+               (int)_cfg_conn_threshold_per_ip,
+               n);
         _cfg_conn_threshold_per_ip = n;
     }
 };

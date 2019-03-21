@@ -591,7 +591,8 @@ void connection_oriented_network::on_server_session_accepted(rpc_session_ptr &s)
         }
         scount = (int)_servers.size();
 
-        auto pr2 = _ip_conn_count.insert(ip_connection_count::value_type(s->remote_address().ip(), 1));
+        auto pr2 =
+            _ip_conn_count.insert(ip_connection_count::value_type(s->remote_address().ip(), 1));
         if (!pr2.second) {
             ecount = ++pr2.first->second;
         }
