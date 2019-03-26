@@ -59,7 +59,7 @@ extern const char *get_current_cluster_name();
 /// ```
 ///
 /// The returned cluster id of get_duplication_cluster_id("wuhan-mi-srv-ad") is 3.
-extern error_with<uint8_t> get_duplication_cluster_id(string_view cluster_name);
+extern error_with<uint8_t> get_duplication_cluster_id(const std::string& cluster_name);
 
 /// Returns a displayable string for this duplication_entry.
 extern std::string duplication_entry_to_string(const duplication_entry &dup);

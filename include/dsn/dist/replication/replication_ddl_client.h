@@ -217,9 +217,10 @@ private:
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
     error_with<TResponse> call_rpc_sync(TRpcHolder rpc, int reply_thread_hash = 0)
     {
-        // Retry at maximum 2 times when error occurred.
+        // Retry at maximum `MAX_RETRY` times when error occurred.
+        static constexpr int MAX_RETRY = 2;
         error_code err = ERR_UNKNOWN;
-        for (int retry = 0; retry < 2; retry++) {
+        for (int retry = 0; retry < MAX_RETRY; retry++) {
             task_ptr task = rpc.call(_meta_server,
                                      &_tracker,
                                      [&err](error_code code) { err = code; },
