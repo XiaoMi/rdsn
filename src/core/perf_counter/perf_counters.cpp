@@ -145,7 +145,7 @@ perf_counter *perf_counters::new_counter(const char *app,
     }
 }
 
-void perf_counters::get_all_counters(std::vector<perf_counter_ptr> *all)
+void perf_counters::get_all_counters(std::vector<perf_counter_ptr> *all) const
 {
     all->clear();
     utils::auto_read_lock l(_lock);
