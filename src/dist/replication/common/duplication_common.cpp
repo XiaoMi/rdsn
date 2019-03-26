@@ -84,7 +84,7 @@ public:
                   "there might be duplicate cluster_id in configuration");
     }
 
-    error_with<uint8_t> get_cluster_id(string_view cluster_name) const
+    error_with<uint8_t> get_cluster_id(const std::string &cluster_name) const
     {
         if (cluster_name.empty()) {
             return error_s::make(ERR_INVALID_PARAMETERS, "cluster_name is empty");
@@ -93,7 +93,7 @@ public:
             return error_s::make(ERR_OBJECT_NOT_FOUND, "`duplication-group` is not configured");
         }
 
-        auto it = _group.find(std::string(cluster_name));
+        auto it = _group.find(cluster_name);
         if (it == _group.end()) {
             return error_s::make(ERR_OBJECT_NOT_FOUND, "failed to get cluster id for ")
                    << cluster_name.data();
