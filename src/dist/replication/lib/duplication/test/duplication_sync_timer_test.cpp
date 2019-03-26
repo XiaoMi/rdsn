@@ -25,7 +25,7 @@
  */
 
 #include "dist/replication/lib/duplication/duplication_sync_timer.h"
-#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
+#include "duplication_test_base.h"
 
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/rpc_message.h>
@@ -33,7 +33,7 @@
 namespace dsn {
 namespace replication {
 
-class duplication_sync_timer_test : public replica_stub_test_base
+class duplication_sync_timer_test : public duplication_test_base
 {
 public:
     void SetUp() override { dup_sync = make_unique<duplication_sync_timer>(stub.get()); }

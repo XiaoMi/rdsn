@@ -33,7 +33,6 @@
 
 #include "dist/replication/lib/replica_stub.h"
 #include "dist/replication/lib/mutation_log_utils.h"
-#include "dist/replication/lib/duplication/replica_duplicator_manager.h"
 #include "dist/replication/test/replica_test/unit_test/test_utils.h"
 
 #include "mock_utils.h"
@@ -43,30 +42,9 @@ namespace replication {
 
 struct replica_stub_test_base : ::testing::Test
 {
-    replica_stub_test_base()
-    {
-        stub = make_unique<mock_replica_stub>(); // mock mutation_duplicator
-
-        mutation_duplicator::creator = [](replica_base *r, dsn::string_view, dsn::string_view) {
-            return make_unique<mock_mutation_duplicator>(r);
-        };
-    }
+    replica_stub_test_base() { stub = make_unique<mock_replica_stub>(); }
 
     ~replica_stub_test_base() { stub.reset(); }
-
-    void add_dup(mock_replica *r, replica_duplicator_u_ptr dup)
-    {
-        r->get_replica_duplicator_manager()._duplications[dup->id()] = std::move(dup);
-    }
-
-    replica_duplicator *find_dup(mock_replica *r, dupid_t dupid)
-    {
-        auto &dup_entities = r->get_replica_duplicator_manager()._duplications;
-        if (dup_entities.find(dupid) == dup_entities.end()) {
-            return nullptr;
-        }
-        return dup_entities[dupid].get();
-    }
 
     std::unique_ptr<mock_replica_stub> stub;
 };
@@ -106,16 +84,6 @@ struct replica_test_base : replica_stub_test_base
         mutation_ptr mut = create_test_mutation(decree, "");
         mut->data.updates.back().code = RPC_REPLICATION_WRITE_EMPTY;
         return mut;
-    }
-
-    std::unique_ptr<replica_duplicator> create_test_duplicator(decree confirmed = invalid_decree)
-    {
-        duplication_entry dup_ent;
-        dup_ent.dupid = 1;
-        dup_ent.remote_address = "remote_address";
-        dup_ent.status = duplication_status::DS_PAUSE;
-        dup_ent.progress[_replica->get_gpid().get_partition_index()] = confirmed;
-        return make_unique<replica_duplicator>(dup_ent, _replica.get());
     }
 
     std::map<int, log_file_ptr> open_log_file_map(const std::string &dir)

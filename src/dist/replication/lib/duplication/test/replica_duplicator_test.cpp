@@ -29,7 +29,7 @@
 #include "dist/replication/lib/mutation_log_utils.h"
 #include "dist/replication/lib/duplication/load_from_private_log.h"
 #include "dist/replication/lib/duplication/duplication_pipeline.h"
-#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
+#include "duplication_test_base.h"
 
 namespace dsn {
 namespace apps {
@@ -43,7 +43,7 @@ DEFINE_TASK_CODE_RPC(RPC_RRDB_RRDB_PUT, TASK_PRIORITY_COMMON, ::dsn::THREAD_POOL
 namespace dsn {
 namespace replication {
 
-class replica_duplicator_test : public replica_test_base
+class replica_duplicator_test : public duplication_test_base
 {
 public:
     replica_duplicator_test() { _replica->init_private_log(_log_dir); }

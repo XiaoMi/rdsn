@@ -26,7 +26,7 @@
 
 #include "dist/replication/lib/duplication/mutation_batch.h"
 #include "dist/replication/lib/duplication/duplication_pipeline.h"
-#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
+#include "duplication_test_base.h"
 
 namespace dsn {
 namespace replication {
@@ -38,7 +38,7 @@ struct mock_stage : pipeline::when<>
     void run() override {}
 };
 
-struct ship_mutation_test : public replica_test_base
+struct ship_mutation_test : public duplication_test_base
 {
     ship_mutation_test()
     {

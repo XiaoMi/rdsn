@@ -34,12 +34,12 @@
 
 #include "dist/replication/lib/mutation_log_utils.h"
 #include "dist/replication/lib/duplication/load_from_private_log.h"
-#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
+#include "duplication_test_base.h"
 
 namespace dsn {
 namespace replication {
 
-class load_from_private_log_test : public replica_test_base
+class load_from_private_log_test : public duplication_test_base
 {
 public:
     load_from_private_log_test()

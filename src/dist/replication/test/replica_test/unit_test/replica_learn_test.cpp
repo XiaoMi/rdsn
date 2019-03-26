@@ -28,12 +28,12 @@
 
 #include "dist/replication/lib/replica.h"
 #include "dist/replication/test/replica_test/unit_test/mock_utils.h"
-#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
+#include "dist/replication/lib/duplication/test/duplication_test_base.h"
 
 namespace dsn {
 namespace replication {
 
-class replica_learn_test : public replica_test_base
+class replica_learn_test : public duplication_test_base
 {
 public:
     replica_learn_test() {}

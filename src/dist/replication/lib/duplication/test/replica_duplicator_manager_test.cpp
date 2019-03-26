@@ -24,12 +24,12 @@
  * THE SOFTWARE.
  */
 
-#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
+#include "duplication_test_base.h"
 
 namespace dsn {
 namespace replication {
 
-class replica_duplicator_manager_test : public replica_stub_test_base
+class replica_duplicator_manager_test : public duplication_test_base
 {
 public:
     void SetUp() override { stub = make_unique<mock_replica_stub>(); }
