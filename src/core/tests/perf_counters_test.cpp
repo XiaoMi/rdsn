@@ -125,10 +125,10 @@ TEST(perf_counters, snapshot)
 
     std::map<std::string, dsn_perf_counter_type_t> counter_keys;
     perf_counters::instance().take_snapshot();
-    perf_counters::snapshot_iterator iter = [&counter_keys](const dsn::perf_counter_ptr &ptr,
-                                                            double value) mutable {
-        counter_keys.emplace(ptr->full_name(), ptr->type());
-    };
+    perf_counters::snapshot_iterator iter =
+        [&counter_keys](const perf_counters::counter_snapshot &cs) mutable {
+            counter_keys.emplace(cs.name, cs.type);
+        };
 
     counter_keys.clear();
     expected = {
