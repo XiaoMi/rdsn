@@ -284,7 +284,7 @@ TEST(perf_counters, query_snapshot_by_regexp)
     ASSERT_GT(info.timestamp, 0);
     ASSERT_TRUE(!info.timestamp_str.empty());
     printf("got timestamp: %s\n", info.timestamp_str.c_str());
-    ASSERT_EQ(4, info.counters.size());
+    ASSERT_EQ(4 + 1, info.counters.size()); // add 1 for p999 counter
 
     std::map<std::string, std::string> expected = {
         {"a*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER)},
