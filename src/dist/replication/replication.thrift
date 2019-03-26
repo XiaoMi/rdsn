@@ -104,6 +104,8 @@ struct learn_state
     2:i64            to_decree_included;
     3:dsn.blob       meta;
     4:list<string>   files;
+
+    // Used by duplication. Holds the start_decree of this round of learn.
     5:optional i64   learn_start_decree;
 }
 
@@ -125,6 +127,10 @@ struct learn_request
     4:i64                 last_committed_decree_in_app; // last committed decree of learner's app
     5:i64                 last_committed_decree_in_prepare_list; // last committed decree of learner's prepare list
     6:dsn.blob            app_specific_learn_request; // learning request data by app.prepare_learn_request()
+
+    // Used by duplication to determine if learner has enough logs on disk to
+    // be duplicated (ie. max_gced_decree < confirmed_decree), if not,
+    // learnee will copy the missing logs.
     7:optional i64        max_gced_decree;
 }
 
@@ -154,7 +160,9 @@ struct group_check_request
     3:replica_configuration config;
     4:i64                   last_committed_decree;
 
-    // duplication
+    // Used to sync duplication progress between primaries
+    // and secondaries, so that secondaries can be allowed to GC
+    // their WALs after this decree.
     5:optional i64          confirmed_decree;
 }
 

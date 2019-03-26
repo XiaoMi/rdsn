@@ -24,13 +24,12 @@
  * THE SOFTWARE.
  */
 
-#include "duplication_test_base.h"
-
 #include <dsn/utility/filesystem.h>
 
 #include "dist/replication/lib/mutation_log_utils.h"
 #include "dist/replication/lib/duplication/load_from_private_log.h"
 #include "dist/replication/lib/duplication/duplication_pipeline.h"
+#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
 
 namespace dsn {
 namespace apps {

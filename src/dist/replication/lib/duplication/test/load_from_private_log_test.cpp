@@ -34,8 +34,7 @@
 
 #include "dist/replication/lib/mutation_log_utils.h"
 #include "dist/replication/lib/duplication/load_from_private_log.h"
-
-#include "duplication_test_base.h"
+#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
 
 namespace dsn {
 namespace replication {

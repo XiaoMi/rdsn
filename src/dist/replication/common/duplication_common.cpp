@@ -48,7 +48,7 @@ namespace replication {
 {
     static const char *cluster_name =
         dsn_config_get_value_string("replication", "cluster_name", "", "name of this cluster");
-    dassert(!string_view(cluster_name).empty(), "cluster_name is not set");
+    dassert(strlen(cluster_name) != 0, "cluster_name is not set");
     return cluster_name;
 }
 
@@ -84,7 +84,7 @@ public:
                   "there might be duplicate cluster_id in configuration");
     }
 
-    error_with<uint8_t> get_cluster_id(string_view cluster_name) const
+    error_with<uint8_t> get_cluster_id(const std::string &cluster_name) const
     {
         if (cluster_name.empty()) {
             return error_s::make(ERR_INVALID_PARAMETERS, "cluster_name is empty");
@@ -93,7 +93,7 @@ public:
             return error_s::make(ERR_OBJECT_NOT_FOUND, "`duplication-group` is not configured");
         }
 
-        auto it = _group.find(std::string(cluster_name));
+        auto it = _group.find(cluster_name);
         if (it == _group.end()) {
             return error_s::make(ERR_OBJECT_NOT_FOUND, "failed to get cluster id for ")
                    << cluster_name.data();
@@ -107,11 +107,13 @@ public:
 
 } // namespace internal
 
-/*extern*/ error_with<uint8_t> get_duplication_cluster_id(string_view cluster_name)
+/*extern*/ error_with<uint8_t> get_duplication_cluster_id(const std::string &cluster_name)
 {
     return internal::duplication_group_registry::instance().get_cluster_id(cluster_name);
 }
 
+// TODO(wutao1): implement our C++ version of `TSimpleJSONProtocol` if there're
+//               more cases for converting thrift to JSON
 /*extern*/ std::string duplication_entry_to_string(const duplication_entry &dup)
 {
     rapidjson::Document doc;

@@ -25,8 +25,7 @@
  */
 
 #include "dist/replication/lib/duplication/duplication_sync_timer.h"
-
-#include "duplication_test_base.h"
+#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
 
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/rpc_message.h>

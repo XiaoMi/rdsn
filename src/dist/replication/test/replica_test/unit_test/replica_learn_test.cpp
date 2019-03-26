@@ -27,13 +27,11 @@
 #include <gtest/gtest.h>
 
 #include "dist/replication/lib/replica.h"
-#include "dist/replication/lib/duplication/test/mock_utils.h"
-#include "dist/replication/lib/duplication/test/duplication_test_base.h"
+#include "dist/replication/test/replica_test/unit_test/mock_utils.h"
+#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
 
 namespace dsn {
 namespace replication {
-
-/*static*/ mock_mutation_duplicator::duplicate_function mock_mutation_duplicator::_func;
 
 class replica_learn_test : public replica_test_base
 {

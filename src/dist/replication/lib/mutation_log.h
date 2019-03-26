@@ -168,6 +168,7 @@ public:
     // when is_private = true, should specify "private_gpid"
     //
     mutation_log(const std::string &dir, int32_t max_log_file_mb, gpid gpid, replica *r = nullptr);
+
     virtual ~mutation_log() = default;
 
     //
@@ -508,7 +509,7 @@ public:
                          uint32_t batch_buffer_max_count,
                          uint64_t batch_buffer_flush_interval_ms);
 
-    virtual ~mutation_log_private() override
+    ~mutation_log_private() override
     {
         close();
         _tracker.cancel_outstanding_tasks();
