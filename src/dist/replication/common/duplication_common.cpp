@@ -113,7 +113,7 @@ public:
 }
 
 // TODO(wutao1): implement our C++ version of `TSimpleJSONProtocol` if there're
-//               more cases needs converting thrift to JSON
+//               more cases for converting thrift to JSON
 /*extern*/ std::string duplication_entry_to_string(const duplication_entry &dup)
 {
     rapidjson::Document doc;
