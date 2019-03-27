@@ -63,7 +63,7 @@ error_code asio_network_provider::start(rpc_channel channel, int port, bool clie
     // get connection threshold from config, default value 0 means no threshold
     _cfg_conn_threshold_per_ip = (uint32_t)dsn_config_get_value_uint64(
         "network", "conn_threshold_per_ip", 0, "max connection count to each server per ip");
-    ddebug("_cfg_conn_threshold_per_ip = %d", (int)_cfg_conn_threshold_per_ip);
+    ddebug("_cfg_conn_threshold_per_ip = %u", _cfg_conn_threshold_per_ip);
 
     for (int i = 0; i < io_service_worker_count; i++) {
         _workers.push_back(std::make_shared<std::thread>([this, i]() {

@@ -649,9 +649,9 @@ void connection_oriented_network::on_server_session_disconnected(rpc_session_ptr
 bool connection_oriented_network::is_conn_threshold_exceeded(::dsn::rpc_address ep)
 {
     if (_cfg_conn_threshold_per_ip <= 0) {
-        ddebug("new client from %s is connecting to server %s, no connection threshold",
-               ep.ipv4_str(),
-               address().to_string());
+        dinfo("new client from %s is connecting to server %s, no connection threshold",
+              ep.ipv4_str(),
+              address().to_string());
         return false;
     }
 
@@ -662,17 +662,17 @@ bool connection_oriented_network::is_conn_threshold_exceeded(::dsn::rpc_address 
         auto it = _ip_conn_count.find(ep.ip());
         if (it != _ip_conn_count.end()) {
             scount = it->second;
-            if (scount >= _cfg_conn_threshold_per_ip)
-                exceeded = true;
         }
     }
+    if (scount >= _cfg_conn_threshold_per_ip)
+        exceeded = true;
 
-    ddebug("new client from %s is connecting to server %s, existing connection count "
-           "= %d, threshold = %d",
-           ep.ipv4_str(),
-           address().to_string(),
-           scount,
-           _cfg_conn_threshold_per_ip);
+    dinfo("new client from %s is connecting to server %s, existing connection count "
+          "= %d, threshold = %u",
+          ep.ipv4_str(),
+          address().to_string(),
+          scount,
+          _cfg_conn_threshold_per_ip);
 
     return exceeded;
 }

@@ -64,9 +64,8 @@ public:
 public:
     void change_test_cfg_conn_threshold_per_ip(uint32_t n)
     {
-        ddebug("change _cfg_conn_threshold_per_ip %d -> %d for test",
-               (int)_cfg_conn_threshold_per_ip,
-               n);
+        ddebug(
+            "change _cfg_conn_threshold_per_ip %u -> %u for test", _cfg_conn_threshold_per_ip, n);
         _cfg_conn_threshold_per_ip = n;
     }
 };
@@ -95,7 +94,6 @@ void reject_response_handler(dsn::error_code ec)
 {
     wait_flag = 1;
     ASSERT_TRUE(ERR_TIMEOUT == ec);
-    ddebug("error msg: %s", ec.to_string());
 }
 
 void rpc_server_response(dsn::message_ex *request)
