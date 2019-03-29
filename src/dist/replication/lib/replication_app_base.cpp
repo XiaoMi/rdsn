@@ -319,18 +319,6 @@ replication_app_base::replication_app_base(replica *replica) : replica_base(repl
     _dir_backup = utils::filesystem::path_combine(replica->dir(), "backup");
     _last_committed_decree = 0;
     _replica = replica;
-
-    install_perf_counters();
-}
-
-void replication_app_base::install_perf_counters()
-{
-    // TODO: add custom perfcounters for replication_app_base
-}
-
-void replication_app_base::reset_counters_after_learning()
-{
-    // TODO: add custom perfcounters for replication_app_base
 }
 
 error_code replication_app_base::open_internal(replica *r)
@@ -479,7 +467,7 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
         (dsn::message_ex **)alloca(sizeof(dsn::message_ex *) * request_count);
     dsn::message_ex **faked_requests =
         (dsn::message_ex **)alloca(sizeof(dsn::message_ex *) * request_count);
-    int batched_count = 0;
+    int batched_count = 0; // write-empties are not included.
     int faked_count = 0;
     for (int i = 0; i < request_count; i++) {
         const mutation_update &update = mu->data.updates[i];
@@ -553,7 +541,7 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
                batched_count);
     }
 
-    _replica->update_commit_statistics(1);
+    _replica->update_commit_qps(batched_count);
 
     return ERR_OK;
 }
@@ -601,7 +589,7 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
 
 void replication_app_base::update_stub_counter_dup_time_lag(uint64_t time_lag_in_us)
 {
-    _replica->get_replica_stub()->_counter_dup_time_lag->set(time_lag_in_us / 1000);
+    _replica->update_dup_time_lag(time_lag_in_us);
 }
 
 } // namespace replication

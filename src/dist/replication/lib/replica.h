@@ -156,9 +156,13 @@ public:
     bool is_duplicating() const;
     void update_init_info_duplicating(bool duplicating);
 
-    // void json_state(std::stringstream& out) const;
     void update_last_checkpoint_generate_time();
-    void update_commit_statistics(int count);
+
+    //
+    // Statistics
+    //
+    void update_commit_qps(int count);
+    void update_dup_time_lag(uint64_t time_lag_in_us);
 
     // routine for get extra envs from replica
     const std::map<std::string, std::string> &get_replica_extra_envs() const { return _extra_envs; }

@@ -24,21 +24,7 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     interface for apps to be replicated using rDSN
- *
- * Revision history:
- *     Mar., 2015, @imzhenyu (Zhenyu Guo), first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #pragma once
-
-//
-// replication_app_base is the base class for all app to be replicated using
-// this library
-//
 
 #include <dsn/cpp/serverlet.h>
 #include <dsn/cpp/json_helper.h>
@@ -95,6 +81,9 @@ public:
     error_code store(const char *file);
 };
 
+/// The store engine interface of Pegasus.
+/// Inherited by pegasus::pegasus_server_impl
+/// Inherited by dsn::apps::rrdb_service
 class replication_app_base : public replica_base
 {
 public:
@@ -248,7 +237,6 @@ public:
     {
         return _last_committed_decree.load();
     }
-    void reset_counters_after_learning();
 
     void update_stub_counter_dup_time_lag(uint64_t time_lag_in_us);
 
@@ -274,8 +262,6 @@ private:
 
     ::dsn::error_code update_init_info_duplicating(bool duplicating);
 
-    void install_perf_counters();
-
 protected:
     std::string _dir_data;   // ${replica_dir}/data
     std::string _dir_learn;  // ${replica_dir}/learn
@@ -287,6 +273,5 @@ protected:
     explicit replication_app_base(::dsn::replication::replica *replica);
 };
 
-//------------------ inline implementation ---------------------
 } // namespace replication
 } // namespace dsn

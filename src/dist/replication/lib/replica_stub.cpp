@@ -95,12 +95,10 @@ void replica_stub::install_perf_counters()
                                                      "closing.replica(Count)",
                                                      COUNTER_TYPE_NUMBER,
                                                      "# in replica_stub._closing_replicas");
-    _counter_replicas_total_commit_throught.init_app_counter(
-        "eon.replica_stub",
-        "replicas.commit.qps",
-        COUNTER_TYPE_RATE,
-        "app commit throughput for all replicas");
-
+    _counter_replicas_commit_qps.init_app_counter("eon.replica_stub",
+                                                  "replicas.commit.qps",
+                                                  COUNTER_TYPE_RATE,
+                                                  "server-level committed throughput");
     _counter_replicas_learning_count.init_app_counter("eon.replica_stub",
                                                       "replicas.learning.count",
                                                       COUNTER_TYPE_NUMBER,
