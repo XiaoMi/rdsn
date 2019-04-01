@@ -132,6 +132,12 @@ public:
         clock_gettime(CLOCK_REALTIME, &ts);
         ts.tv_sec += timeout_milliseconds / 1000;
         ts.tv_nsec += timeout_milliseconds % 1000 * 1000000;
+        if (ts.tv_nsec >= 1000000000) {
+            ++ts.tv_sec;
+            ts.tv_nsec -= 1000000000;
+        }
+        assert(ts.tv_nsec >= 0);
+        assert(ts.tv_nsec < 1000000000);
 
         return sem_timedwait(&m_sema, &ts) == 0;
     }
@@ -203,7 +209,7 @@ public:
             waitWithPartialSpinning();
     }
 
-    // Be careful! Should check the return value, and can consume iff the return value is true.
+    // Be careful! Should check the return value, and can consume if the return value is true.
     bool wait(int timeout_milliseconds)
     {
         int oldCount = m_count.fetch_sub(1, std::memory_order_acquire);
