@@ -24,14 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
 #pragma once
 #include <vector>
 #include <deque>
@@ -334,5 +326,6 @@ private:
 
     dsn::task_tracker _tracker;
 };
-}
-}
+
+} // namespace service
+} // namespace dsn

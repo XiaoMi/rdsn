@@ -34,97 +34,42 @@
 
 namespace dsn {
 namespace service {
+
 class nfs_client
 {
 public:
-    nfs_client(::dsn::rpc_address server) { _server = server; }
     nfs_client() {}
     virtual ~nfs_client() {}
 
-    // ---------- call RPC_NFS_NFS_COPY ------------
-    // - synchronous
-    std::pair<::dsn::error_code, copy_response>
-    copy_sync(const copy_request &request,
-              std::chrono::milliseconds timeout = std::chrono::milliseconds(0),
-              int thread_hash = 0,
-              uint64_t partition_hash = 0,
-              dsn::optional<::dsn::rpc_address> server_addr = dsn::none)
-    {
-        return ::dsn::rpc::wait_and_unwrap<copy_response>(
-            ::dsn::rpc::call(server_addr.unwrap_or(_server),
-                             RPC_NFS_COPY,
-                             request,
-                             nullptr,
-                             empty_rpc_handler,
-                             timeout,
-                             thread_hash,
-                             partition_hash));
-    }
-
-    // - asynchronous with on-stack copy_request and copy_response
+protected:
     template <typename TCallback>
     ::dsn::task_ptr copy(const copy_request &request,
+                         rpc_address server_addr,
                          TCallback &&callback,
-                         std::chrono::milliseconds timeout = std::chrono::milliseconds(0),
-                         int thread_hash = 0,
-                         uint64_t partition_hash = 0,
-                         int reply_thread_hash = 0,
-                         dsn::optional<::dsn::rpc_address> server_addr = dsn::none)
+                         std::chrono::milliseconds timeout = std::chrono::milliseconds(0))
     {
-        return ::dsn::rpc::call(server_addr.unwrap_or(_server),
+        return ::dsn::rpc::call(server_addr,
                                 RPC_NFS_COPY,
                                 request,
                                 nullptr,
                                 std::forward<TCallback>(callback),
-                                timeout,
-                                thread_hash,
-                                partition_hash,
-                                reply_thread_hash);
+                                timeout);
     }
 
-    // ---------- call RPC_NFS_NFS_GET_FILE_SIZE ------------
-    // - synchronous
-    std::pair<::dsn::error_code, get_file_size_response>
-    get_file_size_sync(const get_file_size_request &request,
-                       std::chrono::milliseconds timeout = std::chrono::milliseconds(0),
-                       int thread_hash = 0,
-                       uint64_t partition_hash = 0,
-                       dsn::optional<::dsn::rpc_address> server_addr = dsn::none)
-    {
-        return ::dsn::rpc::wait_and_unwrap<get_file_size_response>(
-            ::dsn::rpc::call(server_addr.unwrap_or(_server),
-                             RPC_NFS_GET_FILE_SIZE,
-                             request,
-                             nullptr,
-                             empty_rpc_handler,
-                             timeout,
-                             thread_hash,
-                             partition_hash));
-    }
-
-    // - asynchronous with on-stack get_file_size_request and get_file_size_response
     template <typename TCallback>
     ::dsn::task_ptr get_file_size(const get_file_size_request &request,
+                                  rpc_address server_addr,
                                   TCallback &&callback,
-                                  std::chrono::milliseconds timeout = std::chrono::milliseconds(0),
-                                  int thread_hash = 0,
-                                  uint64_t partition_hash = 0,
-                                  int reply_thread_hash = 0,
-                                  dsn::optional<::dsn::rpc_address> server_addr = dsn::none)
+                                  std::chrono::milliseconds timeout = std::chrono::milliseconds(0))
     {
-        return ::dsn::rpc::call(server_addr.unwrap_or(_server),
+        return ::dsn::rpc::call(server_addr,
                                 RPC_NFS_GET_FILE_SIZE,
                                 request,
                                 nullptr,
                                 std::forward<TCallback>(callback),
-                                timeout,
-                                thread_hash,
-                                partition_hash,
-                                reply_thread_hash);
+                                timeout);
     }
-
-private:
-    ::dsn::rpc_address _server;
 };
-}
-}
+
+} // namespace service
+} // namespace dsn

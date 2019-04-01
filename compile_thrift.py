@@ -66,6 +66,10 @@ thrift_description = [
     {
         "name": "nfs",
         "path": "src/dist/nfs",
+        "file_move": {
+            "_types.h": "src/dist/nfs",
+            "_types.cpp": "src/dist/nfs"
+        },
         "include_fix": {
             "_types.h": {
                 "add": ["<dsn/service_api_cpp.h>"],
