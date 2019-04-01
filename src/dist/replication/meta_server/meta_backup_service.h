@@ -67,7 +67,8 @@ struct backup_start_time
     std::string to_string()
     {
         char res[10] = {"\0"};
-        sprintf(res, "%02d:%02d", hour, minute);
+        if (snprintf(res, sizeof(res), "%02d:%02d", hour, minute) < 0)
+            return std::string("invalid time");
         return std::string(res);
     }
     // NOTICE: this function will modify hour and minute, if time is invalid, this func will set
