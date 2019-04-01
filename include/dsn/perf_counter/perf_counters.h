@@ -147,7 +147,8 @@ private:
     };
     std::unordered_map<std::string, counter_snapshot> _snapshots;
 
-    int64_t _timestamp;  // in seconds
+    // timestamp in seconds when take snapshot of current counters
+    int64_t _timestamp;
 };
 
 } // end namespace dsn::utils
