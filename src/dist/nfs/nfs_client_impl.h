@@ -50,6 +50,7 @@ struct nfs_opts
     int max_file_copy_request_count_per_file;
     int max_retry_count_per_copy_request;
     int64_t rpc_timeout_ms;
+    uint16_t server_port;
 
     void init()
     {
@@ -96,6 +97,11 @@ struct nfs_opts
                                              10000,
                                              "rpc timeout in milliseconds for nfs copy, "
                                              "0 means use default timeout of rpc engine");
+
+        server_port = static_cast<uint16_t >(dsn_config_get_value_uint64("nfs",
+                                             "server_port",
+                                             0,
+                                             "tcp port used exclusively for nfs"));
     }
 };
 

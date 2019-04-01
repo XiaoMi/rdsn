@@ -629,6 +629,12 @@ void get_file_size_response::__set_size_list(const std::vector<int64_t> &val)
     this->size_list = val;
 }
 
+void get_file_size_response::__set_nfs_port(const int16_t val)
+{
+    this->nfs_port = val;
+    __isset.nfs_port = true;
+}
+
 uint32_t get_file_size_response::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -694,6 +700,14 @@ uint32_t get_file_size_response::read(::apache::thrift::protocol::TProtocol *ipr
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 4:
+            if (ftype == ::apache::thrift::protocol::T_I16) {
+                xfer += iprot->readI16(this->nfs_port);
+                this->__isset.nfs_port = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -740,6 +754,11 @@ uint32_t get_file_size_response::write(::apache::thrift::protocol::TProtocol *op
     }
     xfer += oprot->writeFieldEnd();
 
+    if (this->__isset.nfs_port) {
+        xfer += oprot->writeFieldBegin("nfs_port", ::apache::thrift::protocol::T_I16, 4);
+        xfer += oprot->writeI16(this->nfs_port);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -751,6 +770,7 @@ void swap(get_file_size_response &a, get_file_size_response &b)
     swap(a.error, b.error);
     swap(a.file_list, b.file_list);
     swap(a.size_list, b.size_list);
+    swap(a.nfs_port, b.nfs_port);
     swap(a.__isset, b.__isset);
 }
 
@@ -759,6 +779,7 @@ get_file_size_response::get_file_size_response(const get_file_size_response &oth
     error = other30.error;
     file_list = other30.file_list;
     size_list = other30.size_list;
+    nfs_port = other30.nfs_port;
     __isset = other30.__isset;
 }
 get_file_size_response::get_file_size_response(get_file_size_response &&other31)
@@ -766,6 +787,7 @@ get_file_size_response::get_file_size_response(get_file_size_response &&other31)
     error = std::move(other31.error);
     file_list = std::move(other31.file_list);
     size_list = std::move(other31.size_list);
+    nfs_port = std::move(other31.nfs_port);
     __isset = std::move(other31.__isset);
 }
 get_file_size_response &get_file_size_response::operator=(const get_file_size_response &other32)
@@ -773,6 +795,7 @@ get_file_size_response &get_file_size_response::operator=(const get_file_size_re
     error = other32.error;
     file_list = other32.file_list;
     size_list = other32.size_list;
+    nfs_port = other32.nfs_port;
     __isset = other32.__isset;
     return *this;
 }
@@ -781,6 +804,7 @@ get_file_size_response &get_file_size_response::operator=(get_file_size_response
     error = std::move(other33.error);
     file_list = std::move(other33.file_list);
     size_list = std::move(other33.size_list);
+    nfs_port = std::move(other33.nfs_port);
     __isset = std::move(other33.__isset);
     return *this;
 }
@@ -793,6 +817,9 @@ void get_file_size_response::printTo(std::ostream &out) const
         << "file_list=" << to_string(file_list);
     out << ", "
         << "size_list=" << to_string(size_list);
+    out << ", "
+        << "nfs_port=";
+    (__isset.nfs_port ? (out << to_string(nfs_port)) : (out << "<null>"));
     out << ")";
 }
 }

@@ -148,6 +148,11 @@ DSN_API void dsn_rpc_forward(dsn::message_ex *request, dsn::rpc_address addr)
                                             ::dsn::rpc_address(addr));
 }
 
+DSN_API bool dsn_is_port_opened(uint16_t port)
+{
+    return ::dsn::task::get_current_rpc()->is_port_opened(port);
+}
+
 //------------------------------------------------------------------------------
 //
 // env

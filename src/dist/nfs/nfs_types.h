@@ -268,10 +268,14 @@ inline std::ostream &operator<<(std::ostream &out, const get_file_size_request &
 
 typedef struct _get_file_size_response__isset
 {
-    _get_file_size_response__isset() : error(false), file_list(false), size_list(false) {}
+    _get_file_size_response__isset()
+        : error(false), file_list(false), size_list(false), nfs_port(false)
+    {
+    }
     bool error : 1;
     bool file_list : 1;
     bool size_list : 1;
+    bool nfs_port : 1;
 } _get_file_size_response__isset;
 
 class get_file_size_response
@@ -281,12 +285,13 @@ public:
     get_file_size_response(get_file_size_response &&);
     get_file_size_response &operator=(const get_file_size_response &);
     get_file_size_response &operator=(get_file_size_response &&);
-    get_file_size_response() : error(0) {}
+    get_file_size_response() : error(0), nfs_port(0) {}
 
     virtual ~get_file_size_response() throw();
     int32_t error;
     std::vector<std::string> file_list;
     std::vector<int64_t> size_list;
+    int16_t nfs_port;
 
     _get_file_size_response__isset __isset;
 
@@ -296,6 +301,8 @@ public:
 
     void __set_size_list(const std::vector<int64_t> &val);
 
+    void __set_nfs_port(const int16_t val);
+
     bool operator==(const get_file_size_response &rhs) const
     {
         if (!(error == rhs.error))
@@ -303,6 +310,10 @@ public:
         if (!(file_list == rhs.file_list))
             return false;
         if (!(size_list == rhs.size_list))
+            return false;
+        if (__isset.nfs_port != rhs.__isset.nfs_port)
+            return false;
+        else if (__isset.nfs_port && !(nfs_port == rhs.nfs_port))
             return false;
         return true;
     }

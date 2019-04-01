@@ -36,6 +36,7 @@ struct get_file_size_response
     1: i32 error;
     2: list<string> file_list;
     3: list<i64> size_list;
+    4: optional i16 nfs_port;
 }
 
 service nfs

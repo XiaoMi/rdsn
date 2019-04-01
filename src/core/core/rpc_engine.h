@@ -173,6 +173,19 @@ public:
     // call with explicit address
     void call_address(rpc_address addr, message_ex *request, const rpc_response_task_ptr &call);
 
+    // Whether this port is registered on configuration, for example:
+    //
+    //  [apps.mimic]
+    //    type = dsn.app.mimic
+    //    ports = 20101,20102
+    //
+    // then is_port_opened(20102)=true.
+    //
+    bool is_port_opened(uint16_t port) const
+    {
+        return _server_nets.find(port) != _server_nets.end();
+    }
+
 private:
     network *create_network(const network_server_config &netcs,
                             bool client_only,

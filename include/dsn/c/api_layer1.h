@@ -257,6 +257,9 @@ extern DSN_API dsn::message_ex *dsn_rpc_call_wait(dsn::rpc_address server,
 /*! one-way RPC from client, no rpc response is expected */
 extern DSN_API void dsn_rpc_call_one_way(dsn::rpc_address server, dsn::message_ex *request);
 
+// Whether this port is opened on start up.
+extern DSN_API bool dsn_is_port_opened(uint16_t port);
+
 /*@}*/
 
 /*@}*/

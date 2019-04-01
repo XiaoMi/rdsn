@@ -24,14 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
 #include <cstdlib>
 #include <sys/stat.h>
 #include <dsn/utility/filesystem.h>
@@ -160,8 +152,6 @@ void nfs_service_impl::on_get_file_size(
     const ::dsn::service::get_file_size_request &request,
     ::dsn::rpc_replier<::dsn::service::get_file_size_response> &reply)
 {
-    // dinfo(">>> on call RPC_NFS_GET_FILE_SIZE end, exec RPC_NFS_GET_FILE_SIZE");
-
     get_file_size_response resp;
     error_code err = ERR_OK;
     std::vector<std::string> file_list;
@@ -219,6 +209,7 @@ void nfs_service_impl::on_get_file_size(
         }
     }
 
+    resp.__set_nfs_port(_opts.server_port);
     resp.error = err;
     reply(resp);
 }
@@ -239,5 +230,6 @@ void nfs_service_impl::close_file() // release out-of-date file handle
             it++;
     }
 }
-}
-}
+
+} // namespace service
+} // namespace dsn

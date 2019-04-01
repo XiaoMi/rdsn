@@ -103,6 +103,13 @@ void nfs_client_impl::end_get_file_size(::dsn::error_code err,
         return;
     }
 
+    if (resp.__isset.nfs_port && dsn_is_port_opened(resp.nfs_port)) {
+        // If the remote node provides an exclusive tcp connection
+        // for nfs file copy, later RPCs are going to run on it.
+        rpc_address &src_addr = ureq->file_size_req.source;
+        src_addr.assign_ipv4(src_addr.ip(), resp.nfs_port);
+    }
+
     std::deque<copy_request_ex_ptr> copy_requests;
     ureq->file_contexts.resize(resp.size_list.size());
     for (size_t i = 0; i < resp.size_list.size(); i++) // file list
