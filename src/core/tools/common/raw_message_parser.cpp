@@ -52,8 +52,7 @@ void raw_message_parser::notify_rpc_session_disconnected(rpc_session *sp)
         header->from_address = sp->remote_address();
         header->gpid.set_value(0);
 
-        strncpy(
-            header->rpc_name, "RPC_CALL_RAW_SESSION_DISCONNECT", sizeof(header->rpc_name) - 1);
+        strncpy(header->rpc_name, "RPC_CALL_RAW_SESSION_DISCONNECT", sizeof(header->rpc_name) - 1);
         header->rpc_name[sizeof(header->rpc_name) - 1] = '\0';
         special_msg->local_rpc_code = RPC_CALL_RAW_SESSION_DISCONNECT;
         special_msg->hdr_format = NET_HDR_RAW;
