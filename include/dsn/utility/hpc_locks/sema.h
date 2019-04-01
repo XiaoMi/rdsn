@@ -209,7 +209,7 @@ public:
             waitWithPartialSpinning();
     }
 
-    // Be careful! Should check the return value, and can consume if the return value is true.
+    // Be careful! Should check the return value, and can consume iff the return value is true.
     bool wait(int timeout_milliseconds)
     {
         int oldCount = m_count.fetch_sub(1, std::memory_order_acquire);
