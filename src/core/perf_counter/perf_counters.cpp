@@ -228,7 +228,7 @@ void perf_counters::take_snapshot()
             cs.value = c->get_percentile(COUNTER_PERCENTILE_99);
 
             // take P999 metrics into account as well.
-            std::string name_p999 = std::string(c->full_name()) + ".999";
+            std::string name_p999 = std::string(c->full_name()) + ".p999";
             counter_snapshot &cs999 = _snapshots[name_p999];
             cs999.name = std::move(name_p999);
             cs999.type = c->type();

@@ -291,7 +291,7 @@ TEST(perf_counters_test, query_snapshot_by_regexp)
         {"b*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_VOLATILE_NUMBER)},
         {"c*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_RATE)},
         {"d*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER_PERCENTILES)},
-        {"d*s*test_counter.999", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER_PERCENTILES)},
+        {"d*s*test_counter.p999", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER_PERCENTILES)},
     };
     std::map<std::string, std::string> actual;
     for (const dsn::perf_counter_metric &m : info.counters) {
