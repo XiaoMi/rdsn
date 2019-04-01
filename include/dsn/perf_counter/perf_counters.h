@@ -149,6 +149,9 @@ private:
 
     mutable utils::rw_lock_nr _snapshot_lock;
     std::unordered_map<std::string, counter_snapshot> _snapshots;
+
+    // timestamp in seconds when take snapshot of current counters
+    int64_t _timestamp;
 };
 
 } // namespace dsn
