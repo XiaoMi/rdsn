@@ -98,10 +98,8 @@ struct nfs_opts
                                              "rpc timeout in milliseconds for nfs copy, "
                                              "0 means use default timeout of rpc engine");
 
-        server_port = static_cast<uint16_t >(dsn_config_get_value_uint64("nfs",
-                                             "server_port",
-                                             0,
-                                             "tcp port used exclusively for nfs"));
+        server_port = static_cast<uint16_t>(dsn_config_get_value_uint64(
+            "nfs", "server_port", 0, "tcp port used exclusively for nfs"));
     }
 };
 
