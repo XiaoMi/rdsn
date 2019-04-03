@@ -80,12 +80,12 @@ public:
         next_status = duplication_status::DS_START;
     }
 
-    // change current status to `to`.
+    // change current status to `to_status`.
     // error will be returned if this state transition is not allowed.
-    error_code alter_status(duplication_status::type to)
+    error_code alter_status(duplication_status::type to_status)
     {
         zauto_write_lock l(_lock);
-        return do_alter_status(to);
+        return do_alter_status(to_status);
     }
 
     // stable current status to `next_status`
@@ -151,7 +151,7 @@ public:
 private:
     friend class duplication_info_test;
 
-    error_code do_alter_status(duplication_status::type to);
+    error_code do_alter_status(duplication_status::type to_status);
 
     // Whether there's ongoing meta storage update.
     bool _is_altering{false};
