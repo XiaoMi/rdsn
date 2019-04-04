@@ -102,7 +102,8 @@ public:
     /// alter_progress -> persist_progress
     ///
 
-    // Returns: false if the progress did not advance.
+    // Returns: false if `d` is not supposed to be persisted,
+    //          maybe because meta storage is busy or `d` is stale.
     bool alter_progress(int partition_index, decree d);
 
     void persist_progress(int partition_index);
