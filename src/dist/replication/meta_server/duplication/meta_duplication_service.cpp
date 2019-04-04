@@ -107,7 +107,7 @@ void meta_duplication_service::do_change_duplication_status(std::shared_ptr<app_
                        "change duplication status on metastore successfully [appname:{}]",
                        app->app_name);
 
-            dup->stable_status();
+            dup->persist_status();
             rpc.response().err = ERR_OK;
             rpc.response().appid = app->app_id;
 
@@ -181,7 +181,7 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
 {
     dup->start();
     if (rpc.request().freezed) {
-        dup->stable_status();
+        dup->persist_status();
         dup->alter_status(duplication_status::DS_PAUSE);
     }
 
@@ -197,7 +197,7 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
                        dup->remote);
 
             // The duplication starts only after it's been persisted.
-            dup->stable_status();
+            dup->persist_status();
 
             auto &resp = rpc.response();
             resp.err = ERR_OK;
@@ -311,14 +311,14 @@ void meta_duplication_service::do_update_partition_confirmed(duplication_info_s_
             if (data.length() == 0) {
                 _meta_svc->get_meta_storage()->create_node(
                     std::string(path), std::move(value), [=]() mutable {
-                        dup->stable_progress(partition_idx);
+                        dup->persist_progress(partition_idx);
                         rpc.response().dup_map[dup->app_id][dup->id].progress[partition_idx] =
                             confirmed_decree;
                     });
             } else {
                 _meta_svc->get_meta_storage()->set_data(
                     std::string(path), std::move(value), [=]() mutable {
-                        dup->stable_progress(partition_idx);
+                        dup->persist_progress(partition_idx);
                         rpc.response().dup_map[dup->app_id][dup->id].progress[partition_idx] =
                             confirmed_decree;
                     });
@@ -455,7 +455,9 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
     _meta_svc->get_meta_storage()->get_data(
         std::string(dup->store_path), [dup, this, app](const blob &json) {
             zauto_write_lock l(app_lock());
-            json::json_forwarder<duplication_info>::decode(json, *dup);
+            if (!json::json_forwarder<duplication_info>::decode(json, *dup)) {
+                return;
+            }
 
             if (dup->status != duplication_status::DS_REMOVED) {
                 app->duplications[dup->id] = dup;

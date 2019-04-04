@@ -54,12 +54,16 @@ namespace replication {
         s = it->second;
         return true;
     }
-    dfatal_f("unexpected duplication_status name: {}", name);
-    __builtin_unreachable();
+    derror_f("unexpected duplication_status name: {}", name);
+
+    // for forward compatibility issue, duplication of unexpected status
+    // will be marked as invisible.
+    s = duplication_status::DS_REMOVED;
+    return false;
 }
 
 // lock held
-error_code duplication_info::do_alter_status(duplication_status::type to)
+error_code duplication_info::do_alter_status(duplication_status::type to_status)
 {
     if (_is_altering) {
         return ERR_BUSY;
@@ -69,16 +73,15 @@ error_code duplication_info::do_alter_status(duplication_status::type to)
         return ERR_OBJECT_NOT_FOUND;
     }
 
-    if (to == duplication_status::DS_INIT) {
+    if (to_status == duplication_status::DS_INIT) {
         return ERR_INVALID_PARAMETERS;
     }
 
-    if (status != to) {
+    if (status != to_status) {
         _is_altering = true;
-        next_status = to;
+        next_status = to_status;
     }
 
-    // if status == to, return OK.
     return ERR_OK;
 }
 
@@ -116,7 +119,7 @@ bool duplication_info::alter_progress(int partition_index, decree d)
     return false;
 }
 
-void duplication_info::stable_progress(int partition_index)
+void duplication_info::persist_progress(int partition_index)
 {
     zauto_write_lock l(_lock);
 
@@ -126,7 +129,7 @@ void duplication_info::stable_progress(int partition_index)
     p.stored_decree = p.volatile_decree;
 }
 
-void duplication_info::stable_status()
+void duplication_info::persist_status()
 {
     zauto_write_lock l(_lock);
 

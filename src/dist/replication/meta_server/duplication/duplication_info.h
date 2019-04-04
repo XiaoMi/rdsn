@@ -80,17 +80,17 @@ public:
         next_status = duplication_status::DS_START;
     }
 
-    // change current status to `to`.
+    // change current status to `to_status`.
     // error will be returned if this state transition is not allowed.
-    error_code alter_status(duplication_status::type to)
+    error_code alter_status(duplication_status::type to_status)
     {
         zauto_write_lock l(_lock);
-        return do_alter_status(to);
+        return do_alter_status(to_status);
     }
 
-    // stable current status to `next_status`
+    // persist current status to `next_status`
     // call this function after data has been persisted on meta storage.
-    void stable_status();
+    void persist_status();
 
     // if this duplication is in valid status.
     bool is_valid() const
@@ -99,13 +99,13 @@ public:
     }
 
     ///
-    /// alter_progress -> stable_progress
+    /// alter_progress -> persist_progress
     ///
 
     // Returns: false if the progress did not advance.
     bool alter_progress(int partition_index, decree d);
 
-    void stable_progress(int partition_index);
+    void persist_progress(int partition_index);
 
     void init_progress(int partition_index, decree confirmed);
 
@@ -151,7 +151,7 @@ public:
 private:
     friend class duplication_info_test;
 
-    error_code do_alter_status(duplication_status::type to);
+    error_code do_alter_status(duplication_status::type to_status);
 
     // Whether there's ongoing meta storage update.
     bool _is_altering{false};

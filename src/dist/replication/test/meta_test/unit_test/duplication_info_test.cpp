@@ -27,6 +27,7 @@
 #include "dist/replication/meta_server/duplication/duplication_info.h"
 
 #include <gtest/gtest.h>
+#include <boost/algorithm/string.hpp>
 
 namespace dsn {
 namespace replication {
@@ -49,7 +50,7 @@ public:
         ASSERT_EQ(dup._progress[1].volatile_decree, 5);
         ASSERT_TRUE(dup._progress[1].is_altering);
 
-        dup.stable_progress(1);
+        dup.persist_progress(1);
         ASSERT_EQ(dup._progress[1].stored_decree, 5);
         ASSERT_FALSE(dup._progress[1].is_altering);
 
@@ -83,12 +84,12 @@ TEST_F(duplication_info_test, init_and_start)
     ASSERT_EQ(dup.next_status, duplication_status::DS_START);
 }
 
-TEST_F(duplication_info_test, stable_status)
+TEST_F(duplication_info_test, persist_status)
 {
     duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
     dup.start();
 
-    dup.stable_status();
+    dup.persist_status();
     ASSERT_EQ(dup.status, duplication_status::DS_START);
     ASSERT_EQ(dup.next_status, duplication_status::DS_INIT);
     ASSERT_FALSE(dup.is_altering());
@@ -129,11 +130,11 @@ TEST_F(duplication_info_test, alter_status)
     for (auto tt : tests) {
         duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
         dup.start();
-        dup.stable_status();
+        dup.persist_status();
 
         ASSERT_EQ(dup.alter_status(tt.from), ERR_OK);
         if (dup.is_altering()) {
-            dup.stable_status();
+            dup.persist_status();
         }
 
         ASSERT_EQ(dup.alter_status(tt.to), tt.wec);
@@ -144,15 +145,20 @@ TEST_F(duplication_info_test, encode_and_decode)
 {
     duplication_info dup(1, 1, 4, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
     dup.start();
-    dup.stable_status();
+    dup.persist_status();
 
     auto json = dup.to_json_blob_in_status(duplication_status::DS_PAUSE);
 
     duplication_info copy;
-    json::json_forwarder<duplication_info>::decode(json, copy);
+    ASSERT_TRUE(json::json_forwarder<duplication_info>::decode(json, copy));
     ASSERT_EQ(copy.status, duplication_status::DS_PAUSE);
     ASSERT_EQ(copy.create_timestamp_ms, dup.create_timestamp_ms);
     ASSERT_EQ(copy.remote, dup.remote);
+
+    blob new_json =
+        blob::create_from_bytes(boost::replace_all_copy(json.to_string(), "DS_PAUSE", "DS_FOO"));
+    ASSERT_FALSE(json::json_forwarder<duplication_info>::decode(new_json, copy));
+    ASSERT_EQ(copy.status, duplication_status::DS_REMOVED);
 }
 
 TEST_F(duplication_info_test, alter_progress) { test_alter_progress(); }
