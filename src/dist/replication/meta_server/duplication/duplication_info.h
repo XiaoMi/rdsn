@@ -88,9 +88,9 @@ public:
         return do_alter_status(to_status);
     }
 
-    // stable current status to `next_status`
+    // persist current status to `next_status`
     // call this function after data has been persisted on meta storage.
-    void stable_status();
+    void persist_status();
 
     // if this duplication is in valid status.
     bool is_valid() const
@@ -99,13 +99,13 @@ public:
     }
 
     ///
-    /// alter_progress -> stable_progress
+    /// alter_progress -> persist_progress
     ///
 
     // Returns: false if the progress did not advance.
     bool alter_progress(int partition_index, decree d);
 
-    void stable_progress(int partition_index);
+    void persist_progress(int partition_index);
 
     void init_progress(int partition_index, decree confirmed);
 
