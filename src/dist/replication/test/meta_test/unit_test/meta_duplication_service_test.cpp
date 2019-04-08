@@ -168,6 +168,95 @@ public:
 
     void wait_all() { _ms->tracker()->wait_outstanding_tasks(); }
 
+    /// === Tests ===
+
+    void test_new_dup_from_init()
+    {
+        std::string test_app = "test-app";
+        create_app(test_app);
+        auto app = find_app(test_app);
+        std::string remote_cluster_address = "dsn://slave-cluster/temp";
+
+        int last_dup = 0;
+        for (int i = 0; i < 1000; i++) {
+            auto dup = dup_svc().new_dup_from_init(remote_cluster_address, app);
+
+            ASSERT_GT(dup->id, 0);
+            ASSERT_FALSE(dup->is_altering());
+            ASSERT_EQ(dup->status, duplication_status::DS_INIT);
+            ASSERT_EQ(dup->next_status, duplication_status::DS_INIT);
+
+            auto ent = dup->to_duplication_entry();
+            for (int i = 0; i < app->partition_count; i++) {
+                ASSERT_EQ(ent.progress[i], invalid_decree);
+            }
+
+            if (last_dup != 0) {
+                ASSERT_GT(dup->id, last_dup);
+            }
+            last_dup = dup->id;
+        }
+    }
+
+    void test_recover_from_meta_state()
+    {
+        size_t total_apps_num = 2;
+        std::vector<std::string> test_apps(total_apps_num);
+
+        // app -> <dupid -> dup>
+        std::map<std::string, std::map<dupid_t, duplication_info_s_ptr>> meta_state;
+
+        for (int i = 0; i < total_apps_num; i++) {
+            test_apps[i] = "test_app_" + std::to_string(i);
+            create_app(test_apps[i]);
+
+            // create randomly [0, 3] dups for each apps
+            auto resp = create_dup(test_apps[i]);
+            ASSERT_EQ(ERR_OK, resp.err);
+
+            auto app = find_app(test_apps[i]);
+            meta_state[test_apps[i]] = app->duplications;
+
+            // update progress
+            auto dup = app->duplications[resp.dupid];
+            duplication_sync_rpc rpc(make_unique<duplication_sync_request>(),
+                                     RPC_CM_DUPLICATION_SYNC);
+            dup_svc().do_update_partition_confirmed(dup, rpc, 1, 1000);
+            wait_all();
+
+            dup_svc().do_update_partition_confirmed(dup, rpc, 2, 2000);
+            wait_all();
+
+            dup_svc().do_update_partition_confirmed(dup, rpc, 4, 4000);
+            wait_all();
+        }
+
+        // reset meta server states
+        _ss.reset();
+        _ms.reset(nullptr);
+        SetUp();
+
+        recover_from_meta_state();
+
+        for (int i = 0; i < test_apps.size(); i++) {
+            auto app = find_app(test_apps[i]);
+            ASSERT_EQ(app->duplicating, true);
+
+            auto &before = meta_state[test_apps[i]];
+            auto &after = app->duplications;
+            ASSERT_EQ(before.size(), after.size());
+
+            for (auto &kv : before) {
+                dupid_t dupid = kv.first;
+                auto &dup = kv.second;
+
+                ASSERT_TRUE(after.find(dupid) != after.end());
+                ASSERT_TRUE(dup->equals_to(*after[dupid]))
+                    << dup->to_string() << " " << after[dupid]->to_string();
+            }
+        }
+    }
+
     std::shared_ptr<server_state> _ss;
     std::unique_ptr<meta_service> _ms;
 };
@@ -307,33 +396,7 @@ TEST_F(meta_duplication_service_test, change_duplication_status)
 }
 
 // this test ensures that dupid is always increment and larger than zero.
-TEST_F(meta_duplication_service_test, new_dup_from_init)
-{
-    std::string test_app = "test-app";
-    create_app(test_app);
-    auto app = find_app(test_app);
-    std::string remote_cluster_address = "dsn://slave-cluster/temp";
-
-    int last_dup = 0;
-    for (int i = 0; i < 1000; i++) {
-        auto dup = dup_svc().new_dup_from_init(remote_cluster_address, app);
-
-        ASSERT_GT(dup->id, 0);
-        ASSERT_FALSE(dup->is_altering());
-        ASSERT_EQ(dup->status, duplication_status::DS_INIT);
-        ASSERT_EQ(dup->next_status, duplication_status::DS_INIT);
-
-        auto ent = dup->to_duplication_entry();
-        for (int i = 0; i < app->partition_count; i++) {
-            ASSERT_EQ(ent.progress[i], invalid_decree);
-        }
-
-        if (last_dup != 0) {
-            ASSERT_GT(dup->id, last_dup);
-        }
-        last_dup = dup->id;
-    }
-}
+TEST_F(meta_duplication_service_test, new_dup_from_init) { test_new_dup_from_init(); }
 
 TEST_F(meta_duplication_service_test, remove_dup)
 {
@@ -466,65 +529,9 @@ TEST_F(meta_duplication_service_test, duplication_sync)
     }
 }
 
-// This test ensures that duplications persisted on meta storage can be correctly
-// restored.
-TEST_F(meta_duplication_service_test, recover_from_meta_state)
-{
-    size_t total_apps_num = 2;
-    std::vector<std::string> test_apps(total_apps_num);
-
-    // app -> <dupid -> dup>
-    std::map<std::string, std::map<dupid_t, duplication_info_s_ptr>> meta_state;
-
-    for (int i = 0; i < total_apps_num; i++) {
-        test_apps[i] = "test_app_" + std::to_string(i);
-        create_app(test_apps[i]);
-
-        // create randomly [0, 3] dups for each apps
-        auto resp = create_dup(test_apps[i]);
-        ASSERT_EQ(ERR_OK, resp.err);
-
-        auto app = find_app(test_apps[i]);
-        meta_state[test_apps[i]] = app->duplications;
-
-        // update progress
-        auto dup = app->duplications[resp.dupid];
-        duplication_sync_rpc rpc(make_unique<duplication_sync_request>(), RPC_CM_DUPLICATION_SYNC);
-        dup_svc().do_update_partition_confirmed(dup, rpc, 1, 1000);
-        wait_all();
-
-        dup_svc().do_update_partition_confirmed(dup, rpc, 2, 2000);
-        wait_all();
-
-        dup_svc().do_update_partition_confirmed(dup, rpc, 4, 4000);
-        wait_all();
-    }
-
-    // reset meta server states
-    _ss.reset();
-    _ms.reset(nullptr);
-    SetUp();
-
-    recover_from_meta_state();
-
-    for (int i = 0; i < test_apps.size(); i++) {
-        auto app = find_app(test_apps[i]);
-        ASSERT_EQ(app->duplicating, true);
-
-        auto &before = meta_state[test_apps[i]];
-        auto &after = app->duplications;
-        ASSERT_EQ(before.size(), after.size());
-
-        for (auto &kv : before) {
-            dupid_t dupid = kv.first;
-            auto &dup = kv.second;
-
-            ASSERT_TRUE(after.find(dupid) != after.end());
-            ASSERT_TRUE(dup->equals_to(*after[dupid])) << dup->to_string() << " "
-                                                       << after[dupid]->to_string();
-        }
-    }
-}
+// This test ensures that duplications persisted on meta storage can be
+// correctly restored.
+TEST_F(meta_duplication_service_test, recover_from_meta_state) { test_recover_from_meta_state(); }
 
 TEST_F(meta_duplication_service_test, query_duplication_info)
 {

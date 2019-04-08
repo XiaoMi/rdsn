@@ -238,5 +238,6 @@ private:
 
     dsn::task_tracker _tracker;
 };
-}
-}
+
+} // namespace replication
+} // namespace dsn

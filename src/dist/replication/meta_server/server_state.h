@@ -339,5 +339,6 @@ private:
     perf_counter_wrapper _recent_partition_change_unwritable_count;
     perf_counter_wrapper _recent_partition_change_writable_count;
 };
-}
-}
+
+} // namespace replication
+} // namespace dsn

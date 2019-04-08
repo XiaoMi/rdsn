@@ -114,7 +114,7 @@ void meta_duplication_service::do_change_duplication_status(std::shared_ptr<app_
             if (rpc.request().status == duplication_status::DS_REMOVED) {
                 zauto_write_lock l(app_lock());
                 app->duplications.erase(dup->id);
-                refresh_env_duplicating_no_lock(app);
+                refresh_duplicating_no_lock(app);
             }
         });
 }
@@ -205,7 +205,7 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
             resp.dupid = dup->id;
 
             zauto_write_lock l(app_lock());
-            refresh_env_duplicating_no_lock(app);
+            refresh_duplicating_no_lock(app);
         });
 }
 
@@ -461,7 +461,7 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
 
             if (dup->status != duplication_status::DS_REMOVED) {
                 app->duplications[dup->id] = dup;
-                refresh_env_duplicating_no_lock(app);
+                refresh_duplicating_no_lock(app);
 
                 // restore progress
                 do_restore_duplication_progress(dup, app);

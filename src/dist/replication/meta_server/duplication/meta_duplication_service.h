@@ -42,7 +42,7 @@ namespace replication {
 ///
 ///   <app_path>/duplication/<dup_id>/<partition_index> -> <confirmed_decree>
 ///
-/// And each app has an enviroment variable called "duplicating" which indicates
+/// Each app has an attribute called "duplicating" which indicates
 /// whether this app should prevent its unconfirmed WAL from being compacted.
 ///
 class meta_duplication_service
@@ -67,8 +67,7 @@ public:
     // Recover from meta state storage.
     void recover_from_meta_state();
 
-    /// ================================= Implementation =================================== ///
-
+private:
     void do_add_duplication(std::shared_ptr<app_state> &app,
                             duplication_info_s_ptr &dup,
                             duplication_add_rpc &rpc);
@@ -114,7 +113,7 @@ public:
     zrwlock_nr &app_lock() const { return _state->_lock; }
 
     // ensure app_lock (write lock) is held before calling this function
-    static void refresh_env_duplicating_no_lock(const std::shared_ptr<app_state> &app)
+    static void refresh_duplicating_no_lock(const std::shared_ptr<app_state> &app)
     {
         for (const auto &kv : app->duplications) {
             const auto &dup = kv.second;

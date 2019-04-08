@@ -24,14 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
 #include <sys/stat.h>
 
 #include <boost/lexical_cast.hpp>
@@ -923,5 +915,6 @@ void meta_service::ddd_diagnose(ddd_diagnose_rpc rpc)
     get_balancer()->get_ddd_partitions(rpc.request().pid, response.partitions);
     response.err = ERR_OK;
 }
+
 } // namespace replication
 } // namespace dsn
