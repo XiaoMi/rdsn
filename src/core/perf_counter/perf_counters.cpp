@@ -145,7 +145,7 @@ perf_counter *perf_counters::new_counter(const char *app,
     }
 }
 
-void perf_counters::get_all_counters(std::vector<perf_counter_ptr> *all)
+void perf_counters::get_all_counters(std::vector<perf_counter_ptr> *all) const
 {
     all->clear();
     utils::auto_read_lock l(_lock);
@@ -228,7 +228,7 @@ void perf_counters::take_snapshot()
             cs.value = c->get_percentile(COUNTER_PERCENTILE_99);
 
             // take P999 metrics into account as well.
-            std::string name_p999 = std::string(c->full_name()) + ".999";
+            std::string name_p999 = std::string(c->full_name()) + ".p999";
             counter_snapshot &cs999 = _snapshots[name_p999];
             cs999.name = std::move(name_p999);
             cs999.type = c->type();

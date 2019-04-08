@@ -64,7 +64,6 @@ inline dsn::message_ex *create_corresponding_receive(dsn::message_ex *request_ms
 }
 
 // fake_receiver_meta_service overrides `reply_message` of meta_service
-//
 class fake_receiver_meta_service : public dsn::replication::meta_service
 {
 public:
@@ -142,7 +141,7 @@ private:
 template <typename TRequest, typename RequestHandler>
 std::shared_ptr<reply_context>
 fake_rpc_call(dsn::task_code rpc_code,
-              dsn::task_code lpc_code,
+              dsn::task_code server_state_write_code,
               RequestHandler *handle_class,
               void (RequestHandler::*handle)(dsn::message_ex *request),
               const TRequest &data,
@@ -158,9 +157,9 @@ fake_rpc_call(dsn::task_code rpc_code,
     dsn::marshall(msg, ptr);
 
     dsn::message_ex *received = create_corresponding_receive(msg);
-    received->release_ref();
+    received->add_ref();
     dsn::tasking::enqueue(
-        lpc_code, nullptr, std::bind(handle, handle_class, received), hash, delay);
+        server_state_write_code, nullptr, std::bind(handle, handle_class, received), hash, delay);
 
     // release the sending message
     destroy_message(msg);

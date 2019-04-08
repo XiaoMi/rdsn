@@ -43,16 +43,16 @@ inline dsn::replication::fs_manager *get_fs_manager(nodes_fs_manager &nfm,
     return iter->second.get();
 }
 
-// generate a random number between [min, max]
+// Generates a random number between [min, max]
 uint32_t random32(uint32_t min, uint32_t max);
 
-// generate a random number [min_count, max_count] of node addresses
+// Generates a random number [min_count, max_count] of node addresses
 // each node is given a random port value in range of [min_count, max_count]
 void generate_node_list(/*out*/ std::vector<dsn::rpc_address> &output_list,
                         int min_count,
                         int max_count);
 
-// generate `size` of node addresses, each with port value in range [start_port, start_port + size]
+// Generates `size` of node addresses, each with port value in range [start_port, start_port + size]
 inline std::vector<dsn::rpc_address> generate_node_list(size_t size, int start_port = 12321)
 {
     std::vector<dsn::rpc_address> result;
@@ -62,8 +62,8 @@ inline std::vector<dsn::rpc_address> generate_node_list(size_t size, int start_p
     return result;
 }
 
-// this func randomly picks 3 nodes from `node_list` for each of the partition of the app.
-// for each partition, it picks one node as primary, the others as secondaries.
+// This func randomly picks 3 nodes from `node_list` for each of the partition of the app.
+// For each partition, it picks one node as primary, the others as secondaries.
 // REQUIRES: node_list.size() >= 3
 void generate_app(
     /*out*/ std::shared_ptr<dsn::replication::app_state> &app,

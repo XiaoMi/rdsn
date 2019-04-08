@@ -131,7 +131,8 @@ private:
                               const char *name,
                               dsn_perf_counter_type_t type,
                               const char *dsptr);
-    void get_all_counters(std::vector<perf_counter_ptr> *all);
+
+    void get_all_counters(std::vector<perf_counter_ptr> *all) const;
 
     mutable utils::rw_lock_nr _lock;
     // keep counter as a refptr to make the counter can be safely accessed
