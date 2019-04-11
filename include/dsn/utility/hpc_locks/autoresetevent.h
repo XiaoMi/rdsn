@@ -9,6 +9,7 @@
 #include <cassert>
 #include <thread>
 #include <dsn/utility/hpc_locks/sema.h>
+#include <dsn/c/api_utilities.h>
 
 //---------------------------------------------------------
 // AutoResetEvent
@@ -33,7 +34,7 @@ public:
         int oldStatus = m_status.load(std::memory_order_relaxed);
         for (;;) // Increment m_status atomically via CAS loop.
         {
-            assert(oldStatus <= 1);
+            dassert(oldStatus <= 1, "oldStatus=%d", oldStatus);
             int newStatus = oldStatus < 1 ? oldStatus + 1 : 1;
             if (m_status.compare_exchange_weak(
                     oldStatus, newStatus, std::memory_order_release, std::memory_order_relaxed))
@@ -48,7 +49,7 @@ public:
     void wait()
     {
         int oldStatus = m_status.fetch_sub(1, std::memory_order_acquire);
-        assert(oldStatus <= 1);
+        dassert(oldStatus <= 1 && oldStatus >= -1000, "oldStatus=%d", oldStatus);
         if (oldStatus < 1) {
             m_sema.wait();
         }
@@ -57,7 +58,7 @@ public:
     bool wait(int timeout_milliseconds)
     {
         int oldStatus = m_status.fetch_sub(1, std::memory_order_acquire);
-        assert(oldStatus <= 1);
+        dassert(oldStatus <= 1 && oldStatus >= -1000, "oldStatus=%d", oldStatus);
         if (oldStatus < 1) {
             return m_sema.wait(timeout_milliseconds);
         } else
