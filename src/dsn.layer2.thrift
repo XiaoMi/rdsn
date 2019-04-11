@@ -63,5 +63,5 @@ struct app_info
 
     // Whether this app is duplicating.
     // If true it should prevent its unconfirmed WAL from being compacted.
-    12:bool         duplicating;
+    12:optional bool duplicating;
 }

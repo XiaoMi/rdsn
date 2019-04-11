@@ -715,7 +715,11 @@ void app_info::__set_create_second(const int64_t val) { this->create_second = va
 
 void app_info::__set_drop_second(const int64_t val) { this->drop_second = val; }
 
-void app_info::__set_duplicating(const bool val) { this->duplicating = val; }
+void app_info::__set_duplicating(const bool val)
+{
+    this->duplicating = val;
+    __isset.duplicating = true;
+}
 
 uint32_t app_info::read(::apache::thrift::protocol::TProtocol *iprot)
 {
@@ -920,10 +924,11 @@ uint32_t app_info::write(::apache::thrift::protocol::TProtocol *oprot) const
     xfer += oprot->writeI64(this->drop_second);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("duplicating", ::apache::thrift::protocol::T_BOOL, 12);
-    xfer += oprot->writeBool(this->duplicating);
-    xfer += oprot->writeFieldEnd();
-
+    if (this->__isset.duplicating) {
+        xfer += oprot->writeFieldBegin("duplicating", ::apache::thrift::protocol::T_BOOL, 12);
+        xfer += oprot->writeBool(this->duplicating);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -1039,7 +1044,8 @@ void app_info::printTo(std::ostream &out) const
     out << ", "
         << "drop_second=" << to_string(drop_second);
     out << ", "
-        << "duplicating=" << to_string(duplicating);
+        << "duplicating=";
+    (__isset.duplicating ? (out << to_string(duplicating)) : (out << "<null>"));
     out << ")";
 }
 

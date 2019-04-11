@@ -394,7 +394,9 @@ public:
             return false;
         if (!(drop_second == rhs.drop_second))
             return false;
-        if (!(duplicating == rhs.duplicating))
+        if (__isset.duplicating != rhs.__isset.duplicating)
+            return false;
+        else if (__isset.duplicating && !(duplicating == rhs.duplicating))
             return false;
         return true;
     }

@@ -118,11 +118,11 @@ private:
         for (const auto &kv : app->duplications) {
             const auto &dup = kv.second;
             if (dup->is_valid()) {
-                app->duplicating = true;
+                app->__set_duplicating(true);
                 return;
             }
         }
-        app->duplicating = false;
+        app->__set_duplicating(false);
     }
 
 private:
