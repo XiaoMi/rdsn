@@ -238,6 +238,8 @@ public:
         return _last_committed_decree.load();
     }
 
+    bool is_duplicating() const { return _info.init_duplicating; }
+
     void update_stub_counter_dup_time_lag(uint64_t time_lag_in_us);
 
 private:
@@ -245,6 +247,7 @@ private:
     friend class replica;
     friend class replica_stub;
     friend class replica_duplicator;
+    friend class mock_replica;
 
     ::dsn::error_code open_internal(replica *r);
     ::dsn::error_code
