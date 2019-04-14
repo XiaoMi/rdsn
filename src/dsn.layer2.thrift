@@ -60,4 +60,8 @@ struct app_info
     // new fields added from v1.11.0
     10:i64          create_second;
     11:i64          drop_second;
+
+    // Whether this app is duplicating.
+    // If true it should prevent its unconfirmed WAL from being compacted.
+    12:optional bool duplicating;
 }
