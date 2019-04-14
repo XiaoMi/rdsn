@@ -361,7 +361,6 @@ void meta_service::register_rpc_handlers()
     register_rpc_handler(RPC_CM_QUERY_RESTORE_STATUS,
                          "query_restore_status",
                          &meta_service::on_query_restore_status);
-
     register_rpc_handler_with_rpc_holder(
         RPC_CM_UPDATE_APP_ENV, "update_app_env(set/del/clear)", &meta_service::update_app_env);
     register_rpc_handler_with_rpc_holder(
