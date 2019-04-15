@@ -42,7 +42,7 @@
 #include "server_state.h"
 #include "meta_server_failure_detector.h"
 #include "server_load_balancer.h"
-#include "dist/replication/meta_server/duplication/meta_duplication_service.h"
+#include "duplication/meta_duplication_service.h"
 
 namespace dsn {
 namespace replication {
@@ -788,7 +788,7 @@ void meta_service::initialize_duplication_service()
     if (!_opts.duplication_disabled) {
         _dup_svc = dsn::make_unique<meta_duplication_service>(_state.get(), this);
     } else {
-        _dup_svc.reset(nullptr);
+        _dup_svc.reset();
     }
 }
 
