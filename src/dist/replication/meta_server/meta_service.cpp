@@ -786,9 +786,7 @@ void meta_service::on_query_restore_status(dsn::message_ex *req)
 void meta_service::initialize_duplication_service()
 {
     if (!_opts.duplication_disabled) {
-        _dup_svc = dsn::make_unique<meta_duplication_service>(_state.get(), this);
-    } else {
-        _dup_svc.reset();
+        _dup_svc = make_unique<meta_duplication_service>(_state.get(), this);
     }
 }
 
