@@ -276,10 +276,6 @@ void replica_stub::install_perf_counters()
                                                       "recent.write.fail.count",
                                                       COUNTER_TYPE_VOLATILE_NUMBER,
                                                       "write fail count in the recent period");
-    _counter_recent_read_busy_count.init_app_counter("eon.replica_stub",
-                                                     "recent.read.busy.count",
-                                                     COUNTER_TYPE_VOLATILE_NUMBER,
-                                                     "read busy count in the recent period");
     _counter_recent_write_busy_count.init_app_counter("eon.replica_stub",
                                                       "recent.write.busy.count",
                                                       COUNTER_TYPE_VOLATILE_NUMBER,
@@ -1341,9 +1337,7 @@ void replica_stub::response_client(gpid id,
                                    error_code error)
 {
     if (error == ERR_BUSY) {
-        if (is_read)
-            _counter_recent_read_busy_count->increment();
-        else
+        if (!is_read)
             _counter_recent_write_busy_count->increment();
     } else if (error != ERR_OK) {
         if (is_read)
