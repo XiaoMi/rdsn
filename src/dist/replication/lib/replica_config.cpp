@@ -42,6 +42,7 @@
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/string_conv.h>
+#include <dsn/utility/filesystem.h>
 
 namespace dsn {
 namespace replication {
@@ -1012,6 +1013,25 @@ void replica::on_config_sync(const app_info &info, const partition_configuration
     update_app_envs(info.envs);
     update_init_info_duplicating(info.duplicating);
 
+    // TODO(wutao1): remove this since its case is rarely happened.
+    if (dsn_unlikely(info.app_name != get_app_info()->app_name)) {
+        dwarn_replica("rename app [{}] to [{}], path: {}",
+                      get_app_info()->app_name.c_str(),
+                      info.app_name.c_str(),
+                      _dir.c_str());
+        // _app_info will be unchanged until restart, to prevent
+        // thread unsafety.
+        app_info new_app_info = _app_info;
+        new_app_info.app_name = info.app_name;
+        std::string path = utils::filesystem::path_combine(_dir, ".app-info");
+        error_code err = replica_app_info(&new_app_info).store(path.c_str());
+        if (err != ERR_OK) {
+            dsn::utils::filesystem::remove_path(_dir);
+            dassert_replica(
+                false, "save app-info to {} failed, err = {}", path.c_str(), err.to_string());
+        }
+    }
+
     if (status() == partition_status::PS_PRIMARY ||
         nullptr != _primary_states.reconfiguration_task) {
         // nothing to do as primary always holds the truth
@@ -1079,5 +1099,5 @@ void replica::replay_prepare_list()
         init_prepare(mu, true);
     }
 }
-}
-} // namespace
+} // namespace replication
+} // namespace dsn
