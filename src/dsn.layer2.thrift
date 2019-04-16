@@ -64,6 +64,5 @@ struct app_info
     // New fields added from v1.12.0
     // Whether this app is duplicating.
     // If true it should prevent its unconfirmed WAL from being compacted.
-    // The value will be set to true if any dup is valid among app->duplications.
     12:optional bool duplicating;
 }
