@@ -81,9 +81,9 @@ void meta_duplication_service::add_duplication(duplication_add_rpc rpc)
 
     auto remote_cluster_id = get_duplication_cluster_id(request.remote_cluster_address);
     if (!remote_cluster_id.is_ok()) {
-        dwarn("get_duplication_cluster_id(%s) failed: err_ret: %s",
-              request.remote_cluster_address.c_str(),
-              remote_cluster_id.get_error().description().c_str());
+        dwarn_f("get_duplication_cluster_id({}) failed, error: {}",
+                request.remote_cluster_address,
+                remote_cluster_id.get_error());
         response.err = ERR_INVALID_PARAMETERS;
         return;
     }
