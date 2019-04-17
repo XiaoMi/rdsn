@@ -812,6 +812,8 @@ void meta_service::on_query_duplication_info(duplication_query_rpc rpc)
 
 void meta_service::register_duplication_rpc_handlers()
 {
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_ADD_DUPLICATION, "add_duplication", &meta_service::on_add_duplication);
     register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_DUPLICATION,
                                          "query duplication info",
                                          &meta_service::on_query_duplication_info);
