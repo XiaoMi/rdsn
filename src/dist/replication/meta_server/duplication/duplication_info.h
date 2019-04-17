@@ -110,7 +110,7 @@ public:
 
     void init_progress(int partition_index, decree confirmed);
 
-    blob to_json_blob_in_status(duplication_status::type to_status) const;
+    blob to_json_blob() const;
 
     // duplication_query_rpc is handled in THREAD_POOL_META_SERVER,
     // which is not thread safe for read.

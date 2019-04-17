@@ -99,7 +99,7 @@ void meta_duplication_service::do_change_duplication_status(std::shared_ptr<app_
                                                             duplication_status_change_rpc &rpc)
 {
     // store the duplication in requested status.
-    blob value = dup->to_json_blob_in_status(rpc.request().status);
+    blob value = dup->to_json_blob();
 
     _meta_svc->get_meta_storage()->set_data(
         std::string(dup->store_path), std::move(value), [rpc, this, app, dup]() {
@@ -153,13 +153,6 @@ void meta_duplication_service::add_duplication(duplication_add_rpc rpc)
         response.err = ERR_APP_NOT_EXIST;
         return;
     }
-    //        if (app->envs["value_version"] != "1") {
-    //            dwarn("unable to add duplication for %s since value_version(%s) is not \"1\"",
-    //                  request.app_name.c_str(),
-    //                  app->envs["value_version"].c_str());
-    //            response.err = ERR_INVALID_VERSION;
-    //            return;
-    //        }
     duplication_info_s_ptr dup;
     for (const auto &ent : app->duplications) {
         auto it = ent.second;
@@ -184,15 +177,13 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
         dup->persist_status();
         dup->alter_status(duplication_status::DS_PAUSE);
     }
-
-    // store the duplication in started state
-    blob value = dup->to_json_blob_in_status(duplication_status::DS_START);
+    blob value = dup->to_json_blob();
 
     std::queue<std::string> nodes({get_duplication_path(*app), std::to_string(dup->id)});
     _meta_svc->get_meta_storage()->create_node_recursively(
         std::move(nodes), std::move(value), [app, this, dup, rpc]() mutable {
             ddebug_dup(dup,
-                       "add duplication successfully [appname: {}, remote: {}]",
+                       "add duplication successfully [app_name: {}, remote: {}]",
                        app->app_name,
                        dup->remote);
 

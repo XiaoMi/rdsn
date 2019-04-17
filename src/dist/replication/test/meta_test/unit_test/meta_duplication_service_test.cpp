@@ -105,11 +105,13 @@ public:
     }
 
     duplication_add_response create_dup(const std::string &app_name,
-                                        const std::string &remote_cluster = "slave-cluster")
+                                        const std::string &remote_cluster = "slave-cluster",
+                                        bool freezed = false)
     {
         auto req = make_unique<duplication_add_request>();
         req->app_name = app_name;
         req->remote_cluster_address = remote_cluster;
+        req->freezed = freezed;
 
         duplication_add_rpc rpc(std::move(req), RPC_CM_ADD_DUPLICATION);
         dup_svc().add_duplication(rpc);
@@ -594,6 +596,31 @@ TEST_F(meta_duplication_service_test, re_add_duplication)
     app = find_app(test_app);
     ASSERT_TRUE(app->duplications.find(test_dup.dupid) == app->duplications.end());
     ASSERT_EQ(app->duplications.size(), 1);
+}
+
+TEST_F(meta_duplication_service_test, add_duplication_freezed)
+{
+    std::string test_app = "test-app";
+
+    create_app(test_app);
+    auto app = find_app(test_app);
+
+    auto test_dup = create_dup(test_app, "slave-cluster", true);
+    ASSERT_EQ(test_dup.err, ERR_OK);
+    ASSERT_TRUE(app->duplications[test_dup.dupid] != nullptr);
+    auto dup = app->duplications[test_dup.dupid];
+    ASSERT_EQ(dup->status, duplication_status::DS_PAUSE);
+
+    // reset meta server states
+    _ss.reset();
+    _ms.reset(nullptr);
+    SetUp();
+
+    // ensure dup is still paused after meta fail-over.
+    recover_from_meta_state();
+    app = find_app(test_app);
+    dup = app->duplications[test_dup.dupid];
+    ASSERT_EQ(dup->status, duplication_status::DS_PAUSE);
 }
 
 } // namespace replication

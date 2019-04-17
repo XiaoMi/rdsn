@@ -147,7 +147,8 @@ TEST_F(duplication_info_test, encode_and_decode)
     dup.start();
     dup.persist_status();
 
-    auto json = dup.to_json_blob_in_status(duplication_status::DS_PAUSE);
+    dup.alter_status(duplication_status::DS_PAUSE);
+    auto json = dup.to_json_blob();
 
     duplication_info copy;
     ASSERT_TRUE(json::json_forwarder<duplication_info>::decode(json, copy));
