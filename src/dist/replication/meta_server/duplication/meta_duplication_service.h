@@ -45,6 +45,34 @@ public:
 
     void query_duplication_info(const duplication_query_request &, duplication_query_response &);
 
+    void add_duplication(duplication_add_rpc rpc);
+
+    void change_duplication_status(duplication_status_change_rpc rpc);
+
+private:
+    void do_add_duplication(std::shared_ptr<app_state> &app,
+                            duplication_info_s_ptr &dup,
+                            duplication_add_rpc &rpc);
+
+    void do_change_duplication_status(std::shared_ptr<app_state> &app,
+                                      duplication_info_s_ptr &dup,
+                                      duplication_status_change_rpc &rpc);
+
+    // Get zk path for duplication.
+    std::string get_duplication_path(const app_state &app) const
+    {
+        return _state->get_app_path(app) + "/duplication";
+    }
+    std::string get_duplication_path(const app_state &app, const std::string &dupid) const
+    {
+        return get_duplication_path(app) + "/" + dupid;
+    }
+
+    // Create a new duplication from INIT state.
+    // Thread-Safe
+    std::shared_ptr<duplication_info> new_dup_from_init(const std::string &remote_cluster_address,
+                                                        std::shared_ptr<app_state> &app) const;
+
     // get lock to protect access of app table
     zrwlock_nr &app_lock() const { return _state->_lock; }
 
