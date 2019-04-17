@@ -59,66 +59,6 @@ void meta_duplication_service::query_duplication_info(const duplication_query_re
     }
 }
 
-// ThreadPool(WRITE): THREAD_POOL_META_STATE
-void meta_duplication_service::change_duplication_status(duplication_status_change_rpc rpc)
-{
-    const auto &request = rpc.request();
-    auto &response = rpc.response();
-
-    ddebug_f("change status of duplication({}) to {} for app({})",
-             request.dupid,
-             duplication_status_to_string(request.status),
-             request.app_name);
-
-    dupid_t dupid = request.dupid;
-
-    std::shared_ptr<app_state> app = _state->get_app(request.app_name);
-    if (!app || app->status != app_status::AS_AVAILABLE) {
-        response.err = ERR_APP_NOT_EXIST;
-        return;
-    }
-
-    duplication_info_s_ptr dup = app->duplications[dupid];
-    if (dup == nullptr) {
-        response.err = ERR_OBJECT_NOT_FOUND;
-        return;
-    }
-
-    response.err = dup->alter_status(request.status);
-    if (response.err != ERR_OK) {
-        return;
-    }
-
-    // validation passed
-    do_change_duplication_status(app, dup, rpc);
-}
-
-// ThreadPool(WRITE): THREAD_POOL_META_STATE
-void meta_duplication_service::do_change_duplication_status(std::shared_ptr<app_state> &app,
-                                                            duplication_info_s_ptr &dup,
-                                                            duplication_status_change_rpc &rpc)
-{
-    // store the duplication in requested status.
-    blob value = dup->to_json_blob_in_status(rpc.request().status);
-
-    _meta_svc->get_meta_storage()->set_data(
-        std::string(dup->store_path), std::move(value), [rpc, this, app, dup]() {
-            ddebug_dup(dup,
-                       "change duplication status on metastore successfully [appname:{}]",
-                       app->app_name);
-
-            dup->persist_status();
-            rpc.response().err = ERR_OK;
-            rpc.response().appid = app->app_id;
-
-            if (rpc.request().status == duplication_status::DS_REMOVED) {
-                zauto_write_lock l(app_lock());
-                app->duplications.erase(dup->id);
-                refresh_duplicating_no_lock(app);
-            }
-        });
-}
-
 // This call will not recreate if the duplication
 // with the same app name and remote end point already exists.
 // ThreadPool(WRITE): THREAD_POOL_META_STATE
@@ -177,15 +117,13 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
         dup->persist_status();
         dup->alter_status(duplication_status::DS_PAUSE);
     }
-
-    // store the duplication in started state
-    blob value = dup->to_json_blob_in_status(duplication_status::DS_START);
+    blob value = dup->to_json_blob();
 
     std::queue<std::string> nodes({get_duplication_path(*app), std::to_string(dup->id)});
     _meta_svc->get_meta_storage()->create_node_recursively(
         std::move(nodes), std::move(value), [app, this, dup, rpc]() mutable {
             ddebug_dup(dup,
-                       "add duplication successfully [appname: {}, remote: {}]",
+                       "add duplication successfully [app_name: {}, remote: {}]",
                        app->app_name,
                        dup->remote);
 

@@ -144,12 +144,12 @@ std::string duplication_info::to_string() const
     return duplication_entry_to_string(to_duplication_entry());
 }
 
-blob duplication_info::to_json_blob_in_status(duplication_status::type to_status) const
+blob duplication_info::to_json_blob() const
 {
     duplication_info copy;
     const_cast<uint64_t &>(copy.create_timestamp_ms) = create_timestamp_ms;
     const_cast<std::string &>(copy.remote) = remote;
-    copy.status = to_status;
+    copy.status = next_status;
     return json::json_forwarder<duplication_info>::encode(copy);
 }
 
