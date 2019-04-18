@@ -110,6 +110,8 @@ public:
 
     void init_progress(int partition_index, decree confirmed);
 
+    // Generates a json blob to be stored in meta storage.
+    // The status in json is `next_status`.
     blob to_json_blob() const;
 
     // duplication_query_rpc is handled in THREAD_POOL_META_SERVER,
@@ -181,12 +183,12 @@ public:
     const int32_t app_id{0};
     const std::string remote;
     const std::string store_path; // store path on meta service = get_duplication_path(app, dupid)
+    const uint64_t create_timestamp_ms{0}; // the time when this dup is created.
 
     // The following fields are made public to be accessible for
     // json decoder. It should be noted that they are not thread-safe
     // for user.
 
-    const uint64_t create_timestamp_ms{0}; // the time when this dup is created.
     duplication_status::type status{duplication_status::DS_INIT};
     duplication_status::type next_status{duplication_status::DS_INIT};
 
