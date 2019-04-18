@@ -80,11 +80,11 @@ void replica_duplicator_manager::sync_duplication(const duplication_entry &ent)
     }
 }
 
-int64_t replica_duplicator_manager::min_confirmed_decree() const
+decree replica_duplicator_manager::min_confirmed_decree() const
 {
     zauto_lock l(_lock);
 
-    int64_t min_decree = invalid_decree;
+    decree min_decree = invalid_decree;
     if (_replica->status() == partition_status::PS_PRIMARY) {
         for (auto &kv : _duplications) {
             const duplication_progress &p = kv.second->progress();

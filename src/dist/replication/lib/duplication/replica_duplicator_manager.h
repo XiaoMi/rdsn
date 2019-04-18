@@ -53,7 +53,7 @@ public:
     /// If there's no duplication,　invalid_decree is returned, mean that all logs are cleanable.
     /// THREAD_POOL_REPLICATION
     /// \see replica::on_checkpoint_timer()
-    int64_t min_confirmed_decree() const;
+    decree min_confirmed_decree() const;
 
     void remove_non_existed_duplications(const std::map<dupid_t, duplication_entry> &);
 

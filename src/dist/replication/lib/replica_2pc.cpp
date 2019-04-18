@@ -38,6 +38,9 @@
 #include "mutation_log.h"
 #include "replica_stub.h"
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/utility/latency_tracer.h>
+#include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/defer.h>
 
 namespace dsn {
 namespace replication {
@@ -285,6 +288,14 @@ void replica::on_prepare(dsn::message_ex *request)
 {
     _checker.only_one_thread_access();
 
+    latency_tracer tracer("on_prepare");
+    auto tracer_cleanup = defer([&tracer, this] {
+        tracer.finish();
+        if (tracer.total_latency() > 500_ms) {
+            ddebug_replica(tracer.to_string());
+        }
+    });
+
     replica_configuration rconfig;
     mutation_ptr mu;
 
@@ -317,6 +328,7 @@ void replica::on_prepare(dsn::message_ex *request)
 
     // update configuration when necessary
     else if (rconfig.ballot > get_ballot()) {
+        auto span = tracer.start_scoped_span("update_local_configuration");
         if (!update_local_configuration(rconfig)) {
             derror("%s: mutation %s on_prepare failed as update local configuration failed, state "
                    "= %s",
@@ -423,6 +435,7 @@ void replica::on_prepare(dsn::message_ex *request)
         return;
     }
 
+    auto span = tracer.start_scoped_span("shared_log_append");
     dassert(mu->log_task() == nullptr, "");
     mu->log_task() = _stub->_log->append(mu,
                                          LPC_WRITE_REPLICATION_LOG,
@@ -696,5 +709,5 @@ void replica::cleanup_preparing_mutations(bool wait)
         }
     }
 }
-}
-} // namespace
+} // namespace replication
+} // namespace dsn
