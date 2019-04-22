@@ -40,6 +40,9 @@ namespace replication {
 
 class app_state;
 
+class duplication_info;
+using duplication_info_s_ptr = std::shared_ptr<duplication_info>;
+
 /// This class is thread-safe.
 class duplication_info
 {
@@ -61,23 +64,13 @@ public:
         }
     }
 
-    /// \see meta_duplication_service::recover_from_meta_state
-    duplication_info(dupid_t dupid,
-                     int32_t appid,
-                     int32_t partition_count,
-                     std::string meta_store_path)
-        : duplication_info(dupid, appid, partition_count, "", std::move(meta_store_path))
-    {
-        // initiates with unknown remote_cluster_name
-    }
-
     duplication_info() = default;
 
     void start()
     {
         zauto_write_lock l(_lock);
         _is_altering = true;
-        next_status = duplication_status::DS_START;
+        _next_status = duplication_status::DS_START;
     }
 
     // change current status to `to_status`.
@@ -95,7 +88,7 @@ public:
     // if this duplication is in valid status.
     bool is_valid() const
     {
-        return status == duplication_status::DS_START || status == duplication_status::DS_PAUSE;
+        return _status == duplication_status::DS_START || _status == duplication_status::DS_PAUSE;
     }
 
     ///
@@ -113,6 +106,13 @@ public:
     // Generates a json blob to be stored in meta storage.
     // The status in json is `next_status`.
     blob to_json_blob() const;
+
+    /// \see meta_duplication_service::recover_from_meta_state
+    static duplication_info_s_ptr decode_from_blob(dupid_t dup_id,
+                                                   int32_t app_id,
+                                                   int32_t partition_count,
+                                                   std::string store_path,
+                                                   const blob &json);
 
     // duplication_query_rpc is handled in THREAD_POOL_META_SERVER,
     // which is not thread safe for read.
@@ -132,7 +132,7 @@ public:
         entry.dupid = id;
         entry.create_ts = create_timestamp_ms;
         entry.remote = remote;
-        entry.status = status;
+        entry.status = _status;
         for (const auto &kv : _progress) {
             entry.progress[kv.first] = kv.second.stored_decree;
         }
@@ -178,24 +178,25 @@ private:
 
     uint64_t _last_progress_report_ms{0};
 
+    duplication_status::type _status{duplication_status::DS_INIT};
+    duplication_status::type _next_status{duplication_status::DS_INIT};
+
+    struct json_helper
+    {
+        std::string remote;
+        duplication_status::type status;
+        int64_t create_timestamp_ms;
+
+        DEFINE_JSON_SERIALIZATION(remote, status, create_timestamp_ms);
+    };
+
 public:
     const dupid_t id{0};
     const int32_t app_id{0};
     const std::string remote;
     const std::string store_path; // store path on meta service = get_duplication_path(app, dupid)
     const uint64_t create_timestamp_ms{0}; // the time when this dup is created.
-
-    // The following fields are made public to be accessible for
-    // json decoder. It should be noted that they are not thread-safe
-    // for user.
-
-    duplication_status::type status{duplication_status::DS_INIT};
-    duplication_status::type next_status{duplication_status::DS_INIT};
-
-    DEFINE_JSON_SERIALIZATION(remote, status, create_timestamp_ms);
 };
-
-using duplication_info_s_ptr = std::shared_ptr<duplication_info>;
 
 extern void json_encode(dsn::json::JsonWriter &out, const duplication_status::type &s);
 
