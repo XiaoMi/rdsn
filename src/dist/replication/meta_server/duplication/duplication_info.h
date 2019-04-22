@@ -48,11 +48,11 @@ public:
     duplication_info(dupid_t dupid,
                      int32_t appid,
                      int32_t partition_count,
-                     std::string remote_cluster_address,
+                     std::string remote_cluster_name,
                      std::string meta_store_path)
         : id(dupid),
           app_id(appid),
-          remote(std::move(remote_cluster_address)),
+          remote(std::move(remote_cluster_name)),
           store_path(std::move(meta_store_path)),
           create_timestamp_ms(dsn_now_ms())
     {
@@ -68,7 +68,7 @@ public:
                      std::string meta_store_path)
         : duplication_info(dupid, appid, partition_count, "", std::move(meta_store_path))
     {
-        // initiates with unknown remote_cluster_address
+        // initiates with unknown remote_cluster_name
     }
 
     duplication_info() = default;
@@ -131,7 +131,7 @@ public:
         duplication_entry entry;
         entry.dupid = id;
         entry.create_ts = create_timestamp_ms;
-        entry.remote_address = remote;
+        entry.remote = remote;
         entry.status = status;
         for (const auto &kv : _progress) {
             entry.progress[kv.first] = kv.second.stored_decree;

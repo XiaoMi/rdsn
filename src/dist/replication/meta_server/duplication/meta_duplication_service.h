@@ -64,7 +64,7 @@ private:
 
     // Create a new duplication from INIT state.
     // Thread-Safe
-    std::shared_ptr<duplication_info> new_dup_from_init(const std::string &remote_cluster_address,
+    std::shared_ptr<duplication_info> new_dup_from_init(const std::string &remote_cluster_name,
                                                         std::shared_ptr<app_state> &app) const;
 
     // get lock to protect access of app table
