@@ -110,7 +110,7 @@ public:
     {
         auto req = make_unique<duplication_add_request>();
         req->app_name = app_name;
-        req->remote_cluster_address = remote_cluster;
+        req->remote_cluster_name = remote_cluster;
         req->freezed = freezed;
 
         duplication_add_rpc rpc(std::move(req), RPC_CM_ADD_DUPLICATION);
@@ -185,12 +185,12 @@ public:
 
             ASSERT_GT(dup->id, 0);
             ASSERT_FALSE(dup->is_altering());
-            ASSERT_EQ(dup->status, duplication_status::DS_INIT);
-            ASSERT_EQ(dup->next_status, duplication_status::DS_INIT);
+            ASSERT_EQ(dup->_status, duplication_status::DS_INIT);
+            ASSERT_EQ(dup->_next_status, duplication_status::DS_INIT);
 
             auto ent = dup->to_duplication_entry();
-            for (int i = 0; i < app->partition_count; i++) {
-                ASSERT_EQ(ent.progress[i], invalid_decree);
+            for (int j = 0; j < app->partition_count; j++) {
+                ASSERT_EQ(ent.progress[j], invalid_decree);
             }
 
             if (last_dup != 0) {
@@ -253,10 +253,81 @@ public:
                 auto &dup = kv.second;
 
                 ASSERT_TRUE(after.find(dupid) != after.end());
-                ASSERT_TRUE(dup->equals_to(*after[dupid])) << dup->to_string() << " "
+                ASSERT_TRUE(dup->equals_to(*after[dupid])) << dup->to_string() << std::endl
                                                            << after[dupid]->to_string();
             }
         }
+    }
+
+    void test_add_duplication()
+    {
+        std::string test_app = "test-app";
+        std::string test_app_invalid_ver = "test-app-invalid-ver";
+
+        std::string invalid_remote = "test-invalid-remote";
+        std::string ok_remote = "slave-cluster";
+
+        create_app(test_app);
+
+        create_app(test_app_invalid_ver);
+        find_app(test_app_invalid_ver)->envs["value_version"] = "0";
+
+        struct TestData
+        {
+            std::string app;
+            std::string remote;
+
+            error_code wec;
+        } tests[] = {
+            //        {test_app_invalid_ver, ok_remote, ERR_INVALID_VERSION},
+
+            {test_app, ok_remote, ERR_OK},
+
+            {test_app, invalid_remote, ERR_INVALID_PARAMETERS},
+
+            {test_app, get_current_cluster_name(), ERR_INVALID_PARAMETERS},
+        };
+
+        for (auto tt : tests) {
+            auto resp = create_dup(tt.app, tt.remote);
+            ASSERT_EQ(tt.wec, resp.err);
+
+            if (tt.wec == ERR_OK) {
+                auto app = find_app(test_app);
+                auto dup = app->duplications[resp.dupid];
+                ASSERT_TRUE(dup != nullptr);
+                ASSERT_EQ(dup->app_id, app->app_id);
+                ASSERT_EQ(dup->_status, duplication_status::DS_START);
+                ASSERT_EQ(dup->remote, ok_remote);
+                ASSERT_EQ(resp.dupid, dup->id);
+                ASSERT_EQ(app->duplicating, true);
+            }
+        }
+    }
+
+    void test_add_duplication_freezed()
+    {
+        std::string test_app = "test-app";
+
+        create_app(test_app);
+        auto app = find_app(test_app);
+
+        auto test_dup = create_dup(test_app, "slave-cluster", true);
+        ASSERT_EQ(test_dup.err, ERR_OK);
+        ASSERT_TRUE(app->duplications[test_dup.dupid] != nullptr);
+        auto dup = app->duplications[test_dup.dupid];
+        ASSERT_EQ(dup->_status, duplication_status::DS_PAUSE);
+
+        // reset meta server states
+        _ss.reset();
+        _ms.reset(nullptr);
+        SetUp();
+
+        // ensure dup is still paused after meta fail-over.
+        recover_from_meta_state();
+        app = find_app(test_app);
+        dup = app->duplications[test_dup.dupid];
+        ASSERT_EQ(dup->_status, duplication_status::DS_PAUSE);
     }
 
     std::shared_ptr<server_state> _ss;
@@ -298,51 +369,7 @@ TEST_F(meta_duplication_service_test, dup_op_upon_unavail_app)
     }
 }
 
-TEST_F(meta_duplication_service_test, add_duplication)
-{
-    std::string test_app = "test-app";
-    std::string test_app_invalid_ver = "test-app-invalid-ver";
-
-    std::string invalid_remote = "test-invalid-remote";
-    std::string ok_remote = "slave-cluster";
-
-    create_app(test_app);
-
-    create_app(test_app_invalid_ver);
-    find_app(test_app_invalid_ver)->envs["value_version"] = "0";
-
-    struct TestData
-    {
-        std::string app;
-        std::string remote;
-
-        error_code wec;
-    } tests[] = {
-        //        {test_app_invalid_ver, ok_remote, ERR_INVALID_VERSION},
-
-        {test_app, ok_remote, ERR_OK},
-
-        {test_app, invalid_remote, ERR_INVALID_PARAMETERS},
-
-        {test_app, get_current_cluster_name(), ERR_INVALID_PARAMETERS},
-    };
-
-    for (auto tt : tests) {
-        auto resp = create_dup(tt.app, tt.remote);
-        ASSERT_EQ(tt.wec, resp.err);
-
-        if (tt.wec == ERR_OK) {
-            auto app = find_app(test_app);
-            auto dup = app->duplications[resp.dupid];
-            ASSERT_TRUE(dup != nullptr);
-            ASSERT_EQ(dup->app_id, app->app_id);
-            ASSERT_EQ(dup->status, duplication_status::DS_START);
-            ASSERT_EQ(dup->remote, ok_remote);
-            ASSERT_EQ(resp.dupid, dup->id);
-            ASSERT_EQ(app->duplicating, true);
-        }
-    }
-}
+TEST_F(meta_duplication_service_test, add_duplication) { test_add_duplication(); }
 
 // Ensure meta server never creates another dup to the same remote cluster and app,
 // if there's already one existed.
@@ -472,7 +499,7 @@ TEST_F(meta_duplication_service_test, duplication_sync)
         ASSERT_EQ(resp.dup_map[app->app_id][dupid].dupid, dupid);
         ASSERT_EQ(resp.dup_map[app->app_id][dupid].status, duplication_status::DS_START);
         ASSERT_EQ(resp.dup_map[app->app_id][dupid].create_ts, dup->create_timestamp_ms);
-        ASSERT_EQ(resp.dup_map[app->app_id][dupid].remote_address, dup->remote);
+        ASSERT_EQ(resp.dup_map[app->app_id][dupid].remote, dup->remote);
 
         auto progress_map = resp.dup_map[app->app_id][dupid].progress;
         ASSERT_EQ(progress_map.size(), 8);
@@ -598,30 +625,7 @@ TEST_F(meta_duplication_service_test, re_add_duplication)
     ASSERT_EQ(app->duplications.size(), 1);
 }
 
-TEST_F(meta_duplication_service_test, add_duplication_freezed)
-{
-    std::string test_app = "test-app";
-
-    create_app(test_app);
-    auto app = find_app(test_app);
-
-    auto test_dup = create_dup(test_app, "slave-cluster", true);
-    ASSERT_EQ(test_dup.err, ERR_OK);
-    ASSERT_TRUE(app->duplications[test_dup.dupid] != nullptr);
-    auto dup = app->duplications[test_dup.dupid];
-    ASSERT_EQ(dup->status, duplication_status::DS_PAUSE);
-
-    // reset meta server states
-    _ss.reset();
-    _ms.reset(nullptr);
-    SetUp();
-
-    // ensure dup is still paused after meta fail-over.
-    recover_from_meta_state();
-    app = find_app(test_app);
-    dup = app->duplications[test_dup.dupid];
-    ASSERT_EQ(dup->status, duplication_status::DS_PAUSE);
-}
+TEST_F(meta_duplication_service_test, add_duplication_freezed) { test_add_duplication_freezed(); }
 
 } // namespace replication
 } // namespace dsn

@@ -173,8 +173,12 @@ duplication_info_s_ptr duplication_info::decode_from_blob(dupid_t dup_id,
     if (!json::json_forwarder<json_helper>::decode(json, info)) {
         return nullptr;
     }
-    auto dup = std::make_shared<duplication_info>(
-        dup_id, app_id, partition_count, std::move(info.remote), std::move(store_path));
+    auto dup = std::make_shared<duplication_info>(dup_id,
+                                                  app_id,
+                                                  partition_count,
+                                                  info.create_timestamp_ms,
+                                                  std::move(info.remote),
+                                                  std::move(store_path));
     dup->_status = info.status;
     return dup;
 }

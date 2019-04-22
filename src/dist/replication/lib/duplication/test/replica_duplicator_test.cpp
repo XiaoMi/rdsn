@@ -51,19 +51,19 @@ public:
     void test_new_duplicator()
     {
         dupid_t dupid = 1;
-        std::string remote_address = "remote_address";
+        std::string remote = "remote_address";
         duplication_status::type status = duplication_status::DS_PAUSE;
         int64_t confirmed_decree = 100;
 
         duplication_entry dup_ent;
         dup_ent.dupid = dupid;
-        dup_ent.remote_address = remote_address;
+        dup_ent.remote = remote;
         dup_ent.status = status;
         dup_ent.progress[_replica->get_gpid().get_partition_index()] = confirmed_decree;
 
         auto duplicator = make_unique<replica_duplicator>(dup_ent, _replica.get());
         ASSERT_EQ(duplicator->id(), dupid);
-        ASSERT_EQ(duplicator->remote_cluster_address(), remote_address);
+        ASSERT_EQ(duplicator->remote_cluster_address(), remote);
         ASSERT_EQ(duplicator->_status, status);
         ASSERT_EQ(duplicator->progress().confirmed_decree, confirmed_decree);
         ASSERT_EQ(duplicator->progress().last_decree, confirmed_decree);

@@ -39,7 +39,7 @@ namespace replication {
 replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     : replica_base(r),
       _id(ent.dupid),
-      _remote_cluster_address(ent.remote_address),
+      _remote_cluster_name(ent.remote),
       _replica(r),
       _stub(r->get_replica_stub())
 {
@@ -96,7 +96,7 @@ std::string replica_duplicator::to_string() const
 
     doc.AddMember("dupid", id(), alloc);
     doc.AddMember("status", rapidjson::StringRef(duplication_status_to_string(_status)), alloc);
-    doc.AddMember("remote", rapidjson::StringRef(_remote_cluster_address.data()), alloc);
+    doc.AddMember("remote", rapidjson::StringRef(_remote_cluster_name.data()), alloc);
     doc.AddMember("confirmed", _progress.confirmed_decree, alloc);
     doc.AddMember("app",
                   rapidjson::StringRef(_replica->get_app_info()->app_name.data(),

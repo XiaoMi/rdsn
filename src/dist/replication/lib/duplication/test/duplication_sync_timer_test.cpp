@@ -49,7 +49,7 @@ public:
         // appid:2 -> dupid:1
         duplication_entry ent;
         ent.dupid = 1;
-        ent.remote_address = "slave-cluster";
+        ent.remote = "slave-cluster";
         ent.status = duplication_status::DS_PAUSE;
         ent.progress[1] = 1000; // partition 1 => confirmed 1000
         duplication_sync_response resp;

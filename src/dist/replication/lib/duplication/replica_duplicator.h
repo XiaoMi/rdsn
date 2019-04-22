@@ -88,7 +88,7 @@ public:
 
     dupid_t id() const { return _id; }
 
-    const std::string &remote_cluster_address() const { return _remote_cluster_address; }
+    const std::string &remote_cluster_address() const { return _remote_cluster_name; }
 
     // Thread-safe
     duplication_progress progress() const
@@ -134,7 +134,7 @@ private:
     friend class ship_mutation;
 
     const dupid_t _id;
-    const std::string _remote_cluster_address;
+    const std::string _remote_cluster_name;
 
     replica *_replica;
     replica_stub *_stub;

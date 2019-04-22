@@ -44,7 +44,7 @@ public:
         duplication_entry ent;
         ent.dupid = 1;
         ent.status = duplication_status::DS_PAUSE;
-        ent.remote_address = "dsn://slave-cluster";
+        ent.remote = "dsn://slave-cluster";
         ent.progress[r->get_gpid().get_partition_index()] = 0;
         d.sync_duplication(ent);
         ASSERT_EQ(d._duplications.size(), 1);
