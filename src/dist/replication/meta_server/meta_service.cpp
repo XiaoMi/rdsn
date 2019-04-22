@@ -790,15 +790,13 @@ void meta_service::on_add_duplication(duplication_add_rpc rpc)
 {
     RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
 
+    if (!_dup_svc) {
+        rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
+        return;
+    }
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
-                     [this, rpc]() {
-                         if (_dup_svc) {
-                             _dup_svc->add_duplication(std::move(rpc));
-                         } else {
-                             rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
-                         }
-                     },
+                     [this, rpc]() { _dup_svc->add_duplication(std::move(rpc)); },
                      server_state::sStateHash);
 }
 

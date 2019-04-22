@@ -119,31 +119,31 @@ void meta_duplication_service::do_change_duplication_status(std::shared_ptr<app_
         });
 }
 
-// Note that the rpc will not create a new one if the duplication
-// with the same app and remote end point already exists.
+// This call will not recreate if the duplication
+// with the same app name and remote end point already exists.
 // ThreadPool(WRITE): THREAD_POOL_META_STATE
 void meta_duplication_service::add_duplication(duplication_add_rpc rpc)
 {
     const auto &request = rpc.request();
     auto &response = rpc.response();
 
-    ddebug_f("add duplication for app({}), remote cluster address is {}",
+    ddebug_f("add duplication for app({}), remote cluster name is {}",
              request.app_name,
-             request.remote_cluster_address);
+             request.remote_cluster_name);
 
     response.err = ERR_OK;
 
-    if (request.remote_cluster_address == get_current_cluster_name()) {
+    if (request.remote_cluster_name == get_current_cluster_name()) {
         dwarn("illegal operation: adding duplication to itself");
         response.err = ERR_INVALID_PARAMETERS;
         return;
     }
 
-    auto remote_cluster_id = get_duplication_cluster_id(request.remote_cluster_address);
+    auto remote_cluster_id = get_duplication_cluster_id(request.remote_cluster_name);
     if (!remote_cluster_id.is_ok()) {
-        dwarn("get_duplication_cluster_id(%s) failed: err_ret: %s",
-              request.remote_cluster_address.c_str(),
-              remote_cluster_id.get_error().description().c_str());
+        dwarn_f("get_duplication_cluster_id({}) failed, error: {}",
+                request.remote_cluster_name,
+                remote_cluster_id.get_error());
         response.err = ERR_INVALID_PARAMETERS;
         return;
     }
@@ -156,13 +156,13 @@ void meta_duplication_service::add_duplication(duplication_add_rpc rpc)
     duplication_info_s_ptr dup;
     for (const auto &ent : app->duplications) {
         auto it = ent.second;
-        if (it->remote == request.remote_cluster_address) {
+        if (it->remote == request.remote_cluster_name) {
             dup = ent.second;
             break;
         }
     }
     if (!dup) {
-        dup = new_dup_from_init(request.remote_cluster_address, app);
+        dup = new_dup_from_init(request.remote_cluster_name, app);
     }
     do_add_duplication(app, dup, rpc);
 }
@@ -322,7 +322,7 @@ void meta_duplication_service::do_update_partition_confirmed(duplication_info_s_
 }
 
 std::shared_ptr<duplication_info>
-meta_duplication_service::new_dup_from_init(const std::string &remote_cluster_address,
+meta_duplication_service::new_dup_from_init(const std::string &remote_cluster_name,
                                             std::shared_ptr<app_state> &app) const
 {
     duplication_info_s_ptr dup;
@@ -338,7 +338,7 @@ meta_duplication_service::new_dup_from_init(const std::string &remote_cluster_ad
 
         std::string dup_path = get_duplication_path(*app, std::to_string(dupid));
         dup = std::make_shared<duplication_info>(
-            dupid, app->app_id, app->partition_count, remote_cluster_address, std::move(dup_path));
+            dupid, app->app_id, app->partition_count, remote_cluster_name, std::move(dup_path));
         for (int32_t i = 0; i < app->partition_count; i++) {
             dup->init_progress(i, invalid_decree);
         }
