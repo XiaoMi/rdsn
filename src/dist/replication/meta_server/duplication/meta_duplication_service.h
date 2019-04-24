@@ -106,12 +106,13 @@ private:
 
     // Create a new duplication from INIT state.
     // Thread-Safe
-    std::shared_ptr<duplication_info> new_dup_from_init(const std::string &remote_cluster_address,
+    std::shared_ptr<duplication_info> new_dup_from_init(const std::string &remote_cluster_name,
                                                         std::shared_ptr<app_state> &app) const;
 
     // get lock to protect access of app table
     zrwlock_nr &app_lock() const { return _state->_lock; }
 
+    // `duplicating` will be set to true if any dup is valid among app->duplications.
     // ensure app_lock (write lock) is held before calling this function
     static void refresh_duplicating_no_lock(const std::shared_ptr<app_state> &app)
     {
