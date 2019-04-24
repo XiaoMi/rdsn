@@ -8,8 +8,6 @@ set(MY_PROJ_SRC ${MY_PROJ_SRC} ../../storage_engine/simple_kv/simple_kv_types.cp
 
 set(MY_PROJ_INC_PATH)
 
-set(MY_BOOST_PACKAGES system filesystem)
-
 set(MY_PROJ_LIBS dsn_replica_server
                  dsn_meta_server
                  dsn_replication_common
@@ -31,6 +29,8 @@ set(MY_PROJ_LIBS dsn_replica_server
                  gtest
                  )
 
+set(MY_BOOST_LIBS Boost::system Boost::filesystem)
+                
 set(MY_PROJ_LIB_PATH 
         ${GTEST_LIB_DIR}
         ${ZOOKEEPER_LIB_DIR}
