@@ -535,7 +535,7 @@ void profiler::install(service_spec &)
             }
             if (dsn_config_get_value_bool(section_name.c_str(),
                                           "profiler::size.response.server",
-                                          true,
+                                          false,
                                           "whether to profile the size per response")) {
                 s_spec_profilers[i].ptr[RPC_SERVER_SIZE_PER_RESPONSE_IN_BYTES].init_global_counter(
                     "zion",
