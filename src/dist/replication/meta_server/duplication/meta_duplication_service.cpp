@@ -104,7 +104,7 @@ void meta_duplication_service::do_change_duplication_status(std::shared_ptr<app_
     _meta_svc->get_meta_storage()->set_data(
         std::string(dup->store_path), std::move(value), [rpc, this, app, dup]() {
             ddebug_dup(dup,
-                       "change duplication status on metastore successfully [appname:{}]",
+                       "change duplication status on metastore successfully [app_name:{}]",
                        app->app_name);
 
             dup->persist_status();
