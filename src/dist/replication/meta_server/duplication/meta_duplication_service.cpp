@@ -216,8 +216,12 @@ meta_duplication_service::new_dup_from_init(const std::string &remote_cluster_na
             dupid++;
 
         std::string dup_path = get_duplication_path(*app, std::to_string(dupid));
-        dup = std::make_shared<duplication_info>(
-            dupid, app->app_id, app->partition_count, remote_cluster_name, std::move(dup_path));
+        dup = std::make_shared<duplication_info>(dupid,
+                                                 app->app_id,
+                                                 app->partition_count,
+                                                 dsn_now_ms(),
+                                                 remote_cluster_name,
+                                                 std::move(dup_path));
         for (int32_t i = 0; i < app->partition_count; i++) {
             dup->init_progress(i, invalid_decree);
         }
