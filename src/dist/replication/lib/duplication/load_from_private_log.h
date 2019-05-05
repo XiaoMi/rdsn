@@ -83,6 +83,10 @@ private:
     int64_t _current_global_end_offset{0};
     mutation_batch _mutation_batch;
 
+    // How many times it repeats reading from _start_offset but failed.
+    int _err_repeats_num{0};
+    static constexpr int MAX_ALLOWED_REPEATS = 3;
+
     decree _start_decree{0};
 
     std::chrono::milliseconds _repeat_delay{10_s};

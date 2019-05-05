@@ -144,8 +144,16 @@ void load_from_private_log::replay_log_block()
             return;
         }
 
-        derror_replica(
-            "loading mutation logs failed: [err: {}, file: {}], try again", err, _current->path());
+        _err_repeats_num++;
+        if (_err_repeats_num > MAX_ALLOWED_REPEATS) {
+            derror_replica("loading mutation logs failed for {} times: [err: {}, file: {}, "
+                           "start_offset: {}], retry from start",
+                           _err_repeats_num,
+                           err,
+                           _start_offset,
+                           _current->path());
+            start_from_log_file(_current);
+        }
 
         repeat(_repeat_delay);
         return;
@@ -179,6 +187,7 @@ void load_from_private_log::start_from_log_file(log_file_ptr f)
     _current = std::move(f);
     _start_offset = 0;
     _current_global_end_offset = _current->start_offset();
+    _err_repeats_num = 0;
 }
 
 } // namespace replication
