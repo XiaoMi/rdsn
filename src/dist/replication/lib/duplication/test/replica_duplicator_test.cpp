@@ -68,7 +68,7 @@ public:
         ASSERT_EQ(duplicator->progress().confirmed_decree, confirmed_decree);
         ASSERT_EQ(duplicator->progress().last_decree, confirmed_decree);
 
-        auto expected_env = duplicator->_ship->_mutation_duplicator->_env;
+        auto &expected_env = *duplicator;
         ASSERT_EQ(duplicator->tracker(), expected_env.__conf.tracker);
         ASSERT_EQ(duplicator->get_gpid().thread_hash(), expected_env.__conf.thread_hash);
     }
@@ -84,10 +84,16 @@ public:
             auto duplicator = create_test_duplicator();
             duplicator->update_status_if_needed(duplication_status::DS_START);
             ASSERT_EQ(duplicator->_status, duplication_status::DS_START);
+            auto expected_env = duplicator->_ship->_mutation_duplicator->_env;
+            ASSERT_EQ(duplicator->tracker(), expected_env.__conf.tracker);
+            ASSERT_EQ(duplicator->get_gpid().thread_hash(), expected_env.__conf.thread_hash);
 
             duplicator->update_status_if_needed(duplication_status::DS_PAUSE);
             ASSERT_TRUE(duplicator->paused());
             ASSERT_EQ(duplicator->_status, duplication_status::DS_PAUSE);
+            ASSERT_EQ(duplicator->_load_private.get(), nullptr);
+            ASSERT_EQ(duplicator->_load.get(), nullptr);
+            ASSERT_EQ(duplicator->_ship.get(), nullptr);
 
             duplicator->wait_all();
         }

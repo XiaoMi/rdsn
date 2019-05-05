@@ -100,7 +100,13 @@ public:
     // Thread-safe
     error_s update_progress(const duplication_progress &p);
 
-    void start();
+    void start_dup();
+
+    // Pausing duplication will clear all the internal volatile states, thus
+    // when next time it restarts, the states will be reinitialized like the
+    // server being restarted.
+    // It is useful when something went wrong internally.
+    void pause_dup();
 
     // Holds its own tracker, so that other tasks
     // won't be effected when this duplication is removed.
