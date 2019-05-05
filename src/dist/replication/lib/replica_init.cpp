@@ -192,16 +192,6 @@ error_code replica::initialize_on_load()
 decree replica::get_replay_start_decree()
 {
     decree replay_start_decree = _app->last_committed_decree();
-
-    if (is_duplicating()) {
-        decree min_confirmed_decree = _duplication_mgr->min_confirmed_decree();
-        if (min_confirmed_decree < replay_start_decree) {
-            replay_start_decree = min_confirmed_decree;
-
-            ddebug_replica("log replaying steps back from {} for duplication", replay_start_decree);
-        }
-    }
-
     ddebug_replica("start to replay private log [replay_start_decree: {}]", replay_start_decree);
     return replay_start_decree;
 }
