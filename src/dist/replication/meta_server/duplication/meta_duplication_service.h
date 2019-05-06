@@ -49,6 +49,9 @@ public:
 
     void change_duplication_status(duplication_status_change_rpc rpc);
 
+    // Recover from meta state storage.
+    void recover_from_meta_state();
+
 private:
     void do_add_duplication(std::shared_ptr<app_state> &app,
                             duplication_info_s_ptr &dup,
@@ -57,6 +60,11 @@ private:
     void do_change_duplication_status(std::shared_ptr<app_state> &app,
                                       duplication_info_s_ptr &dup,
                                       duplication_status_change_rpc &rpc);
+
+    void do_restore_duplication(dupid_t dup_id, std::shared_ptr<app_state> app);
+
+    void do_restore_duplication_progress(const duplication_info_s_ptr &dup,
+                                         const std::shared_ptr<app_state> &app);
 
     // Get zk path for duplication.
     std::string get_duplication_path(const app_state &app) const
