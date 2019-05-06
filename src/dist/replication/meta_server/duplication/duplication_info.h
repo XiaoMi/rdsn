@@ -90,7 +90,10 @@ public:
     // if this duplication is in valid status.
     bool is_valid() const
     {
-        return _status == duplication_status::DS_START || _status == duplication_status::DS_PAUSE;
+        return _status == duplication_status::DS_START || _status == duplication_status::DS_PAUSE ||
+               _status == duplication_status::DS_INIT;
+        // INIT is considered as valid for robustness, though when _status=DS_INIT,
+        // it usually means something went wrong.
     }
 
     ///

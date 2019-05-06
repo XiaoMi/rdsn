@@ -126,14 +126,17 @@ void replica_duplicator::update_status_if_needed(duplication_status::type next_s
     if (_status == next_status) {
         return;
     }
-    _status = next_status;
 
     if (next_status == duplication_status::DS_START) {
         start_dup();
+        _status = next_status;
     } else if (next_status == duplication_status::DS_PAUSE) {
         pause_dup();
+        _status = next_status;
     } else {
-        dassert("unexpected duplication status (%s)", duplication_status_to_string(next_status));
+        derror_replica("unexpected duplication status ({})",
+                       duplication_status_to_string(next_status));
+        // _status keeps unchanged
     }
 }
 

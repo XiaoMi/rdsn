@@ -180,5 +180,23 @@ TEST_F(duplication_info_test, init_and_start) { test_init_and_start(); }
 
 TEST_F(duplication_info_test, encode_and_decode) { test_encode_and_decode(); }
 
+TEST_F(duplication_info_test, is_valid)
+{
+    duplication_info dup(1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+    ASSERT_TRUE(dup.is_valid());
+
+    dup.start();
+    dup.persist_status();
+    ASSERT_TRUE(dup.is_valid());
+
+    ASSERT_EQ(dup.alter_status(duplication_status::DS_PAUSE), ERR_OK);
+    dup.persist_status();
+    ASSERT_TRUE(dup.is_valid());
+
+    ASSERT_EQ(dup.alter_status(duplication_status::DS_REMOVED), ERR_OK);
+    dup.persist_status();
+    ASSERT_FALSE(dup.is_valid());
+}
+
 } // namespace replication
 } // namespace dsn
