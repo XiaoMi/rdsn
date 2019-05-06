@@ -130,8 +130,9 @@ void replica_duplicator_manager::set_confirmed_decree_non_primary(decree confirm
     remove_all_duplications();
     if (confirmed >= 0) {
         // confirmed decree never decreases
-        dcheck_le_replica(_primary_confirmed_decree, confirmed);
-        _primary_confirmed_decree = confirmed;
+        if (_primary_confirmed_decree < confirmed) {
+            _primary_confirmed_decree = confirmed;
+        }
     }
     _replica->update_init_info_duplicating(confirmed >= 0);
 }
