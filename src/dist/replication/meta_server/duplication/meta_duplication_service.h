@@ -75,6 +75,11 @@ private:
     {
         return get_duplication_path(app) + "/" + dupid;
     }
+    static std::string get_partition_path(const duplication_info_s_ptr &dup,
+                                          const std::string &partition_idx)
+    {
+        return dup->store_path + "/" + partition_idx;
+    }
 
     // Create a new duplication from INIT state.
     // Thread-Safe
