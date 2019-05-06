@@ -91,7 +91,6 @@ void ship_mutation::update_progress()
 
     decree last_committed_decree = _replica->last_committed_decree();
     dcheck_ge_replica(last_committed_decree, _last_decree);
-    _duplicator->set_pending_mutations_count(last_committed_decree - _last_decree);
 }
 
 ship_mutation::ship_mutation(replica_duplicator *duplicator)
