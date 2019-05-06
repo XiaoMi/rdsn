@@ -135,6 +135,12 @@ void duplication_info::persist_status()
     zauto_write_lock l(_lock);
 
     dassert_dup(_is_altering, this, "");
+    ddebug_dup(this,
+               "change duplication status from {} to {} successfully [app_id: {}]",
+               duplication_status_to_string(_status),
+               duplication_status_to_string(_next_status),
+               app_id);
+
     _is_altering = false;
     _status = _next_status;
     _next_status = duplication_status::DS_INIT;
