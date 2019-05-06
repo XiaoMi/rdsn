@@ -57,6 +57,34 @@ public:
         d.sync_duplication(ent);
         ASSERT_EQ(d._duplications.size(), 1);
     }
+
+    void test_set_confirmed_decree_non_primary()
+    {
+        auto r = stub->add_primary_replica(2, 1);
+        auto &d = r->get_replica_duplicator_manager();
+
+        duplication_entry ent;
+        ent.dupid = 1;
+        ent.status = duplication_status::DS_PAUSE;
+        ent.remote = "dsn://slave-cluster";
+        ent.progress[r->get_gpid().get_partition_index()] = 100;
+        d.sync_duplication(ent);
+        ASSERT_EQ(d._duplications.size(), 1);
+
+        // replica failover
+        r->as_secondary();
+
+        // receives group check
+        d.set_confirmed_decree_non_primary(101);
+        ASSERT_EQ(d._duplications.size(), 0);
+        ASSERT_EQ(d._primary_confirmed_decree, 101);
+
+        // confirmed decree never decreases
+        d.set_confirmed_decree_non_primary(0);
+        ASSERT_EQ(d._primary_confirmed_decree, 101);
+        d.set_confirmed_decree_non_primary(1);
+        ASSERT_EQ(d._primary_confirmed_decree, 101);
+    }
 };
 
 TEST_F(replica_duplicator_manager_test, get_duplication_confirms)
@@ -142,6 +170,11 @@ TEST_F(replica_duplicator_manager_test, min_confirmed_decree)
         tt = {{}, invalid_decree};
         assert_test(tt);
     }
+}
+
+TEST_F(replica_duplicator_manager_test, set_confirmed_decree_non_primary)
+{
+    test_set_confirmed_decree_non_primary();
 }
 
 } // namespace replication
