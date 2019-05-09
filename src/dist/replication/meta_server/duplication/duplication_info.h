@@ -139,6 +139,9 @@ public:
         entry.remote = remote;
         entry.status = _status;
         for (const auto &kv : _progress) {
+            if (!kv.second.is_inited) {
+                continue;
+            }
             entry.progress[kv.first] = kv.second.stored_decree;
         }
         return entry;
