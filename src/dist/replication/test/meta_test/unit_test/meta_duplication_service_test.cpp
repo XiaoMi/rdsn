@@ -44,7 +44,7 @@ public:
 
     void SetUp() override
     {
-        _ms.reset(new fake_receiver_meta_service);
+        _ms = dsn::make_unique<fake_receiver_meta_service>();
         ASSERT_EQ(_ms->remote_storage_initialize(), ERR_OK);
         _ms->initialize_duplication_service();
         ASSERT_TRUE(_ms->_dup_svc);
@@ -234,8 +234,6 @@ public:
         }
 
         // reset meta server states
-        _ss.reset();
-        _ms.reset(nullptr);
         SetUp();
 
         recover_from_meta_state();
@@ -256,6 +254,98 @@ public:
                 ASSERT_TRUE(dup->equals_to(*after[dupid])) << dup->to_string() << std::endl
                                                            << after[dupid]->to_string();
             }
+        }
+    }
+
+    std::shared_ptr<app_state> mock_test_case_and_recover(std::vector<std::string> nodes,
+                                                          std::string value)
+    {
+        TearDown();
+        SetUp();
+
+        std::string test_app = "test-app";
+        create_app(test_app);
+        auto app = find_app(test_app);
+        std::string remote_cluster_address = "dsn://slave-cluster/temp";
+
+        std::queue<std::string> q_nodes;
+        for (auto n : nodes) {
+            q_nodes.push(std::move(n));
+        }
+        _ms->get_meta_storage()->create_node_recursively(
+            std::move(q_nodes), blob::create_from_bytes(std::move(value)), []() mutable {});
+        wait_all();
+
+        SetUp();
+        recover_from_meta_state();
+
+        return find_app(test_app);
+    }
+
+    void test_recover_from_corrupted_meta_data()
+    {
+        std::string test_app = "test-app";
+        create_app(test_app);
+        auto app = find_app(test_app);
+
+        // recover from /<app>/dup
+        app = mock_test_case_and_recover({_ss->get_app_path(*app), std::string("dup")}, "");
+        ASSERT_FALSE(app->duplicating);
+        ASSERT_TRUE(app->duplications.empty());
+
+        // recover from /<app>/duplication/xxx/
+        app = mock_test_case_and_recover({dup_svc().get_duplication_path(*app), std::string("xxx")},
+                                         "");
+        ASSERT_FALSE(app->duplicating);
+        ASSERT_TRUE(app->duplications.empty());
+
+        // recover from /<app>/duplication/123/, but its value is empty
+        app = mock_test_case_and_recover({dup_svc().get_duplication_path(*app), std::string("123")},
+                                         "");
+        ASSERT_FALSE(app->duplicating);
+        ASSERT_TRUE(app->duplications.empty());
+
+        // recover from /<app>/duplication/<dup_id>/0, but its confirmed_decree is not valid integer
+        TearDown();
+        SetUp();
+        create_app(test_app);
+        app = find_app(test_app);
+        auto test_dup = create_dup(test_app, "slave-cluster", true);
+        ASSERT_EQ(test_dup.err, ERR_OK);
+        duplication_info_s_ptr dup = app->duplications[test_dup.dupid];
+        _ms->get_meta_storage()->create_node(meta_duplication_service::get_partition_path(dup, "0"),
+                                             blob::create_from_bytes("xxx"),
+                                             []() mutable {});
+        wait_all();
+        SetUp();
+        recover_from_meta_state();
+        app = find_app(test_app);
+        ASSERT_TRUE(app->duplicating);
+        ASSERT_EQ(app->duplications.size(), 1);
+        for (int i = 0; i < app->partition_count; i++) {
+            ASSERT_EQ(app->duplications[test_dup.dupid]->_progress[i].is_inited, i != 0);
+        }
+
+        // recover from /<app>/duplication/<dup_id>/x, its pid is not valid integer
+        TearDown();
+        SetUp();
+        create_app(test_app);
+        app = find_app(test_app);
+        test_dup = create_dup(test_app, "slave-cluster", true);
+        ASSERT_EQ(test_dup.err, ERR_OK);
+        dup = app->duplications[test_dup.dupid];
+        _ms->get_meta_storage()->create_node(meta_duplication_service::get_partition_path(dup, "x"),
+                                             blob::create_from_bytes("xxx"),
+                                             []() mutable {});
+        wait_all();
+        _ss.reset();
+        _ms.reset(nullptr);
+        SetUp();
+        recover_from_meta_state();
+        ASSERT_TRUE(app->duplicating);
+        ASSERT_EQ(app->duplications.size(), 1);
+        for (int i = 0; i < app->partition_count; i++) {
+            ASSERT_EQ(app->duplications[test_dup.dupid]->_progress[i].is_inited, true);
         }
     }
 
@@ -319,8 +409,6 @@ public:
         ASSERT_EQ(dup->_status, duplication_status::DS_PAUSE);
 
         // reset meta server states
-        _ss.reset();
-        _ms.reset(nullptr);
         SetUp();
 
         // ensure dup is still paused after meta fail-over.
@@ -445,8 +533,6 @@ TEST_F(meta_duplication_service_test, remove_dup)
     ASSERT_EQ(app->duplicating, false);
 
     // reset meta server states
-    _ss.reset();
-    _ms.reset(nullptr);
     SetUp();
     recover_from_meta_state();
 
@@ -615,8 +701,6 @@ TEST_F(meta_duplication_service_test, re_add_duplication)
     ASSERT_EQ(dup_list.begin()->dupid, test_dup_2.dupid);
 
     // reset meta server states
-    _ss.reset();
-    _ms.reset(nullptr);
     SetUp();
 
     recover_from_meta_state();
@@ -626,6 +710,11 @@ TEST_F(meta_duplication_service_test, re_add_duplication)
 }
 
 TEST_F(meta_duplication_service_test, add_duplication_freezed) { test_add_duplication_freezed(); }
+
+TEST_F(meta_duplication_service_test, recover_from_corrupted_meta_data)
+{
+    test_recover_from_corrupted_meta_data();
+}
 
 } // namespace replication
 } // namespace dsn

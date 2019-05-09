@@ -74,7 +74,11 @@ public:
         ASSERT_EQ(dup._next_status, duplication_status::DS_INIT);
 
         auto dup_ent = dup.to_duplication_entry();
-        ASSERT_EQ(dup_ent.progress.size(), 4);
+        ASSERT_EQ(dup_ent.progress.size(), 0);
+
+        for (int i = 0; i < 4; i++) {
+            dup.init_progress(i, invalid_decree);
+        }
         for (auto kv : dup_ent.progress) {
             ASSERT_EQ(kv.second, invalid_decree);
         }
