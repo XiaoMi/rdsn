@@ -77,6 +77,7 @@ int binary_reader::read(char *buffer, int sz)
         _remaining_size -= sz;
         return sz;
     } else {
+        // TODO(wutao1): remove this assert and return -1 instead.
         assert(false);
         return 0;
     }
@@ -116,4 +117,4 @@ bool binary_reader::skip(int count)
         return false;
     }
 }
-}
+} // namespace dsn

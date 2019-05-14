@@ -66,3 +66,15 @@ struct app_info
     // If true it should prevent its unconfirmed WAL from being compacted.
     12:optional bool duplicating;
 }
+
+// Request meta data in rDSN's thrift protocol.
+// Since v1.11.4
+struct thrift_request_meta
+{
+    1:optional i32 body_length;
+    2:optional i32 app_id;
+    3:optional i32 partition_index;
+    4:optional i32 client_timeout;
+    5:optional i64 client_partition_hash;
+    6:optional bool is_backup_request;
+}
