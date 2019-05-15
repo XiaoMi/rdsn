@@ -163,7 +163,12 @@ message_ex *thrift_message_parser::parse_request_body_v_new(message_reader *read
             return nullptr;
         }
 
-        from_blob_to_thrift(buf, *_meta);
+        binary_reader meta_reader(buf);
+        ::dsn::binary_reader_transport trans(meta_reader);
+        boost::shared_ptr<::dsn::binary_reader_transport> transport(
+            &trans, [](::dsn::binary_reader_transport *) {});
+        ::apache::thrift::protocol::TBinaryProtocol proto(transport);
+        _meta->read(&proto);
 
         _meta_parsed = true;
     }
