@@ -82,12 +82,15 @@ private:
 private:
     friend class thrift_message_parser_test;
 
+    // for meta version new
+    bool _meta_parsed{false};
     uint32_t _meta_length{0};
-
+    uint32_t _body_length{0};
     std::unique_ptr<thrift_request_meta> _meta;
+
+    // for meta version 0
     std::unique_ptr<thrift_request_meta_v0> _meta_0;
 
-    bool _meta_parsed{false};
     bool _header_parsed{false};
     bool _is_v0_header{false};
 };

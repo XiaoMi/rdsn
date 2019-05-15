@@ -423,15 +423,13 @@ inline std::ostream &operator<<(std::ostream &out, const app_info &obj)
 typedef struct _thrift_request_meta__isset
 {
     _thrift_request_meta__isset()
-        : body_length(false),
-          app_id(false),
+        : app_id(false),
           partition_index(false),
           client_timeout(false),
           client_partition_hash(false),
           is_backup_request(false)
     {
     }
-    bool body_length : 1;
     bool app_id : 1;
     bool partition_index : 1;
     bool client_timeout : 1;
@@ -447,8 +445,7 @@ public:
     thrift_request_meta &operator=(const thrift_request_meta &);
     thrift_request_meta &operator=(thrift_request_meta &&);
     thrift_request_meta()
-        : body_length(0),
-          app_id(0),
+        : app_id(0),
           partition_index(0),
           client_timeout(0),
           client_partition_hash(0),
@@ -457,7 +454,6 @@ public:
     }
 
     virtual ~thrift_request_meta() throw();
-    int32_t body_length;
     int32_t app_id;
     int32_t partition_index;
     int32_t client_timeout;
@@ -465,8 +461,6 @@ public:
     bool is_backup_request;
 
     _thrift_request_meta__isset __isset;
-
-    void __set_body_length(const int32_t val);
 
     void __set_app_id(const int32_t val);
 
@@ -480,10 +474,6 @@ public:
 
     bool operator==(const thrift_request_meta &rhs) const
     {
-        if (__isset.body_length != rhs.__isset.body_length)
-            return false;
-        else if (__isset.body_length && !(body_length == rhs.body_length))
-            return false;
         if (__isset.app_id != rhs.__isset.app_id)
             return false;
         else if (__isset.app_id && !(app_id == rhs.app_id))

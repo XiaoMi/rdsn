@@ -1051,12 +1051,6 @@ void app_info::printTo(std::ostream &out) const
 
 thrift_request_meta::~thrift_request_meta() throw() {}
 
-void thrift_request_meta::__set_body_length(const int32_t val)
-{
-    this->body_length = val;
-    __isset.body_length = true;
-}
-
 void thrift_request_meta::__set_app_id(const int32_t val)
 {
     this->app_id = val;
@@ -1108,21 +1102,13 @@ uint32_t thrift_request_meta::read(::apache::thrift::protocol::TProtocol *iprot)
         switch (fid) {
         case 1:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                xfer += iprot->readI32(this->body_length);
-                this->__isset.body_length = true;
-            } else {
-                xfer += iprot->skip(ftype);
-            }
-            break;
-        case 2:
-            if (ftype == ::apache::thrift::protocol::T_I32) {
                 xfer += iprot->readI32(this->app_id);
                 this->__isset.app_id = true;
             } else {
                 xfer += iprot->skip(ftype);
             }
             break;
-        case 3:
+        case 2:
             if (ftype == ::apache::thrift::protocol::T_I32) {
                 xfer += iprot->readI32(this->partition_index);
                 this->__isset.partition_index = true;
@@ -1130,7 +1116,7 @@ uint32_t thrift_request_meta::read(::apache::thrift::protocol::TProtocol *iprot)
                 xfer += iprot->skip(ftype);
             }
             break;
-        case 4:
+        case 3:
             if (ftype == ::apache::thrift::protocol::T_I32) {
                 xfer += iprot->readI32(this->client_timeout);
                 this->__isset.client_timeout = true;
@@ -1138,7 +1124,7 @@ uint32_t thrift_request_meta::read(::apache::thrift::protocol::TProtocol *iprot)
                 xfer += iprot->skip(ftype);
             }
             break;
-        case 5:
+        case 4:
             if (ftype == ::apache::thrift::protocol::T_I64) {
                 xfer += iprot->readI64(this->client_partition_hash);
                 this->__isset.client_partition_hash = true;
@@ -1146,7 +1132,7 @@ uint32_t thrift_request_meta::read(::apache::thrift::protocol::TProtocol *iprot)
                 xfer += iprot->skip(ftype);
             }
             break;
-        case 6:
+        case 5:
             if (ftype == ::apache::thrift::protocol::T_BOOL) {
                 xfer += iprot->readBool(this->is_backup_request);
                 this->__isset.is_backup_request = true;
@@ -1172,34 +1158,29 @@ uint32_t thrift_request_meta::write(::apache::thrift::protocol::TProtocol *oprot
     apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
     xfer += oprot->writeStructBegin("thrift_request_meta");
 
-    if (this->__isset.body_length) {
-        xfer += oprot->writeFieldBegin("body_length", ::apache::thrift::protocol::T_I32, 1);
-        xfer += oprot->writeI32(this->body_length);
-        xfer += oprot->writeFieldEnd();
-    }
     if (this->__isset.app_id) {
-        xfer += oprot->writeFieldBegin("app_id", ::apache::thrift::protocol::T_I32, 2);
+        xfer += oprot->writeFieldBegin("app_id", ::apache::thrift::protocol::T_I32, 1);
         xfer += oprot->writeI32(this->app_id);
         xfer += oprot->writeFieldEnd();
     }
     if (this->__isset.partition_index) {
-        xfer += oprot->writeFieldBegin("partition_index", ::apache::thrift::protocol::T_I32, 3);
+        xfer += oprot->writeFieldBegin("partition_index", ::apache::thrift::protocol::T_I32, 2);
         xfer += oprot->writeI32(this->partition_index);
         xfer += oprot->writeFieldEnd();
     }
     if (this->__isset.client_timeout) {
-        xfer += oprot->writeFieldBegin("client_timeout", ::apache::thrift::protocol::T_I32, 4);
+        xfer += oprot->writeFieldBegin("client_timeout", ::apache::thrift::protocol::T_I32, 3);
         xfer += oprot->writeI32(this->client_timeout);
         xfer += oprot->writeFieldEnd();
     }
     if (this->__isset.client_partition_hash) {
         xfer +=
-            oprot->writeFieldBegin("client_partition_hash", ::apache::thrift::protocol::T_I64, 5);
+            oprot->writeFieldBegin("client_partition_hash", ::apache::thrift::protocol::T_I64, 4);
         xfer += oprot->writeI64(this->client_partition_hash);
         xfer += oprot->writeFieldEnd();
     }
     if (this->__isset.is_backup_request) {
-        xfer += oprot->writeFieldBegin("is_backup_request", ::apache::thrift::protocol::T_BOOL, 6);
+        xfer += oprot->writeFieldBegin("is_backup_request", ::apache::thrift::protocol::T_BOOL, 5);
         xfer += oprot->writeBool(this->is_backup_request);
         xfer += oprot->writeFieldEnd();
     }
@@ -1211,7 +1192,6 @@ uint32_t thrift_request_meta::write(::apache::thrift::protocol::TProtocol *oprot
 void swap(thrift_request_meta &a, thrift_request_meta &b)
 {
     using ::std::swap;
-    swap(a.body_length, b.body_length);
     swap(a.app_id, b.app_id);
     swap(a.partition_index, b.partition_index);
     swap(a.client_timeout, b.client_timeout);
@@ -1222,7 +1202,6 @@ void swap(thrift_request_meta &a, thrift_request_meta &b)
 
 thrift_request_meta::thrift_request_meta(const thrift_request_meta &other49)
 {
-    body_length = other49.body_length;
     app_id = other49.app_id;
     partition_index = other49.partition_index;
     client_timeout = other49.client_timeout;
@@ -1232,7 +1211,6 @@ thrift_request_meta::thrift_request_meta(const thrift_request_meta &other49)
 }
 thrift_request_meta::thrift_request_meta(thrift_request_meta &&other50)
 {
-    body_length = std::move(other50.body_length);
     app_id = std::move(other50.app_id);
     partition_index = std::move(other50.partition_index);
     client_timeout = std::move(other50.client_timeout);
@@ -1242,7 +1220,6 @@ thrift_request_meta::thrift_request_meta(thrift_request_meta &&other50)
 }
 thrift_request_meta &thrift_request_meta::operator=(const thrift_request_meta &other51)
 {
-    body_length = other51.body_length;
     app_id = other51.app_id;
     partition_index = other51.partition_index;
     client_timeout = other51.client_timeout;
@@ -1253,7 +1230,6 @@ thrift_request_meta &thrift_request_meta::operator=(const thrift_request_meta &o
 }
 thrift_request_meta &thrift_request_meta::operator=(thrift_request_meta &&other52)
 {
-    body_length = std::move(other52.body_length);
     app_id = std::move(other52.app_id);
     partition_index = std::move(other52.partition_index);
     client_timeout = std::move(other52.client_timeout);
@@ -1266,10 +1242,7 @@ void thrift_request_meta::printTo(std::ostream &out) const
 {
     using ::apache::thrift::to_string;
     out << "thrift_request_meta(";
-    out << "body_length=";
-    (__isset.body_length ? (out << to_string(body_length)) : (out << "<null>"));
-    out << ", "
-        << "app_id=";
+    out << "app_id=";
     (__isset.app_id ? (out << to_string(app_id)) : (out << "<null>"));
     out << ", "
         << "partition_index=";

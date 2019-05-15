@@ -50,17 +50,17 @@ namespace dsn {
 ///
 /// For new version (since pegasus-server-1.11.4):
 /// <--  fixed-size request header --> <--            request body            -->
-/// |-"THFT"-|- uint32(meta_length) -| |- thrift_request_meta -|-    blob      -|
-/// |-             8bytes           -| |-    thrift struct    -|-              -|
+/// |-"THFT"-|- uint32(body_length) + uint32(meta_length) -|- thrift_request_meta -|- blob -|
+/// |-                      12bytes                       -|-   thrift struct     -|-      -|
 ///
 /// Currently, our implementation can be backward compatible with version 0 by identifying
 /// the second 4 bytes, for version 0 this field (`hdr_version`) is always 0, for the new
-/// version it is replaced with a non-zero `meta_length`.
+/// version it is replaced with a non-zero `body_length`.
 ///
 /// TODO(wutao1): remove v0 can once it has no user
 
 // "THFT" + uint32(meta_length)
-static constexpr size_t HEADER_LENGTH = 8;
+static constexpr size_t HEADER_LENGTH = 12;
 
 // "THFT" + uint32(hdr_version) + uint32(hdr_length) + 36bytes(thrift_request_meta_v0)
 static constexpr size_t HEADER_LENGTH_V0 = 48;
@@ -170,8 +170,8 @@ message_ex *thrift_message_parser::parse_request_body_v_new(message_reader *read
     buf = buf.range(_meta_length);
 
     // Parses request data
-    if (buf.size() < _meta->body_length) {
-        read_next = _meta->body_length - buf.size();
+    if (buf.size() < _body_length) {
+        read_next = _body_length - buf.size();
         return nullptr;
     }
 
@@ -182,12 +182,12 @@ message_ex *thrift_message_parser::parse_request_body_v_new(message_reader *read
         return nullptr;
     }
 
-    reader->consume_buffer(_meta_length + _meta->body_length);
+    reader->consume_buffer(_meta_length + _body_length);
     reset();
     read_next =
         (reader->_buffer_occupied >= HEADER_LENGTH ? 0 : HEADER_LENGTH - reader->_buffer_occupied);
 
-    msg->header->body_length = _meta->body_length;
+    msg->header->body_length = _body_length;
     msg->header->gpid.set_app_id(_meta->app_id);
     msg->header->gpid.set_partition_index(_meta->partition_index);
     msg->header->client.timeout_ms = _meta->client_timeout;
@@ -242,6 +242,7 @@ message_ex *thrift_message_parser::get_message_on_receive(message_reader *reader
             reader->consume_buffer(HEADER_LENGTH_V0);
         } else {
             _meta_length = second_field;
+            _body_length = input.read_u32();
             _is_v0_header = false;
             reader->consume_buffer(HEADER_LENGTH);
         }
