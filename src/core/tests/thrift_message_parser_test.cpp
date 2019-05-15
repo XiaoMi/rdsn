@@ -143,7 +143,9 @@ public:
     {
         /// write rpc message
         size_t body_length = 0;
-        rpc_write_stream stream(RPC_TEST_THRIFT_MESSAGE_PARSER, 1000, 64, 5000000000);
+        message_ptr msg =
+            message_ex::create_request(RPC_TEST_THRIFT_MESSAGE_PARSER, 1000, 64, 5000000000);
+        rpc_write_stream stream(msg);
         binary_writer_transport binary_transport(stream);
         boost::shared_ptr<binary_writer_transport> trans_ptr(&binary_transport,
                                                              [](binary_writer_transport *) {});
@@ -171,7 +173,7 @@ public:
         memcpy(&data[48], stream.get_buffer().data(), stream.get_buffer().size());
 
         mock_reader_read_data(reader, data);
-        message_ex *msg = parser.get_message_on_receive(&reader, read_next);
+        msg = parser.get_message_on_receive(&reader, read_next);
 
         if (is_request) {
             ASSERT_NE(msg, nullptr);
@@ -198,7 +200,10 @@ public:
             ASSERT_EQ(msg->header->context.u.is_forward_supported, false);
 
             ASSERT_EQ(reader.buffer().size(), 0);
-            delete msg;
+
+            // must be reset
+            ASSERT_EQ(parser._header_parsed, false);
+            ASSERT_EQ(parser._meta_parsed, false);
         } else {
             ASSERT_EQ(msg, nullptr);
             ASSERT_EQ(read_next, -1);
@@ -235,7 +240,9 @@ public:
     {
         /// write rpc message
         size_t body_length = 0;
-        rpc_write_stream body_stream(RPC_TEST_THRIFT_MESSAGE_PARSER, 1000, 64, 5000000000);
+        message_ptr msg =
+            message_ex::create_request(RPC_TEST_THRIFT_MESSAGE_PARSER, 1000, 64, 5000000000);
+        rpc_write_stream body_stream(msg);
         {
             binary_writer_transport transport(body_stream);
             boost::shared_ptr<binary_writer_transport> trans_ptr(&transport,
@@ -277,11 +284,9 @@ public:
         ASSERT_EQ(reader.buffer().size(), data.size());
         ASSERT_EQ(reader.buffer().size(), 8 + meta_length + body_length);
 
-        message_ex *msg = parser.get_message_on_receive(&reader, read_next);
+        msg = parser.get_message_on_receive(&reader, read_next);
         ASSERT_EQ(parser._meta_length, meta_length);
         ASSERT_EQ(parser._is_v0_header, false);
-        ASSERT_EQ(parser._header_parsed, true);
-        ASSERT_EQ(parser._meta_parsed, true);
 
         if (is_request) {
             ASSERT_NE(msg, nullptr);
@@ -306,7 +311,10 @@ public:
             ASSERT_EQ(msg->header->context.u.is_forward_supported, false);
 
             ASSERT_EQ(reader.buffer().size(), 0);
-            delete msg;
+
+            // must be reset
+            ASSERT_EQ(parser._header_parsed, false);
+            ASSERT_EQ(parser._meta_parsed, false);
         } else {
             ASSERT_EQ(msg, nullptr);
             ASSERT_EQ(read_next, -1);

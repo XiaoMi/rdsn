@@ -34,7 +34,7 @@ namespace dsn {
 
 class thrift_request_meta;
 
-struct request_meta_v0
+struct thrift_request_meta_v0
 {
     uint32_t hdr_crc32;
     uint32_t body_length;
@@ -85,7 +85,7 @@ private:
     uint32_t _meta_length{0};
 
     std::unique_ptr<thrift_request_meta> _meta;
-    std::unique_ptr<request_meta_v0> _meta_0;
+    std::unique_ptr<thrift_request_meta_v0> _meta_0;
 
     bool _meta_parsed{false};
     bool _header_parsed{false};

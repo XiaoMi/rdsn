@@ -43,29 +43,29 @@ namespace dsn {
 
 ///
 /// For version 0:
-/// <--               fixed-size request header               --> <--request body-->
-/// |-"THFT"-|- hdr_version + hdr_length -|-  request_meta_v0  -| |-     blob     -|
-/// |-"THFT"-|-  uint32(0)  + uint32(48) -|-       36bytes     -| |-              -|
-/// |-               12bytes             -|-       36bytes     -| |-              -|
+/// <--               fixed-size request header                    --> <--request body-->
+/// |-"THFT"-|- hdr_version + hdr_length -|-  thrift_request_meta_v0  -|-     blob     -|
+/// |-"THFT"-|-  uint32(0)  + uint32(48) -|-           36bytes        -|-              -|
+/// |-               12bytes             -|-           36bytes        -|-              -|
 ///
 /// For new version (since pegasus-server-1.11.4):
 /// <--  fixed-size request header --> <--            request body            -->
 /// |-"THFT"-|- uint32(meta_length) -| |- thrift_request_meta -|-    blob      -|
 /// |-             8bytes           -| |-    thrift struct    -|-              -|
 ///
-/// Currently our implementation can be backward compatible with version 0 by identifying
-/// the second 4 bytes, for version 0 this field (`hdr_version`) is always 0, for new version
-/// it is replaced with a non-zero `meta_length`.
+/// Currently, our implementation can be backward compatible with version 0 by identifying
+/// the second 4 bytes, for version 0 this field (`hdr_version`) is always 0, for the new
+/// version it is replaced with a non-zero `meta_length`.
 ///
-/// TODO(wutao1): v0 can be removed once it has no users
+/// TODO(wutao1): remove v0 can once it has no user
 
 // "THFT" + uint32(meta_length)
 static constexpr size_t HEADER_LENGTH = 8;
 
-// "THFT" + uint32(hdr_version) + uint32(hdr_length) + 36bytes(request_meta_v0)
+// "THFT" + uint32(hdr_version) + uint32(hdr_length) + 36bytes(thrift_request_meta_v0)
 static constexpr size_t HEADER_LENGTH_V0 = 48;
 
-void parse_request_meta_v0(data_input &input, /*out*/ request_meta_v0 &meta)
+void parse_request_meta_v0(data_input &input, /*out*/ thrift_request_meta_v0 &meta)
 {
     meta.hdr_crc32 = input.read_u32();
     meta.body_length = input.read_u32();
@@ -183,6 +183,10 @@ message_ex *thrift_message_parser::parse_request_body_v_new(message_reader *read
     }
 
     reader->consume_buffer(_meta_length + _meta->body_length);
+    reset();
+    read_next =
+        (reader->_buffer_occupied >= HEADER_LENGTH ? 0 : HEADER_LENGTH - reader->_buffer_occupied);
+
     msg->header->body_length = _meta->body_length;
     msg->header->gpid.set_app_id(_meta->app_id);
     msg->header->gpid.set_partition_index(_meta->partition_index);
@@ -362,7 +366,7 @@ int thrift_message_parser::get_buffers_on_send(message_ex *msg, /*out*/ send_buf
 }
 
 thrift_message_parser::thrift_message_parser()
-    : _meta(new thrift_request_meta), _meta_0(new request_meta_v0)
+    : _meta(new thrift_request_meta), _meta_0(new thrift_request_meta_v0)
 {
 }
 
