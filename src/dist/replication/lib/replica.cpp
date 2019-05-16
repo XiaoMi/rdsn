@@ -35,6 +35,7 @@
 #include <dsn/utility/rand.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/strings.h>
+#include <dsn/tool-api/rpc_message.h>
 
 #include "dist/replication/lib/duplication/replica_duplicator_manager.h"
 
@@ -150,23 +151,20 @@ void replica::on_client_read(task_code code, dsn::message_ex *request)
         return;
     }
 
-    if (status() != partition_status::PS_PRIMARY ||
+    if (!request->is_backup_request() && status() != partition_status::PS_PRIMARY) {
+        response_client_read(request, ERR_INVALID_STATE);
+        return;
+    }
 
-        // a small window where the state is not the latest yet
+    // a small window where the state is not the latest yet
+    if (!request->is_backup_request() &&
         last_committed_decree() < _primary_states.last_prepare_decree_on_new_primary) {
-        if (status() != partition_status::PS_PRIMARY) {
-            response_client_read(request, ERR_INVALID_STATE);
-            return;
-        }
-
-        if (last_committed_decree() < _primary_states.last_prepare_decree_on_new_primary) {
-            derror_replica("last_committed_decree(%" PRId64
-                           ") < last_prepare_decree_on_new_primary(%" PRId64 ")",
-                           last_committed_decree(),
-                           _primary_states.last_prepare_decree_on_new_primary);
-            response_client_read(request, ERR_INVALID_STATE);
-            return;
-        }
+        derror_replica("last_committed_decree(%" PRId64
+                       ") < last_prepare_decree_on_new_primary(%" PRId64 ")",
+                       last_committed_decree(),
+                       _primary_states.last_prepare_decree_on_new_primary);
+        response_client_read(request, ERR_INVALID_STATE);
+        return;
     }
 
     dassert(_app != nullptr, "");
@@ -447,5 +445,5 @@ std::string replica::query_compact_state() const
     dassert_replica(_app != nullptr, "");
     return _app->query_compact_state();
 }
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

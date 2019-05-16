@@ -50,8 +50,8 @@ struct thrift_request_meta_v0
 
 DEFINE_CUSTOMIZED_ID(network_header_format, NET_HDR_THRIFT)
 
-// Parses request sent from rDSN thrift protocol, which is
-// particularly used by our Java/GoLang/NodeJs/Python clients,
+// Parses request sent in rDSN thrift protocol, which is
+// mainly used by our Java/GoLang/NodeJs/Python clients,
 // and encodes response to them.
 class thrift_message_parser final : public message_parser
 {
@@ -67,7 +67,7 @@ public:
 
     // thrift response format:
     //     <total_len(int32)> <thrift_string> <thrift_message_begin> <body_data(bytes)>
-    //     <thrift_message_end>`
+    //     <thrift_message_end>
     void prepare_on_send(message_ex *msg) override;
 
     int get_buffers_on_send(message_ex *msg, /*out*/ send_buf *buffers) override;

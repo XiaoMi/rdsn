@@ -70,7 +70,7 @@ typedef union msg_context
         uint64_t unused : 4;               ///< not used yet
         uint64_t serialize_format : 4;     ///< dsn_msg_serialize_format
         uint64_t is_forward_supported : 1; ///< whether support forwarding a message to real leader
-        uint64_t is_backup_read : 1;       ///< whether the RPC is a backup read
+        uint64_t is_backup_request : 1;    ///< whether the RPC is a backup request
         uint64_t reserved : 52;
     } u;
     uint64_t context; ///< msg_context is of sizeof(uint64_t)
@@ -202,6 +202,8 @@ public:
     DSN_API void read_commit(size_t size);
     size_t body_size() { return (size_t)header->body_length; }
     DSN_API void *rw_ptr(size_t offset_begin);
+
+    bool is_backup_request() const { return header->context.u.is_backup_request; }
 
 private:
     DSN_API message_ex();

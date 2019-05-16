@@ -198,7 +198,7 @@ message_ex *thrift_message_parser::parse_request_body_v_new(message_reader *read
     msg->header->client.timeout_ms = _meta->client_timeout;
     msg->header->client.thread_hash = gpid_to_thread_hash(msg->header->gpid);
     msg->header->client.partition_hash = _meta->client_partition_hash;
-    msg->header->context.u.is_backup_read = _meta->is_backup_request;
+    msg->header->context.u.is_backup_request = _meta->is_backup_request;
     return msg;
 }
 
