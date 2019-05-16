@@ -60,6 +60,7 @@ public:
     // discard read data
     void truncate_read() { _buffer_occupied = 0; }
 
+    // mark the tailing `sz` of bytes are consumed and discardable.
     void consume_buffer(size_t sz)
     {
         _buffer = _buffer.range(sz);
