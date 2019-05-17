@@ -194,8 +194,8 @@ public:
             ASSERT_EQ(msg->header->context.u.is_request, true);
             ASSERT_EQ(msg->header->context.u.serialize_format, DSF_THRIFT_BINARY);
 
-            // Thrift network format doesn't support message context.
-            ASSERT_EQ(msg->header->context.u.is_backup_read, false);
+            // v0 Thrift network format doesn't support message context.
+            ASSERT_EQ(msg->header->context.u.is_backup_request, false);
             ASSERT_EQ(msg->header->context.u.is_forwarded, false);
             ASSERT_EQ(msg->header->context.u.is_forward_supported, false);
 
@@ -307,7 +307,7 @@ public:
 
             ASSERT_EQ(msg->header->context.u.is_request, true);
             ASSERT_EQ(msg->header->context.u.serialize_format, DSF_THRIFT_BINARY);
-            ASSERT_EQ(msg->header->context.u.is_backup_read, is_backup_request);
+            ASSERT_EQ(msg->header->context.u.is_backup_request, is_backup_request);
             ASSERT_EQ(msg->header->context.u.is_forwarded, false);
             ASSERT_EQ(msg->header->context.u.is_forward_supported, false);
 

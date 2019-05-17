@@ -24,7 +24,6 @@
  * THE SOFTWARE.
  */
 
-#include <boost/lexical_cast.hpp>
 #include <dsn/dist/replication/duplication_common.h>
 #include <dsn/dist/fmt_logging.h>
 
@@ -56,7 +55,8 @@ replica_duplicator_manager::get_duplication_confirms_to_update() const
 void replica_duplicator_manager::sync_duplication(const duplication_entry &ent)
 {
     // state is inconsistent with meta-server
-    if (ent.progress.find(get_gpid().get_partition_index()) == ent.progress.end()) {
+    auto it = ent.progress.find(get_gpid().get_partition_index());
+    if (it == ent.progress.end()) {
         _duplications.erase(ent.dupid);
         return;
     }
@@ -68,14 +68,16 @@ void replica_duplicator_manager::sync_duplication(const duplication_entry &ent)
 
     replica_duplicator_u_ptr &dup = _duplications[dupid];
     if (dup == nullptr) {
-        dup = make_unique<replica_duplicator>(ent, _replica);
-    } else {
-        auto it = ent.progress.find(_replica->get_gpid().get_partition_index());
-        if (it != ent.progress.end()) {
-            // update progress
-            duplication_progress newp = dup->progress().set_confirmed_decree(it->second);
-            dcheck_eq_replica(dup->update_progress(newp), error_s::ok());
+        if (is_duplication_status_valid(next_status)) {
+            dup = make_unique<replica_duplicator>(ent, _replica);
+        } else {
+            derror_replica("illegal duplication status: {}",
+                           duplication_status_to_string(next_status));
         }
+    } else {
+        // update progress
+        duplication_progress newp = dup->progress().set_confirmed_decree(it->second);
+        dcheck_eq_replica(dup->update_progress(newp), error_s::ok());
         dup->update_status_if_needed(next_status);
     }
 }
@@ -124,6 +126,7 @@ void replica_duplicator_manager::remove_non_existed_duplications(
 
 void replica_duplicator_manager::set_confirmed_decree_non_primary(decree confirmed)
 {
+    // this function always runs in the same single thread with config-sync
     dassert_replica(_replica->status() != partition_status::PS_PRIMARY, "");
 
     zauto_lock l(_lock);
@@ -137,7 +140,7 @@ void replica_duplicator_manager::set_confirmed_decree_non_primary(decree confirm
     _replica->update_init_info_duplicating(confirmed >= 0);
 }
 
-std::map<dupid_t, std::tuple<bool, decree, decree>> replica_duplicator_manager::dup_state()
+std::map<dupid_t, std::tuple<bool, decree, decree>> replica_duplicator_manager::dup_state() const
 {
     zauto_lock l(_lock);
 

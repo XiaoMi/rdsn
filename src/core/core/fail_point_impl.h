@@ -20,7 +20,7 @@
 #include <dsn/utility/fail_point.h>
 #include <dsn/c/api_utilities.h>
 #include <dsn/utility/ports.h>
-#include <mutex>
+#include <dsn/utility/synchronize.h>
 #include <unordered_map>
 #include <utility>
 
@@ -79,7 +79,7 @@ struct fail_point_registry
 {
     fail_point &create_if_not_exists(string_view name)
     {
-        std::lock_guard<std::mutex> guard(_mu);
+        utils::auto_write_lock l(_lock);
 
         auto it = _registry.emplace(std::string(name), fail_point(name)).first;
         return it->second;
@@ -87,7 +87,7 @@ struct fail_point_registry
 
     fail_point *try_get(string_view name)
     {
-        std::lock_guard<std::mutex> guard(_mu);
+        utils::auto_read_lock l(_lock);
 
         auto it = _registry.find(std::string(name.data(), name.length()));
         if (it == _registry.end()) {
@@ -98,12 +98,12 @@ struct fail_point_registry
 
     void clear()
     {
-        std::lock_guard<std::mutex> guard(_mu);
+        utils::auto_write_lock l(_lock);
         _registry.clear();
     }
 
 private:
-    mutable std::mutex _mu;
+    mutable utils::rw_lock_nr _lock;
     std::unordered_map<std::string, fail_point> _registry;
 };
 

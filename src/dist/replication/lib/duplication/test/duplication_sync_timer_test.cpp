@@ -275,7 +275,7 @@ public:
         }
     }
 
-    void test_enable_dup_sync()
+    void test_remote_command_enable_dup_sync()
     {
         std::vector<std::string> args({"true"});
         ASSERT_EQ(dup_sync->enable_dup_sync(args), "OK");
@@ -366,6 +366,34 @@ public:
         }
     }
 
+    // meta server doesn't suppose to sync duplication that's INIT or REMOVED
+    // there must be some internal problems.
+    void test_receive_illegal_duplication_status()
+    {
+        stub->add_primary_replica(1, 0);
+
+        duplication_entry ent;
+        ent.dupid = 2;
+        ent.status = duplication_status::DS_PAUSE;
+        for (int i = 0; i < 16; i++) {
+            ent.progress[i] = 0;
+        }
+        std::map<int32_t, std::map<dupid_t, duplication_entry>> dup_map;
+        dup_map[1][ent.dupid] = ent;
+        dup_sync->update_duplication_map(dup_map);
+        ASSERT_EQ(find_dup(stub->find_replica(1, 0), 2)->_status, duplication_status::DS_PAUSE);
+
+        ent.status = duplication_status::DS_INIT;
+        dup_map[1][ent.dupid] = ent;
+        dup_sync->update_duplication_map(dup_map);
+        ASSERT_EQ(find_dup(stub->find_replica(1, 0), 2)->_status, duplication_status::DS_PAUSE);
+
+        ent.status = duplication_status::DS_REMOVED;
+        dup_map[1][ent.dupid] = ent;
+        dup_sync->update_duplication_map(dup_map);
+        ASSERT_EQ(find_dup(stub->find_replica(1, 0), 2)->_status, duplication_status::DS_PAUSE);
+    }
+
 protected:
     std::unique_ptr<duplication_sync_timer> dup_sync;
 };
@@ -380,9 +408,17 @@ TEST_F(duplication_sync_timer_test, update_confirmed_points) { test_update_confi
 
 TEST_F(duplication_sync_timer_test, on_duplication_sync_reply) { test_on_duplication_sync_reply(); }
 
-TEST_F(duplication_sync_timer_test, enable_dup_sync) { test_enable_dup_sync(); }
+TEST_F(duplication_sync_timer_test, remote_command_enable_dup_sync)
+{
+    test_remote_command_enable_dup_sync();
+}
 
 TEST_F(duplication_sync_timer_test, replica_status_transition) { test_replica_status_transition(); }
+
+TEST_F(duplication_sync_timer_test, receive_illegal_duplication_status)
+{
+    test_receive_illegal_duplication_status();
+}
 
 } // namespace replication
 } // namespace dsn

@@ -83,7 +83,8 @@ public:
     // duplication removal is extremely rare.
     ~replica_duplicator();
 
-    // Advance this duplication to status `next_status`.
+    // Updates this duplication to `next_status`.
+    // Not thread-safe.
     void update_status_if_needed(duplication_status::type next_status);
 
     dupid_t id() const { return _id; }
