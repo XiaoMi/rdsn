@@ -34,9 +34,17 @@
 namespace dsn {
 namespace replication {
 
+//                     //
+// mutation_duplicator //
+//                     //
+
 /*static*/ std::function<std::unique_ptr<mutation_duplicator>(
     replica_base *, string_view /*remote cluster*/, string_view /*app*/)>
     mutation_duplicator::creator;
+
+//               //
+// load_mutation //
+//               //
 
 void load_mutation::run()
 {
@@ -60,6 +68,10 @@ load_mutation::load_mutation(replica_duplicator *duplicator,
     : replica_base(r), _log_on_disk(load_private), _replica(r), _duplicator(duplicator)
 {
 }
+
+//               //
+// ship_mutation //
+//               //
 
 void ship_mutation::ship(mutation_tuple_set &&in)
 {

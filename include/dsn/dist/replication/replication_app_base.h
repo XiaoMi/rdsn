@@ -226,6 +226,15 @@ public:
     // query app envs.
     virtual void query_app_envs(/*out*/ std::map<std::string, std::string> &envs) = 0;
 
+    // Checks if the given write is stale.
+    // Storage engine supported this feature may retrieve the record (the key is serialized
+    // in `data`) and compare its timestamp with `timestamp`, if the former is larger,
+    // this write is stale then.
+    virtual bool is_write_stale(uint64_t timestamp, task_code rpc_code, const blob &data)
+    {
+        return false;
+    }
+
 public:
     //
     // utility functions to be used by app

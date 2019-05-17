@@ -71,7 +71,7 @@ public:
 
     // Singleton creator of mutation_duplicator.
     static std::function<std::unique_ptr<mutation_duplicator>(
-        replica_base *, string_view /*remote cluster*/, string_view /*app*/)>
+        replica_base *, string_view /*remote cluster*/, string_view /*app name*/)>
         creator;
 
     explicit mutation_duplicator(replica_base *r) : replica_base(r) {}

@@ -183,7 +183,6 @@ message_ex *thrift_message_parser::parse_request_body_v_new(message_reader *read
     message_ex *msg = parse_request_data(buf);
     if (msg == nullptr) {
         read_next = -1;
-        delete msg;
         return nullptr;
     }
 

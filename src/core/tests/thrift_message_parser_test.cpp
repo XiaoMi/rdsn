@@ -264,9 +264,15 @@ public:
         meta.__set_partition_index(28);
         meta.__set_client_timeout(1000);
         meta.__set_client_partition_hash(5000000000);
-        binary_writer meta_stream(1024);
-        marshall_thrift_binary(meta_stream, meta);
-        meta_length = meta_stream.get_buffer().size();
+
+        binary_writer meta_writer(1024);
+        ::dsn::binary_writer_transport trans(meta_writer);
+        boost::shared_ptr<::dsn::binary_writer_transport> transport(
+            &trans, [](::dsn::binary_writer_transport *) {});
+        ::apache::thrift::protocol::TBinaryProtocol proto(transport);
+        meta.write(&proto);
+
+        meta_length = meta_writer.get_buffer().size();
 
         thrift_message_parser parser;
         std::string data;
@@ -276,7 +282,7 @@ public:
         out.write_u32(meta_length);
         out.write_u32(body_length);
 
-        memcpy(&data[12], meta_stream.get_buffer().data(), meta_stream.get_buffer().size());
+        memcpy(&data[12], meta_writer.get_buffer().data(), meta_writer.get_buffer().size());
         memcpy(&data[12 + meta_length],
                body_stream.get_buffer().data(),
                body_stream.get_buffer().size());
