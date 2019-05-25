@@ -16,6 +16,8 @@ cache:
 
 addons:
     apt:
+        sources:
+            - ubuntu-toolchain-r-test
         packages:
             - clang-format-3.9
             - g++-5
