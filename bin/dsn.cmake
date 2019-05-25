@@ -211,10 +211,11 @@ function(dsn_setup_compiler_flags)
 
     include(CheckCXXCompilerFlag)
     CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-    if(NOT ${COMPILER_SUPPORTS_CXX14})
+    if(COMPILER_SUPPORTS_CXX14)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14" CACHE STRING "" FORCE)
+    else()
         message(FATAL_ERROR "You need a compiler with C++14 support.")
     endif()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14" CACHE STRING "" FORCE)
 
     # -fno-omit-frame-pointer
     #   use frame pointers to allow simple stack frame walking for backtraces.

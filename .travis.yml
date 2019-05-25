@@ -5,6 +5,8 @@ language: cpp
 
 os: linux
 
+env: COMPILER=g++-5
+
 compiler: 
     - gcc
 
@@ -16,6 +18,7 @@ addons:
     apt:
         packages:
             - clang-format-3.9
+            - g++-5
 
 before_install:
     - wget https://raw.githubusercontent.com/xiaomi/pegasus-common/master/build-depends.tar.gz
@@ -24,9 +27,6 @@ before_install:
     - cd packages
     - ls | xargs sudo dpkg -i --force-depends
     - cd ..
-
-install:
-    # - ./run.sh format
 
 before_script:
     - cd thirdparty
