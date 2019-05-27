@@ -40,6 +40,8 @@
 #include <dsn/dist/replication.h>
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/tool-api/async_calls.h>
+#include <dsn/utility/errors.h>
+#include <vector>
 
 namespace dsn {
 namespace replication {
@@ -65,6 +67,7 @@ public:
     dsn::error_code list_apps(const dsn::app_status::type status,
                               bool show_all,
                               bool detailed,
+                              bool json,
                               const std::string &file_name);
 
     dsn::error_code list_apps(const dsn::app_status::type status,
@@ -81,10 +84,11 @@ public:
 
     dsn::error_code cluster_name(int64_t timeout_ms, std::string &cluster_name);
 
-    dsn::error_code cluster_info(const std::string &file_name, bool resolve_ip = false);
+    dsn::error_code cluster_info(const std::string &file_name, bool resolve_ip, bool json);
 
     dsn::error_code list_app(const std::string &app_name,
                              bool detailed,
+                             bool json,
                              const std::string &file_name,
                              bool resolve_ip = false);
 
@@ -106,6 +110,12 @@ public:
                                 bool skip_bad_nodes,
                                 bool skip_lost_partitions,
                                 const std::string &outfile);
+
+    error_with<duplication_add_response>
+    add_dup(std::string app_name, std::string remote_address, bool freezed);
+    error_with<duplication_status_change_response>
+    change_dup_status(std::string app_name, int dupid, duplication_status::type status);
+    error_with<duplication_query_response> query_dup(std::string app_name);
 
     // get host name from ip series
     // if can't get a hostname from ip(maybe no hostname or other errors), return UNRESOLVABLE
@@ -204,9 +214,32 @@ private:
         return task;
     }
 
+    /// Send request to meta server synchronously.
+    template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
+    error_with<TResponse> call_rpc_sync(TRpcHolder rpc, int reply_thread_hash = 0)
+    {
+        // Retry at maximum `MAX_RETRY` times when error occurred.
+        static constexpr int MAX_RETRY = 2;
+        error_code err = ERR_UNKNOWN;
+        for (int retry = 0; retry < MAX_RETRY; retry++) {
+            task_ptr task = rpc.call(_meta_server,
+                                     &_tracker,
+                                     [&err](error_code code) { err = code; },
+                                     reply_thread_hash);
+            task->wait();
+            if (err == ERR_OK) {
+                break;
+            }
+        }
+        if (err != ERR_OK) {
+            return error_s::make(err, "unable to send rpc to server");
+        }
+        return error_with<TResponse>(std::move(rpc.response()));
+    }
+
 private:
     dsn::rpc_address _meta_server;
     dsn::task_tracker _tracker;
 };
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

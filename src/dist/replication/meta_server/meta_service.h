@@ -56,6 +56,7 @@ class server_state;
 class meta_server_failure_detector;
 class server_load_balancer;
 class replication_checker;
+class meta_duplication_service;
 namespace test {
 class test_checker;
 }
@@ -128,6 +129,8 @@ public:
 
 private:
     void register_rpc_handlers();
+    void register_ctrl_commands();
+    void unregister_ctrl_commands();
 
     // client => meta server
     // query partition configuration
@@ -167,6 +170,15 @@ private:
     void on_report_restore_status(dsn::message_ex *req);
     void on_query_restore_status(dsn::message_ex *req);
 
+    // duplication
+    void on_add_duplication(duplication_add_rpc rpc);
+    void on_change_duplication_status(duplication_status_change_rpc rpc);
+    void on_query_duplication_info(duplication_query_rpc rpc);
+    void on_duplication_sync(duplication_sync_rpc rpc);
+    void register_duplication_rpc_handlers();
+    void recover_duplication_from_meta_state();
+    void initialize_duplication_service();
+
     // common routines
     // ret:
     //   1. the meta is leader
@@ -184,6 +196,8 @@ private:
 
     replication_options _opts;
     meta_options _meta_opts;
+    uint64_t _node_live_percentage_threshold_for_update;
+    dsn_handle_t _ctrl_node_live_percentage_threshold_for_update = nullptr;
 
     std::shared_ptr<server_state> _state;
     std::shared_ptr<meta_server_failure_detector> _failure_detector;
@@ -193,6 +207,10 @@ private:
 
     std::shared_ptr<server_load_balancer> _balancer;
     std::shared_ptr<backup_service> _backup_handler;
+
+    friend class meta_duplication_service_test;
+    friend class meta_duplication_service;
+    std::unique_ptr<meta_duplication_service> _dup_svc;
 
     // handle all the block filesystems for current meta service
     // (in other words, current service node)
@@ -220,5 +238,6 @@ private:
 
     dsn::task_tracker _tracker;
 };
-}
-}
+
+} // namespace replication
+} // namespace dsn

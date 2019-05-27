@@ -211,6 +211,8 @@ private:
     friend class ::dsn::replication::replica;
     friend class ::dsn::replication::potential_secondary_context;
     friend class ::dsn::replication::cold_backup_context;
+    friend class mock_replica_stub;
+
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>
         closing_replicas; // <gpid, <close_task, replica, app_info, replica_info> >
@@ -321,6 +323,8 @@ private:
 
     perf_counter_wrapper _counter_recent_read_fail_count;
     perf_counter_wrapper _counter_recent_write_fail_count;
+    perf_counter_wrapper _counter_recent_read_busy_count;
+    perf_counter_wrapper _counter_recent_write_busy_count;
 
     dsn::task_tracker _tracker;
 };

@@ -136,7 +136,6 @@ public:
     network_header_format unknown_msg_hdr_format() const { return _unknown_msg_header_format; }
     int message_buffer_block_size() const { return _message_buffer_block_size; }
 
-protected:
     DSN_API static uint32_t get_local_ipv4();
 
 protected:
@@ -167,6 +166,9 @@ public:
     DSN_API void on_server_session_accepted(rpc_session_ptr &s);
     DSN_API void on_server_session_disconnected(rpc_session_ptr &s);
 
+    // server connection count threshold
+    DSN_API bool is_conn_threshold_exceeded(::dsn::rpc_address ep);
+
     // client session management
     DSN_API rpc_session_ptr get_client_session(::dsn::rpc_address ep);
     DSN_API void on_client_session_connected(rpc_session_ptr &s);
@@ -188,7 +190,11 @@ protected:
 
     typedef std::unordered_map<::dsn::rpc_address, rpc_session_ptr> server_sessions;
     server_sessions _servers; // from_address => rpc_session
+    typedef std::unordered_map<uint32_t, uint32_t> ip_connection_count;
+    ip_connection_count _ip_conn_count; // from_ip => connection count
     utils::rw_lock_nr _servers_lock;
+
+    uint32_t _cfg_conn_threshold_per_ip;
 };
 
 /*!

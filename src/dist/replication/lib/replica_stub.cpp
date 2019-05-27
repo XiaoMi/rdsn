@@ -276,6 +276,14 @@ void replica_stub::install_perf_counters()
                                                       "recent.write.fail.count",
                                                       COUNTER_TYPE_VOLATILE_NUMBER,
                                                       "write fail count in the recent period");
+    _counter_recent_read_busy_count.init_app_counter("eon.replica_stub",
+                                                     "recent.read.busy.count",
+                                                     COUNTER_TYPE_VOLATILE_NUMBER,
+                                                     "read busy count in the recent period");
+    _counter_recent_write_busy_count.init_app_counter("eon.replica_stub",
+                                                      "recent.write.busy.count",
+                                                      COUNTER_TYPE_VOLATILE_NUMBER,
+                                                      "write busy count in the recent period");
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
@@ -1332,7 +1340,12 @@ void replica_stub::response_client(gpid id,
                                    partition_status::type status,
                                    error_code error)
 {
-    if (error != ERR_OK) {
+    if (error == ERR_BUSY) {
+        if (is_read)
+            _counter_recent_read_busy_count->increment();
+        else
+            _counter_recent_write_busy_count->increment();
+    } else if (error != ERR_OK) {
         if (is_read)
             _counter_recent_read_fail_count->increment();
         else
@@ -1928,14 +1941,16 @@ void replica_stub::open_service()
         {"deny-client"},
         "deny-client <true|false>",
         "deny-client - control if deny client read & write request",
-        [this](const std::vector<std::string> &args) { HANDLE_CLI_FLAGS(_deny_client, args); });
+        [this](const std::vector<std::string> &args) {
+            return remote_command_set_bool_flag(_deny_client, "deny-client", args);
+        });
 
     _verbose_client_log_command = ::dsn::command_manager::instance().register_app_command(
         {"verbose-client-log"},
         "verbose-client-log <true|false>",
         "verbose-client-log - control if print verbose error log when reply read & write request",
         [this](const std::vector<std::string> &args) {
-            HANDLE_CLI_FLAGS(_verbose_client_log, args);
+            return remote_command_set_bool_flag(_verbose_client_log, "verbose-client-log", args);
         });
 
     _verbose_commit_log_command = ::dsn::command_manager::instance().register_app_command(
@@ -1943,7 +1958,7 @@ void replica_stub::open_service()
         "verbose-commit-log <true|false>",
         "verbose-commit-log - control if print verbose log when commit mutation",
         [this](const std::vector<std::string> &args) {
-            HANDLE_CLI_FLAGS(_verbose_commit_log, args);
+            return remote_command_set_bool_flag(_verbose_commit_log, "verbose-commit-log", args);
         });
 
     _trigger_chkpt_command = ::dsn::command_manager::instance().register_app_command(
