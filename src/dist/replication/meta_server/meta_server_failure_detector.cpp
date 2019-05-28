@@ -264,7 +264,6 @@ void meta_server_failure_detector::on_ping(const fd::beacon_msg &beacon,
     ddebug("on_ping, beacon send time[%ld], is_master(%s), from_node(%s), this_node(%s), "
            "primary_node(%s)",
            ack.time,
-
            ack.is_master ? "true" : "false",
            beacon.from_addr.to_string(),
            ack.this_node.to_string(),
