@@ -18,9 +18,7 @@
 #include "fail_point_impl.h"
 
 #include <dsn/c/api_layer1.h>
-// TOOD(wutao1): use <regex> instead when our lowest compiler support
-//               advances to gcc-4.9.
-#include <boost/regex.hpp>
+#include <regex>
 #include <boost/algorithm/string/trim.hpp>
 #include <absl/strings/str_split.h>
 #include <dsn/utility/rand.h>
@@ -114,9 +112,9 @@ error_with<action_t> action_t::parse_from_string(std::string action)
     task_t task;
 
     boost::trim(action); // remove suffixed and prefixed spaces
-    boost::regex regex(R"((\d+\.?\d*\%)?(\d+\*)?(\w+)(\((.*)\))?)");
-    boost::smatch match;
-    if (boost::regex_match(action, match, regex) && match.size() == 6) {
+    std::regex regex(R"((\d+\.?\d*\%)?(\d+\*)?(\w+)(\((.*)\))?)");
+    std::smatch match;
+    if (std::regex_match(action, match, regex) && match.size() == 6) {
         std::string freq_str = match[1].str();
         if (!freq_str.empty()) {
             freq_str.pop_back(); // remove suffixed %

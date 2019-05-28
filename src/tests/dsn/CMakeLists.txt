@@ -31,11 +31,10 @@ set(MY_PROJ_LIBS
     PocoNetSSL
     PocoJSON
     crypto
-    fmt
     ${MY_PROJ_LIBS}
     )
 
-set(MY_BOOST_PACKAGES system filesystem regex)
+set(MY_BOOST_PACKAGES system filesystem)
 
 set(MY_PROJ_LIB_PATH "")
 

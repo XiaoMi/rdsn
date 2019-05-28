@@ -25,10 +25,9 @@ set(MY_PROJ_LIBS dsn_meta_server
                  PocoNetSSL
                  PocoJSON
                  crypto
-                 fmt
                  gtest)
 
-set(MY_BOOST_PACKAGES system filesystem regex)
+set(MY_BOOST_PACKAGES system filesystem)
 
 #Extra files that will be installed
 set(MY_BINPLACES clear.sh run.sh config-test.ini)

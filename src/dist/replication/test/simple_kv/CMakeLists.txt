@@ -10,7 +10,7 @@ set(MY_PROJ_SRC ${MY_PROJ_SRC} ../../storage_engine/simple_kv/simple_kv_types.cp
 
 set(MY_PROJ_INC_PATH)
 
-set(MY_BOOST_PACKAGES system filesystem regex)
+set(MY_BOOST_PACKAGES system filesystem)
 
 set(MY_PROJ_LIBS gtest
                  dsn_runtime
