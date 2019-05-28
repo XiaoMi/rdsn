@@ -244,6 +244,15 @@ check_and_download "${GFLAGS_PKG}"\
     "${GFLAGS_NAME}"
 exit_if_fail $?
 
+# abseil
+# from: https://github.com/abseil/abseil-cpp/archive/8a394b19c149cab50534b04c5e21d42bc2217a7d.zip
+ABSEIL_NAME=abseil-cpp-8a394b19c149cab50534b04c5e21d42bc2217a7d
+ABSEIL_PKG=${ABSEIL_NAME}.zip
+check_and_download "${ABSEIL_PKG}" \
+    "${OSS_URL_PREFIX}/${ABSEIL_PKG}" \
+    "30907387c9511c7f7dbecfb92a947183" \
+    "${ABSEIL_PKG}"
+
 # s2geometry
 # from: https://github.com/google/s2geometry/archive/0239455c1e260d6d2c843649385b4fb9f5b28dba.zip
 S2GEOMETRY_NAME=s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba

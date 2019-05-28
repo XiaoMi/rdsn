@@ -155,7 +155,10 @@ fi
 if [ ! -d $TP_OUTPUT/include/fmt ]; then
     mkdir -p $TP_BUILD/fmt-4.0.0
     cd $TP_BUILD/fmt-4.0.0
-    cmake $TP_SRC/fmt-4.0.0 -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT -DFMT_TEST=false
+    cmake $TP_SRC/fmt-4.0.0 \
+          -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT \
+          -DFMT_TEST=false \
+          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
     make -j8 && make install
     cd $TP_DIR
     exit_if_fail "fmtlib" $?
@@ -263,4 +266,20 @@ if [ ! -d $TP_OUTPUT/include/gflags ]; then
     cd $TP_DIR
 else
     echo "skip build gflags"
+fi
+
+# build abseil
+if [ ! -d $TP_OUTPUT/include/absl ]; then
+    mkdir -p $TP_BUILD/abseil
+    cd $TP_BUILD/abseil
+    cmake $TP_SRC/abseil-cpp-8a394b19c149cab50534b04c5e21d42bc2217a7d \
+          -DBUILD_TESTING=OFF \
+          -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT \
+          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+    make -j8 && make install
+    res=$?
+    exit_if_fail "abseil" $res
+    cd $TP_DIR
+else
+    echo "skip build abseil"
 fi
