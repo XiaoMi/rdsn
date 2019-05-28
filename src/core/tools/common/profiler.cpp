@@ -261,9 +261,9 @@ static void profiler_on_rpc_request_enqueue(rpc_request_task *callee)
     message_ext_for_profiler::get(callee->get_request()) = now;
 
     auto ptr = s_spec_profilers[callee_code].ptr[TASK_IN_QUEUE].get();
-    if (ptr != nullptr)
+    if (ptr != nullptr) {
         ptr->increment();
-
+    }
     ptr = s_spec_profilers[callee_code].ptr[RPC_SERVER_SIZE_PER_REQUEST_IN_BYTES].get();
     if (ptr != nullptr) {
         ptr->set(callee->get_request()->header->body_length);
@@ -522,18 +522,28 @@ void profiler::install(service_spec &)
                     "latency from enqueue point to reply point on the server side for RPC "
                     "tasks");
             }
-            s_spec_profilers[i].ptr[RPC_SERVER_SIZE_PER_REQUEST_IN_BYTES].init_global_counter(
-                "zion",
-                "profiler",
-                (name + std::string(".size.request.server")).c_str(),
-                COUNTER_TYPE_NUMBER_PERCENTILES,
-                "");
-            s_spec_profilers[i].ptr[RPC_SERVER_SIZE_PER_RESPONSE_IN_BYTES].init_global_counter(
-                "zion",
-                "profiler",
-                (name + std::string(".size.response.server")).c_str(),
-                COUNTER_TYPE_NUMBER_PERCENTILES,
-                "");
+            if (dsn_config_get_value_bool(section_name.c_str(),
+                                          "profiler::size.request.server",
+                                          false,
+                                          "whether to profile the size per request")) {
+                s_spec_profilers[i].ptr[RPC_SERVER_SIZE_PER_REQUEST_IN_BYTES].init_global_counter(
+                    "zion",
+                    "profiler",
+                    (name + std::string(".size.request.server")).c_str(),
+                    COUNTER_TYPE_NUMBER_PERCENTILES,
+                    "");
+            }
+            if (dsn_config_get_value_bool(section_name.c_str(),
+                                          "profiler::size.response.server",
+                                          false,
+                                          "whether to profile the size per response")) {
+                s_spec_profilers[i].ptr[RPC_SERVER_SIZE_PER_RESPONSE_IN_BYTES].init_global_counter(
+                    "zion",
+                    "profiler",
+                    (name + std::string(".size.response.server")).c_str(),
+                    COUNTER_TYPE_NUMBER_PERCENTILES,
+                    "");
+            }
         } else if (spec->type == dsn_task_type_t::TASK_TYPE_RPC_RESPONSE) {
             if (dsn_config_get_value_bool(section_name.c_str(),
                                           "profiler::latency.client",
