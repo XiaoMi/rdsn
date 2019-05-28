@@ -25,31 +25,40 @@ namespace fail {
 TEST(fail_point, off)
 {
     fail_point p;
-    p.set_action("off");
+    p.set_actions("off");
     ASSERT_EQ(p.eval(), nullptr);
 }
 
 TEST(fail_point, return_test)
 {
-    fail_point p;
-    p.set_action("return()");
-    ASSERT_EQ(*p.eval(), "");
+    {
+        fail_point p;
+        p.set_actions("return()");
+        auto res = p.eval();
+        ASSERT_NE(res, nullptr);
+        ASSERT_EQ(*res, "");
+    }
 
-    p.set_action("return(test)");
-    ASSERT_EQ(*p.eval(), "test");
+    {
+        fail_point p;
+        p.set_actions("return(test)");
+        auto res = p.eval();
+        ASSERT_NE(res, nullptr);
+        ASSERT_EQ(*res, "test");
+    }
 }
 
 TEST(fail_point, print)
 {
     fail_point p;
-    p.set_action("print(test)");
+    p.set_actions("print(test)");
     ASSERT_EQ(p.eval(), nullptr);
 }
 
 TEST(fail_point, frequency_and_count)
 {
     fail_point p;
-    p.set_action("80%10000*return()");
+    p.set_actions("80%10000*return()");
 
     int cnt = 0;
     double times = 0;
@@ -69,36 +78,34 @@ TEST(fail_point, frequency_and_count)
 
 TEST(fail_point, parse)
 {
-    fail_point p;
+    struct test_case
+    {
+        std::string action_str;
+        std::unique_ptr<action_t> act;
+    } cases[] = {
+        {"return(64)", make_unique<action_t>(task_t::return_t{"64"}, 1, 0, false)},
+        {"5*return", make_unique<action_t>(task_t::return_t{""}, 1, 5, true)},
+        {"25%return", make_unique<action_t>(task_t::return_t{""}, 0.25, 0, false)},
+        {"125%2*return", make_unique<action_t>(task_t::return_t{""}, 1.25, 2, true)},
+        {"125%2*off", make_unique<action_t>(task_t::off_t{}, 1.25, 2, true)},
+        {" 125%2*off ", make_unique<action_t>(task_t::off_t{}, 1.25, 2, true)},
+        {"125%2*print", make_unique<action_t>(task_t::print_t{""}, 1.25, 2, true)},
+        {"125%2*delay(2)", make_unique<action_t>(task_t::delay_t{2}, 1.25, 2, true)},
+        {"0.001%2*delay(2)", make_unique<action_t>(task_t::delay_t{2}, 0.00001, 2, true)},
+    };
 
-    p.set_action("return(64)");
-    ASSERT_EQ(p, fail_point(fail_point::Return, "64", 100, -1));
+    for (const auto &c : cases) {
+        auto res = action_t::parse_from_string(c.action_str);
+        ASSERT_TRUE(res.is_ok()) << c.action_str;
+        ASSERT_EQ(res.get_value().to_string(), c.act->to_string()) << c.action_str;
+    }
 
-    p = fail_point();
-    p.set_action("5*return");
-    ASSERT_EQ(p, fail_point(fail_point::Return, "", 100, 5));
-
-    p = fail_point();
-    p.set_action("125%2*return");
-    ASSERT_EQ(p, fail_point(fail_point::Return, "", 125, 2));
-
-    p = fail_point();
-    p.set_action("return(2%5)");
-    ASSERT_EQ(p, fail_point(fail_point::Return, "2%5", 100, -1));
-
-    p = fail_point();
-    p.set_action("125%2*off");
-    ASSERT_EQ(p, fail_point(fail_point::Off, "", 125, 2));
-
-    p = fail_point();
-    p.set_action("125%2*print");
-    ASSERT_EQ(p, fail_point(fail_point::Print, "", 125, 2));
-
-    ASSERT_FALSE(p.parse_from_string("delay"));
-    ASSERT_FALSE(p.parse_from_string("ab%return"));
-    ASSERT_FALSE(p.parse_from_string("ab*return"));
-    ASSERT_FALSE(p.parse_from_string("return(msg"));
-    ASSERT_FALSE(p.parse_from_string("unknown"));
+    ASSERT_FALSE(action_t::parse_from_string("delay").is_ok());
+    ASSERT_FALSE(action_t::parse_from_string("Return").is_ok());
+    ASSERT_FALSE(action_t::parse_from_string("ab%return").is_ok());
+    ASSERT_FALSE(action_t::parse_from_string("ab*return").is_ok());
+    ASSERT_FALSE(action_t::parse_from_string("return(msg").is_ok());
+    ASSERT_FALSE(action_t::parse_from_string("unknown").is_ok());
 }
 
 int test_func()
@@ -108,9 +115,10 @@ int test_func()
         return 1;
     });
 
+    // ensure two fail points can be both configured in a single function
     FAIL_POINT_INJECT_F("test_2", [](string_view str) -> int {
         EXPECT_EQ(str, "2");
-        return 2;
+        return 1;
     });
 
     return 0;
@@ -123,11 +131,20 @@ TEST(fail_point, macro_use)
     ASSERT_EQ(test_func(), 1);
 
     cfg("test_2", "1*return(2)");
-    ASSERT_EQ(test_func(), 2);
+    ASSERT_EQ(test_func(), 1);
 
     ASSERT_EQ(test_func(), 0);
 
     teardown();
+}
+
+TEST(fail_point, multiple_actions)
+{
+    fail_point p;
+    p.set_actions("1*return(1)->1*return(2)->1*return(3)");
+    ASSERT_EQ(*p.eval(), "1");
+    ASSERT_EQ(*p.eval(), "2");
+    ASSERT_EQ(*p.eval(), "3");
 }
 
 } // namespace fail

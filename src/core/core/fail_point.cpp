@@ -21,50 +21,47 @@
 // TOOD(wutao1): use <regex> instead when our lowest compiler support
 //               advances to gcc-4.9.
 #include <boost/regex.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <absl/strings/str_split.h>
 #include <dsn/utility/rand.h>
+#include <dsn/utility/string_conv.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace fail {
 
+///      ///
+/// APIs ///
+///      ///
+
 static fail_point_registry REGISTRY;
 
-/*extern*/ const std::string *eval(string_view name)
+/*extern*/ bool _S_FAIL_POINT_ENABLED = false;
+
+/*extern*/ handle_t inject(string_view name) { return REGISTRY.create_if_not_exists(name); }
+
+/*extern*/ const std::string *eval(handle_t h)
 {
-    fail_point *p = REGISTRY.try_get(name);
-    if (!p) {
+    if (!_S_FAIL_POINT_ENABLED)
         return nullptr;
-    }
-    return p->eval();
+    return reinterpret_cast<fail_point *>(h)->eval();
 }
 
-inline const char *task_type_to_string(fail_point::task_type t)
+/*extern*/ bool cfg(string_view name, string_view actions)
 {
-    switch (t) {
-    case fail_point::Off:
-        return "Off";
-    case fail_point::Return:
-        return "Return";
-    case fail_point::Print:
-        return "Print";
-    default:
-        dfatal("unexpected type: %d", t);
-        __builtin_unreachable();
+    if (!_S_FAIL_POINT_ENABLED) {
+        derror_f("fail system should be set up first before configuring fail_point");
+        return false;
     }
-}
 
-/*extern*/ void cfg(string_view name, string_view action)
-{
-    fail_point &p = REGISTRY.create_if_not_exists(name);
-    p.set_action(action);
-    ddebug("add fail_point [name: %s, task: %s(%s), frequency: %d%, max_count: %d]",
-           name.data(),
-           task_type_to_string(p.get_task()),
-           p.get_arg().data(),
-           p.get_frequency(),
-           p.get_max_count());
+    fail_point *p = REGISTRY.try_get(name);
+    if (p) {
+        p->set_actions(actions);
+        ddebug_f("add fail_point ({}): {}", name, actions);
+        return true;
+    }
+    return false;
 }
-
-/*static*/ bool _S_FAIL_POINT_ENABLED = false;
 
 /*extern*/ void setup() { _S_FAIL_POINT_ENABLED = true; }
 
@@ -74,79 +71,162 @@ inline const char *task_type_to_string(fail_point::task_type t)
     _S_FAIL_POINT_ENABLED = false;
 }
 
-void fail_point::set_action(string_view action)
+///            ///
+/// fail_point ///
+///            ///
+
+void fail_point::set_actions(string_view actions_str)
 {
-    if (!parse_from_string(action)) {
-        dfatal("unrecognized command: %s", action.data());
-    }
-}
-
-bool fail_point::parse_from_string(string_view action)
-{
-    _max_cnt = -1;
-    _freq = 100;
-
-    boost::regex regex(R"((\d+\%)?(\d+\*)?(\w+)(\((.*)\))?)");
-    boost::smatch match;
-
-    std::string tmp(action.data(), action.length());
-    if (boost::regex_match(tmp, match, regex)) {
-        if (match.size() == 6) {
-            boost::ssub_match sub_match = match[1];
-            if (!sub_match.str().empty()) {
-                sscanf(sub_match.str().data(), "%d%%", &_freq);
-            }
-
-            sub_match = match[2];
-            if (!sub_match.str().empty()) {
-                sscanf(sub_match.str().data(), "%d*", &_max_cnt);
-            }
-
-            sub_match = match[3];
-            string_view task_type = sub_match.str();
-            if (task_type.compare("off") == 0) {
-                _task = Off;
-            } else if (task_type.compare("return") == 0) {
-                _task = Return;
-            } else if (task_type.compare("print") == 0) {
-                _task = Print;
-            } else {
-                return false;
-            }
-
-            sub_match = match[5];
-            if (!sub_match.str().empty()) {
-                _arg = sub_match.str();
-            }
-
-            return true;
+    // `actions` are in the format of `failpoint[->failpoint...]`.
+    std::vector<std::string> actions_vec =
+        absl::StrSplit(absl::string_view(actions_str.data(), actions_str.size()), "->");
+    for (const auto &action : actions_vec) {
+        auto res = action_t::parse_from_string(action);
+        if (!res.is_ok()) {
+            dassert_f(false, "fail_point({}) {}", _name, res.get_error());
         }
+        ddebug_f("fail_point {} adds action {}", _name, res.get_value().to_string());
+        _actions.push_back(std::move(res.get_value()));
     }
-    return false;
 }
 
 const std::string *fail_point::eval()
 {
-    uint32_t r = rand::next_u32(0, 100);
-    if (r > _freq) {
-        return nullptr;
-    }
-    if (_max_cnt == 0) {
-        return nullptr;
-    }
-    _max_cnt--;
-    ddebug("fail on %s", _name.data());
-
-    switch (_task) {
-    case Off:
-        break;
-    case Return:
-        return &_arg;
-    case Print:
-        ddebug(_arg.data());
-        break;
+    task_t *task = nullptr;
+    for (action_t &act : _actions) {
+        task = act.get_task();
+        if (task != nullptr) {
+            return task->eval();
+        }
     }
     return nullptr;
+}
+
+///          ///
+/// action_t ///
+///          ///
+
+error_with<action_t> action_t::parse_from_string(std::string action)
+{
+    size_t max_cnt = 0;
+    bool is_max_cnt_set = false;
+    double freq = 1.0;
+    task_t task;
+
+    boost::trim(action); // remove suffixed and prefixed spaces
+    boost::regex regex(R"((\d+\.?\d*\%)?(\d+\*)?(\w+)(\((.*)\))?)");
+    boost::smatch match;
+    if (boost::regex_match(action, match, regex) && match.size() == 6) {
+        std::string freq_str = match[1].str();
+        if (!freq_str.empty()) {
+            freq_str.pop_back(); // remove suffixed %
+            if (!buf2double(freq_str, freq)) {
+                return FMT_ERR(
+                    ERR_INVALID_PARAMETERS, "failed to parse frequency: \"{}\"", freq_str);
+            }
+            freq /= 100; // frequency ranges from [0.0, 1.0]
+        }
+
+        std::string max_cnt_str = match[2].str();
+        if (!max_cnt_str.empty()) {
+            max_cnt_str.pop_back(); // remove suffixed *
+            if (!buf2uint64(max_cnt_str, max_cnt)) {
+                return FMT_ERR(
+                    ERR_INVALID_PARAMETERS, "failed to parse count: \"{}\"", max_cnt_str);
+            }
+            is_max_cnt_set = true;
+        }
+
+        std::string task_type_str = match[3].str();
+        std::string arg_str = match[5].str();
+        if (task_type_str == "off") {
+            task = task_t::off_t{};
+        } else if (task_type_str == "return") {
+            task = task_t::return_t{arg_str};
+        } else if (task_type_str == "print") {
+            task = task_t::print_t{arg_str};
+        } else if (task_type_str == "delay") {
+            uint32_t delay_ms;
+            if (!buf2uint32(arg_str, delay_ms)) {
+                return FMT_ERR(ERR_INVALID_PARAMETERS, "failed to parse delay: \"{}\"", arg_str);
+            }
+            task = task_t::delay_t{delay_ms};
+        } else {
+            return FMT_ERR(ERR_INVALID_PARAMETERS, "unrecognized command: \"{}\"", task_type_str);
+        }
+
+        return action_t(std::move(task), freq, max_cnt, is_max_cnt_set);
+    }
+    return FMT_ERR(ERR_INVALID_PARAMETERS, "failed to parse action: \"{}\"", action);
+}
+
+task_t *action_t::get_task()
+{
+    if (_max_cnt) {
+        if (_max_cnt->load(std::memory_order_acquire) == 0) {
+            return nullptr;
+        }
+    }
+    if (_freq < 1.0 && rand::next_double01() > _freq) {
+        return nullptr;
+    }
+    if (_max_cnt) {
+        while (true) {
+            if (_max_cnt->load(std::memory_order_acquire) == 0) {
+                return nullptr;
+            }
+            if (_max_cnt->fetch_sub(1, std::memory_order_acq_rel)) {
+                break;
+            }
+        }
+    }
+    return &_task;
+}
+
+std::string action_t::to_string() const
+{
+    return fmt::format(
+        "{}: (freq:{}{})",
+        _task.to_string(),
+        _freq,
+        _max_cnt ? fmt::format(", max_cnt:{}", _max_cnt->load(std::memory_order_relaxed)) : "");
+}
+
+///        ///
+/// task_t ///
+///        ///
+
+// call exec() on any types of task
+struct exec_visitor
+{
+    template <typename T>
+    const std::string *operator()(const T &task) const
+    {
+        return task.exec();
+    }
+};
+
+const std::string *task_t::eval()
+{
+    // call t->exec()
+    exec_visitor visitor;
+    return absl::visit(visitor, _t);
+}
+
+// generates a human-readable string for any types of task
+struct to_string_visitor
+{
+    template <typename T>
+    std::string operator()(const T &task) const
+    {
+        return task.to_string();
+    }
+};
+
+std::string task_t::to_string() const
+{
+    to_string_visitor visitor;
+    return absl::visit(visitor, _t);
 }
 
 } // namespace fail

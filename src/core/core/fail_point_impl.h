@@ -1,3 +1,5 @@
+#include <utility>
+
 // Copyright (c) 2017, Xiaomi, Inc.  All rights reserved.
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
@@ -21,74 +23,140 @@
 #include <dsn/c/api_utilities.h>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/synchronize.h>
+#include <dsn/utility/errors.h>
+#include <absl/types/variant.h>
 #include <unordered_map>
 #include <utility>
+#include <fmt/format.h>
+#include <dsn/tool-api/task.h>
 
 namespace dsn {
 namespace fail {
 
-struct fail_point
+/// Supported task types.
+struct task_t
 {
-    enum task_type
+    /// Do nothing.
+    struct off_t
     {
-        Off,
-        Return,
-        Print,
+        const std::string *exec() const { return nullptr; }
+
+        std::string to_string() const { return "Off"; }
     };
 
-    void set_action(string_view action);
+    /// Print the message.
+    struct print_t
+    {
+        const std::string *exec() const
+        {
+            ddebug(arg.c_str());
+            return &arg;
+        }
+
+        std::string to_string() const { return fmt::format("Print({})", arg); }
+
+        std::string arg;
+    };
+
+    /// Return the value.
+    struct return_t
+    {
+        const std::string *exec() const { return &arg; }
+
+        std::string to_string() const { return fmt::format("Return({})", arg); }
+
+        std::string arg;
+    };
+
+    /// Delay the current task for some milliseconds.
+    struct delay_t
+    {
+        const std::string *exec() const
+        {
+            auto tsk = task::get_current_task();
+            if (tsk) {
+                tsk->set_delay(arg);
+            }
+
+            static const std::string dummy_return;
+            return &dummy_return;
+        }
+
+        std::string to_string() const { return fmt::format("Delay({})", arg); }
+
+        uint32_t arg;
+    };
+
+    // NOLINT(runtime/explicit)
+    template <typename T>
+    task_t(T t) : _t(std::move(t))
+    {
+    }
+    task_t() = default;
+
+    std::string to_string() const;
+
+    const std::string *eval();
+
+private:
+    absl::variant<off_t, print_t, return_t, delay_t> _t;
+};
+
+struct action_t
+{
+    /// Parse an action.
+    ///
+    /// `s` should be in the format `[p%][cnt*]task[(args)]`, `p%` is the frequency,
+    /// `cnt` is the max times the action can be triggered.
+    static error_with<action_t> parse_from_string(std::string s);
+
+    action_t(task_t t, double f, size_t mcnt, bool is_max_cnt_set) : _task(std::move(t)), _freq(f)
+    {
+        if (is_max_cnt_set) {
+            _max_cnt = make_unique<std::atomic<size_t>>(mcnt);
+        }
+    }
+
+    action_t(action_t &&) = default;
+
+    task_t *get_task();
+
+    std::string to_string() const;
+
+private:
+    task_t _task{task_t::off_t{}};
+    double _freq{1.0};
+    std::unique_ptr<std::atomic<size_t>> _max_cnt{nullptr};
+};
+
+struct fail_point
+{
+    void set_actions(string_view actions);
 
     const std::string *eval();
 
     explicit fail_point(string_view name) : _name(name) {}
 
     /// for test only
-    fail_point(task_type t, std::string arg, int freq, int max_cnt)
-        : _task(t), _arg(std::move(arg)), _freq(freq), _max_cnt(max_cnt)
-    {
-    }
-
-    /// for test only
     fail_point() = default;
-
-    bool parse_from_string(string_view action);
-
-    friend inline bool operator==(const fail_point &p1, const fail_point &p2)
-    {
-        return p1._task == p2._task && p1._arg == p2._arg && p1._freq == p2._freq &&
-               p1._max_cnt == p2._max_cnt;
-    }
-
-    task_type get_task() const { return _task; }
-
-    std::string get_arg() const { return _arg; }
-
-    int get_frequency() const { return _freq; }
-
-    int get_max_count() const { return _max_cnt; }
 
 private:
     std::string _name;
-    task_type _task{Off};
-    std::string _arg;
-    int _freq{100};
-    int _max_cnt{-1}; // TODO(wutao1): not thread-safe
+    std::vector<action_t> _actions;
 };
 
 struct fail_point_registry
 {
-    fail_point &create_if_not_exists(string_view name)
+    fail_point *create_if_not_exists(string_view name)
     {
         utils::auto_write_lock l(_lock);
-
         auto it = _registry.emplace(std::string(name), fail_point(name)).first;
-        return it->second;
+        return &it->second;
     }
 
     fail_point *try_get(string_view name)
     {
         utils::auto_read_lock l(_lock);
-
         auto it = _registry.find(std::string(name.data(), name.length()));
         if (it == _registry.end()) {
             return nullptr;
@@ -99,7 +167,8 @@ struct fail_point_registry
     void clear()
     {
         utils::auto_write_lock l(_lock);
-        _registry.clear();
+        if (!_registry.empty())
+            _registry.clear();
     }
 
 private:
