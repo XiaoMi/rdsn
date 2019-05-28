@@ -34,40 +34,20 @@ namespace fail {
 
 static fail_point_registry REGISTRY;
 
-/*extern*/ bool _S_FAIL_POINT_ENABLED = false;
-
 /*extern*/ handle_t inject(string_view name) { return REGISTRY.create_if_not_exists(name); }
 
-/*extern*/ const std::string *eval(handle_t h)
+/*extern*/ const std::string *eval(handle_t h) { return reinterpret_cast<fail_point *>(h)->eval(); }
+
+/*extern*/ void cfg(string_view name, string_view actions)
 {
-    if (!_S_FAIL_POINT_ENABLED)
-        return nullptr;
-    return reinterpret_cast<fail_point *>(h)->eval();
+    fail_point *p = REGISTRY.create_if_not_exists(name);
+    p->set_actions(actions);
+    ddebug_f("add fail_point ({}): {}", name, actions);
 }
 
-/*extern*/ bool cfg(string_view name, string_view actions)
-{
-    if (!_S_FAIL_POINT_ENABLED) {
-        derror_f("fail system should be set up first before configuring fail_point");
-        return false;
-    }
+/*extern*/ void setup() {}
 
-    fail_point *p = REGISTRY.try_get(name);
-    if (p) {
-        p->set_actions(actions);
-        ddebug_f("add fail_point ({}): {}", name, actions);
-        return true;
-    }
-    return false;
-}
-
-/*extern*/ void setup() { _S_FAIL_POINT_ENABLED = true; }
-
-/*extern*/ void teardown()
-{
-    REGISTRY.clear();
-    _S_FAIL_POINT_ENABLED = false;
-}
+/*extern*/ void teardown() { REGISTRY.clear(); }
 
 ///            ///
 /// fail_point ///
@@ -75,6 +55,8 @@ static fail_point_registry REGISTRY;
 
 void fail_point::set_actions(string_view actions_str)
 {
+    utils::auto_write_lock l(_lock);
+
     // `actions` are in the format of `failpoint[->failpoint...]`.
     std::vector<std::string> actions_vec =
         absl::StrSplit(absl::string_view(actions_str.data(), actions_str.size()), "->");
@@ -90,6 +72,8 @@ void fail_point::set_actions(string_view actions_str)
 
 const std::string *fail_point::eval()
 {
+    utils::auto_read_lock l(_lock);
+
     task_t *task = nullptr;
     for (action_t &act : _actions) {
         task = act.get_task();

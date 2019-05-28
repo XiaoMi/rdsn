@@ -140,7 +140,14 @@ struct fail_point
     /// for test only
     fail_point() = default;
 
+    void clear()
+    {
+        utils::auto_write_lock l(_lock);
+        _actions.clear();
+    }
+
 private:
+    mutable utils::rw_lock_nr _lock;
     std::string _name;
     std::vector<action_t> _actions;
 };
@@ -150,25 +157,18 @@ struct fail_point_registry
     fail_point *create_if_not_exists(string_view name)
     {
         utils::auto_write_lock l(_lock);
-        auto it = _registry.emplace(std::string(name), fail_point(name)).first;
-        return &it->second;
-    }
-
-    fail_point *try_get(string_view name)
-    {
-        utils::auto_read_lock l(_lock);
-        auto it = _registry.find(std::string(name.data(), name.length()));
-        if (it == _registry.end()) {
-            return nullptr;
-        }
+        auto it = _registry.emplace(std::string(name), name).first;
         return &it->second;
     }
 
     void clear()
     {
         utils::auto_write_lock l(_lock);
-        if (!_registry.empty())
-            _registry.clear();
+        if (!_registry.empty()) {
+            for (auto &kv : _registry) {
+                kv.second.clear();
+            }
+        }
     }
 
 private:

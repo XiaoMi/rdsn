@@ -73,7 +73,7 @@ extern const std::string *eval(handle_t);
 /// times.
 ///
 /// Be careful that this operation is NOT thread-safe.
-extern bool cfg(string_view name, string_view actions);
+extern void cfg(string_view name, string_view actions);
 
 /// Set up the fail point system.
 extern void setup();
@@ -85,8 +85,6 @@ extern void setup();
 /// This function should generally be called after running a test with fail points.
 /// Calling `teardown` without previously calling `setup` results in a no-op.
 extern void teardown();
-
-extern bool _S_FAIL_POINT_ENABLED;
 
 } // namespace fail
 } // namespace dsn

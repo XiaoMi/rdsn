@@ -52,7 +52,7 @@ TEST(fail_point, print)
 {
     fail_point p;
     p.set_actions("print(test)");
-    ASSERT_EQ(p.eval(), nullptr);
+    ASSERT_NE(p.eval(), nullptr);
 }
 
 TEST(fail_point, frequency_and_count)
@@ -118,7 +118,7 @@ int test_func()
     // ensure two fail points can be both configured in a single function
     FAIL_POINT_INJECT_F("test_2", [](string_view str) -> int {
         EXPECT_EQ(str, "2");
-        return 1;
+        return 2;
     });
 
     return 0;
@@ -129,10 +129,10 @@ TEST(fail_point, macro_use)
 
     cfg("test_1", "1*return(1)");
     ASSERT_EQ(test_func(), 1);
+    ASSERT_EQ(test_func(), 0);
 
     cfg("test_2", "1*return(2)");
-    ASSERT_EQ(test_func(), 1);
-
+    ASSERT_EQ(test_func(), 2);
     ASSERT_EQ(test_func(), 0);
 
     teardown();
