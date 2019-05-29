@@ -42,7 +42,6 @@ static fail_point_registry REGISTRY;
 {
     fail_point *p = REGISTRY.create_if_not_exists(name);
     p->set_actions(actions);
-    ddebug_f("add fail_point ({}): {}", name, actions);
 }
 
 /*extern*/ void setup() {}

@@ -37,7 +37,7 @@
 #include <dsn/service_api_c.h>
 #include <dsn/utility/rand.h>
 #include <dsn/utility/fail_point.h>
-#include <fmt/format.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace tools {
@@ -61,10 +61,16 @@ static bool fault_on_aio_call(task *caller, aio_task *callee)
 {
     switch (callee->aio()->type) {
     case AIO_Read:
-        FAIL_POINT_INJECT_F("aio_read", [](string_view) { return false; });
+        FAIL_POINT_INJECT_F("aio_read", [caller](string_view) {
+            derror_f("fault triggered on {}", caller->code());
+            return false;
+        });
         break;
     case AIO_Write:
-        FAIL_POINT_INJECT_F("aio_write", [](string_view) { return false; });
+        FAIL_POINT_INJECT_F("aio_write", [caller](string_view) {
+            derror_f("fault triggered on {}", caller->code());
+            return false;
+        });
         break;
     default:
         break;
@@ -77,7 +83,10 @@ static void fault_on_aio_enqueue(aio_task *tsk) {}
 // return true means continue, otherwise early terminate with task::set_error_code
 static bool fault_on_rpc_call(task *caller, message_ex *req, rpc_response_task *callee)
 {
-    FAIL_POINT_INJECT_F("rpc_call", [](string_view) { return false; });
+    FAIL_POINT_INJECT_F("rpc_call", [caller](string_view) {
+        derror_f("fault triggered on {}", caller->code());
+        return false;
+    });
     return true;
 }
 
@@ -86,7 +95,10 @@ static void fault_on_rpc_request_enqueue(rpc_request_task *callee) {}
 // return true means continue, otherwise early terminate with task::set_error_code
 static bool fault_on_rpc_reply(task *caller, message_ex *msg)
 {
-    FAIL_POINT_INJECT_F("rpc_reply", [](string_view) { return false; });
+    FAIL_POINT_INJECT_F("rpc_reply", [caller](string_view) {
+        derror_f("fault triggered on {}", caller->code());
+        return false;
+    });
     return true;
 }
 
