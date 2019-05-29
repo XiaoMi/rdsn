@@ -155,8 +155,8 @@ struct fail_point_registry
     fail_point *create_if_not_exists(string_view name)
     {
         utils::auto_write_lock l(_lock);
-        auto it = _registry.emplace(std::string(name), name).first;
-        return &it->second;
+        auto it = _registry.emplace(std::string(name), std::make_unique<fail_point>(name)).first;
+        return it->second.get();
     }
 
     void clear()
@@ -164,14 +164,14 @@ struct fail_point_registry
         utils::auto_write_lock l(_lock);
         if (!_registry.empty()) {
             for (auto &kv : _registry) {
-                kv.second.clear();
+                kv.second->clear();
             }
         }
     }
 
 private:
     mutable utils::rw_lock_nr _lock;
-    std::unordered_map<std::string, fail_point> _registry;
+    std::unordered_map<std::string, std::unique_ptr<fail_point>> _registry;
 };
 
 } // namespace fail
