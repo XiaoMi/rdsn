@@ -74,7 +74,7 @@ void http_server::add_service(http_service *service)
 
 /*static*/ error_with<http_request> http_request::parse(message_ex *m)
 {
-    if (m->buffers.size() < 3) {
+    if (m->buffers.size() != 3) {
         return error_s::make(ERR_INVALID_DATA,
                              std::string("buffer size is: ") + std::to_string(m->buffers.size()));
     }
