@@ -804,15 +804,13 @@ void meta_service::on_change_duplication_status(duplication_status_change_rpc rp
 {
     RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
 
+    if (!_dup_svc) {
+        rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
+        return;
+    }
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
-                     [this, rpc]() {
-                         if (_dup_svc) {
-                             _dup_svc->change_duplication_status(std::move(rpc));
-                         } else {
-                             rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
-                         }
-                     },
+                     [this, rpc]() { _dup_svc->change_duplication_status(std::move(rpc)); },
                      server_state::sStateHash);
 }
 
