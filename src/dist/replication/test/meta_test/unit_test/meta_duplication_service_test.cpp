@@ -474,7 +474,7 @@ TEST_F(meta_duplication_service_test, duplication_sync)
         ASSERT_EQ(resp.dup_map[app->app_id][dupid].dupid, dupid);
         ASSERT_EQ(resp.dup_map[app->app_id][dupid].status, duplication_status::DS_START);
         ASSERT_EQ(resp.dup_map[app->app_id][dupid].create_ts, dup->create_timestamp_ms);
-        ASSERT_EQ(resp.dup_map[app->app_id][dupid].remote_address, dup->remote);
+        ASSERT_EQ(resp.dup_map[app->app_id][dupid].remote, dup->remote);
 
         auto progress_map = resp.dup_map[app->app_id][dupid].progress;
         ASSERT_EQ(progress_map.size(), 8);

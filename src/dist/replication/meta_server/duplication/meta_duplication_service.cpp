@@ -386,7 +386,7 @@ void meta_duplication_service::recover_from_meta_state()
 
 // ThreadPool(WRITE): THREAD_POOL_META_STATE
 void meta_duplication_service::do_restore_duplication_progress(
-    dsn::replication::duplication_info_s_ptr dup, std::shared_ptr<dsn::replication::app_state> app)
+    const duplication_info_s_ptr &dup, const std::shared_ptr<app_state> &app)
 {
     _meta_svc->get_meta_storage()->get_children(
         std::string(dup->store_path),
@@ -436,21 +436,21 @@ void meta_duplication_service::do_restore_duplication_progress(
 void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
                                                       std::shared_ptr<app_state> app)
 {
-    auto dup =
-        std::make_shared<duplication_info>(dup_id,
-                                           app->app_id,
-                                           app->partition_count,
-                                           get_duplication_path(*app, std::to_string(dup_id)));
+    std::string store_path = get_duplication_path(*app, std::to_string(dup_id));
 
     // restore duplication info from json
     _meta_svc->get_meta_storage()->get_data(
-        std::string(dup->store_path), [dup, this, app](const blob &json) {
+        std::string(store_path),
+        [dup_id, this, app = std::move(app), store_path](const blob &json) {
             zauto_write_lock l(app_lock());
-            if (!json::json_forwarder<duplication_info>::decode(json, *dup)) {
-                return;
-            }
 
-            if (dup->status != duplication_status::DS_REMOVED) {
+            auto dup = duplication_info::decode_from_blob(
+                dup_id, app->app_id, app->partition_count, store_path, json);
+            if (nullptr == dup) {
+                derror_f("failed to decode json \"{}\" on path {}", json.to_string(), store_path);
+                return; // fail fast
+            }
+            if (dup->is_valid()) {
                 app->duplications[dup->id] = dup;
                 refresh_duplicating_no_lock(app);
 

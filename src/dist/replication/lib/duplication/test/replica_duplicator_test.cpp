@@ -57,7 +57,7 @@ public:
 
         duplication_entry dup_ent;
         dup_ent.dupid = dupid;
-        dup_ent.remote_address = remote_address;
+        dup_ent.remote = remote_address;
         dup_ent.status = status;
         dup_ent.progress[_replica->get_gpid().get_partition_index()] = confirmed_decree;
 

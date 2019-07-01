@@ -78,8 +78,8 @@ private:
 
     void do_restore_duplication(dupid_t dup_id, std::shared_ptr<app_state> app);
 
-    void do_restore_duplication_progress(duplication_info_s_ptr dup,
-                                         std::shared_ptr<app_state> app);
+    void do_restore_duplication_progress(const duplication_info_s_ptr &dup,
+                                         const std::shared_ptr<app_state> &app);
 
     void get_all_available_app(const node_state &ns,
                                std::map<int32_t, std::shared_ptr<app_state>> &app_map) const;

@@ -39,7 +39,7 @@ namespace replication {
 replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     : replica_base(r),
       _id(ent.dupid),
-      _remote_cluster_address(ent.remote_address),
+      _remote_cluster_address(ent.remote),
       _replica(r),
       _stub(r->get_replica_stub())
 {
