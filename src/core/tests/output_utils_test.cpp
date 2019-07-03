@@ -37,45 +37,65 @@ using dsn::utils::table_printer;
 
 namespace dsn {
 
-const vector<string> single_column_tp_output({
-            "[tp1]\n"
-            "row1  : 1.23\n"
-            "row2  : 2345\n"
-            "row3  : 3456\n",
-            R"*("tp1":{"row1":"1.23","row2":"2345","row3":"3456"})*",
-            R"*(    "tp1": {)*""\n"
-            R"*(        "row1": "1.23",)*""\n"
-            R"*(        "row2": "2345",)*""\n"
-            R"*(        "row3": "3456")*""\n"
-            "    }"});
+const vector<string>
+    single_column_tp_output({"[tp1]\n"
+                             "row1  : 1.23\n"
+                             "row2  : 2345\n"
+                             "row3  : 3456\n",
+                             R"*("tp1":{"row1":"1.23","row2":"2345","row3":"3456"})*",
+                             R"*(    "tp1": {)*"
+                             "\n"
+                             R"*(        "row1": "1.23",)*"
+                             "\n"
+                             R"*(        "row2": "2345",)*"
+                             "\n"
+                             R"*(        "row3": "3456")*"
+                             "\n"
+                             "    }"});
 
-const vector<string> multi_columns_tp_output({ 
-            "[tp2]\n"
-            "multi_columns_test  col0    col1    col2    \n"
-            "row0                data00  data01  data02  \n"
-            "row1                data10  data11  data12  \n"
-            "row2                data20  data21  data22  \n",
-            R"*("tp2":{"row0":{"multi_columns_test":"row0","col0":"data00","col1":"data01","col2":"data02"},"row1":{"multi_columns_test":"row1","col0":"data10","col1":"data11","col2":"data12"},"row2":{"multi_columns_test":"row2","col0":"data20","col1":"data21","col2":"data22"}})*",
-            R"*(    "tp2": {)*""\n"
-            R"*(        "row0": {)*""\n"
-            R"*(            "multi_columns_test": "row0",)*""\n"
-            R"*(            "col0": "data00",)*""\n"
-            R"*(            "col1": "data01",)*""\n"
-            R"*(            "col2": "data02")*""\n"
-               "        },\n"
-            R"*(        "row1": {)*""\n"
-            R"*(            "multi_columns_test": "row1",)*""\n"
-            R"*(            "col0": "data10",)*""\n"
-            R"*(            "col1": "data11",)*""\n"
-            R"*(            "col2": "data12")*""\n"
-               "        },\n"
-            R"*(        "row2": {)*""\n"
-            R"*(            "multi_columns_test": "row2",)*""\n"
-            R"*(            "col0": "data20",)*""\n"
-            R"*(            "col1": "data21",)*""\n"
-            R"*(            "col2": "data22")*""\n"
-               "        }\n"
-               "    }"});
+const vector<string> multi_columns_tp_output(
+    {"[tp2]\n"
+     "multi_columns_test  col0    col1    col2    \n"
+     "row0                data00  data01  data02  \n"
+     "row1                data10  data11  data12  \n"
+     "row2                data20  data21  data22  \n",
+     R"*("tp2":{"row0":{"multi_columns_test":"row0","col0":"data00","col1":"data01","col2":"data02"},"row1":{"multi_columns_test":"row1","col0":"data10","col1":"data11","col2":"data12"},"row2":{"multi_columns_test":"row2","col0":"data20","col1":"data21","col2":"data22"}})*",
+     R"*(    "tp2": {)*"
+     "\n"
+     R"*(        "row0": {)*"
+     "\n"
+     R"*(            "multi_columns_test": "row0",)*"
+     "\n"
+     R"*(            "col0": "data00",)*"
+     "\n"
+     R"*(            "col1": "data01",)*"
+     "\n"
+     R"*(            "col2": "data02")*"
+     "\n"
+     "        },\n"
+     R"*(        "row1": {)*"
+     "\n"
+     R"*(            "multi_columns_test": "row1",)*"
+     "\n"
+     R"*(            "col0": "data10",)*"
+     "\n"
+     R"*(            "col1": "data11",)*"
+     "\n"
+     R"*(            "col2": "data12")*"
+     "\n"
+     "        },\n"
+     R"*(        "row2": {)*"
+     "\n"
+     R"*(            "multi_columns_test": "row2",)*"
+     "\n"
+     R"*(            "col0": "data20",)*"
+     "\n"
+     R"*(            "col1": "data21",)*"
+     "\n"
+     R"*(            "col2": "data22")*"
+     "\n"
+     "        }\n"
+     "    }"});
 
 utils::table_printer generate_single_column_tp()
 {
@@ -104,8 +124,8 @@ utils::table_printer generate_multi_columns_tp()
     return tp;
 }
 
-template<typename P>
-void check_output(const P& printer, const vector<string>& expect_output)
+template <typename P>
+void check_output(const P &printer, const vector<string> &expect_output)
 {
     static vector<table_printer::output_format> output_formats(
         {table_printer::output_format::kTabular,
@@ -122,45 +142,31 @@ void check_output(const P& printer, const vector<string>& expect_output)
 TEST(table_printer_test, empty_content_test)
 {
     utils::table_printer tp;
-    ASSERT_NO_FATAL_FAILURE(check_output(tp,
-        {
-            "",
-            "{}\n",
-            "{}\n"
-        }));
+    ASSERT_NO_FATAL_FAILURE(check_output(tp, {"", "{}\n", "{}\n"}));
 }
 
 TEST(table_printer_test, single_column_test)
 {
     utils::table_printer tp(generate_single_column_tp());
-    ASSERT_NO_FATAL_FAILURE(check_output(tp, {
-                                         single_column_tp_output[0],
-                                         "{" + single_column_tp_output[1] + "}\n",
-                                         "{\n" +
-                                         single_column_tp_output[2] +
-                                         "\n}\n"}));
+    ASSERT_NO_FATAL_FAILURE(check_output(tp,
+                                         {single_column_tp_output[0],
+                                          "{" + single_column_tp_output[1] + "}\n",
+                                          "{\n" + single_column_tp_output[2] + "\n}\n"}));
 }
 
 TEST(table_printer_test, multi_columns_test)
 {
     utils::table_printer tp(generate_multi_columns_tp());
-    ASSERT_NO_FATAL_FAILURE(check_output(tp, {
-                                         multi_columns_tp_output[0],
-                                         "{" + multi_columns_tp_output[1] + "}\n",
-                                         "{\n" +
-                                         multi_columns_tp_output[2] +
-                                         "\n}\n"}));
+    ASSERT_NO_FATAL_FAILURE(check_output(tp,
+                                         {multi_columns_tp_output[0],
+                                          "{" + multi_columns_tp_output[1] + "}\n",
+                                          "{\n" + multi_columns_tp_output[2] + "\n}\n"}));
 }
 
 TEST(multi_table_printer_test, empty_content_test)
 {
     utils::multi_table_printer mtp;
-    ASSERT_NO_FATAL_FAILURE(check_output(mtp,
-        {
-            "",
-            "{}\n",
-            "{}\n"
-        }));
+    ASSERT_NO_FATAL_FAILURE(check_output(mtp, {"", "{}\n", "{}\n"}));
 }
 
 TEST(multi_table_printer_test, single_empty_sub_test)
@@ -168,13 +174,7 @@ TEST(multi_table_printer_test, single_empty_sub_test)
     utils::multi_table_printer mtp;
     utils::table_printer tp;
     mtp.add(std::move(tp));
-    ASSERT_NO_FATAL_FAILURE(check_output(mtp,
-        {
-            "\n",
-            "{}\n",
-            "{}\n"
-        }));
-
+    ASSERT_NO_FATAL_FAILURE(check_output(mtp, {"\n", "{}\n", "{}\n"}));
 }
 
 TEST(multi_table_printer_test, multi_sub_test)
@@ -182,22 +182,10 @@ TEST(multi_table_printer_test, multi_sub_test)
     utils::multi_table_printer mtp;
     mtp.add(generate_single_column_tp());
     mtp.add(generate_multi_columns_tp());
-    ASSERT_NO_FATAL_FAILURE(check_output(mtp,
-        {
-            single_column_tp_output[0] +
-            "\n" +
-            multi_columns_tp_output[0] + 
-            "\n",
-            "{" +
-            single_column_tp_output[1] +
-            "," +
-            multi_columns_tp_output[1] + 
-            "}\n",
-            "{\n" +
-            single_column_tp_output[2] +
-            ",\n" +
-            multi_columns_tp_output[2] + 
-            "\n}\n"
-        }));
+    ASSERT_NO_FATAL_FAILURE(check_output(
+        mtp,
+        {single_column_tp_output[0] + "\n" + multi_columns_tp_output[0] + "\n",
+         "{" + single_column_tp_output[1] + "," + multi_columns_tp_output[1] + "}\n",
+         "{\n" + single_column_tp_output[2] + ",\n" + multi_columns_tp_output[2] + "\n}\n"}));
 }
 } // namespace dsn
