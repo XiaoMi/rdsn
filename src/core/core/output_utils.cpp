@@ -34,6 +34,10 @@ namespace utils {
 template <typename Writer>
 void json_encode(Writer &writer, const table_printer &tp)
 {
+    if (tp._matrix_data.empty()) {
+        return;
+    }
+
     dsn::json::json_encode(writer, tp._name); // table_printer name
     if (tp._mode == table_printer::data_mode::KMultiColumns) {
         writer.StartObject();
