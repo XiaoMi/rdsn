@@ -39,7 +39,7 @@ void json_encode(Writer &writer, const table_printer &tp)
     }
 
     dsn::json::json_encode(writer, tp._name); // table_printer name
-    if (tp._mode == table_printer::data_mode::KMultiColumns) {
+    if (tp._mode == table_printer::data_mode::kMultiColumns) {
         writer.StartObject();
         // The 1st row elements are column names, skip it.
         for (size_t row = 1; row < tp._matrix_data.size(); ++row) {
@@ -52,7 +52,7 @@ void json_encode(Writer &writer, const table_printer &tp)
             writer.EndObject();
         }
         writer.EndObject();
-    } else if (tp._mode == table_printer::data_mode::KSingleColumn) {
+    } else if (tp._mode == table_printer::data_mode::kSingleColumn) {
         writer.StartObject();
         for (size_t row = 0; row < tp._matrix_data.size(); ++row) {
             dsn::json::json_encode(writer, tp._matrix_data[row][0]); // row name
@@ -66,7 +66,7 @@ void json_encode(Writer &writer, const table_printer &tp)
 
 void table_printer::add_title(const std::string &title, alignment align)
 {
-    check_mode(data_mode::KMultiColumns);
+    check_mode(data_mode::kMultiColumns);
     dassert(_matrix_data.empty() && _max_col_width.empty(), "`add_title` must be called only once");
     _max_col_width.push_back(title.length());
     _align_left.push_back(align == alignment::kLeft);
@@ -75,7 +75,7 @@ void table_printer::add_title(const std::string &title, alignment align)
 
 void table_printer::add_column(const std::string &col_name, alignment align)
 {
-    check_mode(data_mode::KMultiColumns);
+    check_mode(data_mode::kMultiColumns);
     dassert(_matrix_data.size() == 1, "`add_column` must be called before real data appendding");
     _max_col_width.push_back(col_name.length());
     _align_left.push_back(align == alignment::kLeft);
@@ -122,10 +122,10 @@ void table_printer::output_in_tabular(std::ostream &out) const
     }
 
     std::string separator;
-    if (_mode == data_mode::KSingleColumn) {
+    if (_mode == data_mode::kSingleColumn) {
         separator = ": ";
     } else {
-        dassert(_mode == data_mode::KMultiColumns, "Unknown mode");
+        dassert(_mode == data_mode::kMultiColumns, "Unknown mode");
     }
 
     if (!_name.empty()) {
