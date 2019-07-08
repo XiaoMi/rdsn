@@ -30,6 +30,7 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/process_utils.h>
 #include <dsn/tool-api/command_manager.h>
+#include <gperftools/malloc_extension.h>
 #include <fstream>
 
 #include "service_engine.h"
@@ -380,6 +381,13 @@ bool run(const char *config_file,
         1024, // 1 MB
         "thread local transient memory buffer size (KB), default is 1024");
     ::dsn::tls_trans_mem_init(tls_trans_memory_KB * 1024);
+
+    double_t tcmalloc_release_rate = (double_t)dsn_config_get_value_double(
+            "core",
+            "tcmalloc_release_rate",
+            10., // [0, 10]
+            "the memory releasing rate of tcmalloc, default is 1.0");
+    ::MallocExtension::instance()->SetMemoryReleaseRate(tcmalloc_release_rate);
 
     // prepare minimum necessary
     ::dsn::service_engine::instance().init_before_toollets(spec);
