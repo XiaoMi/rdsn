@@ -45,6 +45,7 @@
 #include <dsn/dist/replication/replication_app_base.h>
 #include <vector>
 #include <deque>
+#include <gperftools/malloc_extension.h>
 
 namespace dsn {
 namespace replication {
@@ -630,6 +631,18 @@ void replica_stub::initialize_start()
                                    std::chrono::milliseconds(_options.config_sync_interval_ms),
                                    0,
                                    std::chrono::milliseconds(_options.config_sync_interval_ms));
+    }
+
+    if (!_options.mem_release_disabled) {
+        _mem_release_timer_task =
+                tasking::enqueue_timer(LPC_MEM_RELEASE,
+                                       &_tracker,
+                                       [this]() {
+                                           ::MallocExtension::instance()->ReleaseFreeMemory();
+                                       },
+                                       std::chrono::milliseconds(_options.mem_release_interval_ms),
+                                       0,
+                                       std::chrono::milliseconds(_options.mem_release_interval_ms));
     }
 
     // init liveness monitor
