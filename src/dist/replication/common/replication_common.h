@@ -27,10 +27,13 @@
 #pragma once
 
 #include <dsn/dist/replication.h>
+#include <dsn/tool-api/group_address.h>
 #include <string>
 
 namespace dsn {
 namespace replication {
+
+DEFINE_TASK_CODE(LPC_MEM_RELEASE, TASK_PRIORITY_COMMON, ::dsn::THREAD_POOL_DEFAULT)
 
 typedef std::unordered_map<::dsn::rpc_address, partition_status::type> node_statuses;
 typedef std::unordered_map<::dsn::rpc_address, dsn::task_ptr> node_tasks;
