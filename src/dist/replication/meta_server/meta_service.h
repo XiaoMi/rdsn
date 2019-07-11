@@ -66,6 +66,13 @@ DEFINE_TASK_CODE(LPC_DEFAULT_CALLBACK, TASK_PRIORITY_COMMON, dsn::THREAD_POOL_DE
 typedef rpc_holder<configuration_update_app_env_request, configuration_update_app_env_response>
     app_env_rpc;
 typedef rpc_holder<ddd_diagnose_request, ddd_diagnose_response> ddd_diagnose_rpc;
+typedef rpc_holder<configuration_list_apps_request, configuration_list_apps_response> list_apps_rpc;
+typedef rpc_holder<configuration_list_nodes_request, configuration_list_nodes_response>
+    list_nodes_rpc;
+typedef rpc_holder<configuration_cluster_info_request, configuration_cluster_info_response>
+    cluster_info_rpc;
+typedef rpc_holder<configuration_query_by_index_request, configuration_query_by_index_response>
+    query_app_rpc;
 
 class meta_service : public serverlet<meta_service>
 {
@@ -148,8 +155,8 @@ private:
     void on_create_app(dsn::message_ex *req);
     void on_drop_app(dsn::message_ex *req);
     void on_recall_app(dsn::message_ex *req);
-    void on_list_apps(dsn::message_ex *req);
-    void on_list_nodes(dsn::message_ex *req);
+    void on_list_apps(list_apps_rpc rpc);
+    void on_list_nodes(list_nodes_rpc rpc);
 
     // app env operations
     void update_app_env(app_env_rpc env_rpc);
@@ -158,7 +165,7 @@ private:
     void ddd_diagnose(ddd_diagnose_rpc rpc);
 
     // cluster info
-    void on_query_cluster_info(dsn::message_ex *req);
+    void on_query_cluster_info(cluster_info_rpc rpc);
 
     // meta control
     void on_control_meta_level(dsn::message_ex *req);
@@ -186,6 +193,8 @@ private:
     //  -1. meta isn't leader, and rpc-msg can't forward to others
     // if return -1 and `forward_address' != nullptr, then return leader by `forward_address'.
     int check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address);
+    error_code check_leader_no_forward();
+
     error_code remote_storage_initialize();
     bool check_freeze() const;
 

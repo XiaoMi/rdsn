@@ -339,9 +339,12 @@ void meta_service::register_rpc_handlers()
     register_rpc_handler(RPC_CM_CREATE_APP, "create_app", &meta_service::on_create_app);
     register_rpc_handler(RPC_CM_DROP_APP, "drop_app", &meta_service::on_drop_app);
     register_rpc_handler(RPC_CM_RECALL_APP, "recall_app", &meta_service::on_recall_app);
-    register_rpc_handler(RPC_CM_LIST_APPS, "list_apps", &meta_service::on_list_apps);
-    register_rpc_handler(RPC_CM_LIST_NODES, "list_nodes", &meta_service::on_list_nodes);
-    register_rpc_handler(RPC_CM_CLUSTER_INFO, "cluster_info", &meta_service::on_query_cluster_info);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_LIST_APPS, "list_apps", &meta_service::on_list_apps);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_LIST_NODES, "list_nodes", &meta_service::on_list_nodes);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_CLUSTER_INFO, "cluster_info", &meta_service::on_query_cluster_info);
     register_rpc_handler(
         RPC_CM_PROPOSE_BALANCER, "propose_balancer", &meta_service::on_propose_balancer);
     register_rpc_handler(
@@ -392,6 +395,21 @@ int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_a
     return 1;
 }
 
+error_code meta_service::check_leader_no_forward()
+{
+    rpc_address leader;
+    if (!_failure_detector->get_leader(&leader)) {
+        return ERR_FORWARD_TO_OTHERS;
+    }
+    if (_recovering) {
+        return ERR_UNDER_RECOVERY;
+    }
+    if (!_started) {
+        return ERR_SERVICE_NOT_ACTIVE;
+    }
+    return ERR_OK;
+}
+
 #define RPC_CHECK_STATUS(dsn_msg, response_struct)                                                 \
     dinfo("rpc %s called", __FUNCTION__);                                                          \
     int result = check_leader(dsn_msg, nullptr);                                                   \
@@ -406,6 +424,12 @@ int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_a
             response_struct.err = ERR_SERVICE_NOT_ACTIVE;                                          \
         ddebug("reject request with %s", response_struct.err.to_string());                         \
         reply(dsn_msg, response_struct);                                                           \
+        return;                                                                                    \
+    }
+
+#define RPC_CHECK_STATUS_NO_FORWARD(rpc)                                                           \
+    rpc.response().err = check_leader_no_forward();                                                \
+    if (rpc.response().err != ERR_OK) {                                                            \
         return;                                                                                    \
     }
 
@@ -446,24 +470,17 @@ void meta_service::on_recall_app(dsn::message_ex *req)
                      server_state::sStateHash);
 }
 
-void meta_service::on_list_apps(dsn::message_ex *req)
+void meta_service::on_list_apps(list_apps_rpc rpc)
 {
-    configuration_list_apps_response response;
-    RPC_CHECK_STATUS(req, response);
-
-    configuration_list_apps_request request;
-    ::dsn::unmarshall(req, request);
-    _state->list_apps(request, response);
-    reply(req, response);
+    RPC_CHECK_STATUS_NO_FORWARD(rpc);
+    _state->list_apps(rpc.request(), rpc.response());
 }
 
-void meta_service::on_list_nodes(dsn::message_ex *req)
+void meta_service::on_list_nodes(list_nodes_rpc rpc)
 {
-    configuration_list_nodes_response response;
-    RPC_CHECK_STATUS(req, response);
-
-    configuration_list_nodes_request request;
-    dsn::unmarshall(req, request);
+    RPC_CHECK_STATUS_NO_FORWARD(rpc);
+    configuration_list_nodes_response &response = rpc.response();
+    const configuration_list_nodes_request &request = rpc.request();
 
     {
         zauto_lock l(_failure_detector->_lock);
@@ -485,17 +502,13 @@ void meta_service::on_list_nodes(dsn::message_ex *req)
         }
         response.err = dsn::ERR_OK;
     }
-
-    reply(req, response);
 }
 
-void meta_service::on_query_cluster_info(dsn::message_ex *req)
+void meta_service::on_query_cluster_info(cluster_info_rpc rpc)
 {
-    configuration_cluster_info_response response;
-    RPC_CHECK_STATUS(req, response);
-
-    configuration_cluster_info_request request;
-    dsn::unmarshall(req, request);
+    RPC_CHECK_STATUS_NO_FORWARD(rpc);
+    configuration_cluster_info_response &response = rpc.response();
+    const configuration_cluster_info_request &request = rpc.request();
 
     std::stringstream oss;
     response.keys.push_back("meta_servers");
@@ -529,8 +542,6 @@ void meta_service::on_query_cluster_info(dsn::message_ex *req)
     response.keys.push_back("total_replica_count_stddev");
     response.values.push_back(fmt::format("{:.{}f}", total_stddev, 2));
     response.err = dsn::ERR_OK;
-
-    reply(req, response);
 }
 
 // client => meta server
