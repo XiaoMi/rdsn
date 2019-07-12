@@ -635,14 +635,14 @@ void replica_stub::initialize_start()
 
     if (!_options.mem_release_disabled) {
         _mem_release_timer_task =
-                tasking::enqueue_timer(LPC_MEM_RELEASE,
-                                       &_tracker,
-                                       []() {
-                                           ::MallocExtension::instance()->ReleaseFreeMemory();
-                                       },
-                                       std::chrono::milliseconds(_options.mem_release_interval_ms),
-                                       0,
-                                       std::chrono::milliseconds(_options.mem_release_interval_ms));
+            tasking::enqueue_timer(LPC_MEM_RELEASE,
+                                   &_tracker,
+                                   []() {
+                                       ::MallocExtension::instance()->ReleaseFreeMemory();
+                                   },
+                                   std::chrono::milliseconds(_options.mem_release_interval_ms),
+                                   0,
+                                   std::chrono::milliseconds(_options.mem_release_interval_ms));
     }
 
     // init liveness monitor
@@ -2267,5 +2267,5 @@ std::string replica_stub::get_replica_dir(const char *app_type, gpid id, bool cr
     }
     return ret_dir;
 }
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

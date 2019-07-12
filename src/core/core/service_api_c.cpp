@@ -383,10 +383,10 @@ bool run(const char *config_file,
     ::dsn::tls_trans_mem_init(tls_trans_memory_KB * 1024);
 
     double_t tcmalloc_release_rate = (double_t)dsn_config_get_value_double(
-            "core",
-            "tcmalloc_release_rate",
-            10., // [0, 10]
-            "the memory releasing rate of tcmalloc, default is 1.0");
+        "core",
+        "tcmalloc_release_rate",
+        10., // [0, 10]
+        "the memory releasing rate of tcmalloc, default is 10.0");
     ::MallocExtension::instance()->SetMemoryReleaseRate(tcmalloc_release_rate);
 
     // prepare minimum necessary
