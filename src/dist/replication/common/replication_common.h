@@ -27,7 +27,6 @@
 #pragma once
 
 #include <dsn/dist/replication.h>
-#include <dsn/tool-api/group_address.h>
 #include <string>
 
 namespace dsn {

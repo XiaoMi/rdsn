@@ -475,6 +475,23 @@ void replication_options::initialize()
         config_sync_interval_ms,
         "every this period(ms) the replica syncs replica configuration with the meta server");
 
+    mem_release_enabled = dsn_config_get_value_bool("replication",
+                                                    "mem_release_enabled",
+                                                    mem_release_enabled,
+                                                    "whether to enable periodic memory release");
+
+    mem_release_interval_ms = (int)dsn_config_get_value_uint64(
+        "replication",
+        "mem_release_interval_ms",
+        mem_release_interval_ms,
+        "the replica releases its idle memory to the system every this period of time(ms)");
+
+    mem_release_delay_ms =
+        (int)dsn_config_get_value_uint64("replication",
+                                         "mem_release_delay_ms",
+                                         mem_release_delay_ms,
+                                         "time of delay(ms) for the execution of memory release");
+
     lb_interval_ms = (int)dsn_config_get_value_uint64(
         "replication",
         "lb_interval_ms",
