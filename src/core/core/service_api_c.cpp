@@ -382,11 +382,12 @@ bool run(const char *config_file,
         "thread local transient memory buffer size (KB), default is 1024");
     ::dsn::tls_trans_mem_init(tls_trans_memory_KB * 1024);
 
-    double_t tcmalloc_release_rate = (double_t)dsn_config_get_value_double(
-        "core",
-        "tcmalloc_release_rate",
-        1., // [0, 10]
-        "the memory releasing rate of tcmalloc, default is 1.0 in gperftools, value range is 0.0~10.0");
+    double_t tcmalloc_release_rate =
+        (double_t)dsn_config_get_value_double("core",
+                                              "tcmalloc_release_rate",
+                                              1., // [0, 10]
+                                              "the memory releasing rate of tcmalloc, default is "
+                                              "1.0 in gperftools, value range is 0.0~10.0");
     ::MallocExtension::instance()->SetMemoryReleaseRate(tcmalloc_release_rate);
 
     // prepare minimum necessary
