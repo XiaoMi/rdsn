@@ -38,6 +38,8 @@
 #include <dsn/dist/replication/meta_service_app.h>
 #include <dsn/tool-api/http_server.h>
 
+#include <dsn/dist/replication/meta_http_service.h>
+
 #include "distributed_lock_service_simple.h"
 #include "meta_state_service_simple.h"
 
@@ -46,6 +48,7 @@
 
 #include "server_load_balancer.h"
 #include "greedy_load_balancer.h"
+
 
 #include "meta_service.h"
 
@@ -93,6 +96,10 @@ meta_service_app::meta_service_app(const service_app_info *info)
 {
     // create in constructor because it may be used in checker before started
     _service.reset(new replication::meta_service());
+
+    // add http service
+    // need _service->get_state() ?
+    _http_server->add_service(new meta_http_service(_service->get_server_state()));
 }
 
 meta_service_app::~meta_service_app() {}
