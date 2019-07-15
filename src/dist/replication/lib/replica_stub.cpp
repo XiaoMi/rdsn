@@ -633,15 +633,17 @@ void replica_stub::initialize_start()
                                    std::chrono::milliseconds(_options.config_sync_interval_ms));
     }
 
-    if (_options.mem_release_enabled) {
-        _mem_release_timer_task =
-            tasking::enqueue_timer(LPC_MEM_RELEASE,
-                                   &_tracker,
-                                   []() { ::MallocExtension::instance()->ReleaseFreeMemory(); },
-                                   std::chrono::milliseconds(_options.mem_release_interval_ms),
-                                   0,
-                                   std::chrono::milliseconds(_options.mem_release_delay_ms));
-    }
+    #ifdef DSN_ENABLE_GPERF
+        if (_options.mem_release_enabled) {
+            _mem_release_timer_task =
+                tasking::enqueue_timer(LPC_MEM_RELEASE,
+                                       &_tracker,
+                                       []() { ::MallocExtension::instance()->ReleaseFreeMemory(); },
+                                       std::chrono::milliseconds(_options.mem_release_interval_ms),
+                                       0,
+                                       std::chrono::milliseconds(_options.mem_release_delay_ms));
+        }
+    #endif
 
     // init liveness monitor
     dassert(NS_Disconnected == _state, "");
