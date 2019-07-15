@@ -99,8 +99,9 @@ replication_options::replication_options()
     config_sync_disabled = false;
     config_sync_interval_ms = 30000;
 
-    mem_release_disabled = false;
+    mem_release_enabled = true;
     mem_release_interval_ms = 100000;
+    mem_release_delay_ms = 100000;
 
     lb_interval_ms = 10000;
 

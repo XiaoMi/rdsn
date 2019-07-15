@@ -385,8 +385,8 @@ bool run(const char *config_file,
     double_t tcmalloc_release_rate = (double_t)dsn_config_get_value_double(
         "core",
         "tcmalloc_release_rate",
-        10., // [0, 10]
-        "the memory releasing rate of tcmalloc, default is 10.0");
+        1., // [0, 10]
+        "the memory releasing rate of tcmalloc, default is 1.0 in gperftools, value range is 0.0~10.0");
     ::MallocExtension::instance()->SetMemoryReleaseRate(tcmalloc_release_rate);
 
     // prepare minimum necessary
