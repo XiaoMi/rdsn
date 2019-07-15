@@ -47,6 +47,8 @@
 namespace dsn {
 namespace replication {
 
+DEFINE_TASK_CODE(LPC_MEM_RELEASE, TASK_PRIORITY_COMMON, ::dsn::THREAD_POOL_DEFAULT)
+
 class mutation_log;
 class replication_checker;
 namespace test {
