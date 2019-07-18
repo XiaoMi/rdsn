@@ -96,10 +96,6 @@ meta_service_app::meta_service_app(const service_app_info *info)
 {
     // create in constructor because it may be used in checker before started
     _service.reset(new replication::meta_service());
-
-    // add http service
-    // need _service->get_state() ?
-    _http_server->add_service(new meta_http_service(_service->get_server_state()));
 }
 
 meta_service_app::~meta_service_app() {}
@@ -107,7 +103,19 @@ meta_service_app::~meta_service_app() {}
 error_code meta_service_app::start(const std::vector<std::string> &args)
 {
     // TODO: handle the load & restore
-    return _service->start();
+    error_code err = _service->start();
+
+    _http_server->add_service(new meta_http_service(_service->get_server_state(), 
+                                                    _service->get_options(),
+                                                    _service->get_meta_options(),
+                                                    _service->get_cluster_root(),
+                                                    _service->get_node_live_percentage_threshold_for_update(),
+                                                    _service->get_balancer(),
+                                                    _service->get_function_level_ptr(),
+                                                    _service->get_alive_set_ptr(),
+                                                    _service->get_dead_set_ptr()));
+
+    return err;
 }
 
 error_code meta_service_app::stop(bool /*cleanup*/)
