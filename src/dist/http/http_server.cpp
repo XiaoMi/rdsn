@@ -136,7 +136,8 @@ void http_server::add_service(http_service *service)
     for (std::string arg_val : method_arg_val) {
         std::vector<std::string> arg_vals;
         boost::split(arg_vals, arg_val, boost::is_any_of("="));
-        ret.method_args.emplace_back(std::make_pair(arg_vals[0], arg_vals[1]));
+        if (arg_vals.size() == 2)
+            ret.method_args.emplace_back(std::make_pair(arg_vals[0], arg_vals[1]));
     }
     
     return ret;
