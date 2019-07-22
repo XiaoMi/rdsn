@@ -105,7 +105,6 @@ public:
 
     bool mem_release_enabled;
     int32_t mem_release_interval_ms;
-    int32_t mem_release_delay_ms;
 
     int32_t lb_interval_ms;
 
