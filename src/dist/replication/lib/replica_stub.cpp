@@ -45,7 +45,9 @@
 #include <dsn/dist/replication/replication_app_base.h>
 #include <vector>
 #include <deque>
-#include <gperftools/malloc_extension.h>
+#ifdef DSN_ENABLE_GPERF
+    #include <gperftools/malloc_extension.h>
+#endif
 
 namespace dsn {
 namespace replication {
