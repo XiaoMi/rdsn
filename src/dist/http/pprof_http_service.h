@@ -42,6 +42,13 @@ public:
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2));
+
+        // ip:port/pprof/cpu
+        register_handler("cpu",
+                         std::bind(&pprof_http_service::cpu_handler,
+                                   this,
+                                   std::placeholders::_1,
+                                   std::placeholders::_2));
     }
 
     std::string path() const override { return "pprof"; }
@@ -53,6 +60,8 @@ public:
     void cmdline_handler(const http_request &req, http_response &resp);
 
     void growth_handler(const http_request &req, http_response &resp);
+
+    void cpu_handler(const http_request &req, http_response &resp);
 };
 
 } // namespace dsn

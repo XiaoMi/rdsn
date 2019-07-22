@@ -638,7 +638,11 @@ void replica_stub::initialize_start()
         _mem_release_timer_task =
             tasking::enqueue_timer(LPC_MEM_RELEASE,
                                    &_tracker,
-                                   []() { ::MallocExtension::instance()->ReleaseFreeMemory(); },
+                                   []() {
+                                       ddebug("Memory release has started...\n");
+                                       ::MallocExtension::instance()->ReleaseFreeMemory();
+                                       ddebug("Memory release has ended...\n");
+                                   },
                                    std::chrono::milliseconds(_options.mem_release_interval_ms),
                                    0,
                                    std::chrono::milliseconds(_options.mem_release_delay_ms));
