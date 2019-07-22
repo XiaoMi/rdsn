@@ -408,16 +408,6 @@ void pprof_http_service::growth_handler(const http_request &req, http_response &
     malloc_ext->GetHeapGrowthStacks(&resp.body);
 }
 
-//                          //
-// == ip:port/pprof/cpu == //
-//                          //
-
-void pprof_http_service::cpu_handler(const http_request &req, http_response &resp)
-{
-    ProfilerStart("test.prof");
-    ProfilerStop();
-}
-
 } // namespace dsn
 
 #endif // DSN_ENABLE_GPERF
