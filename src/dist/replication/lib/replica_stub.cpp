@@ -2202,6 +2202,11 @@ void replica_stub::close()
         _gc_timer_task = nullptr;
     }
 
+    if (_mem_release_timer_task != nullptr) {
+        _mem_release_timer_task->cancel(true);
+        _mem_release_timer_task = nullptr;
+    }
+
     {
         zauto_write_lock l(_replicas_lock);
         while (!_closing_replicas.empty()) {
