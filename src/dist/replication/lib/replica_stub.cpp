@@ -645,7 +645,7 @@ void replica_stub::initialize_start()
                                    },
                                    std::chrono::milliseconds(_options.mem_release_interval_ms),
                                    0,
-                                   std::chrono::milliseconds(_options.mem_release_delay_ms));
+                                   std::chrono::milliseconds(_options.mem_release_interval_ms));
     }
 #endif
 

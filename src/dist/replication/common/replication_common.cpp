@@ -101,7 +101,6 @@ replication_options::replication_options()
 
     mem_release_enabled = true;
     mem_release_interval_ms = 86400000;
-    mem_release_delay_ms = 100000;
 
     lb_interval_ms = 10000;
 
@@ -485,12 +484,6 @@ void replication_options::initialize()
         "mem_release_interval_ms",
         mem_release_interval_ms,
         "the replica releases its idle memory to the system every this period of time(ms)");
-
-    mem_release_delay_ms =
-        (int)dsn_config_get_value_uint64("replication",
-                                         "mem_release_delay_ms",
-                                         mem_release_delay_ms,
-                                         "time of delay(ms) for the execution of memory release");
 
     lb_interval_ms = (int)dsn_config_get_value_uint64(
         "replication",
