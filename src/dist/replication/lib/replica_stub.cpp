@@ -46,7 +46,7 @@
 #include <vector>
 #include <deque>
 #ifdef DSN_ENABLE_GPERF
-    #include <gperftools/malloc_extension.h>
+#include <gperftools/malloc_extension.h>
 #endif
 
 namespace dsn {
