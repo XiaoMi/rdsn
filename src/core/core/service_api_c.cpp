@@ -30,8 +30,10 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/process_utils.h>
 #include <dsn/tool-api/command_manager.h>
-#include <gperftools/malloc_extension.h>
 #include <fstream>
+#ifdef DSN_ENABLE_GPERF
+#include <gperftools/malloc_extension.h>
+#endif
 
 #include "service_engine.h"
 #include "rpc_engine.h"
