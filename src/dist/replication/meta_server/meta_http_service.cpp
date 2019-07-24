@@ -3,13 +3,11 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <string>
-
+#include <dsn/c/api_layer1.h> // for dsn_primary_address()
 #include <dsn/cpp/json_helper.h>
-#include <dsn/dist/replication/replication_types.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
-#include <dsn/c/api_layer1.h>       // for dsn_primary_address()
+#include <dsn/dist/replication/replication_types.h>
 #include <dsn/utility/config_api.h> // for dsn_config_get_value_string()
-#include "dsn/dist/replication/replication_types.h"
 
 #include "greedy_load_balancer.h"
 #include "server_state.h"
@@ -62,7 +60,6 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
     writer.EndObject();
 
     resp.body = strBuf.GetString();
-
     resp.status_code = http_status_code::ok;
 }
 
@@ -159,7 +156,6 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
     writer.EndObject();
 
     resp.body = strBuf.GetString();
-
     resp.status_code = http_status_code::ok;
 }
 
@@ -207,7 +203,6 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
     writer.EndObject();
 
     resp.body = strBuf.GetString();
-
     resp.status_code = http_status_code::ok;
 }
 
@@ -254,8 +249,8 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
     writer.EndObject();
 
     resp.body = strBuf.GetString();
-
     resp.status_code = http_status_code::ok;
 }
+
 } // namespace replication
 } // namespace dsn

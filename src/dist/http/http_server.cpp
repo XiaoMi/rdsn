@@ -108,11 +108,9 @@ void http_server::add_service(http_service *service)
     std::vector<std::string> args;
     boost::split(args, unresolved_path, boost::is_any_of("/"));
     std::vector<string_view> real_args;
-    // std::vector<std::string> real_args_str;
     for (string_view arg : args) {
         if (!arg.empty() && strlen(arg.data()) != 0) {
             real_args.emplace_back(string_view(arg.data()));
-            // real_args_str.emplace_back(arg);
         }
     }
     if (real_args.size() > 2) {
@@ -133,7 +131,7 @@ void http_server::add_service(http_service *service)
     std::vector<std::string> method_arg_val;
 
     boost::split(method_arg_val, unresolved_query, boost::is_any_of("&"));
-    for (std::string arg_val : method_arg_val) {
+    for (std::string &arg_val : method_arg_val) {
         std::vector<std::string> arg_vals;
         boost::split(arg_vals, arg_val, boost::is_any_of("="));
         if (arg_vals.size() == 2)

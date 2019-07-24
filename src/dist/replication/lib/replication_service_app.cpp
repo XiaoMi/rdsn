@@ -33,10 +33,9 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
+#include <dsn/dist/replication/replication_http_service.h>
 #include <dsn/dist/replication/replication_service_app.h>
 #include <dsn/tool-api/http_server.h>
-
-#include <dsn/dist/replication/replication_http_service.h>
 
 #include "dist/replication/common/replication_common.h"
 #include "replica_stub.h"
@@ -66,6 +65,7 @@ error_code replication_service_app::start(const std::vector<std::string> &args)
     _stub->open_service();
 
     // add http service
+    assert(args.size() >= 2);
     auto it_begin = args.end() - 2;
     auto it_end = args.end();
     std::vector<std::string> args_new(it_begin, it_end);
@@ -95,5 +95,5 @@ void replication_service_app::on_intercepted_request(dsn::gpid gpid,
         _stub->on_client_read(gpid, msg);
     }
 }
-}
-}
+} // namespace replication
+} // namespace dsn

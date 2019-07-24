@@ -9,13 +9,7 @@
 #include "dist/replication/meta_server/meta_options.h"
 
 namespace dsn {
-
 namespace replication {
-class server_state;
-class replication_options;
-class meta_options;
-struct meta_function_level;
-class server_load_balancer;
 
 class meta_http_service : public http_service
 {
@@ -58,5 +52,6 @@ public:
 private:
     meta_service *_service;
 };
+
 } // namespace replication
 } // namespace dsn

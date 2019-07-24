@@ -2,12 +2,15 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include <dsn/utility/process_utils.h>
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_http_service.h>
+#include <dsn/utility/process_utils.h>
 
-void dsn::replication::replication_http_service::get_recent_start_time_handler(
-    const http_request &req, http_response &resp)
+namespace dsn {
+namespace replication {
+
+void replication_http_service::get_recent_start_time_handler(const http_request &req,
+                                                             http_response &resp)
 {
     char start_time[100];
     dsn::utils::time_ms_to_date_time(dsn::utils::process_start_millis(), start_time, 100);
@@ -20,18 +23,10 @@ void dsn::replication::replication_http_service::get_recent_start_time_handler(
     writer.EndObject();
 
     resp.body = strBuf.GetString();
-
     resp.status_code = http_status_code::ok;
 }
 
-// void dsn::replication_http_service::get_replica_info_handler(const http_request &req,
-//                                                              http_response &resp)
-// {
-
-// }
-
-void dsn::replication::replication_http_service::get_version_handler(const http_request &req,
-                                                                     http_response &resp)
+void replication_http_service::get_version_handler(const http_request &req, http_response &resp)
 {
     rapidjson::StringBuffer strBuf;
     rapidjson::Writer<rapidjson::StringBuffer> writer(strBuf);
@@ -43,6 +38,8 @@ void dsn::replication::replication_http_service::get_version_handler(const http_
     writer.EndObject();
 
     resp.body = strBuf.GetString();
-
     resp.status_code = http_status_code::ok;
 }
+
+} // namespace replication
+} // namespace dsn
