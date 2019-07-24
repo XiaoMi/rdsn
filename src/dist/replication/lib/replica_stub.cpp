@@ -37,6 +37,7 @@
 #include "replica_stub.h"
 #include "mutation_log.h"
 #include "mutation.h"
+#include "duplication/duplication_sync_timer.h"
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
