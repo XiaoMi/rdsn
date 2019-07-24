@@ -102,17 +102,17 @@ void http_server::add_service(http_service *service)
         strncpy(&unresolved_query[0],
                 ret.full_url.data() + u.field_data[UF_QUERY].off,
                 u.field_data[UF_QUERY].len);
-        //unresolved_query[u.field_data[UF_QUERY].len] = '\0';
+        // unresolved_query[u.field_data[UF_QUERY].len] = '\0';
     }
 
     std::vector<std::string> args;
     boost::split(args, unresolved_path, boost::is_any_of("/"));
     std::vector<string_view> real_args;
-    //std::vector<std::string> real_args_str;
+    // std::vector<std::string> real_args_str;
     for (string_view arg : args) {
         if (!arg.empty() && strlen(arg.data()) != 0) {
             real_args.emplace_back(string_view(arg.data()));
-            //real_args_str.emplace_back(arg);
+            // real_args_str.emplace_back(arg);
         }
     }
     if (real_args.size() > 2) {
@@ -131,7 +131,7 @@ void http_server::add_service(http_service *service)
 
     // find if there are method args (<ip>:<port>/<service>/<method>?<arg>=<val>&<arg>=<val>)
     std::vector<std::string> method_arg_val;
-   
+
     boost::split(method_arg_val, unresolved_query, boost::is_any_of("&"));
     for (std::string arg_val : method_arg_val) {
         std::vector<std::string> arg_vals;
@@ -139,7 +139,7 @@ void http_server::add_service(http_service *service)
         if (arg_vals.size() == 2)
             ret.method_args.emplace_back(std::make_pair(arg_vals[0], arg_vals[1]));
     }
-    
+
     return ret;
 }
 

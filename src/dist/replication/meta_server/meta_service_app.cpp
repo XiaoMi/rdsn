@@ -38,8 +38,6 @@
 #include <dsn/dist/replication/meta_service_app.h>
 #include <dsn/tool-api/http_server.h>
 
-#include <dsn/dist/replication/meta_http_service.h>
-
 #include "distributed_lock_service_simple.h"
 #include "meta_state_service_simple.h"
 
@@ -49,8 +47,8 @@
 #include "server_load_balancer.h"
 #include "greedy_load_balancer.h"
 
-
 #include "meta_service.h"
+#include "meta_http_service.h"
 
 namespace dsn {
 namespace service {
@@ -105,15 +103,9 @@ error_code meta_service_app::start(const std::vector<std::string> &args)
     // TODO: handle the load & restore
     error_code err = _service->start();
 
-    _http_server->add_service(new meta_http_service(_service->get_server_state(), 
-                                                    _service->get_options(),
-                                                    _service->get_meta_options(),
-                                                    _service->get_cluster_root(),
-                                                    _service->get_node_live_percentage_threshold_for_update(),
-                                                    _service->get_balancer(),
-                                                    _service->get_function_level_ptr(),
-                                                    _service->get_alive_set_ptr(),
-                                                    _service->get_dead_set_ptr()));
+    // add http service
+    auto meta_http = new dsn::replication::meta_http_service(_service.get());
+    _http_server->add_service(meta_http);
 
     return err;
 }

@@ -41,7 +41,6 @@
 #include "dist/replication/common/replication_common.h"
 #include "replica_stub.h"
 
-
 namespace dsn {
 namespace replication {
 
@@ -54,9 +53,6 @@ replication_service_app::replication_service_app(const service_app_info *info)
     : service_app(info), _http_server(new http_server())
 {
     _stub = new replica_stub();
-
-    // add http service
-    _http_server->add_service(new replication_http_service());
 }
 
 replication_service_app::~replication_service_app(void) {}
@@ -68,6 +64,13 @@ error_code replication_service_app::start(const std::vector<std::string> &args)
 
     _stub->initialize(opts);
     _stub->open_service();
+
+    // add http service
+    auto it_begin = args.end() - 2;
+    auto it_end = args.end();
+    std::vector<std::string> args_new(it_begin, it_end);
+    auto replica_http_service = new replication_http_service(args_new);
+    _http_server->add_service(replica_http_service);
 
     return ERR_OK;
 }

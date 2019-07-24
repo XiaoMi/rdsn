@@ -1,37 +1,34 @@
-/*
- * Description:
- *     This file contains the declaration of HTTP service for replica server
- *
- * Revision history:
- *     2019-7-11, Wang Tianyang, first version
- */
+// Copyright (c) 2017-present, Xiaomi, Inc.  All rights reserved.
+// This source code is licensed under the Apache License Version 2.0, which
+// can be found in the LICENSE file in the root directory of this source tree.
 
 #pragma once
 
 #include <dsn/tool-api/http_server.h>
 
-
 namespace dsn {
+namespace replication {
 
 class replication_http_service : public http_service
 {
 public:
-    replication_http_service()
+    replication_http_service(std::vector<std::string> args)
+        : _PEGASUS_VERSION(args[0]), _PEGASUS_GIT_COMMIT(args[1])
     {
-        // GET ip:port/replica/replicaInfo
-        register_handler("replicaInfo", 
-                         std::bind(&replication_http_service::get_replica_info_handler,
-                                   this,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2));
+        // // GET ip:port/replica/replicaInfo
+        // register_handler("replicaInfo",
+        //                  std::bind(&replication_http_service::get_replica_info_handler,
+        //                            this,
+        //                            std::placeholders::_1,
+        //                            std::placeholders::_2));
         // GET ip:port/replica/version
-        register_handler("version", 
+        register_handler("version",
                          std::bind(&replication_http_service::get_version_handler,
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2));
         // GET ip:port/replica/recentStartTime
-        register_handler("recentStartTime", 
+        register_handler("recentStartTime",
                          std::bind(&replication_http_service::get_recent_start_time_handler,
                                    this,
                                    std::placeholders::_1,
@@ -40,10 +37,14 @@ public:
 
     std::string path() const override { return "replica"; }
 
-    void get_replica_info_handler(const http_request &req, http_response &resp);
+    // void get_replica_info_handler(const http_request &req, http_response &resp);
     void get_version_handler(const http_request &req, http_response &resp);
     void get_recent_start_time_handler(const http_request &req, http_response &resp);
 
+private:
+    std::string _PEGASUS_VERSION;
+    std::string _PEGASUS_GIT_COMMIT;
 };
 
+} // namespace replication
 } // namespace dsn
