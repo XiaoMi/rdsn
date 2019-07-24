@@ -32,9 +32,9 @@ void replication_http_service::get_version_handler(const http_request &req, http
     rapidjson::Writer<rapidjson::StringBuffer> writer(strBuf);
     writer.StartObject();
     writer.Key("Version");
-    writer.String(_PEGASUS_VERSION.c_str());
+    writer.String(_APP_VERSION.c_str());
     writer.Key("GitCommit");
-    writer.String(_PEGASUS_GIT_COMMIT.c_str());
+    writer.String(_APP_GIT_COMMIT.c_str());
     writer.EndObject();
 
     resp.body = strBuf.GetString();
