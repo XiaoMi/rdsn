@@ -130,7 +130,7 @@ public:
         for (int i = 0; i < 3; ++i)
             master_group.push_back(rpc_address("localhost", MPORT_START + i));
         _worker_fd = new worker_fd_test(nullptr, master_group);
-        _worker_fd->start(1, 1, 4, 5);
+        _worker_fd->start(1, 1, 9, 10);
         ++started_apps;
 
         register_rpc_handler(
@@ -181,7 +181,7 @@ public:
             use_allow_list = true;
         }
 
-        _master_fd->start(1, 1, 4, 5, use_allow_list);
+        _master_fd->start(1, 1, 9, 10, use_allow_list);
         dinfo("%s", _master_fd->get_allow_list(std::vector<std::string>{}).c_str());
         ++started_apps;
 
@@ -290,6 +290,7 @@ void clear(test_worker *worker, std::vector<test_master *> masters)
 
 void finish(test_worker *worker, test_master *master, int master_index)
 {
+    dwarn("start to finish");
     std::atomic_int wait_count;
     wait_count.store(2);
     worker->fd()->when_disconnected(
