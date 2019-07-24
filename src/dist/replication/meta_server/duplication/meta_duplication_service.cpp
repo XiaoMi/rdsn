@@ -236,12 +236,12 @@ void meta_duplication_service::recover_from_meta_state()
 {
     ddebug_f("recovering duplication states from meta storage");
 
-    // /<app>/<dupid>/<partition_idx>
-    //           |         |-> confirmed_decree
-    //           |
-    //           |-> json of dup info
+    // /<app>/duplication/<dupid>/<partition_idx>
+    //                       |         |-> confirmed_decree
+    //                       |
+    //                       |-> json of dup info
 
-    for (auto kv : _state->_exist_apps) {
+    for (const auto &kv : _state->_exist_apps) {
         std::shared_ptr<app_state> app = kv.second;
         if (app->status != app_status::AS_AVAILABLE) {
             return;
@@ -256,10 +256,12 @@ void meta_duplication_service::recover_from_meta_state()
                 }
                 for (const std::string &raw_dup_id : dup_id_list) {
                     dupid_t dup_id;
-                    dassert_f(buf2int32(raw_dup_id, dup_id),
-                              "invalid path: {}",
-                              get_duplication_path(*app, raw_dup_id));
-
+                    if (!buf2int32(raw_dup_id, dup_id)) {
+                        // unlikely
+                        derror_f("invalid duplication path: {}",
+                                 get_duplication_path(*app, raw_dup_id));
+                        return;
+                    }
                     do_restore_duplication(dup_id, app);
                 }
             });
@@ -268,51 +270,38 @@ void meta_duplication_service::recover_from_meta_state()
 
 // ThreadPool(WRITE): THREAD_POOL_META_STATE
 void meta_duplication_service::do_restore_duplication_progress(
-    const dsn::replication::duplication_info_s_ptr &dup,
-    const std::shared_ptr<dsn::replication::app_state> &app)
+    const duplication_info_s_ptr &dup, const std::shared_ptr<app_state> &app)
 {
-    _meta_svc->get_meta_storage()->get_children(
-        std::string(dup->store_path),
-        [dup, this, app](bool node_exists, const std::vector<std::string> &partition_idx_list) {
-            dassert_f(node_exists, "node {} must exist on meta storage", dup->store_path);
+    for (int partition_idx = 0; partition_idx < app->partition_count; partition_idx++) {
+        std::string str_pidx = std::to_string(partition_idx);
 
-            std::set<int32_t> inited_set;
-            for (int i = 0; i < app->partition_count; i++) {
-                inited_set.insert(i);
-            }
-            for (const std::string &str_pid : partition_idx_list) {
-                // <app_path>/duplication/<dup_id>/<partition_index>
-                std::string partition_path = get_partition_path(dup, str_pid);
+        // <app_path>/duplication/<dup_id>/<partition_index>
+        std::string partition_path = get_partition_path(dup, str_pidx);
 
-                int32_t partition_idx;
-                dassert_f(buf2int32(str_pid, partition_idx),
-                          "invalid path: {}/{}",
-                          dup->store_path,
-                          partition_path);
-                size_t erased = inited_set.erase(partition_idx);
-                if (erased == 0) {
-                    dfatal_f("invalid path: {}/{}", dup->store_path, partition_path);
+        _meta_svc->get_meta_storage()->get_data(
+            std::move(partition_path), [dup, partition_idx](const blob &value) {
+                if (value.size() == 0) {
+                    dup->init_progress(partition_idx, invalid_decree);
+                    return;
                 }
 
-                _meta_svc->get_meta_storage()->get_data(
-                    std::move(partition_path), [dup, partition_idx](const blob &value) {
-                        dassert_f(value.length() > 0, "partition_idx: {}", partition_idx);
+                int64_t confirmed_decree = invalid_decree;
+                if (!buf2int64(value, confirmed_decree)) {
+                    derror_dup(dup,
+                               "invalid confirmed_decree {} on partition_idx {}",
+                               value.to_string(),
+                               partition_idx);
+                    return; // fail fast
+                }
 
-                        int64_t confirmed_decree = invalid_decree;
-                        dassert_f(buf2int64(value, confirmed_decree), "");
-                        dup->init_progress(partition_idx, confirmed_decree);
+                dup->init_progress(partition_idx, confirmed_decree);
 
-                        ddebug_dup(
-                            dup,
-                            "initialize progress from metastore [partition_idx: {}, confirmed: {}]",
-                            partition_idx,
-                            confirmed_decree);
-                    });
-            }
-            for (int32_t partition_idx : inited_set) {
-                dup->init_progress(partition_idx, invalid_decree);
-            }
-        });
+                ddebug_dup(dup,
+                           "initialize progress from metastore [partition_idx: {}, confirmed: {}]",
+                           partition_idx,
+                           confirmed_decree);
+            });
+    }
 }
 
 // ThreadPool(WRITE): THREAD_POOL_META_STATE
@@ -330,7 +319,8 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
             auto dup = duplication_info::decode_from_blob(
                 dup_id, app->app_id, app->partition_count, store_path, json);
             if (nullptr == dup) {
-                return;
+                derror_f("failed to decode json \"{}\" on path {}", json.to_string(), store_path);
+                return; // fail fast
             }
             if (dup->is_valid()) {
                 app->duplications[dup->id] = dup;
