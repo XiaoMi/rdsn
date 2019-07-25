@@ -13,12 +13,19 @@
 #include "server_load_balancer.h"
 #include "server_state.h"
 #include "meta_http_service.h"
+#include "meta_server_failure_detector.h"
 
 namespace dsn {
 namespace replication {
 
 void meta_http_service::get_app_handler(const http_request &req, http_response &resp)
 {
+    dsn::rpc_address *leader = new rpc_address();
+    if (!(_service->_failure_detector->get_leader(leader))) {
+        resp.body = "Current primary meta server is: " + leader->to_std_string();
+        resp.status_code = http_status_code::ok;
+        return;
+    }
     std::string app_name;
 
     for (std::pair<std::string, std::string> p : req.method_args) {
@@ -64,6 +71,12 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
 
 void meta_http_service::list_app_handler(const http_request &req, http_response &resp)
 {
+    dsn::rpc_address *leader = new rpc_address();
+    if (!(_service->_failure_detector->get_leader(leader))) {
+        resp.body = "Current primary meta server is: " + leader->to_std_string();
+        resp.status_code = http_status_code::ok;
+        return;
+    }
     configuration_list_apps_response response;
     configuration_list_apps_request request;
     request.status = dsn::app_status::AS_INVALID; // -a
@@ -152,6 +165,12 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
 
 void meta_http_service::list_node_handler(const http_request &req, http_response &resp)
 {
+    dsn::rpc_address *leader = new rpc_address();
+    if (!(_service->_failure_detector->get_leader(leader))) {
+        resp.body = "Current primary meta server is: " + leader->to_std_string();
+        resp.status_code = http_status_code::ok;
+        return;
+    }
     int alive_node_count = (_service->_alive_set).size();
     int unalive_node_count = (_service->_dead_set).size();
 
@@ -184,6 +203,12 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
 
 void meta_http_service::get_cluster_info_handler(const http_request &req, http_response &resp)
 {
+    dsn::rpc_address *leader = new rpc_address();
+    if (!(_service->_failure_detector->get_leader(leader))) {
+        resp.body = "Current primary meta server is: " + leader->to_std_string();
+        resp.status_code = http_status_code::ok;
+        return;
+    }
     dsn::utils::table_printer tp("cluster_info");
     std::ostringstream out;
     std::string meta_servers_str;
