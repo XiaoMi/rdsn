@@ -58,7 +58,6 @@ void duplication_sync_timer::on_duplication_sync_reply(error_code err,
     if (err != ERR_OK) {
         derror_f("on_duplication_sync_reply: err({})", err.to_string());
     } else {
-        ddebug("on_duplication_sync_reply");
         update_duplication_map(resp.dup_map);
     }
 
@@ -72,9 +71,8 @@ void duplication_sync_timer::update_duplication_map(
     for (replica_ptr &r : get_all_replicas()) {
         auto it = dup_map.find(r->get_gpid().get_app_id());
         if (it == dup_map.end()) {
-            // no duplication assigned to this app
+            // no duplication is assigned to this app
             r->get_duplication_manager()->update_duplication_map({});
-            continue;
         } else {
             r->get_duplication_manager()->update_duplication_map(it->second);
         }
