@@ -3,13 +3,14 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <string>
-#include <dsn/c/api_layer1.h> // for dsn_primary_address()
-#include <dsn/cpp/json_helper.h>
+
+#include <dsn/c/api_layer1.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
 #include <dsn/dist/replication/replication_types.h>
-#include <dsn/utility/config_api.h> // for dsn_config_get_value_string()
+#include <dsn/utility/config_api.h>
+#include <dsn/utility/output_utils.h>
 
-#include "greedy_load_balancer.h"
+#include "server_load_balancer.h"
 #include "server_state.h"
 #include "meta_http_service.h"
 
@@ -41,25 +42,23 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
         return;
     }
 
-    // new json object
-    rapidjson::StringBuffer strBuf;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(strBuf);
-    writer.StartObject();
-    writer.Key("app_name");
-    writer.String(app_name.c_str());
-    writer.Key("app_id");
-    writer.Int(response.app_id);
-    writer.Key("partition_count");
-    writer.Int(response.partition_count);
-    writer.Key("max_replica_count");
+    // output as json format
+    std::ostringstream out;
+    dsn::utils::multi_table_printer mtp;
+    dsn::utils::table_printer tp_general("general");
+    tp_general.add_row_name_and_data("app_name", app_name);
+    tp_general.add_row_name_and_data("app_id", response.app_id);
+    tp_general.add_row_name_and_data("partition_count", response.partition_count);
     if (!response.partitions.empty()) {
-        writer.Int(response.partitions[0].max_replica_count);
+        tp_general.add_row_name_and_data("max_replica_count",
+                                         response.partitions[0].max_replica_count);
     } else {
-        writer.Int(0);
+        tp_general.add_row_name_and_data("max_replica_count", 0);
     }
-    writer.EndObject();
+    mtp.add(std::move(tp_general));
+    mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
 
-    resp.body = strBuf.GetString();
+    resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
 
@@ -67,7 +66,6 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
 {
     configuration_list_apps_response response;
     configuration_list_apps_request request;
-
     request.status = dsn::app_status::AS_INVALID; // -a
 
     _service->_state->list_apps(request, response);
@@ -78,37 +76,30 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
         resp.status_code = http_status_code::internal_server_error;
         return;
     }
-
     std::vector<::dsn::app_info> apps = response.infos;
 
-    rapidjson::StringBuffer strBuf;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(strBuf);
-    writer.StartObject();
+    // output as json format
+    std::ostringstream out;
+    dsn::utils::multi_table_printer mtp;
     int available_app_count = 0;
-    writer.Key("general_info");
-    writer.StartArray();
+    dsn::utils::table_printer tp_general("general_info");
+    tp_general.add_title("app_id");
+    tp_general.add_column("status");
+    tp_general.add_column("app_name");
+    tp_general.add_column("app_type");
+    tp_general.add_column("partition_count");
+    tp_general.add_column("replica_count");
+    tp_general.add_column("is_stateful");
+    tp_general.add_column("create_time");
+    tp_general.add_column("drop_time");
+    tp_general.add_column("drop_expire");
+    tp_general.add_column("envs_count");
     for (int i = 0; i < apps.size(); i++) {
         if (apps[i].status != dsn::app_status::AS_AVAILABLE) {
             continue;
         }
-        writer.StartObject();
-        writer.Key("app_id");
-        writer.Int(apps[i].app_id);
-        writer.Key("status");
         std::string status_str = enum_to_string(apps[i].status);
         status_str = status_str.substr(status_str.find("AS_") + 3);
-        writer.String(status_str.c_str());
-        writer.Key("app_name");
-        writer.String(apps[i].app_name.c_str());
-        writer.Key("app_type");
-        writer.String(apps[i].app_type.c_str());
-        writer.Key("partition_count");
-        writer.Int(apps[i].partition_count);
-        writer.Key("replica_count");
-        writer.Int(apps[i].max_replica_count);
-        writer.Key("is_stateful");
-        writer.Bool(apps[i].is_stateful);
-        writer.Key("create_time");
         std::string create_time = "-";
         if (apps[i].create_second > 0) {
             char buf[20];
@@ -116,8 +107,6 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
             buf[10] = '_';
             create_time = buf;
         }
-        writer.String(create_time.c_str());
-
         std::string drop_time = "-";
         std::string drop_expire_time = "-";
         if (apps[i].status == app_status::AS_AVAILABLE) {
@@ -137,25 +126,27 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
             }
         }
 
-        writer.Key("drop_time");
-        writer.String(drop_time.c_str());
-        writer.Key("drop_expire");
-        writer.String(drop_expire_time.c_str());
-        writer.Key("envs_count");
-        writer.Int(apps[i].envs.size());
-
-        writer.EndObject();
+        tp_general.add_row(apps[i].app_id);
+        tp_general.append_data(status_str);
+        tp_general.append_data(apps[i].app_name);
+        tp_general.append_data(apps[i].app_type);
+        tp_general.append_data(apps[i].partition_count);
+        tp_general.append_data(apps[i].max_replica_count);
+        tp_general.append_data(apps[i].is_stateful);
+        tp_general.append_data(create_time);
+        tp_general.append_data(drop_time);
+        tp_general.append_data(drop_expire_time);
+        tp_general.append_data(apps[i].envs.size());
     }
-    writer.EndArray();
+    mtp.add(std::move(tp_general));
 
-    writer.Key("summary");
-    writer.StartObject();
-    writer.Key("total_app_count");
-    writer.Int(available_app_count);
-    writer.EndObject();
-    writer.EndObject();
+    dsn::utils::table_printer tp_count("summary");
+    tp_count.add_row_name_and_data("total_app_count", available_app_count);
+    mtp.add(std::move(tp_count));
 
-    resp.body = strBuf.GetString();
+    mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+
+    resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
 
@@ -164,93 +155,68 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
     int alive_node_count = (_service->_alive_set).size();
     int unalive_node_count = (_service->_dead_set).size();
 
-    // new json object
-
-    rapidjson::StringBuffer strBuf;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(strBuf);
-    writer.StartObject();
-    writer.Key("details");
-    writer.StartObject();
-    for (auto node : (_service->_alive_set)) {
-        writer.Key(node.to_string());
-        writer.StartObject();
-        writer.Key("address");
-        writer.String(node.to_string());
-        writer.Key("status");
-        writer.String("ALIVE");
-        writer.EndObject();
+    // output as json format
+    std::ostringstream out;
+    dsn::utils::multi_table_printer mtp;
+    dsn::utils::table_printer tp_details("details");
+    tp_details.add_title("address");
+    tp_details.add_column("status");
+    for (auto &node : (_service->_alive_set)) {
+        tp_details.add_row(node.to_std_string());
+        tp_details.append_data("ALIVE");
     }
-    for (auto node : (_service->_dead_set)) {
-        writer.Key(node.to_string());
-        writer.StartObject();
-        writer.Key("address");
-        writer.String(node.to_string());
-        writer.Key("status");
-        writer.String("UNALIVE");
-        writer.EndObject();
+    for (auto &node : (_service->_dead_set)) {
+        tp_details.add_row(node.to_std_string());
+        tp_details.append_data("UNALIVE");
     }
-    writer.EndObject();
+    mtp.add(std::move(tp_details));
 
-    writer.Key("summary");
-    writer.StartObject();
-    writer.Key("total_node_count");
-    writer.Int(alive_node_count + unalive_node_count);
-    writer.Key("alive_node_count");
-    writer.Int(alive_node_count);
-    writer.Key("unalive_node_count");
-    writer.Int(unalive_node_count);
-    writer.EndObject();
-    writer.EndObject();
+    dsn::utils::table_printer tp_count("summary");
+    tp_count.add_row_name_and_data("total_node_count", alive_node_count + unalive_node_count);
+    tp_count.add_row_name_and_data("alive_node_count", alive_node_count);
+    tp_count.add_row_name_and_data("unalive_node_count", unalive_node_count);
+    mtp.add(std::move(tp_count));
+    mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
 
-    resp.body = strBuf.GetString();
+    resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
 
 void meta_http_service::get_cluster_info_handler(const http_request &req, http_response &resp)
 {
-    rapidjson::StringBuffer strBuf;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(strBuf);
-
-    writer.StartObject();
-    writer.Key("meta_servers");
-    writer.StartArray();
-    for (size_t i = 0; i < _service->_opts.meta_servers.size(); ++i) {
-        writer.String(_service->_opts.meta_servers[i].to_string());
+    dsn::utils::table_printer tp("cluster_info");
+    std::ostringstream out;
+    std::string meta_servers_str;
+    int ms_size = _service->_opts.meta_servers.size();
+    for (int i = 0; i < ms_size; i++) {
+        meta_servers_str += _service->_opts.meta_servers[i].to_std_string();
+        if (i != ms_size - 1) {
+            meta_servers_str += ",";
+        }
     }
-    writer.EndArray();
-
-    writer.Key("primary_meta_server");
-    writer.String(dsn_primary_address().to_string());
-
-    writer.Key("zookeeper_hosts");
+    tp.add_row_name_and_data("meta_servers", meta_servers_str);
+    tp.add_row_name_and_data("primary_meta_server", dsn_primary_address().to_std_string());
     std::string zk_hosts =
         dsn_config_get_value_string("zookeeper", "hosts_list", "", "zookeeper_hosts");
     zk_hosts.erase(std::remove_if(zk_hosts.begin(), zk_hosts.end(), ::isspace), zk_hosts.end());
-    writer.String(zk_hosts.c_str());
-
-    writer.Key("zookeeper_root");
-    writer.String(_service->_cluster_root.c_str());
-
-    writer.Key("meta_function_level");
-    writer.String(
+    tp.add_row_name_and_data("zookeeper_hosts", zk_hosts);
+    tp.add_row_name_and_data("zookeeper_root", _service->_cluster_root);
+    tp.add_row_name_and_data(
+        "meta_function_level",
         _meta_function_level_VALUES_TO_NAMES.find(_service->get_function_level())->second + 3);
-
-    writer.Key("balance_operation_count");
     std::vector<std::string> balance_operation_type;
     balance_operation_type.emplace_back(std::string("detail"));
-    writer.String(_service->_balancer->get_balance_operation_count(balance_operation_type).c_str());
-
+    tp.add_row_name_and_data(
+        "balance_operation_count",
+        _service->_balancer->get_balance_operation_count(balance_operation_type));
     double primary_stddev, total_stddev;
     _service->_state->get_cluster_balance_score(primary_stddev, total_stddev);
-    writer.Key("primary_replica_count_stddev");
-    writer.Double(primary_stddev);
-    writer.Key("total_replica_count_stddev");
-    writer.Double(total_stddev);
-    writer.EndObject();
+    tp.add_row_name_and_data("primary_replica_count_stddev", primary_stddev);
+    tp.add_row_name_and_data("total_replica_count_stddev", total_stddev);
+    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
 
-    resp.body = strBuf.GetString();
+    resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
-
 } // namespace replication
 } // namespace dsn

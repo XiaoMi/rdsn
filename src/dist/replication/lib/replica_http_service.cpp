@@ -2,9 +2,9 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_http_service.h>
 #include <dsn/utility/process_utils.h>
+#include <dsn/utility/output_utils.h>
 
 namespace dsn {
 namespace replication {
@@ -14,30 +14,24 @@ void replication_http_service::get_recent_start_time_handler(const http_request 
 {
     char start_time[100];
     dsn::utils::time_ms_to_date_time(dsn::utils::process_start_millis(), start_time, 100);
+    std::ostringstream out;
+    dsn::utils::table_printer tp("RecentStartTime");
+    tp.add_row_name_and_data("RecentStartTime", start_time);
+    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
 
-    rapidjson::StringBuffer strBuf;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(strBuf);
-    writer.StartObject();
-    writer.Key("RecentStartTime");
-    writer.String(start_time);
-    writer.EndObject();
-
-    resp.body = strBuf.GetString();
+    resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
 
 void replication_http_service::get_version_handler(const http_request &req, http_response &resp)
 {
-    rapidjson::StringBuffer strBuf;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(strBuf);
-    writer.StartObject();
-    writer.Key("Version");
-    writer.String(_APP_VERSION.c_str());
-    writer.Key("GitCommit");
-    writer.String(_APP_GIT_COMMIT.c_str());
-    writer.EndObject();
+    std::ostringstream out;
+    dsn::utils::table_printer tp("Version");
+    tp.add_row_name_and_data("Version", _PEGASUS_VERSION);
+    tp.add_row_name_and_data("GitCommit", _PEGASUS_GIT_COMMIT);
+    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
 
-    resp.body = strBuf.GetString();
+    resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
 
