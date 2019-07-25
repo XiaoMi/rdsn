@@ -17,6 +17,8 @@ else()
     set(MY_PROJ_LIBS dsn_cli)
 endif()
 
+list(APPEND MY_PROJ_LIBS dsn_runtime)
+
 set(MY_PROJ_LIB_PATH "")
 
 set(MY_BOOST_PACKAGES system filesystem)

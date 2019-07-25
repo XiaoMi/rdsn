@@ -6,6 +6,7 @@ set(MY_SRC_SEARCH_MODE "GLOB")
 
 set(MY_PROJ_LIBS
     dsn_http
+    dsn_runtime
     gtest
     gtest_main
     )

@@ -145,14 +145,8 @@ function(dsn_add_project)
     endif()
 
     if((MY_PROJ_TYPE STREQUAL "SHARED") OR (MY_PROJ_TYPE STREQUAL "EXECUTABLE"))
-        if(DSN_BUILD_RUNTIME AND(DEFINED DSN_IN_CORE) AND DSN_IN_CORE)
-            set(TEMP_LIBS "")
-        else()
-            set(TEMP_LIBS dsn_runtime)
-        endif()
         set(MY_PROJ_LIBS ${MY_PROJ_LIBS} ${TEMP_LIBS} ${MY_BOOST_LIBS} ${DSN_SYSTEM_LIBS})
     endif()
-
     ms_add_project("${MY_PROJ_TYPE}" "${MY_PROJ_NAME}" "${MY_PROJ_SRC}" "${MY_PROJ_INC_PATH}" "${MY_PROJ_LIBS}" "${MY_PROJ_LIB_PATH}" "${MY_BINPLACES}")
 endfunction(dsn_add_project)
 

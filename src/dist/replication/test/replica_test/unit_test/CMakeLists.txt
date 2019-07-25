@@ -19,6 +19,7 @@ set(MY_PROJ_LIBS dsn_meta_server
                  dsn.block_service.fds
                  dsn.failure_detector
                  dsn_http
+                 dsn_runtime
                  zookeeper_mt
                  galaxy-fds-sdk-cpp
                  PocoNet

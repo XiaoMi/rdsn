@@ -6,6 +6,7 @@ set(MY_BOOST_PACKAGES system filesystem)
 
 set(MY_PROJ_LIBS
         dsn_replication_common
+        dsn_runtime
         gtest
         fmt
         )
