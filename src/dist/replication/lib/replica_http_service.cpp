@@ -27,8 +27,8 @@ void replication_http_service::get_version_handler(const http_request &req, http
 {
     std::ostringstream out;
     dsn::utils::table_printer tp("Version");
-    tp.add_row_name_and_data("Version", _PEGASUS_VERSION);
-    tp.add_row_name_and_data("GitCommit", _PEGASUS_GIT_COMMIT);
+    tp.add_row_name_and_data("Version", _APP_VERSION);
+    tp.add_row_name_and_data("GitCommit", _APP_GIT_COMMIT);
     tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
 
     resp.body = out.str();
