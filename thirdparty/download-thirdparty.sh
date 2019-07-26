@@ -244,6 +244,18 @@ check_and_download "${GFLAGS_PKG}"\
     "${GFLAGS_NAME}"
 exit_if_fail $?
 
+# prometheus-cpp
+if [ ! -d $TP_SRC/prometheus-cpp ]; then
+    git clone https://github.com/jupp0r/prometheus-cpp.git --recursive
+    if [ $? != 0 ]; then 
+        echo "ERROR: download prometheus-cpp wrong"
+        exit 2
+    fi
+else
+    echo "prometheus-cpp has already downloaded, skip it"
+fi
+exit_if_fail $?
+
 # s2geometry
 # from: https://github.com/google/s2geometry/archive/0239455c1e260d6d2c843649385b4fb9f5b28dba.zip
 S2GEOMETRY_NAME=s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba
