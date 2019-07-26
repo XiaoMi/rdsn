@@ -96,8 +96,8 @@ meta_service_app::meta_service_app(const service_app_info *info)
     _service.reset(new replication::meta_service());
 
     // add http service
-    auto meta_http = new dsn::replication::meta_http_service(_service.get());
-    _http_server->add_service(meta_http);
+    _http_service = std::make_unique<dsn::replication::meta_http_service>(_service.get());
+    _http_server->add_service(_http_service.get());
 }
 
 meta_service_app::~meta_service_app() {}
@@ -105,6 +105,13 @@ meta_service_app::~meta_service_app() {}
 error_code meta_service_app::start(const std::vector<std::string> &args)
 {
     // TODO: handle the load & restore
+    // set args of http service
+    if (args.size() >= 2) {
+        auto it_ver = args.end() - 2;
+        auto it_git = args.end() - 1;
+        _http_service->set_version(*it_ver);
+        _http_service->set_git_commit(*it_git);
+    }
     return _service->start();
 }
 

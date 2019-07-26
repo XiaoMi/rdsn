@@ -42,12 +42,13 @@ namespace replication {
 
 class meta_service;
 class replication_checker;
+class meta_http_service;
 
 namespace test {
 class test_checker;
 }
-}
-}
+} // namespace replication
+} // namespace dsn
 
 namespace dsn {
 
@@ -73,6 +74,7 @@ private:
     friend class ::dsn::replication::test::test_checker;
     std::unique_ptr<dsn::replication::meta_service> _service;
     std::unique_ptr<http_server> _http_server;
+    std::unique_ptr<dsn::replication::meta_http_service> _http_service;
 };
-}
-}
+} // namespace service
+} // namespace dsn
