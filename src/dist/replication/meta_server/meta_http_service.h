@@ -9,6 +9,7 @@
 namespace dsn {
 namespace replication {
 
+class meta_service;
 class meta_http_service : public http_service
 {
 public:

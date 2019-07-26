@@ -52,6 +52,10 @@ replication_service_app::replication_service_app(const service_app_info *info)
     : service_app(info), _http_server(new http_server())
 {
     _stub = new replica_stub();
+
+    // add http service
+    _http_service = dsn::make_unique<replication_http_service>();
+    _http_server->add_service(_http_service.get());
 }
 
 replication_service_app::~replication_service_app(void) {}
@@ -68,8 +72,8 @@ error_code replication_service_app::start(const std::vector<std::string> &args)
     if (args.size() >= 2) {
         auto it_ver = args.end() - 2;
         auto it_git = args.end() - 1;
-        auto replica_http_service = new replication_http_service(*it_ver, *it_git);
-        _http_server->add_service(replica_http_service);
+        _http_service->set_version(*it_ver);
+        _http_service->set_git_commit(*it_git);
     }
 
     return ERR_OK;
