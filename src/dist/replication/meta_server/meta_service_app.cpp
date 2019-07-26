@@ -96,7 +96,7 @@ meta_service_app::meta_service_app(const service_app_info *info)
     _service.reset(new replication::meta_service());
 
     // add http service
-    _http_service = std::make_unique<dsn::replication::meta_http_service>(_service.get());
+    _http_service = dsn::make_unique<dsn::replication::meta_http_service>(_service.get());
     _http_server->add_service(_http_service.get());
 }
 
