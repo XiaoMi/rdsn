@@ -94,6 +94,10 @@ meta_service_app::meta_service_app(const service_app_info *info)
 {
     // create in constructor because it may be used in checker before started
     _service.reset(new replication::meta_service());
+
+    // add http service
+    auto meta_http = new dsn::replication::meta_http_service(_service.get());
+    _http_server->add_service(meta_http);
 }
 
 meta_service_app::~meta_service_app() {}
@@ -101,13 +105,7 @@ meta_service_app::~meta_service_app() {}
 error_code meta_service_app::start(const std::vector<std::string> &args)
 {
     // TODO: handle the load & restore
-    error_code err = _service->start();
-
-    // add http service
-    auto meta_http = new dsn::replication::meta_http_service(_service.get());
-    _http_server->add_service(meta_http);
-
-    return err;
+    return _service->start();
 }
 
 error_code meta_service_app::stop(bool /*cleanup*/)
@@ -115,5 +113,5 @@ error_code meta_service_app::stop(bool /*cleanup*/)
     _service.reset(nullptr);
     return ERR_OK;
 }
-}
-}
+} // namespace service
+} // namespace dsn
