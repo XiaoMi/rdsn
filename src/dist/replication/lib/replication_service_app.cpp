@@ -65,12 +65,12 @@ error_code replication_service_app::start(const std::vector<std::string> &args)
     _stub->open_service();
 
     // add http service
-    assert(args.size() >= 2);
-    auto it_begin = args.end() - 2;
-    auto it_end = args.end();
-    std::vector<std::string> args_new(it_begin, it_end);
-    auto replica_http_service = new replication_http_service(args_new);
-    _http_server->add_service(replica_http_service);
+    if (args.size() >= 2) {
+        auto it_ver = args.end() - 2;
+        auto it_git = args.end() - 1;
+        auto replica_http_service = new replication_http_service(*it_ver, *it_git);
+        _http_server->add_service(replica_http_service);
+    }
 
     return ERR_OK;
 }
