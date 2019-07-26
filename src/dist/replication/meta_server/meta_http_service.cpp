@@ -20,20 +20,21 @@ namespace replication {
 
 void meta_http_service::get_app_handler(const http_request &req, http_response &resp)
 {
-    dsn::rpc_address *leader = new rpc_address();
-    if (!(_service->_failure_detector->get_leader(leader))) {
-        resp.body = "Current primary meta server is: " + leader->to_std_string();
-        resp.status_code = http_status_code::ok;
-        return;
-    }
     std::string app_name;
-
     for (std::pair<std::string, std::string> p : req.method_args) {
         if (p.first == "app_name") {
             app_name = p.second;
         } else {
             // TO DO error args_name
         }
+    }
+
+    dsn::rpc_address *leader = new rpc_address();
+    if (!(_service->_failure_detector->get_leader(leader))) {
+        app_name.pop_back();
+        resp.location = "http://" + leader->to_std_string() + "/meta/app?app_name=" + app_name;
+        resp.status_code = http_status_code::temporary_redirect;
+        return;
     }
 
     configuration_query_by_index_request request;
@@ -73,8 +74,8 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
 {
     dsn::rpc_address *leader = new rpc_address();
     if (!(_service->_failure_detector->get_leader(leader))) {
-        resp.body = "Current primary meta server is: " + leader->to_std_string();
-        resp.status_code = http_status_code::ok;
+        resp.location = "http://" + leader->to_std_string() + "/meta/apps";
+        resp.status_code = http_status_code::temporary_redirect;
         return;
     }
     configuration_list_apps_response response;
@@ -167,8 +168,8 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
 {
     dsn::rpc_address *leader = new rpc_address();
     if (!(_service->_failure_detector->get_leader(leader))) {
-        resp.body = "Current primary meta server is: " + leader->to_std_string();
-        resp.status_code = http_status_code::ok;
+        resp.location = "http://" + leader->to_std_string() + "/meta/nodes";
+        resp.status_code = http_status_code::temporary_redirect;
         return;
     }
     int alive_node_count = (_service->_alive_set).size();
@@ -205,8 +206,8 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
 {
     dsn::rpc_address *leader = new rpc_address();
     if (!(_service->_failure_detector->get_leader(leader))) {
-        resp.body = "Current primary meta server is: " + leader->to_std_string();
-        resp.status_code = http_status_code::ok;
+        resp.location = "http://" + leader->to_std_string() + "/meta/cluster";
+        resp.status_code = http_status_code::temporary_redirect;
         return;
     }
     dsn::utils::table_printer tp("cluster_info");
@@ -246,6 +247,12 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
 
 void meta_http_service::get_meta_version_handler(const http_request &req, http_response &resp)
 {
+    dsn::rpc_address *leader = new rpc_address();
+    if (!(_service->_failure_detector->get_leader(leader))) {
+        resp.location = "http://" + leader->to_std_string() + "/meta/version";
+        resp.status_code = http_status_code::temporary_redirect;
+        return;
+    }
     std::ostringstream out;
     dsn::utils::table_printer tp("Version");
     tp.add_row_name_and_data("Version", _version);
@@ -259,6 +266,12 @@ void meta_http_service::get_meta_version_handler(const http_request &req, http_r
 void meta_http_service::get_meta_recent_start_time_handler(const http_request &req,
                                                            http_response &resp)
 {
+    dsn::rpc_address *leader = new rpc_address();
+    if (!(_service->_failure_detector->get_leader(leader))) {
+        resp.location = "http://" + leader->to_std_string() + "/meta/recentStartTime";
+        resp.status_code = http_status_code::temporary_redirect;
+        return;
+    }
     char start_time[100];
     dsn::utils::time_ms_to_date_time(dsn::utils::process_start_millis(), start_time, 100);
     std::ostringstream out;

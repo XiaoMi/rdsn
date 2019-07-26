@@ -17,6 +17,8 @@ namespace dsn {
     switch (code) {
     case http_status_code::ok:
         return "200 OK";
+    case http_status_code::temporary_redirect:
+        return "307 Temporary Redirect";
     case http_status_code::bad_request:
         return "400 Bad Request";
     case http_status_code::not_found:
@@ -108,9 +110,11 @@ void http_server::add_service(http_service *service)
     std::vector<std::string> args;
     boost::split(args, unresolved_path, boost::is_any_of("/"));
     std::vector<string_view> real_args;
+    // std::vector<std::string> real_args_str;
     for (string_view arg : args) {
         if (!arg.empty() && strlen(arg.data()) != 0) {
             real_args.emplace_back(string_view(arg.data()));
+            // real_args_str.emplace_back(arg);
         }
     }
     if (real_args.size() > 2) {
@@ -149,6 +153,7 @@ message_ptr http_response::to_message(message_ex *req) const
     os << "HTTP/1.1 " << http_status_code_to_string(status_code) << "\r\n";
     os << "Content-Type: " << content_type << "\r\n";
     os << "Content-Length: " << body.length() << "\r\n";
+    os << "Location: " << location << "\r\n";
     os << "\r\n";
     os << body;
 
