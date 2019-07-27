@@ -99,7 +99,7 @@ endfunction(ms_add_project)
 # - MY_PROJ_LIBS
 # - MY_BINPLACES
 #     Extra files that will be installed
-# - MY_BOOST_LIBS TODO: should be implicit linking
+# - MY_BOOST_LIBS
 function(dsn_add_project)
     if((NOT DEFINED MY_PROJ_TYPE) OR (MY_PROJ_TYPE STREQUAL ""))
         message(FATAL_ERROR "MY_PROJ_TYPE is empty.")
