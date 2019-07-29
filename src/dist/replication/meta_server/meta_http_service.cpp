@@ -245,42 +245,5 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
     resp.status_code = http_status_code::ok;
 }
 
-void meta_http_service::get_meta_version_handler(const http_request &req, http_response &resp)
-{
-    dsn::rpc_address *leader = new rpc_address();
-    if (!(_service->_failure_detector->get_leader(leader))) {
-        resp.location = "http://" + leader->to_std_string() + "/meta/version";
-        resp.status_code = http_status_code::temporary_redirect;
-        return;
-    }
-    std::ostringstream out;
-    dsn::utils::table_printer tp("Version");
-    tp.add_row_name_and_data("Version", _version);
-    tp.add_row_name_and_data("GitCommit", _git_commit);
-    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
-
-    resp.body = out.str();
-    resp.status_code = http_status_code::ok;
-}
-
-void meta_http_service::get_meta_recent_start_time_handler(const http_request &req,
-                                                           http_response &resp)
-{
-    dsn::rpc_address *leader = new rpc_address();
-    if (!(_service->_failure_detector->get_leader(leader))) {
-        resp.location = "http://" + leader->to_std_string() + "/meta/recentStartTime";
-        resp.status_code = http_status_code::temporary_redirect;
-        return;
-    }
-    char start_time[100];
-    dsn::utils::time_ms_to_date_time(dsn::utils::process_start_millis(), start_time, 100);
-    std::ostringstream out;
-    dsn::utils::table_printer tp("RecentStartTime");
-    tp.add_row_name_and_data("RecentStartTime", start_time);
-    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
-
-    resp.body = out.str();
-    resp.status_code = http_status_code::ok;
-}
 } // namespace replication
 } // namespace dsn

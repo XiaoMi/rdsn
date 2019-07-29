@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #include <dsn/dist/replication.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/dist/replication/meta_service_app.h>
@@ -98,8 +89,8 @@ meta_service_app::meta_service_app(const service_app_info *info)
 
     // add http service
     _meta_http_service = new dsn::replication::meta_http_service(_service.get());
-    _version_http_service = new dsn::version_http_service();
-    _recent_start_time_http_service = new dsn::recent_start_time_http_service();
+    _version_http_service = new version_http_service();
+    _recent_start_time_http_service = new recent_start_time_http_service();
     _http_server->add_service(_meta_http_service);
     _http_server->add_service(_version_http_service);
     _http_server->add_service(_recent_start_time_http_service);

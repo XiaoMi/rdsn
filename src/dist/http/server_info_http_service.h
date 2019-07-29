@@ -25,17 +25,9 @@ public:
 
     void get_version_handler(const http_request &req, http_response &resp);
 
-    void set_version(const std::string &ver)
-    {
-        _version = ver;
-        return;
-    }
+    void set_version(const std::string &ver) { _version = ver; }
 
-    void set_git_commit(const std::string &git)
-    {
-        _git_commit = git;
-        return;
-    }
+    void set_git_commit(const std::string &git) { _git_commit = git; }
 
 private:
     std::string _version;

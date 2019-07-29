@@ -13,7 +13,7 @@ class meta_service;
 class meta_http_service : public http_service
 {
 public:
-    meta_http_service(meta_service *s) : _service(s), _version(""), _git_commit("")
+    meta_http_service(meta_service *s) : _service(s)
     {
         // GET ip:port/meta/app?app_name=temp
         register_handler("app",
@@ -39,18 +39,6 @@ public:
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2));
-        // GET ip:port/meta/version
-        register_handler("version",
-                         std::bind(&meta_http_service::get_meta_version_handler,
-                                   this,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2));
-        // GET ip:port/meta/recentStartTime
-        register_handler("recentStartTime",
-                         std::bind(&meta_http_service::get_meta_recent_start_time_handler,
-                                   this,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2));
     }
 
     std::string path() const override { return "meta"; }
@@ -59,25 +47,9 @@ public:
     void list_app_handler(const http_request &req, http_response &resp);
     void list_node_handler(const http_request &req, http_response &resp);
     void get_cluster_info_handler(const http_request &req, http_response &resp);
-    void get_meta_version_handler(const http_request &req, http_response &resp);
-    void get_meta_recent_start_time_handler(const http_request &req, http_response &resp);
-
-    void set_version(const std::string &ver)
-    {
-        _version = ver;
-        return;
-    }
-
-    void set_git_commit(const std::string &git)
-    {
-        _git_commit = git;
-        return;
-    }
 
 private:
     meta_service *_service;
-    std::string _version;
-    std::string _git_commit;
 };
 
 } // namespace replication
