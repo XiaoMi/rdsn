@@ -25,13 +25,14 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
         if (p.first == "app_name") {
             app_name = p.second;
         } else {
-            // TO DO error args_name
+            resp.status_code = http_status_code::bad_request;
+            return;
         }
     }
 
-    dsn::rpc_address *leader = new rpc_address();
-    if (!(_service->_failure_detector->get_leader(leader))) {
-        app_name.pop_back();
+    std::unique_ptr<rpc_address> leader(new rpc_address());
+    if (!(_service->_failure_detector->get_leader(leader.get()))) {
+        app_name.pop_back(); // remove the final '\0'
         resp.location = "http://" + leader->to_std_string() + "/meta/app?app_name=" + app_name;
         resp.status_code = http_status_code::temporary_redirect;
         return;
@@ -52,7 +53,6 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
 
     // output as json format
     std::ostringstream out;
-    dsn::utils::multi_table_printer mtp;
     dsn::utils::table_printer tp_general("general");
     tp_general.add_row_name_and_data("app_name", app_name);
     tp_general.add_row_name_and_data("app_id", response.app_id);
@@ -63,8 +63,7 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
     } else {
         tp_general.add_row_name_and_data("max_replica_count", 0);
     }
-    mtp.add(std::move(tp_general));
-    mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    tp_general.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
 
     resp.body = out.str();
     resp.status_code = http_status_code::ok;
@@ -72,8 +71,8 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
 
 void meta_http_service::list_app_handler(const http_request &req, http_response &resp)
 {
-    dsn::rpc_address *leader = new rpc_address();
-    if (!(_service->_failure_detector->get_leader(leader))) {
+    std::unique_ptr<rpc_address> leader(new rpc_address());
+    if (!(_service->_failure_detector->get_leader(leader.get()))) {
         resp.location = "http://" + leader->to_std_string() + "/meta/apps";
         resp.status_code = http_status_code::temporary_redirect;
         return;
@@ -166,12 +165,13 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
 
 void meta_http_service::list_node_handler(const http_request &req, http_response &resp)
 {
-    dsn::rpc_address *leader = new rpc_address();
-    if (!(_service->_failure_detector->get_leader(leader))) {
+    std::unique_ptr<rpc_address> leader(new rpc_address());
+    if (!(_service->_failure_detector->get_leader(leader.get()))) {
         resp.location = "http://" + leader->to_std_string() + "/meta/nodes";
         resp.status_code = http_status_code::temporary_redirect;
         return;
     }
+
     int alive_node_count = (_service->_alive_set).size();
     int unalive_node_count = (_service->_dead_set).size();
 
@@ -204,8 +204,8 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
 
 void meta_http_service::get_cluster_info_handler(const http_request &req, http_response &resp)
 {
-    dsn::rpc_address *leader = new rpc_address();
-    if (!(_service->_failure_detector->get_leader(leader))) {
+    std::unique_ptr<rpc_address> leader(new rpc_address());
+    if (!(_service->_failure_detector->get_leader(leader.get()))) {
         resp.location = "http://" + leader->to_std_string() + "/meta/cluster";
         resp.status_code = http_status_code::temporary_redirect;
         return;
