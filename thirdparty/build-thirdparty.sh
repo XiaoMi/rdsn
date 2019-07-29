@@ -6,8 +6,7 @@ function exit_if_fail()
 {
     if [ $2 -ne 0 ]; then
         echo "build $1 failed"
-        echo "maybe the file is not a complete or right one"
-        echo "else please check cmake or make"
+        echo "please check the command-line output of cmake or make"
         exit $2
     fi
 }
