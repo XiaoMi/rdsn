@@ -277,4 +277,4 @@ if [ ! -d $TP_OUTPUT/include/prometheus ]; then
     cd $TP_DIR
 else
     echo "skip build prometheus-cpp"
-fi  
+fi
