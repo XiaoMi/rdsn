@@ -41,6 +41,7 @@
 #include "distributed_lock_service_simple.h"
 #include "meta_state_service_simple.h"
 
+#include "dist/http/server_info_http_service.h"
 #include "dist/replication/zookeeper/distributed_lock_service_zookeeper.h"
 #include "dist/replication/zookeeper/meta_state_service_zookeeper.h"
 
@@ -96,8 +97,12 @@ meta_service_app::meta_service_app(const service_app_info *info)
     _service.reset(new replication::meta_service());
 
     // add http service
-    _http_service = dsn::make_unique<dsn::replication::meta_http_service>(_service.get());
-    _http_server->add_service(_http_service.get());
+    _meta_http_service = dsn::make_unique<dsn::replication::meta_http_service>(_service.get());
+    _version_http_service = dsn::make_unique<dsn::version_http_service>();
+    _recent_start_time_http_service = dsn::make_unique<dsn::recent_start_time_http_service>();
+    _http_server->add_service(_meta_http_service.get());
+    _http_server->add_service(_version_http_service.get());
+    _http_server->add_service(_recent_start_time_http_service.get());
 }
 
 meta_service_app::~meta_service_app() {}
@@ -109,8 +114,8 @@ error_code meta_service_app::start(const std::vector<std::string> &args)
     if (args.size() >= 2) {
         auto it_ver = args.end() - 2;
         auto it_git = args.end() - 1;
-        _http_service->set_version(*it_ver);
-        _http_service->set_git_commit(*it_git);
+        _version_http_service->set_version(*it_ver);
+        _version_http_service->set_git_commit(*it_git);
     }
     return _service->start();
 }

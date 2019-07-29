@@ -38,6 +38,7 @@
 #include <dsn/tool-api/http_server.h>
 
 #include "dist/replication/common/replication_common.h"
+#include "dist/http/server_info_http_service.cpp"
 #include "replica_stub.h"
 
 namespace dsn {
@@ -54,8 +55,10 @@ replication_service_app::replication_service_app(const service_app_info *info)
     _stub = new replica_stub();
 
     // add http service
-    _http_service = dsn::make_unique<replication_http_service>();
-    _http_server->add_service(_http_service.get());
+    _version_http_service = dsn::make_unique<version_http_service>();
+    _recent_start_time_http_service = dsn::make_unique<recent_start_time_http_service>();
+    _http_server->add_service(_version_http_service.get());
+    _http_server->add_service(_recent_start_time_http_service.get());
 }
 
 replication_service_app::~replication_service_app(void) {}
@@ -72,8 +75,8 @@ error_code replication_service_app::start(const std::vector<std::string> &args)
     if (args.size() >= 2) {
         auto it_ver = args.end() - 2;
         auto it_git = args.end() - 1;
-        _http_service->set_version(*it_ver);
-        _http_service->set_git_commit(*it_git);
+        _version_http_service->set_version(*it_ver);
+        _version_http_service->set_git_commit(*it_git);
     }
 
     return ERR_OK;
