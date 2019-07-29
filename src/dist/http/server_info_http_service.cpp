@@ -21,7 +21,7 @@ void version_http_service::get_version_handler(const http_request &req, http_res
 }
 
 void recent_start_time_http_service::get_recent_start_time_handler(const http_request &req,
-                                                             http_response &resp)
+                                                                   http_response &resp)
 {
     char start_time[100];
     dsn::utils::time_ms_to_date_time(dsn::utils::process_start_millis(), start_time, 100);

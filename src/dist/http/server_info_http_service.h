@@ -58,7 +58,6 @@ public:
     std::string path() const override { return "recentStartTime"; }
 
     void get_recent_start_time_handler(const http_request &req, http_response &resp);
-
 };
 
 } // namespace dsn
