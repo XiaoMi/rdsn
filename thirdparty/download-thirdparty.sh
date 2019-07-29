@@ -95,7 +95,6 @@ function extract_package()
 function exit_if_fail()
 {
     if [ $1 -eq 2 ]; then
-        echo "md5 error"
         exit $1
     fi
 }
