@@ -23,8 +23,8 @@ struct http_request
 
     // http://ip:port/<service>/<method>
     std::pair<std::string, std::string> service_method;
-    // method_args <args_name, args_val>
-    std::vector<std::pair<std::string, std::string>> method_args;
+    // <args_name, args_val>
+    std::map<std::string, std::string> query_args;
     blob body;
     blob full_url;
     http_method method;

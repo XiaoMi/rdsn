@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include <dsn/tool-api/http_server.h>
 
 namespace dsn {
@@ -49,6 +51,9 @@ public:
     void get_cluster_info_handler(const http_request &req, http_response &resp);
 
 private:
+    // set redirect location if current server is not primary
+    bool is_primary(const http_request &req, http_response &resp);
+
     meta_service *_service;
 };
 

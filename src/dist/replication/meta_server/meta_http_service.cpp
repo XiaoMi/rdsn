@@ -21,7 +21,7 @@ namespace replication {
 void meta_http_service::get_app_handler(const http_request &req, http_response &resp)
 {
     std::string app_name;
-    for (std::pair<std::string, std::string> p : req.method_args) {
+    for (const auto &p : req.query_args) {
         if (p.first == "app_name") {
             app_name = p.second;
         } else {
@@ -29,14 +29,8 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
             return;
         }
     }
-
-    std::unique_ptr<rpc_address> leader(new rpc_address());
-    if (!(_service->_failure_detector->get_leader(leader.get()))) {
-        app_name.pop_back(); // remove the final '\0'
-        resp.location = "http://" + leader->to_std_string() + "/meta/app?app_name=" + app_name;
-        resp.status_code = http_status_code::temporary_redirect;
+    if (!is_primary(req, resp))
         return;
-    }
 
     configuration_query_by_index_request request;
     configuration_query_by_index_response response;
@@ -71,15 +65,11 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
 
 void meta_http_service::list_app_handler(const http_request &req, http_response &resp)
 {
-    std::unique_ptr<rpc_address> leader(new rpc_address());
-    if (!(_service->_failure_detector->get_leader(leader.get()))) {
-        resp.location = "http://" + leader->to_std_string() + "/meta/apps";
-        resp.status_code = http_status_code::temporary_redirect;
+    if (!is_primary(req, resp))
         return;
-    }
     configuration_list_apps_response response;
     configuration_list_apps_request request;
-    request.status = dsn::app_status::AS_INVALID; // -a
+    request.status = dsn::app_status::AS_INVALID;
 
     _service->_state->list_apps(request, response);
 
@@ -107,49 +97,49 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
     tp_general.add_column("drop_time");
     tp_general.add_column("drop_expire");
     tp_general.add_column("envs_count");
-    for (int i = 0; i < apps.size(); i++) {
-        if (apps[i].status != dsn::app_status::AS_AVAILABLE) {
+    for (const auto &app : apps) {
+        if (app.status != dsn::app_status::AS_AVAILABLE) {
             continue;
         }
-        std::string status_str = enum_to_string(apps[i].status);
+        std::string status_str = enum_to_string(app.status);
         status_str = status_str.substr(status_str.find("AS_") + 3);
         std::string create_time = "-";
-        if (apps[i].create_second > 0) {
+        if (app.create_second > 0) {
             char buf[20];
-            dsn::utils::time_ms_to_date_time((uint64_t)apps[i].create_second * 1000, buf, 20);
+            dsn::utils::time_ms_to_date_time((uint64_t)app.create_second * 1000, buf, 20);
             buf[10] = '_';
             create_time = buf;
         }
         std::string drop_time = "-";
         std::string drop_expire_time = "-";
-        if (apps[i].status == app_status::AS_AVAILABLE) {
+        if (app.status == app_status::AS_AVAILABLE) {
             available_app_count++;
-        } else if (apps[i].status == app_status::AS_DROPPED && apps[i].expire_second > 0) {
-            if (apps[i].drop_second > 0) {
+        } else if (app.status == app_status::AS_DROPPED && app.expire_second > 0) {
+            if (app.drop_second > 0) {
                 char buf[20];
-                dsn::utils::time_ms_to_date_time((uint64_t)apps[i].drop_second * 1000, buf, 20);
+                dsn::utils::time_ms_to_date_time((uint64_t)app.drop_second * 1000, buf, 20);
                 buf[10] = '_';
                 drop_time = buf;
             }
-            if (apps[i].expire_second > 0) {
+            if (app.expire_second > 0) {
                 char buf[20];
-                dsn::utils::time_ms_to_date_time((uint64_t)apps[i].expire_second * 1000, buf, 20);
+                dsn::utils::time_ms_to_date_time((uint64_t)app.expire_second * 1000, buf, 20);
                 buf[10] = '_';
                 drop_expire_time = buf;
             }
         }
 
-        tp_general.add_row(apps[i].app_id);
+        tp_general.add_row(app.app_id);
         tp_general.append_data(status_str);
-        tp_general.append_data(apps[i].app_name);
-        tp_general.append_data(apps[i].app_type);
-        tp_general.append_data(apps[i].partition_count);
-        tp_general.append_data(apps[i].max_replica_count);
-        tp_general.append_data(apps[i].is_stateful);
+        tp_general.append_data(app.app_name);
+        tp_general.append_data(app.app_type);
+        tp_general.append_data(app.partition_count);
+        tp_general.append_data(app.max_replica_count);
+        tp_general.append_data(app.is_stateful);
         tp_general.append_data(create_time);
         tp_general.append_data(drop_time);
         tp_general.append_data(drop_expire_time);
-        tp_general.append_data(apps[i].envs.size());
+        tp_general.append_data(app.envs.size());
     }
     mtp.add(std::move(tp_general));
 
@@ -165,12 +155,8 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
 
 void meta_http_service::list_node_handler(const http_request &req, http_response &resp)
 {
-    std::unique_ptr<rpc_address> leader(new rpc_address());
-    if (!(_service->_failure_detector->get_leader(leader.get()))) {
-        resp.location = "http://" + leader->to_std_string() + "/meta/nodes";
-        resp.status_code = http_status_code::temporary_redirect;
+    if (!is_primary(req, resp))
         return;
-    }
 
     int alive_node_count = (_service->_alive_set).size();
     int unalive_node_count = (_service->_dead_set).size();
@@ -204,12 +190,8 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
 
 void meta_http_service::get_cluster_info_handler(const http_request &req, http_response &resp)
 {
-    std::unique_ptr<rpc_address> leader(new rpc_address());
-    if (!(_service->_failure_detector->get_leader(leader.get()))) {
-        resp.location = "http://" + leader->to_std_string() + "/meta/cluster";
-        resp.status_code = http_status_code::temporary_redirect;
+    if (!is_primary(req, resp))
         return;
-    }
     dsn::utils::table_printer tp("cluster_info");
     std::ostringstream out;
     std::string meta_servers_str;
@@ -243,6 +225,30 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
 
     resp.body = out.str();
     resp.status_code = http_status_code::ok;
+}
+
+bool meta_http_service::is_primary(const http_request &req, http_response &resp)
+{
+    std::unique_ptr<rpc_address> leader(new rpc_address());
+    if (!(_service->_failure_detector->get_leader(leader.get()))) {
+        std::string service_name, method_name, arg_name, arg_value;
+        service_name = req.service_method.first;
+        method_name = req.service_method.second;
+        resp.location =
+            "http://" + leader->to_std_string() + '/' + service_name + '/' + method_name;
+        if (!req.query_args.empty()) {
+            resp.location += '?';
+            for (const auto &i : req.query_args) {
+                resp.location += i.first + '=' + i.second + '&';
+            }
+            resp.location.pop_back(); // remove the final '&'
+        }
+        resp.location.erase(std::remove(resp.location.begin(), resp.location.end(), '\0'),
+                            resp.location.end()); // remove all '\0'
+        resp.status_code = http_status_code::temporary_redirect;
+        return false;
+    }
+    return true;
 }
 
 } // namespace replication

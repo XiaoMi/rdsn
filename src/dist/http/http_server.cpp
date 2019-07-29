@@ -129,13 +129,18 @@ void http_server::add_service(http_service *service)
     ret.service_method = std::make_pair(std::string(real_args[0]), std::string(real_args[1]));
 
     // find if there are method args (<ip>:<port>/<service>/<method>?<arg>=<val>&<arg>=<val>)
-    std::vector<std::string> method_arg_val;
-    boost::split(method_arg_val, unresolved_query, boost::is_any_of("&"));
-    for (std::string &arg_val : method_arg_val) {
-        std::vector<std::string> arg_vals;
-        boost::split(arg_vals, arg_val, boost::is_any_of("="));
-        if (arg_vals.size() == 2)
-            ret.method_args.emplace_back(std::make_pair(arg_vals[0], arg_vals[1]));
+    if (!unresolved_query.empty()) {
+        std::vector<std::string> method_arg_val;
+        boost::split(method_arg_val, unresolved_query, boost::is_any_of("&"));
+        for (std::string &arg_val : method_arg_val) {
+            std::vector<std::string> arg_vals;
+            boost::split(arg_vals, arg_val, boost::is_any_of("="));
+            if (arg_vals.size() == 2)
+                ret.query_args.emplace(arg_vals[0], arg_vals[1]);
+            else {
+                return error_s::make(ERR_INVALID_PARAMETERS);
+            }
+        }
     }
 
     return ret;
