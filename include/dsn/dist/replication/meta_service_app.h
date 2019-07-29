@@ -76,9 +76,9 @@ private:
     friend class ::dsn::replication::test::test_checker;
     std::unique_ptr<dsn::replication::meta_service> _service;
     std::unique_ptr<http_server> _http_server;
-    std::unique_ptr<dsn::replication::meta_http_service> _meta_http_service;
-    std::unique_ptr<version_http_service> _version_http_service;
-    std::unique_ptr<recent_start_time_http_service> _recent_start_time_http_service;
+    dsn::replication::meta_http_service *_meta_http_service;
+    version_http_service *_version_http_service;
+    recent_start_time_http_service *_recent_start_time_http_service;
 };
 } // namespace service
 } // namespace dsn

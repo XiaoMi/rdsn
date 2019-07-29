@@ -33,7 +33,6 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-#include <dsn/dist/replication/replication_http_service.h>
 #include <dsn/dist/replication/replication_service_app.h>
 #include <dsn/tool-api/http_server.h>
 
@@ -55,10 +54,10 @@ replication_service_app::replication_service_app(const service_app_info *info)
     _stub = new replica_stub();
 
     // add http service
-    _version_http_service = dsn::make_unique<version_http_service>();
-    _recent_start_time_http_service = dsn::make_unique<recent_start_time_http_service>();
-    _http_server->add_service(_version_http_service.get());
-    _http_server->add_service(_recent_start_time_http_service.get());
+    _version_http_service = new version_http_service();
+    _recent_start_time_http_service = new recent_start_time_http_service();
+    _http_server->add_service(_version_http_service);
+    _http_server->add_service(_recent_start_time_http_service);
 }
 
 replication_service_app::~replication_service_app(void) {}
