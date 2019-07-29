@@ -264,6 +264,14 @@ check_and_download "${GFLAGS_PKG}"\
     "${GFLAGS_NAME}"
 exit_if_fail $?
 
+rm -rf $TP_SRC/prometheus-cpp-0.7.0/3rdparty/civetweb $TP_SRC/prometheus-cpp-0.7.0/3rdparty/googletest
+cp -r $TP_SRC/civetweb-1.11 $TP_SRC/prometheus-cpp-0.7.0/3rdparty/
+cp -r $TP_SRC/googletest-release-1.8.0 $TP_SRC/prometheus-cpp-0.7.0/3rdparty/
+cd $TP_SRC/prometheus-cpp-0.7.0/3rdparty
+mv civetweb-1.11 civetweb
+mv googletest-release-1.8.0 googletest
+cd $TP_SRC
+
 # s2geometry
 # from: https://github.com/google/s2geometry/archive/0239455c1e260d6d2c843649385b4fb9f5b28dba.zip
 S2GEOMETRY_NAME=s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba
