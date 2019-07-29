@@ -91,20 +91,19 @@ void http_server::add_service(http_service *service)
 
     std::string unresolved_path;
     if (u.field_set & (1u << UF_PATH)) {
-        unresolved_path.resize(u.field_data[UF_PATH].len + 1);
-        strncpy(&unresolved_path[0],
-                ret.full_url.data() + u.field_data[UF_PATH].off,
-                u.field_data[UF_PATH].len);
-        unresolved_path[u.field_data[UF_PATH].len] = '\0';
+        uint16_t data_length = u.field_data[UF_PATH].len;
+        unresolved_path.resize(data_length + 1);
+        strncpy(&unresolved_path[0], ret.full_url.data() + u.field_data[UF_PATH].off, data_length);
+        unresolved_path[data_length] = '\0';
     }
 
     std::string unresolved_query;
     if (u.field_set & (1u << UF_QUERY)) {
-        unresolved_query.resize(u.field_data[UF_QUERY].len + 1);
-        strncpy(&unresolved_query[0],
-                ret.full_url.data() + u.field_data[UF_QUERY].off,
-                u.field_data[UF_QUERY].len);
-        unresolved_query[u.field_data[UF_QUERY].len] = '\0';
+        uint16_t data_length = u.field_data[UF_QUERY].len;
+        unresolved_query.resize(data_length + 1);
+        strncpy(
+            &unresolved_query[0], ret.full_url.data() + u.field_data[UF_QUERY].off, data_length);
+        unresolved_query[data_length] = '\0';
     }
 
     std::vector<std::string> args;
@@ -131,7 +130,6 @@ void http_server::add_service(http_service *service)
 
     // find if there are method args (<ip>:<port>/<service>/<method>?<arg>=<val>&<arg>=<val>)
     std::vector<std::string> method_arg_val;
-
     boost::split(method_arg_val, unresolved_query, boost::is_any_of("&"));
     for (std::string &arg_val : method_arg_val) {
         std::vector<std::string> arg_vals;
