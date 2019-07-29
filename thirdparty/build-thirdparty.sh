@@ -268,9 +268,16 @@ fi
 
 #build prometheus-cpp
 if [ ! -d $TP_OUTPUT/include/prometheus ]; then
+    rm -rf $TP_SRC/prometheus-cpp-0.7.0/3rdparty/civetweb $TP_SRC/prometheus-cpp-0.7.0/3rdparty/googletest
+    cp -r $TP_SRC/civetweb-1.11 $TP_SRC/prometheus-cpp-0.7.0/3rdparty/
+    cp -r $TP_SRC/googletest-release-1.8.0 $TP_SRC/prometheus-cpp-0.7.0/3rdparty/
+    cd $TP_SRC/prometheus-cpp-0.7.0/3rdparty
+    mv civetweb-1.11 civetweb
+    mv googletest-release-1.8.0 googletest
+    cd $TP_DIR
     mkdir -p $TP_BUILD/prometheus
     cd $TP_BUILD/prometheus
-    cmake $TP_SRC/prometheus-cpp -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT
+    cmake $TP_SRC/prometheus-cpp-0.7.0 -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT
     make -j8 && make install
     res=$?
     exit_if_fail "prometheus-cpp" $res

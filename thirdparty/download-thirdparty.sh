@@ -95,6 +95,7 @@ function extract_package()
 function exit_if_fail()
 {
     if [ $1 -eq 2 ]; then
+        echo "md5 error"
         exit $1
     fi
 }
@@ -244,16 +245,24 @@ check_and_download "${GFLAGS_PKG}"\
     "${GFLAGS_NAME}"
 exit_if_fail $?
 
+# civetweb
+# from: https://codeload.github.com/civetweb/civetweb/tar.gz/v1.11
+GFLAGS_NAME=civetweb-1.11
+GFLAGS_PKG=${GFLAGS_NAME}.tar.gz
+check_and_download "${GFLAGS_PKG}"\
+    "${OSS_URL_PREFIX}/${GFLAGS_PKG}"\
+    "b6d2175650a27924bccb747cbe084cd4"\
+    "${GFLAGS_NAME}"
+exit_if_fail $?
+
 # prometheus-cpp
-if [ ! -d $TP_SRC/prometheus-cpp ]; then
-    git clone https://github.com/jupp0r/prometheus-cpp.git --recursive
-    if [ $? != 0 ]; then 
-        echo "ERROR: download prometheus-cpp wrong"
-        exit 2
-    fi
-else
-    echo "prometheus-cpp has already downloaded, skip it"
-fi
+# from: https://codeload.github.com/jupp0r/prometheus-cpp/tar.gz/v0.7.0
+GFLAGS_NAME=prometheus-cpp-0.7.0
+GFLAGS_PKG=${GFLAGS_NAME}.tar.gz
+check_and_download "${GFLAGS_PKG}"\
+    "${OSS_URL_PREFIX}/${GFLAGS_PKG}"\
+    "dc75c31ceaefd160e978365bdca8eb01"\
+    "${GFLAGS_NAME}"
 exit_if_fail $?
 
 # s2geometry
