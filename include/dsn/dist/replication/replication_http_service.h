@@ -12,8 +12,7 @@ namespace replication {
 class replication_http_service : public http_service
 {
 public:
-    replication_http_service(const std::string ver, const std::string git)
-        : _version(ver), _git_commit(git)
+    replication_http_service()
     {
         // GET ip:port/replica/version
         register_handler("version",
@@ -34,9 +33,21 @@ public:
     void get_version_handler(const http_request &req, http_response &resp);
     void get_recent_start_time_handler(const http_request &req, http_response &resp);
 
+    void set_version(const std::string &ver)
+    {
+        _version = ver;
+        return;
+    }
+
+    void set_git_commit(const std::string &git)
+    {
+        _git_commit = git;
+        return;
+    }
+
 private:
-    const std::string _version;
-    const std::string _git_commit;
+    std::string _version;
+    std::string _git_commit;
 };
 
 } // namespace replication
