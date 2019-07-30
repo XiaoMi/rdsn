@@ -22,7 +22,7 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
 {
     std::string app_name;
     for (const auto &p : req.query_args) {
-        if (p.first == "app_name") {
+        if (p.first == "name") {
             app_name = p.second;
         } else {
             resp.status_code = http_status_code::bad_request;
