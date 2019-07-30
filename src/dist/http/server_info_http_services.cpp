@@ -4,7 +4,7 @@
 
 #include <dsn/utility/output_utils.h>
 
-#include "server_info_http_service.h"
+#include "server_info_http_services.h"
 
 namespace dsn {
 

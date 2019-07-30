@@ -28,7 +28,7 @@
 #include <dsn/tool-api/http_server.h>
 
 #include "dist/replication/common/replication_common.h"
-#include "dist/http/server_info_http_service.cpp"
+#include "dist/http/server_info_http_services.h"
 #include "replica_stub.h"
 
 namespace dsn {
