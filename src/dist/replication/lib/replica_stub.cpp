@@ -650,6 +650,11 @@ void replica_stub::initialize_start()
     }
 #endif
 
+    if (!_options.duplication_disabled) {
+        _duplication_sync_timer = dsn::make_unique<duplication_sync_timer>(this);
+        _duplication_sync_timer->start();
+    }
+
     // init liveness monitor
     dassert(NS_Disconnected == _state, "");
     if (_options.fd_disabled == false) {
