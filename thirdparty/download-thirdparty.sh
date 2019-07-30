@@ -246,30 +246,28 @@ exit_if_fail $?
 
 # civetweb
 # from: https://codeload.github.com/civetweb/civetweb/tar.gz/v1.11
-GFLAGS_NAME=civetweb-1.11
-GFLAGS_PKG=${GFLAGS_NAME}.tar.gz
-check_and_download "${GFLAGS_PKG}"\
-    "${OSS_URL_PREFIX}/${GFLAGS_PKG}"\
+CIVETWEB_NAME=civetweb-1.11
+CIVETWEB_PKG=${CIVETWEB_NAME}.tar.gz
+check_and_download "${CIVETWEB_PKG}"\
+    "${OSS_URL_PREFIX}/${CIVETWEB_PKG}"\
     "b6d2175650a27924bccb747cbe084cd4"\
-    "${GFLAGS_NAME}"
+    "${CIVETWEB_NAME}"
 exit_if_fail $?
 
 # prometheus-cpp
 # from: https://codeload.github.com/jupp0r/prometheus-cpp/tar.gz/v0.7.0
-GFLAGS_NAME=prometheus-cpp-0.7.0
-GFLAGS_PKG=${GFLAGS_NAME}.tar.gz
-check_and_download "${GFLAGS_PKG}"\
-    "${OSS_URL_PREFIX}/${GFLAGS_PKG}"\
+PROMETHEUS_NAME=prometheus-cpp-0.7.0
+PROMETHEUS_PKG=${PROMETHEUS_NAME}.tar.gz
+check_and_download "${PROMETHEUS_PKG}"\
+    "${OSS_URL_PREFIX}/${PROMETHEUS_PKG}"\
     "dc75c31ceaefd160e978365bdca8eb01"\
-    "${GFLAGS_NAME}"
+    "${PROMETHEUS_NAME}"
 exit_if_fail $?
 
-rm -rf $TP_SRC/prometheus-cpp-0.7.0/3rdparty/civetweb $TP_SRC/prometheus-cpp-0.7.0/3rdparty/googletest
+rm -rf $TP_SRC/prometheus-cpp-0.7.0/3rdparty/civetweb
 cp -r $TP_SRC/civetweb-1.11 $TP_SRC/prometheus-cpp-0.7.0/3rdparty/
-cp -r $TP_SRC/googletest-release-1.8.0 $TP_SRC/prometheus-cpp-0.7.0/3rdparty/
 cd $TP_SRC/prometheus-cpp-0.7.0/3rdparty
 mv civetweb-1.11 civetweb
-mv googletest-release-1.8.0 googletest
 cd $TP_SRC
 
 # s2geometry
