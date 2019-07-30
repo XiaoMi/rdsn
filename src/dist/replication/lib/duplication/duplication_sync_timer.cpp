@@ -38,6 +38,14 @@ void duplication_sync_timer::run()
     auto req = make_unique<duplication_sync_request>();
     req->node = _stub->primary_address();
 
+    // collects confirm points from all primaries on this server
+    for (const replica_ptr &r : get_all_primaries()) {
+        auto confirmed = r->get_duplication_manager()->get_duplication_confirms_to_update();
+        if (!confirmed.empty()) {
+            req->confirm_list[r->get_gpid()] = std::move(confirmed);
+        }
+    }
+
     duplication_sync_rpc rpc(std::move(req), RPC_CM_DUPLICATION_SYNC, 3_s);
     rpc_address meta_server_address(_stub->get_meta_server_address());
     ddebug_f("duplication_sync to meta({})", meta_server_address.to_string());
