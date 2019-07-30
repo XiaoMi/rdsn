@@ -28,6 +28,7 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
+#include "duplication/replica_duplicator_manager.h"
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -82,12 +83,6 @@ replica::replica(
     }
 }
 
-// void replica::json_state(std::stringstream& out) const
-//{
-//    JSON_DICT_ENTRIES(out, *this, name(), _config, _app->last_committed_decree(),
-//    _app->last_durable_decree());
-//}
-
 void replica::update_last_checkpoint_generate_time()
 {
     _last_checkpoint_generate_time_ms = dsn_now_ms();
@@ -97,9 +92,13 @@ void replica::update_last_checkpoint_generate_time()
         _last_checkpoint_generate_time_ms + rand::next_u64(max_interval_ms / 2, max_interval_ms);
 }
 
-void replica::update_commit_statistics(int count)
+//            //
+// Statistics //
+//            //
+
+void replica::update_commit_qps(int count)
 {
-    _stub->_counter_replicas_total_commit_throught->add((uint64_t)count);
+    _stub->_counter_replicas_commit_qps->add((uint64_t)count);
 }
 
 void replica::init_state()
