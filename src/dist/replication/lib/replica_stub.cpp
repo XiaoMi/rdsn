@@ -97,12 +97,10 @@ void replica_stub::install_perf_counters()
                                                      "closing.replica(Count)",
                                                      COUNTER_TYPE_NUMBER,
                                                      "# in replica_stub._closing_replicas");
-    _counter_replicas_total_commit_throught.init_app_counter(
-        "eon.replica_stub",
-        "replicas.commit.qps",
-        COUNTER_TYPE_RATE,
-        "app commit throughput for all replicas");
-
+    _counter_replicas_commit_qps.init_app_counter("eon.replica_stub",
+                                                  "replicas.commit.qps",
+                                                  COUNTER_TYPE_RATE,
+                                                  "server-level commit throughput");
     _counter_replicas_learning_count.init_app_counter("eon.replica_stub",
                                                       "replicas.learning.count",
                                                       COUNTER_TYPE_NUMBER,
@@ -1246,6 +1244,7 @@ void replica_stub::set_replica_state_subscriber_for_test(replica_state_subscribe
 
 // this_ is used to hold a ref to replica_stub so we don't need to cancel the task on
 // replica_stub::close
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
                                                const configuration_update_request &req)
 {
@@ -1267,6 +1266,7 @@ void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
     }
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica_stub::on_node_query_reply_scatter2(replica_stub_ptr this_, gpid id)
 {
     replica_ptr replica = get_replica(id);
@@ -2011,11 +2011,8 @@ void replica_stub::open_service()
         [this](const std::vector<std::string> &args) {
             return exec_command_on_replica(args, true, [](const replica_ptr &rep) {
                 std::map<std::string, std::string> kv_map;
-                if (rep->query_app_envs(kv_map)) {
-                    return dsn::utils::kv_map_to_string(kv_map, ',', '=');
-                } else {
-                    return std::string("call replica::query_app_envs() failed");
-                }
+                rep->query_app_envs(kv_map);
+                return dsn::utils::kv_map_to_string(kv_map, ',', '=');
             });
         });
 
