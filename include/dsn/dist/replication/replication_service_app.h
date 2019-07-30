@@ -42,7 +42,6 @@ namespace dsn {
 
 class http_server;
 class version_http_service;
-class recent_start_time_http_service;
 
 namespace replication {
 

@@ -39,12 +39,10 @@
 
 namespace dsn {
 class version_http_service;
-class recent_start_time_http_service;
 namespace replication {
 
 class meta_service;
 class replication_checker;
-class meta_http_service;
 
 namespace test {
 class test_checker;
