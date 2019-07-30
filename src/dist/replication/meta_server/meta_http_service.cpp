@@ -79,7 +79,7 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
         resp.status_code = http_status_code::internal_server_error;
         return;
     }
-    std::vector<::dsn::app_info> apps = response.infos;
+    std::vector<::dsn::app_info> &apps = response.infos;
 
     // output as json format
     std::ostringstream out;
@@ -105,9 +105,8 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
         status_str = status_str.substr(status_str.find("AS_") + 3);
         std::string create_time = "-";
         if (app.create_second > 0) {
-            char buf[20];
-            dsn::utils::time_ms_to_date_time((uint64_t)app.create_second * 1000, buf, 20);
-            buf[10] = '_';
+            char buf[24];
+            dsn::utils::time_ms_to_string((uint64_t)app.create_second * 1000, buf);
             create_time = buf;
         }
         std::string drop_time = "-";
@@ -116,15 +115,13 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
             available_app_count++;
         } else if (app.status == app_status::AS_DROPPED && app.expire_second > 0) {
             if (app.drop_second > 0) {
-                char buf[20];
-                dsn::utils::time_ms_to_date_time((uint64_t)app.drop_second * 1000, buf, 20);
-                buf[10] = '_';
+                char buf[24];
+                dsn::utils::time_ms_to_string((uint64_t)app.drop_second * 1000, buf);
                 drop_time = buf;
             }
             if (app.expire_second > 0) {
-                char buf[20];
-                dsn::utils::time_ms_to_date_time((uint64_t)app.expire_second * 1000, buf, 20);
-                buf[10] = '_';
+                char buf[24];
+                dsn::utils::time_ms_to_string((uint64_t)app.expire_second * 1000, buf);
                 drop_expire_time = buf;
             }
         }
