@@ -415,7 +415,7 @@ void pprof_http_service::growth_handler(const http_request &req, http_response &
 //                             //
 static bool get_cpu_profile(std::string &result, useconds_t seconds)
 {
-    const char* file_name = "cpu.prof";
+    const char *file_name = "cpu.prof";
 
     ProfilerStart(file_name);
     usleep(seconds);
@@ -441,7 +441,7 @@ void pprof_http_service::profile_handler(const http_request &req, http_response 
 {
     useconds_t seconds = 60000000;
 
-    const char* req_url = req.full_url.to_string().data();
+    const char *req_url = req.full_url.to_string().data();
     size_t len = req.full_url.length();
     string_splitter url_sp(req_url, req_url + len, '?');
     if (url_sp != NULL && ++url_sp != NULL) {
@@ -450,7 +450,7 @@ void pprof_http_service::profile_handler(const http_request &req, http_response 
             string_splitter kv_sp(param_sp.field(), param_sp.field() + param_sp.length(), '=');
             std::string key(kv_sp.field(), kv_sp.length());
             if (kv_sp != NULL && key == "seconds" && ++kv_sp != NULL) {
-                char* end_ptr;
+                char *end_ptr;
                 seconds = strtoul(kv_sp.field(), &end_ptr, 10) * 1000000;
                 break;
             }
