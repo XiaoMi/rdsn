@@ -244,7 +244,7 @@ void meta_duplication_service::recover_from_meta_state()
     for (const auto &kv : _state->_exist_apps) {
         std::shared_ptr<app_state> app = kv.second;
         if (app->status != app_status::AS_AVAILABLE) {
-            return;
+            continue;
         }
 
         _meta_svc->get_meta_storage()->get_children(

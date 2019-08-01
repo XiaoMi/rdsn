@@ -45,6 +45,9 @@ public:
     void SetUp() override
     {
         _ms = make_unique<fake_receiver_meta_service>();
+        _ms->_failure_detector.reset(new meta_server_failure_detector(_ms.get()));
+        _ms->_balancer.reset(utils::factory_store<server_load_balancer>::create(
+            _ms->_meta_opts._lb_opts.server_load_balancer_type.c_str(), PROVIDER_TYPE_MAIN, this));
         ASSERT_EQ(_ms->remote_storage_initialize(), ERR_OK);
         _ms->initialize_duplication_service();
         ASSERT_TRUE(_ms->_dup_svc);
@@ -88,6 +91,21 @@ public:
         ASSERT_EQ(resp.err, ERR_OK) << resp.err.to_string() << " " << name;
 
         // wait for the table to create
+        ASSERT_TRUE(_ss->spin_wait_staging(30));
+    }
+
+    // drop an app for test.
+    void drop_app(const std::string &name)
+    {
+        configuration_drop_app_request req;
+        configuration_drop_app_response resp;
+        req.app_name = name;
+        req.options.success_if_not_exist = false;
+
+        auto result = fake_drop_app(_ss.get(), req);
+        fake_wait_rpc(result, resp);
+        ASSERT_EQ(resp.err, ERR_OK) << resp.err.to_string() << " " << name;
+
         ASSERT_TRUE(_ss->spin_wait_staging(30));
     }
 
