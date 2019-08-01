@@ -53,7 +53,7 @@ void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
             response.err = ERR_APP_NOT_EXIST;
             dwarn_f("client({}) sent split request with invalid app({}), app is not existed or "
                     "unavailable",
-                    ((message_ex *)rpc.dsn_request())->header->from_address.to_string(),
+                    rpc.remote_address().to_string(),
                     request.app_name);
             return;
         }
@@ -80,7 +80,7 @@ void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
                 response.err = ERR_BUSY;
                 dwarn_f("app is already during partition split, client({}) sent repeated split "
                         "request: app({}), new_partition_count({})",
-                        ((message_ex *)rpc.dsn_request())->header->from_address.to_string(),
+                        rpc.remote_address().to_string(),
                         request.app_name,
                         request.new_partition_count);
                 return;
