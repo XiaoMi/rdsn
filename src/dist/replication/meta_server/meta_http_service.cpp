@@ -224,6 +224,9 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
 
 bool meta_http_service::is_primary(const http_request &req, http_response &resp)
 {
+#ifdef DSN_MOCK_TEST
+    return true;
+#endif
     rpc_address leader;
     if (_service->_failure_detector->get_leader(&leader))
         return true;
