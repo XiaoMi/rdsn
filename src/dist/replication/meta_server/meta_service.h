@@ -218,6 +218,7 @@ private:
     friend class meta_duplication_service;
     std::unique_ptr<meta_duplication_service> _dup_svc;
 
+    friend class meta_split_service_test;
     std::unique_ptr<meta_split_service> _split_svc;
 
     // handle all the block filesystems for current meta service

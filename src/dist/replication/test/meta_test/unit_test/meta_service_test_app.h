@@ -122,10 +122,6 @@ public:
     // test server_state set_app_envs/del_app_envs/clear_app_envs
     void app_envs_basic_test();
 
-    // test app_partition_split
-    std::shared_ptr<dsn::replication::meta_service> create_mock_meta_svc();
-    void app_partition_split_test();
-
     // test for bug found
     void adjust_dropped_size();
 
@@ -135,6 +131,31 @@ public:
     void call_config_sync(
         dsn::replication::meta_service *svc,
         std::shared_ptr<dsn::replication::configuration_query_by_node_request> &request);
+
+    static dsn::replication::meta_service *initialize_meta_service()
+    {
+        auto meta_svc = new fake_receiver_meta_service();
+        meta_svc->remote_storage_initialize();
+
+        auto state = meta_svc->_state;
+        state->initialize(meta_svc, meta_svc->_cluster_root + "/apps");
+
+        meta_svc->_started = true;
+        state->initialize_data_structure();
+
+        return meta_svc;
+    }
+
+    static void delete_all_on_meta_storage(dsn::replication::meta_service *meta_svc)
+    {
+        meta_svc->get_meta_storage()->get_children(
+            {"/"}, [meta_svc](bool, const std::vector<std::string> &children) {
+                for (const std::string &child : children) {
+                    meta_svc->get_meta_storage()->delete_node_recursively("/" + child, []() {});
+                }
+            });
+        meta_svc->tracker()->wait_outstanding_tasks();
+    }
 
 private:
     typedef std::function<bool(const dsn::replication::app_mapper &)> state_validator;

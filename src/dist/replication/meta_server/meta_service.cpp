@@ -894,9 +894,7 @@ void meta_service::on_app_partition_split(app_partition_split_rpc rpc)
 
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
-                     [this, rpc]() {
-                         _split_svc->app_partition_split(std::move(rpc));
-                     },
+                     [this, rpc]() { _split_svc->app_partition_split(std::move(rpc)); },
                      server_state::sStateHash);
 }
 
