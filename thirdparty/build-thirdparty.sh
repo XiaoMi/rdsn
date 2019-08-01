@@ -285,7 +285,8 @@ if [ ! -d $TP_OUTPUT/include/curl ]; then
     --disable-telnet \
     --disable-tftp \
     --without-librtmp \
-    --without-libssh2"
+    --without-libssh2 \
+    --without-ssl"
 
     ./configure $CONFIG_FLAGS
     make -j8 && make install
