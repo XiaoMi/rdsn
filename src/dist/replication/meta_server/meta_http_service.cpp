@@ -224,23 +224,22 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
 
 bool meta_http_service::is_primary(const http_request &req, http_response &resp)
 {
-    std::unique_ptr<rpc_address> leader(new rpc_address());
-    if (_service->_failure_detector->get_leader(leader.get()))
+    rpc_address leader;
+    if (_service->_failure_detector->get_leader(&leader))
         return true;
     // set redirect response
-    std::string service_name, method_name, arg_name, arg_value;
-    service_name = req.service_method.first;
-    method_name = req.service_method.second;
-    resp.location = "http://" + leader->to_std_string() + '/' + service_name + '/' + method_name;
+    const std::string &service_name = req.service_method.first;
+    const std::string &method_name = req.service_method.second;
+    resp.location = "http://" + leader.to_std_string() + '/' + service_name + '/' + method_name;
     if (!req.query_args.empty()) {
         resp.location += '?';
         for (const auto &i : req.query_args) {
             resp.location += i.first + '=' + i.second + '&';
         }
-        resp.location.pop_back(); // remove the final '&'
+        resp.location.pop_back(); // remove final '&'
     }
     resp.location.erase(std::remove(resp.location.begin(), resp.location.end(), '\0'),
-                        resp.location.end()); // remove all '\0'
+                        resp.location.end()); // remove final '\0'
     resp.status_code = http_status_code::temporary_redirect;
     return false;
 }
