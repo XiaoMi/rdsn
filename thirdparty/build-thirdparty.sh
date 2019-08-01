@@ -267,7 +267,7 @@ else
 fi
 
 #build curl
-if [ ! -f $TP_OUTPUT/include/curl ]; then
+if [ ! -d $TP_OUTPUT/include/curl ]; then
     cd $TP_SRC/curl-7.47.0
     ./configure --prefix=$TP_OUTPUT
     make -j8 && make install
