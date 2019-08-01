@@ -135,16 +135,12 @@ void http_server::add_service(http_service *service)
         for (std::string &arg_val : method_arg_val) {
             std::vector<std::string> arg_vals;
             boost::split(arg_vals, arg_val, boost::is_any_of("="));
-            if (arg_vals.size() == 2) {
-                auto iter = ret.query_args.find(arg_vals[0]);
-                if (iter == ret.query_args.end()) {
-                    ret.query_args.emplace(arg_vals[0], arg_vals[1]);
-                } else {
-                    return error_s::make(ERR_INVALID_PARAMETERS, std::string("repeat parameters"));
-                }
-            } else {
+            if (arg_vals.size() != 2)
                 return error_s::make(ERR_INVALID_PARAMETERS);
-            }
+            auto iter = ret.query_args.find(arg_vals[0]);
+            if (iter != ret.query_args.end())
+                return error_s::make(ERR_INVALID_PARAMETERS, std::string("repeat parameters"));
+            ret.query_args.emplace(arg_vals[0], arg_vals[1]);
         }
     }
 

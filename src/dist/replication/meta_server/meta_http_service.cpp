@@ -39,7 +39,6 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
     _service->_state->query_configuration_by_index(request, response);
 
     if (response.err != dsn::ERR_OK) {
-        // TODO err
         resp.body = response.err.to_string();
         resp.status_code = http_status_code::internal_server_error;
         return;
@@ -74,7 +73,6 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
     _service->_state->list_apps(request, response);
 
     if (response.err != dsn::ERR_OK) {
-        // TODO err
         resp.body = response.err.to_string();
         resp.status_code = http_status_code::internal_server_error;
         return;
@@ -210,7 +208,7 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
         "meta_function_level",
         _meta_function_level_VALUES_TO_NAMES.find(_service->get_function_level())->second + 3);
     std::vector<std::string> balance_operation_type;
-    balance_operation_type.emplace_back(std::string("detail"));
+    balance_operation_type.emplace_back("detail");
     tp.add_row_name_and_data(
         "balance_operation_count",
         _service->_balancer->get_balance_operation_count(balance_operation_type));
@@ -227,25 +225,24 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
 bool meta_http_service::is_primary(const http_request &req, http_response &resp)
 {
     std::unique_ptr<rpc_address> leader(new rpc_address());
-    if (!(_service->_failure_detector->get_leader(leader.get()))) {
-        std::string service_name, method_name, arg_name, arg_value;
-        service_name = req.service_method.first;
-        method_name = req.service_method.second;
-        resp.location =
-            "http://" + leader->to_std_string() + '/' + service_name + '/' + method_name;
-        if (!req.query_args.empty()) {
-            resp.location += '?';
-            for (const auto &i : req.query_args) {
-                resp.location += i.first + '=' + i.second + '&';
-            }
-            resp.location.pop_back(); // remove the final '&'
+    if (_service->_failure_detector->get_leader(leader.get()))
+        return true;
+    // set redirect response
+    std::string service_name, method_name, arg_name, arg_value;
+    service_name = req.service_method.first;
+    method_name = req.service_method.second;
+    resp.location = "http://" + leader->to_std_string() + '/' + service_name + '/' + method_name;
+    if (!req.query_args.empty()) {
+        resp.location += '?';
+        for (const auto &i : req.query_args) {
+            resp.location += i.first + '=' + i.second + '&';
         }
-        resp.location.erase(std::remove(resp.location.begin(), resp.location.end(), '\0'),
-                            resp.location.end()); // remove all '\0'
-        resp.status_code = http_status_code::temporary_redirect;
-        return false;
+        resp.location.pop_back(); // remove the final '&'
     }
-    return true;
+    resp.location.erase(std::remove(resp.location.begin(), resp.location.end(), '\0'),
+                        resp.location.end()); // remove all '\0'
+    resp.status_code = http_status_code::temporary_redirect;
+    return false;
 }
 
 } // namespace replication
