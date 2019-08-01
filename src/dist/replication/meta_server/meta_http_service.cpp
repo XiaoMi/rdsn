@@ -21,9 +21,19 @@ namespace replication {
 void meta_http_service::get_app_handler(const http_request &req, http_response &resp)
 {
     std::string app_name;
+    bool detailed = false;
     for (const auto &p : req.query_args) {
         if (p.first == "name") {
             app_name = p.second;
+        } else if (p.first == "detail") {
+            if (p.second == "false")
+                detailed = false;
+            else if (p.second == "true")
+                detailed = true;
+            else {
+                resp.status_code = http_status_code::bad_request;
+                return;
+            }
         } else {
             resp.status_code = http_status_code::bad_request;
             return;
@@ -45,6 +55,7 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
     }
 
     // output as json format
+    dsn::utils::multi_table_printer mtp;
     std::ostringstream out;
     dsn::utils::table_printer tp_general("general");
     tp_general.add_row_name_and_data("app_name", app_name);
@@ -56,14 +67,110 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
     } else {
         tp_general.add_row_name_and_data("max_replica_count", 0);
     }
-    tp_general.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    mtp.add(std::move(tp_general));
 
+    if (detailed) {
+        dsn::utils::table_printer tp_details("replicas");
+        tp_details.add_title("pidx");
+        tp_details.add_column("ballot");
+        tp_details.add_column("replica_count");
+        tp_details.add_column("primary");
+        tp_details.add_column("secondaries");
+        std::map<rpc_address, std::pair<int, int>> node_stat;
+
+        int total_prim_count = 0;
+        int total_sec_count = 0;
+        int fully_healthy = 0;
+        int write_unhealthy = 0;
+        int read_unhealthy = 0;
+        for (const auto &p : response.partitions) {
+            int replica_count = 0;
+            if (!p.primary.is_invalid()) {
+                replica_count++;
+                node_stat[p.primary].first++;
+                total_prim_count++;
+            }
+            replica_count += p.secondaries.size();
+            total_sec_count += p.secondaries.size();
+            if (!p.primary.is_invalid()) {
+                if (replica_count >= p.max_replica_count)
+                    fully_healthy++;
+                else if (replica_count < 2)
+                    write_unhealthy++;
+            } else {
+                write_unhealthy++;
+                read_unhealthy++;
+            }
+            tp_details.add_row(p.pid.get_partition_index());
+            tp_details.append_data(p.ballot);
+            std::stringstream oss;
+            oss << replica_count << "/" << p.max_replica_count;
+            tp_details.append_data(oss.str());
+            tp_details.append_data((p.primary.is_invalid() ? "-" : p.primary.to_std_string()));
+            oss.str("");
+            oss << "[";
+            for (int j = 0; j < p.secondaries.size(); j++) {
+                if (j != 0)
+                    oss << ",";
+                oss << p.secondaries[j].to_std_string();
+                node_stat[p.secondaries[j]].second++;
+            }
+            oss << "]";
+            tp_details.append_data(oss.str());
+        }
+        mtp.add(std::move(tp_details));
+
+        // 'node' section.
+        dsn::utils::table_printer tp_nodes("nodes");
+        tp_nodes.add_title("node");
+        tp_nodes.add_column("primary");
+        tp_nodes.add_column("secondary");
+        tp_nodes.add_column("total");
+        for (auto &kv : node_stat) {
+            tp_nodes.add_row(kv.first.to_std_string());
+            tp_nodes.append_data(kv.second.first);
+            tp_nodes.append_data(kv.second.second);
+            tp_nodes.append_data(kv.second.first + kv.second.second);
+        }
+        tp_nodes.add_row("total");
+        tp_nodes.append_data(total_prim_count);
+        tp_nodes.append_data(total_sec_count);
+        tp_nodes.append_data(total_prim_count + total_sec_count);
+        mtp.add(std::move(tp_nodes));
+
+        // healthy partition count section.
+        dsn::utils::table_printer tp_hpc("healthy");
+        tp_hpc.add_row_name_and_data("fully_healthy_partition_count", fully_healthy);
+        tp_hpc.add_row_name_and_data("unhealthy_partition_count",
+                                     response.partition_count - fully_healthy);
+        tp_hpc.add_row_name_and_data("write_unhealthy_partition_count", write_unhealthy);
+        tp_hpc.add_row_name_and_data("read_unhealthy_partition_count", read_unhealthy);
+        mtp.add(std::move(tp_hpc));
+    }
+
+    mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
     resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
 
 void meta_http_service::list_app_handler(const http_request &req, http_response &resp)
 {
+    bool detailed = false;
+    for (const auto &p : req.query_args) {
+        if (p.first == "detail") {
+            if (p.second == "false")
+                detailed = false;
+            else if (p.second == "true")
+                detailed = true;
+            else {
+                resp.status_code = http_status_code::bad_request;
+                return;
+            }
+        } else {
+            resp.status_code = http_status_code::bad_request;
+            return;
+        }
+    }
     if (!is_primary(req, resp))
         return;
     configuration_list_apps_response response;
@@ -138,8 +245,84 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
     }
     mtp.add(std::move(tp_general));
 
+    int total_fully_healthy_app_count = 0;
+    int total_unhealthy_app_count = 0;
+    int total_write_unhealthy_app_count = 0;
+    int total_read_unhealthy_app_count = 0;
+    if (detailed && available_app_count > 0) {
+        dsn::utils::table_printer tp_health("healthy_info");
+        tp_health.add_title("app_id");
+        tp_health.add_column("app_name");
+        tp_health.add_column("partition_count");
+        tp_health.add_column("fully_healthy");
+        tp_health.add_column("unhealthy");
+        tp_health.add_column("write_unhealthy");
+        tp_health.add_column("read_unhealthy");
+        for (auto &info : apps) {
+            if (info.status != app_status::AS_AVAILABLE) {
+                continue;
+            }
+            configuration_query_by_index_request request;
+            configuration_query_by_index_response response;
+            request.app_name = info.app_name;
+            _service->_state->query_configuration_by_index(request, response);
+            dassert(info.app_id == response.app_id,
+                    "invalid app_id, %d VS %d",
+                    info.app_id,
+                    response.app_id);
+            dassert(info.partition_count == response.partition_count,
+                    "invalid partition_count, %d VS %d",
+                    info.partition_count,
+                    response.partition_count);
+            int fully_healthy = 0;
+            int write_unhealthy = 0;
+            int read_unhealthy = 0;
+            for (int i = 0; i < response.partitions.size(); i++) {
+                const dsn::partition_configuration &p = response.partitions[i];
+                int replica_count = 0;
+                if (!p.primary.is_invalid()) {
+                    replica_count++;
+                }
+                replica_count += p.secondaries.size();
+                if (!p.primary.is_invalid()) {
+                    if (replica_count >= p.max_replica_count)
+                        fully_healthy++;
+                    else if (replica_count < 2)
+                        write_unhealthy++;
+                } else {
+                    write_unhealthy++;
+                    read_unhealthy++;
+                }
+            }
+            tp_health.add_row(info.app_id);
+            tp_health.append_data(info.app_name);
+            tp_health.append_data(info.partition_count);
+            tp_health.append_data(fully_healthy);
+            tp_health.append_data(info.partition_count - fully_healthy);
+            tp_health.append_data(write_unhealthy);
+            tp_health.append_data(read_unhealthy);
+
+            if (fully_healthy == info.partition_count)
+                total_fully_healthy_app_count++;
+            else
+                total_unhealthy_app_count++;
+            if (write_unhealthy > 0)
+                total_write_unhealthy_app_count++;
+            if (read_unhealthy > 0)
+                total_read_unhealthy_app_count++;
+        }
+        mtp.add(std::move(tp_health));
+    }
+
     dsn::utils::table_printer tp_count("summary");
     tp_count.add_row_name_and_data("total_app_count", available_app_count);
+    if (detailed && available_app_count > 0) {
+        tp_count.add_row_name_and_data("fully_healthy_app_count", total_fully_healthy_app_count);
+        tp_count.add_row_name_and_data("unhealthy_app_count", total_unhealthy_app_count);
+        tp_count.add_row_name_and_data("write_unhealthy_app_count",
+                                       total_write_unhealthy_app_count);
+        tp_count.add_row_name_and_data("read_unhealthy_app_count", total_read_unhealthy_app_count);
+    }
     mtp.add(std::move(tp_count));
 
     mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
@@ -150,11 +333,34 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
 
 void meta_http_service::list_node_handler(const http_request &req, http_response &resp)
 {
+    bool detailed = false;
+    for (const auto &p : req.query_args) {
+        if (p.first == "detail") {
+            if (p.second == "false")
+                detailed = false;
+            else if (p.second == "true")
+                detailed = true;
+            else {
+                resp.status_code = http_status_code::bad_request;
+                return;
+            }
+        } else {
+            resp.status_code = http_status_code::bad_request;
+            return;
+        }
+    }
     if (!is_primary(req, resp))
         return;
 
     int alive_node_count = (_service->_alive_set).size();
     int unalive_node_count = (_service->_dead_set).size();
+
+    if (detailed) {
+        configuration_list_apps_response response;
+        configuration_list_apps_request request;
+        request.status = dsn::app_status::AS_AVAILABLE;
+        _service->_state->list_apps(request, response);
+    }
 
     // output as json format
     std::ostringstream out;
@@ -162,9 +368,16 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
     dsn::utils::table_printer tp_details("details");
     tp_details.add_title("address");
     tp_details.add_column("status");
+    if (detailed) {
+        tp_details.add_column("replica_count");
+        tp_details.add_column("primary_count");
+        tp_details.add_column("secondary_count");
+    }
     for (auto &node : (_service->_alive_set)) {
         tp_details.add_row(node.to_std_string());
         tp_details.append_data("ALIVE");
+        if (detailed) {
+        }
     }
     for (auto &node : (_service->_dead_set)) {
         tp_details.add_row(node.to_std_string());

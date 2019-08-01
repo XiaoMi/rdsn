@@ -100,10 +100,9 @@ void http_server::add_service(http_service *service)
     std::string unresolved_query;
     if (u.field_set & (1u << UF_QUERY)) {
         uint16_t data_length = u.field_data[UF_QUERY].len;
-        unresolved_query.resize(data_length + 1);
+        unresolved_query.resize(data_length);
         strncpy(
             &unresolved_query[0], ret.full_url.data() + u.field_data[UF_QUERY].off, data_length);
-        unresolved_query[data_length] = '\0';
     }
 
     std::vector<std::string> args;
