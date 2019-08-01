@@ -34,8 +34,8 @@ namespace replication {
 
 meta_split_service::meta_split_service(meta_service *meta_srv)
 {
-    this->_meta_svc = meta_srv;
-    this->_state = meta_srv->get_server_state();
+    _meta_svc = meta_srv;
+    _state = meta_srv->get_server_state();
 }
 
 void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
@@ -67,7 +67,7 @@ void meta_split_service::app_partition_split(app_partition_split_rpc rpc)
             dwarn_f("client({}) sent split request with wrong partition count: app({}), partition "
                     "count({}),"
                     "new_partition_count({})",
-                    ((message_ex *)rpc.dsn_request())->header->from_address.to_string(),
+                    rpc.remote_address().to_string(),
                     request.app_name,
                     app->partition_count,
                     request.new_partition_count);
