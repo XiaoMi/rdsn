@@ -210,6 +210,7 @@ private:
 
     friend class meta_duplication_service_test;
     friend class meta_duplication_service;
+    friend class meta_http_service_test;
     friend class meta_http_service;
     std::unique_ptr<meta_duplication_service> _dup_svc;
 
