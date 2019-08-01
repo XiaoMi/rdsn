@@ -770,6 +770,9 @@ struct app_partition_split_response
 {
     1:dsn.error_code         err;
     2:i32                    app_id;
+    // app current partition count
+    // if split succeed, partition_count = new partition_count
+    // if split failed, partition_count = original partition_count
     3:i32                    partition_count;
 }
 
