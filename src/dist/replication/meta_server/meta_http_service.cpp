@@ -352,6 +352,13 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
     if (!is_primary(req, resp))
         return;
 
+    std::map<dsn::rpc_address, list_nodes_helper> tmp_map;
+    for (const auto &node : _service->_alive_set) {
+        tmp_map.emplace(node, list_nodes_helper(node.to_std_string(), "ALIVE"));
+    }
+    for (const auto &node : _service->_dead_set) {
+        tmp_map.emplace(node, list_nodes_helper(node.to_std_string(), "UNALIVE"));
+    }
     int alive_node_count = (_service->_alive_set).size();
     int unalive_node_count = (_service->_dead_set).size();
 
@@ -360,6 +367,36 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
         configuration_list_apps_request request;
         request.status = dsn::app_status::AS_AVAILABLE;
         _service->_state->list_apps(request, response);
+        for (const auto &app : response.infos) {
+            configuration_query_by_index_request request_app;
+            configuration_query_by_index_response response_app;
+            request_app.app_name = app.app_name;
+            _service->_state->query_configuration_by_index(request_app, response_app);
+            dassert(app.app_id == response_app.app_id,
+                    "invalid app_id, %d VS %d",
+                    app.app_id,
+                    response_app.app_id);
+            dassert(app.partition_count == response_app.partition_count,
+                    "invalid partition_count, %d VS %d",
+                    app.partition_count,
+                    response_app.partition_count);
+
+            for (int i = 0; i < response_app.partitions.size(); i++) {
+                const dsn::partition_configuration &p = response_app.partitions[i];
+                if (!p.primary.is_invalid()) {
+                    auto find = tmp_map.find(p.primary);
+                    if (find != tmp_map.end()) {
+                        find->second.primary_count++;
+                    }
+                }
+                for (int j = 0; j < p.secondaries.size(); j++) {
+                    auto find = tmp_map.find(p.secondaries[j]);
+                    if (find != tmp_map.end()) {
+                        find->second.secondary_count++;
+                    }
+                }
+            }
+        }
     }
 
     // output as json format
@@ -373,15 +410,14 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
         tp_details.add_column("primary_count");
         tp_details.add_column("secondary_count");
     }
-    for (auto &node : (_service->_alive_set)) {
-        tp_details.add_row(node.to_std_string());
-        tp_details.append_data("ALIVE");
+    for (const auto &kv : tmp_map) {
+        tp_details.add_row(kv.second.node_address);
+        tp_details.append_data(kv.second.node_status);
         if (detailed) {
+            tp_details.append_data(kv.second.primary_count + kv.second.secondary_count);
+            tp_details.append_data(kv.second.primary_count);
+            tp_details.append_data(kv.second.secondary_count);
         }
-    }
-    for (auto &node : (_service->_dead_set)) {
-        tp_details.add_row(node.to_std_string());
-        tp_details.append_data("UNALIVE");
     }
     mtp.add(std::move(tp_details));
 

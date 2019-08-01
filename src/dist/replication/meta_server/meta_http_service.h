@@ -11,6 +11,18 @@
 namespace dsn {
 namespace replication {
 
+struct list_nodes_helper
+{
+    std::string node_address;
+    std::string node_status;
+    int primary_count;
+    int secondary_count;
+    list_nodes_helper(const std::string &a, const std::string &s)
+        : node_address(a), node_status(s), primary_count(0), secondary_count(0)
+    {
+    }
+};
+
 class meta_service;
 class meta_http_service : public http_service
 {
