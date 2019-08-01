@@ -280,7 +280,10 @@ void meta_duplication_service::do_restore_duplication_progress(
 
         _meta_svc->get_meta_storage()->get_data(
             std::move(partition_path), [dup, partition_idx](const blob &value) {
+                // value is confirmed_decree encoded in string.
+
                 if (value.size() == 0) {
+                    // not found
                     dup->init_progress(partition_idx, invalid_decree);
                     return;
                 }
