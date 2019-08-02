@@ -19,18 +19,23 @@ namespace replication {
 class meta_http_service_test : public meta_test_base
 {
 public:
-    meta_http_service_test() {}
+    void SetUp() override
+    {
+        meta_test_base::SetUp();
+        _mhs = dsn::make_unique<meta_http_service>(_ms.get());
+    }
+
     std::unique_ptr<meta_http_service> _mhs;
 
     /// === Tests ===
 
     void test_get_app_from_primary()
     {
-        std::string test_app = "test-app";
+        std::string test_app = "test_app";
         create_app(test_app);
         http_request fake_req;
         http_response fake_resp;
-        fake_req.query_args.emplace("name", "test-app");
+        fake_req.query_args.emplace("name", "test_app");
         _mhs->get_app_handler(fake_req, fake_resp);
 
         ASSERT_EQ(fake_resp.status_code, http_status_code::ok);
