@@ -96,7 +96,7 @@ public:
 
         ASSERT_EQ(fake_resp.status_code, http_status_code::ok);
         std::string fake_json = R"({"general":{"app_name":")" + test_app + R"(","app_id":"2)" +
-                                R"(","partition_count":"8","max_replica_count":"3"}}\n)";
+                                R"(","partition_count":"8","max_replica_count":"3"}})" + "\n";
         ASSERT_EQ(fake_resp.body, fake_json);
     }
 };
