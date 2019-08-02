@@ -11,76 +11,15 @@
 #include "dist/replication/test/meta_test/misc/misc.h"
 
 #include "meta_service_test_app.h"
+#include "meta_test_base.h"
 
 namespace dsn {
 namespace replication {
 
-class meta_http_service_test : public ::testing::Test
+class meta_http_service_test : public meta_test_base
 {
 public:
     meta_http_service_test() {}
-
-    void SetUp() override
-    {
-        _ms.reset(new fake_receiver_meta_service);
-        ASSERT_EQ(_ms->remote_storage_initialize(), ERR_OK);
-
-        _ms->_failure_detector.reset(new meta_server_failure_detector(_ms.get()));
-
-        _ss = _ms->_state;
-        _ss->initialize(_ms.get(), _ms->_cluster_root + "/apps");
-        _ss->register_cli_commands();
-
-        _ms->_started = true;
-
-        _mhs = dsn::make_unique<meta_http_service>(_ms.get());
-
-        // recover apps from meta storage
-        ASSERT_EQ(_ss->initialize_data_structure(), ERR_OK);
-    }
-
-    void TearDown() override
-    {
-        if (_ss && _ms) {
-            delete_all_on_meta_storage();
-        }
-
-        _ms.reset(nullptr);
-    }
-    // create an app for test with specified name.
-    void create_app(const std::string &name)
-    {
-        configuration_create_app_request req;
-        configuration_create_app_response resp;
-        req.app_name = name;
-        req.options.app_type = "simple_kv";
-        req.options.partition_count = 8;
-        req.options.replica_count = 3;
-        req.options.success_if_exist = false;
-        req.options.is_stateful = true;
-        req.options.envs["value_version"] = "1";
-
-        auto result = fake_create_app(_ss.get(), req);
-        fake_wait_rpc(result, resp);
-        ASSERT_EQ(resp.err, ERR_OK) << resp.err.to_string() << " " << name;
-    }
-
-    std::shared_ptr<app_state> find_app(const std::string &name) { return _ss->get_app(name); }
-
-    void delete_all_on_meta_storage()
-    {
-        _ms->get_meta_storage()->get_children(
-            {"/"}, [this](bool, const std::vector<std::string> &children) {
-                for (const std::string &child : children) {
-                    _ms->get_meta_storage()->delete_node_recursively("/" + child, []() {});
-                }
-            });
-        wait_all();
-    }
-
-    void wait_all() { _ms->tracker()->wait_outstanding_tasks(); }
-    std::shared_ptr<server_state> _ss;
-    std::unique_ptr<meta_service> _ms;
     std::unique_ptr<meta_http_service> _mhs;
 
     /// === Tests ===
