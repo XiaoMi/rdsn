@@ -84,10 +84,6 @@ public:
         return rpc.response();
     }
 
-    void initialize_node_state() { _ss->initialize_node_state(); }
-
-    void wait_all() { _ms->tracker()->wait_outstanding_tasks(); }
-
     /// === Tests ===
 
     void test_new_dup_from_init()
