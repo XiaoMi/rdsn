@@ -132,31 +132,6 @@ public:
         dsn::replication::meta_service *svc,
         std::shared_ptr<dsn::replication::configuration_query_by_node_request> &request);
 
-    static dsn::replication::meta_service *initialize_meta_service()
-    {
-        auto meta_svc = new fake_receiver_meta_service();
-        meta_svc->remote_storage_initialize();
-
-        auto state = meta_svc->_state;
-        state->initialize(meta_svc, meta_svc->_cluster_root + "/apps");
-
-        meta_svc->_started = true;
-        state->initialize_data_structure();
-
-        return meta_svc;
-    }
-
-    static void delete_all_on_meta_storage(dsn::replication::meta_service *meta_svc)
-    {
-        meta_svc->get_meta_storage()->get_children(
-            {"/"}, [meta_svc](bool, const std::vector<std::string> &children) {
-                for (const std::string &child : children) {
-                    meta_svc->get_meta_storage()->delete_node_recursively("/" + child, []() {});
-                }
-            });
-        meta_svc->tracker()->wait_outstanding_tasks();
-    }
-
 private:
     typedef std::function<bool(const dsn::replication::app_mapper &)> state_validator;
     bool

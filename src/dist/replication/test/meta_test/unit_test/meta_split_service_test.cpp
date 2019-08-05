@@ -27,55 +27,20 @@
 #include <gtest/gtest.h>
 #include <dsn/service_api_c.h>
 
-#include "dist/replication/meta_server/meta_service.h"
-#include "dist/replication/meta_server/meta_split_service.h"
 #include "meta_service_test_app.h"
+#include "meta_test_base.h"
 
 namespace dsn {
 namespace replication {
-class meta_split_service_test : public ::testing::Test
+class meta_split_service_test : public meta_test_base
 {
 public:
     meta_split_service_test() {}
 
     void SetUp() override
     {
-        _meta_svc.reset(meta_service_test_app::initialize_meta_service());
-        _meta_svc->_split_svc = make_unique<meta_split_service>(_meta_svc.get());
-        _state = _meta_svc->_state;
-        create_app("split_table", 8);
-    }
-
-    void TearDown() override
-    {
-        if (_state && _meta_svc) {
-            meta_service_test_app::delete_all_on_meta_storage(_meta_svc.get());
-        }
-
-        _state.reset();
-        _meta_svc.reset(nullptr);
-    }
-
-    meta_split_service &split_svc() { return *(_meta_svc->_split_svc); }
-
-    // create an app for test with specified name.
-    void create_app(const std::string &name, int partition_count)
-    {
-        configuration_create_app_request req;
-        configuration_create_app_response resp;
-        req.app_name = name;
-        req.options.app_type = "simple_kv";
-        req.options.partition_count = partition_count;
-        req.options.replica_count = 3;
-        req.options.success_if_exist = false;
-        req.options.is_stateful = true;
-
-        auto result = fake_create_app(_state.get(), req);
-        fake_wait_rpc(result, resp);
-        ASSERT_EQ(resp.err, ERR_OK) << resp.err.to_string() << " " << name;
-
-        // wait for the table to create
-        ASSERT_TRUE(_state->spin_wait_staging(30));
+        meta_test_base::SetUp();
+        create_app(NAME, PARTITION_COUNT);
     }
 
     app_partition_split_response start_partition_split(const std::string &app_name,
@@ -91,32 +56,29 @@ public:
         return rpc.response();
     }
 
-    std::shared_ptr<app_state> find_app(const std::string &name) { return _state->get_app(name); }
-
-    void wait_all() { _meta_svc->tracker()->wait_outstanding_tasks(); }
-
-    std::shared_ptr<server_state> _state;
-    std::unique_ptr<meta_service> _meta_svc;
+    const std::string NAME = "split_table";
+    const uint32_t PARTITION_COUNT = 4;
+    const uint32_t NEW_PARTITION_COUNT = 8;
 };
 
 TEST_F(meta_split_service_test, start_split_with_not_existed_app)
 {
-    auto resp = start_partition_split("table_not_exist", 8);
+    auto resp = start_partition_split("table_not_exist", PARTITION_COUNT);
     ASSERT_EQ(resp.err, ERR_APP_NOT_EXIST);
 }
 
 TEST_F(meta_split_service_test, start_split_with_wrong_params)
 {
-    auto resp = start_partition_split("split_table", 8);
+    auto resp = start_partition_split(NAME, PARTITION_COUNT);
     ASSERT_EQ(resp.err, ERR_INVALID_PARAMETERS);
-    ASSERT_EQ(resp.partition_count, 8);
+    ASSERT_EQ(resp.partition_count, PARTITION_COUNT);
 }
 
 TEST_F(meta_split_service_test, start_split_succeed)
 {
-    auto resp = start_partition_split("split_table", 16);
+    auto resp = start_partition_split(NAME, NEW_PARTITION_COUNT);
     ASSERT_EQ(resp.err, ERR_OK);
-    ASSERT_EQ(resp.partition_count, 16);
+    ASSERT_EQ(resp.partition_count, NEW_PARTITION_COUNT);
 }
 
 } // namespace replication
