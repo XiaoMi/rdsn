@@ -90,7 +90,7 @@ public:
         wait_all();
     }
 
-   /// === Tests ===
+    /// === Tests ===
 
     void test_new_dup_from_init()
     {
