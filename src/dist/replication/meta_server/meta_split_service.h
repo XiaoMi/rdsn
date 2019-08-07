@@ -23,58 +23,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
-#pragma once
-
-#include <dsn/cpp/service_app.h>
+#include "dist/replication/meta_server/meta_service.h"
+#include "dist/replication/meta_server/server_state.h"
 
 namespace dsn {
-class version_http_service;
 namespace replication {
 
-class meta_service;
-class replication_checker;
-
-namespace test {
-class test_checker;
-}
-} // namespace replication
-} // namespace dsn
-
-namespace dsn {
-
-class http_server;
-
-namespace service {
-
-class meta_service_app : public service_app
+class meta_split_service
 {
 public:
-    static void register_components();
-    static void register_all();
-
-    meta_service_app(const service_app_info *info);
-    virtual ~meta_service_app();
-
-    virtual ::dsn::error_code start(const std::vector<std::string> &args) override;
-
-    virtual ::dsn::error_code stop(bool cleanup = false) override;
+    explicit meta_split_service(meta_service *meta);
+    // client -> meta to start split
+    void app_partition_split(app_partition_split_rpc rpc);
 
 private:
-    friend class ::dsn::replication::replication_checker;
-    friend class ::dsn::replication::test::test_checker;
-    std::unique_ptr<dsn::replication::meta_service> _service;
-    std::unique_ptr<http_server> _http_server;
-    version_http_service *_version_http_service;
+    void do_app_partition_split(std::shared_ptr<app_state> app, app_partition_split_rpc rpc);
+
+private:
+    meta_service *_meta_svc;
+    server_state *_state;
+
+    zrwlock_nr &app_lock() const { return _state->_lock; }
 };
-} // namespace service
+} // namespace replication
 } // namespace dsn
