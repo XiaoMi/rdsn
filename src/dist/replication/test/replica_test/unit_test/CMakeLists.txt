@@ -3,6 +3,10 @@ set(MY_PROJ_NAME dsn.replica.test)
 #Source files under CURRENT project directory will be automatically included.
 #You can manually set MY_PROJ_SRC to include source files under other directories.
 set(MY_PROJ_SRC "")
+file(GLOB MY_PROJ_SRC
+        ${PROJECT_SOURCE_DIR}/src/dist/replication/lib/*.cpp
+        ${PROJECT_SOURCE_DIR}/src/dist/replication/lib/duplication/*.cpp
+        )
 
 #Search mode for source files under CURRENT project directory ?
 #"GLOB_RECURSE" for recursive search
@@ -12,12 +16,13 @@ set(MY_SRC_SEARCH_MODE "GLOB")
 set(MY_PROJ_INC_PATH "")
 
 set(MY_PROJ_LIBS dsn_meta_server
-                 dsn_replica_server
                  dsn.replication.zookeeper_provider
                  dsn_replication_common
                  dsn.block_service.local
                  dsn.block_service.fds
                  dsn.failure_detector
+                 dsn.failure_detector.multimaster
+                 dsn_nfs
                  dsn_http
                  dsn_runtime
                  zookeeper_mt

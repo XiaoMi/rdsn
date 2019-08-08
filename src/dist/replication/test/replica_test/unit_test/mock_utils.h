@@ -36,7 +36,38 @@
 namespace dsn {
 namespace replication {
 
-class mock_replica : public replica
+class mock_base
+{
+public:
+    void reset() { _mock_functions.clear(); }
+    bool find(std::string name) { return (_mock_functions.find(name) != _mock_functions.end()); }
+    void insert(std::string name) { _mock_functions.insert(name); }
+    void erase(std::string name) { _mock_functions.erase(name); }
+protected:
+    std::set<std::string> _mock_functions;
+};
+
+#define DEFINE_MOCK1(base_class, func_name, type1)                                                 \
+    void func_name(type1 param1)                                                                   \
+    {                                                                                              \
+        if (find(#func_name)) {                                                                    \
+            ddebug("mock function %s is called", #func_name);                                      \
+        } else {                                                                                   \
+            base_class::func_name(param1);                                                         \
+        }                                                                                          \
+    }
+
+#define DEFINE_MOCK3(base_class, func_name, type1, type2, type3)                                   \
+    void func_name(type1 param1, type2 param2, type3 param3)                                       \
+    {                                                                                              \
+        if (find(#func_name)) {                                                                    \
+            ddebug("mock function %s is called", #func_name);                                      \
+        } else {                                                                                   \
+            base_class::func_name(param1, param2, param3);                                         \
+        }                                                                                          \
+    }
+
+class mock_replica : public replica, public mock_base
 {
 public:
     mock_replica(replica_stub *stub, gpid gpid, const app_info &app, const char *dir)
@@ -45,6 +76,15 @@ public:
     }
 
     ~mock_replica() override {}
+
+    /// mock functions
+    DEFINE_MOCK1(replica, on_add_child, const group_check_request &)
+    DEFINE_MOCK3(replica, init_child_replica, gpid, rpc_address, ballot)
+
+    /// helper functions
+    void set_replica_config(replica_configuration &config) { _config = config; }
+    void set_partition_status(partition_status::type status) { _config.status = status; }
+    void set_child_gpid(gpid pid) { _child_gpid = pid; }
 };
 
 inline std::unique_ptr<mock_replica> create_mock_replica(replica_stub *stub,
@@ -63,9 +103,47 @@ inline std::unique_ptr<mock_replica> create_mock_replica(replica_stub *stub,
 class mock_replica_stub : public replica_stub
 {
 public:
-    mock_replica_stub() = default;
+    mock_replica_stub() : replica_stub() {}
 
-    ~mock_replica_stub() override = default;
+    ~mock_replica_stub() override {}
+
+    rpc_address get_meta_server_address() const { return rpc_address(); }
+
+    replica_ptr
+    get_replica_permit_create_new(gpid pid, app_info *app, const std::string &parent_dir)
+    {
+        mock_replica *rep = generate_replica(*app, pid, parent_dir);
+        rep->insert("init_child_replica");
+        return rep;
+    }
+
+    /// helper functions
+    std::unique_ptr<mock_replica>
+    generate_replica(app_info info,
+                     gpid pid,
+                     partition_status::type status = partition_status::PS_INACTIVE,
+                     ballot b = 5)
+    {
+        replica_configuration config;
+        config.ballot = b;
+        config.pid = pid;
+        config.status = status;
+
+        std::unique_ptr<mock_replica> rep =
+            make_unique<mock_replica>(this, pid, std::move(info), "./");
+        rep->set_replica_config(config);
+        _replicas.insert(replicas::value_type(pid, rep.get()));
+
+        return rep;
+    }
+
+    mock_replica *generate_replica(app_info info, gpid pid, const std::string &parent_dir)
+    {
+        mock_replica *rep = new mock_replica(this, pid, std::move(info), "./");
+        rep->set_partition_status(partition_status::PS_INACTIVE);
+        _replicas.insert(replicas::value_type(pid, rep));
+        return rep;
+    }
 };
 
 } // namespace replication

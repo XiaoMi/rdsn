@@ -140,7 +140,12 @@ public:
     virtual rpc_address get_meta_server_address() const { return _failure_detector->get_servers(); }
     rpc_address primary_address() const { return _primary_address; }
 
-    std::string get_replica_dir(const char *app_type, gpid id, bool create_new = true);
+    // {parent_dir} is used for partition split to gurantee child replica data dir is as same as it
+    // parent
+    std::string get_replica_dir(const char *app_type,
+                                gpid id,
+                                bool create_new = true,
+                                const std::string &parent_dir = "");
 
     //
     // helper methods
@@ -154,6 +159,42 @@ public:
     std::string exec_command_on_replica(const std::vector<std::string> &args,
                                         bool allow_empty_args,
                                         std::function<std::string(const replica_ptr &rep)> func);
+
+    //
+    // partition split
+    //
+
+    // called by parent partition, executed by child partition
+    void create_child_replica(dsn::rpc_address primary_address,
+                              app_info app,
+                              ballot init_ballot,
+                              gpid child_gpid,
+                              gpid parent_gpid,
+                              const std::string &parent_dir);
+
+    // get replica, and create a new replica instance if not found
+    mock_virtual replica_ptr get_replica_permit_create_new(gpid pid,
+                                                           app_info *app,
+                                                           const std::string &parent_dir);
+
+    typedef std::function<void(::dsn::replication::replica *rep)> local_execution;
+    // During partition split, we should handle both parent and child at the same time,
+    // especially child replica. For example, if child replica is invalid, we should execute error
+    // handler. This function can be helpful for this condition.
+    // - if replica(<pid>) is existed and valid, then add <handler> into task queue, replica(<pid>)
+    // will execute function <handler> after <delay> milliseconds.
+    // - else add <missing_handler> into task queue, replica(<missing_handler_gpid>) will execute
+    // function <missing_handler> after <delay> milliseconds.
+    void split_replica_exec(task_code code,
+                            gpid pid,
+                            local_execution handler,
+                            local_execution missing_handler,
+                            gpid missing_handler_gpid = gpid(0, 0),
+                            std::chrono::milliseconds delay = std::chrono::milliseconds(0));
+    void split_replica_exec(task_code code,
+                            gpid pid,
+                            local_execution handler,
+                            std::chrono::milliseconds delay = std::chrono::milliseconds(0));
 
 private:
     enum replica_node_state

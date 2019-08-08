@@ -46,6 +46,7 @@
 #include <dsn/dist/replication/replication_app_base.h>
 #include <vector>
 #include <deque>
+#include <dsn/dist/fmt_logging.h>
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
 #endif
@@ -2261,19 +2262,33 @@ void replica_stub::close()
     }
 }
 
-std::string replica_stub::get_replica_dir(const char *app_type, gpid id, bool create_new)
+std::string replica_stub::get_replica_dir(const char *app_type,
+                                          gpid id,
+                                          bool create_new,
+                                          const std::string &parent_dir)
 {
+    auto check_data_dir = [](const std::string &parent_dir, std::string &data_dir) {
+        // parent_dir = <dir>/<gpid>/<app_type>
+        // return true if parent_dir's <dir> is euqal to <data_dir>
+        return (parent_dir.substr(0, data_dir.size() + 1) == data_dir + "/");
+    };
+
     char buffer[256];
     sprintf(buffer, "%s.%s", id.to_string(), app_type);
     std::string ret_dir;
     for (auto &dir : _options.data_dirs) {
         std::string cur_dir = utils::filesystem::path_combine(dir, buffer);
-        if (utils::filesystem::directory_exists(cur_dir)) {
+        // if creating child replica during partition split, we should gurantee child replica and
+        // parent replica share the same data dir
+        if (utils::filesystem::directory_exists(cur_dir) || check_data_dir(parent_dir, dir)) {
             if (!ret_dir.empty()) {
                 dassert(
                     false, "replica dir conflict: %s <--> %s", cur_dir.c_str(), ret_dir.c_str());
             }
             ret_dir = cur_dir;
+            if (check_data_dir(parent_dir, dir)) {
+                _fs_manager.add_replica(id, ret_dir);
+            }
         }
     }
     if (ret_dir.empty() && create_new) {
@@ -2281,5 +2296,122 @@ std::string replica_stub::get_replica_dir(const char *app_type, gpid id, bool cr
     }
     return ret_dir;
 }
+
+//
+// partition split
+//
+
+void replica_stub::create_child_replica(rpc_address primary_address,
+                                        app_info app,
+                                        ballot init_ballot,
+                                        gpid child_gpid,
+                                        gpid parent_gpid,
+                                        const std::string &parent_dir)
+{
+    replica_ptr child_replica = get_replica_permit_create_new(child_gpid, &app, parent_dir);
+    if (child_replica != nullptr) {
+        ddebug_f("create child replica ({}.{}) succeed",
+                 child_gpid.get_app_id(),
+                 child_gpid.get_partition_index());
+        child_replica->init_child_replica(parent_gpid, primary_address, init_ballot);
+    } else {
+        dwarn_f("failed to create child replica ({}.{}), ignore it and wait next run",
+                child_gpid.get_app_id(),
+                child_gpid.get_partition_index());
+        split_replica_exec(LPC_PARTITION_SPLIT_ERROR, parent_gpid, [](replica_ptr r) {
+            r->_child_gpid.set_app_id(0);
+        });
+    }
+}
+
+replica_ptr
+replica_stub::get_replica_permit_create_new(gpid pid, app_info *app, const std::string &parent_dir)
+{
+    zauto_write_lock l(_replicas_lock);
+    auto it = _replicas.find(pid);
+    if (it != _replicas.end()) {
+        return it->second;
+    } else {
+        if (_opening_replicas.find(pid) != _opening_replicas.end()) {
+            ddebug_f("Cannot create new replica({}.{}) coz it is under open",
+                     pid.get_app_id(),
+                     pid.get_partition_index());
+            return nullptr;
+        } else if (_closing_replicas.find(pid) != _closing_replicas.end()) {
+            ddebug_f("Cannnot create new replica({}.{}) coz it is under close",
+                     pid.get_app_id(),
+                     pid.get_partition_index());
+            return nullptr;
+        } else {
+            replica *rep = replica::newr(this, pid, *app, false, parent_dir);
+            if (rep != nullptr) {
+                auto pr = _replicas.insert(replicas::value_type(pid, rep));
+                dassert_f(pr.second, "replica {} has been existed", rep->name());
+                _counter_replicas_count->increment();
+                _closed_replicas.erase(pid);
+            }
+            return rep;
+        }
+    }
+}
+
+void replica_stub::split_replica_exec(task_code code,
+                                      gpid pid,
+                                      local_execution handler,
+                                      local_execution missing_handler,
+                                      gpid missing_handler_gpid,
+                                      std::chrono::milliseconds delay)
+{
+    replica_ptr rep = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
+    replica_ptr rep2 =
+        missing_handler_gpid.get_app_id() == 0 ? nullptr : get_replica(missing_handler_gpid);
+
+    if (!rep && !rep2) {
+        derror_f("replica({}.{}) and replica({}.{}) are not existed",
+                 pid.get_app_id(),
+                 pid.get_partition_index(),
+                 missing_handler_gpid.get_app_id(),
+                 missing_handler_gpid.get_partition_index());
+        return;
+    }
+
+    if (rep && handler) {
+        tasking::enqueue(
+            code, rep.get()->tracker(), [=]() { handler(rep); }, pid.thread_hash(), delay);
+    } else if (rep2 && missing_handler) {
+        ddebug_f("replica({}.{}) is invalid, replica({}.{} will execute its handler)",
+                 pid.get_app_id(),
+                 pid.get_partition_index(),
+                 missing_handler_gpid.get_app_id(),
+                 missing_handler_gpid.get_partition_index());
+        tasking::enqueue(code,
+                         rep2.get()->tracker(),
+                         [=]() { missing_handler(rep2); },
+                         missing_handler_gpid.thread_hash(),
+                         delay);
+    } else {
+        // no handler will be executed
+        if (rep) {
+            dwarn_f("replica({}.{}) does not define handler",
+                    pid.get_app_id(),
+                    pid.get_partition_index());
+        } else {
+            dwarn_f("replica({}.{}) is invalid, replica({}.{}) does not define handler",
+                    pid.get_app_id(),
+                    pid.get_partition_index(),
+                    missing_handler_gpid.get_app_id(),
+                    missing_handler_gpid.get_partition_index());
+        }
+    }
+}
+
+void replica_stub::split_replica_exec(task_code code,
+                                      gpid pid,
+                                      local_execution handler,
+                                      std::chrono::milliseconds delay)
+{
+    split_replica_exec(code, pid, handler, nullptr, gpid(), delay);
+}
+
 } // namespace replication
 } // namespace dsn
