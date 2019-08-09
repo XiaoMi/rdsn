@@ -70,7 +70,7 @@ public:
 
 public:
     replica_stub(replica_state_subscriber subscriber = nullptr, bool is_long_subscriber = true);
-    ~replica_stub(void);
+    mock_virtual ~replica_stub(void);
 
     //
     // initialization

@@ -70,7 +70,7 @@ class test_checker;
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
 public:
-    ~replica(void);
+    mock_virtual ~replica(void);
 
     //
     //    routines for replica stub

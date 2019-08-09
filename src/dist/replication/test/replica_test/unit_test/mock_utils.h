@@ -39,7 +39,7 @@ namespace replication {
 class mock_base
 {
 public:
-    void reset() { _mock_functions.clear(); }
+    void reset_all() { _mock_functions.clear(); }
     bool find(std::string name) { return (_mock_functions.find(name) != _mock_functions.end()); }
     void insert(std::string name) { _mock_functions.insert(name); }
     void erase(std::string name) { _mock_functions.erase(name); }

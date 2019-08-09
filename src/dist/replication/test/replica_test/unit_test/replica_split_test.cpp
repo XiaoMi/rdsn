@@ -12,21 +12,21 @@ namespace replication {
 class split_replica_test : public testing::Test
 {
 public:
-    split_replica_test() { mock_app_info(); }
-
     void SetUp()
     {
         _stub = make_unique<mock_replica_stub>();
+        mock_app_info();
         _parent = _stub->generate_replica(
             _app_info, _parent_pid, partition_status::PS_PRIMARY, _init_ballot);
-        _child = nullptr;
         mock_group_check_request();
     }
 
     void TearDown()
     {
         _parent->set_partition_status(partition_status::PS_INACTIVE);
-        _parent->reset();
+        _parent->reset_all();
+        _parent.reset();
+        _stub.reset();
     }
 
     void mock_app_info()
