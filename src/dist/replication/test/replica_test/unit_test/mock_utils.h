@@ -132,8 +132,6 @@ public:
         std::unique_ptr<mock_replica> rep =
             make_unique<mock_replica>(this, pid, std::move(info), "./");
         rep->set_replica_config(config);
-        _replicas.insert(replicas::value_type(pid, rep.get()));
-
         return rep;
     }
 
