@@ -26,8 +26,6 @@ set(MY_PROJ_LIBS
     dsn_http
     )
 
-set(MY_PROJ_LIB_PATH "")
-
 # Extra files that will be installed
 set(MY_BINPLACES "")
 
