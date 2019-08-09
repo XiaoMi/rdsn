@@ -9,7 +9,7 @@ set(MY_PROJ_SRC "")
 #"GLOB" for non - recursive search
 set(MY_SRC_SEARCH_MODE "GLOB")
 
-set(MY_PROJ_INC_PATH ${CMAKE_SOURCE_DIR}/thirdparty/output/include/fds )
+set(MY_PROJ_INC_PATH "" )
 
 set(MY_PROJ_LIBS "")
 
@@ -17,3 +17,6 @@ set(MY_PROJ_LIBS "")
 set(MY_BINPLACES "")
 
 dsn_add_static_library()
+
+find_path(FDS_INCLUDE_DIR NAMES constants.h PATHS ${DSN_THIRDPARTY_ROOT}/include PATH_SUFFIXES fds) # TODO(huangwei5): move to dsn_setup_thirdparty_libs(), if not found, return fatal
+target_include_directories(dsn.block_service.fds PRIVATE ${FDS_INCLUDE_DIR} )
