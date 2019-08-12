@@ -407,10 +407,10 @@ private:
 
     // partition split
     // _child_gpid = gpid({app_id},{pidx}+{old_partition_count}) for parent partition
-    // _child_gpid.app_id = 0 for partitions not during partition split
+    // _child_gpid.app_id = 0 if parent partition not during partition split and child partition
     dsn::gpid _child_gpid;
     // ballot when starting partition split coz split will stop if ballot changed
-    // _child_init_ballot=0 if partition not during partition split
+    // _child_init_ballot = 0 if partition not during partition split
     ballot _child_init_ballot;
 
     // perf counters

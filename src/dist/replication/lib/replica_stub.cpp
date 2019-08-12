@@ -2268,33 +2268,38 @@ std::string replica_stub::get_replica_dir(const char *app_type,
                                           const std::string &parent_dir)
 {
     auto check_data_dir = [](const std::string &parent_dir, std::string &data_dir) {
-        // parent_dir = <dir>/<gpid>/<app_type>
+        // parent_dir = <dir>/<gpid>.<app_type>
         // return true if parent_dir's <dir> is euqal to <data_dir>
         return (parent_dir.substr(0, data_dir.size() + 1) == data_dir + "/");
     };
 
-    char buffer[256];
-    sprintf(buffer, "%s.%s", id.to_string(), app_type);
-    std::string ret_dir;
-    for (auto &dir : _options.data_dirs) {
-        std::string cur_dir = utils::filesystem::path_combine(dir, buffer);
+    char gpid_str[256];
+    sprintf(gpid_str, "%s.%s", id.to_string(), app_type);
+    std::string replica_dir;
+    bool is_dir_confict = false;
+    for (auto &data_dir : _options.data_dirs) {
+        std::string dir = utils::filesystem::path_combine(data_dir, gpid_str);
+        if (utils::filesystem::directory_exists(dir) && parent_dir == "") {
+            if (is_dir_confict) {
+                dassert(
+                    false, "replica dir conflict: %s <--> %s", dir.c_str(), replica_dir.c_str());
+            }
+            replica_dir = dir;
+            is_dir_confict = true;
+        }
+
         // if creating child replica during partition split, we should gurantee child replica and
         // parent replica share the same data dir
-        if (utils::filesystem::directory_exists(cur_dir) || check_data_dir(parent_dir, dir)) {
-            if (!ret_dir.empty()) {
-                dassert(
-                    false, "replica dir conflict: %s <--> %s", cur_dir.c_str(), ret_dir.c_str());
-            }
-            ret_dir = cur_dir;
-            if (check_data_dir(parent_dir, dir)) {
-                _fs_manager.add_replica(id, ret_dir);
-            }
+        if (check_data_dir(parent_dir, data_dir)) {
+            replica_dir = dir;
+            _fs_manager.add_replica(id, replica_dir);
+            break;
         }
     }
-    if (ret_dir.empty() && create_new) {
-        _fs_manager.allocate_dir(id, app_type, ret_dir);
+    if (replica_dir.empty() && create_new) {
+        _fs_manager.allocate_dir(id, app_type, replica_dir);
     }
-    return ret_dir;
+    return replica_dir;
 }
 
 //

@@ -77,6 +77,7 @@ TEST_F(split_replica_test, add_child_wrong_child_gpid)
 
 TEST_F(split_replica_test, add_child_succeed)
 {
+    _parent->insert("init_child_replica");
     _parent->on_add_child(_req);
     _parent->tracker()->wait_outstanding_tasks();
     ASSERT_NE(_stub->get_replica(_child_pid), nullptr);
