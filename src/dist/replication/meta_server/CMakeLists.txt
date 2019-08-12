@@ -13,7 +13,7 @@ set(MY_PROJ_SRC "${DUPLICATION_SRC}")
 # "GLOB" for non-recursive search
 set(MY_SRC_SEARCH_MODE "GLOB_RECURSE")
 
-set(MY_PROJ_INC_PATH)
+set(MY_PROJ_INC_PATH "")
 
 set(MY_PROJ_LIBS
     dsn_replication_common
