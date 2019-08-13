@@ -36,7 +36,6 @@
 namespace dsn {
 namespace replication {
 
-
 class mock_base
 {
 public:
@@ -102,7 +101,7 @@ private:
     std::map<std::string, std::string> _envs;
 };
 
-class mock_replica : public replica : public mock_base
+class mock_replica : public replica, public mock_base
 {
 public:
     mock_replica(replica_stub *stub, gpid gpid, const app_info &app, const char *dir)
@@ -116,13 +115,13 @@ public:
         _config.status = partition_status::PS_INACTIVE;
         _app.reset(nullptr);
     }
-    
+
     replica_duplicator_manager &get_replica_duplicator_manager() { return *_duplication_mgr; }
 
     void as_primary() { _config.status = partition_status::PS_PRIMARY; }
 
     void as_secondary() { _config.status = partition_status::PS_SECONDARY; }
-    
+
     /// mock functions
     DEFINE_MOCK1(replica, on_add_child, const group_check_request &)
     DEFINE_MOCK3(replica, init_child_replica, gpid, rpc_address, ballot)
@@ -150,7 +149,7 @@ class mock_replica_stub : public replica_stub
 {
 public:
     mock_replica_stub() : replica_stub() {}
-    
+
     ~mock_replica_stub() override = default;
 
     void add_replica(replica *r) { _replicas[r->get_gpid()] = replica_ptr(r); }
