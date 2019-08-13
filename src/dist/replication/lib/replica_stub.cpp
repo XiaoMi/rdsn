@@ -2268,7 +2268,6 @@ std::string replica_stub::get_replica_dir(const char *app_type,
                                           bool create_new,
                                           const std::string &parent_dir)
 {
-    // char gpid_str[256];
     std::string gpid_str = fmt::format("{}.{}", id.to_string(), app_type);
     std::string replica_dir;
     bool is_dir_confict = false;
