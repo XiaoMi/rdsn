@@ -70,7 +70,7 @@ class test_checker;
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
 public:
-    mock_virtual ~replica(void);
+    ~replica(void);
 
     //
     //    routines for replica stub
@@ -316,11 +316,10 @@ private:
     /////////////////////////////////////////////////////////////////
     // partition split
     // parent partition create child
-    mock_virtual void on_add_child(const group_check_request &request);
+    void on_add_child(const group_check_request &request);
 
     // child replica initialize config and state info
-    mock_virtual void
-    init_child_replica(gpid parent_gpid, dsn::rpc_address primary_address, ballot init_ballot);
+    void init_child_replica(gpid parent_gpid, dsn::rpc_address primary_address, ballot init_ballot);
 
 private:
     friend class ::dsn::replication::replication_checker;
@@ -331,6 +330,7 @@ private:
     friend class replica_learn_test;
     friend class replica_duplicator_manager;
     friend class load_mutation;
+    friend class replica_split_test;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -408,10 +408,10 @@ private:
     // partition split
     // _child_gpid = gpid({app_id},{pidx}+{old_partition_count}) for parent partition
     // _child_gpid.app_id = 0 if parent partition not during partition split and child partition
-    dsn::gpid _child_gpid;
+    dsn::gpid _child_gpid{0, 0};
     // ballot when starting partition split coz split will stop if ballot changed
     // _child_init_ballot = 0 if partition not during partition split
-    ballot _child_init_ballot;
+    ballot _child_init_ballot{0};
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;

@@ -4,12 +4,13 @@
 
 #include <gtest/gtest.h>
 
+#include <dsn/utility/fail_point.h>
 #include "replica_test_base.h"
 
 namespace dsn {
 namespace replication {
 
-class split_replica_test : public testing::Test
+class replica_split_test : public testing::Test
 {
 public:
     void SetUp()
@@ -21,13 +22,7 @@ public:
         mock_group_check_request();
     }
 
-    void TearDown()
-    {
-        _parent->set_partition_status(partition_status::PS_INACTIVE);
-        _parent->reset_all();
-        _parent.reset();
-        _stub.reset();
-    }
+    void TearDown() {}
 
     void mock_app_info()
     {
@@ -46,6 +41,12 @@ public:
         _req.config.status = partition_status::PS_PRIMARY;
     }
 
+    void test_on_add_child()
+    {
+        _parent->on_add_child(_req);
+        _parent->tracker()->wait_outstanding_tasks();
+    }
+
 public:
     std::unique_ptr<mock_replica_stub> _stub;
 
@@ -61,26 +62,30 @@ public:
     group_check_request _req;
 };
 
-TEST_F(split_replica_test, add_child_wrong_ballot)
+TEST_F(replica_split_test, add_child_wrong_ballot)
 {
     _req.config.ballot = 5;
-    _parent->on_add_child(_req);
+    test_on_add_child();
     ASSERT_EQ(_child, nullptr);
 }
 
-TEST_F(split_replica_test, add_child_wrong_child_gpid)
+TEST_F(replica_split_test, add_child_wrong_child_gpid)
 {
     _parent->set_child_gpid(_child_pid);
-    _parent->on_add_child(_req);
+    test_on_add_child();
     ASSERT_EQ(_child, nullptr);
 }
 
-TEST_F(split_replica_test, add_child_succeed)
+TEST_F(replica_split_test, add_child_succeed)
 {
-    _parent->insert("init_child_replica");
-    _parent->on_add_child(_req);
-    _parent->tracker()->wait_outstanding_tasks();
-    ASSERT_NE(_stub->get_replica(_child_pid), nullptr);
+    fail::setup();
+    fail::cfg("replica_stub_create_replica_if_not_found", "return()");
+    fail::cfg("replica_init_child_replica", "return()");
+
+    test_on_add_child();
+    ASSERT_NE(_stub->get_replica_by_pid(_child_pid), nullptr);
+
+    fail::teardown();
 }
 
 } // namespace replication

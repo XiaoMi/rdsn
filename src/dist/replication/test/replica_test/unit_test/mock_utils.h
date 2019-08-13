@@ -36,37 +36,6 @@
 namespace dsn {
 namespace replication {
 
-class mock_base
-{
-public:
-    void reset_all() { _mock_functions.clear(); }
-    bool find(std::string name) { return (_mock_functions.find(name) != _mock_functions.end()); }
-    void insert(std::string name) { _mock_functions.insert(name); }
-    void erase(std::string name) { _mock_functions.erase(name); }
-protected:
-    std::set<std::string> _mock_functions;
-};
-
-#define DEFINE_MOCK1(base_class, func_name, type1)                                                 \
-    void func_name(type1 param1)                                                                   \
-    {                                                                                              \
-        if (find(#func_name)) {                                                                    \
-            ddebug("mock function %s is called", #func_name);                                      \
-        } else {                                                                                   \
-            base_class::func_name(param1);                                                         \
-        }                                                                                          \
-    }
-
-#define DEFINE_MOCK3(base_class, func_name, type1, type2, type3)                                   \
-    void func_name(type1 param1, type2 param2, type3 param3)                                       \
-    {                                                                                              \
-        if (find(#func_name)) {                                                                    \
-            ddebug("mock function %s is called", #func_name);                                      \
-        } else {                                                                                   \
-            base_class::func_name(param1, param2, param3);                                         \
-        }                                                                                          \
-    }
-
 class mock_replication_app_base : public replication_app_base
 {
 public:
@@ -101,7 +70,7 @@ private:
     std::map<std::string, std::string> _envs;
 };
 
-class mock_replica : public replica, public mock_base
+class mock_replica : public replica
 {
 public:
     mock_replica(replica_stub *stub, gpid gpid, const app_info &app, const char *dir)
@@ -121,10 +90,6 @@ public:
     void as_primary() { _config.status = partition_status::PS_PRIMARY; }
 
     void as_secondary() { _config.status = partition_status::PS_SECONDARY; }
-
-    /// mock functions
-    DEFINE_MOCK1(replica, on_add_child, const group_check_request &)
-    DEFINE_MOCK3(replica, init_child_replica, gpid, rpc_address, ballot)
 
     /// helper functions
     void set_replica_config(replica_configuration &config) { _config = config; }
@@ -180,14 +145,6 @@ public:
 
     std::map<gpid, mock_replica *> mock_replicas;
 
-    replica_ptr
-    get_replica_permit_create_new(gpid pid, app_info *app, const std::string &parent_dir)
-    {
-        mock_replica *rep = generate_replica(*app, pid, parent_dir);
-        rep->insert("init_child_replica");
-        return rep;
-    }
-
     /// helper functions
     std::unique_ptr<mock_replica>
     generate_replica(app_info info,
@@ -206,13 +163,7 @@ public:
         return rep;
     }
 
-    mock_replica *generate_replica(app_info info, gpid pid, const std::string &parent_dir)
-    {
-        mock_replica *rep = new mock_replica(this, pid, std::move(info), "./");
-        rep->set_partition_status(partition_status::PS_INACTIVE);
-        _replicas.insert(replicas::value_type(pid, rep));
-        return rep;
-    }
+    replica_ptr get_replica_by_pid(gpid pid) { return get_replica(pid); }
 };
 
 } // namespace replication

@@ -61,7 +61,6 @@ replica::replica(
     dassert(stub != nullptr, "");
     _stub = stub;
     _dir = dir;
-
     _options = &stub->options();
     init_state();
     _config.pid = gpid;
@@ -83,9 +82,6 @@ replica::replica(
         _extra_envs.insert(
             std::make_pair(backup_restore_constant::FORCE_RESTORE, std::string("true")));
     }
-
-    _child_gpid = dsn::gpid(0, 0);
-    _child_init_ballot = 0;
 }
 
 void replica::update_last_checkpoint_generate_time()

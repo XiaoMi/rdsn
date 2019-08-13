@@ -50,6 +50,7 @@
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
 #endif
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace replication {
@@ -2267,17 +2268,11 @@ std::string replica_stub::get_replica_dir(const char *app_type,
                                           bool create_new,
                                           const std::string &parent_dir)
 {
-    auto check_data_dir = [](const std::string &parent_dir, std::string &data_dir) {
-        // parent_dir = <dir>/<gpid>.<app_type>
-        // return true if parent_dir's <dir> is euqal to <data_dir>
-        return (parent_dir.substr(0, data_dir.size() + 1) == data_dir + "/");
-    };
-
-    char gpid_str[256];
-    sprintf(gpid_str, "%s.%s", id.to_string(), app_type);
+    // char gpid_str[256];
+    std::string gpid_str = fmt::format("{}.{}", id.to_string(), app_type);
     std::string replica_dir;
     bool is_dir_confict = false;
-    for (auto &data_dir : _options.data_dirs) {
+    for (const std::string &data_dir : _options.data_dirs) {
         std::string dir = utils::filesystem::path_combine(data_dir, gpid_str);
         if (utils::filesystem::directory_exists(dir) && parent_dir == "") {
             if (is_dir_confict) {
@@ -2290,7 +2285,8 @@ std::string replica_stub::get_replica_dir(const char *app_type,
 
         // if creating child replica during partition split, we should gurantee child replica and
         // parent replica share the same data dir
-        if (check_data_dir(parent_dir, data_dir)) {
+        // parent_dir = <dir>/<gpid>.<app_type>, check if parent_dir's <dir> is euqal to <data_dir>
+        if (parent_dir.substr(0, data_dir.size() + 1) == data_dir + "/") {
             replica_dir = dir;
             _fs_manager.add_replica(id, replica_dir);
             break;
@@ -2313,7 +2309,7 @@ void replica_stub::create_child_replica(rpc_address primary_address,
                                         gpid parent_gpid,
                                         const std::string &parent_dir)
 {
-    replica_ptr child_replica = get_replica_permit_create_new(child_gpid, &app, parent_dir);
+    replica_ptr child_replica = create_replica_if_not_found(child_gpid, &app, parent_dir);
     if (child_replica != nullptr) {
         ddebug_f("create child replica ({}.{}) succeed",
                  child_gpid.get_app_id(),
@@ -2330,20 +2326,28 @@ void replica_stub::create_child_replica(rpc_address primary_address,
 }
 
 replica_ptr
-replica_stub::get_replica_permit_create_new(gpid pid, app_info *app, const std::string &parent_dir)
+replica_stub::create_replica_if_not_found(gpid pid, app_info *app, const std::string &parent_dir)
 {
+    FAIL_POINT_INJECT_F("replica_stub_create_replica_if_not_found",
+                        [=](dsn::string_view) -> replica_ptr {
+                            replica *rep = new replica(this, pid, *app, "./", false);
+                            rep->_config.status = partition_status::PS_INACTIVE;
+                            _replicas.insert(replicas::value_type(pid, rep));
+                            return rep;
+                        });
+
     zauto_write_lock l(_replicas_lock);
     auto it = _replicas.find(pid);
     if (it != _replicas.end()) {
         return it->second;
     } else {
         if (_opening_replicas.find(pid) != _opening_replicas.end()) {
-            ddebug_f("Cannot create new replica({}.{}) coz it is under open",
+            ddebug_f("failed create new replica({}.{}) because it is under open",
                      pid.get_app_id(),
                      pid.get_partition_index());
             return nullptr;
         } else if (_closing_replicas.find(pid) != _closing_replicas.end()) {
-            ddebug_f("Cannnot create new replica({}.{}) coz it is under close",
+            ddebug_f("failed create new replica({}.{}) because it is under close",
                      pid.get_app_id(),
                      pid.get_partition_index());
             return nullptr;

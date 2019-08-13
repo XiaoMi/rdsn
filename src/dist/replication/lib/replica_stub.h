@@ -70,7 +70,7 @@ public:
 
 public:
     replica_stub(replica_state_subscriber subscriber = nullptr, bool is_long_subscriber = true);
-    mock_virtual ~replica_stub(void);
+    ~replica_stub(void);
 
     //
     // initialization
@@ -172,10 +172,9 @@ public:
                               gpid parent_gpid,
                               const std::string &parent_dir);
 
-    // get replica, and create a new replica instance if not found
-    mock_virtual replica_ptr get_replica_permit_create_new(gpid pid,
-                                                           app_info *app,
-                                                           const std::string &parent_dir);
+    // create a new replica instance if not found
+    // return nullptr when failed to create new replica
+    replica_ptr create_replica_if_not_found(gpid pid, app_info *app, const std::string &parent_dir);
 
     typedef std::function<void(::dsn::replication::replica *rep)> local_execution;
     // During partition split, we should handle both parent and child at the same time,
