@@ -5,6 +5,7 @@
 #include <dsn/tool-api/http_server.h>
 #include <dsn/tool_api.h>
 #include <boost/algorithm/string.hpp>
+#include <fmt/ostream.h>
 
 #include "http_message_parser.h"
 #include "root_http_service.h"
@@ -50,9 +51,8 @@ void http_server::serve(message_ex *msg)
     error_with<http_request> res = http_request::parse(msg);
     http_response resp;
     if (!res.is_ok()) {
-        derror("failed to parse request: %s", res.get_error().description().c_str());
         resp.status_code = http_status_code::bad_request;
-        resp.body = "failed to parse request";
+        resp.body = fmt::format("failed to parse request: {}", res.get_error());
     } else {
         const http_request &req = res.get_value();
         auto it = _service_map.find(req.service_method.first);
@@ -60,7 +60,7 @@ void http_server::serve(message_ex *msg)
             it->second->call(req, resp);
         } else {
             resp.status_code = http_status_code::bad_request;
-            resp.body = "service not found";
+            resp.body = fmt::format("service not found for \"{}\"", req.service_method.first);
         }
     }
 
@@ -154,7 +154,9 @@ message_ptr http_response::to_message(message_ex *req) const
     os << "HTTP/1.1 " << http_status_code_to_string(status_code) << "\r\n";
     os << "Content-Type: " << content_type << "\r\n";
     os << "Content-Length: " << body.length() << "\r\n";
-    os << "Location: " << location << "\r\n";
+    if (!location.empty()) {
+        os << "Location: " << location << "\r\n";
+    }
     os << "\r\n";
     os << body;
 

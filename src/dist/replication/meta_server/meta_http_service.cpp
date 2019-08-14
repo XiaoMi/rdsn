@@ -51,7 +51,7 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
             return;
         }
     }
-    if (!is_primary(req, resp))
+    if (!redirect_if_not_primary(req, resp))
         return;
 
     configuration_query_by_index_request request;
@@ -59,7 +59,6 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
 
     request.app_name = app_name;
     _service->_state->query_configuration_by_index(request, response);
-
     if (response.err != dsn::ERR_OK) {
         resp.body = response.err.to_string();
         resp.status_code = http_status_code::internal_server_error;
@@ -183,7 +182,7 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
             return;
         }
     }
-    if (!is_primary(req, resp))
+    if (!redirect_if_not_primary(req, resp))
         return;
     configuration_list_apps_response response;
     configuration_list_apps_request request;
@@ -361,7 +360,7 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
             return;
         }
     }
-    if (!is_primary(req, resp))
+    if (!redirect_if_not_primary(req, resp))
         return;
 
     std::map<dsn::rpc_address, list_nodes_helper> tmp_map;
@@ -446,9 +445,10 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
 
 void meta_http_service::get_cluster_info_handler(const http_request &req, http_response &resp)
 {
-    if (!is_primary(req, resp))
+    if (!redirect_if_not_primary(req, resp))
         return;
-    dsn::utils::table_printer tp("cluster_info");
+
+    dsn::utils::table_printer tp;
     std::ostringstream out;
     std::string meta_servers_str;
     int ms_size = _service->_opts.meta_servers.size();
@@ -483,11 +483,8 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
     resp.status_code = http_status_code::ok;
 }
 
-bool meta_http_service::is_primary(const http_request &req, http_response &resp)
+bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
 {
-#ifdef DSN_MOCK_TEST
-    return true;
-#endif
     rpc_address leader;
     if (_service->_failure_detector->get_leader(&leader))
         return true;
