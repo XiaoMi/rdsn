@@ -2263,46 +2263,52 @@ void replica_stub::close()
     }
 }
 
-std::string replica_stub::get_replica_dir(const char *app_type,
-                                          gpid id,
-                                          bool create_new,
-                                          const std::string &parent_dir)
+std::string replica_stub::get_replica_dir(const char *app_type, gpid id, bool create_new)
 {
     std::string gpid_str = fmt::format("{}.{}", id.to_string(), app_type);
     std::string replica_dir;
     bool is_dir_exist = false;
     for (const std::string &data_dir : _options.data_dirs) {
         std::string dir = utils::filesystem::path_combine(data_dir, gpid_str);
-        if (parent_dir.empty()) {
-            if (utils::filesystem::directory_exists(dir)) {
-                if (is_dir_exist) {
-                    dassert(false,
-                            "replica dir conflict: %s <--> %s",
-                            dir.c_str(),
-                            replica_dir.c_str());
-                }
-                replica_dir = dir;
-                is_dir_exist = true;
+        if (utils::filesystem::directory_exists(dir)) {
+            if (is_dir_exist) {
+                dassert(
+                    false, "replica dir conflict: %s <--> %s", dir.c_str(), replica_dir.c_str());
             }
-        } else if (parent_dir.substr(0, data_dir.size() + 1) == data_dir + "/") {
-            // during partition split, we should gurantee child replica and parent replica share the
-            // same data dir, <parent_dir> = <prefix>/<gpid>.<app_type>, check if <parent_dir>'s
-            // <prefix> is euqal to <data_dir>
             replica_dir = dir;
-            _fs_manager.add_replica(id, replica_dir);
-            return replica_dir;
+            is_dir_exist = true;
         }
     }
-    if (replica_dir.empty() && create_new && parent_dir.empty()) {
+    if (replica_dir.empty() && create_new) {
         _fs_manager.allocate_dir(id, app_type, replica_dir);
     }
     return replica_dir;
 }
 
+std::string
+replica_stub::get_child_dir(const char *app_type, gpid id, const std::string &parent_dir)
+{
+    std::string gpid_str = fmt::format("{}.{}", id.to_string(), app_type);
+    std::string child_dir;
+    for (const std::string &data_dir : _options.data_dirs) {
+        std::string dir = utils::filesystem::path_combine(data_dir, gpid_str);
+        // <parent_dir> = <prefix>/<gpid>.<app_type>
+        // check if <parent_dir>'s <prefix> is euqal to <data_dir>
+        if (parent_dir.substr(0, data_dir.size() + 1) == data_dir + "/") {
+            child_dir = dir;
+            _fs_manager.add_replica(id, child_dir);
+            break;
+        }
+    }
+    if (child_dir.empty()) {
+        dassert_f("can not find parent_dir {} in data_dirs", parent_dir);
+    }
+    return child_dir;
+}
+
 //
 // partition split
 //
-
 void replica_stub::create_child_replica(rpc_address primary_address,
                                         app_info app,
                                         ballot init_ballot,

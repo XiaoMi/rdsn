@@ -140,12 +140,11 @@ public:
     virtual rpc_address get_meta_server_address() const { return _failure_detector->get_servers(); }
     rpc_address primary_address() const { return _primary_address; }
 
-    // {parent_dir} is used for partition split to gurantee child replica data dir is as same as it
-    // parent
-    std::string get_replica_dir(const char *app_type,
-                                gpid id,
-                                bool create_new = true,
-                                const std::string &parent_dir = "");
+    std::string get_replica_dir(const char *app_type, gpid id, bool create_new = true);
+
+    // during partition split, we should gurantee child replica and parent replica share the
+    // same data dir
+    std::string get_child_dir(const char *app_type, gpid id, const std::string &parent_dir);
 
     //
     // helper methods
