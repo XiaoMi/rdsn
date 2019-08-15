@@ -2374,50 +2374,30 @@ replica_stub::create_replica_if_not_found(gpid pid, app_info *app, const std::st
 void replica_stub::split_replica_exec(task_code code,
                                       gpid pid,
                                       local_execution handler,
-                                      local_execution missing_handler,
-                                      gpid missing_handler_gpid,
+                                      local_execution error_handler,
+                                      gpid error_handler_gpid,
                                       std::chrono::milliseconds delay)
 {
-    replica_ptr rep = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
-    replica_ptr rep2 =
-        missing_handler_gpid.get_app_id() == 0 ? nullptr : get_replica(missing_handler_gpid);
+    replica_ptr replica = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
+    replica_ptr error_handler_replica =
+        error_handler_gpid.get_app_id() == 0 ? nullptr : get_replica(error_handler_gpid);
 
-    if (!rep && !rep2) {
-        derror_f("replica({}.{}) and replica({}.{}) are not existed",
-                 pid.get_app_id(),
-                 pid.get_partition_index(),
-                 missing_handler_gpid.get_app_id(),
-                 missing_handler_gpid.get_partition_index());
-        return;
-    }
-
-    if (rep && handler) {
+    if (replica && handler) {
         tasking::enqueue(
-            code, rep.get()->tracker(), [=]() { handler(rep); }, pid.thread_hash(), delay);
-    } else if (rep2 && missing_handler) {
+            code, replica.get()->tracker(), [=]() { handler(replica); }, pid.thread_hash(), delay);
+    } else if (error_handler_replica && error_handler) {
         ddebug_f("replica({}.{}) is invalid, replica({}.{} will execute its handler)",
                  pid.get_app_id(),
                  pid.get_partition_index(),
-                 missing_handler_gpid.get_app_id(),
-                 missing_handler_gpid.get_partition_index());
+                 error_handler_gpid.get_app_id(),
+                 error_handler_gpid.get_partition_index());
         tasking::enqueue(code,
-                         rep2.get()->tracker(),
-                         [=]() { missing_handler(rep2); },
-                         missing_handler_gpid.thread_hash(),
+                         error_handler_replica.get()->tracker(),
+                         [=]() { error_handler(error_handler_replica); },
+                         error_handler_gpid.thread_hash(),
                          delay);
     } else {
-        // no handler will be executed
-        if (rep) {
-            dwarn_f("replica({}.{}) does not define handler",
-                    pid.get_app_id(),
-                    pid.get_partition_index());
-        } else {
-            dwarn_f("replica({}.{}) is invalid, replica({}.{}) does not define handler",
-                    pid.get_app_id(),
-                    pid.get_partition_index(),
-                    missing_handler_gpid.get_app_id(),
-                    missing_handler_gpid.get_partition_index());
-        }
+        // execute nothing
     }
 }
 

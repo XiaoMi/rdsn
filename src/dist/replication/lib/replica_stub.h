@@ -176,18 +176,18 @@ public:
     replica_ptr create_replica_if_not_found(gpid pid, app_info *app, const std::string &parent_dir);
 
     typedef std::function<void(::dsn::replication::replica *rep)> local_execution;
-    // During partition split, we should handle both parent and child at the same time,
-    // especially child replica. For example, if child replica is invalid, we should execute error
-    // handler. This function can be helpful for this condition.
-    // - if replica(<pid>) is existed and valid, then add <handler> into task queue, replica(<pid>)
-    // will execute function <handler> after <delay> milliseconds.
-    // - else add <missing_handler> into task queue, replica(<missing_handler_gpid>) will execute
-    // function <missing_handler> after <delay> milliseconds.
+
+    // - if replica(<pid>) is existed, replica(<pid>) will execute function <handler> after <delay>
+    // milliseconds
+    // - else replica(<missing_handler_gpid>) will execute function <missing_handler> after <delay>
+    // milliseconds.
+    // This function is helpful for partition split error handle.
+    // For example, if child replica is invalid, parent will cleanup split context.
     void split_replica_exec(task_code code,
                             gpid pid,
                             local_execution handler,
-                            local_execution missing_handler,
-                            gpid missing_handler_gpid = gpid(0, 0),
+                            local_execution error_handler,
+                            gpid error_handler_gpid,
                             std::chrono::milliseconds delay = std::chrono::milliseconds(0));
     void split_replica_exec(task_code code,
                             gpid pid,
