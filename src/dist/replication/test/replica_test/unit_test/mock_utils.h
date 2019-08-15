@@ -162,8 +162,6 @@ public:
         rep->set_replica_config(config);
         return rep;
     }
-
-    replica_ptr get_replica_by_pid(gpid pid) { return get_replica(pid); }
 };
 
 } // namespace replication

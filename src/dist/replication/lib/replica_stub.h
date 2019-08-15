@@ -179,10 +179,10 @@ public:
 
     // - if replica(<pid>) is existed, replica(<pid>) will execute function <handler> after <delay>
     // milliseconds
-    // - else replica(<missing_handler_gpid>) will execute function <missing_handler> after <delay>
-    // milliseconds.
-    // This function is helpful for partition split error handle.
-    // For example, if child replica is invalid, parent will cleanup split context.
+    // - else replica(<error_handler_gpid>) will execute function <error_handler> after <delay>
+    // milliseconds
+    // This function is helpful for partition split error handle
+    // For example, if child replica is invalid, parent will cleanup split context
     void split_replica_exec(task_code code,
                             gpid pid,
                             local_execution handler,

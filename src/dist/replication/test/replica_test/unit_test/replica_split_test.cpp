@@ -83,7 +83,7 @@ TEST_F(replica_split_test, add_child_succeed)
     fail::cfg("replica_init_child_replica", "return()");
 
     test_on_add_child();
-    ASSERT_NE(_stub->get_replica_by_pid(_child_pid), nullptr);
+    ASSERT_NE(_stub->get_replica(_child_pid), nullptr);
 
     fail::teardown();
 }

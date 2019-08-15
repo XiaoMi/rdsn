@@ -2398,6 +2398,12 @@ void replica_stub::split_replica_exec(task_code code,
                          delay);
     } else {
         // execute nothing
+        dwarn_f("both replica({}.{}) and error handler replica({}.{}) are invalid, or replica not "
+                "define its handlers",
+                pid.get_app_id(),
+                pid.get_partition_index(),
+                error_handler_gpid.get_app_id(),
+                error_handler_gpid.get_partition_index());
     }
 }
 
