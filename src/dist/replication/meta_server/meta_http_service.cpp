@@ -38,14 +38,7 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
         if (p.first == "name") {
             app_name = p.second;
         } else if (p.first == "detail") {
-            if (p.second == "false")
-                detailed = false;
-            else if (p.second == "true")
-                detailed = true;
-            else {
-                resp.status_code = http_status_code::bad_request;
-                return;
-            }
+            detailed = true;
         } else {
             resp.status_code = http_status_code::bad_request;
             return;
@@ -59,6 +52,11 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
 
     request.app_name = app_name;
     _service->_state->query_configuration_by_index(request, response);
+    if (response.err == ERR_OBJECT_NOT_FOUND) {
+        resp.status_code = http_status_code::not_found;
+        resp.body = fmt::format("table not found: \"{}\"", app_name);
+        return;
+    }
     if (response.err != dsn::ERR_OK) {
         resp.body = response.err.to_string();
         resp.status_code = http_status_code::internal_server_error;
@@ -169,14 +167,7 @@ void meta_http_service::list_app_handler(const http_request &req, http_response 
     bool detailed = false;
     for (const auto &p : req.query_args) {
         if (p.first == "detail") {
-            if (p.second == "false")
-                detailed = false;
-            else if (p.second == "true")
-                detailed = true;
-            else {
-                resp.status_code = http_status_code::bad_request;
-                return;
-            }
+            detailed = true;
         } else {
             resp.status_code = http_status_code::bad_request;
             return;
@@ -347,14 +338,7 @@ void meta_http_service::list_node_handler(const http_request &req, http_response
     bool detailed = false;
     for (const auto &p : req.query_args) {
         if (p.first == "detail") {
-            if (p.second == "false")
-                detailed = false;
-            else if (p.second == "true")
-                detailed = true;
-            else {
-                resp.status_code = http_status_code::bad_request;
-                return;
-            }
+            detailed = true;
         } else {
             resp.status_code = http_status_code::bad_request;
             return;

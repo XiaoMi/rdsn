@@ -265,6 +265,7 @@ function(dsn_setup_system_libs)
     set(DSN_SYSTEM_LIBS
         ${DSN_SYSTEM_LIBS}
         thrift
+        fmt
         ${CMAKE_THREAD_LIBS_INIT} # the thread library found by FindThreads
         CACHE STRING "rDSN system libs" FORCE
     )

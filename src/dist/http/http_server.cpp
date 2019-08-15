@@ -59,7 +59,7 @@ void http_server::serve(message_ex *msg)
         if (it != _service_map.end()) {
             it->second->call(req, resp);
         } else {
-            resp.status_code = http_status_code::bad_request;
+            resp.status_code = http_status_code::not_found;
             resp.body = fmt::format("service not found for \"{}\"", req.service_method.first);
         }
     }
@@ -118,28 +118,33 @@ void http_server::add_service(http_service *service)
     }
     if (real_args.size() == 1) {
         ret.service_method = std::make_pair(std::string(real_args[0]), std::string(""));
-        return ret;
-    }
-    if (real_args.size() == 0) {
+    } else if (real_args.size() == 0) {
         ret.service_method = std::make_pair(std::string(""), std::string(""));
-        return ret;
+    } else {
+        ret.service_method = std::make_pair(std::string(real_args[0]), std::string(real_args[1]));
     }
-
-    ret.service_method = std::make_pair(std::string(real_args[0]), std::string(real_args[1]));
 
     // find if there are method args (<ip>:<port>/<service>/<method>?<arg>=<val>&<arg>=<val>)
     if (!unresolved_query.empty()) {
         std::vector<std::string> method_arg_val;
         boost::split(method_arg_val, unresolved_query, boost::is_any_of("&"));
-        for (std::string &arg_val : method_arg_val) {
-            std::vector<std::string> arg_vals;
-            boost::split(arg_vals, arg_val, boost::is_any_of("="));
-            if (arg_vals.size() != 2)
-                return error_s::make(ERR_INVALID_PARAMETERS);
-            auto iter = ret.query_args.find(arg_vals[0]);
-            if (iter != ret.query_args.end())
-                return error_s::make(ERR_INVALID_PARAMETERS, std::string("repeat parameters"));
-            ret.query_args.emplace(arg_vals[0], arg_vals[1]);
+        for (const std::string &arg_val : method_arg_val) {
+            size_t sep = arg_val.find_first_of('=');
+            if (sep == std::string::npos) {
+                // assume this as a bool flag
+                ret.query_args.emplace(arg_val, "");
+                continue;
+            }
+            std::string name = arg_val.substr(0, sep);
+            std::string value;
+            if (sep + 1 < arg_val.size()) {
+                value = arg_val.substr(sep + 1, arg_val.size() - sep);
+            }
+            auto iter = ret.query_args.find(name);
+            if (iter != ret.query_args.end()) {
+                return FMT_ERR(ERR_INVALID_PARAMETERS, "duplicate parameter: {}", name);
+            }
+            ret.query_args.emplace(std::move(name), std::move(value));
         }
     }
 
