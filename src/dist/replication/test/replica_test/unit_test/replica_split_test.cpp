@@ -64,16 +64,17 @@ public:
 
 TEST_F(replica_split_test, add_child_wrong_ballot)
 {
-    _req.config.ballot = 5;
+    ballot wrong_ballot = 5;
+    _req.config.ballot = wrong_ballot;
     test_on_add_child();
-    ASSERT_EQ(_child, nullptr);
+    ASSERT_EQ(_stub->get_replica(_child_pid), nullptr);
 }
 
-TEST_F(replica_split_test, add_child_wrong_child_gpid)
+TEST_F(replica_split_test, add_child_with_child_existed)
 {
     _parent->set_child_gpid(_child_pid);
     test_on_add_child();
-    ASSERT_EQ(_child, nullptr);
+    ASSERT_EQ(_stub->get_replica(_child_pid), nullptr);
 }
 
 TEST_F(replica_split_test, add_child_succeed)
