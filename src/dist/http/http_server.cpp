@@ -117,11 +117,11 @@ void http_server::add_service(http_service *service)
         return error_s::make(ERR_INVALID_PARAMETERS);
     }
     if (real_args.size() == 1) {
-        ret.service_method = std::make_pair(std::string(real_args[0]), std::string(""));
+        ret.service_method = {std::string(real_args[0]), ""};
     } else if (real_args.size() == 0) {
-        ret.service_method = std::make_pair(std::string(""), std::string(""));
+        ret.service_method = {"", ""};
     } else {
-        ret.service_method = std::make_pair(std::string(real_args[0]), std::string(real_args[1]));
+        ret.service_method = {std::string(real_args[0]), std::string(real_args[1])};
     }
 
     // find if there are method args (<ip>:<port>/<service>/<method>?<arg>=<val>&<arg>=<val>)
