@@ -245,7 +245,6 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
 
     std::map<int32_t, std::shared_ptr<app_state>> app_map;
     get_all_available_app(*ns, app_map);
-
     for (const auto &kv : app_map) {
         int32_t app_id = kv.first;
         const auto &app = kv.second;
@@ -259,7 +258,7 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
 
             response.dup_map[app_id][dup_id] = dup->to_duplication_entry();
 
-            // report progress for every duplications
+            // report progress periodically for every duplications
             dup->report_progress_if_time_up();
         }
     }
@@ -270,7 +269,7 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
 
         auto it = app_map.find(gpid.get_app_id());
         if (it == app_map.end()) {
-            // app is unsync
+            // app is unsynced
             continue;
         }
         std::shared_ptr<app_state> &app = it->second;
@@ -278,7 +277,7 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
         for (const duplication_confirm_entry &confirm : kv.second) {
             auto it2 = app->duplications.find(confirm.dupid);
             if (it2 == app->duplications.end()) {
-                // dup is unsync
+                // dup is unsynced
                 continue;
             }
 
@@ -369,7 +368,7 @@ void meta_duplication_service::recover_from_meta_state()
     for (const auto &kv : _state->_exist_apps) {
         std::shared_ptr<app_state> app = kv.second;
         if (app->status != app_status::AS_AVAILABLE) {
-            return;
+            continue;
         }
 
         _meta_svc->get_meta_storage()->get_children(
@@ -405,7 +404,10 @@ void meta_duplication_service::do_restore_duplication_progress(
 
         _meta_svc->get_meta_storage()->get_data(
             std::move(partition_path), [dup, partition_idx](const blob &value) {
+                // value is confirmed_decree encoded in string.
+
                 if (value.size() == 0) {
+                    // not found
                     dup->init_progress(partition_idx, invalid_decree);
                     return;
                 }
@@ -438,7 +440,7 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
     // restore duplication info from json
     _meta_svc->get_meta_storage()->get_data(
         std::string(store_path),
-        [ dup_id, this, app = std::move(app), store_path ](const blob &json) {
+        [dup_id, this, app = std::move(app), store_path](const blob &json) {
             zauto_write_lock l(app_lock());
 
             auto dup = duplication_info::decode_from_blob(
