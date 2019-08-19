@@ -527,6 +527,7 @@ class partition_split_context
 {
 public:
     partition_split_context() {}
+    // TODO(heyuchen): force will be used in further pull request
     bool cleanup(bool force);
 
 public:

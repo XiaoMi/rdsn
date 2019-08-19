@@ -32,19 +32,16 @@ void replica::on_add_child(const group_check_request &request) // on parent part
 
     gpid child_gpid = request.child_gpid;
     if (_child_gpid == child_gpid) {
-        dwarn_replica(
-            "child replica({}.{}) is already existed, might be partition splitting, ignore "
-            "this request",
-            child_gpid.get_app_id(),
-            child_gpid.get_partition_index());
+        dwarn_replica("child replica({}) is already existed, might be partition splitting, ignore "
+                      "this request",
+                      child_gpid);
         return;
     }
 
     if (child_gpid.get_partition_index() < _app_info.partition_count) {
-        dwarn_replica("receive old add child request, child gpid is ({}.{}), "
+        dwarn_replica("receive old add child request, child gpid is ({}), "
                       "local partition count is {}, ignore this request",
-                      child_gpid.get_app_id(),
-                      child_gpid.get_partition_index(),
+                      child_gpid,
                       _app_info.partition_count);
         return;
     }
@@ -52,16 +49,15 @@ void replica::on_add_child(const group_check_request &request) // on parent part
     _child_gpid = child_gpid;
     _child_init_ballot = get_ballot();
 
-    ddebug_replica("process add child({}.{}), primary is {}, ballot is {}, "
+    ddebug_replica("process add child({}), primary is {}, ballot is {}, "
                    "status is {}, last_committed_decree is {}",
-                   child_gpid.get_app_id(),
-                   child_gpid.get_partition_index(),
+                   child_gpid,
                    request.config.primary.to_string(),
                    request.config.ballot,
                    enum_to_string(request.config.status),
                    request.last_committed_decree);
 
-    tasking::enqueue(LPC_PARTITION_SPLIT,
+    tasking::enqueue(LPC_CREATE_CHILD,
                      tracker(),
                      std::bind(&replica_stub::create_child_replica,
                                _stub,
@@ -79,13 +75,13 @@ void replica::init_child_replica(gpid parent_gpid,
                                  rpc_address primary_address,
                                  ballot init_ballot) // on child partition
 {
-    FAIL_POINT_INJECT_F("replica_init_child_replica", [](dsn::string_view) {});
+    FAIL_POINT_INJECT_F("replica_init_child_replica",
+                        [](dsn::string_view) { ddebug_f("mock init_child_replica succeed"); });
 
     if (status() != partition_status::PS_INACTIVE) {
         dwarn_replica("wrong status {}", enum_to_string(status()));
-        _stub->split_replica_exec(LPC_PARTITION_SPLIT_ERROR, parent_gpid, [](replica_ptr r) {
-            r->_child_gpid.set_app_id(0);
-        });
+        _stub->split_replica_error_handler(parent_gpid,
+                                           [](replica_ptr r) { r->_child_gpid.set_app_id(0); });
         return;
     }
 
@@ -97,10 +93,13 @@ void replica::init_child_replica(gpid parent_gpid,
     // init split states
     _split_states.parent_gpid = parent_gpid;
 
-    ddebug_replica("init ballot is {}, parent gpid is ({}.{})",
-                   init_ballot,
-                   parent_gpid.get_app_id(),
-                   parent_gpid.get_partition_index());
+    ddebug_replica("init ballot is {}, parent gpid is ({})", init_ballot, parent_gpid);
+}
+
+void replica::clean_up_parent_split_context()
+{
+    _child_gpid.set_app_id(0);
+    _child_init_ballot = 0;
 }
 
 } // namespace replication

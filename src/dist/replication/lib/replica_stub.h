@@ -144,7 +144,7 @@ public:
 
     // during partition split, we should gurantee child replica and parent replica share the
     // same data dir
-    std::string get_child_dir(const char *app_type, gpid id, const std::string &parent_dir);
+    std::string get_child_dir(const char *app_type, gpid child_pid, const std::string &parent_dir);
 
     //
     // helper methods
@@ -173,26 +173,29 @@ public:
 
     // create a new replica instance if not found
     // return nullptr when failed to create new replica
-    replica_ptr create_replica_if_not_found(gpid pid, app_info *app, const std::string &parent_dir);
+    replica_ptr
+    create_child_replica_if_not_found(gpid child_pid, app_info *app, const std::string &parent_dir);
 
     typedef std::function<void(::dsn::replication::replica *rep)> local_execution;
 
-    // - if replica(<pid>) is existed, replica(<pid>) will execute function <handler> after <delay>
-    // milliseconds
-    // - else replica(<error_handler_gpid>) will execute function <error_handler> after <delay>
-    // milliseconds
-    // This function is helpful for partition split error handle
-    // For example, if child replica is invalid, parent will cleanup split context
-    void split_replica_exec(task_code code,
-                            gpid pid,
+    // This function is used during partition split
+    // - case1. parent want child execute <handler>, child will execute <handler> if child existed,
+    // otherwise parent will execute <error_handler>
+    // - case2. child want parent execute <handler>, parent will execute <handler> if parent
+    // existed, otherwise child will execute <error_handler>
+    void split_replica_exec(gpid pid,
                             local_execution handler,
                             local_execution error_handler,
                             gpid error_handler_gpid,
                             std::chrono::milliseconds delay = std::chrono::milliseconds(0));
-    void split_replica_exec(task_code code,
-                            gpid pid,
-                            local_execution handler,
-                            std::chrono::milliseconds delay = std::chrono::milliseconds(0));
+
+    // This function is used for partition split error handler
+    // if partition split meet error, parent/child may want child/parent execute error handler
+    // if replica <pid> exist, execute <handler>, otherwise return
+    void
+    split_replica_error_handler(gpid pid,
+                                local_execution handler,
+                                std::chrono::milliseconds delay = std::chrono::milliseconds(0));
 
 private:
     enum replica_node_state

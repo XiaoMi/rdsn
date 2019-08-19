@@ -76,7 +76,7 @@ public:
     //    routines for replica stub
     //
     static replica *load(replica_stub *stub, const char *dir);
-    // {parent_dir} is used in partition split for get_replica_dir in replica_stub
+    // {parent_dir} is used in partition split for get_child_dir in replica_stub
     static replica *newr(replica_stub *stub,
                          gpid gpid,
                          const app_info &app,
@@ -320,6 +320,9 @@ private:
 
     // child replica initialize config and state info
     void init_child_replica(gpid parent_gpid, dsn::rpc_address primary_address, ballot init_ballot);
+
+    // parent reset child information when partition split failed
+    void clean_up_parent_split_context();
 
 private:
     friend class ::dsn::replication::replication_checker;

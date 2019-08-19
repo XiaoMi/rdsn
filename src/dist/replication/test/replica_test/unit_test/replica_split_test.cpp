@@ -80,7 +80,7 @@ TEST_F(replica_split_test, add_child_with_child_existed)
 TEST_F(replica_split_test, add_child_succeed)
 {
     fail::setup();
-    fail::cfg("replica_stub_create_replica_if_not_found", "return()");
+    fail::cfg("replica_stub_create_child_replica_if_not_found", "return()");
     fail::cfg("replica_init_child_replica", "return()");
 
     test_on_add_child();
