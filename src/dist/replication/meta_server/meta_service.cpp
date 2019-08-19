@@ -830,7 +830,6 @@ void meta_service::on_query_duplication_info(duplication_query_rpc rpc)
     }
 }
 
-// SEE: replica_stub::duplication_impl::duplication_sync
 void meta_service::on_duplication_sync(duplication_sync_rpc rpc)
 {
     RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());

@@ -106,10 +106,6 @@ void meta_duplication_service::do_change_duplication_status(std::shared_ptr<app_
 
     _meta_svc->get_meta_storage()->set_data(
         std::string(dup->store_path), std::move(value), [rpc, this, app, dup]() {
-            ddebug_dup(dup,
-                       "change duplication status on metastore successfully [app_name:{}]",
-                       app->app_name);
-
             dup->persist_status();
             rpc.response().err = ERR_OK;
             rpc.response().appid = app->app_id;
@@ -440,7 +436,7 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
     // restore duplication info from json
     _meta_svc->get_meta_storage()->get_data(
         std::string(store_path),
-        [dup_id, this, app = std::move(app), store_path](const blob &json) {
+        [ dup_id, this, app = std::move(app), store_path ](const blob &json) {
             zauto_write_lock l(app_lock());
 
             auto dup = duplication_info::decode_from_blob(
