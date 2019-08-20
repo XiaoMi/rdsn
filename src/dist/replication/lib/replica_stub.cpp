@@ -2293,7 +2293,7 @@ replica_stub::get_child_dir(const char *app_type, gpid child_pid, const std::str
     for (const std::string &data_dir : _options.data_dirs) {
         std::string dir = utils::filesystem::path_combine(data_dir, gpid_str);
         // <parent_dir> = <prefix>/<gpid>.<app_type>
-        // check if <parent_dir>'s <prefix> is euqal to <data_dir>
+        // check if <parent_dir>'s <prefix> is equal to <data_dir>
         if (parent_dir.substr(0, data_dir.size() + 1) == data_dir + "/") {
             child_dir = dir;
             _fs_manager.add_replica(child_pid, child_dir);
@@ -2373,51 +2373,33 @@ replica_ptr replica_stub::create_child_replica_if_not_found(gpid child_pid,
 void replica_stub::split_replica_exec(gpid pid,
                                       local_execution handler,
                                       local_execution error_handler,
-                                      gpid error_handler_gpid,
-                                      std::chrono::milliseconds delay)
+                                      gpid error_handler_gpid)
 {
     replica_ptr replica = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
     replica_ptr error_handler_replica =
         error_handler_gpid.get_app_id() == 0 ? nullptr : get_replica(error_handler_gpid);
 
     if (replica && handler) {
-        tasking::enqueue(LPC_PARTITION_SPLIT,
-                         replica.get()->tracker(),
-                         [=]() { handler(replica); },
-                         pid.thread_hash(),
-                         delay);
+        handler(replica);
     } else if (error_handler_replica && error_handler) {
         ddebug_f("replica({}) is invalid, replica({}) will execute its handler)",
                  pid,
                  error_handler_gpid);
-        tasking::enqueue(LPC_PARTITION_SPLIT_ERROR,
-                         error_handler_replica.get()->tracker(),
-                         [=]() { error_handler(error_handler_replica); },
-                         error_handler_gpid.thread_hash(),
-                         delay);
+        error_handler(error_handler_replica);
     } else {
-        // execute nothing
-        dwarn_f("both replica({}) and error handler replica({}) are invalid, or replica not "
-                "define its handlers",
-                pid,
-                error_handler_gpid);
+        dwarn_f(
+            "both replica({}) and error handler replica({}) are invalid", pid, error_handler_gpid);
     }
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica_stub::split_replica_error_handler(gpid pid,
-                                               local_execution handler,
-                                               std::chrono::milliseconds delay)
+void replica_stub::split_replica_error_handler(gpid pid, local_execution handler)
 {
     replica_ptr replica = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
     if (replica && handler) {
-        tasking::enqueue(LPC_PARTITION_SPLIT_ERROR,
-                         replica.get()->tracker(),
-                         [=]() { handler(replica); },
-                         pid.thread_hash(),
-                         delay);
+        handler(replica);
     } else {
-        dwarn_f("replica({}) is invalid or not define its handler", pid);
+        dwarn_f("replica({}) is invalid", pid);
     }
 }
 
