@@ -2375,6 +2375,7 @@ void replica_stub::split_replica_exec(gpid pid,
                                       local_execution error_handler,
                                       gpid error_handler_gpid)
 {
+    // app_id = 0 means child replica is invalid
     replica_ptr replica = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
     replica_ptr error_handler_replica =
         error_handler_gpid.get_app_id() == 0 ? nullptr : get_replica(error_handler_gpid);
@@ -2395,6 +2396,7 @@ void replica_stub::split_replica_exec(gpid pid,
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica_stub::split_replica_error_handler(gpid pid, local_execution handler)
 {
+    // app_id = 0 means child replica is invalid
     replica_ptr replica = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
     if (replica && handler) {
         handler(replica);
