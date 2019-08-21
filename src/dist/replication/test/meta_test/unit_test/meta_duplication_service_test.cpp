@@ -217,7 +217,7 @@ public:
         return find_app(test_app);
     }
 
-    // Corrupted meta data may result from bad write of meta-data.
+    // Corrupted meta data may result from bad write to meta-store.
     // This test ensures meta-server is still able to recover when
     // meta data is corrupted.
     void test_recover_from_corrupted_meta_data()
@@ -353,9 +353,6 @@ public:
         dup = app->duplications[test_dup.dupid];
         ASSERT_EQ(dup->_status, duplication_status::DS_PAUSE);
     }
-
-    std::shared_ptr<server_state> _ss;
-    std::unique_ptr<meta_service> _ms;
 };
 
 // This test ensures that duplication upon an unavailable app will
