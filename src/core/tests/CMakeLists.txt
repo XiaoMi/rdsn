@@ -5,8 +5,6 @@ set(MY_PROJ_NAME dsn.core.tests)
 # "GLOB" for non-recursive search
 set(MY_SRC_SEARCH_MODE "GLOB")
 
-set(MY_PROJ_INC_PATH "")
-
 set(MY_PROJ_LIBS gtest
                  dsn_runtime
                  )
