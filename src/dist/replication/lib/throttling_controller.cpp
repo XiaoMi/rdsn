@@ -74,11 +74,25 @@ bool throttling_controller::parse_from_env(const std::string &env_value,
             parse_error = "invalid field count, should be 3";
             return false;
         }
+
+        int32_t unit_multiplier = 1;
+        if (!sargs1[0].empty()) {
+            if (*sargs1[0].rbegin() == 'M') {
+                unit_multiplier = 1000 * 1000;
+            } else if (*sargs1[0].rbegin() == 'K') {
+                unit_multiplier = 1000;
+            }
+            if (unit_multiplier != 1) {
+                sargs1[0].pop_back();
+            }
+        }
         int32_t units = 0;
         if (!buf2int32(sargs1[0], units) || units < 0) {
             parse_error = "invalid units, should be non-negative int";
             return false;
         }
+        units *= unit_multiplier;
+
         int64_t ms = 0;
         if (!buf2int64(sargs1[2], ms) || ms < 0) {
             parse_error = "invalid delay ms, should be non-negative int";

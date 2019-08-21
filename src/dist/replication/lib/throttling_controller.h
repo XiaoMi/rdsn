@@ -37,9 +37,9 @@ namespace replication {
 
 // Used for replica throttling.
 // Different throttling strategies may use different 'request_units', which is
-// the cost of each request. For example, for QPS-based throttling, request_units=1.
+// the cost of each request. For QPS-based throttling, request_units=1.
 // For size-based throttling, request_units is the bytes size of the incoming
-// request, 100KB, e.g.
+// request.
 //
 // not thread safe
 class throttling_controller
@@ -55,6 +55,10 @@ public:
 public:
     throttling_controller();
 
+    // Configures throttling strategy dynamically from app-envs.
+    // The result of `delay_units` and `reject_units` are ensured greater than 0.
+    // If user-given parameter is 0*delay*100, then delay_units=1, likewise for reject_units.
+    //
     // return true if parse succeed.
     // return false if parse failed for the reason of invalid env_value.
     // if return false, the original value will not be changed.
@@ -82,6 +86,8 @@ public:
     control(const message_ex *request, int32_t request_units, /*out*/ int64_t &delay_ms);
 
 private:
+    friend class throttling_controller_test;
+
     bool _enabled;
     std::string _env_value;
     int32_t _partition_count;

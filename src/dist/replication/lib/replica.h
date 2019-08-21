@@ -344,6 +344,7 @@ private:
     friend class ::dsn::replication::mutation_queue;
     friend class ::dsn::replication::replica_stub;
     friend class mock_replica;
+    friend class throttling_controller_test;
     friend class replica_learn_test;
     friend class replica_duplicator_manager;
     friend class load_mutation;
