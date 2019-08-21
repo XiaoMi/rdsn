@@ -79,10 +79,7 @@ void replica::update_throttle_env_internal(const std::map<std::string, std::stri
         cntl.reset(throttling_changed, old_throttling);
     }
     if (throttling_changed) {
-        ddebug_replica("switch {} from \"{}\" to \"{}\"",
-                       key,
-                       old_throttling,
-                       cntl.env_value());
+        ddebug_replica("switch {} from \"{}\" to \"{}\"", key, old_throttling, cntl.env_value());
     }
 }
 
