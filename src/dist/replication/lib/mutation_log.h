@@ -152,7 +152,6 @@ public:
     }
 
     // get mutations in memory, including pending and writing mutations
-    // return true if <mutations_list> is not empty, otherwise return false
     virtual void get_mutation_in_memory(decree start_decree,
                                         ballot current_ballot,
                                         /*out*/ std::vector<mutation_ptr> &mutations_list) const
