@@ -41,6 +41,13 @@ prepare_list::prepare_list(replica_base *r,
     _last_committed_decree = init_decree;
 }
 
+prepare_list::prepare_list(replica_base *r, const prepare_list &plist)
+    : mutation_cache(plist), replica_base(r)
+{
+    _committer = plist._committer;
+    _last_committed_decree = plist._last_committed_decree;
+}
+
 void prepare_list::reset(decree init_decree)
 {
     _last_committed_decree = init_decree;

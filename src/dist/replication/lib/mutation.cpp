@@ -54,6 +54,26 @@ mutation::mutation()
     _tid = ++s_tid;
 }
 
+mutation::mutation(const mutation_ptr &old_mu)
+{
+    strcpy(_name, old_mu->_name);
+    _appro_data_bytes = old_mu->_appro_data_bytes;
+    data = old_mu->data;
+    _private0 = old_mu->_private0;
+    client_requests = old_mu->client_requests;
+    dassert(data.updates.size() == client_requests.size(), "lack of requests");
+    _sync_to_child = old_mu->get_sync_to_child();
+
+    // create a new message by original message
+    // new message doesn't have client infomation, it won't send reply to client
+    for (int i = 0; i < client_requests.size(); ++i) {
+        if (client_requests[i] != nullptr) {
+            client_requests[i] =
+                message_ex::create_receive_message_by_message(*(message_ex *)client_requests[i]);
+        }
+    }
+}
+
 mutation::~mutation()
 {
     for (auto &r : client_requests) {

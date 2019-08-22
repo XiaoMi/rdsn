@@ -3,6 +3,8 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/utility/filesystem.h>
 #include <dsn/utility/fail_point.h>
 
 #include "replica.h"
@@ -94,12 +96,144 @@ void replica::init_child_replica(gpid parent_gpid,
     _split_states.parent_gpid = parent_gpid;
 
     ddebug_replica("init ballot is {}, parent gpid is ({})", init_ballot, parent_gpid);
+
+    _stub->split_replica_exec(
+        _split_states.parent_gpid,
+        std::bind(&replica::parent_prepare_states, std::placeholders::_1, _app->learn_dir()),
+        std::bind(&replica::handle_child_split_error,
+                  std::placeholders::_1,
+                  "parent not exist when execute parent_prepare_states"),
+        get_gpid());
 }
 
-void replica::clean_up_parent_split_context()
+// ThreadPool: THREAD_POOL_REPLICATION
+bool replica::parent_check_states() // on parent partition
+{
+    FAIL_POINT_INJECT_F("replica_parent_check_states", [](dsn::string_view) {
+        ddebug_f("mock parent_check_states succeed");
+        return true;
+    });
+
+    if (_child_init_ballot != get_ballot() || _child_gpid.get_app_id() == 0 ||
+        (status() != partition_status::PS_PRIMARY && status() != partition_status::PS_SECONDARY &&
+         (status() != partition_status::PS_INACTIVE || !_inactive_is_transient))) {
+        dwarn_replica("parent wrong states: status({}), init_ballot({}) VS current_ballot({}), "
+                      "child_gpid({})",
+                      enum_to_string(status()),
+                      _child_init_ballot,
+                      get_ballot(),
+                      _child_gpid);
+        _stub->split_replica_error_handler(
+            _child_gpid,
+            std::bind(&replica::handle_child_split_error,
+                      std::placeholders::_1,
+                      "wrong parent states when execute parent_check_states"));
+        cleanup_parent_split_context();
+        return false;
+    }
+    return true;
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::parent_prepare_states(const std::string &dir) // on parent partition
+{
+    FAIL_POINT_INJECT_F("replica_parent_prepare_states",
+                        [](dsn::string_view) { ddebug_f("mock parent_prepare_states succeed"); });
+
+    if (!parent_check_states()) {
+        return;
+    }
+
+    learn_state parent_states;
+    int64_t checkpoint_decree;
+    // generate checkpoint
+    dsn::error_code ec = _app->copy_checkpoint_to_dir(dir.c_str(), &checkpoint_decree);
+    if (ec == ERR_OK) {
+        ddebug_replica("prepare checkpoint succeed: checkpoint dir = {}, checkpoint decree = {}",
+                       dir,
+                       checkpoint_decree);
+        parent_states.to_decree_included = checkpoint_decree;
+        // learn_state.files[0] will be used to get learn dir in function 'storage_apply_checkpoint'
+        parent_states.files.push_back(dsn::utils::filesystem::path_combine(dir, "dummy"));
+    } else {
+        derror_replica("prepare checkpoint failed, error = {}", ec.to_string());
+        tasking::enqueue(LPC_PARTITION_SPLIT,
+                         tracker(),
+                         std::bind(&replica::parent_prepare_states, this, dir),
+                         get_gpid().thread_hash(),
+                         std::chrono::seconds(1));
+        return;
+    }
+
+    std::vector<mutation_ptr> mutation_list;
+    std::vector<std::string> files;
+    uint64_t total_file_size = 0;
+    // get mutation and private log
+    _private_log->get_parent_mutations_and_logs(
+        get_gpid(), checkpoint_decree + 1, invalid_ballot, mutation_list, files, total_file_size);
+
+    // get prepare list
+    prepare_list *plist = new prepare_list(this, *_prepare_list);
+    plist->truncate(last_committed_decree());
+
+    dassert_replica(
+        last_committed_decree() == checkpoint_decree || !mutation_list.empty() || !files.empty(),
+        "last_committed_decree({}) VS checkpoint_decree({}), mutation_list size={}, files size={}",
+        last_committed_decree(),
+        checkpoint_decree,
+        mutation_list.size(),
+        files.size());
+
+    ddebug_replica("prepare state succeed: {} mutations, {} private log files, total file size = "
+                   "{}, last_committed_decree = {}",
+                   mutation_list.size(),
+                   files.size(),
+                   total_file_size,
+                   last_committed_decree());
+
+    _stub->split_replica_exec(_child_gpid,
+                              std::bind(&replica::child_copy_states,
+                                        std::placeholders::_1,
+                                        parent_states,
+                                        mutation_list,
+                                        files,
+                                        total_file_size,
+                                        plist),
+                              [plist](replica *r) {
+                                  delete plist;
+                                  r->cleanup_parent_split_context();
+                              },
+                              get_gpid());
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::child_copy_states(learn_state lstate,
+                                std::vector<mutation_ptr> mutation_list,
+                                std::vector<std::string> files,
+                                uint64_t total_file_size,
+                                prepare_list *plist) // on child partition
+{
+    FAIL_POINT_INJECT_F("replica_child_copy_states",
+                        [](dsn::string_view) { ddebug_f("mock child_copy_states succeed"); });
+    // TODO(heyuchen): implment function in further pull request
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::cleanup_parent_split_context() // on parent partition
 {
     _child_gpid.set_app_id(0);
     _child_init_ballot = 0;
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::handle_child_split_error(const std::string &error_msg) // on child partition
+{
+    if (status() != partition_status::PS_ERROR) {
+        dwarn_replica("partition split failed because {}", error_msg);
+        // TODO(heyuchen):
+        // convert child partition_status from PS_PARTITION_SPLIT to PS_ERROR in further pull
+        // request
+    }
 }
 
 } // namespace replication

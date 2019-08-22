@@ -57,6 +57,7 @@ class mutation : public ref_counter
 {
 public:
     mutation();
+    mutation(const mutation_ptr &old_mu);
     virtual ~mutation();
 
     // state inquery
@@ -138,6 +139,9 @@ public:
     // used by pending mutation queue only
     mutation *next;
 
+    void set_sync_to_child(bool sync_to_child) { _sync_to_child = sync_to_child; }
+    bool get_sync_to_child() { return _sync_to_child; }
+
 private:
     union
     {
@@ -159,6 +163,7 @@ private:
     uint64_t _create_ts_ns; // for profiling
     uint64_t _tid;          // trace id, unique in process
     static std::atomic<uint64_t> s_tid;
+    bool _sync_to_child; // for partition split
 };
 
 class replica;

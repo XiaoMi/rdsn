@@ -42,6 +42,7 @@ class mutation_cache
 {
 public:
     mutation_cache(decree init_decree, int max_count);
+    mutation_cache(const mutation_cache &cache);
     ~mutation_cache();
 
     error_code put(mutation_ptr &mu);

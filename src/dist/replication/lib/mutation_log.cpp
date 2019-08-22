@@ -322,6 +322,45 @@ bool mutation_log_private::get_learn_state_in_memory(decree start_decree,
     return learned_count > 0;
 }
 
+void mutation_log_private::get_mutation_in_memory(decree start_decree,
+                                                  ballot start_ballot,
+                                                  std::vector<mutation_ptr> &mutation_list) const
+{
+    std::shared_ptr<mutations> issued_mutations;
+    mutations pending_mutations;
+    {
+        zauto_lock l(_plock);
+        issued_mutations = _issued_write_mutations.lock();
+        if (_pending_write_mutations) {
+            pending_mutations = *_pending_write_mutations;
+        }
+    }
+
+    if (issued_mutations) {
+        for (auto &mu : *issued_mutations) {
+            // if start_ballot is invalid or equal to mu.ballot, check decree
+            // otherwise check ballot
+            ballot current_ballot =
+                (start_ballot == invalid_ballot) ? invalid_ballot : mu->get_ballot();
+            if ((mu->get_decree() >= start_decree && start_ballot == current_ballot) ||
+                current_ballot > start_ballot) {
+                mutation_list.push_back(new mutation(mu));
+            }
+        }
+    }
+
+    for (auto &mu : pending_mutations) {
+        // if start_ballot is invalid or equal to mu.ballot, check decree
+        // otherwise check ballot
+        ballot current_ballot =
+            (start_ballot == invalid_ballot) ? invalid_ballot : mu->get_ballot();
+        if ((mu->get_decree() >= start_decree && start_ballot == current_ballot) ||
+            current_ballot > start_ballot) {
+            mutation_list.push_back(new mutation(mu));
+        }
+    }
+}
+
 void mutation_log_private::flush() { flush_internal(-1); }
 
 void mutation_log_private::flush_once() { flush_internal(1); }
@@ -1285,6 +1324,77 @@ bool mutation_log::get_learn_state(gpid gpid, decree start, /*out*/ learn_state 
            start);
 
     return ret;
+}
+
+void mutation_log::get_parent_mutations_and_logs(gpid pid,
+                                                 decree start_decree,
+                                                 ballot start_ballot,
+                                                 std::vector<mutation_ptr> &mutation_list,
+                                                 std::vector<std::string> &files,
+                                                 uint64_t &total_file_size) const
+{
+    dassert(_is_private, "this method is only valid for private logs");
+    dassert(_private_gpid == pid,
+            "replica gpid does not match, (%d.%d) VS (%d.%d)",
+            _private_gpid.get_app_id(),
+            _private_gpid.get_partition_index(),
+            pid.get_app_id(),
+            pid.get_partition_index());
+
+    mutation_list.clear();
+    files.clear();
+    total_file_size = 0;
+
+    // get mutations
+    get_mutation_in_memory(start_decree, start_ballot, mutation_list);
+
+    std::map<int, log_file_ptr> file_map;
+    {
+        zauto_lock l(_lock);
+        if (mutation_list.size() == 0 && start_decree > _private_log_info.max_decree) {
+            // no memory data and no disk data
+            return;
+        }
+        file_map = _log_files;
+    }
+
+    bool skip_next = false;
+    std::list<std::string> learn_files;
+    decree last_max_decree = 0;
+    for (auto itr = file_map.rbegin(); itr != file_map.rend(); ++itr) {
+        log_file_ptr &log = itr->second;
+        if (log->end_offset() <= _private_log_info.valid_start_offset)
+            break;
+
+        if (skip_next) {
+            skip_next = (log->previous_log_max_decrees().size() == 0);
+            continue;
+        }
+
+        if (log->end_offset() > log->start_offset()) {
+            // not empty file
+            learn_files.push_back(log->path());
+            total_file_size += (log->end_offset() - log->start_offset());
+        }
+
+        skip_next = (log->previous_log_max_decrees().size() == 0);
+        // continue checking as this file may be a fault
+        if (skip_next)
+            continue;
+
+        last_max_decree = log->previous_log_max_decrees().begin()->second.max_decree;
+        // when all possible decrees are not needed
+        if (last_max_decree < start_decree) {
+            // skip all older logs
+            break;
+        }
+    }
+
+    // reverse the order, to make files ordered by index incrementally
+    files.reserve(learn_files.size());
+    for (auto it = learn_files.rbegin(); it != learn_files.rend(); ++it) {
+        files.push_back(*it);
+    }
 }
 
 // return true if the file is covered by both reserve_max_size and reserve_max_time

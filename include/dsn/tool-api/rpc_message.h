@@ -181,6 +181,12 @@ public:
     ///   - msg->buffers[1] = data
     DSN_API static message_ex *create_receive_message_with_standalone_header(const blob &data);
 
+    /// This method is only used when create mutation by an old message
+    /// The returned message:
+    ///   - msg->buffers[0] = message_header
+    ///   - msg->buffers[1] = data
+    DSN_API static message_ex *create_receive_message_by_message(const message_ex &old_msg);
+
     /// The returned message:
     ///   - msg->buffers[0] = message_header
     ///   - msg->_is_read = false
