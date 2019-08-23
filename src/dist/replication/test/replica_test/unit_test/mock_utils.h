@@ -150,11 +150,10 @@ public:
     std::map<gpid, mock_replica *> mock_replicas;
 
     /// helper functions
-    std::unique_ptr<mock_replica>
-    generate_replica(app_info info,
-                     gpid pid,
-                     partition_status::type status = partition_status::PS_INACTIVE,
-                     ballot b = 5)
+    mock_replica *generate_replica(app_info info,
+                                   gpid pid,
+                                   partition_status::type status = partition_status::PS_INACTIVE,
+                                   ballot b = 5)
     {
         replica_configuration config;
         config.ballot = b;
@@ -164,8 +163,10 @@ public:
         std::unique_ptr<mock_replica> rep =
             make_unique<mock_replica>(this, pid, std::move(info), "./");
         rep->set_replica_config(config);
-        _replicas.insert(replicas::value_type(pid, rep.get()));
-        return rep;
+
+        auto r = rep.release();
+        add_replica(r);
+        return r;
     }
 
     void set_log(mutation_log_ptr log) { _log = log; }

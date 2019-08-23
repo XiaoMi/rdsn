@@ -41,12 +41,6 @@ public:
         _req.config.status = partition_status::PS_PRIMARY;
     }
 
-    void test_on_add_child()
-    {
-        _parent->on_add_child(_req);
-        _parent->tracker()->wait_outstanding_tasks();
-    }
-
     void generate_child(partition_status::type status)
     {
         _stub->generate_replica(_app_info, _child_pid, status, _init_ballot);
@@ -60,12 +54,12 @@ public:
         mock_log_file_ptr log_file_mock = new mock_log_file("log.1.0.txt", 0);
         log_file_mock->set_file_size(100);
         mock_mutation_log_private_ptr private_log_mock =
-            new mock_mutation_log_private(_parent_pid, _parent.get());
+            new mock_mutation_log_private(_parent_pid, _parent);
         private_log_mock->add_log_file(log_file_mock);
         _parent->_private_log = private_log_mock;
 
         // mock prepare list
-        prepare_list *plist_mock = new prepare_list(_parent.get(), 0, 10, nullptr);
+        prepare_list *plist_mock = new prepare_list(_parent, 0, 10, nullptr);
         for (int i = 0; i < 10; ++i) {
             mutation_ptr mu = new mutation();
             mu->data.header.decree = i;
@@ -80,6 +74,14 @@ public:
         _stub->set_log(shared_log_mock);
     }
 
+    void cleanup_parent_prepare_list() { _parent->_prepare_list->reset(0); }
+
+    void test_on_add_child()
+    {
+        _parent->on_add_child(_req);
+        _parent->tracker()->wait_outstanding_tasks();
+    }
+
     bool test_parent_check_states() { return _parent->parent_check_states(); }
 
     void test_parent_prepare_states()
@@ -91,8 +93,8 @@ public:
 public:
     std::unique_ptr<mock_replica_stub> _stub;
 
-    std::unique_ptr<mock_replica> _parent;
-    std::unique_ptr<mock_replica> _child;
+    mock_replica *_parent;
+    mock_replica *_child;
 
     dsn::app_info _app_info;
     dsn::gpid _parent_pid = gpid(2, 1);
@@ -156,6 +158,8 @@ TEST_F(replica_split_test, parent_prepare_states_succeed)
     fail::cfg("replica_child_copy_states", "return()");
     test_parent_prepare_states();
     fail::teardown();
+
+    cleanup_parent_prepare_list();
 }
 
 } // namespace replication
