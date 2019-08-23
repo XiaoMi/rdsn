@@ -141,18 +141,17 @@ public:
         std::vector<std::string> test_apps(total_apps_num);
 
         // app -> <dupid -> dup>
-        std::map<std::string, std::map<dupid_t, duplication_info_s_ptr>> meta_state;
+        std::map<std::string, std::map<dupid_t, duplication_info_s_ptr>> app_to_duplications;
 
         for (int i = 0; i < total_apps_num; i++) {
             test_apps[i] = "test_app_" + std::to_string(i);
             create_app(test_apps[i]);
 
-            // create randomly [0, 3] dups for each apps
             auto resp = create_dup(test_apps[i]);
             ASSERT_EQ(ERR_OK, resp.err);
 
             auto app = find_app(test_apps[i]);
-            meta_state[test_apps[i]] = app->duplications;
+            app_to_duplications[test_apps[i]] = app->duplications;
 
             // update progress
             auto dup = app->duplications[resp.dupid];
@@ -177,7 +176,7 @@ public:
             auto app = find_app(test_apps[i]);
             ASSERT_EQ(app->duplicating, true);
 
-            auto &before = meta_state[test_apps[i]];
+            auto &before = app_to_duplications[test_apps[i]];
             auto &after = app->duplications;
             ASSERT_EQ(before.size(), after.size());
 

@@ -254,7 +254,7 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
 
             response.dup_map[app_id][dup_id] = dup->to_duplication_entry();
 
-            // report progress periodically for every duplications
+            // report progress periodically for each duplications
             dup->report_progress_if_time_up();
         }
     }
@@ -266,6 +266,8 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
         auto it = app_map.find(gpid.get_app_id());
         if (it == app_map.end()) {
             // app is unsynced
+            // Since duplication-sync separates with config-sync, it's not guaranteed to have the
+            // latest state. duplication-sync has a loose consistency requirement.
             continue;
         }
         std::shared_ptr<app_state> &app = it->second;
