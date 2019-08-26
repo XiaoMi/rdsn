@@ -41,7 +41,7 @@ fi
 
 if [ ! -d zookeeper-3.4.6 ]; then
     echo "Decompressing zookeeper..."
-    tar xfz zookeeper-3.4.6.tar.gz
+    tar xf zookeeper-3.4.6.tar.gz
     if [ $? -ne 0 ]; then
         echo "ERROR: decompress zookeeper failed"
         exit 1
