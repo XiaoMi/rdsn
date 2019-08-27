@@ -16,6 +16,7 @@ addons:
     apt:
         packages:
             - clang-format-3.9
+            - libicu-dev # for boost-regex required on bionic
 
 before_install:
     - wget https://github.com/XiaoMi/pegasus-common/releases/download/deps/build-depends.tar.gz
