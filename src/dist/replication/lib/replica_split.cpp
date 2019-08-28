@@ -73,12 +73,11 @@ void replica::on_add_child(const group_check_request &request) // on parent part
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica::init_child_replica(gpid parent_gpid,
+void replica::child_init_replica(gpid parent_gpid,
                                  rpc_address primary_address,
                                  ballot init_ballot) // on child partition
 {
-    FAIL_POINT_INJECT_F("replica_init_child_replica",
-                        [](dsn::string_view) { ddebug_f("mock init_child_replica succeed"); });
+    FAIL_POINT_INJECT_F("replica_child_init_replica", [](dsn::string_view) {});
 
     if (status() != partition_status::PS_INACTIVE) {
         dwarn_replica("wrong status {}", enum_to_string(status()));
@@ -100,7 +99,7 @@ void replica::init_child_replica(gpid parent_gpid,
     _stub->split_replica_exec(
         _split_states.parent_gpid,
         std::bind(&replica::parent_prepare_states, std::placeholders::_1, _app->learn_dir()),
-        std::bind(&replica::handle_child_split_error,
+        std::bind(&replica::child_handle_split_error,
                   std::placeholders::_1,
                   "parent not exist when execute parent_prepare_states"),
         get_gpid());
@@ -109,10 +108,7 @@ void replica::init_child_replica(gpid parent_gpid,
 // ThreadPool: THREAD_POOL_REPLICATION
 bool replica::parent_check_states() // on parent partition
 {
-    FAIL_POINT_INJECT_F("replica_parent_check_states", [](dsn::string_view) {
-        ddebug_f("mock parent_check_states succeed");
-        return true;
-    });
+    FAIL_POINT_INJECT_F("replica_parent_check_states", [](dsn::string_view) { return true; });
 
     if (_child_init_ballot != get_ballot() || _child_gpid.get_app_id() == 0 ||
         (status() != partition_status::PS_PRIMARY && status() != partition_status::PS_SECONDARY &&
@@ -125,10 +121,10 @@ bool replica::parent_check_states() // on parent partition
                       _child_gpid);
         _stub->split_replica_error_handler(
             _child_gpid,
-            std::bind(&replica::handle_child_split_error,
+            std::bind(&replica::child_handle_split_error,
                       std::placeholders::_1,
                       "wrong parent states when execute parent_check_states"));
-        cleanup_parent_split_context();
+        parent_cleanup_split_context();
         return false;
     }
     return true;
@@ -137,8 +133,7 @@ bool replica::parent_check_states() // on parent partition
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica::parent_prepare_states(const std::string &dir) // on parent partition
 {
-    FAIL_POINT_INJECT_F("replica_parent_prepare_states",
-                        [](dsn::string_view) { ddebug_f("mock parent_prepare_states succeed"); });
+    FAIL_POINT_INJECT_F("replica_parent_prepare_states", [](dsn::string_view) {});
 
     if (!parent_check_states()) {
         return;
@@ -201,7 +196,7 @@ void replica::parent_prepare_states(const std::string &dir) // on parent partiti
                                         plist),
                               [plist](replica *r) {
                                   delete plist;
-                                  r->cleanup_parent_split_context();
+                                  r->parent_cleanup_split_context();
                               },
                               get_gpid());
 }
@@ -213,20 +208,19 @@ void replica::child_copy_states(learn_state lstate,
                                 uint64_t total_file_size,
                                 prepare_list *plist) // on child partition
 {
-    FAIL_POINT_INJECT_F("replica_child_copy_states",
-                        [](dsn::string_view) { ddebug_f("mock child_copy_states succeed"); });
+    FAIL_POINT_INJECT_F("replica_child_copy_states", [](dsn::string_view) {});
     // TODO(heyuchen): implment function in further pull request
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica::cleanup_parent_split_context() // on parent partition
+void replica::parent_cleanup_split_context() // on parent partition
 {
     _child_gpid.set_app_id(0);
     _child_init_ballot = 0;
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica::handle_child_split_error(const std::string &error_msg) // on child partition
+void replica::child_handle_split_error(const std::string &error_msg) // on child partition
 {
     if (status() != partition_status::PS_ERROR) {
         dwarn_replica("partition split failed because {}", error_msg);

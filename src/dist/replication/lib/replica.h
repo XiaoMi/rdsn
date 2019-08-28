@@ -319,7 +319,7 @@ private:
     void on_add_child(const group_check_request &request);
 
     // child replica initialize config and state info
-    void init_child_replica(gpid parent_gpid, dsn::rpc_address primary_address, ballot init_ballot);
+    void child_init_replica(gpid parent_gpid, dsn::rpc_address primary_address, ballot init_ballot);
 
     void parent_prepare_states(const std::string &dir);
 
@@ -333,9 +333,9 @@ private:
     bool parent_check_states();
 
     // parent reset child information when partition split failed
-    void cleanup_parent_split_context();
+    void parent_cleanup_split_context();
     // child suicide when partition split failed
-    void handle_child_split_error(const std::string &error_msg);
+    void child_handle_split_error(const std::string &error_msg);
 
 private:
     friend class ::dsn::replication::replication_checker;

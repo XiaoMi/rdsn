@@ -124,7 +124,7 @@ TEST_F(replica_split_test, add_child_succeed)
 {
     fail::setup();
     fail::cfg("replica_stub_create_child_replica_if_not_found", "return()");
-    fail::cfg("replica_init_child_replica", "return()");
+    fail::cfg("replica_child_init_replica", "return()");
 
     test_on_add_child();
     ASSERT_NE(_stub->get_replica(_child_pid), nullptr);

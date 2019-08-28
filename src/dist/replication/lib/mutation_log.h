@@ -151,7 +151,8 @@ public:
         return false;
     }
 
-    // get mutations in memory, including pending and writing mutations
+    // only for private log
+    // get in-memory mutations, including pending and writing mutations
     virtual void get_mutation_in_memory(decree start_decree,
                                         ballot current_ballot,
                                         /*out*/ std::vector<mutation_ptr> &mutations_list) const
@@ -494,6 +495,7 @@ public:
     virtual bool get_learn_state_in_memory(decree start_decree,
                                            binary_writer &writer) const override;
 
+    // get in-memory mutations, including pending and writing mutations
     virtual void
     get_mutation_in_memory(decree start_decree,
                            ballot start_ballot,
