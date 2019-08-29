@@ -174,7 +174,7 @@ message_ex *message_ex::create_receive_message_with_standalone_header(const blob
     return msg;
 }
 
-message_ex *message_ex::create_receive_message(const message_ex &old_msg)
+message_ex *message_ex::copy_message_without_client_info(const message_ex &old_msg)
 {
     message_ex *msg = new message_ex();
     std::shared_ptr<char> header_holder(

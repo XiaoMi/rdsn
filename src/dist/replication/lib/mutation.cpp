@@ -61,16 +61,16 @@ mutation::mutation(const mutation_ptr &old_mu)
     data = old_mu->data;
     _private0 = old_mu->_private0;
     _is_sync_to_child = old_mu->is_sync_to_child();
-
+    dassert(data.updates.size() == old_mu->client_requests.size(), "lack of requests");
     for (auto req : old_mu->client_requests) {
         if (req != nullptr) {
-            dsn::message_ex *new_req = message_ex::create_receive_message(*(message_ex *)req);
+            dsn::message_ex *new_req =
+                message_ex::copy_message_without_client_info(*(message_ex *)req);
             client_requests.emplace_back(new_req);
         } else {
             client_requests.emplace_back(req);
         }
     }
-    dassert(data.updates.size() == client_requests.size(), "lack of requests");
 }
 
 mutation::~mutation()
