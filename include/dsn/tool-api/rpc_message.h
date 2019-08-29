@@ -185,7 +185,7 @@ public:
     /// The returned message:
     ///   - msg->buffers[0] = message_header
     ///   - msg->buffers[1] = data
-    DSN_API static message_ex *create_receive_message_by_message(const message_ex &old_msg);
+    DSN_API static message_ex *create_receive_message(const message_ex &old_msg);
 
     /// The returned message:
     ///   - msg->buffers[0] = message_header
