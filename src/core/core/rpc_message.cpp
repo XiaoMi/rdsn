@@ -186,13 +186,9 @@ message_ex *message_ex::create_receive_message(const message_ex &old_msg)
 
     if (old_msg.buffers.size() == 1) {
         // if old_msg only has header, consider its header as data
-        dassert(old_msg.buffers[0].buffer_ptr(), "raw pointer is not allowed here");
         msg->buffers.emplace_back(old_msg.buffers[0]);
-    } else if (old_msg.buffers.size() == 2) {
-        dassert(old_msg.buffers[1].buffer_ptr(), "raw pointer is not allowed here");
-        msg->buffers.emplace_back(old_msg.buffers[1]);
     } else {
-        dassert(false, "invalid buffer size %d", msg->buffers.size());
+        msg->buffers.emplace_back(old_msg.buffers[1]);
     }
 
     msg->header->body_length = msg->buffers[1].length();
