@@ -6,6 +6,7 @@ function exit_if_fail()
 {
     if [ $2 -ne 0 ]; then
         echo "build $1 failed"
+        echo "please check the command-line output of cmake or make"
         exit $2
     fi
 }
@@ -155,7 +156,7 @@ fi
 if [ ! -d $TP_OUTPUT/include/fmt ]; then
     mkdir -p $TP_BUILD/fmt-4.0.0
     cd $TP_BUILD/fmt-4.0.0
-    cmake $TP_SRC/fmt-4.0.0 -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT -DFMT_TEST=false
+    cmake $TP_SRC/fmt-4.0.0 -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT -DFMT_TEST=false -DCMAKE_POSITION_INDEPENDENT_CODE=ON
     make -j8 && make install
     cd $TP_DIR
     exit_if_fail "fmtlib" $?
@@ -263,4 +264,50 @@ if [ ! -d $TP_OUTPUT/include/gflags ]; then
     cd $TP_DIR
 else
     echo "skip build gflags"
+fi
+
+#build curl
+if [ ! -d $TP_OUTPUT/include/curl ]; then
+    cd $TP_SRC/curl-7.47.0
+    CONFIG_FLAGS="--prefix=$TP_OUTPUT \
+    --disable-dict \
+    --disable-file \
+    --disable-ftp \
+    --disable-gopher \
+    --disable-imap \
+    --disable-ipv6 \
+    --disable-ldap \
+    --disable-ldaps \
+    --disable-manual \
+    --disable-pop3 \
+    --disable-rtsp \
+    --disable-smtp \
+    --disable-telnet \
+    --disable-tftp \
+    --disable-shared \
+    --without-librtmp \
+    --without-zlib \
+    --without-libssh2 \
+    --without-ssl"
+
+    ./configure $CONFIG_FLAGS
+    make -j8 && make install
+    res=$?
+    cd $TP_DIR
+    exit_if_fail "curl" $res
+else
+    echo "skip build curl"
+fi
+
+#build prometheus-cpp
+if [ ! -d $TP_OUTPUT/include/prometheus ]; then
+    mkdir -p $TP_BUILD/prometheus
+    cd $TP_BUILD/prometheus
+    cmake $TP_SRC/prometheus-cpp-0.7.0 -DCMAKE_INSTALL_PREFIX=$TP_OUTPUT -DENABLE_TESTING=OFF
+    make -j8 && make install
+    res=$?
+    exit_if_fail "prometheus-cpp" $res
+    cd $TP_DIR
+else
+    echo "skip build prometheus-cpp"
 fi

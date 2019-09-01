@@ -24,6 +24,7 @@ set(MY_PROJ_LIBS
     dsn.failure_detector.multimaster
     dsn.failure_detector
     dsn.replication.zookeeper_provider
+    dsn_runtime
     zookeeper_mt
     galaxy-fds-sdk-cpp
     PocoNet
@@ -35,9 +36,7 @@ set(MY_PROJ_LIBS
     ${MY_PROJ_LIBS}
     )
 
-set(MY_BOOST_PACKAGES system filesystem)
-
-set(MY_PROJ_LIB_PATH "")
+set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)
 
 # Extra files that will be installed
 set(MY_BINPLACES

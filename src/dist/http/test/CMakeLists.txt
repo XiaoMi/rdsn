@@ -6,11 +6,13 @@ set(MY_SRC_SEARCH_MODE "GLOB")
 
 set(MY_PROJ_LIBS
     dsn_http
+    dsn_runtime
     gtest
     gtest_main
+    fmt
     )
 
-set(MY_BOOST_PACKAGES system filesystem)
+set(MY_BOOST_LIBS Boost::system Boost::filesystem)
 
 set(MY_BINPLACES
     "${CMAKE_CURRENT_SOURCE_DIR}/run.sh"

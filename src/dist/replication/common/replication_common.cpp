@@ -48,7 +48,7 @@ replication_options::replication_options()
     delay_for_fd_timeout_on_start = false;
     empty_write_disabled = false;
     allow_non_idempotent_write = false;
-    duplication_disabled = false;
+    duplication_disabled = true;
 
     prepare_timeout_ms_for_secondaries = 1000;
     prepare_timeout_ms_for_potential_secondaries = 3000;
@@ -98,6 +98,9 @@ replication_options::replication_options()
 
     config_sync_disabled = false;
     config_sync_interval_ms = 30000;
+
+    mem_release_enabled = true;
+    mem_release_interval_ms = 86400000;
 
     lb_interval_ms = 10000;
 
@@ -267,7 +270,7 @@ void replication_options::initialize()
                                   "whether to allow non-idempotent write, default is false");
 
     duplication_disabled = dsn_config_get_value_bool(
-        "replication", "duplication_disabled", false, "is duplication disabled");
+        "replication", "duplication_disabled", duplication_disabled, "is duplication disabled");
     if (allow_non_idempotent_write && !duplication_disabled) {
         dassert(false, "duplication and non-idempotent write cannot be enabled together");
     }
@@ -470,6 +473,17 @@ void replication_options::initialize()
         "config_sync_interval_ms",
         config_sync_interval_ms,
         "every this period(ms) the replica syncs replica configuration with the meta server");
+
+    mem_release_enabled = dsn_config_get_value_bool("replication",
+                                                    "mem_release_enabled",
+                                                    mem_release_enabled,
+                                                    "whether to enable periodic memory release");
+
+    mem_release_interval_ms = (int)dsn_config_get_value_uint64(
+        "replication",
+        "mem_release_interval_ms",
+        mem_release_interval_ms,
+        "the replica releases its idle memory to the system every this period of time(ms)");
 
     lb_interval_ms = (int)dsn_config_get_value_uint64(
         "replication",

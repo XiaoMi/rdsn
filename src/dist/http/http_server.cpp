@@ -5,6 +5,7 @@
 #include <dsn/tool-api/http_server.h>
 #include <dsn/tool_api.h>
 #include <boost/algorithm/string.hpp>
+#include <fmt/ostream.h>
 
 #include "http_message_parser.h"
 #include "root_http_service.h"
@@ -17,6 +18,8 @@ namespace dsn {
     switch (code) {
     case http_status_code::ok:
         return "200 OK";
+    case http_status_code::temporary_redirect:
+        return "307 Temporary Redirect";
     case http_status_code::bad_request:
         return "400 Bad Request";
     case http_status_code::not_found:
@@ -48,17 +51,16 @@ void http_server::serve(message_ex *msg)
     error_with<http_request> res = http_request::parse(msg);
     http_response resp;
     if (!res.is_ok()) {
-        derror("failed to parse request: %s", res.get_error().description().c_str());
         resp.status_code = http_status_code::bad_request;
-        resp.body = "failed to parse request";
+        resp.body = fmt::format("failed to parse request: {}", res.get_error());
     } else {
         const http_request &req = res.get_value();
         auto it = _service_map.find(req.service_method.first);
         if (it != _service_map.end()) {
             it->second->call(req, resp);
         } else {
-            resp.status_code = http_status_code::bad_request;
-            resp.body = "service not found";
+            resp.status_code = http_status_code::not_found;
+            resp.body = fmt::format("service not found for \"{}\"", req.service_method.first);
         }
     }
 
@@ -89,11 +91,18 @@ void http_server::add_service(http_service *service)
 
     std::string unresolved_path;
     if (u.field_set & (1u << UF_PATH)) {
-        unresolved_path.resize(u.field_data[UF_PATH].len + 1);
-        strncpy(&unresolved_path[0],
-                ret.full_url.data() + u.field_data[UF_PATH].off,
-                u.field_data[UF_PATH].len);
-        unresolved_path[u.field_data[UF_PATH].len] = '\0';
+        uint16_t data_length = u.field_data[UF_PATH].len;
+        unresolved_path.resize(data_length + 1);
+        strncpy(&unresolved_path[0], ret.full_url.data() + u.field_data[UF_PATH].off, data_length);
+        unresolved_path[data_length] = '\0';
+    }
+
+    std::string unresolved_query;
+    if (u.field_set & (1u << UF_QUERY)) {
+        uint16_t data_length = u.field_data[UF_QUERY].len;
+        unresolved_query.resize(data_length);
+        strncpy(
+            &unresolved_query[0], ret.full_url.data() + u.field_data[UF_QUERY].off, data_length);
     }
 
     std::vector<std::string> args;
@@ -108,14 +117,37 @@ void http_server::add_service(http_service *service)
         return error_s::make(ERR_INVALID_PARAMETERS);
     }
     if (real_args.size() == 1) {
-        ret.service_method = std::make_pair(std::string(real_args[0]), std::string(""));
-        return ret;
+        ret.service_method = {std::string(real_args[0]), ""};
+    } else if (real_args.size() == 0) {
+        ret.service_method = {"", ""};
+    } else {
+        ret.service_method = {std::string(real_args[0]), std::string(real_args[1])};
     }
-    if (real_args.size() == 0) {
-        ret.service_method = std::make_pair(std::string(""), std::string(""));
-        return ret;
+
+    // find if there are method args (<ip>:<port>/<service>/<method>?<arg>=<val>&<arg>=<val>)
+    if (!unresolved_query.empty()) {
+        std::vector<std::string> method_arg_val;
+        boost::split(method_arg_val, unresolved_query, boost::is_any_of("&"));
+        for (const std::string &arg_val : method_arg_val) {
+            size_t sep = arg_val.find_first_of('=');
+            if (sep == std::string::npos) {
+                // assume this as a bool flag
+                ret.query_args.emplace(arg_val, "");
+                continue;
+            }
+            std::string name = arg_val.substr(0, sep);
+            std::string value;
+            if (sep + 1 < arg_val.size()) {
+                value = arg_val.substr(sep + 1, arg_val.size() - sep);
+            }
+            auto iter = ret.query_args.find(name);
+            if (iter != ret.query_args.end()) {
+                return FMT_ERR(ERR_INVALID_PARAMETERS, "duplicate parameter: {}", name);
+            }
+            ret.query_args.emplace(std::move(name), std::move(value));
+        }
     }
-    ret.service_method = std::make_pair(std::string(real_args[0]), std::string(real_args[1]));
+
     return ret;
 }
 
@@ -127,6 +159,9 @@ message_ptr http_response::to_message(message_ex *req) const
     os << "HTTP/1.1 " << http_status_code_to_string(status_code) << "\r\n";
     os << "Content-Type: " << content_type << "\r\n";
     os << "Content-Length: " << body.length() << "\r\n";
+    if (!location.empty()) {
+        os << "Location: " << location << "\r\n";
+    }
     os << "\r\n";
     os << body;
 

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fail_point_impl.h"
+#include "core/core/fail_point_impl.h"
 
 #include <gtest/gtest.h>
 
@@ -126,6 +126,27 @@ TEST(fail_point, macro_use)
     ASSERT_EQ(test_func(), 2);
 
     ASSERT_EQ(test_func(), 0);
+
+    teardown();
+}
+
+void test_func_return_void(int &a)
+{
+    FAIL_POINT_INJECT_F("test_1", [](string_view str) {});
+    a++;
+}
+TEST(fail_point, return_void)
+{
+    setup();
+
+    int a = 0;
+    cfg("test_1", "1*return()");
+    test_func_return_void(a);
+    ASSERT_EQ(a, 0);
+
+    cfg("test_1", "off");
+    test_func_return_void(a);
+    ASSERT_EQ(a, 1);
 
     teardown();
 }
