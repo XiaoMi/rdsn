@@ -161,13 +161,6 @@ public:
         config.pid = pid;
         config.status = status;
 
-        //        std::unique_ptr<mock_replica> rep =
-        //            make_unique<mock_replica>(this, pid, std::move(info), "./");
-        //        rep->set_replica_config(config);
-
-        //        auto r = rep.release();
-        //        add_replica(r);
-
         mock_replica_ptr rep = new mock_replica(this, pid, std::move(info), "./");
         rep->set_replica_config(config);
         _replicas[pid] = rep;
