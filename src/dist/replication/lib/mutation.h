@@ -57,8 +57,9 @@ class mutation : public ref_counter
 {
 public:
     mutation();
-    mutation(const mutation_ptr &old_mu);
     virtual ~mutation();
+
+    static mutation_ptr copy_mutation_without_client_requests(const mutation_ptr &old_mu);
 
     // state inquery
     const char *name() const { return _name; }

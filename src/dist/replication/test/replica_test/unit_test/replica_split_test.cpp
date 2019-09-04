@@ -93,8 +93,8 @@ public:
 public:
     std::unique_ptr<mock_replica_stub> _stub;
 
-    mock_replica *_parent;
-    mock_replica *_child;
+    mock_replica_ptr _parent;
+    mock_replica_ptr _child;
 
     dsn::app_info _app_info;
     dsn::gpid _parent_pid = gpid(2, 1);

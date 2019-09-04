@@ -41,11 +41,11 @@ prepare_list::prepare_list(replica_base *r,
     _last_committed_decree = init_decree;
 }
 
-prepare_list::prepare_list(replica_base *r, const prepare_list &plist)
-    : mutation_cache(plist), replica_base(r)
+prepare_list::prepare_list(replica_base *r, const prepare_list &parent_plist)
+    : mutation_cache(parent_plist), replica_base(r)
 {
-    _committer = plist._committer;
-    _last_committed_decree = plist._last_committed_decree;
+    _committer = parent_plist._committer;
+    _last_committed_decree = parent_plist._last_committed_decree;
 }
 
 void prepare_list::reset(decree init_decree)

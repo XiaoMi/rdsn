@@ -54,23 +54,25 @@ mutation::mutation()
     _tid = ++s_tid;
 }
 
-mutation::mutation(const mutation_ptr &old_mu)
+mutation_ptr mutation::copy_mutation_without_client_requests(const mutation_ptr &old_mu)
 {
-    strcpy(_name, old_mu->_name);
-    _appro_data_bytes = old_mu->_appro_data_bytes;
-    data = old_mu->data;
-    _private0 = old_mu->_private0;
-    _is_sync_to_child = old_mu->is_sync_to_child();
-    dassert(data.updates.size() == old_mu->client_requests.size(), "lack of requests");
+    mutation_ptr mu(new mutation());
+    mu->_private0 = old_mu->_private0;
+    strcpy(mu->_name, old_mu->_name);
+    mu->_appro_data_bytes = old_mu->_appro_data_bytes;
+    mu->data = old_mu->data;
+    mu->_is_sync_to_child = old_mu->is_sync_to_child();
+    dassert(mu->data.updates.size() == old_mu->client_requests.size(), "lack of requests");
     for (auto req : old_mu->client_requests) {
         if (req != nullptr) {
             dsn::message_ex *new_req =
                 message_ex::copy_message_without_client_info(*(message_ex *)req);
-            client_requests.emplace_back(new_req);
+            mu->client_requests.emplace_back(new_req);
         } else {
-            client_requests.emplace_back(req);
+            mu->client_requests.emplace_back(req);
         }
     }
+    return mu;
 }
 
 mutation::~mutation()

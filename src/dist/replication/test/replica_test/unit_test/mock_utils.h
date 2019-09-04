@@ -100,6 +100,7 @@ public:
     void set_child_gpid(gpid pid) { _child_gpid = pid; }
     void set_init_child_ballot(ballot b) { _child_init_ballot = b; }
 };
+typedef dsn::ref_ptr<mock_replica> mock_replica_ptr;
 
 inline std::unique_ptr<mock_replica> create_mock_replica(replica_stub *stub,
                                                          int appid = 1,
@@ -150,23 +151,28 @@ public:
     std::map<gpid, mock_replica *> mock_replicas;
 
     /// helper functions
-    mock_replica *generate_replica(app_info info,
-                                   gpid pid,
-                                   partition_status::type status = partition_status::PS_INACTIVE,
-                                   ballot b = 5)
+    mock_replica_ptr generate_replica(app_info info,
+                                      gpid pid,
+                                      partition_status::type status = partition_status::PS_INACTIVE,
+                                      ballot b = 5)
     {
         replica_configuration config;
         config.ballot = b;
         config.pid = pid;
         config.status = status;
 
-        std::unique_ptr<mock_replica> rep =
-            make_unique<mock_replica>(this, pid, std::move(info), "./");
-        rep->set_replica_config(config);
+        //        std::unique_ptr<mock_replica> rep =
+        //            make_unique<mock_replica>(this, pid, std::move(info), "./");
+        //        rep->set_replica_config(config);
 
-        auto r = rep.release();
-        add_replica(r);
-        return r;
+        //        auto r = rep.release();
+        //        add_replica(r);
+
+        mock_replica_ptr rep = new mock_replica(this, pid, std::move(info), "./");
+        rep->set_replica_config(config);
+        _replicas[pid] = rep;
+
+        return rep;
     }
 
     void set_log(mutation_log_ptr log) { _log = log; }

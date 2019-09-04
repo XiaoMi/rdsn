@@ -344,7 +344,7 @@ void mutation_log_private::get_in_memory_mutation(decree start_decree,
                 (start_ballot == invalid_ballot) ? invalid_ballot : mu->get_ballot();
             if ((mu->get_decree() >= start_decree && start_ballot == current_ballot) ||
                 current_ballot > start_ballot) {
-                mutation_list.push_back(new mutation(mu));
+                mutation_list.push_back(mutation::copy_mutation_without_client_requests(mu));
             }
         }
     }
@@ -356,7 +356,7 @@ void mutation_log_private::get_in_memory_mutation(decree start_decree,
             (start_ballot == invalid_ballot) ? invalid_ballot : mu->get_ballot();
         if ((mu->get_decree() >= start_decree && start_ballot == current_ballot) ||
             current_ballot > start_ballot) {
-            mutation_list.push_back(new mutation(mu));
+            mutation_list.push_back(mutation::copy_mutation_without_client_requests(mu));
         }
     }
 }
