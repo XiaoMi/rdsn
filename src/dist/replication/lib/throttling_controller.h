@@ -91,12 +91,12 @@ private:
     bool _enabled;
     std::string _env_value;
     int32_t _partition_count;
-    int32_t _delay_units;     // should >= 0
+    int64_t _delay_units;     // should >= 0
     int64_t _delay_ms;        // should >= 0
-    int32_t _reject_units;    // should >= 0
+    int64_t _reject_units;    // should >= 0
     int64_t _reject_delay_ms; // should >= 0
     int64_t _last_request_time;
-    int32_t _cur_units;
+    int64_t _cur_units;
 };
 
 } // namespace replication

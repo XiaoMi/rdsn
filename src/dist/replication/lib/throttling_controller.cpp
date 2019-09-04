@@ -62,10 +62,10 @@ bool throttling_controller::parse_from_env(const std::string &env_value,
         return false;
     }
     bool delay_parsed = false;
-    int32_t delay_units = 0;
+    int64_t delay_units = 0;
     int64_t delay_ms = 0;
     bool reject_parsed = false;
-    int32_t reject_units = 0;
+    int64_t reject_units = 0;
     int64_t reject_delay_ms = 0;
     for (std::string &s : sargs) {
         std::vector<std::string> sargs1;
@@ -75,7 +75,7 @@ bool throttling_controller::parse_from_env(const std::string &env_value,
             return false;
         }
 
-        int32_t unit_multiplier = 1;
+        int64_t unit_multiplier = 1;
         if (!sargs1[0].empty()) {
             if (*sargs1[0].rbegin() == 'M') {
                 unit_multiplier = 1000 * 1000;
@@ -86,8 +86,8 @@ bool throttling_controller::parse_from_env(const std::string &env_value,
                 sargs1[0].pop_back();
             }
         }
-        int32_t units = 0;
-        if (!buf2int32(sargs1[0], units) || units < 0) {
+        int64_t units = 0;
+        if (!buf2int64(sargs1[0], units) || units < 0) {
             parse_error = "invalid units, should be non-negative int";
             return false;
         }

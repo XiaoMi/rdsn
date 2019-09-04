@@ -68,45 +68,49 @@ public:
         std::string parse_err;
         bool env_changed = false;
         std::string old_value;
-        ASSERT_TRUE(cntl.parse_from_env("20K*delay*100", 4, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(cntl._delay_ms, 100);
-        ASSERT_EQ(cntl._delay_units, 5000 + 1);
-        ASSERT_EQ(cntl._reject_delay_ms, 0);
-        ASSERT_EQ(cntl._reject_units, 0);
-        ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(parse_err, "");
 
-        ASSERT_TRUE(cntl.parse_from_env("20M*delay*100", 4, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(cntl._delay_ms, 100);
-        ASSERT_EQ(cntl._delay_units, 5000 * 1000 + 1);
-        ASSERT_EQ(cntl._reject_delay_ms, 0);
-        ASSERT_EQ(cntl._reject_units, 0);
-        ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(parse_err, "");
+        struct test_case_1
+        {
+            std::string env;
 
-        ASSERT_TRUE(cntl.parse_from_env(
-            "20M*delay*100,20M*reject*100", 4, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(cntl._delay_ms, 100);
-        ASSERT_EQ(cntl._delay_units, 5000 * 1000 + 1);
-        ASSERT_EQ(cntl._reject_delay_ms, 100);
-        ASSERT_EQ(cntl._reject_units, 5000 * 1000 + 1);
-        ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(parse_err, "");
+            int64_t delay_units;
+            int64_t delay_ms;
+            int64_t reject_units;
+            int64_t reject_ms;
+        } test_cases_1[] = {
+            {"20K*delay*100", 5000 + 1, 100, 0, 0},
+            {"20M*delay*100", 5000 * 1000 + 1, 100, 0, 0},
+            {"20M*delay*100,20M*reject*100", 5000 * 1000 + 1, 100, 5000 * 1000 + 1, 100},
+
+            // throttling size exceeds int32_t max value
+            {"80000M*delay*100", int64_t(20) * 1000 * 1000 * 1000 + 1, 100, 0, 0},
+        };
+        for (const auto &tc : test_cases_1) {
+            ASSERT_TRUE(cntl.parse_from_env(tc.env, 4, parse_err, env_changed, old_value));
+            ASSERT_EQ(cntl._enabled, true);
+            ASSERT_EQ(cntl._delay_units, tc.delay_units) << tc.env;
+            ASSERT_EQ(cntl._delay_ms, tc.delay_ms) << tc.env;
+            ASSERT_EQ(cntl._reject_units, tc.reject_units) << tc.env;
+            ASSERT_EQ(cntl._reject_delay_ms, tc.reject_ms) << tc.env;
+            ASSERT_EQ(env_changed, true);
+            ASSERT_EQ(parse_err, "");
+        }
 
         // invalid argument
 
-        ASSERT_FALSE(cntl.parse_from_env("20m*delay*100", 4, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(env_changed, false);
-        ASSERT_NE(parse_err, "");
-
-        ASSERT_FALSE(cntl.parse_from_env("20B*delay*100", 4, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(env_changed, false);
-        ASSERT_NE(parse_err, "");
+        std::string test_cases_2[] = {
+            "20m*delay*100",
+            "20B*delay*100",
+            "20KB*delay*100",
+            "20Mb*delay*100",
+            "20MB*delay*100",
+        };
+        for (const std::string &tc : test_cases_2) {
+            ASSERT_FALSE(cntl.parse_from_env(tc, 4, parse_err, env_changed, old_value));
+            ASSERT_EQ(cntl._enabled, true);
+            ASSERT_EQ(env_changed, false);
+            ASSERT_NE(parse_err, "");
+        }
     }
 };
 

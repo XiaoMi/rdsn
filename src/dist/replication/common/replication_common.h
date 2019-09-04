@@ -152,7 +152,7 @@ class replica_envs
 {
 public:
     static const std::string DENY_CLIENT_WRITE;
-    static const std::string WRITE_REQS_THROTTLING;
+    static const std::string WRITE_QPS_THROTTLING;
     static const std::string WRITE_SIZE_THROTTLING;
 };
 

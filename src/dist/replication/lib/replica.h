@@ -106,11 +106,12 @@ public:
     //    Throttling
     //
 
-    // throttle write requests
-    // \see replica::on_client_write
-    void throttle_request(throttling_controller &c, message_ex *request, int32_t req_units);
-    // update throttling controllers
-    // \see replica::update_app_envs
+    /// throttle write requests
+    /// \return true if request is throttled.
+    /// \see replica::on_client_write
+    bool throttle_request(throttling_controller &c, message_ex *request, int32_t req_units);
+    /// update throttling controllers
+    /// \see replica::update_app_envs
     void update_throttle_envs(const std::map<std::string, std::string> &envs);
     void update_throttle_env_internal(const std::map<std::string, std::string> &envs,
                                       const std::string &key,
@@ -418,7 +419,7 @@ private:
     bool _inactive_is_transient; // upgrade to P/S is allowed only iff true
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
     bool _deny_client_write;     // if deny all write requests
-    throttling_controller _write_reqs_throttling_controller; // throttling by requests-per-second
+    throttling_controller _write_qps_throttling_controller;  // throttling by requests-per-second
     throttling_controller _write_size_throttling_controller; // throttling by KB-per-second
 
     // duplication
