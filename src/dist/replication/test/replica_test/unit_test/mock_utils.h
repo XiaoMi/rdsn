@@ -203,7 +203,7 @@ public:
         return nullptr;
     }
 
-    void get_mutation_in_memory(decree start_decree,
+    void get_in_memory_mutation(decree start_decree,
                                 ballot start_ballot,
                                 std::vector<mutation_ptr> &mutation_list) const override
     {

@@ -181,7 +181,7 @@ public:
     ///   - msg->buffers[1] = data
     DSN_API static message_ex *create_receive_message_with_standalone_header(const blob &data);
 
-    /// copy message and take out client information
+    /// copy message without client information
     /// The returned message:
     ///   - msg->buffers[0] = message_header
     ///   - msg->buffers[1] = data

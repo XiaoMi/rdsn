@@ -322,7 +322,7 @@ bool mutation_log_private::get_learn_state_in_memory(decree start_decree,
     return learned_count > 0;
 }
 
-void mutation_log_private::get_mutation_in_memory(decree start_decree,
+void mutation_log_private::get_in_memory_mutation(decree start_decree,
                                                   ballot start_ballot,
                                                   std::vector<mutation_ptr> &mutation_list) const
 {
@@ -1346,7 +1346,7 @@ void mutation_log::get_parent_mutations_and_logs(gpid pid,
     total_file_size = 0;
 
     // get mutations
-    get_mutation_in_memory(start_decree, start_ballot, mutation_list);
+    get_in_memory_mutation(start_decree, start_ballot, mutation_list);
 
     std::map<int, log_file_ptr> file_map;
     {

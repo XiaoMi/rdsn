@@ -153,7 +153,7 @@ public:
 
     // only for private log
     // get in-memory mutations, including pending and writing mutations
-    virtual void get_mutation_in_memory(decree start_decree,
+    virtual void get_in_memory_mutation(decree start_decree,
                                         ballot current_ballot,
                                         /*out*/ std::vector<mutation_ptr> &mutations_list) const
     {
@@ -497,7 +497,7 @@ public:
 
     // get in-memory mutations, including pending and writing mutations
     virtual void
-    get_mutation_in_memory(decree start_decree,
+    get_in_memory_mutation(decree start_decree,
                            ballot start_ballot,
                            /*out*/ std::vector<mutation_ptr> &mutation_list) const override;
 
