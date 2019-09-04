@@ -420,7 +420,7 @@ private:
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
     bool _deny_client_write;     // if deny all write requests
     throttling_controller _write_qps_throttling_controller;  // throttling by requests-per-second
-    throttling_controller _write_size_throttling_controller; // throttling by KB-per-second
+    throttling_controller _write_size_throttling_controller; // throttling by bytes-per-second
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
