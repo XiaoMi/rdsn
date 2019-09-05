@@ -59,7 +59,8 @@ public:
     mutation();
     virtual ~mutation();
 
-    // copy mutation and create a new client_request which will not reply
+    // copy mutation from an existing mutation, typically used in partition split
+    // mutation should not reply to client, because parent has already replied
     static mutation_ptr deep_copy(const mutation_ptr &old_mu);
 
     // state inquery
