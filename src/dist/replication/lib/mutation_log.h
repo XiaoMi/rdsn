@@ -153,9 +153,9 @@ public:
 
     // only for private log
     // get in-memory mutations, including pending and writing mutations
-    virtual void get_in_memory_mutation(decree start_decree,
-                                        ballot current_ballot,
-                                        /*out*/ std::vector<mutation_ptr> &mutations_list) const
+    virtual void get_in_memory_mutations(decree start_decree,
+                                         ballot current_ballot,
+                                         /*out*/ std::vector<mutation_ptr> &mutations_list) const
     {
     }
 
@@ -267,6 +267,7 @@ public:
 
     // only valid for private log
     // get parent mutations in memory and private log files during partition split
+    // total_file_size is used for split perf-counter
     void get_parent_mutations_and_logs(gpid pid,
                                        decree start_decree,
                                        ballot start_ballot,
@@ -297,6 +298,9 @@ public:
     // maximum decree that is garbage collected
     // thread safe
     decree max_gced_decree(gpid gpid, int64_t valid_start_offset) const;
+
+    // thread-safe
+    std::map<int, log_file_ptr> get_log_file_map() const;
 
     // check the consistence of valid_start_offset
     // thread safe
@@ -497,9 +501,9 @@ public:
 
     // get in-memory mutations, including pending and writing mutations
     virtual void
-    get_in_memory_mutation(decree start_decree,
-                           ballot start_ballot,
-                           /*out*/ std::vector<mutation_ptr> &mutation_list) const override;
+    get_in_memory_mutations(decree start_decree,
+                            ballot start_ballot,
+                            /*out*/ std::vector<mutation_ptr> &mutation_list) const override;
 
     virtual void flush() override;
     virtual void flush_once() override;

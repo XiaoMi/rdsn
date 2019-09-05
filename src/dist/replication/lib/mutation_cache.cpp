@@ -43,8 +43,7 @@ mutation_cache::mutation_cache(const mutation_cache &cache)
     _array.clear();
     _array.reserve(cache._array.size());
     for (const mutation_ptr &old_mu : cache._array) {
-        _array.emplace_back(
-            old_mu == nullptr ? nullptr : mutation::copy_mutation_without_client_requests(old_mu));
+        _array.emplace_back(old_mu == nullptr ? nullptr : mutation::deep_copy(old_mu));
     }
 
     _max_count = cache._max_count;

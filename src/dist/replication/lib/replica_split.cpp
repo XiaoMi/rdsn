@@ -168,7 +168,7 @@ void replica::parent_prepare_states(const std::string &dir) // on parent partiti
         get_gpid(), checkpoint_decree + 1, invalid_ballot, mutation_list, files, total_file_size);
 
     // get prepare list
-    prepare_list *plist = new prepare_list(this, *_prepare_list);
+    std::shared_ptr<prepare_list> plist = std::make_shared<prepare_list>(this, *_prepare_list);
     plist->truncate(last_committed_decree());
 
     dassert_replica(
@@ -194,10 +194,7 @@ void replica::parent_prepare_states(const std::string &dir) // on parent partiti
                                         files,
                                         total_file_size,
                                         plist),
-                              [plist](replica *r) {
-                                  delete plist;
-                                  r->parent_cleanup_split_context();
-                              },
+                              [](replica *r) { r->parent_cleanup_split_context(); },
                               get_gpid());
 }
 
@@ -206,10 +203,10 @@ void replica::child_copy_states(learn_state lstate,
                                 std::vector<mutation_ptr> mutation_list,
                                 std::vector<std::string> files,
                                 uint64_t total_file_size,
-                                prepare_list *plist) // on child partition
+                                std::shared_ptr<prepare_list> plist) // on child partition
 {
     FAIL_POINT_INJECT_F("replica_child_copy_states", [](dsn::string_view) {});
-    // TODO(heyuchen): implment function in further pull request
+    // TODO(heyuchen): impelment function in further pull request
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION

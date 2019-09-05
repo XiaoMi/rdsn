@@ -42,6 +42,7 @@ class mutation_cache
 {
 public:
     mutation_cache(decree init_decree, int max_count);
+    // only used when copy mutations whose client_request will not reply
     mutation_cache(const mutation_cache &cache);
     ~mutation_cache();
 
@@ -54,6 +55,8 @@ public:
     decree max_decree() const { return _end_decree; }
     int count() const { return _interval; }
     int capacity() const { return _max_count; }
+
+    static mutation_cache copy_without_client_info(const mutation_cache &cache);
 
 private:
     std::vector<mutation_ptr> _array;

@@ -327,7 +327,7 @@ private:
                            std::vector<mutation_ptr> mutation_list,
                            std::vector<std::string> files,
                            uint64_t total_file_size,
-                           prepare_list *plist);
+                           std::shared_ptr<prepare_list> plist);
 
     // return true if parent status is valid
     bool parent_check_states();

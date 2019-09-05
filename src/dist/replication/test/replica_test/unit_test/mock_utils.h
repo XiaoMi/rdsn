@@ -202,9 +202,9 @@ public:
         return nullptr;
     }
 
-    void get_in_memory_mutation(decree start_decree,
-                                ballot start_ballot,
-                                std::vector<mutation_ptr> &mutation_list) const override
+    void get_in_memory_mutations(decree start_decree,
+                                 ballot start_ballot,
+                                 std::vector<mutation_ptr> &mutation_list) const override
     {
         for (auto &mu : _mu_list) {
             ballot current_ballot =

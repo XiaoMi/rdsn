@@ -54,7 +54,7 @@ mutation::mutation()
     _tid = ++s_tid;
 }
 
-mutation_ptr mutation::copy_mutation_without_client_requests(const mutation_ptr &old_mu)
+mutation_ptr mutation::deep_copy(const mutation_ptr &old_mu)
 {
     mutation_ptr mu(new mutation());
     mu->_private0 = old_mu->_private0;
@@ -63,10 +63,10 @@ mutation_ptr mutation::copy_mutation_without_client_requests(const mutation_ptr 
     mu->data = old_mu->data;
     mu->_is_sync_to_child = old_mu->is_sync_to_child();
     dassert(mu->data.updates.size() == old_mu->client_requests.size(), "lack of requests");
+    // create a new message without client information, it will not rely
     for (auto req : old_mu->client_requests) {
         if (req != nullptr) {
-            dsn::message_ex *new_req =
-                message_ex::copy_message_without_client_info(*(message_ex *)req);
+            dsn::message_ex *new_req = message_ex::copy_message_no_reply(*(message_ex *)req);
             mu->client_requests.emplace_back(new_req);
         } else {
             mu->client_requests.emplace_back(req);

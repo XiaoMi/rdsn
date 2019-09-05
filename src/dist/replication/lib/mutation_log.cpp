@@ -41,6 +41,7 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/crc.h>
 #include <dsn/tool-api/async_calls.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
@@ -322,9 +323,9 @@ bool mutation_log_private::get_learn_state_in_memory(decree start_decree,
     return learned_count > 0;
 }
 
-void mutation_log_private::get_in_memory_mutation(decree start_decree,
-                                                  ballot start_ballot,
-                                                  std::vector<mutation_ptr> &mutation_list) const
+void mutation_log_private::get_in_memory_mutations(decree start_decree,
+                                                   ballot start_ballot,
+                                                   std::vector<mutation_ptr> &mutation_list) const
 {
     std::shared_ptr<mutations> issued_mutations;
     mutations pending_mutations;
@@ -344,7 +345,7 @@ void mutation_log_private::get_in_memory_mutation(decree start_decree,
                 (start_ballot == invalid_ballot) ? invalid_ballot : mu->get_ballot();
             if ((mu->get_decree() >= start_decree && start_ballot == current_ballot) ||
                 current_ballot > start_ballot) {
-                mutation_list.push_back(mutation::copy_mutation_without_client_requests(mu));
+                mutation_list.push_back(mutation::deep_copy(mu));
             }
         }
     }
@@ -356,7 +357,7 @@ void mutation_log_private::get_in_memory_mutation(decree start_decree,
             (start_ballot == invalid_ballot) ? invalid_ballot : mu->get_ballot();
         if ((mu->get_decree() >= start_decree && start_ballot == current_ballot) ||
             current_ballot > start_ballot) {
-            mutation_list.push_back(mutation::copy_mutation_without_client_requests(mu));
+            mutation_list.push_back(mutation::deep_copy(mu));
         }
     }
 }
@@ -1334,29 +1335,19 @@ void mutation_log::get_parent_mutations_and_logs(gpid pid,
                                                  uint64_t &total_file_size) const
 {
     dassert(_is_private, "this method is only valid for private logs");
-    dassert(_private_gpid == pid,
-            "replica gpid does not match, (%d.%d) VS (%d.%d)",
-            _private_gpid.get_app_id(),
-            _private_gpid.get_partition_index(),
-            pid.get_app_id(),
-            pid.get_partition_index());
+    dcheck_eq(_private_gpid, pid);
 
     mutation_list.clear();
     files.clear();
     total_file_size = 0;
 
-    // get mutations
-    get_in_memory_mutation(start_decree, start_ballot, mutation_list);
+    get_in_memory_mutations(start_decree, start_ballot, mutation_list);
 
-    std::map<int, log_file_ptr> file_map;
-    {
-        zauto_lock l(_lock);
-        if (mutation_list.size() == 0 && start_decree > _private_log_info.max_decree) {
-            // no memory data and no disk data
-            return;
-        }
-        file_map = _log_files;
+    if (mutation_list.size() == 0 && start_decree > _private_log_info.max_decree) {
+        // no memory data and no disk data
+        return;
     }
+    std::map<int, log_file_ptr> file_map = get_log_file_map();
 
     bool skip_next = false;
     std::list<std::string> learn_files;
@@ -1879,6 +1870,12 @@ int mutation_log::garbage_collection(const replica_log_info_map &gc_condition,
     }
 
     return reserved_log_count;
+}
+
+std::map<int, log_file_ptr> mutation_log::get_log_file_map() const
+{
+    zauto_lock l(_lock);
+    return _log_files;
 }
 
 // log_file::file_streamer

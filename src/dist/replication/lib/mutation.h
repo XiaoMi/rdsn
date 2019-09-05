@@ -59,7 +59,8 @@ public:
     mutation();
     virtual ~mutation();
 
-    static mutation_ptr copy_mutation_without_client_requests(const mutation_ptr &old_mu);
+    // copy mutation and create a new client_request which will not reply
+    static mutation_ptr deep_copy(const mutation_ptr &old_mu);
 
     // state inquery
     const char *name() const { return _name; }
