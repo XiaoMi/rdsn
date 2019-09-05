@@ -149,7 +149,7 @@ void replica::parent_prepare_states(const std::string &dir) // on parent partiti
                        checkpoint_decree);
         parent_states.to_decree_included = checkpoint_decree;
         // learn_state.files[0] will be used to get learn dir in function 'storage_apply_checkpoint'
-        parent_states.files.push_back(dsn::utils::filesystem::path_combine(dir, "dummy"));
+        parent_states.files.push_back(dsn::utils::filesystem::path_combine(dir, "file_name"));
     } else {
         derror_replica("prepare checkpoint failed, error = {}", ec.to_string());
         tasking::enqueue(LPC_PARTITION_SPLIT,
