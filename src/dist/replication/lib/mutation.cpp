@@ -54,7 +54,7 @@ mutation::mutation()
     _tid = ++s_tid;
 }
 
-mutation_ptr mutation::deep_copy(const mutation_ptr &old_mu)
+mutation_ptr mutation::copy_no_reply(const mutation_ptr &old_mu)
 {
     mutation_ptr mu(new mutation());
     mu->_private0 = old_mu->_private0;
@@ -65,7 +65,7 @@ mutation_ptr mutation::deep_copy(const mutation_ptr &old_mu)
     // create a new message without client information, it will not rely
     for (auto req : old_mu->client_requests) {
         if (req != nullptr) {
-            dsn::message_ex *new_req = message_ex::copy_message_no_reply(*(message_ex *)req);
+            dsn::message_ex *new_req = message_ex::copy_message_no_reply(*req);
             mu->client_requests.emplace_back(new_req);
         } else {
             mu->client_requests.emplace_back(req);

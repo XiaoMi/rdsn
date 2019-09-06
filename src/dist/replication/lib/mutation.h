@@ -61,7 +61,7 @@ public:
 
     // copy mutation from an existing mutation, typically used in partition split
     // mutation should not reply to client, because parent has already replied
-    static mutation_ptr deep_copy(const mutation_ptr &old_mu);
+    static mutation_ptr copy_no_reply(const mutation_ptr &old_mu);
 
     // state inquery
     const char *name() const { return _name; }
