@@ -149,6 +149,7 @@ void replica::parent_prepare_states(const std::string &dir) // on parent partiti
                        checkpoint_decree);
         parent_states.to_decree_included = checkpoint_decree;
         // learn_state.files[0] will be used to get learn dir in function 'storage_apply_checkpoint'
+        // so we add a fake file name here, this file won't appear on disk
         parent_states.files.push_back(dsn::utils::filesystem::path_combine(dir, "file_name"));
     } else {
         derror_replica("prepare checkpoint failed, error = {}", ec.to_string());
@@ -193,7 +194,7 @@ void replica::parent_prepare_states(const std::string &dir) // on parent partiti
                                         mutation_list,
                                         files,
                                         total_file_size,
-                                        plist),
+                                        std::move(plist)),
                               [](replica *r) { r->parent_cleanup_split_context(); },
                               get_gpid());
 }

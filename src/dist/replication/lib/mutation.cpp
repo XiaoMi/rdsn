@@ -62,7 +62,6 @@ mutation_ptr mutation::deep_copy(const mutation_ptr &old_mu)
     mu->_appro_data_bytes = old_mu->_appro_data_bytes;
     mu->data = old_mu->data;
     mu->_is_sync_to_child = old_mu->is_sync_to_child();
-    dassert(mu->data.updates.size() == old_mu->client_requests.size(), "lack of requests");
     // create a new message without client information, it will not rely
     for (auto req : old_mu->client_requests) {
         if (req != nullptr) {
