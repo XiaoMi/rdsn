@@ -25,6 +25,7 @@ namespace replication {
     while (true) {
         err = replay_block(log, callback, start_offset, end_offset);
         if (!err.is_ok()) {
+            // Stop immediately if failed
             break;
         }
 
@@ -36,29 +37,6 @@ namespace replication {
            err.description().c_str());
     return err.code();
 }
-
-namespace internal {
-
-inline static error_s read_log_block(log_file_ptr &log,
-                                     int64_t &end_offset,
-                                     std::unique_ptr<binary_reader> &reader,
-                                     blob &bb)
-{
-    FAIL_POINT_INJECT_F("mutation_log_read_log_block", [](string_view) -> error_s {
-        return error_s::make(ERR_INCOMPLETE_DATA, "mutation_log_read_log_block");
-    });
-
-    error_code err = log->read_next_log_block(bb);
-    if (err != ERR_OK) {
-        return error_s::make(err, "failed to read log block");
-    }
-    reader = dsn::make_unique<binary_reader>(bb);
-    end_offset += sizeof(log_block_header);
-
-    return error_s::ok();
-}
-
-} // namespace internal
 
 /*static*/ error_s mutation_log::replay_block(log_file_ptr &log,
                                               replay_callback &callback,
@@ -72,24 +50,26 @@ inline static error_s read_log_block(log_file_ptr &log,
     blob bb;
     std::unique_ptr<binary_reader> reader;
 
-    // read from start
+    log->reset_stream(start_offset); // start reading from given offset
     int64_t global_start_offset = start_offset + log->start_offset();
-    if (global_start_offset != end_offset) {
-        end_offset = global_start_offset;
-    }
-    log->reset_stream(start_offset);
+    end_offset = global_start_offset; // reset end_offset to the start.
 
-    error_s err = internal::read_log_block(log, end_offset, reader, bb);
-    if (!err.is_ok()) {
-        return err;
+    // reads the entire block into memory
+    error_code err = log->read_next_log_block(bb);
+    if (err != ERR_OK) {
+        return error_s::make(err, "failed to read log block");
     }
 
-    // first block is log_file_header
+    reader = dsn::make_unique<binary_reader>(bb);
+    end_offset += sizeof(log_block_header);
+
+    // The first block is log_file_header.
     if (global_start_offset == log->start_offset()) {
         end_offset += log->read_file_header(*reader);
         if (!log->is_right_header()) {
             return error_s::make(ERR_INVALID_DATA, "failed to read log file header");
         }
+        // continue to parsing the data block
     }
 
     while (!reader->is_eof()) {
@@ -99,13 +79,14 @@ inline static error_s read_log_block(log_file_ptr &log,
         mu->set_logged();
 
         if (mu->data.header.log_offset != end_offset) {
-            return error_s::make(ERR_INVALID_DATA,
-                                 fmt::format("offset mismatch in log entry and mutation {} vs {}",
-                                             end_offset,
-                                             mu->data.header.log_offset));
+            return FMT_ERR(ERR_INVALID_DATA,
+                           "offset mismatch in log entry and mutation {} vs {}",
+                           end_offset,
+                           mu->data.header.log_offset);
         }
 
         int log_length = old_size - reader->get_remaining_size();
+
         callback(log_length, mu);
 
         end_offset += log_length;
