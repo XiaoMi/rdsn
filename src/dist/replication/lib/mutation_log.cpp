@@ -1143,11 +1143,10 @@ bool mutation_log::get_learn_state(gpid gpid, decree start, /*out*/ learn_state 
 
         if (state.meta.length() == 0 && start > _private_log_info.max_decree) {
             // no memory data and no disk data
-            ddebug_f("gpid({}.{}) get_learn_state returns false, state.meta.length={}, "
+            ddebug_f("gpid({}.{}) get_learn_state returns false"
                      "learn_start_decree={}, max_decree_in_private_log={}",
                      gpid.get_app_id(),
                      gpid.get_partition_index(),
-                     state.meta.length(),
                      start,
                      _private_log_info.max_decree);
             return false;
