@@ -3,6 +3,9 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include "dist/replication/lib/mutation_log.h"
+#include <dsn/utility/fail_point.h>
+#include <dsn/utility/errors.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
