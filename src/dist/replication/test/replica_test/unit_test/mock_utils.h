@@ -43,7 +43,7 @@ public:
 
     error_code start(int, char **) override { return ERR_NOT_IMPLEMENTED; }
     error_code stop(bool) override { return ERR_NOT_IMPLEMENTED; }
-    error_code sync_checkpoint() override { return ERR_NOT_IMPLEMENTED; }
+    error_code sync_checkpoint() override { return ERR_OK; }
     error_code async_checkpoint(bool) override { return ERR_NOT_IMPLEMENTED; }
     error_code prepare_get_checkpoint(blob &) override { return ERR_NOT_IMPLEMENTED; }
     error_code get_checkpoint(int64_t, const blob &, learn_state &) override
@@ -52,7 +52,7 @@ public:
     }
     error_code storage_apply_checkpoint(chkpt_apply_mode, const learn_state &) override
     {
-        return ERR_NOT_IMPLEMENTED;
+        return ERR_OK;
     }
     error_code copy_checkpoint_to_dir(const char *checkpoint_dir,
                                       /*output*/ int64_t *last_decree) override
@@ -99,6 +99,7 @@ public:
     void set_partition_status(partition_status::type status) { _config.status = status; }
     void set_child_gpid(gpid pid) { _child_gpid = pid; }
     void set_init_child_ballot(ballot b) { _child_init_ballot = b; }
+    prepare_list *get_plist() { return _prepare_list; }
 };
 typedef dsn::ref_ptr<mock_replica> mock_replica_ptr;
 
