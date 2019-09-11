@@ -2095,8 +2095,7 @@ void log_file::flush() const
 
 error_code log_file::read_next_log_block(/*out*/ ::dsn::blob &bb)
 {
-    dassert(_is_read, "log file must be in read mode");
-    dassert(_stream, "file_stream must be initiated");
+    dassert(_is_read, "log file must be of read mode");
     auto err = _stream->read_next(sizeof(log_block_header), bb);
     if (err != ERR_OK || bb.length() != sizeof(log_block_header)) {
         if (err == ERR_OK || err == ERR_HANDLE_EOF) {
