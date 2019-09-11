@@ -56,9 +56,9 @@ error_code empty_aio_provider::flush(dsn_handle_t fh) { return ERR_OK; }
 
 void empty_aio_provider::aio(aio_task *aio)
 {
-    complete_io(aio, ERR_OK, aio->aio()->buffer_size, 0);
+    complete_io(aio, ERR_OK, aio->get_aio_context()->buffer_size, 0);
 }
 
-disk_aio *empty_aio_provider::prepare_aio_context(aio_task *tsk) { return new disk_aio(); }
+aio_context *empty_aio_provider::prepare_aio_context(aio_task *tsk) { return new aio_context(); }
 }
 }

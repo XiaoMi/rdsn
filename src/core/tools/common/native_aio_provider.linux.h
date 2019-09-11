@@ -64,7 +64,7 @@ public:
         uint32_t bytes;
 
         explicit linux_disk_aio_context(aio_task *tsk_)
-            : disk_aio(), tsk(tsk_), this_(nullptr), evt(nullptr), err(ERR_UNKNOWN), bytes(0)
+            : tsk(tsk_), this_(nullptr), evt(nullptr), err(ERR_UNKNOWN), bytes(0)
         {
         }
     };

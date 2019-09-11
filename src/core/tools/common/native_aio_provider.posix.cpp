@@ -81,7 +81,7 @@ error_code native_posix_aio_provider::flush(dsn_handle_t fh)
     }
 }
 
-class posix_disk_aio_context : public disk_aio
+class posix_disk_aio_context : public aio_context
 {
 public:
     struct aiocb cb;
@@ -92,13 +92,13 @@ public:
     uint32_t bytes;
 
     explicit posix_disk_aio_context(aio_task *tsk_)
-        : disk_aio(), tsk(tsk_), this_(nullptr), evt(nullptr), err(ERR_UNKNOWN), bytes(0)
+        : tsk(tsk_), this_(nullptr), evt(nullptr), err(ERR_UNKNOWN), bytes(0)
     {
         ::bzero((char *)&cb, sizeof(cb));
     }
 };
 
-disk_aio *native_posix_aio_provider::prepare_aio_context(aio_task *tsk)
+aio_context *native_posix_aio_provider::prepare_aio_context(aio_task *tsk)
 {
     return new posix_disk_aio_context(tsk);
 }
@@ -138,7 +138,7 @@ error_code native_posix_aio_provider::aio_internal(aio_task *aio_tsk,
                                                    bool async,
                                                    /*out*/ uint32_t *pbytes /*= nullptr*/)
 {
-    auto aio = (posix_disk_aio_context *)aio_tsk->aio();
+    auto aio = (posix_disk_aio_context *)aio_tsk->get_aio_context();
     int r = 0;
 
     aio->this_ = this;
