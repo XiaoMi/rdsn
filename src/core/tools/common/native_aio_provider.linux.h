@@ -49,11 +49,11 @@ public:
     virtual error_code close(dsn_handle_t fh) override;
     virtual error_code flush(dsn_handle_t fh) override;
     virtual void aio(aio_task *aio) override;
-    virtual disk_aio *prepare_aio_context(aio_task *tsk) override;
+    virtual aio_context *prepare_aio_context(aio_task *tsk) override;
 
     virtual void start() override;
 
-    class linux_disk_aio_context : public disk_aio
+    class linux_disk_aio_context : public aio_context
     {
     public:
         struct iocb cb;
