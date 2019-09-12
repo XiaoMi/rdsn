@@ -89,6 +89,24 @@ public:
         _app.reset(nullptr);
     }
 
+    void init_private_log(const std::string &log_dir)
+    {
+        utils::filesystem::remove_path(log_dir);
+
+        _private_log =
+            new mutation_log_private(log_dir,
+                                     _options->log_private_file_size_mb,
+                                     get_gpid(),
+                                     this,
+                                     _options->log_private_batch_buffer_kb * 1024,
+                                     _options->log_private_batch_buffer_count,
+                                     _options->log_private_batch_buffer_flush_interval_ms);
+
+        error_code err =
+            _private_log->open(nullptr, [this](error_code err) { dcheck_eq_replica(err, ERR_OK); });
+        dcheck_eq_replica(err, ERR_OK);
+    }
+
     replica_duplicator_manager &get_replica_duplicator_manager() { return *_duplication_mgr; }
 
     void as_primary() { _config.status = partition_status::PS_PRIMARY; }
@@ -100,6 +118,7 @@ public:
     void set_partition_status(partition_status::type status) { _config.status = status; }
     void set_child_gpid(gpid pid) { _child_gpid = pid; }
     void set_init_child_ballot(ballot b) { _child_init_ballot = b; }
+    void set_last_committed_decree(decree d) { _prepare_list->reset(d); }
 };
 typedef dsn::ref_ptr<mock_replica> mock_replica_ptr;
 
