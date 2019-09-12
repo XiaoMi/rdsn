@@ -27,6 +27,7 @@
 #pragma once
 
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/dist/replication/mutation_duplicator.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/filesystem.h>
 
@@ -252,6 +253,17 @@ private:
     std::vector<dsn::replication::mutation_ptr> _mu_list;
 };
 typedef dsn::ref_ptr<mock_mutation_log_shared> mock_mutation_log_shared_ptr;
+
+struct mock_mutation_duplicator : public mutation_duplicator
+{
+    explicit mock_mutation_duplicator(replica_base *r) : mutation_duplicator(r) {}
+
+    void duplicate(mutation_tuple_set mut, callback cb) override { _func(mut, cb); }
+
+    typedef std::function<void(mutation_tuple_set, callback)> duplicate_function;
+    static void mock(duplicate_function hook) { _func = std::move(hook); }
+    static duplicate_function _func;
+};
 
 } // namespace replication
 } // namespace dsn
