@@ -201,7 +201,7 @@ public:
                              replay_callback callback,
                              /*out*/ int64_t &end_offset);
 
-    // Reads a series of mutations from the log file (from current offset of `log`),
+    // Reads a series of mutations from the log file (from `start_offset` of `log`),
     // and iterates over the mutations, executing the provided `callback` for each
     // mutation entry.
     // Since the logs are packed into multiple blocks, this function retrieves
@@ -209,6 +209,7 @@ public:
     // `log_private_batch_buffer_kb` and `log_private_batch_buffer_count`.
     //
     // Parameters:
+    // - callback: the callback to execute for each mutation.
     // - start_offset: file offset to start.
     //
     // Returns:
