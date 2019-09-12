@@ -1496,9 +1496,10 @@ dsn::error_code replication_ddl_client::get_app_envs(const std::string &app_name
     return dsn::ERR_OBJECT_NOT_FOUND;
 }
 
-::dsn::error_code replication_ddl_client::set_app_envs(const std::string &app_name,
-                                                       const std::vector<std::string> &keys,
-                                                       const std::vector<std::string> &values)
+configuration_update_app_env_response
+replication_ddl_client::set_app_envs(const std::string &app_name,
+                                     const std::vector<std::string> &keys,
+                                     const std::vector<std::string> &values)
 {
     std::shared_ptr<configuration_update_app_env_request> req =
         std::make_shared<configuration_update_app_env_request>();
@@ -1510,22 +1511,9 @@ dsn::error_code replication_ddl_client::get_app_envs(const std::string &app_name
     auto resp_task = request_meta<configuration_update_app_env_request>(RPC_CM_UPDATE_APP_ENV, req);
     resp_task->wait();
 
-    if (resp_task->error() != ERR_OK) {
-        return resp_task->error();
-    }
     configuration_update_app_env_response response;
     dsn::unmarshall(resp_task->get_response(), response);
-    if (response.err != ERR_OK) {
-        return response.err;
-    } else {
-        std::cout << "set app envs succeed" << std::endl;
-        if (!response.hint_message.empty()) {
-            std::cout << "=============================" << std::endl;
-            std::cout << response.hint_message << std::endl;
-            std::cout << "=============================" << std::endl;
-        }
-    }
-    return ERR_OK;
+    return response;
 }
 
 ::dsn::error_code replication_ddl_client::del_app_envs(const std::string &app_name,

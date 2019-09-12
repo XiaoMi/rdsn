@@ -121,6 +121,7 @@ public:
 
     // test server_state set_app_envs/del_app_envs/clear_app_envs
     void app_envs_basic_test();
+    void app_envs_table_level_test();
 
     // test for bug found
     void adjust_dropped_size();
@@ -136,6 +137,10 @@ private:
     typedef std::function<bool(const dsn::replication::app_mapper &)> state_validator;
     bool
     wait_state(dsn::replication::server_state *ss, const state_validator &validator, int time = -1);
+    void update_app_env(std::shared_ptr<dsn::replication::server_state> ss,
+                        const std::string &app_name,
+                        const std::string &env_key,
+                        const std::string &env_val);
 };
 
 template <typename TRequest, typename RequestHandler>

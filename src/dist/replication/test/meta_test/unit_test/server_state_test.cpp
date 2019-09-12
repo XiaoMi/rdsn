@@ -164,3 +164,90 @@ void meta_service_test_app::app_envs_basic_test()
         }
     }
 }
+
+void meta_service_test_app::app_envs_table_level_test()
+{
+    // create a fake app
+    dsn::app_info info;
+    info.is_stateful = true;
+    info.app_id = 1;
+    info.app_type = "simple_kv";
+    info.app_name = "test_table_level";
+    info.max_replica_count = 3;
+    info.partition_count = 32;
+    info.status = dsn::app_status::AS_CREATING;
+    info.envs.clear();
+    std::shared_ptr<app_state> fake_app = app_state::create(info);
+
+    // create meta_service
+    std::shared_ptr<meta_service> meta_svc = std::make_shared<meta_service>();
+    meta_service *svc = meta_svc.get();
+    svc->_meta_opts.cluster_root = "/meta_test";
+    svc->_meta_opts.meta_state_service_type = "meta_state_service_simple";
+    svc->remote_storage_initialize();
+
+    // sync apps to remote storate
+    std::string apps_root = "/meta_test/apps";
+    std::shared_ptr<server_state> ss = svc->_state;
+    ss->initialize(svc, apps_root);
+    ss->_all_apps.emplace(std::make_pair(fake_app->app_id, fake_app));
+    dsn::error_code ec = ss->sync_apps_to_remote_storage();
+    ASSERT_EQ(ec, dsn::ERR_OK);
+
+    std::string table_level_latency_key = "table_level_get_latency";
+    // set table_level_get_latency = 0, it should be set successfully
+    {
+        // set table level latency to app env
+        std::string table_level_latency_value = "0";
+        update_app_env(ss, fake_app->app_name, table_level_latency_key, table_level_latency_value);
+
+        ASSERT_EQ(fake_app->envs.count(table_level_latency_key), 1);
+        ASSERT_EQ(fake_app->envs.at(table_level_latency_key), table_level_latency_value);
+    }
+
+    // set table_level_get_latency >= MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS,
+    // it should be set successfully
+    {
+        // set table level latency to app env
+        std::string table_level_latency_value = "20000000";
+        update_app_env(ss, fake_app->app_name, table_level_latency_key, table_level_latency_value);
+
+        ASSERT_EQ(fake_app->envs.count(table_level_latency_key), 1);
+        ASSERT_EQ(fake_app->envs.at(table_level_latency_key), table_level_latency_value);
+    }
+
+    // set table_level_get_latency < MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS and != 0,
+    // it should not be set successfully
+    {
+        std::string resv_value = fake_app->envs.at(table_level_latency_key);
+
+        // set table level latency to app env
+        std::string table_level_latency_value = "10000000";
+        update_app_env(ss, fake_app->app_name, table_level_latency_key, table_level_latency_value);
+
+        ASSERT_EQ(fake_app->envs.count(table_level_latency_key), 1);
+        ASSERT_NE(fake_app->envs.at(table_level_latency_key), table_level_latency_value);
+        ASSERT_EQ(fake_app->envs.at(table_level_latency_key), resv_value);
+    }
+}
+
+void meta_service_test_app::update_app_env(std::shared_ptr<server_state> ss,
+                                           const std::string &app_name,
+                                           const std::string &env_key,
+                                           const std::string &env_val)
+{
+    // create request
+    configuration_update_app_env_request request;
+    request.__set_app_name(app_name);
+    request.__set_op(app_env_operation::type::APP_ENV_OP_SET);
+    request.__set_keys({env_key});
+    request.__set_values({env_val});
+
+    // send request
+    dsn::message_ex *binary_req = dsn::message_ex::create_request(RPC_CM_UPDATE_APP_ENV);
+    dsn::marshall(binary_req, request);
+    dsn::message_ex *recv_msg = create_corresponding_receive(binary_req);
+    app_env_rpc rpc(recv_msg); // don't need reply
+    ss->set_app_envs(rpc);
+    ss->wait_all_task();
+}

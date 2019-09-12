@@ -63,6 +63,8 @@ TEST(meta, backup_service_test) { g_app->backup_service_test(); }
 
 TEST(meta, app_envs_basic_test) { g_app->app_envs_basic_test(); }
 
+TEST(meta, app_envs_table_level_test) { g_app->app_envs_table_level_test(); }
+
 dsn::error_code meta_service_test_app::start(const std::vector<std::string> &args)
 {
     uint32_t seed =

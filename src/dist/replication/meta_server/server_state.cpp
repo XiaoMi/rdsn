@@ -56,6 +56,9 @@ namespace replication {
 
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
+static const std::string ENV_TABLE_LEVEL_GET_LATENCY("table_level_get_latency");
+// min value for table level get operation duration threshold, less than this value will be refused
+static const uint64_t MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS = 20 * 1000 * 1000;
 
 server_state::server_state()
     : _meta_svc(nullptr),
@@ -2610,6 +2613,19 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
 
     std::ostringstream os;
     for (int i = 0; i < keys.size(); i++) {
+        // check whether if table level get latency threshold is abnormal
+        if (0 == keys[i].compare(ENV_TABLE_LEVEL_GET_LATENCY)) {
+            uint64_t latency = 0;
+            if (!dsn::buf2uint64(values[i], latency)
+            || (latency < MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS && latency != 0)) {
+                dwarn("{}={} is invalid.", keys[i].c_str(), latency);
+                env_rpc.response().err = ERR_INVALID_PARAMETERS;
+                env_rpc.response().hint_message = fmt::format(
+                    "table level latency must be greater than {} ns", MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS);
+                return;
+            }
+        }
+
         if (i != 0)
             os << ", ";
         os << keys[i] << "=" << values[i];
