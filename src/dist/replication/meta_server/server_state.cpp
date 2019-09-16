@@ -2621,7 +2621,7 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
                 dwarn("{}={} is invalid.", keys[i].c_str(), latency);
                 env_rpc.response().err = ERR_INVALID_PARAMETERS;
                 env_rpc.response().hint_message = fmt::format(
-                    "table level latency must be greater than {} ns", MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS);
+                    "table level latency must be >= {} ns", MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS);
                 return;
             }
         }
