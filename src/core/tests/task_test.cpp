@@ -56,8 +56,8 @@ public:
         ASSERT_EQ(t->_state, task_state::TASK_STATE_FINISHED);
 
         // signal a finished task won't cause failure
-        ASSERT_TRUE(t->signal_waiters());
-        ASSERT_TRUE(t->signal_waiters());
+        t->signal_waiters();
+        t->signal_waiters();
     }
 };
 
