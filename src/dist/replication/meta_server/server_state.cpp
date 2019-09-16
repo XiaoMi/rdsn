@@ -56,6 +56,7 @@ namespace replication {
 
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
+// env name of table level latency
 static const std::string ENV_TABLE_LEVEL_GET_LATENCY("table_level_get_latency");
 // min value for table level get operation duration threshold, less than this value will be refused
 static const uint64_t MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS = 20 * 1000 * 1000;
