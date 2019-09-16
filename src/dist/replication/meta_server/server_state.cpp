@@ -2616,8 +2616,8 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
         // check whether if table level get latency threshold is abnormal
         if (0 == keys[i].compare(ENV_TABLE_LEVEL_GET_LATENCY)) {
             uint64_t latency = 0;
-            if (!dsn::buf2uint64(values[i], latency)
-            || (latency < MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS && latency != 0)) {
+            if (!dsn::buf2uint64(values[i], latency) ||
+                (latency < MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS && latency != 0)) {
                 dwarn("{}={} is invalid.", keys[i].c_str(), latency);
                 env_rpc.response().err = ERR_INVALID_PARAMETERS;
                 env_rpc.response().hint_message = fmt::format(
