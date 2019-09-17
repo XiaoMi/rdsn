@@ -324,6 +324,12 @@ public:
     // thread safe
     decree max_commit_on_disk() const;
 
+    // Returns `invalid_decree` when plog directory is empty, maybe data corruption occurred
+    // and the entire directory was tagged ".err".
+    // thread-safe & private log only
+    decree max_gced_decree(gpid gpid) const;
+    decree max_gced_decree_no_lock(gpid gpid) const;
+
     // thread-safe
     std::map<int, log_file_ptr> get_log_file_map() const;
 
