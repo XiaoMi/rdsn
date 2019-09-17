@@ -198,48 +198,48 @@ void meta_service_test_app::app_envs_table_level_slow_query_test()
     // set env_table_level_slow_query_threshold = 0, it should be set successfully
     {
         // set table level slow query threshold to app env
-        std::string table_level_slow_query_threshold = "0";
+        std::string table_level_slow_query_threshold_ns = "0";
         update_app_env(ss,
                        fake_app->app_name,
                        env_table_level_slow_query_threshold,
-                       table_level_slow_query_threshold);
+                       table_level_slow_query_threshold_ns);
 
         ASSERT_EQ(fake_app->envs.count(env_table_level_slow_query_threshold), 1);
         ASSERT_EQ(fake_app->envs.at(env_table_level_slow_query_threshold),
-                  table_level_slow_query_threshold);
+                  table_level_slow_query_threshold_ns);
     }
 
     // set env_table_level_slow_query_threshold >= MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS,
     // it should be set successfully
     {
         // set table level slow query threshold to app env
-        std::string table_level_slow_query_threshold = "20000000";
+        std::string table_level_slow_query_threshold_ns = "20000000";
         update_app_env(ss,
                        fake_app->app_name,
                        env_table_level_slow_query_threshold,
-                       table_level_slow_query_threshold);
+                       table_level_slow_query_threshold_ns);
 
         ASSERT_EQ(fake_app->envs.count(env_table_level_slow_query_threshold), 1);
         ASSERT_EQ(fake_app->envs.at(env_table_level_slow_query_threshold),
-                  table_level_slow_query_threshold);
+                  table_level_slow_query_threshold_ns);
     }
 
     // set env_table_level_slow_query_threshold < MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS and != 0,
     // it should not be set successfully
     {
-        std::string resv_threshold = fake_app->envs.at(env_table_level_slow_query_threshold);
+        std::string old_threshold_ns = fake_app->envs.at(env_table_level_slow_query_threshold);
 
         // set table level slow query threshold to app env
-        std::string table_level_slow_query_threshold = "10000000";
+        std::string table_level_slow_query_threshold_ns = "10000000";
         update_app_env(ss,
                        fake_app->app_name,
                        env_table_level_slow_query_threshold,
-                       table_level_slow_query_threshold);
+                       table_level_slow_query_threshold_ns);
 
         ASSERT_EQ(fake_app->envs.count(env_table_level_slow_query_threshold), 1);
         ASSERT_NE(fake_app->envs.at(env_table_level_slow_query_threshold),
-                  table_level_slow_query_threshold);
-        ASSERT_EQ(fake_app->envs.at(env_table_level_slow_query_threshold), resv_threshold);
+                  table_level_slow_query_threshold_ns);
+        ASSERT_EQ(fake_app->envs.at(env_table_level_slow_query_threshold), old_threshold_ns);
     }
 }
 
