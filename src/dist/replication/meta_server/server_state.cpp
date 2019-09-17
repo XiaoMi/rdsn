@@ -57,7 +57,7 @@ namespace replication {
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
 // env name of table level slow query
-static const std::string ENV_TABLE_LEVEL_SLOW_QUERY_THRESHOLD("table_level_slow_query_threshold");
+static const std::string ENV_TABLE_LEVEL_SLOW_QUERY_THRESHOLD("slow_query.table_level_threshold");
 // min value for table level slow query threshold, less than this value will be refused
 static const uint64_t MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS = 20 * 1000 * 1000;
 

@@ -1508,12 +1508,18 @@ replication_ddl_client::set_app_envs(const std::string &app_name,
     req->__set_keys(keys);
     req->__set_values(values);
 
+    // request meta to update app env
     auto resp_task = request_meta<configuration_update_app_env_request>(RPC_CM_UPDATE_APP_ENV, req);
     resp_task->wait();
 
     configuration_update_app_env_response response;
-    dsn::unmarshall(resp_task->get_response(), response);
-    return response;
+    if (resp_task->error() != dsn::ERR_OK) {
+        response.err = resp_task->error();
+        return response;
+    } else {
+        dsn::unmarshall(resp_task->get_response(), response);
+        return response;
+    }
 }
 
 ::dsn::error_code replication_ddl_client::del_app_envs(const std::string &app_name,
