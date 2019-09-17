@@ -24,16 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-#ifdef __linux__
-
 #include "native_aio_provider.linux.h"
 
 #include <fcntl.h>
@@ -103,7 +93,7 @@ error_code native_linux_aio_provider::flush(dsn_handle_t fh)
     }
 }
 
-disk_aio *native_linux_aio_provider::prepare_aio_context(aio_task *tsk)
+aio_context *native_linux_aio_provider::prepare_aio_context(aio_task *tsk)
 {
     return new linux_disk_aio_context(tsk);
 }
@@ -169,7 +159,7 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
     linux_disk_aio_context *aio;
     int ret;
 
-    aio = (linux_disk_aio_context *)aio_tsk->aio();
+    aio = (linux_disk_aio_context *)aio_tsk->get_aio_context();
 
     memset(&aio->cb, 0, sizeof(aio->cb));
 
@@ -245,4 +235,3 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
 
 } // namespace tools
 } // namespace dsn
-#endif
