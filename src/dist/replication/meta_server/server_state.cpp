@@ -56,10 +56,10 @@ namespace replication {
 
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
-// env name of table level latency
-static const std::string ENV_TABLE_LEVEL_GET_LATENCY("table_level_get_latency");
-// min value for table level get operation duration threshold, less than this value will be refused
-static const uint64_t MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS = 20 * 1000 * 1000;
+// env name of table level slow query
+static const std::string ENV_TABLE_LEVEL_SLOW_QUERY_THRESHOLD("table_level_slow_query_threshold");
+// min value for table level slow query threshold, less than this value will be refused
+static const uint64_t MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS = 20 * 1000 * 1000;
 
 server_state::server_state()
     : _meta_svc(nullptr),
@@ -2614,15 +2614,16 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
 
     std::ostringstream os;
     for (int i = 0; i < keys.size(); i++) {
-        // check whether if table level get latency threshold is abnormal
-        if (0 == keys[i].compare(ENV_TABLE_LEVEL_GET_LATENCY)) {
-            uint64_t latency = 0;
-            if (!dsn::buf2uint64(values[i], latency) ||
-                (latency < MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS && latency != 0)) {
-                dwarn("{}={} is invalid.", keys[i].c_str(), latency);
+        // check whether if table level slow query threshold is abnormal
+        if (0 == keys[i].compare(ENV_TABLE_LEVEL_SLOW_QUERY_THRESHOLD)) {
+            uint64_t threshold = 0;
+            if (!dsn::buf2uint64(values[i], threshold) ||
+                (threshold < MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS && threshold != 0)) {
+                dwarn("{}={} is invalid.", keys[i].c_str(), threshold);
                 env_rpc.response().err = ERR_INVALID_PARAMETERS;
-                env_rpc.response().hint_message = fmt::format(
-                    "table level latency must be >= {} ns", MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS);
+                env_rpc.response().hint_message =
+                    fmt::format("table level slow query threshold must be >= {} ns",
+                                MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS);
                 return;
             }
         }

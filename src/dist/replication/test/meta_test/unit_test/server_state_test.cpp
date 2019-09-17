@@ -165,14 +165,14 @@ void meta_service_test_app::app_envs_basic_test()
     }
 }
 
-void meta_service_test_app::app_envs_table_level_test()
+void meta_service_test_app::app_envs_table_level_slow_query_test()
 {
     // create a fake app
     dsn::app_info info;
     info.is_stateful = true;
     info.app_id = 1;
     info.app_type = "simple_kv";
-    info.app_name = "test_table_level";
+    info.app_name = "test_table_level_slow_query";
     info.max_replica_count = 3;
     info.partition_count = 32;
     info.status = dsn::app_status::AS_CREATING;
@@ -194,40 +194,52 @@ void meta_service_test_app::app_envs_table_level_test()
     dsn::error_code ec = ss->sync_apps_to_remote_storage();
     ASSERT_EQ(ec, dsn::ERR_OK);
 
-    std::string table_level_latency_key = "table_level_get_latency";
-    // set table_level_get_latency = 0, it should be set successfully
+    std::string env_table_level_slow_query_threshold = "table_level_slow_query_threshold";
+    // set env_table_level_slow_query_threshold = 0, it should be set successfully
     {
-        // set table level latency to app env
-        std::string table_level_latency_value = "0";
-        update_app_env(ss, fake_app->app_name, table_level_latency_key, table_level_latency_value);
+        // set table level slow query threshold to app env
+        std::string table_level_slow_query_threshold = "0";
+        update_app_env(ss,
+                       fake_app->app_name,
+                       env_table_level_slow_query_threshold,
+                       table_level_slow_query_threshold);
 
-        ASSERT_EQ(fake_app->envs.count(table_level_latency_key), 1);
-        ASSERT_EQ(fake_app->envs.at(table_level_latency_key), table_level_latency_value);
+        ASSERT_EQ(fake_app->envs.count(env_table_level_slow_query_threshold), 1);
+        ASSERT_EQ(fake_app->envs.at(env_table_level_slow_query_threshold),
+                  table_level_slow_query_threshold);
     }
 
-    // set table_level_get_latency >= MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS,
+    // set env_table_level_slow_query_threshold >= MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS,
     // it should be set successfully
     {
-        // set table level latency to app env
-        std::string table_level_latency_value = "20000000";
-        update_app_env(ss, fake_app->app_name, table_level_latency_key, table_level_latency_value);
+        // set table level slow query threshold to app env
+        std::string table_level_slow_query_threshold = "20000000";
+        update_app_env(ss,
+                       fake_app->app_name,
+                       env_table_level_slow_query_threshold,
+                       table_level_slow_query_threshold);
 
-        ASSERT_EQ(fake_app->envs.count(table_level_latency_key), 1);
-        ASSERT_EQ(fake_app->envs.at(table_level_latency_key), table_level_latency_value);
+        ASSERT_EQ(fake_app->envs.count(env_table_level_slow_query_threshold), 1);
+        ASSERT_EQ(fake_app->envs.at(env_table_level_slow_query_threshold),
+                  table_level_slow_query_threshold);
     }
 
-    // set table_level_get_latency < MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS and != 0,
+    // set env_table_level_slow_query_threshold < MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS and != 0,
     // it should not be set successfully
     {
-        std::string resv_value = fake_app->envs.at(table_level_latency_key);
+        std::string resv_threshold = fake_app->envs.at(env_table_level_slow_query_threshold);
 
-        // set table level latency to app env
-        std::string table_level_latency_value = "10000000";
-        update_app_env(ss, fake_app->app_name, table_level_latency_key, table_level_latency_value);
+        // set table level slow query threshold to app env
+        std::string table_level_slow_query_threshold = "10000000";
+        update_app_env(ss,
+                       fake_app->app_name,
+                       env_table_level_slow_query_threshold,
+                       table_level_slow_query_threshold);
 
-        ASSERT_EQ(fake_app->envs.count(table_level_latency_key), 1);
-        ASSERT_NE(fake_app->envs.at(table_level_latency_key), table_level_latency_value);
-        ASSERT_EQ(fake_app->envs.at(table_level_latency_key), resv_value);
+        ASSERT_EQ(fake_app->envs.count(env_table_level_slow_query_threshold), 1);
+        ASSERT_NE(fake_app->envs.at(env_table_level_slow_query_threshold),
+                  table_level_slow_query_threshold);
+        ASSERT_EQ(fake_app->envs.at(env_table_level_slow_query_threshold), resv_threshold);
     }
 }
 

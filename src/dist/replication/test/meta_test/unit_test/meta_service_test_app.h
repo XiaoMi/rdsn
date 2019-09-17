@@ -121,7 +121,7 @@ public:
 
     // test server_state set_app_envs/del_app_envs/clear_app_envs
     void app_envs_basic_test();
-    void app_envs_table_level_test();
+    void app_envs_table_level_slow_query_test();
 
     // test for bug found
     void adjust_dropped_size();
