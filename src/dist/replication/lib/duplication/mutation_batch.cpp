@@ -50,10 +50,6 @@ error_s mutation_batch::add(mutation_ptr mu)
     }
 
     error_code ec = _mutation_buffer->prepare(mu, partition_status::PS_INACTIVE);
-    if (ec == ERR_INVALID_DATA && mu->data.header.last_committed_decree < _start_decree) {
-        _mutation_buffer->truncate(mu->data.header.last_committed_decree);
-        return error_s::ok();
-    }
     if (ec != ERR_OK) {
         return FMT_ERR(
             ERR_INVALID_DATA,
@@ -81,7 +77,9 @@ mutation_tuple_set mutation_batch::move_all_mutations()
 
 mutation_batch::mutation_batch(replica_duplicator *r) : replica_base(r)
 {
-    // prepend a tag identifying the caller of prepare_list.
+    // Prepend a special tag identifying this is a mutation_batch,
+    // so `dxxx_replica` logging in prepare_list will print along with its real caller.
+    // This helps for debugging.
     replica_base base(r->get_gpid(), std::string("mutation_batch@") + r->replica_name());
     _mutation_buffer =
         make_unique<prepare_list>(&base, 0, PREPARE_LIST_NUM_ENTRIES, [this](mutation_ptr &mu) {
