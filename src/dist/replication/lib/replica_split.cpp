@@ -4,6 +4,7 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/utility/defer.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/fail_point.h>
 
@@ -203,7 +204,7 @@ void replica::parent_prepare_states(const std::string &dir) // on parent partiti
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica::child_copy_prepare_list(learn_state lstate,
                                       std::vector<mutation_ptr> mutation_list,
-                                      std::vector<std::string> files,
+                                      std::vector<std::string> plog_files,
                                       uint64_t total_file_size,
                                       std::shared_ptr<prepare_list> plist) // on child partition
 {
@@ -226,10 +227,9 @@ void replica::child_copy_prepare_list(learn_state lstate,
                                                                 this,
                                                                 lstate,
                                                                 mutation_list,
-                                                                files,
+                                                                plog_files,
                                                                 total_file_size,
-                                                                last_committed_decree),
-                                                      get_gpid().thread_hash());
+                                                                last_committed_decree));
 
     ddebug_replica("start to copy parent prepare list, last_committed_decree={}, prepare list min "
                    "decree={}, max decree={}",
@@ -240,7 +240,7 @@ void replica::child_copy_prepare_list(learn_state lstate,
     // copy parent prepare list
     plist->set_committer(std::bind(&replica::execute_mutation, this, std::placeholders::_1));
     delete _prepare_list;
-    _prepare_list = new prepare_list(this, *(plist.get()));
+    _prepare_list = new prepare_list(this, *plist);
     for (decree d = last_committed_decree + 1; d <= _prepare_list->max_decree(); ++d) {
         mutation_ptr mu = _prepare_list->get_mutation_by_decree(d);
         dassert_replica(mu != nullptr, "can not find mutation, dercee={}", d);
@@ -258,7 +258,7 @@ void replica::child_copy_prepare_list(learn_state lstate,
 // ThreadPool: THREAD_POOL_REPLICATION_LONG
 void replica::child_learn_states(learn_state lstate,
                                  std::vector<mutation_ptr> mutation_list,
-                                 std::vector<std::string> files,
+                                 std::vector<std::string> plog_files,
                                  uint64_t total_file_size,
                                  decree last_committed_decree) // on child partition
 {
@@ -276,47 +276,51 @@ void replica::child_learn_states(learn_state lstate,
                    last_committed_decree,
                    lstate.from_decree_excluded,
                    lstate.to_decree_included,
-                   files.size(),
+                   plog_files.size(),
                    mutation_list.size());
 
     // apply parent checkpoint
-    error_code err = _app->apply_checkpoint(replication_app_base::chkpt_apply_mode::learn, lstate);
+    error_code err;
+    auto cleanup = defer([this, &err]() {
+        if (err != ERR_OK) {
+            child_handle_async_learn_error();
+        }
+    });
+
+    err = _app->apply_checkpoint(replication_app_base::chkpt_apply_mode::learn, lstate);
     if (err != ERR_OK) {
-        derror_replica("failed to apply checkpoint, error={}", err.to_string());
-        child_handle_async_learn_error();
+        derror_replica("failed to apply checkpoint, error={}", err);
         return;
     }
 
     // replay parent private log
-    err = child_replay_private_log(files, total_file_size, last_committed_decree);
+    err = child_replay_private_log(plog_files, total_file_size, last_committed_decree);
     if (err != ERR_OK) {
-        derror_replica("failed to replay private log, error={}", err.to_string());
-        child_handle_async_learn_error();
+        derror_replica("failed to replay private log, error={}", err);
         return;
     }
 
     // learn parent in-memory mutations
     err = child_learn_mutations(mutation_list, last_committed_decree);
     if (err != ERR_OK) {
-        derror_replica("failed to learn mutations, error={}", err.to_string());
-        child_handle_async_learn_error();
+        derror_replica("failed to learn mutations, error={}", err);
         return;
     }
 
     // generate a checkpoint synchronously
     err = _app->sync_checkpoint();
     if (err != ERR_OK) {
-        derror_replica("failed to generate checkpoint synchrounously, error={}", err.to_string());
-        child_handle_async_learn_error();
+        derror_replica("failed to generate checkpoint synchrounously, error={}", err);
         return;
     }
 
     err = _app->update_init_info_ballot_and_decree(this);
     if (err != ERR_OK) {
-        derror_replica("update_init_info_ballot_and_decree failed, error={}", err.to_string());
-        child_handle_async_learn_error();
+        derror_replica("update_init_info_ballot_and_decree failed, error={}", err);
         return;
     }
+
+    ddebug_replica("learn parent states asynchronously succeed");
 
     tasking::enqueue(LPC_PARTITION_SPLIT,
                      tracker(),
@@ -326,7 +330,7 @@ void replica::child_learn_states(learn_state lstate,
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION_LONG
-error_code replica::child_replay_private_log(std::vector<std::string> files,
+error_code replica::child_replay_private_log(std::vector<std::string> plog_files,
                                              uint64_t total_file_size,
                                              decree last_committed_decree) // on child partition
 {

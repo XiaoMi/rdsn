@@ -341,18 +341,18 @@ private:
     // child copy parent prepare list and call child_learn_states
     void child_copy_prepare_list(learn_state lstate,
                                  std::vector<mutation_ptr> mutation_list,
-                                 std::vector<std::string> files,
+                                 std::vector<std::string> plog_files,
                                  uint64_t total_file_size,
                                  std::shared_ptr<prepare_list> plist);
 
     // child learn states(including checkpoint, private logs, in-memory mutations)
     void child_learn_states(learn_state lstate,
                             std::vector<mutation_ptr> mutation_list,
-                            std::vector<std::string> files,
+                            std::vector<std::string> plog_files,
                             uint64_t total_file_size,
                             decree last_committed_decree);
 
-    error_code child_replay_private_log(std::vector<std::string> files,
+    error_code child_replay_private_log(std::vector<std::string> plog_files,
                                         uint64_t total_file_size,
                                         decree last_committed_decree);
 

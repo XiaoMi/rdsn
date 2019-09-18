@@ -285,5 +285,7 @@ TEST_F(replica_split_test, learn_states_succeed)
     cleanup_child_split_context();
 }
 
+// TODO(heyuchen): add learn_states failed case
+
 } // namespace replication
 } // namespace dsn
