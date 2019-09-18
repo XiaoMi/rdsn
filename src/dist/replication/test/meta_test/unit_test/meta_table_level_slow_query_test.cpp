@@ -99,7 +99,7 @@ TEST_F(meta_table_level_slow_query_test, equal_to_min)
 
     ASSERT_EQ(app->envs.count(env_table_level_slow_query_threshold), 1);
     ASSERT_EQ(app->envs.at(env_table_level_slow_query_threshold),
-    table_level_slow_query_threshold_ns);
+              table_level_slow_query_threshold_ns);
 }
 
 TEST_F(meta_table_level_slow_query_test, smaller_than_min)
