@@ -99,8 +99,23 @@ public:
     //
     //    requests from clients
     //
-    void on_client_write(task_code code, dsn::message_ex *request, bool ignore_throttling = false);
-    void on_client_read(task_code code, dsn::message_ex *request);
+    void on_client_write(message_ex *request, bool ignore_throttling = false);
+    void on_client_read(message_ex *request);
+
+    //
+    //    Throttling
+    //
+
+    /// throttle write requests
+    /// \return true if request is throttled.
+    /// \see replica::on_client_write
+    bool throttle_request(throttling_controller &c, message_ex *request, int32_t req_units);
+    /// update throttling controllers
+    /// \see replica::update_app_envs
+    void update_throttle_envs(const std::map<std::string, std::string> &envs);
+    void update_throttle_env_internal(const std::map<std::string, std::string> &envs,
+                                      const std::string &key,
+                                      throttling_controller &cntl);
 
     //
     //    messages and tools from/for meta server
@@ -363,6 +378,7 @@ private:
     friend class ::dsn::replication::mutation_queue;
     friend class ::dsn::replication::replica_stub;
     friend class mock_replica;
+    friend class throttling_controller_test;
     friend class replica_learn_test;
     friend class replica_duplicator_manager;
     friend class load_mutation;
@@ -436,7 +452,8 @@ private:
     bool _inactive_is_transient; // upgrade to P/S is allowed only iff true
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
     bool _deny_client_write;     // if deny all write requests
-    throttling_controller _write_throttling_controller;
+    throttling_controller _write_qps_throttling_controller;  // throttling by requests-per-second
+    throttling_controller _write_size_throttling_controller; // throttling by bytes-per-second
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
@@ -459,5 +476,5 @@ private:
     dsn::thread_access_checker _checker;
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
-}
-} // namespace
+} // namespace replication
+} // namespace dsn
