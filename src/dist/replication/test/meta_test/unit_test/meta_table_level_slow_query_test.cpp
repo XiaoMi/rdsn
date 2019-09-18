@@ -74,13 +74,13 @@ TEST_F(meta_table_level_slow_query_test, set_to_zero)
               table_level_slow_query_threshold_ns);
 }
 
-TEST_F(meta_table_level_slow_query_test, bigger_equal_than_min)
+TEST_F(meta_table_level_slow_query_test, bigger_than_min)
 {
     auto app = find_app(app_name);
 
-    // set table_level_get_latency >= MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS,
+    // set table_level_get_latency > MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS,
     // it should be set successfully
-    std::string table_level_slow_query_threshold_ns = "20000000";
+    std::string table_level_slow_query_threshold_ns = "30000000";
     update_table_level_slow_query_threshold(table_level_slow_query_threshold_ns);
 
     ASSERT_EQ(app->envs.count(env_table_level_slow_query_threshold), 1);
@@ -88,17 +88,30 @@ TEST_F(meta_table_level_slow_query_test, bigger_equal_than_min)
               table_level_slow_query_threshold_ns);
 }
 
+TEST_F(meta_table_level_slow_query_test, equal_to_min)
+{
+    auto app = find_app(app_name);
+
+    // set table_level_get_latency = MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS,
+    // it should be set successfully
+    std::string table_level_slow_query_threshold_ns = "20000000";
+    update_table_level_slow_query_threshold(table_level_slow_query_threshold_ns);
+
+    ASSERT_EQ(app->envs.count(env_table_level_slow_query_threshold), 1);
+    ASSERT_EQ(app->envs.at(env_table_level_slow_query_threshold),
+    table_level_slow_query_threshold_ns);
+}
+
 TEST_F(meta_table_level_slow_query_test, smaller_than_min)
 {
     auto app = find_app(app_name);
 
-    // set table_level_get_latency < MIN_TABLE_LEVEL_GET_TIME_THRESHOLD_NS and != 0,
+    // set table_level_get_latency < MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS and != 0,
     // it should not be set successfully
     std::string table_level_slow_query_threshold_ns = "10000000";
     update_table_level_slow_query_threshold(table_level_slow_query_threshold_ns);
 
     ASSERT_EQ(app->envs.count(env_table_level_slow_query_threshold), 0);
 }
-
 } // namespace replication
 } // namespace dsn
