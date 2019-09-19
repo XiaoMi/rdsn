@@ -39,8 +39,8 @@ public:
         create_app(app_name);
     }
 
-    void update_app_envs(const std::vector<std::string> &env_keys,
-                         const std::vector<std::string> &env_vals)
+    error_code update_app_envs(const std::vector<std::string> &env_keys,
+                               const std::vector<std::string> &env_vals)
     {
         auto req = make_unique<configuration_update_app_env_request>();
         req->__set_app_name(std::move(app_name));
@@ -51,63 +51,35 @@ public:
         app_env_rpc rpc(std::move(req), RPC_CM_UPDATE_APP_ENV); // don't need reply
         _ss->set_app_envs(rpc);
         _ss->wait_all_task();
+        return rpc.response().err;
     }
 
     const std::string app_name = "test_app_env";
-    const std::string env_table_level_slow_query_threshold = "slow_query.table_level_threshold";
+    const std::string env_slow_query_threshold = "slow_query.threshold";
 };
 
-TEST_F(meta_app_envs_test, set_table_level_slow_query_threshold_to_zero)
+TEST_F(meta_app_envs_test, set_slow_query_threshold)
 {
     auto app = find_app(app_name);
 
-    // set env_table_level_slow_query_threshold = 0, it should be set successfully
-    std::string table_level_slow_query_threshold_ns = "0";
-    update_app_envs({env_table_level_slow_query_threshold}, {table_level_slow_query_threshold_ns});
+    struct test_case
+    {
+        error_code err;
+        std::string env_value;
+        std::string expect_env_value;
+    } tests[] = {{ERR_OK, "30000000", "30000000"},
+                 {ERR_OK, "20000001", "20000001"},
+                 {ERR_OK, "20000000", "20000000"},
+                 {ERR_INVALID_PARAMETERS, "19999999", "20000000"},
+                 {ERR_INVALID_PARAMETERS, "10000000", "20000000"},
+                 {ERR_INVALID_PARAMETERS, "0", "20000000"}};
 
-    ASSERT_EQ(app->envs.count(env_table_level_slow_query_threshold), 1);
-    ASSERT_EQ(app->envs.at(env_table_level_slow_query_threshold),
-              table_level_slow_query_threshold_ns);
-}
+    for (auto test : tests) {
+        error_code err = update_app_envs({env_slow_query_threshold}, {test.env_value});
 
-TEST_F(meta_app_envs_test, set_table_level_slow_query_threshold_greater_than_min)
-{
-    auto app = find_app(app_name);
-
-    // set table_level_get_latency > MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS,
-    // it should be set successfully
-    std::string table_level_slow_query_threshold_ns = "30000000";
-    update_app_envs({env_table_level_slow_query_threshold}, {table_level_slow_query_threshold_ns});
-
-    ASSERT_EQ(app->envs.count(env_table_level_slow_query_threshold), 1);
-    ASSERT_EQ(app->envs.at(env_table_level_slow_query_threshold),
-              table_level_slow_query_threshold_ns);
-}
-
-TEST_F(meta_app_envs_test, set_table_level_slow_query_threshold_to_min)
-{
-    auto app = find_app(app_name);
-
-    // set table_level_get_latency = MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS,
-    // it should be set successfully
-    std::string table_level_slow_query_threshold_ns = "20000000";
-    update_app_envs({env_table_level_slow_query_threshold}, {table_level_slow_query_threshold_ns});
-
-    ASSERT_EQ(app->envs.count(env_table_level_slow_query_threshold), 1);
-    ASSERT_EQ(app->envs.at(env_table_level_slow_query_threshold),
-              table_level_slow_query_threshold_ns);
-}
-
-TEST_F(meta_app_envs_test, set_table_level_slow_query_threshold_smaller_than_min)
-{
-    auto app = find_app(app_name);
-
-    // set table_level_get_latency < MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS and != 0,
-    // it should not be set successfully
-    std::string table_level_slow_query_threshold_ns = "10000000";
-    update_app_envs({env_table_level_slow_query_threshold}, {table_level_slow_query_threshold_ns});
-
-    ASSERT_EQ(app->envs.count(env_table_level_slow_query_threshold), 0);
+        ASSERT_EQ(err, test.err);
+        ASSERT_EQ(app->envs.at(env_slow_query_threshold), test.expect_env_value);
+    }
 }
 } // namespace replication
 } // namespace dsn

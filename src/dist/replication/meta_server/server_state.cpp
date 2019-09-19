@@ -56,10 +56,10 @@ namespace replication {
 
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
-// env name of table level slow query
-static const std::string ENV_TABLE_LEVEL_SLOW_QUERY_THRESHOLD("slow_query.table_level_threshold");
-// min value for table level slow query threshold, less than this value will be refused
-static const uint64_t MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS = 20 * 1000 * 1000;
+// env name of slow query
+static const std::string ENV_SLOW_QUERY_THRESHOLD("slow_query.threshold");
+// min value for slow query threshold, less than this value will be refused
+static const uint64_t MIN_SLOW_QUERY_THRESHOLD_NS = 20 * 1000 * 1000;
 
 server_state::server_state()
     : _meta_svc(nullptr),
@@ -2614,16 +2614,14 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
 
     std::ostringstream os;
     for (int i = 0; i < keys.size(); i++) {
-        // check whether if table level slow query threshold is abnormal
-        if (0 == keys[i].compare(ENV_TABLE_LEVEL_SLOW_QUERY_THRESHOLD)) {
+        // check whether if slow query threshold is abnormal
+        if (0 == keys[i].compare(ENV_SLOW_QUERY_THRESHOLD)) {
             uint64_t threshold = 0;
-            if (!dsn::buf2uint64(values[i], threshold) ||
-                (threshold < MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS && threshold != 0)) {
+            if (!dsn::buf2uint64(values[i], threshold) || threshold < MIN_SLOW_QUERY_THRESHOLD_NS) {
                 dwarn("{}={} is invalid.", keys[i].c_str(), threshold);
                 env_rpc.response().err = ERR_INVALID_PARAMETERS;
-                env_rpc.response().hint_message =
-                    fmt::format("table level slow query threshold must be >= {} ns",
-                                MIN_TABLE_LEVEL_SLOW_QUERY_THRESHOLD_NS);
+                env_rpc.response().hint_message = fmt::format(
+                    "slow query threshold must be >= {} ns", MIN_SLOW_QUERY_THRESHOLD_NS);
                 return;
             }
         }
