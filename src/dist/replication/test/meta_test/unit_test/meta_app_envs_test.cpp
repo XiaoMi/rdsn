@@ -55,7 +55,7 @@ public:
     }
 
     const std::string app_name = "test_app_env";
-    const std::string env_slow_query_threshold = "slow_query.threshold";
+    const std::string env_slow_query_threshold = "replica.slow_query_threshold";
 };
 
 TEST_F(meta_app_envs_test, set_slow_query_threshold)
@@ -67,12 +67,12 @@ TEST_F(meta_app_envs_test, set_slow_query_threshold)
         error_code err;
         std::string env_value;
         std::string expect_env_value;
-    } tests[] = {{ERR_OK, "30000000", "30000000"},
-                 {ERR_OK, "20000001", "20000001"},
-                 {ERR_OK, "20000000", "20000000"},
-                 {ERR_INVALID_PARAMETERS, "19999999", "20000000"},
-                 {ERR_INVALID_PARAMETERS, "10000000", "20000000"},
-                 {ERR_INVALID_PARAMETERS, "0", "20000000"}};
+    } tests[] = {{ERR_OK, "30", "30"},
+                 {ERR_OK, "21", "21"},
+                 {ERR_OK, "20", "20"},
+                 {ERR_INVALID_PARAMETERS, "19", "20"},
+                 {ERR_INVALID_PARAMETERS, "10", "20"},
+                 {ERR_INVALID_PARAMETERS, "0", "20"}};
 
     for (auto test : tests) {
         error_code err = update_app_envs({env_slow_query_threshold}, {test.env_value});

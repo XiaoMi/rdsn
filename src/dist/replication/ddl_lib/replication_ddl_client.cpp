@@ -1515,6 +1515,7 @@ replication_ddl_client::set_app_envs(const std::string &app_name,
     configuration_update_app_env_response response;
     if (resp_task->error() != dsn::ERR_OK) {
         response.err = resp_task->error();
+        response.hint_message = "error to call meta";
         return response;
     } else {
         dsn::unmarshall(resp_task->get_response(), response);

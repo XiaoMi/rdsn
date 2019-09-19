@@ -57,9 +57,9 @@ namespace replication {
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
 // env name of slow query
-static const std::string ENV_SLOW_QUERY_THRESHOLD("slow_query.threshold");
+static const std::string ENV_SLOW_QUERY_THRESHOLD("replica.slow_query_threshold");
 // min value for slow query threshold, less than this value will be refused
-static const uint64_t MIN_SLOW_QUERY_THRESHOLD_NS = 20 * 1000 * 1000;
+static const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS = 20;
 
 server_state::server_state()
     : _meta_svc(nullptr),
@@ -2617,11 +2617,11 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
         // check whether if slow query threshold is abnormal
         if (0 == keys[i].compare(ENV_SLOW_QUERY_THRESHOLD)) {
             uint64_t threshold = 0;
-            if (!dsn::buf2uint64(values[i], threshold) || threshold < MIN_SLOW_QUERY_THRESHOLD_NS) {
+            if (!dsn::buf2uint64(values[i], threshold) || threshold < MIN_SLOW_QUERY_THRESHOLD_MS) {
                 dwarn("{}={} is invalid.", keys[i].c_str(), threshold);
                 env_rpc.response().err = ERR_INVALID_PARAMETERS;
                 env_rpc.response().hint_message = fmt::format(
-                    "slow query threshold must be >= {} ns", MIN_SLOW_QUERY_THRESHOLD_NS);
+                    "slow query threshold must be >= {}ms", MIN_SLOW_QUERY_THRESHOLD_MS);
                 return;
             }
         }
