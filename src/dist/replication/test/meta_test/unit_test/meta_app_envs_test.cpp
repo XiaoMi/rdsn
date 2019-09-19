@@ -53,7 +53,7 @@ public:
         _ss->wait_all_task();
     }
 
-    const std::string app_name = "test_app1";
+    const std::string app_name = "test_app_env";
     const std::string env_table_level_slow_query_threshold = "slow_query.table_level_threshold";
 };
 
