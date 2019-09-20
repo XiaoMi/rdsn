@@ -526,13 +526,14 @@ typedef dsn::ref_ptr<cold_backup_context> cold_backup_context_ptr;
 class partition_split_context
 {
 public:
-    partition_split_context() : is_prepare_list_copied(false) {}
+    partition_split_context() : is_prepare_list_copied(false), is_caught_up(false) {}
     bool cleanup(bool force);
     bool is_cleaned() const;
 
 public:
     gpid parent_gpid;
     bool is_prepare_list_copied;
+    bool is_caught_up;
 
     // child replica async learn parent states
     dsn::task_ptr async_learn_task;

@@ -33,7 +33,6 @@
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/async_calls.h>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
@@ -889,6 +888,8 @@ std::pair<log_file_ptr, int64_t> mutation_log::mark_new_offset(size_t size,
                                            replay_callback callback,
                                            /*out*/ int64_t &end_offset)
 {
+    FAIL_POINT_INJECT_F("mutation_log_replay_succeed", [](dsn::string_view) { return ERR_OK; });
+
     std::map<int, log_file_ptr> logs;
     for (auto &fpath : log_files) {
         error_code err;

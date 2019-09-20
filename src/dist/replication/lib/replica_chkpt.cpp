@@ -37,6 +37,7 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
+#include <dsn/utility/fail_point.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/chrono_literals.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -328,6 +329,8 @@ error_code replica::background_sync_checkpoint()
 // in non-replication thread
 void replica::catch_up_with_private_logs(partition_status::type s)
 {
+    FAIL_POINT_INJECT_F("replica_chkpt_catch_up_with_private_logs", [this](dsn::string_view) {});
+
     learn_state state;
     _private_log->get_learn_state(get_gpid(), _app->last_committed_decree() + 1, state);
 
@@ -340,6 +343,12 @@ void replica::catch_up_with_private_logs(partition_status::type s)
                                  [this, err]() { this->on_learn_remote_state_completed(err); },
                                  get_gpid().thread_hash());
         _potential_secondary_states.learn_remote_files_completed_task->enqueue();
+    } else if (s == partition_status::PS_PARTITION_SPLIT) {
+        _split_states.async_learn_task =
+            tasking::enqueue(LPC_PARTITION_SPLIT,
+                             tracker(),
+                             std::bind(&replica::child_catch_up_states, this),
+                             get_gpid().thread_hash());
     } else {
         _secondary_states.checkpoint_completed_task =
             tasking::create_task(LPC_CHECKPOINT_REPLICA_COMPLETED,
