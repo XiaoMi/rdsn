@@ -1496,31 +1496,17 @@ dsn::error_code replication_ddl_client::get_app_envs(const std::string &app_name
     return dsn::ERR_OBJECT_NOT_FOUND;
 }
 
-configuration_update_app_env_response
+error_with<configuration_update_app_env_response>
 replication_ddl_client::set_app_envs(const std::string &app_name,
                                      const std::vector<std::string> &keys,
                                      const std::vector<std::string> &values)
 {
-    std::shared_ptr<configuration_update_app_env_request> req =
-        std::make_shared<configuration_update_app_env_request>();
+    auto req = make_unique<configuration_update_app_env_request>();
     req->__set_app_name(app_name);
-    req->__set_op(app_env_operation::type::APP_ENV_OP_SET);
     req->__set_keys(keys);
     req->__set_values(values);
-
-    // request meta to update app env
-    auto resp_task = request_meta<configuration_update_app_env_request>(RPC_CM_UPDATE_APP_ENV, req);
-    resp_task->wait();
-
-    configuration_update_app_env_response response;
-    if (resp_task->error() != dsn::ERR_OK) {
-        response.err = resp_task->error();
-        response.hint_message = "error to call meta";
-        return response;
-    } else {
-        dsn::unmarshall(resp_task->get_response(), response);
-        return response;
-    }
+    req->__set_op(app_env_operation::type::APP_ENV_OP_SET);
+    return call_rpc_sync(update_app_env_rpc(std::move(req), RPC_CM_UPDATE_APP_ENV));
 }
 
 ::dsn::error_code replication_ddl_client::del_app_envs(const std::string &app_name,
