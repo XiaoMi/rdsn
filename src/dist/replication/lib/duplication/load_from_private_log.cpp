@@ -17,7 +17,7 @@ static constexpr int MAX_ALLOWED_REPEATS = 3;
 
 // Fast path to next file. If next file (_current->index + 1) is invalid,
 // we try to list all files and select a new one to start (find_log_file_to_start).
-void load_from_private_log::switch_to_next_log_file()
+bool load_from_private_log::switch_to_next_log_file()
 {
     std::string new_path = fmt::format(
         "{}/log.{}.{}", _private_log->dir(), _current->index() + 1, _current_global_end_offset);
@@ -28,11 +28,13 @@ void load_from_private_log::switch_to_next_log_file()
         if (!es.is_ok()) {
             derror_replica("{}", es);
             _current = nullptr;
-            return;
+            return false;
         }
         start_from_log_file(file);
+        return true;
     } else {
         _current = nullptr;
+        return false;
     }
 }
 
@@ -81,23 +83,22 @@ void load_from_private_log::find_log_file_to_start(std::map<int, log_file_ptr> l
         return;
     }
 
-    auto begin = log_file_map.begin();
-    for (auto it = begin; it != log_file_map.end(); it++) {
+    for (auto it = log_file_map.begin(); it != log_file_map.end(); it++) {
         auto next_it = std::next(it);
         if (next_it == log_file_map.end()) {
-            // use the last file if new file added
-            start_from_log_file(it->second);
+            // use the last file if no file to read
+            if (!_current) {
+                start_from_log_file(it->second);
+            }
             return;
         }
         if (it->second->previous_log_max_decree(get_gpid()) < _start_decree &&
             _start_decree <= next_it->second->previous_log_max_decree(get_gpid())) {
             // `start_decree` is within the range
             start_from_log_file(it->second);
-            return;
+            // find the latest file that matches the condition
         }
     }
-
-    __builtin_unreachable();
 }
 
 void load_from_private_log::replay_log_block()
@@ -106,9 +107,7 @@ void load_from_private_log::replay_log_block()
         mutation_log::replay_block(_current,
                                    [this](int log_bytes_length, mutation_ptr &mu) -> bool {
                                        auto es = _mutation_batch.add(std::move(mu));
-                                       if (!es.is_ok()) {
-                                           dfatal_replica(es.description());
-                                       }
+                                       dassert_replica(es.is_ok(), es.description());
                                        return true;
                                    },
                                    _start_offset,
@@ -116,8 +115,11 @@ void load_from_private_log::replay_log_block()
     if (!err.is_ok()) {
         // EOF appears only when end of log file is reached.
         if (err.code() == ERR_HANDLE_EOF) {
-            switch_to_next_log_file();
-            repeat(_repeat_delay);
+            if (switch_to_next_log_file()) {
+                repeat();
+            } else {
+                repeat(_repeat_delay);
+            }
             return;
         }
 

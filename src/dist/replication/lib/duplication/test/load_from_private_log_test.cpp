@@ -17,6 +17,8 @@
 namespace dsn {
 namespace replication {
 
+DEFINE_TASK_CODE_RPC(RPC_RRDB_RRDB_PUT, TASK_PRIORITY_COMMON, ::dsn::THREAD_POOL_DEFAULT);
+
 class load_from_private_log_test : public duplication_test_base
 {
 public:
@@ -62,12 +64,14 @@ public:
         ASSERT_TRUE(load._current);
         ASSERT_EQ(load._current->index(), 1);
 
+        load._current = nullptr;
         load.set_start_decree(50);
         load.find_log_file_to_start(files);
         ASSERT_TRUE(load._current);
         ASSERT_EQ(load._current->index(), 1);
 
         int last_idx = files.rbegin()->first;
+        load._current = nullptr;
         load.set_start_decree(1000 * 50 + 200);
         load.find_log_file_to_start(files);
         ASSERT_TRUE(load._current);

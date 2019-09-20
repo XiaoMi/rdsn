@@ -44,7 +44,8 @@ public:
     void replay_log_block();
 
     // Switches to the log file with index = current_log_index + 1.
-    void switch_to_next_log_file();
+    // Returns true if succeeds.
+    bool switch_to_next_log_file();
 
     void start_from_log_file(log_file_ptr f);
 
