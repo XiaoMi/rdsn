@@ -55,11 +55,11 @@ void load_from_private_log::run()
 
 void load_from_private_log::find_log_file_to_start()
 {
-    // the file set already excluded the useless log files during replica init.
+    // `file_map` has already excluded the useless log files during replica init.
     auto file_map = _private_log->get_log_file_map();
 
-    // reopen the files, because the internal file handle of private_log->log_file_map()
-    // is cleared and unable to be used for us.
+    // Reopen the files. Because the internal file handle of `file_map`
+    // is cleared once WAL replay finished. They are unable to read.
     std::map<int, log_file_ptr> new_file_map;
     for (const auto &pr : file_map) {
         log_file_ptr file;
@@ -71,7 +71,7 @@ void load_from_private_log::find_log_file_to_start()
         new_file_map.emplace(pr.first, file);
     }
 
-    find_log_file_to_start(new_file_map);
+    find_log_file_to_start(std::move(new_file_map));
 }
 
 void load_from_private_log::find_log_file_to_start(std::map<int, log_file_ptr> log_file_map)
@@ -81,17 +81,17 @@ void load_from_private_log::find_log_file_to_start(std::map<int, log_file_ptr> l
         return;
     }
 
-    // ensure start decree is not compacted
     auto begin = log_file_map.begin();
     for (auto it = begin; it != log_file_map.end(); it++) {
         auto next_it = std::next(it);
         if (next_it == log_file_map.end()) {
-            // use the last file
+            // use the last file if new file added
             start_from_log_file(it->second);
             return;
         }
         if (it->second->previous_log_max_decree(get_gpid()) < _start_decree &&
             _start_decree <= next_it->second->previous_log_max_decree(get_gpid())) {
+            // `start_decree` is within the range
             start_from_log_file(it->second);
             return;
         }
