@@ -113,13 +113,8 @@ void load_from_private_log::replay_log_block()
                                    _start_offset,
                                    _current_global_end_offset);
     if (!err.is_ok()) {
-        // EOF appears only when end of log file is reached.
-        if (err.code() == ERR_HANDLE_EOF) {
-            if (switch_to_next_log_file()) {
-                repeat();
-            } else {
-                repeat(_repeat_delay);
-            }
+        if (err.code() == ERR_HANDLE_EOF && switch_to_next_log_file()) {
+            repeat();
             return;
         }
 
@@ -131,9 +126,8 @@ void load_from_private_log::replay_log_block()
                            err,
                            _current->path(),
                            _start_offset);
-            start_from_log_file(_current);
+            find_log_file_to_start();
         }
-
         repeat(_repeat_delay);
         return;
     }

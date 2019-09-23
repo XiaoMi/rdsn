@@ -36,9 +36,8 @@ public:
 
     /// ==== Implementation ==== ///
 
+    /// Find the log file that contains `_start_decree`.
     void find_log_file_to_start();
-
-    /// Find the log file that contains decree `d`.
     void find_log_file_to_start(std::map<int, log_file_ptr> log_files);
 
     void replay_log_block();
