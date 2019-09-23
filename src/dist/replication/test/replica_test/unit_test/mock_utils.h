@@ -68,6 +68,7 @@ public:
     void update_app_envs(const std::map<std::string, std::string> &envs) override { _envs = envs; }
     void query_app_envs(std::map<std::string, std::string> &out) override { out = _envs; }
     decree last_durable_decree() const override { return 0; }
+
 private:
     std::map<std::string, std::string> _envs;
     decree _decree = 5;
@@ -270,6 +271,7 @@ public:
 
     void flush() {}
     void flush_once() {}
+
 private:
     std::vector<dsn::replication::mutation_ptr> _mu_list;
 };

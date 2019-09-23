@@ -367,14 +367,6 @@ error_code replica::child_apply_private_logs(std::vector<std::string> plog_files
                               origin_mu->data.header.ballot);
                 return false;
             }
-            // if parent replica ballot increased, child will be obsolete
-            if (origin_mu == nullptr && mu->data.header.ballot > this->get_ballot()) {
-                dwarn_replica("ballot changed, replica ballot={}, mutation ballot={}",
-                              mu->name(),
-                              this->get_ballot(),
-                              mu->data.header.ballot);
-                return false;
-            }
             plist.prepare(mu, partition_status::PS_SECONDARY);
             return true;
         },

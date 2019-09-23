@@ -67,9 +67,7 @@ public:
 
     void mock_prepare_list(mock_replica_ptr rep, bool add_to_plog)
     {
-        _mock_plist = new prepare_list(rep, 1, _max_count, [](mutation_ptr mu) {
-            ddebug_f("commit mutation({})", mu->name());
-        });
+        _mock_plist = new prepare_list(rep, 1, _max_count, [](mutation_ptr mu) {});
         for (int i = 1; i < _max_count + 1; ++i) {
             mutation_ptr mu = new mutation();
             mu->data.header.decree = i;
@@ -188,9 +186,9 @@ public:
         mock_child_async_learn_states(_child, true, 0);
         mock_app_last_committed_decree(_child, local_decree);
         if (local_decree < goal_decree) {
-            // set prepare_list's start_decree=min_decree
+            // set prepare_list's start_decree = {min_decree}
             _child->prepare_list_truncate(min_decree);
-            // set prepare_list's last_committed_decree=goal_decree
+            // set prepare_list's last_committed_decree = {goal_decree}
             _child->prepare_list_commit_hard(goal_decree);
         }
         _child->child_catch_up_states();

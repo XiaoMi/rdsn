@@ -362,6 +362,7 @@ private:
     // child catch up parent states while executing async learn task
     void child_catch_up_states();
 
+    // child send notification to primary parent when it finish async learn
     void child_notify_catch_up();
 
     // return true if parent status is valid
