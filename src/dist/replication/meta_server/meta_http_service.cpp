@@ -467,6 +467,63 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
     resp.status_code = http_status_code::ok;
 }
 
+void meta_http_service::get_app_envs_handler(const http_request &req, http_response &resp)
+{
+    std::string app_name;
+    for (const auto &p : req.query_args) {
+        if (0 == p.first.compare("name")) {
+            app_name = p.second;
+            break;
+        }
+    }
+
+    // app name must be set
+    if (app_name.empty()) {
+        resp.status_code = http_status_code::bad_request;
+        return;
+    }
+
+    // only primary process the request
+    if (!redirect_if_not_primary(req, resp))
+        return;
+
+    // get all of the apps
+    configuration_list_apps_response response;
+    configuration_list_apps_request request;
+    request.status = dsn::app_status::AS_AVAILABLE;
+    _service->_state->list_apps(request, response);
+    if (response.err != dsn::ERR_OK) {
+        resp.body = response.err.to_string();
+        resp.status_code = http_status_code::internal_server_error;
+        return;
+    }
+
+    // using app envs to generate a multi_table_printer
+    dsn::utils::multi_table_printer mtp;
+    dsn::utils::table_printer tp_general("general");
+    tp_general.add_row_name_and_data("app_name", app_name);
+    mtp.add(std::move(tp_general));
+    std::vector<::dsn::app_info> &apps = response.infos;
+    for (auto &app : apps) {
+        if (app.app_name == app_name) {
+            dsn::utils::table_printer tp_envs("envs");
+            tp_envs.add_title("env_key");
+            tp_envs.add_column("env_value");
+            for (auto env : app.envs) {
+                tp_envs.add_row(env.first);
+                tp_envs.append_data(env.second);
+            }
+            break;
+        }
+    }
+
+    // output as json format
+    std::ostringstream out;
+    mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    resp.body = out.str();
+    resp.status_code = http_status_code::ok;
+}
+
 bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
 {
 #ifdef DSN_MOCK_TEST

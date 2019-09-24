@@ -67,6 +67,8 @@ public:
 
     dupid_t id() const { return _id; }
 
+    const std::string &remote_cluster_name() const { return _remote_cluster_name; }
+
     // Thread-safe
     duplication_progress progress() const
     {
@@ -90,6 +92,14 @@ public:
     dsn::task_tracker *tracker() { return &_tracker; }
 
     std::string to_string() const;
+
+    // To ensure mutation logs after start_decree is available
+    // for duplication. If not, it means the eventual consistency
+    // of duplication is no longer guaranteed due to the missing logs.
+    // For current implementation the system will fail fast.
+    void verify_start_decree(decree start_decree);
+
+    decree get_max_gced_decree() const;
 
 private:
     friend class replica_duplicator_test;
