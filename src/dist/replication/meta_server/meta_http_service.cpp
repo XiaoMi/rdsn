@@ -506,6 +506,7 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     std::vector<::dsn::app_info> &apps = response.infos;
     for (auto &app : apps) {
         if (app.app_name == app_name) {
+            tp_general.add_row_name_and_data("app_id", app.app_id);
             dsn::utils::table_printer tp_envs("envs");
             tp_envs.add_title("env_key");
             tp_envs.add_column("env_value");
@@ -513,6 +514,7 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
                 tp_envs.add_row(env.first);
                 tp_envs.append_data(env.second);
             }
+            mtp.add(std::move(tp_envs));
             break;
         }
     }
