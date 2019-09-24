@@ -499,29 +499,23 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     }
 
     // using app envs to generate a multi_table_printer
-    dsn::utils::multi_table_printer mtp;
-    dsn::utils::table_printer tp_general("general");
-    tp_general.add_row_name_and_data("app_name", app_name);
-    mtp.add(std::move(tp_general));
+    dsn::utils::table_printer tp_envs("envs");
+    tp_envs.add_title("key");
+    tp_envs.add_column("value");
     std::vector<::dsn::app_info> &apps = response.infos;
     for (auto &app : apps) {
         if (app.app_name == app_name) {
-            tp_general.add_row_name_and_data("app_id", app.app_id);
-            dsn::utils::table_printer tp_envs("envs");
-            tp_envs.add_title("env_key");
-            tp_envs.add_column("env_value");
             for (auto env : app.envs) {
                 tp_envs.add_row(env.first);
                 tp_envs.append_data(env.second);
             }
-            mtp.add(std::move(tp_envs));
             break;
         }
     }
 
     // output as json format
     std::ostringstream out;
-    mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    tp_envs.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
     resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
