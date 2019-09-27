@@ -498,7 +498,7 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
         return;
     }
 
-    // using app envs to generate a multi_table_printer
+    // using app envs to generate a table_printer
     dsn::utils::table_printer tp_envs("envs");
     tp_envs.add_title("key");
     tp_envs.add_column("value");
