@@ -469,6 +469,10 @@ void meta_http_service::get_cluster_info_handler(const http_request &req, http_r
 
 void meta_http_service::get_app_envs_handler(const http_request &req, http_response &resp)
 {
+    // only primary process the request
+    if (!redirect_if_not_primary(req, resp))
+        return;
+
     std::string app_name;
     for (const auto &p : req.query_args) {
         if (0 == p.first.compare("name")) {
@@ -482,10 +486,6 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
         resp.status_code = http_status_code::bad_request;
         return;
     }
-
-    // only primary process the request
-    if (!redirect_if_not_primary(req, resp))
-        return;
 
     // get all of the apps
     configuration_list_apps_response response;
