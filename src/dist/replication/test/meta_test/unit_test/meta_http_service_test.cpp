@@ -52,10 +52,9 @@ public:
         _mhs->get_app_envs_handler(fake_req, fake_resp);
 
         // env (value_version, 1) was set by create_app
-        std::string fake_json = R"({"envs":{")" + env_key + R"(":)" +
-                                R"({"key":")" + env_key + R"(",)" +
-                                R"("value":")" + env_value + R"("},)" +
-                                R"("value_version":{"key":"value_version","value":"1"}}})" + "\n";
+        std::string fake_json = R"({")" + env_key + R"(":)" +
+                                R"(")" + env_value + R"(",)" +
+                                R"("value_version":"1"})" + "\n";
         ASSERT_EQ(fake_resp.status_code, http_status_code::ok)
             << http_status_code_to_string(fake_resp.status_code);
         ASSERT_EQ(fake_resp.body, fake_json);

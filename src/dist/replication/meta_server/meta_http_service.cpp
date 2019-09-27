@@ -499,15 +499,11 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     }
 
     // using app envs to generate a table_printer
-    dsn::utils::table_printer tp_envs("envs");
-    tp_envs.add_title("key");
-    tp_envs.add_column("value");
-    std::vector<::dsn::app_info> &apps = response.infos;
-    for (auto &app : apps) {
+    dsn::utils::table_printer tp;
+    for (auto &app : response.infos) {
         if (app.app_name == app_name) {
             for (auto env : app.envs) {
-                tp_envs.add_row(env.first);
-                tp_envs.append_data(env.second);
+                tp.add_row_name_and_data(env.first, env.second);
             }
             break;
         }
@@ -515,7 +511,7 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
 
     // output as json format
     std::ostringstream out;
-    tp_envs.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
     resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
