@@ -52,6 +52,7 @@ public:
     /// THREAD_POOL_REPLICATION
     /// \see replica_check.cpp
     void set_confirmed_decree_non_primary(decree confirmed);
+
 private:
     void sync_duplication(const duplication_entry &ent);
 
