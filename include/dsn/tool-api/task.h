@@ -235,7 +235,9 @@ public:
     error_code error() const { return _error; }
     service_node *node() const { return _node; }
     task_tracker *tracker() const { return _context_tracker.tracker(); }
-    bool is_empty() const { return _is_null; }
+
+    /// \return Whether the callback of this task is empty
+    bool is_callback_empty() const { return _is_callback_empty; }
 
     // static helper utilities
     static task *get_current_task();
@@ -292,7 +294,7 @@ protected:
     //
     virtual void clear_non_trivial_on_task_end() {}
 
-    bool _is_null;
+    bool _is_callback_empty;
     error_code _error;
 
 private:
