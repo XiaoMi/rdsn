@@ -99,7 +99,6 @@ namespace replication {
     return error_s::ok();
 }
 
-// TODO(wutao1): move it to mutation_log_replay.cpp
 /*static*/ error_code mutation_log::replay(std::vector<std::string> &log_files,
                                            replay_callback callback,
                                            /*out*/ int64_t &end_offset)
@@ -126,7 +125,6 @@ namespace replication {
     return replay(logs, callback, end_offset);
 }
 
-// TODO(wutao1): move it to mutation_log_replay.cpp
 /*static*/ error_code mutation_log::replay(std::map<int, log_file_ptr> &logs,
                                            replay_callback callback,
                                            /*out*/ int64_t &end_offset)
