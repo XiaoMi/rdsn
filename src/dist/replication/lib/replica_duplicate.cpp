@@ -35,20 +35,9 @@ namespace replication {
 // of changing app_info as less as possible, we store it in .init_info
 // instead.
 
-void replica::update_init_info_duplicating(bool duplicating)
-{
-    if (duplicating) {
-        if (!_app->init_info().init_duplicating) {
-            _app->update_init_info_duplicating(true);
-        }
-    } else {
-        if (_app->init_info().init_duplicating) {
-            _app->update_init_info_duplicating(false);
-        }
-    }
-}
+void replica::update_init_info_duplicating(bool duplicating) { /*TBD*/}
 
-bool replica::is_duplicating() const { return _app->init_info().init_duplicating; }
+bool replica::is_duplicating() const { /*TBD*/ return false; }
 
 } // namespace replication
 } // namespace dsn
