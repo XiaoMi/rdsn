@@ -17,7 +17,7 @@ public:
     static void test_init()
     {
         aio_task t1(LPC_TASK_TEST, nullptr);
-        ASSERT_TRUE(t1._is_null);
+        ASSERT_TRUE(t1._is_callback_empty);
         ASSERT_EQ(t1._wait_event.load(), nullptr);
         ASSERT_EQ(t1.next, nullptr);
         ASSERT_EQ(t1._state, task_state::TASK_STATE_READY);
@@ -39,7 +39,7 @@ public:
         ASSERT_TRUE(t1->wait(10000));
         ASSERT_EQ(t1->_state, task_state::TASK_STATE_FINISHED);
         ASSERT_TRUE(t1->_wait_event.load() == nullptr);
-        ASSERT_TRUE(t1->_is_null);
+        ASSERT_TRUE(t1->_is_callback_empty);
     }
 
     static void test_signal_finished_task()
