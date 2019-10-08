@@ -484,7 +484,7 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     // app name must be set
     if (app_name.empty()) {
         resp.status_code = http_status_code::bad_request;
-        resp.body = "app name cann't be empty";
+        resp.body = "app name shouldn't be empty";
         return;
     }
 
