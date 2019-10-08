@@ -475,7 +475,7 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
 
     std::string app_name;
     for (const auto &p : req.query_args) {
-        if (0 == p.first.compare("name")) {
+        if ("name" == p.first) {
             app_name = p.second;
             break;
         }
@@ -484,6 +484,7 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     // app name must be set
     if (app_name.empty()) {
         resp.status_code = http_status_code::bad_request;
+        resp.body = "app name cann't be empty";
         return;
     }
 
