@@ -120,7 +120,7 @@ task::task(dsn::task_code code, int hash, service_node *node)
     _hash = hash;
     _delay_milliseconds = 0;
     _wait_for_cancel = false;
-    _is_callback_empty = false;
+    _is_null = false;
     next = nullptr;
 
     if (node != nullptr) {
@@ -223,7 +223,7 @@ void task::exec_internal()
         }
     }
 
-    if (!_spec->allow_inline && !_is_callback_empty) {
+    if (!_spec->allow_inline && !_is_null) {
         lock_checker::check_dangling_lock();
     }
 
@@ -255,7 +255,7 @@ static void check_wait_task(task *waitee)
         return;
 
     // callee is empty
-    if (waitee->is_callback_empty())
+    if (waitee->is_empty())
         return;
 
     // there are enough concurrency
@@ -413,7 +413,7 @@ void task::enqueue(task_worker_pool *pool)
     }
 
     // fast execution
-    if (_is_callback_empty) {
+    if (_is_null) {
         dassert(_node == task::get_current_node(), "");
         exec_internal();
         return;
@@ -526,7 +526,7 @@ rpc_response_task::rpc_response_task(message_ex *request,
            node),
       _cb(std::move(cb))
 {
-    _is_callback_empty = (_cb == nullptr);
+    _is_null = (_cb == nullptr);
 
     set_error_code(ERR_IO_PENDING);
 
@@ -594,7 +594,7 @@ aio_task::aio_task(dsn::task_code code, const aio_handler &cb, int hash, service
 aio_task::aio_task(dsn::task_code code, aio_handler &&cb, int hash, service_node *node)
     : task(code, hash, node), _cb(std::move(cb))
 {
-    _is_callback_empty = (_cb == nullptr);
+    _is_null = (_cb == nullptr);
 
     dassert(TASK_TYPE_AIO == spec().type,
             "%s is not of AIO type, please use DEFINE_TASK_CODE_AIO to define the task code",
