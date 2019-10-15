@@ -95,7 +95,7 @@ void replica::on_checkpoint_timer()
                 // is currently unavailable
                 ddebug_replica(
                     "gc_private {}: skip gc because confirmed duplication progress is unknown",
-                    enum_to_string(status));
+                    enum_to_string(status()));
                 return;
             }
         }
@@ -440,5 +440,5 @@ void replica::on_checkpoint_completed(error_code err)
         update_last_checkpoint_generate_time();
     }
 }
-}
-} // namespace
+} // namespace replication
+} // namespace dsn
