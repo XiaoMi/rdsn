@@ -91,6 +91,8 @@ void replica::on_checkpoint_timer()
             // protect the logs from being truncated
             // if this app is in duplication
             if (is_duplicating()) {
+                // unsure if the logs can be dropped, because min_confirmed_decree
+                // is currently unavailable
                 return;
             }
         }
