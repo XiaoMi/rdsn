@@ -24,41 +24,50 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
+#pragma once
 
-#include "empty_aio_provider.h"
+#include <dsn/dist/replication/mutation_duplicator.h>
+
+#include "dist/replication/lib/mutation.h"
 
 namespace dsn {
-namespace tools {
+namespace replication {
 
-empty_aio_provider::empty_aio_provider(disk_engine *disk, aio_provider *inner_provider)
-    : aio_provider(disk, inner_provider)
+class replica_duplicator;
+class prepare_list;
+
+// A sorted array of committed mutations that are ready for duplication.
+// Not thread-safe.
+class mutation_batch : replica_base
 {
-}
+public:
+    static constexpr int64_t PREPARE_LIST_NUM_ENTRIES{200};
 
-empty_aio_provider::~empty_aio_provider() {}
+    explicit mutation_batch(replica_duplicator *r);
 
-dsn_handle_t empty_aio_provider::open(const char *file_name, int flag, int pmode)
-{
-    return (dsn_handle_t)(size_t)(1);
-}
+    error_s add(mutation_ptr mu);
 
-error_code empty_aio_provider::close(dsn_handle_t fh) { return ERR_OK; }
+    mutation_tuple_set move_all_mutations();
 
-error_code empty_aio_provider::flush(dsn_handle_t fh) { return ERR_OK; }
+    decree last_decree() const;
 
-void empty_aio_provider::aio(aio_task *aio)
-{
-    complete_io(aio, ERR_OK, aio->aio()->buffer_size, 0);
-}
+    // mutations with decree < d will be ignored.
+    void set_start_decree(decree d);
 
-disk_aio *empty_aio_provider::prepare_aio_context(aio_task *tsk) { return new disk_aio(); }
-}
-}
+    size_t size() const { return _loaded_mutations.size(); }
+
+private:
+    friend class replica_duplicator_test;
+
+    std::unique_ptr<prepare_list> _mutation_buffer;
+    mutation_tuple_set _loaded_mutations;
+    decree _start_decree{invalid_decree};
+};
+
+using mutation_batch_u_ptr = std::unique_ptr<mutation_batch>;
+
+/// Extract mutations into mutation_tuple_set if they are not WRITE_EMPTY.
+extern void add_mutation_if_valid(mutation_ptr &, mutation_tuple_set &, decree start_decree);
+
+} // namespace replication
+} // namespace dsn

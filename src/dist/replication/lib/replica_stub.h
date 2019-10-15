@@ -62,6 +62,7 @@ typedef std::function<void(
 class replica_stub;
 typedef dsn::ref_ptr<replica_stub> replica_stub_ptr;
 
+class duplication_sync_timer;
 class replica_stub : public serverlet<replica_stub>, public ref_counter
 {
 public:
@@ -136,8 +137,14 @@ public:
     replica_ptr get_replica(gpid id);
     replication_options &options() { return _options; }
     bool is_connected() const { return NS_Connected == _state; }
+    virtual rpc_address get_meta_server_address() const { return _failure_detector->get_servers(); }
+    rpc_address primary_address() const { return _primary_address; }
 
     std::string get_replica_dir(const char *app_type, gpid id, bool create_new = true);
+
+    // during partition split, we should gurantee child replica and parent replica share the
+    // same data dir
+    std::string get_child_dir(const char *app_type, gpid child_pid, const std::string &parent_dir);
 
     //
     // helper methods
@@ -151,6 +158,40 @@ public:
     std::string exec_command_on_replica(const std::vector<std::string> &args,
                                         bool allow_empty_args,
                                         std::function<std::string(const replica_ptr &rep)> func);
+
+    //
+    // partition split
+    //
+
+    // called by parent partition, executed by child partition
+    void create_child_replica(dsn::rpc_address primary_address,
+                              app_info app,
+                              ballot init_ballot,
+                              gpid child_gpid,
+                              gpid parent_gpid,
+                              const std::string &parent_dir);
+
+    // create a new replica instance if not found
+    // return nullptr when failed to create new replica
+    replica_ptr
+    create_child_replica_if_not_found(gpid child_pid, app_info *app, const std::string &parent_dir);
+
+    typedef std::function<void(::dsn::replication::replica *rep)> local_execution;
+
+    // This function is used for partition split, caller(replica)
+    // - case1. parent want child execute <handler>, child will execute <handler> if child is
+    // valid(<pid>.app_id>0) and existed, otherwise parent will execute <error_handler>
+    // - case2. child want parent execute <handler>, parent will execute <handler> if parent
+    // exist, otherwise child will execute <error_handler>
+    void split_replica_exec(gpid pid,
+                            local_execution handler,
+                            local_execution error_handler,
+                            gpid error_handler_gpid);
+
+    // This function is used for partition split error handler, caller(replica)
+    // if partition split meet error, parent/child may want child/parent execute error handler
+    // if replica <pid> valid and exist, execute <handler>, otherwise return
+    void split_replica_error_handler(gpid pid, local_execution handler);
 
 private:
     enum replica_node_state
@@ -211,7 +252,15 @@ private:
     friend class ::dsn::replication::replica;
     friend class ::dsn::replication::potential_secondary_context;
     friend class ::dsn::replication::cold_backup_context;
+
+    friend class load_from_private_log;
+    friend class ship_mutation;
+    friend class replica_duplicator;
+
     friend class mock_replica_stub;
+    friend class duplication_sync_timer;
+    friend class duplication_sync_timer_test;
+    friend class replica_duplicator_manager_test;
 
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>
@@ -244,6 +293,8 @@ private:
     ::dsn::task_ptr _gc_timer_task;
     ::dsn::task_ptr _disk_stat_timer_task;
     ::dsn::task_ptr _mem_release_timer_task;
+
+    std::unique_ptr<duplication_sync_timer> _duplication_sync_timer;
 
     // command_handlers
     dsn_handle_t _kill_partition_command;
@@ -282,7 +333,7 @@ private:
     perf_counter_wrapper _counter_replicas_count;
     perf_counter_wrapper _counter_replicas_opening_count;
     perf_counter_wrapper _counter_replicas_closing_count;
-    perf_counter_wrapper _counter_replicas_total_commit_throught;
+    perf_counter_wrapper _counter_replicas_commit_qps;
 
     perf_counter_wrapper _counter_replicas_learning_count;
     perf_counter_wrapper _counter_replicas_learning_max_duration_time_ms;

@@ -50,7 +50,7 @@ function(dsn_install_executable)
     endif()
 endfunction()
 
-function(ms_add_project PROJ_TYPE PROJ_NAME PROJ_SRC PROJ_INC_PATH PROJ_LIBS PROJ_LIB_PATH PROJ_BINPLACES)
+function(ms_add_project PROJ_TYPE PROJ_NAME PROJ_SRC PROJ_LIBS PROJ_BINPLACES)
     if(NOT((PROJ_TYPE STREQUAL "STATIC") OR (PROJ_TYPE STREQUAL "SHARED") OR
            (PROJ_TYPE STREQUAL "EXECUTABLE") OR (PROJ_TYPE STREQUAL "OBJECT")))
         message(FATAL_ERROR "Invalid project type.")
@@ -58,13 +58,6 @@ function(ms_add_project PROJ_TYPE PROJ_NAME PROJ_SRC PROJ_INC_PATH PROJ_LIBS PRO
 
     if(PROJ_SRC STREQUAL "")
         message(FATAL_ERROR "No source files.")
-    endif()
-
-    if(NOT (PROJ_INC_PATH STREQUAL ""))
-        include_directories(${PROJ_INC_PATH})
-    endif()
-    if(NOT (PROJ_LIB_PATH STREQUAL ""))
-        link_directories(${PROJ_LIB_PATH})
     endif()
 
     if((PROJ_TYPE STREQUAL "STATIC") OR (PROJ_TYPE STREQUAL "OBJECT"))
@@ -94,12 +87,10 @@ endfunction(ms_add_project)
 #     "GLOB_RECURSE" for recursive search
 #     "GLOB" for non-recursive search
 # - MY_PROJ_SRC
-# - MY_PROJ_INC_PATH TODO(wutao1): remove this
-# - MY_PROJ_LIB_PATH TODO(wutao1): remove this
 # - MY_PROJ_LIBS
 # - MY_BINPLACES
 #     Extra files that will be installed
-# - MY_BOOST_PACKAGES
+# - MY_BOOST_LIBS
 function(dsn_add_project)
     if((NOT DEFINED MY_PROJ_TYPE) OR (MY_PROJ_TYPE STREQUAL ""))
         message(FATAL_ERROR "MY_PROJ_TYPE is empty.")
@@ -123,37 +114,21 @@ function(dsn_add_project)
          )
     set(MY_PROJ_SRC ${TEMP_SRC} ${MY_PROJ_SRC})
 
-    if(NOT DEFINED MY_PROJ_INC_PATH)
-        set(MY_PROJ_INC_PATH "")
-    endif()
     if(NOT DEFINED MY_PROJ_LIBS)
         set(MY_PROJ_LIBS "")
-    endif()
-    if(NOT DEFINED MY_PROJ_LIB_PATH)
-        set(MY_PROJ_LIB_PATH "")
     endif()
     if(NOT DEFINED MY_BINPLACES)
         set(MY_BINPLACES "")
     endif()
-    if(NOT DEFINED MY_BOOST_PACKAGES)
-        set(MY_BOOST_PACKAGES "")
-    endif()
 
-    set(MY_BOOST_LIBS "")
-    if(NOT (MY_BOOST_PACKAGES STREQUAL ""))
-        ms_setup_boost(TRUE "${MY_BOOST_PACKAGES}" MY_BOOST_LIBS)
+    if(NOT DEFINED MY_BOOST_LIBS)
+        set(MY_BOOST_LIBS "")
     endif()
 
     if((MY_PROJ_TYPE STREQUAL "SHARED") OR (MY_PROJ_TYPE STREQUAL "EXECUTABLE"))
-        if(DSN_BUILD_RUNTIME AND(DEFINED DSN_IN_CORE) AND DSN_IN_CORE)
-            set(TEMP_LIBS "")
-        else()
-            set(TEMP_LIBS dsn_runtime)
-        endif()
-        set(MY_PROJ_LIBS ${MY_PROJ_LIBS} ${TEMP_LIBS} ${MY_BOOST_LIBS} ${DSN_SYSTEM_LIBS})
+        set(MY_PROJ_LIBS ${MY_PROJ_LIBS} ${DEFAULT_THIRDPARTY_LIBS} ${MY_BOOST_LIBS} ${DSN_SYSTEM_LIBS})
     endif()
-
-    ms_add_project("${MY_PROJ_TYPE}" "${MY_PROJ_NAME}" "${MY_PROJ_SRC}" "${MY_PROJ_INC_PATH}" "${MY_PROJ_LIBS}" "${MY_PROJ_LIB_PATH}" "${MY_BINPLACES}")
+    ms_add_project("${MY_PROJ_TYPE}" "${MY_PROJ_NAME}" "${MY_PROJ_SRC}" "${MY_PROJ_LIBS}" "${MY_BINPLACES}")
 endfunction(dsn_add_project)
 
 function(dsn_add_static_library)
@@ -250,25 +225,6 @@ function(dsn_setup_compiler_flags)
         FORCE)
 endfunction(dsn_setup_compiler_flags)
 
-macro(ms_setup_boost STATIC_LINK PACKAGES BOOST_LIBS)
-    set(Boost_USE_MULTITHREADED ON)
-    set(Boost_USE_STATIC_LIBS OFF)
-    set(Boost_USE_STATIC_RUNTIME OFF)
-
-    find_package(Boost COMPONENTS ${PACKAGES} REQUIRED)
-
-    if(NOT Boost_FOUND)
-        message(FATAL_ERROR "Cannot find library boost")
-    endif()
-
-    set(TEMP_LIBS "")
-    foreach(PACKAGE ${PACKAGES})
-        string(TOUPPER ${PACKAGE} PACKAGE)
-        set(TEMP_LIBS ${TEMP_LIBS} ${Boost_${PACKAGE}_LIBRARY})
-    endforeach()
-    set(${BOOST_LIBS} ${TEMP_LIBS})
-endmacro(ms_setup_boost)
-
 # find necessary system libs
 function(dsn_setup_system_libs)
     find_package(Threads REQUIRED)
@@ -300,24 +256,34 @@ function(dsn_setup_system_libs)
 
     set(DSN_SYSTEM_LIBS
         ${DSN_SYSTEM_LIBS}
-        thrift
         ${CMAKE_THREAD_LIBS_INIT} # the thread library found by FindThreads
         CACHE STRING "rDSN system libs" FORCE
     )
 endfunction(dsn_setup_system_libs)
 
-function(dsn_setup_include_path)
-    if(DEFINED BOOST_ROOT)
-        include_directories(${BOOST_ROOT}/include)
-    endif()
-    include_directories(${BOOST_INCLUDEDIR})
+function(dsn_setup_include_path)#TODO(huangwei5): remove this
     include_directories(${DSN_THIRDPARTY_ROOT}/include)
 endfunction(dsn_setup_include_path)
 
-function(dsn_setup_link_path)
-    link_directories(${BOOST_LIBRARYDIR})
+function(dsn_setup_thirdparty_libs)
+    set(Boost_USE_MULTITHREADED ON)
+    set(Boost_USE_STATIC_LIBS OFF)
+    set(Boost_USE_STATIC_RUNTIME OFF)
+
+    set(CMAKE_PREFIX_PATH ${DSN_THIRDPARTY_ROOT};${CMAKE_PREFIX_PATH})
+    find_package(Boost COMPONENTS system filesystem regex REQUIRED)
+    include_directories(${Boost_INCLUDE_DIRS})
+
+    find_library(THRIFT_LIB NAMES libthrift.a PATHS ${DSN_THIRDPARTY_ROOT}/lib NO_DEFAULT_PATH)
+    if(NOT THRIFT_LIB)
+        message(FATAL_ERROR "thrift library not found in ${DSN_THIRDPARTY_ROOT}/lib")
+    endif()
+    find_package(fmt REQUIRED)
+    set(DEFAULT_THIRDPARTY_LIBS ${THRIFT_LIB} fmt::fmt CACHE STRING "default thirdparty libs" FORCE)
+
     link_directories(${DSN_THIRDPARTY_ROOT}/lib)
-endfunction(dsn_setup_link_path)
+    link_directories(${DSN_THIRDPARTY_ROOT}/lib64)
+endfunction(dsn_setup_thirdparty_libs)
 
 function(dsn_common_setup)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(notdir $(abspath $<))\"'")
@@ -345,5 +311,5 @@ function(dsn_common_setup)
     dsn_setup_system_libs()
     dsn_setup_compiler_flags()
     dsn_setup_include_path()
-    dsn_setup_link_path()
+    dsn_setup_thirdparty_libs()
 endfunction(dsn_common_setup)

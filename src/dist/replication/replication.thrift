@@ -35,7 +35,8 @@ enum partition_status
     PS_ERROR,
     PS_PRIMARY,
     PS_SECONDARY,
-    PS_POTENTIAL_SECONDARY
+    PS_POTENTIAL_SECONDARY,
+    PS_PARTITION_SPLIT
 }
 
 struct replica_configuration
@@ -164,6 +165,9 @@ struct group_check_request
     // and secondaries, so that secondaries can be allowed to GC
     // their WALs after this decree.
     5:optional i64          confirmed_decree;
+
+    // Used to deliver child gpid during partition split
+    6:optional dsn.gpid     child_gpid;
 }
 
 struct group_check_response
@@ -755,6 +759,25 @@ struct ddd_diagnose_response
 {
     1:dsn.error_code           err;
     2:list<ddd_partition_info> partitions;
+}
+
+/////////////////// split-related structs ////////////////////
+
+// client to meta server to start partition split
+struct app_partition_split_request
+{
+    1:string                 app_name;
+    2:i32                    new_partition_count;
+}
+
+struct app_partition_split_response
+{
+    1:dsn.error_code         err;
+    2:i32                    app_id;
+    // app current partition count
+    // if split succeed, partition_count = new partition_count
+    // if split failed, partition_count = original partition_count
+    3:i32                    partition_count;
 }
 
 /*

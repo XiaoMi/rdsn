@@ -28,6 +28,7 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
+#include "duplication/replica_duplicator_manager.h"
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -53,7 +54,8 @@ replica::replica(
       _chkpt_total_size(0),
       _cur_download_size(0),
       _restore_progress(0),
-      _restore_status(ERR_OK)
+      _restore_status(ERR_OK),
+      _duplication_mgr(new replica_duplicator_manager(this))
 {
     dassert(_app_info.app_type != "", "");
     dassert(stub != nullptr, "");
@@ -82,12 +84,6 @@ replica::replica(
     }
 }
 
-// void replica::json_state(std::stringstream& out) const
-//{
-//    JSON_DICT_ENTRIES(out, *this, name(), _config, _app->last_committed_decree(),
-//    _app->last_durable_decree());
-//}
-
 void replica::update_last_checkpoint_generate_time()
 {
     _last_checkpoint_generate_time_ms = dsn_now_ms();
@@ -97,9 +93,13 @@ void replica::update_last_checkpoint_generate_time()
         _last_checkpoint_generate_time_ms + rand::next_u64(max_interval_ms / 2, max_interval_ms);
 }
 
-void replica::update_commit_statistics(int count)
+//            //
+// Statistics //
+//            //
+
+void replica::update_commit_qps(int count)
 {
-    _stub->_counter_replicas_total_commit_throught->add((uint64_t)count);
+    _stub->_counter_replicas_commit_qps->add((uint64_t)count);
 }
 
 void replica::init_state()
@@ -136,7 +136,7 @@ replica::~replica(void)
     dinfo("%s: replica destroyed", name());
 }
 
-void replica::on_client_read(task_code code, dsn::message_ex *request)
+void replica::on_client_read(dsn::message_ex *request)
 {
     if (status() == partition_status::PS_INACTIVE ||
         status() == partition_status::PS_POTENTIAL_SECONDARY) {
@@ -177,46 +177,6 @@ void replica::response_client_write(dsn::message_ex *request, error_code error)
     _stub->response_client(get_gpid(), false, request, status(), error);
 }
 
-// error_code replica::check_and_fix_private_log_completeness()
-//{
-//    error_code err = ERR_OK;
-//
-//    auto mind = _private_log->max_gced_decree(get_gpid());
-//    if (_prepare_list->max_decree())
-//
-//    if (!(mind <= last_durable_decree()))
-//    {
-//        err = ERR_INCOMPLETE_DATA;
-//        derror("%s: private log is incomplete (gced/durable): %" PRId64 " vs %" PRId64,
-//            name(),
-//            mind,
-//            last_durable_decree()
-//            );
-//    }
-//    else
-//    {
-//        mind = _private_log->max_decree(get_gpid());
-//        if (!(mind >= _app->last_committed_decree()))
-//        {
-//            err = ERR_INCOMPLETE_DATA;
-//            derror("%s: private log is incomplete (max/commit): %" PRId64 " vs %" PRId64,
-//                name(),
-//                mind,
-//                _app->last_committed_decree()
-//                );
-//        }
-//    }
-//
-//    if (ERR_INCOMPLETE_DATA == err)
-//    {
-//        _private_log->close(true);
-//        _private_log->open(nullptr);
-//        _private_log->set_private(get_gpid(), _app->last_durable_decree());
-//    }
-//
-//    return err;
-//}
-
 void replica::check_state_completeness()
 {
     /* prepare commit durable */
@@ -228,20 +188,6 @@ void replica::check_state_completeness()
             "%" PRId64 " VS %" PRId64 "",
             last_committed_decree(),
             last_durable_decree());
-
-    /*
-    auto mind = _stub->_log->max_gced_decree(get_gpid(),
-    _app->init_info().init_offset_in_shared_log);
-    dassert(mind <= last_durable_decree(), "%" PRId64 " VS %" PRId64, mind, last_durable_decree());
-
-    if (_private_log != nullptr)
-    {
-        auto mind = _private_log->max_gced_decree(get_gpid(),
-    _app->init_info().init_offset_in_private_log);
-        dassert(mind <= last_durable_decree(), "%" PRId64 " VS %" PRId64, mind,
-    last_durable_decree());
-    }
-    */
 }
 
 void replica::execute_mutation(mutation_ptr &mu)
@@ -403,6 +349,7 @@ void replica::close()
         dassert(_secondary_states.is_cleaned(), "secondary context is not cleared");
         dassert(_potential_secondary_states.is_cleaned(),
                 "potential secondary context is not cleared");
+        dassert(_split_states.is_cleaned(), "partition split context is not cleared");
     }
 
     // for partition_status::PS_ERROR, context cleanup is done here as they may block
@@ -437,5 +384,5 @@ std::string replica::query_compact_state() const
     dassert_replica(_app != nullptr, "");
     return _app->query_compact_state();
 }
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

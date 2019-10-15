@@ -24,35 +24,47 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
-#pragma once
-
-#include <dsn/tool_api.h>
+#include "meta_test_base.h"
 
 namespace dsn {
-namespace tools {
-
-class empty_aio_provider : public aio_provider
+namespace replication {
+class meta_app_envs_test : public meta_test_base
 {
 public:
-    empty_aio_provider(disk_engine *disk, aio_provider *inner_provider);
-    ~empty_aio_provider();
+    meta_app_envs_test() {}
 
-    virtual dsn_handle_t open(const char *file_name, int flag, int pmode) override;
-    virtual error_code close(dsn_handle_t fh) override;
-    virtual error_code flush(dsn_handle_t fh) override;
-    virtual void aio(aio_task *aio) override;
-    virtual disk_aio *prepare_aio_context(aio_task *tsk) override;
+    void SetUp() override
+    {
+        meta_test_base::SetUp();
+        create_app(app_name);
+    }
 
-    virtual void start() override {}
+    const std::string app_name = "test_app_env";
+    const std::string env_slow_query_threshold = "replica.slow_query_threshold";
 };
+
+TEST_F(meta_app_envs_test, set_slow_query_threshold)
+{
+    auto app = find_app(app_name);
+
+    struct test_case
+    {
+        error_code err;
+        std::string env_value;
+        std::string expect_env_value;
+    } tests[] = {{ERR_OK, "30", "30"},
+                 {ERR_OK, "21", "21"},
+                 {ERR_OK, "20", "20"},
+                 {ERR_INVALID_PARAMETERS, "19", "20"},
+                 {ERR_INVALID_PARAMETERS, "10", "20"},
+                 {ERR_INVALID_PARAMETERS, "0", "20"}};
+
+    for (auto test : tests) {
+        error_code err = update_app_envs(app_name, {env_slow_query_threshold}, {test.env_value});
+
+        ASSERT_EQ(err, test.err);
+        ASSERT_EQ(app->envs.at(env_slow_query_threshold), test.expect_env_value);
+    }
 }
-}
+} // namespace replication
+} // namespace dsn

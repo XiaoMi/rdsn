@@ -37,6 +37,7 @@
 #include "replica_stub.h"
 #include "mutation_log.h"
 #include "mutation.h"
+#include "duplication/duplication_sync_timer.h"
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
@@ -45,9 +46,11 @@
 #include <dsn/dist/replication/replication_app_base.h>
 #include <vector>
 #include <deque>
+#include <dsn/dist/fmt_logging.h>
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
 #endif
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace replication {
@@ -96,12 +99,10 @@ void replica_stub::install_perf_counters()
                                                      "closing.replica(Count)",
                                                      COUNTER_TYPE_NUMBER,
                                                      "# in replica_stub._closing_replicas");
-    _counter_replicas_total_commit_throught.init_app_counter(
-        "eon.replica_stub",
-        "replicas.commit.qps",
-        COUNTER_TYPE_RATE,
-        "app commit throughput for all replicas");
-
+    _counter_replicas_commit_qps.init_app_counter("eon.replica_stub",
+                                                  "replicas.commit.qps",
+                                                  COUNTER_TYPE_RATE,
+                                                  "server-level commit throughput");
     _counter_replicas_learning_count.init_app_counter("eon.replica_stub",
                                                       "replicas.learning.count",
                                                       COUNTER_TYPE_NUMBER,
@@ -651,6 +652,11 @@ void replica_stub::initialize_start()
     }
 #endif
 
+    if (!_options.duplication_disabled) {
+        _duplication_sync_timer = dsn::make_unique<duplication_sync_timer>(this);
+        _duplication_sync_timer->start();
+    }
+
     // init liveness monitor
     dassert(NS_Disconnected == _state, "");
     if (_options.fd_disabled == false) {
@@ -739,7 +745,7 @@ void replica_stub::on_client_write(gpid id, dsn::message_ex *request)
     }
     replica_ptr rep = get_replica(id);
     if (rep != nullptr) {
-        rep->on_client_write(request->rpc_code(), request);
+        rep->on_client_write(request);
     } else {
         response_client(id, false, request, partition_status::PS_INVALID, ERR_OBJECT_NOT_FOUND);
     }
@@ -761,7 +767,7 @@ void replica_stub::on_client_read(gpid id, dsn::message_ex *request)
     }
     replica_ptr rep = get_replica(id);
     if (rep != nullptr) {
-        rep->on_client_read(request->rpc_code(), request);
+        rep->on_client_read(request);
     } else {
         response_client(id, true, request, partition_status::PS_INVALID, ERR_OBJECT_NOT_FOUND);
     }
@@ -1245,6 +1251,7 @@ void replica_stub::set_replica_state_subscriber_for_test(replica_state_subscribe
 
 // this_ is used to hold a ref to replica_stub so we don't need to cancel the task on
 // replica_stub::close
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
                                                const configuration_update_request &req)
 {
@@ -1266,6 +1273,7 @@ void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
     }
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica_stub::on_node_query_reply_scatter2(replica_stub_ptr this_, gpid id)
 {
     replica_ptr replica = get_replica(id);
@@ -2010,11 +2018,8 @@ void replica_stub::open_service()
         [this](const std::vector<std::string> &args) {
             return exec_command_on_replica(args, true, [](const replica_ptr &rep) {
                 std::map<std::string, std::string> kv_map;
-                if (rep->query_app_envs(kv_map)) {
-                    return dsn::utils::kv_map_to_string(kv_map, ',', '=');
-                } else {
-                    return std::string("call replica::query_app_envs() failed");
-                }
+                rep->query_app_envs(kv_map);
+                return dsn::utils::kv_map_to_string(kv_map, ',', '=');
             });
         });
 
@@ -2260,23 +2265,145 @@ void replica_stub::close()
 
 std::string replica_stub::get_replica_dir(const char *app_type, gpid id, bool create_new)
 {
-    char buffer[256];
-    sprintf(buffer, "%s.%s", id.to_string(), app_type);
-    std::string ret_dir;
-    for (auto &dir : _options.data_dirs) {
-        std::string cur_dir = utils::filesystem::path_combine(dir, buffer);
-        if (utils::filesystem::directory_exists(cur_dir)) {
-            if (!ret_dir.empty()) {
+    std::string gpid_str = fmt::format("{}.{}", id, app_type);
+    std::string replica_dir;
+    bool is_dir_exist = false;
+    for (const std::string &data_dir : _options.data_dirs) {
+        std::string dir = utils::filesystem::path_combine(data_dir, gpid_str);
+        if (utils::filesystem::directory_exists(dir)) {
+            if (is_dir_exist) {
                 dassert(
-                    false, "replica dir conflict: %s <--> %s", cur_dir.c_str(), ret_dir.c_str());
+                    false, "replica dir conflict: %s <--> %s", dir.c_str(), replica_dir.c_str());
             }
-            ret_dir = cur_dir;
+            replica_dir = dir;
+            is_dir_exist = true;
         }
     }
-    if (ret_dir.empty() && create_new) {
-        _fs_manager.allocate_dir(id, app_type, ret_dir);
+    if (replica_dir.empty() && create_new) {
+        _fs_manager.allocate_dir(id, app_type, replica_dir);
     }
-    return ret_dir;
+    return replica_dir;
 }
+
+std::string
+replica_stub::get_child_dir(const char *app_type, gpid child_pid, const std::string &parent_dir)
+{
+    std::string gpid_str = fmt::format("{}.{}", child_pid.to_string(), app_type);
+    std::string child_dir;
+    for (const std::string &data_dir : _options.data_dirs) {
+        std::string dir = utils::filesystem::path_combine(data_dir, gpid_str);
+        // <parent_dir> = <prefix>/<gpid>.<app_type>
+        // check if <parent_dir>'s <prefix> is equal to <data_dir>
+        if (parent_dir.substr(0, data_dir.size() + 1) == data_dir + "/") {
+            child_dir = dir;
+            _fs_manager.add_replica(child_pid, child_dir);
+            break;
+        }
+    }
+    dassert_f(!child_dir.empty(), "can not find parent_dir {} in data_dirs", parent_dir);
+    return child_dir;
+}
+
+//
+// partition split
+//
+void replica_stub::create_child_replica(rpc_address primary_address,
+                                        app_info app,
+                                        ballot init_ballot,
+                                        gpid child_gpid,
+                                        gpid parent_gpid,
+                                        const std::string &parent_dir)
+{
+    replica_ptr child_replica = create_child_replica_if_not_found(child_gpid, &app, parent_dir);
+    if (child_replica != nullptr) {
+        ddebug_f("create child replica ({}) succeed", child_gpid);
+        tasking::enqueue(LPC_PARTITION_SPLIT,
+                         &_tracker,
+                         std::bind(&replica::child_init_replica,
+                                   child_replica,
+                                   parent_gpid,
+                                   primary_address,
+                                   init_ballot),
+                         child_gpid.thread_hash());
+    } else {
+        dwarn_f("failed to create child replica ({}), ignore it and wait next run", child_gpid);
+        split_replica_error_handler(parent_gpid,
+                                    [](replica_ptr r) { r->_child_gpid.set_app_id(0); });
+    }
+}
+
+replica_ptr replica_stub::create_child_replica_if_not_found(gpid child_pid,
+                                                            app_info *app,
+                                                            const std::string &parent_dir)
+{
+    FAIL_POINT_INJECT_F("replica_stub_create_child_replica_if_not_found",
+                        [=](dsn::string_view) -> replica_ptr {
+                            replica *rep = new replica(this, child_pid, *app, "./", false);
+                            rep->_config.status = partition_status::PS_INACTIVE;
+                            _replicas.insert(replicas::value_type(child_pid, rep));
+                            ddebug_f("mock create_child_replica_if_not_found succeed");
+                            return rep;
+                        });
+
+    zauto_write_lock l(_replicas_lock);
+    auto it = _replicas.find(child_pid);
+    if (it != _replicas.end()) {
+        return it->second;
+    } else {
+        if (_opening_replicas.find(child_pid) != _opening_replicas.end()) {
+            dwarn_f("failed create child replica({}) because it is under open", child_pid);
+            return nullptr;
+        } else if (_closing_replicas.find(child_pid) != _closing_replicas.end()) {
+            dwarn_f("failed create child replica({}) because it is under close", child_pid);
+            return nullptr;
+        } else {
+            replica *rep = replica::newr(this, child_pid, *app, false, parent_dir);
+            if (rep != nullptr) {
+                auto pr = _replicas.insert(replicas::value_type(child_pid, rep));
+                dassert_f(pr.second, "child replica {} has been existed", rep->name());
+                _counter_replicas_count->increment();
+                _closed_replicas.erase(child_pid);
+            }
+            return rep;
+        }
+    }
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_stub::split_replica_exec(gpid pid,
+                                      local_execution handler,
+                                      local_execution error_handler,
+                                      gpid error_handler_gpid)
+{
+    // app_id = 0 means child replica is invalid
+    replica_ptr replica = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
+    replica_ptr error_handler_replica =
+        error_handler_gpid.get_app_id() == 0 ? nullptr : get_replica(error_handler_gpid);
+
+    if (replica && handler) {
+        handler(replica);
+    } else if (error_handler_replica && error_handler) {
+        ddebug_f("replica({}) is invalid, replica({}) will execute its handler)",
+                 pid,
+                 error_handler_gpid);
+        error_handler(error_handler_replica);
+    } else {
+        dwarn_f(
+            "both replica({}) and error handler replica({}) are invalid", pid, error_handler_gpid);
+    }
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_stub::split_replica_error_handler(gpid pid, local_execution handler)
+{
+    // app_id = 0 means child replica is invalid
+    replica_ptr replica = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
+    if (replica && handler) {
+        handler(replica);
+    } else {
+        dwarn_f("replica({}) is invalid", pid);
+    }
+}
+
 } // namespace replication
 } // namespace dsn
