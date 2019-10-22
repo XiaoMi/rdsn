@@ -951,7 +951,10 @@ void server_state::query_configuration_by_index(
     if (app->status != app_status::AS_AVAILABLE) {
         response.err =
             (app->status == app_status::AS_CREATING ? ERR_BUSY_CREATING : ERR_BUSY_DROPPING);
-        derror("invalid status(%s) in exist app(%s), app_id(%d)", enum_to_string(response.err), (app->app_name).c_str, app->app_id);
+        derror("invalid status(%s) in exist app(%s), app_id(%d)",
+               enum_to_string(response.err),
+               (app->app_name).c_str,
+               app->app_id);
         return;
     }
 
