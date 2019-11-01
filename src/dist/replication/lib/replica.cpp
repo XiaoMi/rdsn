@@ -77,6 +77,15 @@ replica::replica(
     _counter_recent_write_throttling_reject_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
+    // init table level latency perf counters
+    for (auto code : storage_rpc_req_codes) {
+        counter_str = fmt::format("table.level.{}.latency(us)@{}", code, app.app_name);
+        _counters_table_level_latency[code].init_app_counter("eon.replica",
+                                                             counter_str.c_str(),
+                                                             COUNTER_TYPE_NUMBER_PERCENTILES,
+                                                             counter_str.c_str());
+    }
+
     if (need_restore) {
         // add an extra env for restore
         _extra_envs.insert(
@@ -163,8 +172,14 @@ void replica::on_client_read(dsn::message_ex *request)
         }
     }
 
+    uint64_t start_time_ns = dsn_now_ns();
     dassert(_app != nullptr, "");
     _app->on_request(request);
+
+    auto iter = _counters_table_level_latency.find(request->rpc_code());
+    if (iter != _counters_table_level_latency.end()) {
+        iter->second->set((dsn_now_ns() - start_time_ns) * 1e-3);
+    }
 }
 
 void replica::response_client_read(dsn::message_ex *request, error_code error)
@@ -282,6 +297,15 @@ void replica::execute_mutation(mutation_ptr &mu)
 
         if (next) {
             init_prepare(next, false);
+        }
+    }
+
+    // update table level latency perf-counters
+    uint64_t now_ns = dsn_now_ns();
+    for (auto update : mu->data.updates) {
+        auto iter = _counters_table_level_latency.find(update.code);
+        if (iter != _counters_table_level_latency.end()) {
+            iter->second->set((now_ns - update.start_time_ns) * 1e-3);
         }
     }
 }

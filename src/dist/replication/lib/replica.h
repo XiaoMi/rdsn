@@ -470,6 +470,7 @@ private:
     perf_counter_wrapper _counter_private_log_size;
     perf_counter_wrapper _counter_recent_write_throttling_delay_count;
     perf_counter_wrapper _counter_recent_write_throttling_reject_count;
+    std::map<dsn::task_code, perf_counter_wrapper> _counters_table_level_latency;
 
     dsn::task_tracker _tracker;
     // the thread access checker
