@@ -300,12 +300,14 @@ void replica::execute_mutation(mutation_ptr &mu)
         }
     }
 
-    // update table level latency perf-counters
-    uint64_t now_ns = dsn_now_ns();
-    for (auto update : mu->data.updates) {
-        auto iter = _counters_table_level_latency.find(update.code);
-        if (iter != _counters_table_level_latency.end()) {
-            iter->second->set((now_ns - update.start_time_ns) * 1e-3);
+    // update table level latency perf-counters for primary partition
+    if (partition_status::PS_PRIMARY == status()) {
+        uint64_t now_ns = dsn_now_ns();
+        for (auto update : mu->data.updates) {
+            auto iter = _counters_table_level_latency.find(update.code);
+            if (iter != _counters_table_level_latency.end()) {
+                iter->second->set((now_ns - update.start_time_ns) * 1e-3);
+            }
         }
     }
 }
