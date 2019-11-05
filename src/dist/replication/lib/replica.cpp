@@ -78,13 +78,7 @@ replica::replica(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
     // init table level latency perf counters
-    for (auto code : storage_rpc_req_codes) {
-        counter_str = fmt::format("table.level.{}.latency(ns)@{}", code, app.app_name);
-        _counters_table_level_latency[code].init_app_counter("eon.replica",
-                                                             counter_str.c_str(),
-                                                             COUNTER_TYPE_NUMBER_PERCENTILES,
-                                                             counter_str.c_str());
-    }
+    init_table_level_latency_counters();
 
     if (need_restore) {
         // add an extra env for restore
@@ -176,9 +170,10 @@ void replica::on_client_read(dsn::message_ex *request)
     dassert(_app != nullptr, "");
     _app->on_request(request);
 
-    auto iter = _counters_table_level_latency.find(request->rpc_code());
-    if (iter != _counters_table_level_latency.end()) {
-        iter->second->set(dsn_now_ns() - start_time_ns);
+    // If the corresponding perf counter exist, count the duration of this operation.
+    // rpc code of request is already checked in message_ex::rpc_code, so it will always be legal
+    if (_counters_table_level_latency[request->rpc_code()] != nullptr) {
+        _counters_table_level_latency[request->rpc_code()]->set(dsn_now_ns() - start_time_ns);
     }
 }
 
@@ -304,9 +299,10 @@ void replica::execute_mutation(mutation_ptr &mu)
     if (partition_status::PS_PRIMARY == status()) {
         uint64_t now_ns = dsn_now_ns();
         for (auto update : mu->data.updates) {
-            auto iter = _counters_table_level_latency.find(update.code);
-            if (iter != _counters_table_level_latency.end()) {
-                iter->second->set(now_ns - update.start_time_ns);
+            // If the corresponding perf counter exist, count the duration of this operation.
+            // code in update will always be legal
+            if (_counters_table_level_latency[update.code] != nullptr) {
+                _counters_table_level_latency[update.code]->set(now_ns - update.start_time_ns);
             }
         }
     }
@@ -409,6 +405,28 @@ std::string replica::query_compact_state() const
 {
     dassert_replica(_app != nullptr, "");
     return _app->query_compact_state();
+}
+
+void replica::init_table_level_latency_counters()
+{
+    int max_task_code = task_code::max();
+    _counters_table_level_latency.resize(max_task_code + 1);
+
+    for (int code = 0; code <= max_task_code; code++) {
+        _counters_table_level_latency[code] = nullptr;
+        if (storage_rpc_req_codes.find(code) != storage_rpc_req_codes.end()) {
+            std::string counter_str =
+                fmt::format("table.level.{}.latency(ns)@{}", task_code(code), _app_info.app_name);
+            _counters_table_level_latency[code] =
+                dsn::perf_counters::instance()
+                    .get_app_counter("eon.replica",
+                                     counter_str.c_str(),
+                                     COUNTER_TYPE_NUMBER_PERCENTILES,
+                                     counter_str.c_str(),
+                                     true)
+                    .get();
+        }
+    }
 }
 } // namespace replication
 } // namespace dsn

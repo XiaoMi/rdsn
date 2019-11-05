@@ -372,6 +372,8 @@ private:
     // child handle error while async learn parent states
     void child_handle_async_learn_error();
 
+    void init_table_level_latency_counters();
+
 private:
     friend class ::dsn::replication::replication_checker;
     friend class ::dsn::replication::test::test_checker;
@@ -470,7 +472,7 @@ private:
     perf_counter_wrapper _counter_private_log_size;
     perf_counter_wrapper _counter_recent_write_throttling_delay_count;
     perf_counter_wrapper _counter_recent_write_throttling_reject_count;
-    std::map<dsn::task_code, perf_counter_wrapper> _counters_table_level_latency;
+    std::vector<perf_counter *> _counters_table_level_latency;
 
     dsn::task_tracker _tracker;
     // the thread access checker
