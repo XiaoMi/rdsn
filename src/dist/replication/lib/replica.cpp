@@ -79,7 +79,7 @@ replica::replica(
 
     // init table level latency perf counters
     for (auto code : storage_rpc_req_codes) {
-        counter_str = fmt::format("table.level.{}.latency(us)@{}", code, app.app_name);
+        counter_str = fmt::format("table.level.{}.latency(ns)@{}", code, app.app_name);
         _counters_table_level_latency[code].init_app_counter("eon.replica",
                                                              counter_str.c_str(),
                                                              COUNTER_TYPE_NUMBER_PERCENTILES,
@@ -178,7 +178,7 @@ void replica::on_client_read(dsn::message_ex *request)
 
     auto iter = _counters_table_level_latency.find(request->rpc_code());
     if (iter != _counters_table_level_latency.end()) {
-        iter->second->set((dsn_now_ns() - start_time_ns) * 1e-3);
+        iter->second->set(dsn_now_ns() - start_time_ns);
     }
 }
 
@@ -306,7 +306,7 @@ void replica::execute_mutation(mutation_ptr &mu)
         for (auto update : mu->data.updates) {
             auto iter = _counters_table_level_latency.find(update.code);
             if (iter != _counters_table_level_latency.end()) {
-                iter->second->set((now_ns - update.start_time_ns) * 1e-3);
+                iter->second->set(now_ns - update.start_time_ns);
             }
         }
     }

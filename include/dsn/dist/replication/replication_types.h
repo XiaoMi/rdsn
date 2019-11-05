@@ -435,7 +435,7 @@ public:
     ::dsn::task_code code;
     int32_t serialization_type;
     ::dsn::blob data;
-    // start_time_ns doesn't need to serialization, because we only use it in local node
+    // start_time_ns doesn't need to serialization, because we only use it on local node
     uint64_t start_time_ns;
 
     _mutation_update__isset __isset;
