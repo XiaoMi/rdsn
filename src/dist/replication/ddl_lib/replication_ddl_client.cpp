@@ -72,7 +72,7 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string* ip_addre
         } else {
             dwarn("return error(%s) when try to resolve %s", gai_strerror(err), ip_str);
         }
-		*ip_address = std::string("UNSOLVEABLE");
+		*ip_address = std::string(ip_str);
         return false;
     } else {
 		*ip_address= std::string(hostname);
@@ -95,14 +95,13 @@ bool replication_ddl_client::hostname_from_ip_port(const char *ip_port,std::stri
 {
     dsn::rpc_address addr;
     if (!addr.from_string_ipv4(ip_port)) {
-        dwarn("invalid ip_port(%s)", ip_port);
-        *ip_address = *ip_port;
+        dwarn("invalid ip_port(%s)", *ip_port);
+        *ip_address = ip_port;
         return false;
     }
     if (!hostname(addr,ip_address)){
-        *ip_address = *ip_port;
 		return false;
-    }
+    }    
 	return true;
 }
 
@@ -111,10 +110,10 @@ bool replication_ddl_client::hostname(const rpc_address &address,std::string *ip
     if (address.type() != HOST_TYPE_IPV4) {
         return false;
     }
-    if (hostname_from_ip(htonl(address.ip()),ip_address)){ 
-    	*ip_address += std::to_string(address.port());
+    if (hostname_from_ip(htonl(address.ip()),ip_address)){
+       *ip_address += std::to_string(address.port());
     	return true;
-    }
+    }   
     return false;
 }
 
