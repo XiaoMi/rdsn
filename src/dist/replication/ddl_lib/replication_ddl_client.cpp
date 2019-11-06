@@ -46,7 +46,7 @@ namespace replication {
 
 using tp_output_format = ::dsn::utils::table_printer::output_format;
 
-std::string replication_ddl_client::hostname_from_ip(uint32_t ip)
+bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string* ip_address)
 {
     struct sockaddr_in addr_in;
     addr_in.sin_family = AF_INET;
@@ -72,57 +72,97 @@ std::string replication_ddl_client::hostname_from_ip(uint32_t ip)
         } else {
             dwarn("return error(%s) when try to resolve %s", gai_strerror(err), ip_str);
         }
-        return std::string("UNRESOLVABLE");
+		*ip_address = std::string(ip_str);
+        return false;
     } else {
-        return std::string(hostname);
+		*ip_address= std::string(hostname);
+        return true;
     }
 }
 
-std::string replication_ddl_client::hostname_from_ip(const char *ip)
+bool replication_ddl_client::hostname_from_ip(const char *ip,std::string *ip_address)
 {
     uint32_t ip_addr;
     inet_pton(AF_INET, ip, &ip_addr);
-    return hostname_from_ip(ip_addr);
+    if (!hostname_from_ip(ip_addr,ip_address)){
+    	*ip_address = *ip;
+	    return false;	
+    }
+	return true;
 }
 
-std::string replication_ddl_client::hostname_from_ip_port(const char *ip_port)
+bool replication_ddl_client::hostname_from_ip_port(const char *ip_port,std::string *ip_address)
 {
     dsn::rpc_address addr;
     if (!addr.from_string_ipv4(ip_port)) {
-        dwarn("invalid ip_port(%s)", ip_port);
-        return std::string("UNRESOLVABLE");
+        dwarn("invalid ip_port(%s)", *ip_port);
+        *ip_address = ip_port;
+        return false;
     }
-    return hostname(addr);
+    if (!hostname(addr,ip_address)){
+		return false;
+    }    
+	return true;
 }
 
-std::string replication_ddl_client::hostname(const rpc_address &address)
+bool replication_ddl_client::hostname(const rpc_address &address,std::string *ip_address)
 {
     if (address.type() != HOST_TYPE_IPV4) {
-        return std::string("invalid");
+        return false;
     }
-    return hostname_from_ip(htonl(address.ip())) + ":" + std::to_string(address.port());
+    if (hostname_from_ip(htonl(address.ip()),ip_address)){
+       *ip_address += std::to_string(address.port());
+    	return true;
+    }   
+    return false;
 }
 
-std::string replication_ddl_client::list_hostname_from_ip(const char *ip_list)
+bool replication_ddl_client::list_hostname_from_ip(const char *ip_list,std::string *ip_address_list)
 {
     std::vector<std::string> splitted_ip;
     dsn::utils::split_args(ip_list, splitted_ip, ',');
 
     if (splitted_ip.empty()) {
         dwarn("invalid ip_list(%s)", ip_list);
-        return std::string("UNRESOLVABLE");
-    }
+        *ip_address_list = *ip_list;
+		return false;
+	}
 
+    std::string temp;
     std::stringstream result;
-    result << hostname_from_ip(splitted_ip[0].c_str());
-    for (int i = 1; i < splitted_ip.size(); ++i) {
-        result << "," << hostname_from_ip(splitted_ip[i].c_str());
+    bool ok;
+    for (int i = 0; i < splitted_ip.size(); ++i) {
+		ok = hostname_from_ip(splitted_ip[i].c_str(), &temp);
+		result << (i ? "," : "");
+		result << ok ? temp : splitted_ip[i].c_str();
     }
-    return result.str();
+	*ip_address_list = result.str();
+    return true;
 }
 
-std::string replication_ddl_client::list_hostname_from_ip_port(const char *ip_port_list)
+bool replication_ddl_client::list_hostname_from_ip_port(const char *ip_port_list,std::string *ip_address_list)
 {
+    std::vector<std::string> splitted_ip_port;
+    dsn::utils::split_args(ip_port_list, splitted_ip_port, ',');
+
+    if (splitted_ip_port.empty()) {
+        dwarn("invalid ip_list(%s)", ip_port_list);
+        *ip_address_list = *ip_port_list;
+		return false;
+	}	
+
+    std::string temp;
+    std::stringstream result;
+    bool ok;
+    for (int i = 0; i < splitted_ip_port.size(); ++i) {
+		ok = hostname_from_ip(splitted_ip_port[i].c_str(), &temp);
+		result << (i? "," : "");
+		result << ok ? temp : splitted_ip_port[i].c_str();
+    }	
+	*ip_address_list = result.str();
+    return true;
+}
+ /*
     std::vector<std::string> splitted_ip_port;
     dsn::utils::split_args(ip_port_list, splitted_ip_port, ',');
     if (splitted_ip_port.empty()) {
@@ -136,7 +176,7 @@ std::string replication_ddl_client::list_hostname_from_ip_port(const char *ip_po
         result << "," << hostname_from_ip_port(splitted_ip_port[i].c_str());
     }
     return result.str();
-}
+*/
 
 replication_ddl_client::replication_ddl_client(const std::vector<dsn::rpc_address> &meta_servers)
 {
@@ -567,12 +607,22 @@ struct list_nodes_helper
     }
 };
 
+std::string hostnameResolve(bool resolve_ip,std::string value){
+	if (resolve_ip){
+		std::string temp;
+		if (replication_ddl_client::hostname_from_ip_port(value.c_str(),&temp))
+			return temp;
+		return value;
+	}
+	return value;
+}
+
 dsn::error_code replication_ddl_client::list_nodes(const dsn::replication::node_status::type status,
                                                    bool detailed,
                                                    const std::string &file_name,
                                                    bool resolve_ip)
 {
-#define RESOLVE(value) (resolve_ip ? hostname_from_ip_port(value.c_str()) : value)
+//#define RESOLVE(value) (resolve_ip ? hostname_from_ip_port(value.c_str()) : value)
     std::map<dsn::rpc_address, dsn::replication::node_status::type> nodes;
     auto r = list_nodes(status, nodes);
     if (r != dsn::ERR_OK) {
@@ -586,7 +636,7 @@ dsn::error_code replication_ddl_client::list_nodes(const dsn::replication::node_
             alive_node_count++;
         std::string status_str = enum_to_string(kv.second);
         status_str = status_str.substr(status_str.find("NS_") + 3);
-        tmp_map.emplace(kv.first, list_nodes_helper(RESOLVE(kv.first.to_std_string()), status_str));
+        tmp_map.emplace(kv.first, list_nodes_helper(hostnameResolve(resolve_ip,kv.first.to_std_string()), status_str));
     }
 
     if (detailed) {
@@ -732,10 +782,12 @@ replication_ddl_client::cluster_info(const std::string &file_name, bool resolve_
     if (resolve_ip) {
         for (int i = 0; i < resp.keys.size(); ++i) {
             if (resp.keys[i] == "meta_servers") {
-                resp.values[i] = list_hostname_from_ip_port(resp.values[i].c_str());
-            } else if (resp.keys[i] == "primary_meta_server") {
-                resp.values[i] = hostname_from_ip_port(resp.values[i].c_str());
-            }
+                //resp.values[i] = list_hostname_from_ip_port(resp.values[i].c_str());
+				list_hostname_from_ip_port(resp.values[i].c_str(),&resp.values[i]);
+			} else if (resp.keys[i] == "primary_meta_server") {
+                //resp.values[i] = hostname_from_ip_port(resp.values[i].c_str());
+				hostname_from_ip_port(resp.values[i].c_str(),&resp.values[i]);		    
+			}
         }
     }
 
@@ -764,7 +816,7 @@ dsn::error_code replication_ddl_client::list_app(const std::string &app_name,
     tp_params.add_row_name_and_data("detailed", detailed);
     mtp.add(std::move(tp_params));
 
-#define RESOLVE(value) (resolve_ip ? hostname_from_ip_port(value.c_str()) : value)
+//#define RESOLVE(value) (resolve_ip ? hostname_from_ip_port(value.c_str()) : value)
     int32_t app_id = 0;
     int32_t partition_count = 0;
     int32_t max_replica_count = 0;
@@ -834,14 +886,15 @@ dsn::error_code replication_ddl_client::list_app(const std::string &app_name,
             oss << replica_count << "/" << p.max_replica_count;
             tp_details.append_data(oss.str());
             tp_details.append_data(
-                (p.primary.is_invalid() ? "-" : RESOLVE(p.primary.to_std_string())));
+               // (p.primary.is_invalid() ? "-" : RESOLVE(p.primary.to_std_string()))):
+				(p.primary.is_invalid() ? "-" : hostnameResolve(resolve_ip,p.primary.to_std_string())));  
             oss.str("");
             oss << "[";
             // TODO (yingchun) join
             for (int j = 0; j < p.secondaries.size(); j++) {
                 if (j != 0)
                     oss << ",";
-                oss << RESOLVE(p.secondaries[j].to_std_string());
+                oss << hostnameResolve(resolve_ip,p.secondaries[j].to_std_string());
                 node_stat[p.secondaries[j]].second++;
             }
             oss << "]";
@@ -856,7 +909,7 @@ dsn::error_code replication_ddl_client::list_app(const std::string &app_name,
         tp_nodes.add_column("secondary");
         tp_nodes.add_column("total");
         for (auto &kv : node_stat) {
-            tp_nodes.add_row(RESOLVE(kv.first.to_std_string()));
+            tp_nodes.add_row(hostnameResolve(resolve_ip,kv.first.to_std_string()));
             tp_nodes.append_data(kv.second.first);
             tp_nodes.append_data(kv.second.second);
             tp_nodes.append_data(kv.second.first + kv.second.second);
