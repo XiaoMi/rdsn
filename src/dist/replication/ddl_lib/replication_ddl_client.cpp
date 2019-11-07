@@ -111,7 +111,7 @@ bool replication_ddl_client::hostname(const rpc_address &address,std::string *ip
         return false;
     }
     if (hostname_from_ip(htonl(address.ip()),ip_address)){
-       *ip_address += std::to_string(address.port());
+       *ip_address += ":" + std::to_string(address.port());
     	return true;
     }   
     return false;
@@ -435,7 +435,8 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
     tp_general.add_column("drop_time");
     tp_general.add_column("drop_expire");
     tp_general.add_column("envs_count");
-
+    tp_general.add_column("hostname");
+    
     int available_app_count = 0;
     for (int i = 0; i < apps.size(); i++) {
         dsn::app_info info = apps[i];
