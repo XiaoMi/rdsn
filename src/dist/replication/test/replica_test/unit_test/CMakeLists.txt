@@ -11,6 +11,7 @@ set(MY_SRC_SEARCH_MODE "GLOB")
 
 set(MY_PROJ_LIBS dsn_meta_server
                  dsn_replica_server
+                 dsn.replication.ddlclient
                  dsn.replication.zookeeper_provider
                  dsn_replication_common
                  dsn.block_service.local
@@ -24,6 +25,8 @@ set(MY_PROJ_LIBS dsn_meta_server
                  PocoFoundation
                  PocoNetSSL
                  PocoJSON
+                 PocoCrypto
+                 PocoUtil
                  crypto
                  gtest)
 
@@ -31,5 +34,5 @@ set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)
 
 #Extra files that will be installed
 set(MY_BINPLACES clear.sh run.sh config-test.ini)
-
+add_definitions(-DRDSN_UNIT_TEST)
 dsn_add_test()

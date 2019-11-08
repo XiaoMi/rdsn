@@ -40,6 +40,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <gtest/gtest.h>
 
 namespace dsn {
 namespace replication {
@@ -52,7 +53,13 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string* ip_addre
     addr_in.sin_family = AF_INET;
     addr_in.sin_port = 0;
     addr_in.sin_addr.s_addr = ip;
-
+#ifdef RDSN_UNIT_TEST
+    if (ip == 123) {
+        return false;
+    }
+    ip_address = "333";
+    return true;
+#else
     char hostname[256];
     int err = getnameinfo((struct sockaddr *)(&addr_in),
                           sizeof(struct sockaddr),
@@ -78,6 +85,7 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string* ip_addre
 		*ip_address= std::string(hostname);
         return true;
     }
+#endif
 }
 
 bool replication_ddl_client::hostname_from_ip(const char *ip,std::string *ip_address)
@@ -95,7 +103,7 @@ bool replication_ddl_client::hostname_from_ip_port(const char *ip_port,std::stri
 {
     dsn::rpc_address addr;
     if (!addr.from_string_ipv4(ip_port)) {
-        dwarn("invalid ip_port(%s)", *ip_port);
+        dwarn("invalid ip_port(%s)", ip_port);
         *ip_address = ip_port;
         return false;
     }
@@ -113,7 +121,7 @@ bool replication_ddl_client::hostname(const rpc_address &address,std::string *ip
     if (hostname_from_ip(htonl(address.ip()),ip_address)){
        *ip_address += ":" + std::to_string(address.port());
     	return true;
-    }   
+    }
     return false;
 }
 
