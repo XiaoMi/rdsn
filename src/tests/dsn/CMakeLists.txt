@@ -25,13 +25,10 @@ set(MY_PROJ_LIBS
     PocoFoundation
     PocoNetSSL
     PocoJSON
-        PocoCrypto
+    PocoCrypto
     crypto
     gtest
-        PocoUtil
-
-
-
+    PocoUtil
     )
 
 set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)
