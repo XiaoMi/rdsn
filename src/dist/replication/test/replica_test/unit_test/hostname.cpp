@@ -41,8 +41,6 @@ TEST(ip_to_hostname, locolhost)
     //static bool hostname_from_ip_port(const char *ip_port,std::string *ip_address);
     EXPECT_EQ(1, replication_ddl_client::hostname_from_ip_port("127.0.0.1:8080", &hostnameResult));
 
-
-
     //static bool list_hostname_from_ip(const char *ip_port_list,std::string *ip_address_list);
     EXPECT_EQ(1, replication_ddl_client::list_hostname_from_ip("127.0.0.1,127.0.0.2,127.0.0.3", &hostnameResult));
 
