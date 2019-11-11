@@ -1,6 +1,6 @@
 #!/bin/bash
 
-find src include -name "*.h" -or -name "*.cpp" | xargs clang-format-3.9 -i
+find ../../src ../../include -name "*.h" -or -name "*.cpp" | xargs clang-format-3.9 -i
 
 effected_files=$(git status -s)
 echo "Checking for files that need clang-format..."
