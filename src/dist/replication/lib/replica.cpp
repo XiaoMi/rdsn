@@ -414,7 +414,7 @@ void replica::init_table_level_latency_counters()
 
     for (int code = 0; code <= max_task_code; code++) {
         _counters_table_level_latency[code] = nullptr;
-        if (storage_rpc_req_codes.find(code) != storage_rpc_req_codes.end()) {
+        if (s_storage_rpc_req_codes.find(code) != s_storage_rpc_req_codes.end()) {
             std::string counter_str =
                 fmt::format("table.level.{}.latency(ns)@{}", task_code(code), _app_info.app_name);
             _counters_table_level_latency[code] =
