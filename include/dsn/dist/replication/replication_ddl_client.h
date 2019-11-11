@@ -121,14 +121,16 @@ public:
     // if can't get a hostname from ip(maybe no hostname or other errors), return UNRESOLVABLE
     // if multiple hostname got, return <host1,host2> ...
     // we only support ipv4 currently
-    
-    // check if a.b.c.d:port1 can be transferd to hostname:port1.If it can,hostnameResult will be the answer
-    static bool hostname(const rpc_address &address,std::string *ip_address);
-	static bool hostname_from_ip(uint32_t ip, std::string* ip_address);
-	static bool hostname_from_ip(const char *ip,std::string *ip_address);
-    static bool hostname_from_ip_port(uint32_t ip, std::string *ip_address); 
-	static bool hostname_from_ip_port(const char *ip_port,std::string *ip_address);
-    static bool list_hostname_from_ip(const char *ip_port_list,std::string *ip_address_list);     static bool list_hostname_from_ip_port(const char *ip_port_list,std::string *ip_address_list);
+
+    // check if a.b.c.d:port1 can be transferd to hostname:port1.If it can,hostnameResult will be
+    // the answer
+    static bool hostname(const rpc_address &address, std::string *ip_address);
+    static bool hostname_from_ip(uint32_t ip, std::string *ip_address);
+    static bool hostname_from_ip(const char *ip, std::string *ip_address);
+    static bool hostname_from_ip_port(uint32_t ip, std::string *ip_address);
+    static bool hostname_from_ip_port(const char *ip_port, std::string *ip_address);
+    static bool list_hostname_from_ip(const char *ip_port_list, std::string *ip_address_list);
+    static bool list_hostname_from_ip_port(const char *ip_port_list, std::string *ip_address_list);
 
     dsn::error_code do_restore(const std::string &backup_provider_name,
                                const std::string &cluster_name,
