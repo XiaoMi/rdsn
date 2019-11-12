@@ -53,14 +53,8 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string *ip_addre
     addr_in.sin_family = AF_INET;
     addr_in.sin_port = 0;
     addr_in.sin_addr.s_addr = ip;
-#ifdef RDSN_UNIT_TEST
-    if (ip == 123) {
-        return false;
-    }
-    ip_address = "333";
-    return true;
-#else
     char hostname[256];
+    char ip_str_temp[256];
     int err = getnameinfo((struct sockaddr *)(&addr_in),
                           sizeof(struct sockaddr),
                           hostname,
@@ -73,11 +67,11 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string *ip_addre
         net_addr.s_addr = ip;
         char ip_str[256];
         inet_ntop(AF_INET, &net_addr, ip_str, sizeof(ip_str));
-
+        strcpy(ip_str,ip_str_temp);
         if (err == EAI_SYSTEM) {
             dwarn("got error %s when try to resolve %s", strerror(errno), ip_str);
         } else {
-            dwarn("return error(%s) when try to resolve %s", gai_strerror(err), ip_str);
+            dwarn("return error(%s) when try to resolve %s", gai_strerror(err), std::string(ip_str));
         }
         *ip_address = std::string(ip_str);
         return false;
@@ -85,15 +79,19 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string *ip_addre
         *ip_address = std::string(hostname);
         return true;
     }
-#endif
 }
 
 bool replication_ddl_client::hostname_from_ip(const char *ip, std::string *ip_address)
 {
     uint32_t ip_addr;
-    inet_pton(AF_INET, ip, &ip_addr);
+    if (inet_pton(AF_INET, ip, &ip_addr) != 1){
+        *ip_address = ip;
+        std::cout<<ip<<std::endl;
+        return false;
+    }
     if (!hostname_from_ip(ip_addr, ip_address)) {
-        *ip_address = *ip;
+        *ip_address = ip;
+        std::cout<<ip<<std::endl;
         return false;
     }
     return true;
@@ -116,6 +114,7 @@ bool replication_ddl_client::hostname_from_ip_port(const char *ip_port, std::str
 bool replication_ddl_client::hostname(const rpc_address &address, std::string *ip_address)
 {
     if (address.type() != HOST_TYPE_IPV4) {
+        *ip_address += std::string("") + ":"+ std::to_string(address.port());
         return false;
     }
     if (hostname_from_ip(htonl(address.ip()), ip_address)) {
@@ -139,14 +138,16 @@ bool replication_ddl_client::list_hostname_from_ip(const char *ip_list,
 
     std::string temp;
     std::stringstream result;
-    bool ok;
+    bool ok, allok = true;
     for (int i = 0; i < splitted_ip.size(); ++i) {
         ok = hostname_from_ip(splitted_ip[i].c_str(), &temp);
+        if (!ok)
+            allok = false;
         result << (i ? "," : "");
         result << ok ? temp : splitted_ip[i].c_str();
     }
     *ip_address_list = result.str();
-    return true;
+    return allok;
 }
 
 bool replication_ddl_client::list_hostname_from_ip_port(const char *ip_port_list,
@@ -163,14 +164,16 @@ bool replication_ddl_client::list_hostname_from_ip_port(const char *ip_port_list
 
     std::string temp;
     std::stringstream result;
-    bool ok;
+    bool ok, allok = true;
     for (int i = 0; i < splitted_ip_port.size(); ++i) {
-        ok = hostname_from_ip(splitted_ip_port[i].c_str(), &temp);
+        ok = hostname_from_ip_port(splitted_ip_port[i].c_str(), &temp);
+        if (!ok)
+            allok = false;
         result << (i ? "," : "");
         result << ok ? temp : splitted_ip_port[i].c_str();
     }
     *ip_address_list = result.str();
-    return true;
+    return allok;
 }
 /*
    std::vector<std::string> splitted_ip_port;
