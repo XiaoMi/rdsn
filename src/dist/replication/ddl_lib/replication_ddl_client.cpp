@@ -72,7 +72,7 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string *ip_addre
             dwarn("got error %s when try to resolve %s", strerror(errno), ip_str);
         } else {
             dwarn(
-                "return error(%s) when try to resolve %s", gai_strerror(err), std::string(ip_str));
+                "return error(%s) when try to resolve %s", gai_strerror(err), ip_str);
         }
         *ip_address = std::string(ip_str);
         return false;
