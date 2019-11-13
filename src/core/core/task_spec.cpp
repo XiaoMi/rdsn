@@ -42,7 +42,7 @@ namespace dsn {
 
 constexpr int TASK_SPEC_STORE_CAPACITY = 512;
 
-std::set<int> s_storage_rpc_req_codes;
+std::set<dsn::task_code> s_storage_rpc_req_codes;
 
 // A sequential storage maps task_code to task_spec.
 static std::array<std::unique_ptr<task_spec>, TASK_SPEC_STORE_CAPACITY> s_task_spec_store;
