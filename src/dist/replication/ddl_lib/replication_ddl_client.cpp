@@ -782,10 +782,8 @@ replication_ddl_client::cluster_info(const std::string &file_name, bool resolve_
     if (resolve_ip) {
         for (int i = 0; i < resp.keys.size(); ++i) {
             if (resp.keys[i] == "meta_servers") {
-                // resp.values[i] = list_hostname_from_ip_port(resp.values[i].c_str());
                 list_hostname_from_ip_port(resp.values[i].c_str(), &resp.values[i]);
             } else if (resp.keys[i] == "primary_meta_server") {
-                // resp.values[i] = hostname_from_ip_port(resp.values[i].c_str());
                 hostname_from_ip_port(resp.values[i].c_str(), &resp.values[i]);
             }
         }

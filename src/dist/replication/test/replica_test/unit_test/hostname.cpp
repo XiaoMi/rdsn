@@ -8,9 +8,6 @@
 
 namespace dsn {
 namespace replication {
-//
-// class ip_to_hostname : public testing::Test {
-//};
 
 TEST(ip_to_hostname, locolhost)
 {
