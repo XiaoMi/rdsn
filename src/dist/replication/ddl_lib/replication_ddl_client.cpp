@@ -614,7 +614,6 @@ std::string host_name_resolve(bool resolve_ip, std::string value)
         std::string temp;
         if (replication_ddl_client::hostname_from_ip_port(value.c_str(), &temp))
             return temp;
-        return value;
     }
     return value;
 }
