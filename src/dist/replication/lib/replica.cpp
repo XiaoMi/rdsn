@@ -407,6 +407,9 @@ std::string replica::query_compact_state() const
     return _app->query_compact_state();
 }
 
+// Replicas on the server which serves for the same table will share the same perf-counter.
+// For example counter `table.level.RPC_RRDB_RRDB_MULTI_PUT.latency(ns)@test_table` is shared by
+// all the replicas for `test_table`.
 void replica::init_table_level_latency_counters()
 {
     int max_task_code = task_code::max();
