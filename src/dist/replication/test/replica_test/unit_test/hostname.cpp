@@ -6,8 +6,11 @@
 #include <gtest/gtest.h>
 #include <dsn/tool-api/rpc_address.h>
 
-using namespace ::dsn;
-using namespace ::dsn::replication;
+namespace dsn {
+namespace replication {
+//
+//class ip_to_hostname : public testing::Test {
+//};
 
 TEST(ip_to_hostname, locolhost)
 {
@@ -87,3 +90,5 @@ TEST(ip_to_hostname, locolhost)
         "127.0.3333.1:23456,1127.0.0.2:22233,127.0.0.1:8080", &hostnameResult));
     ASSERT_STREQ("127.0.3333.1:23456,1127.0.0.2:22233,localhost:8080", hostnameResult.c_str());
 }
+} // namespace replication
+} // namespace dsn

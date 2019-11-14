@@ -34,6 +34,7 @@
 
 #pragma once
 
+#include "gtest/gtest_prod.h"
 #include <cctype>
 #include <string>
 #include <map>
@@ -149,6 +150,10 @@ private:
     // return FALSE  && ip_address="uint32_t ip is unsolveable"
 private:
     static bool hostname_from_ip(uint32_t ip, std::string *ip_address);
+
+private:
+    FRIEND_TEST(ip_to_hostname, locolhost);
+
 
     dsn::error_code do_restore(const std::string &backup_provider_name,
                                const std::string &cluster_name,
