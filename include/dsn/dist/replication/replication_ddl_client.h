@@ -122,14 +122,17 @@ public:
     // if can't get a hostname from ip(maybe no hostname or other errors), return UNRESOLVABLE
     // if multiple hostname got, return <host1,host2> ...
     // we only support ipv4 currently
-    // check if a.b.c.d:port1 can be transferd to hostname:port1.If it can be resolved, hostname result will be
+    // check if a.b.c.d:port1 can be transferd to hostname:port1.If it can be resolved, hostname
+    // result will be
     // the hostname, or it will be ip address or error message
 
-    // valid a.b.c.d -> return TRUE && hostname_result=hostname | invalid a.b.c.d:port1 -> return FALSE
+    // valid a.b.c.d -> return TRUE && hostname_result=hostname | invalid a.b.c.d:port1 -> return
+    // FALSE
     // && hostname_result=a.b.c.d
     static bool hostname_from_ip(const char *ip, std::string *hostname_result);
 
-    // valid a.b.c.d：port -> return TRUE && hostname_result=hostname:port | invalid a.b.c.d:port1 ->
+    // valid a.b.c.d：port -> return TRUE && hostname_result=hostname:port | invalid a.b.c.d:port1
+    // ->
     // return FALSE  && hostname_result=a.b.c.d:port
     static bool hostname_from_ip_port(const char *ip_port, std::string *hostname_result);
 
@@ -140,15 +143,18 @@ public:
     // valid a.b.c.d:port1,e.f.g.h:port2 -> return TRUE &&
     // hostname_result_list=hostname1:port1,hostname2:port2 | invalid a.b.c.d:port1,e.f.g.h:port2 ->
     // return TRUE && hostname_result_list=a.b.c.d:port1,e.f.g.h:port2
-    static bool list_hostname_from_ip_port(const char *ip_port_list, std::string *hostname_result_list);
+    static bool list_hostname_from_ip_port(const char *ip_port_list,
+                                           std::string *hostname_result_list);
 
 private:
-    // valid_ipv4_rpc_address return TRUE && hostname_result=hostname:port | invalid_ipv4 -> return FALSE
+    // valid_ipv4_rpc_address return TRUE && hostname_result=hostname:port | invalid_ipv4 -> return
+    // FALSE
     // && hostname_result="NOT HOST_TYPE_IPV4":port
     static bool hostname(const rpc_address &address, std::string *hostname_result);
 
 private:
-    // valid_ip_network_order -> return TRUE && hostname_result=hostname	| invalid_ip_network_order ->
+    // valid_ip_network_order -> return TRUE && hostname_result=hostname	| invalid_ip_network_order
+    // ->
     // return FALSE  && hostname_result="uint32_t ip is unsolveable"
     static bool hostname_from_ip(uint32_t ip, std::string *hostname_result);
 

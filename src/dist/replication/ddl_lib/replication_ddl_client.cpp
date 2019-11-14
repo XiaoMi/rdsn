@@ -93,7 +93,8 @@ bool replication_ddl_client::hostname_from_ip(const char *ip, std::string *hostn
     return true;
 }
 
-bool replication_ddl_client::hostname_from_ip_port(const char *ip_port, std::string *hostname_result)
+bool replication_ddl_client::hostname_from_ip_port(const char *ip_port,
+                                                   std::string *hostname_result)
 {
     dsn::rpc_address addr;
     if (!addr.from_string_ipv4(ip_port)) {
