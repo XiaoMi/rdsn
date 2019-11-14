@@ -154,7 +154,6 @@ private:
 private:
     FRIEND_TEST(ip_to_hostname, locolhost);
 
-
     dsn::error_code do_restore(const std::string &backup_provider_name,
                                const std::string &cluster_name,
                                const std::string &policy_name,
