@@ -54,7 +54,6 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string *ip_addre
     addr_in.sin_port = 0;
     addr_in.sin_addr.s_addr = ip;
     char hostname[256];
-    char ip_str_temp[256];
     int err = getnameinfo((struct sockaddr *)(&addr_in),
                           sizeof(struct sockaddr),
                           hostname,
@@ -67,7 +66,6 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string *ip_addre
         net_addr.s_addr = ip;
         char ip_str[256];
         inet_ntop(AF_INET, &net_addr, ip_str, sizeof(ip_str));
-        strcpy(ip_str, ip_str_temp);
         if (err == EAI_SYSTEM) {
             dwarn("got error %s when try to resolve %s", strerror(errno), ip_str);
         } else {
