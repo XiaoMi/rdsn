@@ -1,0 +1,40 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/dsn_replica_server.dir/duplication/duplication_pipeline.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/duplication/duplication_sync_timer.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/duplication/load_from_private_log.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/duplication/mutation_batch.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/duplication/replica_duplicator.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/duplication/replica_duplicator_manager.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/mutation.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/mutation_cache.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/mutation_log.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/mutation_log_replay.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/mutation_log_utils.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/prepare_list.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_2pc.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_backup.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_check.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_chkpt.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_config.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_context.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_failover.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_init.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_learn.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_restore.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_split.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_stub.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_test_utils.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replica_throttle.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replication_admission_controller.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replication_app_base.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/replication_service_app.cpp.o"
+  "CMakeFiles/dsn_replica_server.dir/throttling_controller.cpp.o"
+  "libdsn_replica_server.pdb"
+  "libdsn_replica_server.so"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/dsn_replica_server.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

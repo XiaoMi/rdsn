@@ -122,37 +122,38 @@ public:
     // if can't get a hostname from ip(maybe no hostname or other errors), return UNRESOLVABLE
     // if multiple hostname got, return <host1,host2> ...
     // we only support ipv4 currently
-    // check if a.b.c.d:port1 can be transferd to hostname:port1.If it can,hostnameResult will be
-    // the ip_address
+    // check if a.b.c.d:port1 can be transferd to hostname:port1.If it can be resolved, hostname result will be
+    // the hostname, or it will be ip address or error message
 
-    // valid a.b.c.d -> return TRUE && ip_address=hostname | invalid a.b.c.d:port1 -> return FALSE
-    // && ip_address=a.b.c.d
-public:
-    static bool hostname_from_ip(const char *ip, std::string *ip_address);
-    // valid a.b.c.d：port -> return TRUE && ip_address=hostname:port | invalid a.b.c.d:port1 ->
-    // return FALSE  && ip_address=a.b.c.d:port
-public:
-    static bool hostname_from_ip_port(const char *ip_port, std::string *ip_address);
-    // valid a.b.c.d,e.f.g.h -> return TRUE && ip_address_list=hostname1,hostname2 | invalid
-    // a.b.c.d,e.f.g.h -> return TRUE && ip_address_list=a.b.c.d,e.f.g.h
-public:
-    static bool list_hostname_from_ip(const char *ip_port_list, std::string *ip_address_list);
+    // valid a.b.c.d -> return TRUE && hostname_result=hostname | invalid a.b.c.d:port1 -> return FALSE
+    // && hostname_result=a.b.c.d
+    static bool hostname_from_ip(const char *ip, std::string *hostname_result);
+
+    // valid a.b.c.d：port -> return TRUE && hostname_result=hostname:port | invalid a.b.c.d:port1 ->
+    // return FALSE  && hostname_result=a.b.c.d:port
+    static bool hostname_from_ip_port(const char *ip_port, std::string *hostname_result);
+
+    // valid a.b.c.d,e.f.g.h -> return TRUE && hostname_result_list=hostname1,hostname2 | invalid
+    // a.b.c.d,e.f.g.h -> return TRUE && hostname_result_list=a.b.c.d,e.f.g.h
+    static bool list_hostname_from_ip(const char *ip_port_list, std::string *hostname_result_list);
+
     // valid a.b.c.d:port1,e.f.g.h:port2 -> return TRUE &&
-    // ip_address_list=hostname1:port1,hostname2:port2 | invalid a.b.c.d:port1,e.f.g.h:port2 ->
-    // return TRUE && ip_address_list=a.b.c.d:port1,e.f.g.h:port2
-public:
-    static bool list_hostname_from_ip_port(const char *ip_port_list, std::string *ip_address_list);
-    // valid_ipv4_rpc_address return TRUE && ip_address=hostname:port | invalid_ipv4 -> return FALSE
-    // && ip_address="NOT HOST_TYPE_IPV4":port
-private:
-    static bool hostname(const rpc_address &address, std::string *ip_address);
-    // valid_ip_network_order -> return TRUE && ip_address=hostname	| invalid_ip_network_order ->
-    // return FALSE  && ip_address="uint32_t ip is unsolveable"
-private:
-    static bool hostname_from_ip(uint32_t ip, std::string *ip_address);
+    // hostname_result_list=hostname1:port1,hostname2:port2 | invalid a.b.c.d:port1,e.f.g.h:port2 ->
+    // return TRUE && hostname_result_list=a.b.c.d:port1,e.f.g.h:port2
+    static bool list_hostname_from_ip_port(const char *ip_port_list, std::string *hostname_result_list);
 
 private:
-    FRIEND_TEST(ip_to_hostname, locolhost);
+    // valid_ipv4_rpc_address return TRUE && hostname_result=hostname:port | invalid_ipv4 -> return FALSE
+    // && hostname_result="NOT HOST_TYPE_IPV4":port
+    static bool hostname(const rpc_address &address, std::string *hostname_result);
+
+private:
+    // valid_ip_network_order -> return TRUE && hostname_result=hostname	| invalid_ip_network_order ->
+    // return FALSE  && hostname_result="uint32_t ip is unsolveable"
+    static bool hostname_from_ip(uint32_t ip, std::string *hostname_result);
+
+private:
+    FRIEND_TEST(ip_to_hostname, localhost);
 
     dsn::error_code do_restore(const std::string &backup_provider_name,
                                const std::string &cluster_name,

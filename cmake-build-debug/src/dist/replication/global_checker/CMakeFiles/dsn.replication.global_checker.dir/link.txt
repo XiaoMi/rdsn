@@ -1,0 +1,2 @@
+ccache /usr/bin/ar qc libdsn.replication.global_checker.a  CMakeFiles/dsn.replication.global_checker.dir/checker.cpp.o
+ccache /usr/bin/ranlib libdsn.replication.global_checker.a

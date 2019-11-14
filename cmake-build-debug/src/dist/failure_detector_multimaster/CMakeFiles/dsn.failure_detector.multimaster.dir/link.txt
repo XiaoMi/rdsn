@@ -1,0 +1,2 @@
+ccache /usr/bin/ar qc libdsn.failure_detector.multimaster.a  CMakeFiles/dsn.failure_detector.multimaster.dir/failure_detector_multimaster.cpp.o
+ccache /usr/bin/ranlib libdsn.failure_detector.multimaster.a

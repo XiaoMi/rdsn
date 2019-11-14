@@ -47,7 +47,7 @@ namespace replication {
 
 using tp_output_format = ::dsn::utils::table_printer::output_format;
 
-bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string *ip_address)
+bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string *hostname_result)
 {
     struct sockaddr_in addr_in;
     addr_in.sin_family = AF_INET;
@@ -71,110 +71,110 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string *ip_addre
         } else {
             dwarn("return error(%s) when try to resolve %s", gai_strerror(err), ip_str);
         }
-        *ip_address = std::string("uint32_t ip is unsolveable");
+        *hostname_result = std::string("uint32_t ip is unsolveable");
         return false;
     } else {
-        *ip_address = std::string(hostname);
+        *hostname_result = std::string(hostname);
         return true;
     }
 }
 
-bool replication_ddl_client::hostname_from_ip(const char *ip, std::string *ip_address)
+bool replication_ddl_client::hostname_from_ip(const char *ip, std::string *hostname_result)
 {
     uint32_t ip_addr;
     if (inet_pton(AF_INET, ip, &ip_addr) != 1) {
-        *ip_address = ip;
+        *hostname_result = ip;
         return false;
     }
-    if (!hostname_from_ip(ip_addr, ip_address)) {
-        *ip_address = ip;
+    if (!hostname_from_ip(ip_addr, hostname_result)) {
+        *hostname_result = ip;
         return false;
     }
     return true;
 }
 
-bool replication_ddl_client::hostname_from_ip_port(const char *ip_port, std::string *ip_address)
+bool replication_ddl_client::hostname_from_ip_port(const char *ip_port, std::string *hostname_result)
 {
     dsn::rpc_address addr;
     if (!addr.from_string_ipv4(ip_port)) {
         dwarn("invalid ip_port(%s)", ip_port);
-        *ip_address = ip_port;
+        *hostname_result = ip_port;
         return false;
     }
-    if (!hostname(addr, ip_address)) {
-        *ip_address = ip_port;
+    if (!hostname(addr, hostname_result)) {
+        *hostname_result = ip_port;
         return false;
     }
     return true;
 }
 
-bool replication_ddl_client::hostname(const rpc_address &address, std::string *ip_address)
+bool replication_ddl_client::hostname(const rpc_address &address, std::string *hostname_result)
 {
     if (address.type() != HOST_TYPE_IPV4) {
-        *ip_address = std::string("NOT HOST_TYPE_IPV4") + ":" + std::to_string(address.port());
+        *hostname_result = std::string("NOT HOST_TYPE_IPV4") + ":" + std::to_string(address.port());
         return false;
     }
-    if (hostname_from_ip(htonl(address.ip()), ip_address)) {
-        *ip_address += ":" + std::to_string(address.port());
+    if (hostname_from_ip(htonl(address.ip()), hostname_result)) {
+        *hostname_result += ":" + std::to_string(address.port());
         return true;
     }
     return false;
 }
 
 bool replication_ddl_client::list_hostname_from_ip(const char *ip_list,
-                                                   std::string *ip_address_list)
+                                                   std::string *hostname_result_list)
 {
     std::vector<std::string> splitted_ip;
     dsn::utils::split_args(ip_list, splitted_ip, ',');
 
     if (splitted_ip.empty()) {
         dwarn("invalid ip_list(%s)", ip_list);
-        *ip_address_list = *ip_list;
+        *hostname_result_list = *ip_list;
         return false;
     }
 
     std::string temp;
     std::stringstream result;
-    bool allok = true;
+    bool all_ok = true;
     for (int i = 0; i < splitted_ip.size(); ++i) {
         result << (i ? "," : "");
         if (hostname_from_ip(splitted_ip[i].c_str(), &temp)) {
             result << temp;
         } else {
             result << splitted_ip[i].c_str();
-            allok = false;
+            all_ok = false;
         }
     }
-    *ip_address_list = result.str();
-    return allok;
+    *hostname_result_list = result.str();
+    return all_ok;
 }
 
 bool replication_ddl_client::list_hostname_from_ip_port(const char *ip_port_list,
-                                                        std::string *ip_address_list)
+                                                        std::string *hostname_result_list)
 {
     std::vector<std::string> splitted_ip_port;
     dsn::utils::split_args(ip_port_list, splitted_ip_port, ',');
 
     if (splitted_ip_port.empty()) {
         dwarn("invalid ip_list(%s)", ip_port_list);
-        *ip_address_list = *ip_port_list;
+        *hostname_result_list = *ip_port_list;
         return false;
     }
 
     std::string temp;
     std::stringstream result;
-    bool allok = true;
+    bool all_ok = true;
     for (int i = 0; i < splitted_ip_port.size(); ++i) {
         result << (i ? "," : "");
         if (hostname_from_ip_port(splitted_ip_port[i].c_str(), &temp)) {
             result << temp;
         } else {
             result << splitted_ip_port[i].c_str();
-            allok = false;
+            all_ok = false;
         }
     }
-    *ip_address_list = result.str();
-    return allok;
+    *hostname_result_list = result.str();
+    return all_ok;
 }
 
 replication_ddl_client::replication_ddl_client(const std::vector<dsn::rpc_address> &meta_servers)
