@@ -435,7 +435,6 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
     tp_general.add_column("drop_time");
     tp_general.add_column("drop_expire");
     tp_general.add_column("envs_count");
-    tp_general.add_column("hostname");
 
     int available_app_count = 0;
     for (int i = 0; i < apps.size(); i++) {

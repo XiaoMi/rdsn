@@ -153,7 +153,8 @@ private:
     static bool hostname(const rpc_address &address, std::string *hostname_result);
 
 private:
-    // valid_ip_network_order -> return TRUE && hostname_result=hostname	| invalid_ip_network_order
+    // valid_ip_network_order -> return TRUE && hostname_result=hostname	|
+    // invalid_ip_network_order
     // ->
     // return FALSE  && hostname_result="uint32_t ip is unsolveable"
     static bool hostname_from_ip(uint32_t ip, std::string *hostname_result);
