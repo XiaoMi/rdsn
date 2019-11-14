@@ -21,14 +21,14 @@ set(MY_PROJ_LIBS
     dsn_runtime
     zookeeper_mt
     galaxy-fds-sdk-cpp
-    PocoNet
-    PocoFoundation
-    PocoNetSSL
-    PocoJSON
     PocoCrypto
+    PocoFoundation
+    PocoJSON
+    PocoNet
+    PocoNetSSL
+    PocoUtil
     crypto
     gtest
-    PocoUtil
     )
 
 set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)
