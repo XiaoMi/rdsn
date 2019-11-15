@@ -37,7 +37,6 @@ TEST(ip_to_hostname, localhost)
     ASSERT_STREQ(expected_hostname_port.c_str(), hostname_result.c_str());
 
     ASSERT_FALSE(replication_ddl_client::hostname(rpc_example_failed, &hostname_result));
-    ASSERT_STREQ("uint32_t ip is unsolveable", hostname_result.c_str());
 
     // static bool hostname_from_ip(uint32_t ip, std::string* hostname_result);
     ASSERT_TRUE(replication_ddl_client::hostname_from_ip(htonl(rpc_example_success.ip()),
@@ -46,7 +45,6 @@ TEST(ip_to_hostname, localhost)
 
     ASSERT_FALSE(
         replication_ddl_client::hostname_from_ip(htonl(rpc_example_failed.ip()), &hostname_result));
-    ASSERT_STREQ("uint32_t ip is unsolveable", hostname_result.c_str());
 
     // static bool hostname_from_ip(const char *ip,std::string *hostname_result);
     ASSERT_TRUE(replication_ddl_client::hostname_from_ip(success_ip.c_str(), &hostname_result));
