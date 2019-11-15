@@ -120,9 +120,9 @@ public:
 
     // get host name from ip series
     // if can't get a hostname from ip(maybe no hostname or other errors), return false, and
-    // hostname_result will be your ip or the error information
+    // hostname_result will be invalid value
     // if multiple hostname got and all of them are resolvable return true, otherwise return false.
-    // and the hostname_result will be "hostname1,hostname2(or ip_address or error information)..."
+    // and the hostname_result will be "hostname1,hostname2(or ip_address or )..."
     // we only support ipv4 currently
     // check if a.b.c.d:port can be resolved to hostname:port. If it can be resolved, return true
     // and hostname_result

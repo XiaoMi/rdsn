@@ -71,7 +71,6 @@ bool replication_ddl_client::hostname_from_ip(uint32_t ip, std::string *hostname
         } else {
             dwarn("return error(%s) when try to resolve %s", gai_strerror(err), ip_str);
         }
-        *hostname_result = std::string("uint32_t ip is unsolveable");
         return false;
     } else {
         *hostname_result = std::string(hostname);
@@ -83,6 +82,7 @@ bool replication_ddl_client::hostname_from_ip(const char *ip, std::string *hostn
 {
     uint32_t ip_addr;
     if (inet_pton(AF_INET, ip, &ip_addr) != 1) {
+        // inet_pton() returns 1 on success (network address was successfully converted)
         *hostname_result = ip;
         return false;
     }
@@ -112,7 +112,6 @@ bool replication_ddl_client::hostname_from_ip_port(const char *ip_port,
 bool replication_ddl_client::hostname(const rpc_address &address, std::string *hostname_result)
 {
     if (address.type() != HOST_TYPE_IPV4) {
-        *hostname_result = std::string("NOT HOST_TYPE_IPV4") + ":" + std::to_string(address.port());
         return false;
     }
     if (hostname_from_ip(htonl(address.ip()), hostname_result)) {
