@@ -151,14 +151,11 @@ public:
 private:
     // valid_ipv4_rpc_address return TRUE && hostname_result=hostname:port | invalid_ipv4 -> return
     // FALSE
-    // && hostname_result="NOT HOST_TYPE_IPV4":port
     static bool hostname(const rpc_address &address, std::string *hostname_result);
 
 private:
     // valid_ip_network_order -> return TRUE && hostname_result=hostname	|
-    // invalid_ip_network_order
-    // ->
-    // return FALSE  && hostname_result="uint32_t ip is unsolvable"
+    // invalid_ip_network_order -> return FALSE
     static bool hostname_from_ip(uint32_t ip, std::string *hostname_result);
 
 private:
