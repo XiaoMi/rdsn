@@ -148,19 +148,6 @@ public:
     static bool list_hostname_from_ip_port(const char *ip_port_list,
                                            std::string *hostname_result_list);
 
-private:
-    // valid_ipv4_rpc_address return TRUE && hostname_result=hostname:port | invalid_ipv4 -> return
-    // FALSE
-    static bool hostname(const rpc_address &address, std::string *hostname_result);
-
-private:
-    // valid_ip_network_order -> return TRUE && hostname_result=hostname	|
-    // invalid_ip_network_order -> return FALSE
-    static bool hostname_from_ip(uint32_t ip, std::string *hostname_result);
-
-private:
-    FRIEND_TEST(ip_to_hostname, localhost);
-
     dsn::error_code do_restore(const std::string &backup_provider_name,
                                const std::string &cluster_name,
                                const std::string &policy_name,
@@ -264,9 +251,18 @@ private:
         return error_with<TResponse>(std::move(rpc.response()));
     }
 
-private:
     dsn::rpc_address _meta_server;
     dsn::task_tracker _tracker;
+
+    // valid_ipv4_rpc_address return TRUE && hostname_result=hostname:port | invalid_ipv4 -> return
+    // FALSE
+    static bool hostname(const rpc_address &address, std::string *hostname_result);
+
+    // valid_ip_network_order -> return TRUE && hostname_result=hostname	|
+    // invalid_ip_network_order -> return FALSE
+    static bool hostname_from_ip(uint32_t ip, std::string *hostname_result);
+
+    FRIEND_TEST(ip_to_hostname, localhost);
 };
 } // namespace replication
 } // namespace dsn
