@@ -119,12 +119,14 @@ public:
     error_with<duplication_query_response> query_dup(std::string app_name);
 
     // get host name from ip series
-    // if can't get a hostname from ip(maybe no hostname or other errors), return UNRESOLVABLE
-    // if multiple hostname got, return <host1,host2> ...
+    // if can't get a hostname from ip(maybe no hostname or other errors), return false, and
+    // hostname_result will be your ip or the error information
+    // if multiple hostname got and all of them are resolvable return true, otherwise return false.
+    // and the hostname_result will be "hostname1,hostname2(or ip_address or error information)..."
     // we only support ipv4 currently
-    // check if a.b.c.d:port1 can be transferd to hostname:port1.If it can be resolved, hostname
-    // result will be
-    // the hostname, or it will be ip address or error message
+    // check if a.b.c.d:port can be resolved to hostname:port. If it can be resolved, return true
+    // and hostname_result
+    // will be the hostname, or it will be ip address or error message
 
     // valid a.b.c.d -> return TRUE && hostname_result=hostname | invalid a.b.c.d:port1 -> return
     // FALSE
@@ -156,7 +158,7 @@ private:
     // valid_ip_network_order -> return TRUE && hostname_result=hostname	|
     // invalid_ip_network_order
     // ->
-    // return FALSE  && hostname_result="uint32_t ip is unsolveable"
+    // return FALSE  && hostname_result="uint32_t ip is unsolvable"
     static bool hostname_from_ip(uint32_t ip, std::string *hostname_result);
 
 private:
