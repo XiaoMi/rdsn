@@ -24,21 +24,23 @@
  * THE SOFTWARE.
  */
 
-#include <boost/lexical_cast.hpp>
-#include <fmt/format.h>
-#include <dsn/utility/error_code.h>
-#include <dsn/utility/output_utils.h>
-#include <dsn/tool-api/group_address.h>
 #include <dsn/dist/replication/replication_ddl_client.h>
-#include <dsn/dist/replication/replication_other_types.h>
-#include <dsn/dist/replication/duplication_common.h>
-#include <iostream>
+
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/socket.h>
+
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
+#include <boost/lexical_cast.hpp>
+#include <dsn/dist/replication/duplication_common.h>
+#include <dsn/dist/replication/replication_other_types.h>
+#include <dsn/tool-api/group_address.h>
+#include <dsn/utility/error_code.h>
+#include <dsn/utility/output_utils.h>
+#include <fmt/format.h>
 
 namespace dsn {
 namespace replication {

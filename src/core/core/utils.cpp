@@ -33,23 +33,25 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-#include <sys/socket.h>
-#include <netdb.h>
-#include <ifaddrs.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <dsn/service_api_cpp.h>
 #include <dsn/utility/utils.h>
-#include <dsn/utility/singleton.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <random>
-#include <iostream>
-#include <fstream>
-#include <memory>
+
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 #include <array>
 #include <chrono>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <random>
+
+#include <dsn/service_api_cpp.h>
+#include <dsn/utility/singleton.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #if defined(__linux__)
 #include <sys/syscall.h>

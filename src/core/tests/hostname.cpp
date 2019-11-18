@@ -3,8 +3,9 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <dsn/utility/utils.h>
-#include <gtest/gtest.h>
+
 #include <dsn/tool-api/rpc_address.h>
+#include <gtest/gtest.h>
 
 namespace dsn {
 namespace replication {
