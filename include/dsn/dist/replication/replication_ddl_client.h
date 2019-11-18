@@ -38,7 +38,6 @@
 #include <cctype>
 #include <string>
 #include <map>
-#include <dsn/dist/replication.h>
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/utility/errors.h>
@@ -117,36 +116,6 @@ public:
     error_with<duplication_status_change_response>
     change_dup_status(std::string app_name, int dupid, duplication_status::type status);
     error_with<duplication_query_response> query_dup(std::string app_name);
-
-    // get host name from ip series
-    // if can't get a hostname from ip(maybe no hostname or other errors), return false, and
-    // hostname_result will be invalid value
-    // if multiple hostname got and all of them are resolvable return true, otherwise return false.
-    // and the hostname_result will be "hostname1,hostname2(or ip_address or )..."
-    // we only support ipv4 currently
-    // check if a.b.c.d:port can be resolved to hostname:port. If it can be resolved, return true
-    // and hostname_result
-    // will be the hostname, or it will be ip address or error message
-
-    // valid a.b.c.d -> return TRUE && hostname_result=hostname | invalid a.b.c.d:port1 -> return
-    // FALSE
-    // && hostname_result=a.b.c.d
-    static bool hostname_from_ip(const char *ip, std::string *hostname_result);
-
-    // valid a.b.c.d：port -> return TRUE && hostname_result=hostname:port | invalid a.b.c.d:port1
-    // ->
-    // return FALSE  && hostname_result=a.b.c.d:port
-    static bool hostname_from_ip_port(const char *ip_port, std::string *hostname_result);
-
-    // valid a.b.c.d,e.f.g.h -> return TRUE && hostname_result_list=hostname1,hostname2 | invalid
-    // a.b.c.d,e.f.g.h -> return TRUE && hostname_result_list=a.b.c.d,e.f.g.h
-    static bool list_hostname_from_ip(const char *ip_port_list, std::string *hostname_result_list);
-
-    // valid a.b.c.d:port1,e.f.g.h:port2 -> return TRUE &&
-    // hostname_result_list=hostname1:port1,hostname2:port2 | invalid a.b.c.d:port1,e.f.g.h:port2 ->
-    // return TRUE && hostname_result_list=a.b.c.d:port1,e.f.g.h:port2
-    static bool list_hostname_from_ip_port(const char *ip_port_list,
-                                           std::string *hostname_result_list);
 
     dsn::error_code do_restore(const std::string &backup_provider_name,
                                const std::string &cluster_name,
@@ -253,16 +222,6 @@ private:
 
     dsn::rpc_address _meta_server;
     dsn::task_tracker _tracker;
-
-    // valid_ipv4_rpc_address return TRUE && hostname_result=hostname:port | invalid_ipv4 -> return
-    // FALSE
-    static bool hostname(const rpc_address &address, std::string *hostname_result);
-
-    // valid_ip_network_order -> return TRUE && hostname_result=hostname	|
-    // invalid_ip_network_order -> return FALSE
-    static bool hostname_from_ip(uint32_t ip, std::string *hostname_result);
-
-    FRIEND_TEST(ip_to_hostname, localhost);
 };
 } // namespace replication
 } // namespace dsn
