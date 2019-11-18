@@ -34,12 +34,12 @@
 
 #pragma once
 
-#include "gtest/gtest_prod.h"
 #include <cctype>
 #include <string>
 #include <map>
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/tool-api/async_calls.h>
+#include <dsn/dist/replication.h>
 #include <dsn/utility/errors.h>
 #include <vector>
 
@@ -220,6 +220,7 @@ private:
         return error_with<TResponse>(std::move(rpc.response()));
     }
 
+private:
     dsn::rpc_address _meta_server;
     dsn::task_tracker _tracker;
 };

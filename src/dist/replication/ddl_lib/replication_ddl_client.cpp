@@ -26,7 +26,6 @@
 
 #include <boost/lexical_cast.hpp>
 #include <fmt/format.h>
-#include <dsn/dist/replication.h>
 #include <dsn/utility/error_code.h>
 #include <dsn/utility/output_utils.h>
 #include <dsn/tool-api/group_address.h>
@@ -40,7 +39,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <gtest/gtest.h>
 
 namespace dsn {
 namespace replication {
