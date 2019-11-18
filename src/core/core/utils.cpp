@@ -50,7 +50,6 @@
 #include <memory>
 #include <array>
 #include <chrono>
-#include <gtest/gtest.h>
 
 #if defined(__linux__)
 #include <sys/syscall.h>
