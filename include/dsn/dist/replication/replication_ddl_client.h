@@ -37,11 +37,12 @@
 #include <cctype>
 #include <string>
 #include <map>
+#include <vector>
+
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/dist/replication.h>
 #include <dsn/utility/errors.h>
-#include <vector>
 
 namespace dsn {
 namespace replication {
