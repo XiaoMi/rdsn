@@ -34,6 +34,8 @@
 
 #pragma once
 
+#include <dsn/dist/replication.h>
+
 #include <cctype>
 #include <string>
 #include <map>
@@ -41,7 +43,6 @@
 
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/tool-api/async_calls.h>
-#include <dsn/dist/replication.h>
 #include <dsn/utility/errors.h>
 
 namespace dsn {
