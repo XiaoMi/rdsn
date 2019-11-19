@@ -37,8 +37,9 @@
 
 #include <functional>
 #include <memory>
-#include <dsn/utility/string_view.h>
+
 #include <dsn/tool-api/rpc_address.h>
+#include <dsn/utility/string_view.h>
 
 #define TIME_MS_MAX 0xffffffff
 
