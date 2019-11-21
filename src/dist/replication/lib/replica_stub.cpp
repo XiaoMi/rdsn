@@ -620,6 +620,17 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     }
 }
 
+#ifdef DSN_ENABLE_GPERF
+static int64_t get_tcmalloc_property(const char *prop)
+{
+    size_t value = 0;
+    if (!::MallocExtension::instance()->GetNumericProperty(prop, &value)) {
+        dfatal_f("Failed to get tcmalloc property {}", prop);
+    }
+    return value;
+}
+#endif
+
 void replica_stub::initialize_start()
 {
     // start timer for configuration sync
@@ -638,17 +649,47 @@ void replica_stub::initialize_start()
 
 #ifdef DSN_ENABLE_GPERF
     if (_options.mem_release_enabled) {
-        _mem_release_timer_task =
-            tasking::enqueue_timer(LPC_MEM_RELEASE,
-                                   &_tracker,
-                                   []() {
-                                       ddebug("Memory release has started...");
-                                       ::MallocExtension::instance()->ReleaseFreeMemory();
-                                       ddebug("Memory release has ended...");
-                                   },
-                                   std::chrono::milliseconds(_options.mem_release_interval_ms),
-                                   0,
-                                   std::chrono::milliseconds(_options.mem_release_interval_ms));
+        _mem_release_timer_task = tasking::enqueue_timer(
+            LPC_MEM_RELEASE,
+            &_tracker,
+            []() {
+                ddebug("Memory release has started...");
+                int64_t current_allocated_bytes =
+                    get_tcmalloc_property("generic.current_allocated_bytes");
+                int64_t pageheap_free_bytes = get_tcmalloc_property("tcmalloc.pageheap_free_bytes");
+                int64_t current_total_thread_cache_bytes =
+                    get_tcmalloc_property("tcmalloc.current_total_thread_cache_bytes");
+                int64_t thread_cache_free_bytes =
+                    get_tcmalloc_property("tcmalloc.thread_cache_free_bytes");
+                int64_t central_cache_free_bytes =
+                    get_tcmalloc_property("tcmalloc.central_cache_free_bytes");
+                int64_t transfer_cache_free_bytes =
+                    get_tcmalloc_property("tcmalloc.transfer_cache_free_bytes");
+                int64_t max_overhead = current_allocated_bytes * 10 / 100;
+                bool need_release = pageheap_free_bytes > max_overhead;
+
+                ddebug_f("hyc tcmalloc statistic:");
+                ddebug_f("hyc total_allocated={}M, pageheap_free={}M, need_release={}",
+                         current_allocated_bytes / 1000000,
+                         pageheap_free_bytes / 1000000,
+                         need_release);
+                ddebug_f(
+                    "hyc total_thread_cache={}M, thread_cache_free={}M, central_cache_free={}M, "
+                    "transfer_free={}M",
+                    current_total_thread_cache_bytes / 1000000,
+                    thread_cache_free_bytes / 1000000,
+                    central_cache_free_bytes / 1000000,
+                    transfer_cache_free_bytes / 1000000);
+                ::MallocExtension::instance()->ReleaseFreeMemory();
+                ddebug("Memory release has ended...");
+                int64_t after_release_total_allocated_bytes =
+                    get_tcmalloc_property("generic.current_allocated_bytes");
+                ddebug_f("hyc release memory {}M",
+                         (current_allocated_bytes - after_release_total_allocated_bytes) / 1000000);
+            },
+            std::chrono::milliseconds(_options.mem_release_interval_ms),
+            0,
+            std::chrono::milliseconds(_options.mem_release_interval_ms));
     }
 #endif
 
