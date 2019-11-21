@@ -157,7 +157,7 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
         tp_hpc.add_row_name_and_data("read_unhealthy_partition_count", read_unhealthy);
         mtp.add(std::move(tp_hpc));
     }
-    
+
     mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
     resp.body = out.str();
     resp.status_code = http_status_code::ok;
