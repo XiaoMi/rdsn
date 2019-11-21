@@ -6,6 +6,7 @@
 #include <functional>
 #include <dsn/dist/block_service.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
+#include <dsn/tool-api/http_server.h>
 
 #include "meta_data.h"
 
@@ -316,6 +317,7 @@ public:
     void add_new_policy(dsn::message_ex* msg);
     void query_policy(dsn::message_ex* msg);
     void modify_policy(dsn::message_ex* msg);
+    void query_policy_http(const http_request &req, http_response &resp);
 
     // compose the absolute path(AP) for policy
     // input:

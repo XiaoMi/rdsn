@@ -1366,6 +1366,7 @@ bool backup_service::is_valid_policy_name_unlocked(const std::string &policy_nam
     return (iter == _policy_states.end());
 }
 
+template <typename T>
 std::string print_set(const std::set<T> &set)
 {
     std::stringstream ss;
@@ -1382,7 +1383,7 @@ std::string print_set(const std::set<T> &set)
     return ss.str();
 }
 
-void backup_service::query_policy_http(const http_request &req, http_response &resp)resp
+void backup_service::query_policy_http(const http_request &req, http_response &resp)
 {
     std::vector<std::string> policy_names;
 
@@ -1420,13 +1421,13 @@ void backup_service::query_policy_http(const http_request &req, http_response &r
                 policy_context_ptr = it->second;
             }
         }
-        if (policy_context_ptr == nullptr) {
-            if (!response.hint_msg.empty()) {
-                response.hint_msg += "\n\t";
-            }
-            response.hint_msg += std::string("invalid policy_name " + policy_name);
-            continue;
-        }
+//        if (policy_context_ptr == nullptr) {
+//            if (!response.hint_msg.empty()) {
+//                response.hint_msg += "\n\t";
+//            }
+//            response.hint_msg += std::string("invalid policy_name " + policy_name);
+//            continue;
+//        }
         policy cur_policy = policy_context_ptr->get_policy();
         tp_ls_backup_policy.add_row(cur_policy.policy_name);
         tp_ls_backup_policy.append_data(cur_policy.backup_provider_type);

@@ -173,7 +173,7 @@ private:
     void on_modify_backup_policy(dsn::message_ex *req);
     void on_report_restore_status(dsn::message_ex *req);
     void on_query_restore_status(dsn::message_ex *req);
-    void query_policy_http(const http_request &req, http_response &resp)resp
+    void query_policy_http(const http_request &req, http_response &resp);
 
     // duplication
     void on_add_duplication(duplication_add_rpc rpc);

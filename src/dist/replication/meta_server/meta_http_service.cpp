@@ -517,7 +517,7 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
 }
 
 void meta_http_service::get_ls_backup_policy_handler(const http_request &req, http_response &resp){
-    *_service->query_policy_http(req,resp);
+    _service->query_policy_http(req,resp);
 }
 
 bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
