@@ -7,7 +7,6 @@
 #include <dsn/c/api_layer1.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
 #include <dsn/dist/replication/replication_types.h>
-#include <dsn/dist/replication/replication_ddl_client.h>
 #include <dsn/utility/config_api.h>
 #include <dsn/utility/output_utils.h>
 #include <dsn/tool-api/task.h>
@@ -16,7 +15,6 @@
 #include "server_state.h"
 #include "meta_http_service.h"
 #include "meta_server_failure_detector.h"
-#include "meta_service.h"
 
 namespace dsn {
 namespace replication {
