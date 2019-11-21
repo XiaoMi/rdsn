@@ -626,6 +626,7 @@ static int64_t get_tcmalloc_property(const char *prop)
     size_t value = 0;
     if (!::MallocExtension::instance()->GetNumericProperty(prop, &value)) {
         dfatal_f("Failed to get tcmalloc property {}", prop);
+        assert(false);
     }
     return value;
 }
@@ -668,24 +669,31 @@ void replica_stub::initialize_start()
                 int64_t max_overhead = current_allocated_bytes * 10 / 100;
                 bool need_release = pageheap_free_bytes > max_overhead;
 
-                ddebug_f("hyc tcmalloc statistic:");
-                ddebug_f("hyc total_allocated={}M, pageheap_free={}M, need_release={}",
-                         current_allocated_bytes / 1000000,
-                         pageheap_free_bytes / 1000000,
+                ddebug_f("Memory total_allocated={}, pageheap_free={}, need_release={}",
+                         current_allocated_bytes,
+                         pageheap_free_bytes,
                          need_release);
                 ddebug_f(
-                    "hyc total_thread_cache={}M, thread_cache_free={}M, central_cache_free={}M, "
-                    "transfer_free={}M",
-                    current_total_thread_cache_bytes / 1000000,
-                    thread_cache_free_bytes / 1000000,
-                    central_cache_free_bytes / 1000000,
-                    transfer_cache_free_bytes / 1000000);
+                    "Memory total_thread_cache={}, thread_cache_free={}, central_cache_free={}, "
+                    "transfer_free={}",
+                    current_total_thread_cache_bytes,
+                    thread_cache_free_bytes,
+                    central_cache_free_bytes,
+                    transfer_cache_free_bytes);
                 ::MallocExtension::instance()->ReleaseFreeMemory();
                 ddebug("Memory release has ended...");
                 int64_t after_release_total_allocated_bytes =
                     get_tcmalloc_property("generic.current_allocated_bytes");
-                ddebug_f("hyc release memory {}M",
-                         (current_allocated_bytes - after_release_total_allocated_bytes) / 1000000);
+                int64_t after_release_pageheap_free_bytes =
+                    get_tcmalloc_property("tcmalloc.pageheap_free_bytes");
+                ddebug_f("Memory before memory={}, after memory={}, total_release={}, before "
+                         "heap_page_free={}, after heap_page_free={}, heap_page_free_gap={}",
+                         current_allocated_bytes,
+                         after_release_total_allocated_bytes,
+                         (after_release_total_allocated_bytes - current_allocated_bytes),
+                         pageheap_free_bytes,
+                         after_release_pageheap_free_bytes,
+                         (pageheap_free_bytes - after_release_pageheap_free_bytes));
             },
             std::chrono::milliseconds(_options.mem_release_interval_ms),
             0,
