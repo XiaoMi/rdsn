@@ -64,7 +64,6 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
         return;
     }
 
-
     // output as json format
     dsn::utils::multi_table_printer mtp;
     std::ostringstream out;
@@ -161,6 +160,7 @@ void meta_http_service::get_app_handler(const http_request &req, http_response &
     
     mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
     resp.body = out.str();
+    resp.status_code = http_status_code::ok;
 }
 
 void meta_http_service::list_app_handler(const http_request &req, http_response &resp)
