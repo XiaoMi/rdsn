@@ -23,6 +23,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include <dsn/dist/replication/replication_ddl_client.h>
 
 #include <arpa/inet.h>
 #include <netdb.h>

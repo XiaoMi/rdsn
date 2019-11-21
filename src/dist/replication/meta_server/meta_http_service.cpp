@@ -2,7 +2,6 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-
 #include <string>
 
 #include <dsn/c/api_layer1.h>
@@ -400,7 +399,6 @@ void meta_http_service::get_ls_backup_policy_handler(const http_request &req, ht
     *_service->query_policy_http(req,resp);
 }
 
-
 bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
 {
 #ifdef DSN_MOCK_TEST
@@ -425,7 +423,6 @@ bool meta_http_service::redirect_if_not_primary(const http_request &req, http_re
     resp.status_code = http_status_code::temporary_redirect;
     return false;
 }
-
 
 } // namespace replication
 } // namespace dsn
