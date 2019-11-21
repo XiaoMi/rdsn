@@ -666,13 +666,12 @@ void replica_stub::initialize_start()
                     get_tcmalloc_property("tcmalloc.central_cache_free_bytes");
                 int64_t transfer_cache_free_bytes =
                     get_tcmalloc_property("tcmalloc.transfer_cache_free_bytes");
-                int64_t max_overhead = current_allocated_bytes * 10 / 100;
+                int64_t max_overhead = current_allocated_bytes * 5 / 100;
                 bool need_release = pageheap_free_bytes > max_overhead;
 
-                ddebug_f("Memory total_allocated={}, pageheap_free={}, need_release={}",
+                ddebug_f("Memory total_allocated={}, pageheap_free={}",
                          current_allocated_bytes,
-                         pageheap_free_bytes,
-                         need_release);
+                         pageheap_free_bytes);
                 ddebug_f(
                     "Memory total_thread_cache={}, thread_cache_free={}, central_cache_free={}, "
                     "transfer_free={}",
@@ -680,6 +679,7 @@ void replica_stub::initialize_start()
                     thread_cache_free_bytes,
                     central_cache_free_bytes,
                     transfer_cache_free_bytes);
+                ddebug_f("Memory need_release={}", need_release);
                 ::MallocExtension::instance()->ReleaseFreeMemory();
                 ddebug("Memory release has ended...");
                 int64_t after_release_total_allocated_bytes =
