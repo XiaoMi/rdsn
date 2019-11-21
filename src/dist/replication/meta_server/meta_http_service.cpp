@@ -2,18 +2,22 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
+
 #include <string>
 
 #include <dsn/c/api_layer1.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
 #include <dsn/dist/replication/replication_types.h>
+#include <dsn/dist/replication/replication_ddl_client.h>
 #include <dsn/utility/config_api.h>
 #include <dsn/utility/output_utils.h>
+#include <dsn/tool-api/task.h>
 
 #include "server_load_balancer.h"
 #include "server_state.h"
 #include "meta_http_service.h"
 #include "meta_server_failure_detector.h"
+#include "meta_service.h"
 
 namespace dsn {
 namespace replication {
@@ -32,130 +36,7 @@ struct list_nodes_helper
 
 void meta_http_service::get_app_handler(const http_request &req, http_response &resp)
 {
-    std::string app_name;
-    bool detailed = false;
-    for (const auto &p : req.query_args) {
-        if (p.first == "name") {
-            app_name = p.second;
-        } else if (p.first == "detail") {
-            detailed = true;
-        } else {
-            resp.status_code = http_status_code::bad_request;
-            return;
-        }
-    }
-    if (!redirect_if_not_primary(req, resp))
-        return;
 
-    configuration_query_by_index_request request;
-    configuration_query_by_index_response response;
-
-    request.app_name = app_name;
-    _service->_state->query_configuration_by_index(request, response);
-    if (response.err == ERR_OBJECT_NOT_FOUND) {
-        resp.status_code = http_status_code::not_found;
-        resp.body = fmt::format("table not found: \"{}\"", app_name);
-        return;
-    }
-    if (response.err != dsn::ERR_OK) {
-        resp.body = response.err.to_string();
-        resp.status_code = http_status_code::internal_server_error;
-        return;
-    }
-
-    // output as json format
-    dsn::utils::multi_table_printer mtp;
-    std::ostringstream out;
-    dsn::utils::table_printer tp_general("general");
-    tp_general.add_row_name_and_data("app_name", app_name);
-    tp_general.add_row_name_and_data("app_id", response.app_id);
-    tp_general.add_row_name_and_data("partition_count", response.partition_count);
-    if (!response.partitions.empty()) {
-        tp_general.add_row_name_and_data("max_replica_count",
-                                         response.partitions[0].max_replica_count);
-    } else {
-        tp_general.add_row_name_and_data("max_replica_count", 0);
-    }
-    mtp.add(std::move(tp_general));
-
-    if (detailed) {
-        dsn::utils::table_printer tp_details("replicas");
-        tp_details.add_title("pidx");
-        tp_details.add_column("ballot");
-        tp_details.add_column("replica_count");
-        tp_details.add_column("primary");
-        tp_details.add_column("secondaries");
-        std::map<rpc_address, std::pair<int, int>> node_stat;
-
-        int total_prim_count = 0;
-        int total_sec_count = 0;
-        int fully_healthy = 0;
-        int write_unhealthy = 0;
-        int read_unhealthy = 0;
-        for (const auto &p : response.partitions) {
-            int replica_count = 0;
-            if (!p.primary.is_invalid()) {
-                replica_count++;
-                node_stat[p.primary].first++;
-                total_prim_count++;
-            }
-            replica_count += p.secondaries.size();
-            total_sec_count += p.secondaries.size();
-            if (!p.primary.is_invalid()) {
-                if (replica_count >= p.max_replica_count)
-                    fully_healthy++;
-                else if (replica_count < 2)
-                    write_unhealthy++;
-            } else {
-                write_unhealthy++;
-                read_unhealthy++;
-            }
-            tp_details.add_row(p.pid.get_partition_index());
-            tp_details.append_data(p.ballot);
-            std::stringstream oss;
-            oss << replica_count << "/" << p.max_replica_count;
-            tp_details.append_data(oss.str());
-            tp_details.append_data((p.primary.is_invalid() ? "-" : p.primary.to_std_string()));
-            oss.str("");
-            oss << "[";
-            for (int j = 0; j < p.secondaries.size(); j++) {
-                if (j != 0)
-                    oss << ",";
-                oss << p.secondaries[j].to_std_string();
-                node_stat[p.secondaries[j]].second++;
-            }
-            oss << "]";
-            tp_details.append_data(oss.str());
-        }
-        mtp.add(std::move(tp_details));
-
-        // 'node' section.
-        dsn::utils::table_printer tp_nodes("nodes");
-        tp_nodes.add_title("node");
-        tp_nodes.add_column("primary");
-        tp_nodes.add_column("secondary");
-        tp_nodes.add_column("total");
-        for (auto &kv : node_stat) {
-            tp_nodes.add_row(kv.first.to_std_string());
-            tp_nodes.append_data(kv.second.first);
-            tp_nodes.append_data(kv.second.second);
-            tp_nodes.append_data(kv.second.first + kv.second.second);
-        }
-        tp_nodes.add_row("total");
-        tp_nodes.append_data(total_prim_count);
-        tp_nodes.append_data(total_sec_count);
-        tp_nodes.append_data(total_prim_count + total_sec_count);
-        mtp.add(std::move(tp_nodes));
-
-        // healthy partition count section.
-        dsn::utils::table_printer tp_hpc("healthy");
-        tp_hpc.add_row_name_and_data("fully_healthy_partition_count", fully_healthy);
-        tp_hpc.add_row_name_and_data("unhealthy_partition_count",
-                                     response.partition_count - fully_healthy);
-        tp_hpc.add_row_name_and_data("write_unhealthy_partition_count", write_unhealthy);
-        tp_hpc.add_row_name_and_data("read_unhealthy_partition_count", read_unhealthy);
-        mtp.add(std::move(tp_hpc));
-    }
 
     mtp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
     resp.body = out.str();
@@ -515,6 +396,11 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     resp.status_code = http_status_code::ok;
 }
 
+void meta_http_service::get_ls_backup_policy_handler(const http_request &req, http_response &resp){
+    *_service->query_policy_http(req,resp);
+}
+
+
 bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
 {
 #ifdef DSN_MOCK_TEST
@@ -539,6 +425,7 @@ bool meta_http_service::redirect_if_not_primary(const http_request &req, http_re
     resp.status_code = http_status_code::temporary_redirect;
     return false;
 }
+
 
 } // namespace replication
 } // namespace dsn

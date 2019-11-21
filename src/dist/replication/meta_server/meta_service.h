@@ -47,6 +47,7 @@
 #include "dist/replication/meta_server/meta_backup_service.h"
 #include "dist/replication/meta_server/meta_state_service_utils.h"
 #include "dist/replication/common/block_service_manager.h"
+#include <dsn/tool-api/http_server.h>
 
 class meta_service_test_app;
 namespace dsn {
@@ -172,6 +173,7 @@ private:
     void on_modify_backup_policy(dsn::message_ex *req);
     void on_report_restore_status(dsn::message_ex *req);
     void on_query_restore_status(dsn::message_ex *req);
+    void query_policy_http(const http_request &req, http_response &resp)resp
 
     // duplication
     void on_add_duplication(duplication_add_rpc rpc);

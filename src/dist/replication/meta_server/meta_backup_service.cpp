@@ -1,5 +1,6 @@
 #include <dsn/utility/filesystem.h>
-
+#include <dsn/tool-api/http_server.h>
+#include <dsn/utility/output_utils.h>
 #include "meta_backup_service.h"
 #include "dist/replication/meta_server/meta_service.h"
 #include "dist/replication/meta_server/server_state.h"
@@ -1363,6 +1364,83 @@ bool backup_service::is_valid_policy_name_unlocked(const std::string &policy_nam
 {
     auto iter = _policy_states.find(policy_name);
     return (iter == _policy_states.end());
+}
+
+std::string print_set(const std::set<T> &set)
+{
+    std::stringstream ss;
+    ss << "{";
+    auto begin = set.begin();
+    auto end = set.end();
+    for (auto it = begin; it != end; it++) {
+        if (it != begin) {
+            ss << ", ";
+        }
+        ss << *it;
+    }
+    ss << "}";
+    return ss.str();
+}
+
+void backup_service::query_policy_http(const http_request &req, http_response &resp)resp
+{
+    std::vector<std::string> policy_names;
+
+    for (const auto &p : req.query_args) {
+        if (p.first == "name") {
+            policy_names.emplace_back(p.second);
+        } else {
+            resp.status_code = http_status_code::bad_request;
+            return;
+        }
+    }
+    if (policy_names.empty()) {
+        // default all the policy
+        zauto_lock l(_lock);
+        for (const auto &pair : _policy_states) {
+            policy_names.emplace_back(pair.first);
+        }
+    }
+
+    dsn::utils::multi_table_printer mtp_ls_backup_policy;
+    dsn::utils::table_printer tp_ls_backup_policy("ls_backup_policy");
+    tp_ls_backup_policy.add_title("name");
+    tp_ls_backup_policy.add_column("backup_provider_type");
+    tp_ls_backup_policy.add_column("backup_interval");
+    tp_ls_backup_policy.add_column("app_ids");
+    tp_ls_backup_policy.add_column("start_time");
+    tp_ls_backup_policy.add_column("status");
+    tp_ls_backup_policy.add_column("backup_history_count");
+    for (const auto &policy_name : policy_names) {
+        std::shared_ptr<policy_context> policy_context_ptr(nullptr);
+        {
+            zauto_lock l(_lock);
+            auto it = _policy_states.find(policy_name);
+            if (it != _policy_states.end()) {
+                policy_context_ptr = it->second;
+            }
+        }
+        if (policy_context_ptr == nullptr) {
+            if (!response.hint_msg.empty()) {
+                response.hint_msg += "\n\t";
+            }
+            response.hint_msg += std::string("invalid policy_name " + policy_name);
+            continue;
+        }
+        policy cur_policy = policy_context_ptr->get_policy();
+        tp_ls_backup_policy.add_row(cur_policy.policy_name);
+        tp_ls_backup_policy.append_data(cur_policy.backup_provider_type);
+        tp_ls_backup_policy.append_data(cur_policy.backup_interval_seconds);
+        tp_ls_backup_policy.append_data(print_set(cur_policy.app_ids));
+        tp_ls_backup_policy.append_data(cur_policy.start_time);
+        tp_ls_backup_policy.append_data(cur_policy.is_disable ? "disabled" : "enabled");
+        tp_ls_backup_policy.append_data(cur_policy.backup_history_count_to_keep);
+        mtp_ls_backup_policy.add(std::move(tp_ls_backup_policy));
+    }
+    std::ostringstream out;
+    mtp_ls_backup_policy.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    resp.body = out.str();
+    resp.status_code = http_status_code::ok;
 }
 
 void backup_service::query_policy(dsn::message_ex *msg)

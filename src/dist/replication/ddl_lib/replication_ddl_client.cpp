@@ -24,8 +24,6 @@
  * THE SOFTWARE.
  */
 
-#include <dsn/dist/replication/replication_ddl_client.h>
-
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/socket.h>

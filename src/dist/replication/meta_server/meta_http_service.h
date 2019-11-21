@@ -47,6 +47,11 @@ public:
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2));
+        register_handler("ls_backup_policy",
+                         std::bind(&meta_http_service::get_ls_backup_policy_handler,
+                                   this,
+                                   std::placeholders::_1,
+                                   std::placeholders::_2));
     }
 
     std::string path() const override { return "meta"; }
