@@ -47,6 +47,7 @@ public:
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2));
+        // GET ip:port/meta/ls_backup_policy
         register_handler("ls_backup_policy",
                          std::bind(&meta_http_service::get_ls_backup_policy_handler,
                                    this,

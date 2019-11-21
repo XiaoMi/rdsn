@@ -1433,7 +1433,7 @@ void backup_service::query_policy_http(const http_request &req, http_response &r
         tp_ls_backup_policy.append_data(cur_policy.backup_provider_type);
         tp_ls_backup_policy.append_data(cur_policy.backup_interval_seconds);
         tp_ls_backup_policy.append_data(print_set(cur_policy.app_ids));
-        tp_ls_backup_policy.append_data(cur_policy.start_time);
+        tp_ls_backup_policy.append_data(cur_policy.start_time.to_string());
         tp_ls_backup_policy.append_data(cur_policy.is_disable ? "disabled" : "enabled");
         tp_ls_backup_policy.append_data(cur_policy.backup_history_count_to_keep);
         mtp_ls_backup_policy.add(std::move(tp_ls_backup_policy));
