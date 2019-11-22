@@ -1391,10 +1391,12 @@ void backup_service::query_policy_http(const http_request &req, http_response &r
         if (p.first == "name") {
             policy_names.push_back(p.second);
         } else {
+            resp.body = "Invalid parameter";
             resp.status_code = http_status_code::bad_request;
             return;
         }
     }
+
     if (policy_names.empty()) {
         // default all the policy
         zauto_lock l(_lock);
@@ -1403,14 +1405,14 @@ void backup_service::query_policy_http(const http_request &req, http_response &r
         }
     }
 
-    dsn::utils::table_printer tp_ls_backup_policy("ls_backup_policy");
-    tp_ls_backup_policy.add_title("name");
-    tp_ls_backup_policy.add_column("backup_provider_type");
-    tp_ls_backup_policy.add_column("backup_interval");
-    tp_ls_backup_policy.add_column("app_ids");
-    tp_ls_backup_policy.add_column("start_time");
-    tp_ls_backup_policy.add_column("status");
-    tp_ls_backup_policy.add_column("backup_history_count");
+    dsn::utils::table_printer tp_query_backup_policy("query_backup_policy");
+    tp_query_backup_policy.add_title("name");
+    tp_query_backup_policy.add_column("backup_provider_type");
+    tp_query_backup_policy.add_column("backup_interval");
+    tp_query_backup_policy.add_column("app_ids");
+    tp_query_backup_policy.add_column("start_time");
+    tp_query_backup_policy.add_column("status");
+    tp_query_backup_policy.add_column("backup_history_count");
     for (const auto &policy_name : policy_names) {
         std::shared_ptr<policy_context> policy_context_ptr(nullptr);
         {
@@ -1420,24 +1422,20 @@ void backup_service::query_policy_http(const http_request &req, http_response &r
                 policy_context_ptr = it->second;
             }
         }
-//        if (policy_context_ptr == nullptr) {
-//            if (!response.hint_msg.empty()) {
-//                response.hint_msg += "\n\t";
-//            }
-//            response.hint_msg += std::string("invalid policy_name " + policy_name);
-//            continue;
-//        }
+        if (policy_context_ptr == nullptr) {
+            continue ;
+        }
         policy cur_policy = policy_context_ptr->get_policy();
-        tp_ls_backup_policy.add_row(cur_policy.policy_name);
-        tp_ls_backup_policy.append_data(cur_policy.backup_provider_type);
-        tp_ls_backup_policy.append_data(cur_policy.backup_interval_seconds);
-        tp_ls_backup_policy.append_data(print_set(cur_policy.app_ids));
-        tp_ls_backup_policy.append_data(cur_policy.start_time.to_string());
-        tp_ls_backup_policy.append_data(cur_policy.is_disable ? "disabled" : "enabled");
-        tp_ls_backup_policy.append_data(cur_policy.backup_history_count_to_keep);
+        tp_query_backup_policy.add_row(cur_policy.policy_name);
+        tp_query_backup_policy.append_data(cur_policy.backup_provider_type);
+        tp_query_backup_policy.append_data(cur_policy.backup_interval_seconds);
+        tp_query_backup_policy.append_data(print_set(cur_policy.app_ids));
+        tp_query_backup_policy.append_data(cur_policy.start_time.to_string());
+        tp_query_backup_policy.append_data(cur_policy.is_disable ? "disabled" : "enabled");
+        tp_query_backup_policy.append_data(cur_policy.backup_history_count_to_keep);
     }
     std::ostringstream out;
-    tp_ls_backup_policy.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    tp_query_backup_policy.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
     resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }

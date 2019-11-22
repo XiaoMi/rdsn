@@ -47,9 +47,9 @@ public:
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2));
-        // GET ip:port/meta/ls_backup_policy
-        register_handler("ls_backup_policy",
-                         std::bind(&meta_http_service::get_ls_backup_policy_handler,
+        // GET ip:port/meta/query_backup_policy
+        register_handler("query_backup_policy",
+                         std::bind(&meta_http_service::get_query_backup_policy_handler,
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2));
@@ -62,9 +62,11 @@ public:
     void list_node_handler(const http_request &req, http_response &resp);
     void get_cluster_info_handler(const http_request &req, http_response &resp);
     void get_app_envs_handler(const http_request &req, http_response &resp);
-    void get_ls_backup_policy_handler(const http_request &req, http_response &resp);
+    void get_query_backup_policy_handler(const http_request &req, http_response &resp);
 
 private:
+    void Test_add_backup_policy();
+
     // set redirect location if current server is not primary
     bool redirect_if_not_primary(const http_request &req, http_response &resp);
 
