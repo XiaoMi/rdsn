@@ -10,7 +10,6 @@
 #include <dsn/dist/replication/replication_types.h>
 #include <dsn/utility/config_api.h>
 #include <dsn/utility/output_utils.h>
-#include <dsn/tool-api/task.h>
 
 #include "server_load_balancer.h"
 #include "server_state.h"
