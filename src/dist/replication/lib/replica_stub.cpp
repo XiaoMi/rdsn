@@ -680,7 +680,18 @@ void replica_stub::initialize_start()
                     central_cache_free_bytes,
                     transfer_cache_free_bytes);
                 ddebug_f("Memory need_release={}", need_release);
-                ::MallocExtension::instance()->ReleaseFreeMemory();
+
+                // ::MallocExtension::instance()->ReleaseFreeMemory();
+
+                int64_t bytes_overhead = pageheap_free_bytes;
+                if (bytes_overhead > max_overhead) {
+                    int64_t extra = bytes_overhead - max_overhead;
+                    while (extra > 0) {
+                        ::MallocExtension::instance()->ReleaseToSystem(1024 * 1024);
+                        extra -= 1024 * 1024;
+                    }
+                }
+
                 ddebug("Memory release has ended...");
                 int64_t after_release_total_allocated_bytes =
                     get_tcmalloc_property("generic.current_allocated_bytes");
