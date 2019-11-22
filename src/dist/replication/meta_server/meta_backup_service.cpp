@@ -1389,7 +1389,7 @@ void backup_service::query_policy_http(const http_request &req, http_response &r
 
     for (const auto &p : req.query_args) {
         if (p.first == "name") {
-            policy_names.emplace_back(p.second);
+            policy_names.push_back(p.second);
         } else {
             resp.status_code = http_status_code::bad_request;
             return;
@@ -1399,11 +1399,10 @@ void backup_service::query_policy_http(const http_request &req, http_response &r
         // default all the policy
         zauto_lock l(_lock);
         for (const auto &pair : _policy_states) {
-            policy_names.emplace_back(pair.first);
+            policy_names.push_back(pair.first);
         }
     }
 
-    dsn::utils::multi_table_printer mtp_ls_backup_policy;
     dsn::utils::table_printer tp_ls_backup_policy("ls_backup_policy");
     tp_ls_backup_policy.add_title("name");
     tp_ls_backup_policy.add_column("backup_provider_type");
@@ -1436,10 +1435,9 @@ void backup_service::query_policy_http(const http_request &req, http_response &r
         tp_ls_backup_policy.append_data(cur_policy.start_time.to_string());
         tp_ls_backup_policy.append_data(cur_policy.is_disable ? "disabled" : "enabled");
         tp_ls_backup_policy.append_data(cur_policy.backup_history_count_to_keep);
-        mtp_ls_backup_policy.add(std::move(tp_ls_backup_policy));
     }
     std::ostringstream out;
-    mtp_ls_backup_policy.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    tp_ls_backup_policy.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
     resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
@@ -1487,7 +1485,7 @@ void backup_service::query_policy(dsn::message_ex *msg)
         p_entry.backup_history_count_to_keep = cur_policy.backup_history_count_to_keep;
         p_entry.start_time = cur_policy.start_time.to_string();
         p_entry.is_disable = cur_policy.is_disable;
-        response.policys.emplace_back(std::move(p_entry));
+        response.policys.emplace_back(p_entry);
         // acquire backup_infos
         std::vector<backup_info> b_infos =
             policy_context_ptr->get_backup_infos(request.backup_info_count);

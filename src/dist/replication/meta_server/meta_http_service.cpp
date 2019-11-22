@@ -3,6 +3,7 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <string>
+#include <iostream>
 
 #include <dsn/c/api_layer1.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
@@ -517,7 +518,18 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
 }
 
 void meta_http_service::get_ls_backup_policy_handler(const http_request &req, http_response &resp){
+
+    if (!redirect_if_not_primary(req, resp))
+        return;
+
+    if (_service->_backup_handler==nullptr){
+        resp.body = "cold_backup_disabled";
+        return;
+    }
+
     _service->_backup_handler->query_policy_http(req,resp);
+    ddebug("resp.body=%s",resp.body);
+    //std::cout<<"resp.body="<<resp.body<<std::endl;
 }
 
 bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
