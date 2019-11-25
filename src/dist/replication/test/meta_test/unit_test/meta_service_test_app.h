@@ -118,6 +118,7 @@ public:
 
     void policy_context_test();
     void backup_service_test();
+    void meta_http_service_policy_test();
 
     // test server_state set_app_envs/del_app_envs/clear_app_envs
     void app_envs_basic_test();
@@ -131,6 +132,7 @@ public:
     void call_config_sync(
         dsn::replication::meta_service *svc,
         std::shared_ptr<dsn::replication::configuration_query_by_node_request> &request);
+
 
 private:
     typedef std::function<bool(const dsn::replication::app_mapper &)> state_validator;

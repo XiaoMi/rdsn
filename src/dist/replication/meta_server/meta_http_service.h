@@ -65,8 +65,6 @@ public:
     void get_query_backup_policy_handler(const http_request &req, http_response &resp);
 
 private:
-    void Test_add_backup_policy();
-
     // set redirect location if current server is not primary
     bool redirect_if_not_primary(const http_request &req, http_response &resp);
 
