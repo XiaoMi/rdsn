@@ -104,7 +104,8 @@ public:
     int32_t config_sync_interval_ms;
 
     bool mem_release_enabled;
-    int32_t mem_release_interval_ms;
+    int32_t mem_release_check_interval_ms;
+    int32_t mem_release_tcmalloc_max_reserved_memory_percentage;
 
     int32_t lb_interval_ms;
 

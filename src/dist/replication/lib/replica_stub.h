@@ -246,6 +246,16 @@ private:
                          partition_status::type status,
                          error_code error);
 
+#ifdef DSN_ENABLE_GPERF
+    // Get tcmalloc numeric property (name is "prop") value.
+    // Return -1 if get property failed (property we used will be greater than zero)
+    // Properties can be found in 'gperftools/malloc_extension.h'
+    int64_t get_tcmalloc_numeric_property(const char *prop);
+
+    // Try to release tcmalloc memory back to operating system
+    void gc_tcmalloc_memory();
+#endif
+
 private:
     friend class ::dsn::replication::replication_checker;
     friend class ::dsn::replication::test::test_checker;

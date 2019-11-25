@@ -620,18 +620,6 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     }
 }
 
-#ifdef DSN_ENABLE_GPERF
-static int64_t get_tcmalloc_property(const char *prop)
-{
-    size_t value = 0;
-    if (!::MallocExtension::instance()->GetNumericProperty(prop, &value)) {
-        dfatal_f("Failed to get tcmalloc property {}", prop);
-        assert(false);
-    }
-    return value;
-}
-#endif
-
 void replica_stub::initialize_start()
 {
     // start timer for configuration sync
@@ -653,62 +641,10 @@ void replica_stub::initialize_start()
         _mem_release_timer_task = tasking::enqueue_timer(
             LPC_MEM_RELEASE,
             &_tracker,
-            []() {
-                ddebug("Memory release has started...");
-                int64_t current_allocated_bytes =
-                    get_tcmalloc_property("generic.current_allocated_bytes");
-                int64_t pageheap_free_bytes = get_tcmalloc_property("tcmalloc.pageheap_free_bytes");
-                int64_t current_total_thread_cache_bytes =
-                    get_tcmalloc_property("tcmalloc.current_total_thread_cache_bytes");
-                int64_t thread_cache_free_bytes =
-                    get_tcmalloc_property("tcmalloc.thread_cache_free_bytes");
-                int64_t central_cache_free_bytes =
-                    get_tcmalloc_property("tcmalloc.central_cache_free_bytes");
-                int64_t transfer_cache_free_bytes =
-                    get_tcmalloc_property("tcmalloc.transfer_cache_free_bytes");
-                int64_t max_overhead = current_allocated_bytes * 5 / 100;
-                bool need_release = pageheap_free_bytes > max_overhead;
-
-                ddebug_f("Memory total_allocated={}, pageheap_free={}",
-                         current_allocated_bytes,
-                         pageheap_free_bytes);
-                ddebug_f(
-                    "Memory total_thread_cache={}, thread_cache_free={}, central_cache_free={}, "
-                    "transfer_free={}",
-                    current_total_thread_cache_bytes,
-                    thread_cache_free_bytes,
-                    central_cache_free_bytes,
-                    transfer_cache_free_bytes);
-                ddebug_f("Memory need_release={}", need_release);
-
-                // ::MallocExtension::instance()->ReleaseFreeMemory();
-
-                int64_t bytes_overhead = pageheap_free_bytes;
-                if (bytes_overhead > max_overhead) {
-                    int64_t extra = bytes_overhead - max_overhead;
-                    while (extra > 0) {
-                        ::MallocExtension::instance()->ReleaseToSystem(1024 * 1024);
-                        extra -= 1024 * 1024;
-                    }
-                }
-
-                ddebug("Memory release has ended...");
-                int64_t after_release_total_allocated_bytes =
-                    get_tcmalloc_property("generic.current_allocated_bytes");
-                int64_t after_release_pageheap_free_bytes =
-                    get_tcmalloc_property("tcmalloc.pageheap_free_bytes");
-                ddebug_f("Memory before memory={}, after memory={}, total_release={}, before "
-                         "heap_page_free={}, after heap_page_free={}, heap_page_free_gap={}",
-                         current_allocated_bytes,
-                         after_release_total_allocated_bytes,
-                         (after_release_total_allocated_bytes - current_allocated_bytes),
-                         pageheap_free_bytes,
-                         after_release_pageheap_free_bytes,
-                         (pageheap_free_bytes - after_release_pageheap_free_bytes));
-            },
-            std::chrono::milliseconds(_options.mem_release_interval_ms),
+            std::bind(&replica_stub::gc_tcmalloc_memory, this),
+            std::chrono::milliseconds(_options.mem_release_check_interval_ms),
             0,
-            std::chrono::milliseconds(_options.mem_release_interval_ms));
+            std::chrono::milliseconds(_options.mem_release_check_interval_ms));
     }
 #endif
 
@@ -2363,6 +2299,48 @@ replica_stub::get_child_dir(const char *app_type, gpid child_pid, const std::str
     dassert_f(!child_dir.empty(), "can not find parent_dir {} in data_dirs", parent_dir);
     return child_dir;
 }
+
+#ifdef DSN_ENABLE_GPERF
+int64_t replica_stub::get_tcmalloc_numeric_property(const char *prop)
+{
+    size_t value;
+    if (!::MallocExtension::instance()->GetNumericProperty(prop, &value)) {
+        derror_f("Failed to get tcmalloc property {}", prop);
+        return -1;
+    }
+    return value;
+}
+
+void replica_stub::gc_tcmalloc_memory()
+{
+    int64_t total_allocated_bytes =
+        get_tcmalloc_numeric_property("generic.current_allocated_bytes");
+    int64_t reserved_bytes = get_tcmalloc_numeric_property("tcmalloc.pageheap_free_bytes");
+    // TODO(heyuchen): delete it
+    int64_t pageheap_free_before = reserved_bytes;
+
+    int64_t max_reserved_bytes = total_allocated_bytes *
+                                 _options.mem_release_tcmalloc_max_reserved_memory_percentage /
+                                 100.0;
+    if (reserved_bytes > max_reserved_bytes) {
+        int64_t release_bytes = reserved_bytes - max_reserved_bytes;
+        ddebug_f("Memory release started, almost {} bytes will be released", release_bytes);
+        while (release_bytes > 0) {
+            // tcmalloc release memory will lock page heap, release 1MB at a time will shorten
+            // locked time
+            ::MallocExtension::instance()->ReleaseToSystem(1024 * 1024);
+            release_bytes -= 1024 * 1024;
+        }
+    }
+    // TODO(heyuchen): delete it
+    int64_t pageheap_free_after = get_tcmalloc_numeric_property("tcmalloc.pageheap_free_bytes");
+    ddebug_f("total={}, reserved={}, need_release={}, heappage_free={}",
+             total_allocated_bytes,
+             pageheap_free_before,
+             pageheap_free_before > max_reserved_bytes,
+             pageheap_free_before - pageheap_free_after);
+}
+#endif
 
 //
 // partition split
