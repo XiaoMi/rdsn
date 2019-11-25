@@ -68,11 +68,13 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _query_compact_command(nullptr),
       _query_app_envs_command(nullptr),
       _useless_dir_reserve_seconds_command(nullptr),
+      _mem_release_max_reserved_percentage_command(nullptr),
       _deny_client(false),
       _verbose_client_log(false),
       _verbose_commit_log(false),
       _gc_disk_error_replica_interval_seconds(3600),
       _gc_disk_garbage_replica_interval_seconds(3600),
+      _mem_release_tcmalloc_max_reserved_memory_percentage(10),
       _learn_app_concurrent_count(0),
       _fs_manager(false)
 {
@@ -317,6 +319,8 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     _verbose_commit_log = _options.verbose_commit_log_on_start;
     _gc_disk_error_replica_interval_seconds = _options.gc_disk_error_replica_interval_seconds;
     _gc_disk_garbage_replica_interval_seconds = _options.gc_disk_garbage_replica_interval_seconds;
+    _mem_release_tcmalloc_max_reserved_memory_percentage =
+        _options.mem_release_tcmalloc_max_reserved_memory_percentage;
 
     // clear dirs if need
     if (clear) {
@@ -2049,6 +2053,33 @@ void replica_stub::open_service()
             }
             return result;
         });
+
+    _mem_release_max_reserved_percentage_command =
+        dsn::command_manager::instance().register_app_command(
+            {"mem-release-max-reserved-percentage"},
+            "mem-release-max-reserved-percentage [num | DEFAULT]",
+            "control tcmalloc max reserved but not-used memory percentage",
+            [this](const std::vector<std::string> &args) {
+                std::string result("OK");
+                if (args.empty()) {
+                    result = "mem-release-max-reserved-percentage=" +
+                             std::to_string(_mem_release_tcmalloc_max_reserved_memory_percentage);
+                } else {
+                    if (args[0] == "DEFAULT") {
+                        _mem_release_tcmalloc_max_reserved_memory_percentage =
+                            _options.mem_release_tcmalloc_max_reserved_memory_percentage;
+                    } else {
+                        int32_t percentage = 0;
+                        if (!dsn::buf2int32(args[0], percentage) || percentage <= 0 ||
+                            percentage >= 100) {
+                            result = std::string("ERR: invalid arguments");
+                        } else {
+                            _mem_release_tcmalloc_max_reserved_memory_percentage = percentage;
+                        }
+                    }
+                }
+                return result;
+            });
 }
 
 std::string
@@ -2174,6 +2205,8 @@ void replica_stub::close()
     dsn::command_manager::instance().deregister_command(_query_compact_command);
     dsn::command_manager::instance().deregister_command(_query_app_envs_command);
     dsn::command_manager::instance().deregister_command(_useless_dir_reserve_seconds_command);
+    dsn::command_manager::instance().deregister_command(
+        _mem_release_max_reserved_percentage_command);
 
     _kill_partition_command = nullptr;
     _deny_client_command = nullptr;
@@ -2183,6 +2216,7 @@ void replica_stub::close()
     _query_compact_command = nullptr;
     _query_app_envs_command = nullptr;
     _useless_dir_reserve_seconds_command = nullptr;
+    _mem_release_max_reserved_percentage_command = nullptr;
 
     if (_config_sync_timer_task != nullptr) {
         _config_sync_timer_task->cancel(true);
@@ -2319,9 +2353,8 @@ void replica_stub::gc_tcmalloc_memory()
     // TODO(heyuchen): delete it
     int64_t pageheap_free_before = reserved_bytes;
 
-    int64_t max_reserved_bytes = total_allocated_bytes *
-                                 _options.mem_release_tcmalloc_max_reserved_memory_percentage /
-                                 100.0;
+    int64_t max_reserved_bytes =
+        total_allocated_bytes * _mem_release_tcmalloc_max_reserved_memory_percentage / 100.0;
     if (reserved_bytes > max_reserved_bytes) {
         int64_t release_bytes = reserved_bytes - max_reserved_bytes;
         ddebug_f("Memory release started, almost {} bytes will be released", release_bytes);
