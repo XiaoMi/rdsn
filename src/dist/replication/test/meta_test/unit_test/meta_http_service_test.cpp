@@ -62,11 +62,26 @@ public:
 
     std::unique_ptr<meta_http_service> _mhs;
     std::string test_app = "test_meta_http";
+
+    void test_get_backup_policy(){
+        http_request fake_req;
+        http_response fake_resp;
+        fake_req.query_args.emplace("name", "TEST");
+
+        // need to fix
+        std::string fake_json = "1";
+        ASSERT_EQ(fake_resp.status_code, http_status_code::ok)
+                                    << http_status_code_to_string(fake_resp.status_code);
+        ASSERT_EQ(fake_resp.body, fake_json);
+    }
+
 };
 
 TEST_F(meta_http_service_test, get_app_from_primary) { test_get_app_from_primary(); }
 
 TEST_F(meta_http_service_test, get_app_envs) { test_get_app_envs(); }
+
+TEST_F(meta_http_service_test, get_backup_policy) {add_new_policy(); test_get_backup_policy(); }
 
 } // namespace replication
 } // namespace dsn

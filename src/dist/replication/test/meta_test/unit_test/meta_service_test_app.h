@@ -118,7 +118,6 @@ public:
 
     void policy_context_test();
     void backup_service_test();
-    void meta_http_service_policy_test();
 
     // test server_state set_app_envs/del_app_envs/clear_app_envs
     void app_envs_basic_test();
@@ -132,7 +131,6 @@ public:
     void call_config_sync(
         dsn::replication::meta_service *svc,
         std::shared_ptr<dsn::replication::configuration_query_by_node_request> &request);
-
 
 private:
     typedef std::function<bool(const dsn::replication::app_mapper &)> state_validator;
@@ -187,3 +185,7 @@ fake_rpc_call(dsn::task_code rpc_code,
         ::dsn::unmarshall(context->response, response_data);                                       \
         context->response->release_ref();                                                          \
     } while (0)
+
+#define fake_create_policy(state, request_data)
+    fake_rpc_call(
+        RPC_CM_ADD_BACKUP_POLICY, LPC_DEFAULT_CALLBACK, state, &backup_service::add_new_policy, request_data)

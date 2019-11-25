@@ -86,6 +86,23 @@ public:
 
     void create_app(const std::string &name) { create_app(name, 8); }
 
+
+    void add_new_policy(){
+        configuration_add_backup_policy_request request;
+        configuration_add_backup_policy_response response;
+
+        request.policy_name = "TEST";
+        request.backup_provider_type = "TEST";
+        request.backup_interval_seconds = 1;
+        request.backup_history_count_to_keep = 1;
+        request.start_time = "12:00";
+
+        auto result = fake_create_policy(_bs.get(), request);
+        fake_wait_rpc(result, response);
+        //need to fix
+        ASSERT_EQ(resp.err, ERR_OK) << resp.err.to_string() << " " << name;
+    }
+
     // drop an app for test.
     void drop_app(const std::string &name)
     {
@@ -100,6 +117,7 @@ public:
 
         ASSERT_TRUE(_ss->spin_wait_staging(30));
     }
+
 
     error_code update_app_envs(const std::string &app_name,
                                const std::vector<std::string> &env_keys,
@@ -124,6 +142,7 @@ public:
     meta_split_service &split_svc() { return *(_ms->_split_svc); }
 
     std::shared_ptr<server_state> _ss;
+    std::shared_ptr<backup_service> _bs;
     std::unique_ptr<meta_service> _ms;
 };
 
