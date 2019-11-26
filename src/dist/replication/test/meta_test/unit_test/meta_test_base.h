@@ -23,6 +23,7 @@ public:
         _ms->_failure_detector.reset(new meta_server_failure_detector(_ms.get()));
         _ms->_balancer.reset(utils::factory_store<server_load_balancer>::create(
             _ms->_meta_opts._lb_opts.server_load_balancer_type.c_str(), PROVIDER_TYPE_MAIN, this));
+
         ASSERT_EQ(_ms->remote_storage_initialize(), ERR_OK);
         _ms->initialize_duplication_service();
         ASSERT_TRUE(_ms->_dup_svc);
@@ -31,6 +32,12 @@ public:
 
         _ss = _ms->_state;
         _ss->initialize(_ms.get(), _ms->_cluster_root + "/apps");
+
+        _bs = std::make_shared<backup_service>(
+                _ms.get(),
+                _ms->_cluster_root + "/backup_meta",
+                _ms->_cluster_root + "/backup",
+                [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
 
         _ms->_started = true;
 
@@ -100,7 +107,7 @@ public:
         auto result = fake_create_policy(_bs.get(), request);
         fake_wait_rpc(result, response);
         //need to fix
-        ASSERT_EQ(resp.err, ERR_OK) << resp.err.to_string() << " " << name;
+        ASSERT_EQ(response.err, ERR_OK);
     }
 
     // drop an app for test.
