@@ -179,15 +179,16 @@ fake_rpc_call(dsn::task_code rpc_code,
     fake_rpc_call(                                                                                 \
         RPC_CM_RECALL_APP, LPC_META_STATE_NORMAL, state, &server_state::recall_app, request_data)
 
-#define fake_create_policy(state, request_data)                                                     \
-    fake_rpc_call(                                                                                  \
-        RPC_CM_ADD_BACKUP_POLICY, LPC_META_STATE_NORMAL, state, &backup_service::add_new_policy, request_data)
+#define fake_create_policy(state, request_data)                                                    \
+    fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,                                                        \
+                  LPC_META_STATE_NORMAL,                                                           \
+                  state,                                                                           \
+                  &backup_service::add_new_policy,                                                 \
+                  request_data)
 
-
-        #define fake_wait_rpc(context, response_data)                                                      \
+#define fake_wait_rpc(context, response_data)                                                      \
     do {                                                                                           \
         context->e.wait();                                                                         \
         ::dsn::unmarshall(context->response, response_data);                                       \
         context->response->release_ref();                                                          \
     } while (0)
-

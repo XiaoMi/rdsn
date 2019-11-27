@@ -23,7 +23,6 @@ public:
         _ms->_failure_detector.reset(new meta_server_failure_detector(_ms.get()));
         _ms->_balancer.reset(utils::factory_store<server_load_balancer>::create(
             _ms->_meta_opts._lb_opts.server_load_balancer_type.c_str(), PROVIDER_TYPE_MAIN, this));
-
         ASSERT_EQ(_ms->remote_storage_initialize(), ERR_OK);
         _ms->initialize_duplication_service();
         ASSERT_TRUE(_ms->_dup_svc);
@@ -34,10 +33,10 @@ public:
         _ss->initialize(_ms.get(), _ms->_cluster_root + "/apps");
 
         _ms->_backup_handler = std::make_shared<backup_service>(
-                _ms.get(),
-                _ms->_cluster_root + "/backup_meta",
-                _ms->_cluster_root + "/backup",
-                [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
+            _ms.get(),
+            _ms->_cluster_root + "/backup_meta",
+            _ms->_cluster_root + "/backup",
+            [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
 
         _ms->_started = true;
 
@@ -93,8 +92,8 @@ public:
 
     void create_app(const std::string &name) { create_app(name, 8); }
 
-
-    void add_new_policy(){
+    void add_new_policy()
+    {
         static const std::string test_policy_name = "TEST";
         const std::string policy_root = "/test";
         const std::string policy_dir = "/test/" + test_policy_name;
@@ -104,19 +103,19 @@ public:
         dsn::error_code ec = _ms->remote_storage_initialize();
         _ms->_started = true;
 
-        _ms->_backup_handler =std::make_shared<backup_service>(
-                _ms.get(),
-                _ms->_cluster_root + "/backup_meta",
-                _ms->_cluster_root + "/backup",
-                [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
+        _ms->_backup_handler = std::make_shared<backup_service>(
+            _ms.get(),
+            _ms->_cluster_root + "/backup_meta",
+            _ms->_cluster_root + "/backup",
+            [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
         _ms->_backup_handler->start();
         _ms->_backup_handler->backup_option().app_dropped_retry_delay_ms = 500_ms;
         _ms->_backup_handler->backup_option().request_backup_period_ms = 20_ms;
         _ms->_backup_handler->backup_option().issue_backup_interval_ms = 1000_ms;
         _ms->_storage
-                ->create_node(
-                        policy_root, dsn::TASK_CODE_EXEC_INLINED, [&ec](dsn::error_code err) { ec = err; })
-                ->wait();
+            ->create_node(
+                policy_root, dsn::TASK_CODE_EXEC_INLINED, [&ec](dsn::error_code err) { ec = err; })
+            ->wait();
         request.policy_name = "TEST";
         request.backup_provider_type = "local_service";
         request.backup_interval_seconds = 1;
@@ -125,10 +124,10 @@ public:
         request.app_ids.clear();
         request.app_ids.push_back(2);
 
-        auto result = fake_create_policy( _ms->_backup_handler.get(), request);
+        auto result = fake_create_policy(_ms->_backup_handler.get(), request);
 
         fake_wait_rpc(result, response);
-        //need to fix
+        // need to fix
         ASSERT_EQ(response.err, ERR_OK);
     }
 
@@ -146,7 +145,6 @@ public:
 
         ASSERT_TRUE(_ss->spin_wait_staging(30));
     }
-
 
     error_code update_app_envs(const std::string &app_name,
                                const std::vector<std::string> &env_keys,

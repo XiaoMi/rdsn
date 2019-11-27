@@ -722,14 +722,12 @@ void meta_service::on_add_backup_policy(dsn::message_ex *req)
 {
     configuration_add_backup_policy_response response;
     RPC_CHECK_STATUS(req, response);
-    derror("cometohere1");
     if (_backup_handler == nullptr) {
         derror("meta doesn't enable backup service");
         response.err = ERR_SERVICE_NOT_ACTIVE;
         reply(req, response);
     } else {
         req->add_ref();
-        derror("cometohere2");
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
                          nullptr,
                          std::bind(&backup_service::add_new_policy, _backup_handler.get(), req));
