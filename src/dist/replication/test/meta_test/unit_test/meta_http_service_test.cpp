@@ -67,9 +67,10 @@ public:
         http_request fake_req;
         http_response fake_resp;
         fake_req.query_args.emplace("name", "TEST");
+        _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
 
         // need to fix
-        std::string fake_json = "1";
+        std::string fake_json = "{\"query_backup_policy\":{\"TEST\":{\"name\":\"TEST\",\"backup_provider_type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"{2}\",\"start_time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}}\n";
         ASSERT_EQ(fake_resp.status_code, http_status_code::ok)
                                     << http_status_code_to_string(fake_resp.status_code);
         ASSERT_EQ(fake_resp.body, fake_json);
@@ -81,7 +82,7 @@ TEST_F(meta_http_service_test, get_app_from_primary) { test_get_app_from_primary
 
 TEST_F(meta_http_service_test, get_app_envs) { test_get_app_envs(); }
 
-TEST_F(meta_http_service_test, get_backup_policy) {add_new_policy(); test_get_backup_policy(); }
+TEST_F(meta_http_service_test, get_backup_policy) {test_get_app_from_primary(); add_new_policy(); test_get_backup_policy(); }
 
 } // namespace replication
 } // namespace dsn

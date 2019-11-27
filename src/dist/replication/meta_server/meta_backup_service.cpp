@@ -1196,6 +1196,7 @@ error_code backup_service::sync_policies_from_remote_storage()
 
 void backup_service::start()
 {
+
     dsn::task_ptr after_create_policy_meta_root =
         tasking::create_task(LPC_DEFAULT_CALLBACK, nullptr, [this]() { start_sync_policies(); });
     start_create_policy_meta_root(after_create_policy_meta_root);
@@ -1205,8 +1206,10 @@ void backup_service::add_new_policy(dsn::message_ex *msg)
 {
     configuration_add_backup_policy_request request;
     configuration_add_backup_policy_response response;
-
     ::dsn::unmarshall(msg, request);
+    derror("cometohere3 %s",request.policy_name.c_str());
+    for (auto &app_id : request.app_ids)
+        derror("!!!%d!!! \n",app_id);
     std::set<int32_t> app_ids;
     std::map<int32_t, std::string> app_names;
     {

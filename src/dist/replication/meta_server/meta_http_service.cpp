@@ -527,7 +527,7 @@ void meta_http_service::get_query_backup_policy_handler(const http_request &req,
     }
 
     _service->_backup_handler->query_policy_http(req,resp);
-    ddebug("resp.body=%s",resp.body);
+    ddebug("resp.body=%s",resp.body.c_str());
 }
 
 bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)

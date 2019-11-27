@@ -33,7 +33,7 @@ public:
         _ss = _ms->_state;
         _ss->initialize(_ms.get(), _ms->_cluster_root + "/apps");
 
-        _bs = std::make_shared<backup_service>(
+        _ms->_backup_handler = std::make_shared<backup_service>(
                 _ms.get(),
                 _ms->_cluster_root + "/backup_meta",
                 _ms->_cluster_root + "/backup",
@@ -95,16 +95,38 @@ public:
 
 
     void add_new_policy(){
+        static const std::string test_policy_name = "TEST";
+        const std::string policy_root = "/test";
+        const std::string policy_dir = "/test/" + test_policy_name;
+
         configuration_add_backup_policy_request request;
         configuration_add_backup_policy_response response;
+        dsn::error_code ec = _ms->remote_storage_initialize();
+        _ms->_started = true;
 
+        _ms->_backup_handler =std::make_shared<backup_service>(
+                _ms.get(),
+                _ms->_cluster_root + "/backup_meta",
+                _ms->_cluster_root + "/backup",
+                [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
+        _ms->_backup_handler->start();
+        _ms->_backup_handler->backup_option().app_dropped_retry_delay_ms = 500_ms;
+        _ms->_backup_handler->backup_option().request_backup_period_ms = 20_ms;
+        _ms->_backup_handler->backup_option().issue_backup_interval_ms = 1000_ms;
+        _ms->_storage
+                ->create_node(
+                        policy_root, dsn::TASK_CODE_EXEC_INLINED, [&ec](dsn::error_code err) { ec = err; })
+                ->wait();
         request.policy_name = "TEST";
-        request.backup_provider_type = "TEST";
+        request.backup_provider_type = "local_service";
         request.backup_interval_seconds = 1;
         request.backup_history_count_to_keep = 1;
         request.start_time = "12:00";
+        request.app_ids.clear();
+        request.app_ids.push_back(2);
 
-        auto result = fake_create_policy(_bs.get(), request);
+        auto result = fake_create_policy( _ms->_backup_handler.get(), request);
+
         fake_wait_rpc(result, response);
         //need to fix
         ASSERT_EQ(response.err, ERR_OK);
@@ -149,7 +171,6 @@ public:
     meta_split_service &split_svc() { return *(_ms->_split_svc); }
 
     std::shared_ptr<server_state> _ss;
-    std::shared_ptr<backup_service> _bs;
     std::unique_ptr<meta_service> _ms;
 };
 
