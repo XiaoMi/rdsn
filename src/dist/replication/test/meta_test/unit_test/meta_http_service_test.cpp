@@ -63,15 +63,15 @@ public:
     std::unique_ptr<meta_http_service> _mhs;
     std::string test_app = "test_meta_http";
 
-    void test_get_backup_policy()
+    void test_get_backup_policy1()
     {
         http_request fake_req;
         http_response fake_resp;
-        fake_req.query_args.emplace("name", "TEST");
+        fake_req.query_args.emplace("name", "TEST1");
         _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
 
         // need to fix
-        std::string fake_json = "{\"query_backup_policy\":{\"TEST\":{\"name\":\"TEST\",\"backup_"
+        std::string fake_json = "{\"query_backup_policy\":{\"TEST1\":{\"name\":\"TEST1\",\"backup_"
                                 "provider_type\":\"local_service\",\"backup_interval\":\"1\",\"app_"
                                 "ids\":\"{2}\",\"start_time\":\"12:00\",\"status\":\"enabled\","
                                 "\"backup_history_count\":\"1\"}}}\n";
@@ -79,6 +79,51 @@ public:
             << http_status_code_to_string(fake_resp.status_code);
         ASSERT_EQ(fake_resp.body, fake_json);
     }
+
+    void test_get_backup_policy2()
+    {
+        http_request fake_req;
+        http_response fake_resp;
+        fake_req.query_args.emplace("name", "TEST2");
+        _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
+
+        // need to fix
+        std::string fake_json = "{\"query_backup_policy\":{\"TEST2\":{\"name\":\"TEST2\",\"backup_"
+                                "provider_type\":\"local_service\",\"backup_interval\":\"1\",\"app_"
+                                "ids\":\"{2}\",\"start_time\":\"12:00\",\"status\":\"enabled\","
+                                "\"backup_history_count\":\"1\"}}}\n";
+        ASSERT_EQ(fake_resp.status_code, http_status_code::ok)
+                                    << http_status_code_to_string(fake_resp.status_code);
+        ASSERT_EQ(fake_resp.body, fake_json);
+    }
+
+    void test_get_backup_policy3()
+    {
+        http_request fake_req;
+        http_response fake_resp;
+        fake_req.query_args.emplace("name", "TEST3");
+        _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
+
+        // need to fix
+        std::string fake_json = "{\"query_backup_policy\":{}}\n";
+        ASSERT_EQ(fake_resp.status_code, http_status_code::ok)
+                                    << http_status_code_to_string(fake_resp.status_code);
+        ASSERT_EQ(fake_resp.body, fake_json);
+    }
+
+    void test_get_backup_policy4()
+    {
+        http_request fake_req;
+        http_response fake_resp;
+        _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
+
+        // need to fix
+        std::string fake_json = "{\"query_backup_policy\":{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"{2}\",\"start_time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"},\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"{2}\",\"start_time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}}\n";
+        ASSERT_EQ(fake_resp.status_code, http_status_code::ok)
+                                    << http_status_code_to_string(fake_resp.status_code);
+        ASSERT_EQ(fake_resp.body, fake_json);
+    }
+
 };
 
 TEST_F(meta_http_service_test, get_app_from_primary) { test_get_app_from_primary(); }
@@ -88,8 +133,13 @@ TEST_F(meta_http_service_test, get_app_envs) { test_get_app_envs(); }
 TEST_F(meta_http_service_test, get_backup_policy)
 {
     test_get_app_from_primary();
-    add_new_policy();
-    test_get_backup_policy();
+    init_fake_backup_handler();
+    add_new_policy("TEST1");
+    test_get_backup_policy1();
+    add_new_policy("TEST2");
+    test_get_backup_policy2();
+    test_get_backup_policy3();
+    test_get_backup_policy4();
 }
 
 } // namespace replication
