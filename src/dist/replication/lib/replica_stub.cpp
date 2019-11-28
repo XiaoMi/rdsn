@@ -2350,8 +2350,9 @@ void replica_stub::gc_tcmalloc_memory()
     int64_t total_allocated_bytes =
         get_tcmalloc_numeric_property("generic.current_allocated_bytes");
     int64_t reserved_bytes = get_tcmalloc_numeric_property("tcmalloc.pageheap_free_bytes");
-    // TODO(heyuchen): delete it
-    int64_t pageheap_free_before = reserved_bytes;
+    if (total_allocated_bytes == -1 || reserved_bytes == -1) {
+        return;
+    }
 
     int64_t max_reserved_bytes =
         total_allocated_bytes * _mem_release_tcmalloc_max_reserved_memory_percentage / 100.0;
@@ -2359,19 +2360,12 @@ void replica_stub::gc_tcmalloc_memory()
         int64_t release_bytes = reserved_bytes - max_reserved_bytes;
         ddebug_f("Memory release started, almost {} bytes will be released", release_bytes);
         while (release_bytes > 0) {
-            // tcmalloc release memory will lock page heap, release 1MB at a time will shorten
-            // locked time
+            // tcmalloc releasing memory will lock page heap, release 1MB at a time to avoid locking
+            // page heap for long time
             ::MallocExtension::instance()->ReleaseToSystem(1024 * 1024);
             release_bytes -= 1024 * 1024;
         }
     }
-    // TODO(heyuchen): delete it
-    int64_t pageheap_free_after = get_tcmalloc_numeric_property("tcmalloc.pageheap_free_bytes");
-    ddebug_f("total={}, reserved={}, need_release={}, heappage_free={}",
-             total_allocated_bytes,
-             pageheap_free_before,
-             pageheap_free_before > max_reserved_bytes,
-             pageheap_free_before - pageheap_free_after);
 }
 #endif
 

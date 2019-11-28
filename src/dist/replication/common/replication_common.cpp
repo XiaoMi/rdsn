@@ -100,7 +100,7 @@ replication_options::replication_options()
     config_sync_interval_ms = 30000;
 
     mem_release_enabled = true;
-    mem_release_check_interval_ms = 86400000;
+    mem_release_check_interval_ms = 3600000;
     mem_release_tcmalloc_max_reserved_memory_percentage = 10;
 
     lb_interval_ms = 10000;
