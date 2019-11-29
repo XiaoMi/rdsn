@@ -32,12 +32,12 @@ public:
         _ss = _ms->_state;
         _ss->initialize(_ms.get(), _ms->_cluster_root + "/apps");
 
-//        _ms->_backup_handler = std::make_shared<backup_service>(
-//            _ms.get(),
-//            _ms->_cluster_root + "/backup_meta",
-//            _ms->_cluster_root + "/backup",
-//            [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
-//
+        //        _ms->_backup_handler = std::make_shared<backup_service>(
+        //            _ms.get(),
+        //            _ms->_cluster_root + "/backup_meta",
+        //            _ms->_cluster_root + "/backup",
+        //            [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
+        //
         _ms->_started = true;
 
         // recover apps from meta storage
@@ -92,23 +92,24 @@ public:
 
     void create_app(const std::string &name) { create_app(name, 8); }
 
-    void init_fake_backup_handler(){
+    void init_fake_backup_handler()
+    {
         dsn::error_code ec = _ms->remote_storage_initialize();
         _ms->_started = true;
         _ms->_backup_handler = std::make_shared<backup_service>(
-                _ms.get(),
-                _ms->_cluster_root + "/backup_meta",
-                _ms->_cluster_root + "/backup",
-                [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
+            _ms.get(),
+            _ms->_cluster_root + "/backup_meta",
+            _ms->_cluster_root + "/backup",
+            [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
         _ms->_backup_handler->start();
         _ms->_backup_handler->backup_option().app_dropped_retry_delay_ms = 500_ms;
         _ms->_backup_handler->backup_option().request_backup_period_ms = 20_ms;
         _ms->_backup_handler->backup_option().issue_backup_interval_ms = 1000_ms;
         const std::string policy_root = "/test";
         _ms->_storage
-                ->create_node(
-                        policy_root, dsn::TASK_CODE_EXEC_INLINED, [&ec](dsn::error_code err) { ec = err; })
-                ->wait();
+            ->create_node(
+                policy_root, dsn::TASK_CODE_EXEC_INLINED, [&ec](dsn::error_code err) { ec = err; })
+            ->wait();
     }
 
     void add_new_policy(const std::string testname)
