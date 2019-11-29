@@ -745,10 +745,11 @@ void policy_context::issue_new_backup_unlocked()
                          0,
                          _backup_service->backup_option().issue_backup_interval_ms);
     } else {
-        task_ptr continue_to_backup = tasking::create_task(LPC_DEFAULT_CALLBACK, &_tracker, [this]() {
-            zauto_lock l(_lock);
-            continue_current_backup_unlocked();
-        });
+        task_ptr continue_to_backup =
+            tasking::create_task(LPC_DEFAULT_CALLBACK, &_tracker, [this]() {
+                zauto_lock l(_lock);
+                continue_current_backup_unlocked();
+            });
         sync_backup_to_remote_storage_unlocked(_cur_backup, continue_to_backup, true);
     }
 }
