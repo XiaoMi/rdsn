@@ -49,9 +49,10 @@ public:
     /// \see replica::on_checkpoint_timer()
     decree min_confirmed_decree() const;
 
+    /// Updates the latest known confirmed decree on this replica if it's secondary.
     /// THREAD_POOL_REPLICATION
     /// \see replica_check.cpp
-    void set_confirmed_decree_non_primary(decree confirmed);
+    void update_confirmed_decree_if_secondary(decree confirmed);
 
 private:
     void sync_duplication(const duplication_entry &ent);

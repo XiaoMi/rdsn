@@ -74,10 +74,10 @@ decree replica_duplicator_manager::min_confirmed_decree() const
                 min_decree = std::min(min_decree, p.confirmed_decree);
             }
         }
-    } else {
-        if (_primary_confirmed_decree > 0) {
-            min_decree = _primary_confirmed_decree;
-        }
+    } else if (_primary_confirmed_decree > 0) {
+        // if the replica is not primary, use the latest known (from primary)
+        // confirmed_decree instead.
+        min_decree = _primary_confirmed_decree;
     }
     return min_decree;
 }
@@ -102,10 +102,10 @@ void replica_duplicator_manager::remove_non_existed_duplications(
     }
 }
 
-void replica_duplicator_manager::set_confirmed_decree_non_primary(decree confirmed)
+void replica_duplicator_manager::update_confirmed_decree_if_secondary(decree confirmed)
 {
     // this function always runs in the same single thread with config-sync
-    if (_replica->status() == partition_status::PS_PRIMARY) {
+    if (_replica->status() != partition_status::PS_SECONDARY) {
         return;
     }
 

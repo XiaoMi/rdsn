@@ -160,7 +160,7 @@ void replica::on_group_check(const group_check_request &request,
         update_local_configuration(request.config, true);
     }
     if (request.__isset.confirmed_decree) {
-        _duplication_mgr->set_confirmed_decree_non_primary(request.confirmed_decree);
+        _duplication_mgr->update_confirmed_decree_if_secondary(request.confirmed_decree);
     }
 
     switch (status()) {

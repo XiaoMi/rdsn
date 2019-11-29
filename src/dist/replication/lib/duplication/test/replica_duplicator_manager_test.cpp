@@ -54,19 +54,19 @@ public:
 
         // receives bad group check, ensures replica never fail
         // in this edge case.
-        d.set_confirmed_decree_non_primary(99);
+        d.update_confirmed_decree_if_secondary(99);
         ASSERT_EQ(d._duplications.size(), 0);
         ASSERT_EQ(d._primary_confirmed_decree, 99);
 
         // receives group check
-        d.set_confirmed_decree_non_primary(101);
+        d.update_confirmed_decree_if_secondary(101);
         ASSERT_EQ(d._duplications.size(), 0);
         ASSERT_EQ(d._primary_confirmed_decree, 101);
 
         // confirmed decree never decreases
-        d.set_confirmed_decree_non_primary(0);
+        d.update_confirmed_decree_if_secondary(0);
         ASSERT_EQ(d._primary_confirmed_decree, 101);
-        d.set_confirmed_decree_non_primary(1);
+        d.update_confirmed_decree_if_secondary(1);
         ASSERT_EQ(d._primary_confirmed_decree, 101);
     }
 
