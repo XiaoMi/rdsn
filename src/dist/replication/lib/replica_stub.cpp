@@ -2053,6 +2053,7 @@ void replica_stub::open_service()
             return result;
         });
 
+#ifdef DSN_ENABLE_GPERF
     _max_reserved_memory_percentage_command = dsn::command_manager::instance().register_app_command(
         {"mem-release-max-reserved-percentage"},
         "mem-release-max-reserved-percentage [num | DEFAULT]",
@@ -2079,6 +2080,7 @@ void replica_stub::open_service()
             }
             return result;
         });
+#endif
 }
 
 std::string
@@ -2204,7 +2206,9 @@ void replica_stub::close()
     dsn::command_manager::instance().deregister_command(_query_compact_command);
     dsn::command_manager::instance().deregister_command(_query_app_envs_command);
     dsn::command_manager::instance().deregister_command(_useless_dir_reserve_seconds_command);
+#ifdef DSN_ENABLE_GPERF
     dsn::command_manager::instance().deregister_command(_max_reserved_memory_percentage_command);
+#endif
 
     _kill_partition_command = nullptr;
     _deny_client_command = nullptr;
