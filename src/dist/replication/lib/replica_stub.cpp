@@ -2337,7 +2337,10 @@ replica_stub::get_child_dir(const char *app_type, gpid child_pid, const std::str
 }
 
 #ifdef DSN_ENABLE_GPERF
-int64_t replica_stub::get_tcmalloc_numeric_property(const char *prop)
+// Get tcmalloc numeric property (name is "prop") value.
+// Return -1 if get property failed (property we used will be greater than zero)
+// Properties can be found in 'gperftools/malloc_extension.h'
+static int64_t get_tcmalloc_numeric_property(const char *prop)
 {
     size_t value;
     if (!::MallocExtension::instance()->GetNumericProperty(prop, &value)) {
