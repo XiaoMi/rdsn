@@ -722,6 +722,7 @@ void meta_service::on_add_backup_policy(dsn::message_ex *req)
 {
     configuration_add_backup_policy_response response;
     RPC_CHECK_STATUS(req, response);
+    
     if (_backup_handler == nullptr) {
         derror("meta doesn't enable backup service");
         response.err = ERR_SERVICE_NOT_ACTIVE;
