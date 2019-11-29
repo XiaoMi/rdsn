@@ -720,7 +720,7 @@ void policy_context::issue_new_backup_unlocked()
 
     if (!should_start_backup_unlocked()) {
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
-                         nullptr,
+                         &_tracker,
                          [this]() {
                              zauto_lock l(_lock);
                              issue_new_backup_unlocked();

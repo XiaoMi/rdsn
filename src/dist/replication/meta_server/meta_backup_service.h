@@ -269,6 +269,7 @@ mock_private :
     mock_virtual void sync_remove_backup_info(const backup_info &info, dsn::task_ptr sync_callback);
 
 mock_private :
+    dsn::task_tracker _tracker;
     friend class backup_service;
     backup_service *_backup_service;
 
