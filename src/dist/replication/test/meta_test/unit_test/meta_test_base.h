@@ -32,12 +32,6 @@ public:
         _ss = _ms->_state;
         _ss->initialize(_ms.get(), _ms->_cluster_root + "/apps");
 
-        //        _ms->_backup_handler = std::make_shared<backup_service>(
-        //            _ms.get(),
-        //            _ms->_cluster_root + "/backup_meta",
-        //            _ms->_cluster_root + "/backup",
-        //            [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
-        //
         _ms->_started = true;
 
         // recover apps from meta storage
