@@ -1532,7 +1532,8 @@ task_ptr server_state::update_configuration_on_remote(
         std::bind(&server_state::on_update_configuration_on_remote_reply,
                   this,
                   std::placeholders::_1,
-                  config_request));
+                  config_request),
+        tracker());
 }
 
 void server_state::on_update_configuration_on_remote_reply(
