@@ -269,6 +269,14 @@ void simple_logger::dsn_log(const char *file,
         ::fflush(_log);
     }
 
+    if (log_level >= _stderr_start_level) {
+        print_header(stdout, log_level);
+        if (!_short_header) {
+            printf("%s:%d:%s(): ", file, line, function);
+        }
+        printf("%s\n", str);
+    }
+
     if (++_lines >= 200000) {
         create_log_file();
     }
