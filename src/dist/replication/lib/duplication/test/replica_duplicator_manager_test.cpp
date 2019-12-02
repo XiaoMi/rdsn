@@ -48,12 +48,11 @@ public:
         ent.progress[r->get_gpid().get_partition_index()] = 100;
         d.sync_duplication(ent);
         ASSERT_EQ(d._duplications.size(), 1);
+        ASSERT_EQ(d._primary_confirmed_decree, invalid_decree);
 
         // replica failover
         r->as_secondary();
 
-        // receives bad group check, ensures replica never fail
-        // in this edge case.
         d.update_confirmed_decree_if_secondary(99);
         ASSERT_EQ(d._duplications.size(), 0);
         ASSERT_EQ(d._primary_confirmed_decree, 99);
