@@ -289,6 +289,7 @@ mock_private :
 
     perf_counter_wrapper _counter_policy_recent_backup_duration_ms;
 //clang-format on
+    dsn::task_tracker _tracker;
 };
 
 class backup_service
