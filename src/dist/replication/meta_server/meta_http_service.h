@@ -48,7 +48,7 @@ public:
                                    std::placeholders::_1,
                                    std::placeholders::_2));
         // GET ip:port/meta/query_backup_policy
-        register_handler("query_backup_policy",
+        register_handler("backup_policy",
                          std::bind(&meta_http_service::get_query_backup_policy_handler,
                                    this,
                                    std::placeholders::_1,

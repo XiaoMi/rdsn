@@ -1407,7 +1407,7 @@ void backup_service::query_policy_http(const http_request &req, http_response &r
         }
     }
 
-    dsn::utils::table_printer tp_query_backup_policy("query_backup_policy");
+    dsn::utils::table_printer tp_query_backup_policy;
     tp_query_backup_policy.add_title("name");
     tp_query_backup_policy.add_column("backup_provider_type");
     tp_query_backup_policy.add_column("backup_interval");
