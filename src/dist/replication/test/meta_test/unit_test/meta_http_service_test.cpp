@@ -71,7 +71,10 @@ public:
         _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
 
         // need to fix
-        std::string fake_json = "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"{2}\",\"start_time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n";
+        std::string fake_json = "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_"
+                                "service\",\"backup_interval\":\"1\",\"app_ids\":\"{2}\",\"start_"
+                                "time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":"
+                                "\"1\"}}\n";
         ASSERT_EQ(fake_resp.status_code, http_status_code::ok)
             << http_status_code_to_string(fake_resp.status_code);
         ASSERT_EQ(fake_resp.body, fake_json);
@@ -85,7 +88,10 @@ public:
         _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
 
         // need to fix
-        std::string fake_json = "{\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"{2}\",\"start_time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n";
+        std::string fake_json = "{\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_type\":\"local_"
+                                "service\",\"backup_interval\":\"1\",\"app_ids\":\"{2}\",\"start_"
+                                "time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":"
+                                "\"1\"}}\n";
         ASSERT_EQ(fake_resp.status_code, http_status_code::ok)
             << http_status_code_to_string(fake_resp.status_code);
         ASSERT_EQ(fake_resp.body, fake_json);
@@ -112,7 +118,12 @@ public:
         _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
 
         // need to fix
-        std::string fake_json = "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"{2}\",\"start_time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"},\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"{2}\",\"start_time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n";
+        std::string fake_json =
+            "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\",\"backup_"
+            "interval\":\"1\",\"app_ids\":\"{2}\",\"start_time\":\"12:00\",\"status\":\"enabled\","
+            "\"backup_history_count\":\"1\"},\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_"
+            "type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"{2}\",\"start_time\":"
+            "\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n";
         ASSERT_EQ(fake_resp.status_code, http_status_code::ok)
             << http_status_code_to_string(fake_resp.status_code);
         ASSERT_EQ(fake_resp.body, fake_json);
