@@ -515,6 +515,21 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     resp.status_code = http_status_code::ok;
 }
 
+void meta_http_service::get_query_backup_policy_handler(const http_request &req,
+                                                        http_response &resp)
+{
+
+    if (!redirect_if_not_primary(req, resp))
+        return;
+
+    if (_service->_backup_handler == nullptr) {
+        resp.body = "cold_backup_disabled";
+        return;
+    }
+
+    _service->_backup_handler->query_policy_http(req, resp);
+}
+
 bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
 {
 #ifdef DSN_MOCK_TEST

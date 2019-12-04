@@ -4,7 +4,9 @@
 #include <sstream>
 #include <iomanip> // std::setfill, std::setw
 #include <functional>
+
 #include <dsn/dist/block_service.h>
+#include <dsn/tool-api/http_server.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 
 #include "meta_data.h"
@@ -267,6 +269,7 @@ mock_private :
     mock_virtual void sync_remove_backup_info(const backup_info &info, dsn::task_ptr sync_callback);
 
 mock_private :
+    dsn::task_tracker _tracker;
     friend class backup_service;
     backup_service *_backup_service;
 
@@ -286,7 +289,6 @@ mock_private :
 
     perf_counter_wrapper _counter_policy_recent_backup_duration_ms;
 //clang-format on
-    dsn::task_tracker _tracker;
 };
 
 class backup_service
@@ -317,6 +319,7 @@ public:
     void add_new_policy(dsn::message_ex* msg);
     void query_policy(dsn::message_ex* msg);
     void modify_policy(dsn::message_ex* msg);
+    void query_policy_http(const http_request &req, http_response &resp);
 
     // compose the absolute path(AP) for policy
     // input:

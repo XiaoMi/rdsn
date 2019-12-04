@@ -1,9 +1,12 @@
-#include <dsn/utility/filesystem.h>
-
 #include "meta_backup_service.h"
+
+#include <dsn/utility/filesystem.h>
+#include <dsn/utility/output_utils.h>
+#include <dsn/tool-api/http_server.h>
+
+#include "dist/replication/common/block_service_manager.h"
 #include "dist/replication/meta_server/meta_service.h"
 #include "dist/replication/meta_server/server_state.h"
-#include "dist/replication/common/block_service_manager.h"
 
 namespace dsn {
 namespace replication {
@@ -1205,7 +1208,6 @@ void backup_service::add_new_policy(dsn::message_ex *msg)
 {
     configuration_add_backup_policy_request request;
     configuration_add_backup_policy_response response;
-
     ::dsn::unmarshall(msg, request);
     std::set<int32_t> app_ids;
     std::map<int32_t, std::string> app_names;
@@ -1366,6 +1368,80 @@ bool backup_service::is_valid_policy_name_unlocked(const std::string &policy_nam
     return (iter == _policy_states.end());
 }
 
+template <typename T>
+std::string print_set(const std::set<T> &set)
+{
+    std::stringstream ss;
+    ss << "{";
+    auto begin = set.begin();
+    auto end = set.end();
+    for (auto it = begin; it != end; it++) {
+        if (it != begin) {
+            ss << ", ";
+        }
+        ss << *it;
+    }
+    ss << "}";
+    return ss.str();
+}
+
+void backup_service::query_policy_http(const http_request &req, http_response &resp)
+{
+    std::vector<std::string> policy_names;
+
+    for (const auto &p : req.query_args) {
+        if (p.first == "name") {
+            policy_names.push_back(p.second);
+        } else {
+            resp.body = "Invalid parameter";
+            resp.status_code = http_status_code::bad_request;
+            return;
+        }
+    }
+
+    if (policy_names.empty()) {
+        // default all the policy
+        zauto_lock l(_lock);
+        for (const auto &pair : _policy_states) {
+            policy_names.push_back(pair.first);
+        }
+    }
+
+    dsn::utils::table_printer tp_query_backup_policy;
+    tp_query_backup_policy.add_title("name");
+    tp_query_backup_policy.add_column("backup_provider_type");
+    tp_query_backup_policy.add_column("backup_interval");
+    tp_query_backup_policy.add_column("app_ids");
+    tp_query_backup_policy.add_column("start_time");
+    tp_query_backup_policy.add_column("status");
+    tp_query_backup_policy.add_column("backup_history_count");
+    for (const auto &policy_name : policy_names) {
+        std::shared_ptr<policy_context> policy_context_ptr(nullptr);
+        {
+            zauto_lock l(_lock);
+            auto it = _policy_states.find(policy_name);
+            if (it != _policy_states.end()) {
+                policy_context_ptr = it->second;
+            }
+        }
+        if (policy_context_ptr == nullptr) {
+            continue;
+        }
+        policy cur_policy = policy_context_ptr->get_policy();
+        tp_query_backup_policy.add_row(cur_policy.policy_name);
+        tp_query_backup_policy.append_data(cur_policy.backup_provider_type);
+        tp_query_backup_policy.append_data(cur_policy.backup_interval_seconds);
+        tp_query_backup_policy.append_data(print_set(cur_policy.app_ids));
+        tp_query_backup_policy.append_data(cur_policy.start_time.to_string());
+        tp_query_backup_policy.append_data(cur_policy.is_disable ? "disabled" : "enabled");
+        tp_query_backup_policy.append_data(cur_policy.backup_history_count_to_keep);
+    }
+    std::ostringstream out;
+    tp_query_backup_policy.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    resp.body = out.str();
+    resp.status_code = http_status_code::ok;
+}
+
 void backup_service::query_policy(dsn::message_ex *msg)
 {
     configuration_query_backup_policy_request request;
@@ -1409,7 +1485,7 @@ void backup_service::query_policy(dsn::message_ex *msg)
         p_entry.backup_history_count_to_keep = cur_policy.backup_history_count_to_keep;
         p_entry.start_time = cur_policy.start_time.to_string();
         p_entry.is_disable = cur_policy.is_disable;
-        response.policys.emplace_back(std::move(p_entry));
+        response.policys.emplace_back(p_entry);
         // acquire backup_infos
         std::vector<backup_info> b_infos =
             policy_context_ptr->get_backup_infos(request.backup_info_count);

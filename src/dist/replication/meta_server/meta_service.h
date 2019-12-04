@@ -41,6 +41,7 @@
 #include <dsn/dist/meta_state_service.h>
 #include <dsn/dist/cli/cli.server.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
+#include <dsn/tool-api/http_server.h>
 
 #include "dist/replication/common/replication_common.h"
 #include "dist/replication/meta_server/meta_options.h"
