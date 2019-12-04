@@ -194,6 +194,13 @@ error_code replica::initialize_on_load()
     }
 }
 
+decree replica::get_replay_start_decree()
+{
+    decree replay_start_decree = _app->last_committed_decree();
+    ddebug_replica("start to replay private log [replay_start_decree: {}]", replay_start_decree);
+    return replay_start_decree;
+}
+
 error_code replica::init_app_and_prepare_list(bool create_new)
 {
     dassert(nullptr == _app, "");
@@ -243,10 +250,8 @@ error_code replica::init_app_and_prepare_list(bool create_new)
 
             // replay the logs
             {
-                ddebug("%s: start to replay private log", name());
-
                 std::map<gpid, decree> replay_condition;
-                replay_condition[_config.pid] = _app->last_committed_decree();
+                replay_condition[_config.pid] = get_replay_start_decree();
 
                 uint64_t start_time = dsn_now_ms();
                 err = _private_log->open(
@@ -448,7 +453,7 @@ bool replica::replay_mutation(mutation_ptr &mu, bool is_private)
     // prepare
     _uniq_timestamp_us.try_update(mu->data.header.timestamp);
     error_code err = _prepare_list->prepare(mu, partition_status::PS_INACTIVE);
-    dassert(err == ERR_OK, "prepare failed, err = %s", err.to_string());
+    dcheck_eq_replica(err, ERR_OK);
 
     return true;
 }
