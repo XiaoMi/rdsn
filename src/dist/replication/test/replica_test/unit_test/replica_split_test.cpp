@@ -22,7 +22,9 @@ public:
         mock_group_check_request();
     }
 
-    void TearDown() {}
+    void TearDown() {
+        std::cout << "hyc: tear down" << std::endl;
+    }
 
     void mock_app_info()
     {
