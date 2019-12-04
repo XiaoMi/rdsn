@@ -269,7 +269,6 @@ mock_private :
     mock_virtual void sync_remove_backup_info(const backup_info &info, dsn::task_ptr sync_callback);
 
 mock_private :
-    dsn::task_tracker _tracker;
     friend class backup_service;
     backup_service *_backup_service;
 
@@ -289,6 +288,7 @@ mock_private :
 
     perf_counter_wrapper _counter_policy_recent_backup_duration_ms;
 //clang-format on
+    dsn::task_tracker _tracker;
 };
 
 class backup_service
@@ -317,9 +317,8 @@ public:
     const std::string &backup_root() const { return _backup_root; }
     const std::string &policy_root() const { return _policy_meta_root; }
     void add_new_policy(dsn::message_ex* msg);
-    void query_policy(dsn::message_ex* msg);
+    void query_policy(rpc_holder<configuration_query_backup_policy_request, configuration_query_backup_policy_response> rpc);
     void modify_policy(dsn::message_ex* msg);
-    void query_policy_http(const http_request &req, http_response &resp);
 
     // compose the absolute path(AP) for policy
     // input:

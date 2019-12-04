@@ -527,7 +527,15 @@ void meta_http_service::get_query_backup_policy_handler(const http_request &req,
         return;
     }
 
-    _service->_backup_handler->query_policy_http(req, resp);
+    //configuration_query_backup_policy_request query_req;
+    rpc_holder<configuration_query_backup_policy_request, configuration_query_backup_policy_response> http_to_rpc(
+            &req,
+            "FAKE_RPC",
+    );
+
+    _service->_backup_handler->query_policy(http_to_rpc);
+
+    return ;
 }
 
 bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)

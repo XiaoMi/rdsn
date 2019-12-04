@@ -35,6 +35,7 @@
 #include <dsn/utility/smart_pointers.h>
 #include <dsn/utility/chrono_literals.h>
 #include <dsn/dist/replication/partition_resolver.h>
+#include <dsn/tool-api/http_server.h>
 
 namespace dsn {
 
