@@ -68,7 +68,7 @@ public:
         http_request fake_req;
         http_response fake_resp;
         fake_req.query_args.emplace("name", "TEST1");
-        _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
+        _mhs->get_backup_policy_handler(fake_req, fake_resp);
 
         // need to fix
         std::string fake_json = "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_"
@@ -85,7 +85,7 @@ public:
         http_request fake_req;
         http_response fake_resp;
         fake_req.query_args.emplace("name", "TEST2");
-        _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
+        _mhs->get_backup_policy_handler(fake_req, fake_resp);
 
         // need to fix
         std::string fake_json = "{\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_type\":\"local_"
@@ -102,7 +102,7 @@ public:
         http_request fake_req;
         http_response fake_resp;
         fake_req.query_args.emplace("name", "TEST3");
-        _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
+        _mhs->get_backup_policy_handler(fake_req, fake_resp);
 
         // need to fix
         std::string fake_json = "{}\n";
@@ -115,7 +115,7 @@ public:
     {
         http_request fake_req;
         http_response fake_resp;
-        _mhs->get_query_backup_policy_handler(fake_req, fake_resp);
+        _mhs->get_backup_policy_handler(fake_req, fake_resp);
 
         // need to fix
         std::string fake_json =

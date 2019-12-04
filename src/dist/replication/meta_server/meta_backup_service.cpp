@@ -1209,6 +1209,7 @@ void backup_service::add_new_policy(dsn::message_ex *msg)
 {
     configuration_add_backup_policy_request request;
     configuration_add_backup_policy_response response;
+
     ::dsn::unmarshall(msg, request);
     std::set<int32_t> app_ids;
     std::map<int32_t, std::string> app_names;
@@ -1453,7 +1454,6 @@ void backup_service::query_policy(backup_policy_rpc rpc)
     if (!response.hint_msg.empty()) {
         response.__isset.hint_msg = true;
     }
-
 }
 
 void backup_service::modify_policy(dsn::message_ex *msg)

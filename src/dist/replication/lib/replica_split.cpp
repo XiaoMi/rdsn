@@ -78,9 +78,7 @@ void replica::child_init_replica(gpid parent_gpid,
                                  rpc_address primary_address,
                                  ballot init_ballot) // on child partition
 {
-    FAIL_POINT_INJECT_F("replica_child_init_replica", [](dsn::string_view) {
-        ddebug_f("hyc fail point test");
-    });
+    FAIL_POINT_INJECT_F("replica_child_init_replica", [](dsn::string_view) {});
 
     if (status() != partition_status::PS_INACTIVE) {
         dwarn_replica("wrong status {}", enum_to_string(status()));

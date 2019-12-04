@@ -744,9 +744,10 @@ void meta_service::on_query_backup_policy(backup_policy_rpc policy_rpc)
         derror("meta doesn't enable backup service");
         response.err = ERR_SERVICE_NOT_ACTIVE;
     } else {
-        tasking::enqueue(LPC_DEFAULT_CALLBACK,
-                         nullptr,
-                         std::bind(&backup_service::query_policy, _backup_handler.get(), policy_rpc));
+        tasking::enqueue(
+            LPC_DEFAULT_CALLBACK,
+            nullptr,
+            std::bind(&backup_service::query_policy, _backup_handler.get(), policy_rpc));
         response.err = ERR_OK;
     }
 }
