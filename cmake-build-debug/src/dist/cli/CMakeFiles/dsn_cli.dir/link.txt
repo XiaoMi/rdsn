@@ -1,2 +1,0 @@
-ccache /usr/bin/ar qc libdsn_cli.a  CMakeFiles/dsn_cli.dir/cli_server_impl.cpp.o CMakeFiles/dsn_cli.dir/cli_types.cpp.o
-ccache /usr/bin/ranlib libdsn_cli.a

@@ -1,2 +1,0 @@
-ccache /usr/bin/ar qc libdsn.replication.ddlclient.a  CMakeFiles/dsn.replication.ddlclient.dir/replication_ddl_client.cpp.o
-ccache /usr/bin/ranlib libdsn.replication.ddlclient.a
