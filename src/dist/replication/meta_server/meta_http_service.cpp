@@ -583,31 +583,32 @@ void meta_http_service::get_backup_policy_handler(const http_request &req, http_
     resp.status_code = http_status_code::ok;
 
     return;
+}
 
-    bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
-    {
+bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
+{
 #ifdef DSN_MOCK_TEST
-        return true;
+    return true;
 #endif
-        rpc_address leader;
-        if (_service->_failure_detector->get_leader(&leader))
-            return true;
-        // set redirect response
-        const std::string &service_name = req.service_method.first;
-        const std::string &method_name = req.service_method.second;
-        resp.location = "http://" + leader.to_std_string() + '/' + service_name + '/' + method_name;
-        if (!req.query_args.empty()) {
-            resp.location += '?';
-            for (const auto &i : req.query_args) {
-                resp.location += i.first + '=' + i.second + '&';
-            }
-            resp.location.pop_back(); // remove final '&'
+    rpc_address leader;
+    if (_service->_failure_detector->get_leader(&leader))
+        return true;
+    // set redirect response
+    const std::string &service_name = req.service_method.first;
+    const std::string &method_name = req.service_method.second;
+    resp.location = "http://" + leader.to_std_string() + '/' + service_name + '/' + method_name;
+    if (!req.query_args.empty()) {
+        resp.location += '?';
+        for (const auto &i : req.query_args) {
+            resp.location += i.first + '=' + i.second + '&';
         }
-        resp.location.erase(std::remove(resp.location.begin(), resp.location.end(), '\0'),
-                            resp.location.end()); // remove final '\0'
-        resp.status_code = http_status_code::temporary_redirect;
-        return false;
+        resp.location.pop_back(); // remove final '&'
     }
+    resp.location.erase(std::remove(resp.location.begin(), resp.location.end(), '\0'),
+                        resp.location.end()); // remove final '\0'
+    resp.status_code = http_status_code::temporary_redirect;
+    return false;
+}
 
 } // namespace replication
 } // namespace dsn
