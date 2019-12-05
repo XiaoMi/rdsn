@@ -32,8 +32,8 @@ TEST_F(perf_counter_http_service_test, get_perf_counter)
 
     for (auto test : tests) {
         // create perf counter
-        perf_counters::instance().get_global_counter(
-            test.app, test.section, test.name, test.type, test.dsptr, true);
+        perf_counter_wrapper counter;
+        counter.init_global_counter(test.app, test.section, test.name, test.type, test.dsptr);
 
         std::string perf_counter_name;
         perf_counter::build_full_name(test.app, test.section, test.name, perf_counter_name);
@@ -60,9 +60,6 @@ TEST_F(perf_counter_http_service_test, get_perf_counter)
 
         ASSERT_EQ(fake_resp.status_code, http_status_code::ok);
         ASSERT_EQ(fake_resp.body, fake_json);
-
-        // clean up after execution
-        perf_counters::instance().remove_counter(perf_counter_name.c_str());
     }
 }
 } // namespace dsn

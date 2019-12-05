@@ -339,12 +339,9 @@ TEST(perf_counters_test, get_by_fullname)
 
         if (test.create) {
             // create perf counter
-            perf_counters::instance().get_global_counter(
-                test.app, test.section, test.name, test.type, test.dsptr, true);
+            perf_counter_wrapper counter;
+            counter.init_global_counter(test.app, test.section, test.name, test.type, test.dsptr);
             ASSERT_NE(nullptr, perf_counters::instance().get_counter(perf_counter_name));
-
-            // clean up after execution
-            perf_counters::instance().remove_counter(perf_counter_name.c_str());
         } else {
             ASSERT_EQ(nullptr, perf_counters::instance().get_counter(perf_counter_name));
         }
