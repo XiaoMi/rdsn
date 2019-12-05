@@ -15,6 +15,7 @@
 #include "meta_http_service.h"
 #include "meta_server_failure_detector.h"
 
+
 namespace dsn {
 namespace replication {
 
@@ -526,11 +527,13 @@ void meta_http_service::get_backup_policy_handler(const http_request &req, http_
         return;
     }
 
-    // configuration_query_backup_policy_request query_req;
-    rpc_holder<configuration_query_backup_policy_request,
-               configuration_query_backup_policy_response>
-        http_to_rpc(&req, "FAKE_RPC", );
+    std::unique_ptr<http_request> req_ptr(new http_request(req));
 
+    std::string s="FAKE_RPC";
+    auto tmps = s.c_str();
+    // configuration_query_backup_policy_request query_req;
+    backup_policy_rpc  http_to_rpc(req_ptr, tmps);
+    resp = http_to_rpc.response();
     _service->_backup_handler->query_policy(http_to_rpc);
 
     return;
