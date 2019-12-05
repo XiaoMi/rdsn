@@ -48,8 +48,7 @@ TEST_F(perf_counter_http_service_test, get_perf_counter)
         std::string fake_json;
         if (COUNTER_TYPE_NUMBER_PERCENTILES == test.type) {
             fake_json = R"({"name":")" + perf_counter_name + R"(",)" +
-                        R"("p99":"0.00",)" +
-                        R"("p999":"0.00",)" +
+                        R"("p99":"0.00","p999":"0.00",)" +
                         R"("type":")" + std::to_string(test.type) + R"(",)" +
                         R"("descriptor":")" + test.dsptr + R"("})" + "\n";
         } else {
@@ -58,8 +57,12 @@ TEST_F(perf_counter_http_service_test, get_perf_counter)
                         R"("type":")" + std::to_string(test.type) + R"(",)" +
                         R"("descriptor":")" + test.dsptr + R"("})" + "\n";
         }
+
         ASSERT_EQ(fake_resp.status_code, http_status_code::ok);
         ASSERT_EQ(fake_resp.body, fake_json);
+
+        // clean up after execution
+        perf_counters::instance().remove_counter(perf_counter_name.c_str());
     }
 }
 } // namespace dsn
