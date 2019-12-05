@@ -223,7 +223,8 @@ std::string replica_init_info::to_string()
     std::ostringstream oss;
     oss << "init_ballot = " << init_ballot << ", init_durable_decree = " << init_durable_decree
         << ", init_offset_in_shared_log = " << init_offset_in_shared_log
-        << ", init_offset_in_private_log = " << init_offset_in_private_log;
+        << ", init_offset_in_private_log = " << init_offset_in_private_log
+        << ", init_duplicating = " << init_duplicating;
     return oss.str();
 }
 
@@ -371,7 +372,7 @@ error_code replication_app_base::open_new_internal(replica *r,
     auto err = open();
     if (err == ERR_OK) {
         _last_committed_decree = last_durable_decree();
-        err = update_init_info(_replica, shared_log_start, private_log_start, 0);
+        err = update_init_info(_replica, shared_log_start, private_log_start, 0, false);
     }
 
     if (err != ERR_OK) {
@@ -551,14 +552,17 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
 ::dsn::error_code replication_app_base::update_init_info(replica *r,
                                                          int64_t shared_log_offset,
                                                          int64_t private_log_offset,
-                                                         int64_t durable_decree)
+                                                         int64_t durable_decree,
+                                                         bool duplicating)
 {
     _info.crc = 0;
     _info.magic = 0xdeadbeef;
     _info.init_ballot = r->get_ballot();
     _info.init_durable_decree = durable_decree;
     _info.init_offset_in_shared_log = shared_log_offset;
-    _info.init_offset_in_private_log = private_log_offset;
+    _info.init_duplicating = duplicating;
+    // reserve all private log during duplication even they are from last ballot.
+    _info.init_offset_in_private_log = duplicating ? 0 : private_log_offset;
 
     error_code err = _info.store(r->dir());
     if (err != ERR_OK) {
@@ -573,7 +577,17 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
     return update_init_info(r,
                             _info.init_offset_in_shared_log,
                             _info.init_offset_in_private_log,
-                            r->last_durable_decree());
+                            r->last_durable_decree(),
+                            _info.init_duplicating);
+}
+
+::dsn::error_code replication_app_base::update_init_info_duplicating(bool duplicating)
+{
+    return update_init_info(_replica,
+                            _info.init_offset_in_shared_log,
+                            _info.init_offset_in_private_log,
+                            _replica->last_durable_decree(),
+                            duplicating);
 }
 } // namespace replication
 } // namespace dsn
