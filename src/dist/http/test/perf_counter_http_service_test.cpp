@@ -12,12 +12,7 @@ namespace dsn {
 class perf_counter_http_service_test : public testing::Test
 {
 public:
-    perf_counter_http_service_test()
-    {
-        _perf_counter_http_service = dsn::make_unique<perf_counter_http_service>();
-    }
-
-    std::unique_ptr<perf_counter_http_service> _perf_counter_http_service;
+    perf_counter_http_service _perf_counter_http_service;
 };
 
 TEST_F(perf_counter_http_service_test, get_perf_counter)
@@ -47,7 +42,7 @@ TEST_F(perf_counter_http_service_test, get_perf_counter)
         http_request fake_req;
         http_response fake_resp;
         fake_req.query_args.emplace("name", perf_counter_name);
-        _perf_counter_http_service->get_perf_counter_handler(fake_req, fake_resp);
+        _perf_counter_http_service.get_perf_counter_handler(fake_req, fake_resp);
 
         // get fake json based on the perf counter info which is getting above
         std::string fake_json;
@@ -67,4 +62,4 @@ TEST_F(perf_counter_http_service_test, get_perf_counter)
         ASSERT_EQ(fake_resp.body, fake_json);
     }
 }
-}
+} // namespace dsn

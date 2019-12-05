@@ -166,7 +166,7 @@ bool perf_counters::remove_counter(const char *full_name)
 
 perf_counter_ptr perf_counters::get_counter(const std::string &full_name)
 {
-    utils::auto_write_lock l(_lock);
+    utils::auto_read_lock l(_lock);
     auto it = _counters.find(full_name);
     if (it != _counters.end())
         return it->second.counter;

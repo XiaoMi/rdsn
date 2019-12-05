@@ -25,4 +25,4 @@ public:
 
     void get_perf_counter_handler(const http_request &req, http_response &resp);
 };
-}
+} // namespace dsn

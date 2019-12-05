@@ -42,4 +42,4 @@ void perf_counter_http_service::get_perf_counter_handler(const http_request &req
     resp.body = out.str();
     resp.status_code = http_status_code::ok;
 }
-}
+} // namespace dsn
