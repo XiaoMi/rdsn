@@ -69,17 +69,20 @@ public:
         std::string expected_json;
     } tests[5] = {
         {"", "{}\n"},
-        {"TEST1", "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\","
-                  "\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_time\":\"12:00\","
-                  "\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n"},
-        {"TEST2", "{\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_type\":\"local_service\","
-                  "\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_time\":\"12:00\","
-                  "\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n"},
-        {"", "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\",\"backup_"
-             "interval\":\"1\",\"app_ids\":\"[2]\",\"start_time\":\"12:00\",\"status\":\"enabled\","
-             "\"backup_history_count\":\"1\"},\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_"
-             "type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_"
-             "time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n"},
+        {"TEST1",
+         "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\","
+         "\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_time\":\"12:00\","
+         "\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n"},
+        {"TEST2",
+         "{\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_type\":\"local_service\","
+         "\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_time\":\"12:00\","
+         "\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n"},
+        {"",
+         "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\",\"backup_"
+         "interval\":\"1\",\"app_ids\":\"[2]\",\"start_time\":\"12:00\",\"status\":\"enabled\","
+         "\"backup_history_count\":\"1\"},\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_"
+         "type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_"
+         "time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n"},
         {"TEST3", "{}\n"},
     };
 
