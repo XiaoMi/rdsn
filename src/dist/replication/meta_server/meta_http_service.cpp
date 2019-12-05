@@ -5,15 +5,16 @@
 #include <string>
 
 #include <dsn/c/api_layer1.h>
+#include <dsn/cpp/json_helper.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
 #include <dsn/dist/replication/replication_types.h>
 #include <dsn/utility/config_api.h>
 #include <dsn/utility/output_utils.h>
 
-#include "server_load_balancer.h"
-#include "server_state.h"
 #include "meta_http_service.h"
 #include "meta_server_failure_detector.h"
+#include "server_load_balancer.h"
+#include "server_state.h"
 
 namespace dsn {
 namespace replication {
@@ -515,21 +516,12 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     resp.status_code = http_status_code::ok;
 }
 
-template <typename T>
-std::string print_set(const std::set<T> &set)
-{
-    std::stringstream ss;
-    ss << "{";
-    auto begin = set.begin();
-    auto end = set.end();
-    for (auto it = begin; it != end; it++) {
-        if (it != begin) {
-            ss << ", ";
-        }
-        ss << *it;
-    }
-    ss << "}";
-    return ss.str();
+std::string set_to_string(std::set<int32_t> s){
+    std::stringstream out;
+    rapidjson::OStreamWrapper wrapper(out);
+    dsn::json::JsonWriter writer(wrapper);
+    dsn::json::json_encode(writer, s);
+    return out.str();
 }
 
 void meta_http_service::get_backup_policy_handler(const http_request &req, http_response &resp)
@@ -544,7 +536,6 @@ void meta_http_service::get_backup_policy_handler(const http_request &req, http_
     }
     auto request = dsn::make_unique<configuration_query_backup_policy_request>();
     std::vector<std::string> policy_names;
-    policy_names.clear();
     for (const auto &p : req.query_args) {
         if (p.first == "name") {
             policy_names.push_back(p.second);
@@ -555,8 +546,8 @@ void meta_http_service::get_backup_policy_handler(const http_request &req, http_
         }
     }
     request->policy_names = std::move(policy_names);
-    backup_policy_rpc http_to_rpc(std::move(request), LPC_DEFAULT_CALLBACK);
-    _service->_backup_handler->query_policy(http_to_rpc);
+    query_backup_policy_rpc http_to_rpc(std::move(request), LPC_DEFAULT_CALLBACK);
+    _service->_backup_handler->query_backup_policy(http_to_rpc);
     auto rpc_return = http_to_rpc.response();
 
     dsn::utils::table_printer tp_query_backup_policy;
@@ -571,7 +562,7 @@ void meta_http_service::get_backup_policy_handler(const http_request &req, http_
         tp_query_backup_policy.add_row(cur_policy.policy_name);
         tp_query_backup_policy.append_data(cur_policy.backup_provider_type);
         tp_query_backup_policy.append_data(cur_policy.backup_interval_seconds);
-        tp_query_backup_policy.append_data(print_set(cur_policy.app_ids));
+        tp_query_backup_policy.append_data(set_to_string(cur_policy.app_ids));
         tp_query_backup_policy.append_data(cur_policy.start_time);
         tp_query_backup_policy.append_data(cur_policy.is_disable ? "disabled" : "enabled");
         tp_query_backup_policy.append_data(cur_policy.backup_history_count_to_keep);

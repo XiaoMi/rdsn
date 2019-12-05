@@ -71,7 +71,7 @@ typedef rpc_holder<app_partition_split_request, app_partition_split_response>
     app_partition_split_rpc;
 typedef rpc_holder<configuration_query_backup_policy_request,
                    configuration_query_backup_policy_response>
-    backup_policy_rpc;
+    query_backup_policy_rpc;
 
 class meta_service : public serverlet<meta_service>
 {
@@ -171,7 +171,7 @@ private:
     void on_start_recovery(dsn::message_ex *req);
     void on_start_restore(dsn::message_ex *req);
     void on_add_backup_policy(dsn::message_ex *req);
-    void on_query_backup_policy(backup_policy_rpc policy_rpc);
+    void on_query_backup_policy(query_backup_policy_rpc policy_rpc);
     void on_modify_backup_policy(dsn::message_ex *req);
     void on_report_restore_status(dsn::message_ex *req);
     void on_query_restore_status(dsn::message_ex *req);

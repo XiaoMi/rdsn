@@ -1387,7 +1387,7 @@ std::string print_set(const std::set<T> &set)
     return ss.str();
 }
 
-void backup_service::query_policy(backup_policy_rpc rpc)
+void backup_service::query_backup_policy(query_backup_policy_rpc rpc)
 {
     const configuration_query_backup_policy_request &request = rpc.request();
     configuration_query_backup_policy_response &response = rpc.response();
@@ -1456,7 +1456,7 @@ void backup_service::query_policy(backup_policy_rpc rpc)
     }
 }
 
-void backup_service::modify_policy(dsn::message_ex *msg)
+void backup_service::modify_backup_policy(dsn::message_ex *msg)
 {
     configuration_modify_backup_policy_request request;
     configuration_modify_backup_policy_response response;

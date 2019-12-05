@@ -735,7 +735,7 @@ void meta_service::on_add_backup_policy(dsn::message_ex *req)
     }
 }
 
-void meta_service::on_query_backup_policy(backup_policy_rpc policy_rpc)
+void meta_service::on_query_backup_policy(query_backup_policy_rpc policy_rpc)
 {
     auto &response = policy_rpc.response();
     RPC_CHECK_STATUS(policy_rpc.dsn_request(), response);
@@ -747,7 +747,7 @@ void meta_service::on_query_backup_policy(backup_policy_rpc policy_rpc)
         tasking::enqueue(
             LPC_DEFAULT_CALLBACK,
             nullptr,
-            std::bind(&backup_service::query_policy, _backup_handler.get(), policy_rpc));
+            std::bind(&backup_service::query_backup_policy, _backup_handler.get(), policy_rpc));
         response.err = ERR_OK;
     }
 }
@@ -765,7 +765,7 @@ void meta_service::on_modify_backup_policy(dsn::message_ex *req)
         req->add_ref();
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
                          nullptr,
-                         std::bind(&backup_service::modify_policy, _backup_handler.get(), req));
+                         std::bind(&backup_service::modify_backup_policy, _backup_handler.get(), req));
     }
 }
 
