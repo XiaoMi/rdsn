@@ -4,8 +4,10 @@
 #include <dsn/utility/output_utils.h>
 #include <dsn/tool-api/http_server.h>
 
+#include "meta_backup_service.h"	
+#include "dist/replication/meta_server/meta_service.h"	
+#include "dist/replication/meta_server/server_state.h"	
 #include "dist/replication/common/block_service_manager.h"
-#include "dist/replication/meta_server/server_state.h"
 
 namespace dsn {
 namespace replication {
