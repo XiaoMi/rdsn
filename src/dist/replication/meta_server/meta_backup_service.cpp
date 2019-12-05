@@ -6,7 +6,6 @@
 
 #include "dist/replication/common/block_service_manager.h"
 #include "dist/replication/meta_server/server_state.h"
-//#include "dist/replication/meta_server/meta_service.h"
 
 namespace dsn {
 namespace replication {
