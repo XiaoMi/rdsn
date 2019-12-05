@@ -14,7 +14,7 @@
 #include "server_state.h"
 #include "meta_http_service.h"
 #include "meta_server_failure_detector.h"
-
+#include "dist/replication/test/meta_test/unit_test/meta_test_base.h"
 
 namespace dsn {
 namespace replication {
@@ -516,6 +516,23 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     resp.status_code = http_status_code::ok;
 }
 
+template <typename T>
+std::string print_set(const std::set<T> &set)
+{
+    std::stringstream ss;
+    ss << "{";
+    auto begin = set.begin();
+    auto end = set.end();
+    for (auto it = begin; it != end; it++) {
+        if (it != begin) {
+            ss << ", ";
+        }
+        ss << *it;
+    }
+    ss << "}";
+    return ss.str();
+}
+
 void meta_http_service::get_backup_policy_handler(const http_request &req, http_response &resp)
 {
 
@@ -526,43 +543,71 @@ void meta_http_service::get_backup_policy_handler(const http_request &req, http_
         resp.body = "cold_backup_disabled";
         return;
     }
-
-    std::unique_ptr<http_request> req_ptr(new http_request(req));
-
-    std::string s="FAKE_RPC";
-    auto tmps = s.c_str();
-    // configuration_query_backup_policy_request query_req;
-    backup_policy_rpc  http_to_rpc(req_ptr, tmps);
-    resp = http_to_rpc.response();
+    auto request = dsn::make_unique<configuration_query_backup_policy_request>();
+    std::vector<std::string> policy_names;
+    policy_names.clear();
+    for (const auto &p : req.query_args) {
+        if (p.first == "name") {
+            policy_names.push_back(p.second);
+        } else {
+            resp.body = "Invalid parameter";
+            resp.status_code = http_status_code::bad_request;
+            return;
+        }
+    }
+    request->policy_names = std::move(policy_names);
+    backup_policy_rpc http_to_rpc(std::move(request), LPC_DEFAULT_CALLBACK);
     _service->_backup_handler->query_policy(http_to_rpc);
+    auto rpc_return = http_to_rpc.response();
+
+    dsn::utils::table_printer tp_query_backup_policy;
+    tp_query_backup_policy.add_title("name");
+    tp_query_backup_policy.add_column("backup_provider_type");
+    tp_query_backup_policy.add_column("backup_interval");
+    tp_query_backup_policy.add_column("app_ids");
+    tp_query_backup_policy.add_column("start_time");
+    tp_query_backup_policy.add_column("status");
+    tp_query_backup_policy.add_column("backup_history_count");
+    for (const auto &cur_policy : rpc_return.policys) {
+        tp_query_backup_policy.add_row(cur_policy.policy_name);
+        tp_query_backup_policy.append_data(cur_policy.backup_provider_type);
+        tp_query_backup_policy.append_data(cur_policy.backup_interval_seconds);
+        tp_query_backup_policy.append_data(print_set(cur_policy.app_ids));
+        tp_query_backup_policy.append_data(cur_policy.start_time);
+        tp_query_backup_policy.append_data(cur_policy.is_disable ? "disabled" : "enabled");
+        tp_query_backup_policy.append_data(cur_policy.backup_history_count_to_keep);
+    }
+    std::ostringstream out;
+    tp_query_backup_policy.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    resp.body = out.str();
+    resp.status_code = http_status_code::ok;
 
     return;
-}
 
-bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
-{
+    bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
+    {
 #ifdef DSN_MOCK_TEST
-    return true;
-#endif
-    rpc_address leader;
-    if (_service->_failure_detector->get_leader(&leader))
         return true;
-    // set redirect response
-    const std::string &service_name = req.service_method.first;
-    const std::string &method_name = req.service_method.second;
-    resp.location = "http://" + leader.to_std_string() + '/' + service_name + '/' + method_name;
-    if (!req.query_args.empty()) {
-        resp.location += '?';
-        for (const auto &i : req.query_args) {
-            resp.location += i.first + '=' + i.second + '&';
+#endif
+        rpc_address leader;
+        if (_service->_failure_detector->get_leader(&leader))
+            return true;
+        // set redirect response
+        const std::string &service_name = req.service_method.first;
+        const std::string &method_name = req.service_method.second;
+        resp.location = "http://" + leader.to_std_string() + '/' + service_name + '/' + method_name;
+        if (!req.query_args.empty()) {
+            resp.location += '?';
+            for (const auto &i : req.query_args) {
+                resp.location += i.first + '=' + i.second + '&';
+            }
+            resp.location.pop_back(); // remove final '&'
         }
-        resp.location.pop_back(); // remove final '&'
+        resp.location.erase(std::remove(resp.location.begin(), resp.location.end(), '\0'),
+                            resp.location.end()); // remove final '\0'
+        resp.status_code = http_status_code::temporary_redirect;
+        return false;
     }
-    resp.location.erase(std::remove(resp.location.begin(), resp.location.end(), '\0'),
-                        resp.location.end()); // remove final '\0'
-    resp.status_code = http_status_code::temporary_redirect;
-    return false;
-}
 
 } // namespace replication
 } // namespace dsn

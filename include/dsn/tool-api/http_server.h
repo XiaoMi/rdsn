@@ -80,20 +80,20 @@ private:
     std::map<std::string, http_callback> _cb_map;
 };
 
-    class http_server : public serverlet<http_server>
-    {
-    public:
-        http_server();
+class http_server : public serverlet<http_server>
+{
+public:
+    http_server();
 
-        ~http_server() override = default;
+    ~http_server() override = default;
 
-        void add_service(http_service *service);
+    void add_service(http_service *service);
 
-        void serve(message_ex *msg);
+    void serve(message_ex *msg);
 
-    private:
-        std::map<std::string, std::unique_ptr<http_service>> _service_map;
-    };
+private:
+    std::map<std::string, std::unique_ptr<http_service>> _service_map;
+};
 
 /// The rpc code for all the HTTP RPCs.
 /// Since http is used only for system monitoring, it is restricted to lowest priority.
