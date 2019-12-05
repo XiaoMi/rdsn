@@ -14,7 +14,6 @@
 #include "server_state.h"
 #include "meta_http_service.h"
 #include "meta_server_failure_detector.h"
-#include "dist/replication/test/meta_test/unit_test/meta_test_base.h"
 
 namespace dsn {
 namespace replication {
