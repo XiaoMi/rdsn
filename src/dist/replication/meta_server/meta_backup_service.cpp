@@ -4,9 +4,9 @@
 #include <dsn/utility/output_utils.h>
 #include <dsn/tool-api/http_server.h>
 
-#include "meta_backup_service.h"	
-#include "dist/replication/meta_server/meta_service.h"	
-#include "dist/replication/meta_server/server_state.h"	
+#include "meta_backup_service.h"
+#include "dist/replication/meta_server/meta_service.h"
+#include "dist/replication/meta_server/server_state.h"
 #include "dist/replication/common/block_service_manager.h"
 
 namespace dsn {
@@ -1205,7 +1205,7 @@ void backup_service::start()
     start_create_policy_meta_root(after_create_policy_meta_root);
 }
 
-void backup_service::add_new_policy(dsn::message_ex *msg)
+void backup_service::add_backup_policy(dsn::message_ex *msg)
 {
     configuration_add_backup_policy_request request;
     configuration_add_backup_policy_response response;

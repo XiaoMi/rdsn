@@ -183,7 +183,7 @@ fake_rpc_call(dsn::task_code rpc_code,
     fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,                                                        \
                   LPC_META_STATE_NORMAL,                                                           \
                   state,                                                                           \
-                  &backup_service::add_new_policy,                                                 \
+                  &backup_service::add_backup_policy,                                              \
                   request_data)
 
 #define fake_wait_rpc(context, response_data)                                                      \

@@ -106,15 +106,15 @@ public:
             ->wait();
     }
 
-    void add_new_policy(const std::string testname)
+    void add_backup_policy(const std::string &policy_name)
     {
-        static const std::string test_policy_name = testname;
+        static const std::string test_policy_name = policy_name;
         const std::string policy_root = "/test";
 
         configuration_add_backup_policy_request request;
         configuration_add_backup_policy_response response;
 
-        request.policy_name = testname;
+        request.policy_name = policy_name;
         request.backup_provider_type = "local_service";
         request.backup_interval_seconds = 1;
         request.backup_history_count_to_keep = 1;

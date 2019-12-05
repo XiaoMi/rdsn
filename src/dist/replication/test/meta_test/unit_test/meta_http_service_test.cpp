@@ -138,9 +138,9 @@ TEST_F(meta_http_service_test, get_backup_policy)
 {
     test_get_app_from_primary();
     init_fake_backup_handler();
-    add_new_policy("TEST1");
+    add_backup_policy("TEST1");
     test_get_backup_policy1();
-    add_new_policy("TEST2");
+    add_backup_policy("TEST2");
     test_get_backup_policy2();
     test_get_backup_policy3();
     test_get_backup_policy4();

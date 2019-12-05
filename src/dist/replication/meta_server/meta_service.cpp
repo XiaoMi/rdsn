@@ -731,7 +731,7 @@ void meta_service::on_add_backup_policy(dsn::message_ex *req)
         req->add_ref();
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
                          nullptr,
-                         std::bind(&backup_service::add_new_policy, _backup_handler.get(), req));
+                         std::bind(&backup_service::add_backup_policy, _backup_handler.get(), req));
     }
 }
 

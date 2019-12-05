@@ -316,7 +316,7 @@ public:
 
     const std::string &backup_root() const { return _backup_root; }
     const std::string &policy_root() const { return _policy_meta_root; }
-    void add_new_policy(dsn::message_ex* msg);
+    void add_backup_policy(dsn::message_ex* msg);
     void query_policy(rpc_holder<configuration_query_backup_policy_request, configuration_query_backup_policy_response> rpc);
     void modify_policy(dsn::message_ex* msg);
 
