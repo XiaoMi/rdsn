@@ -69,8 +69,8 @@ public:
     ~shared_io_service()
     {
         ios.stop();
-        for (int i = 0; i < _io_service_worker_count; i++) {
-            _workers[i]->join();
+        for (auto worker : _workers) {
+            worker->join();
         }
     }
 
