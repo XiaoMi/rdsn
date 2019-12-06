@@ -748,7 +748,6 @@ void meta_service::on_query_backup_policy(query_backup_policy_rpc policy_rpc)
             LPC_DEFAULT_CALLBACK,
             nullptr,
             std::bind(&backup_service::query_backup_policy, _backup_handler.get(), policy_rpc));
-        response.err = ERR_OK;
     }
 }
 
