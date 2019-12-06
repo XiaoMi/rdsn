@@ -1370,23 +1370,6 @@ bool backup_service::is_valid_policy_name_unlocked(const std::string &policy_nam
     return (iter == _policy_states.end());
 }
 
-template <typename T>
-std::string print_set(const std::set<T> &set)
-{
-    std::stringstream ss;
-    ss << "{";
-    auto begin = set.begin();
-    auto end = set.end();
-    for (auto it = begin; it != end; it++) {
-        if (it != begin) {
-            ss << ", ";
-        }
-        ss << *it;
-    }
-    ss << "}";
-    return ss.str();
-}
-
 void backup_service::query_backup_policy(query_backup_policy_rpc rpc)
 {
     const configuration_query_backup_policy_request &request = rpc.request();
