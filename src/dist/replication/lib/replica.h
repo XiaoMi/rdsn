@@ -170,7 +170,10 @@ public:
     bool verbose_commit_log() const;
     dsn::task_tracker *tracker() { return &_tracker; }
 
+    /// \see replica_duplicate.cpp
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
+    bool is_duplicating() const;
+    void update_init_info_duplicating(bool duplicating);
 
     void update_last_checkpoint_generate_time();
 
@@ -195,6 +198,7 @@ private:
     error_code initialize_on_new();
     error_code initialize_on_load();
     error_code init_app_and_prepare_list(bool create_new);
+    decree get_replay_start_decree();
 
     /////////////////////////////////////////////////////////////////
     // 2pc
