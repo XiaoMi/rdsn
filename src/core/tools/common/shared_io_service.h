@@ -66,6 +66,14 @@ public:
         }
     }
 
+    ~shared_io_service()
+    {
+        ios.stop();
+        for (int i = 0; i < _io_service_worker_count; i++) {
+            _workers[i]->join();
+        }
+    }
+
     boost::asio::io_service ios;
 
 private:
