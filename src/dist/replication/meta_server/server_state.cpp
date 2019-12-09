@@ -962,9 +962,6 @@ void server_state::query_configuration_by_index(
             case app_status::AS_DROPPING:
                 response.err = ERR_BUSY_DROPPING;
                 break;
-            case app_status::AS_DROPPED:
-                response.err = ERR_APP_DROPPED;
-                break;
             default:
                 response.err = ERR_UNKNOWN;
         }
