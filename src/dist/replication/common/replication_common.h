@@ -152,6 +152,10 @@ class replica_envs
 {
 public:
     static const std::string DENY_CLIENT_WRITE;
+    static const std::string WRITE_QPS_THROTTLING;
+    static const std::string WRITE_SIZE_THROTTLING;
+    static const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS;
+    static const std::string SLOW_QUERY_THRESHOLD;
 };
 
 namespace cold_backup {

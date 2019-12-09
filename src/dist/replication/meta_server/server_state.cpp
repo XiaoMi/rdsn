@@ -89,20 +89,21 @@ server_state::~server_state()
 
 void server_state::init_env_check_functions()
 {
-    env_check_functions[ENV_SLOW_QUERY_THRESHOLD] = std::bind(
+    env_check_functions[replica_envs::SLOW_QUERY_THRESHOLD] = std::bind(
         &server_state::check_slow_query, this, std::placeholders::_1, std::placeholders::_2);
-    env_check_functions[ENV_WRITE_QPS_THROTTLING] = std::bind(
+    env_check_functions[replica_envs::WRITE_QPS_THROTTLING] = std::bind(
         &server_state::check_write_throttling, this, std::placeholders::_1, std::placeholders::_2);
-    env_check_functions[ENV_WRITE_SIZE_THROTTLING] = std::bind(
+    env_check_functions[replica_envs::WRITE_SIZE_THROTTLING] = std::bind(
         &server_state::check_write_throttling, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 bool server_state::check_slow_query(const std::string &env_value, std::string &hint_message)
 {
     uint64_t threshold = 0;
-    if (!dsn::buf2uint64(env_value, threshold) || threshold < MIN_SLOW_QUERY_THRESHOLD_MS) {
-        hint_message =
-            fmt::format("Slow query threshold must be >= {}ms", MIN_SLOW_QUERY_THRESHOLD_MS);
+    if (!dsn::buf2uint64(env_value, threshold) ||
+        threshold < replica_envs::MIN_SLOW_QUERY_THRESHOLD_MS) {
+        hint_message = fmt::format("Slow query threshold must be >= {}ms",
+                                   replica_envs::MIN_SLOW_QUERY_THRESHOLD_MS);
         return false;
     }
     return true;

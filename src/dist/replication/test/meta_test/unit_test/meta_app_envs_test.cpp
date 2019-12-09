@@ -57,15 +57,14 @@ TEST_F(meta_app_envs_test, set_slow_query_threshold)
                  {ERR_INVALID_PARAMETERS, "19", "Slow query threshold must be >= 20ms", "20"},
                  {ERR_INVALID_PARAMETERS, "0", "Slow query threshold must be >= 20ms", "20"}};
 
-    const std::string env_slow_query_threshold = "replica.slow_query_threshold";
     auto app = find_app(app_name);
     for (auto test : tests) {
         configuration_update_app_env_response response =
-            update_app_envs(app_name, {env_slow_query_threshold}, {test.env_value});
+            update_app_envs(app_name, {replica_envs::SLOW_QUERY_THRESHOLD}, {test.env_value});
 
         ASSERT_EQ(response.err, test.err);
         ASSERT_EQ(response.hint_message, test.hint);
-        ASSERT_EQ(app->envs.at(env_slow_query_threshold), test.expect_value);
+        ASSERT_EQ(app->envs.at(replica_envs::SLOW_QUERY_THRESHOLD), test.expect_value);
     }
 }
 
@@ -79,41 +78,41 @@ TEST_F(meta_app_envs_test, set_write_throttling)
         std::string hint;
         std::string expect_value;
     } tests[] = {
-        {"replica.write_throttling", "100*delay*100", ERR_OK, "", "100*delay*100"},
-        {"replica.write_throttling", "20K*delay*100", ERR_OK, "", "20K*delay*100"},
-        {"replica.write_throttling", "20M*delay*100", ERR_OK, "", "20M*delay*100"},
-        {"replica.write_throttling",
+        {replica_envs::WRITE_QPS_THROTTLING, "100*delay*100", ERR_OK, "", "100*delay*100"},
+        {replica_envs::WRITE_QPS_THROTTLING, "20K*delay*100", ERR_OK, "", "20K*delay*100"},
+        {replica_envs::WRITE_QPS_THROTTLING, "20M*delay*100", ERR_OK, "", "20M*delay*100"},
+        {replica_envs::WRITE_QPS_THROTTLING,
          "20A*delay*100",
          ERR_INVALID_PARAMETERS,
          "20A should be non-negative int",
          "20M*delay*100"},
-        {"replica.write_throttling",
+        {replica_envs::WRITE_QPS_THROTTLING,
          "-20*delay*100",
          ERR_INVALID_PARAMETERS,
          "-20 should be non-negative int",
          "20M*delay*100"},
-        {"replica.write_throttling",
+        {replica_envs::WRITE_QPS_THROTTLING,
          "",
          ERR_INVALID_PARAMETERS,
          "The value shouldn't be empty",
          "20M*delay*100"},
-        {"replica.write_throttling",
+        {replica_envs::WRITE_QPS_THROTTLING,
          "20A*delay",
          ERR_INVALID_PARAMETERS,
          "The field count of 20A*delay should be 3",
          "20M*delay*100"},
-        {"replica.write_throttling",
+        {replica_envs::WRITE_QPS_THROTTLING,
          "20K*pass*100",
          ERR_INVALID_PARAMETERS,
          "pass should be \"delay\" or \"reject\"",
          "20M*delay*100"},
-        {"replica.write_throttling",
+        {replica_envs::WRITE_QPS_THROTTLING,
          "20K*delay*-100",
          ERR_INVALID_PARAMETERS,
          "-100 should be non-negative int",
          "20M*delay*100"},
-        {"replica.write_throttling", "20M*reject*100", ERR_OK, "", "20M*reject*100"},
-        {"replica.write_throttling_by_size", "300*delay*100", ERR_OK, "", "300*delay*100"}};
+        {replica_envs::WRITE_QPS_THROTTLING, "20M*reject*100", ERR_OK, "", "20M*reject*100"},
+        {replica_envs::WRITE_SIZE_THROTTLING, "300*delay*100", ERR_OK, "", "300*delay*100"}};
 
     auto app = find_app(app_name);
     for (auto test : tests) {

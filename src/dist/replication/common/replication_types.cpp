@@ -14,15 +14,6 @@
 namespace dsn {
 namespace replication {
 
-///
-/// app envs
-///
-// min value for slow query threshold, less than this value will be refused
-const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS = 20;
-const std::string ENV_SLOW_QUERY_THRESHOLD("replica.slow_query_threshold");
-const std::string ENV_WRITE_QPS_THROTTLING("replica.write_throttling");
-const std::string ENV_WRITE_SIZE_THROTTLING("replica.write_throttling_by_size");
-
 int _kpartition_statusValues[] = {partition_status::PS_INVALID,
                                   partition_status::PS_INACTIVE,
                                   partition_status::PS_ERROR,

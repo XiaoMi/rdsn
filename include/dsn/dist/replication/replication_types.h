@@ -162,12 +162,6 @@ struct duplication_status
 
 extern const std::map<int, const char *> _duplication_status_VALUES_TO_NAMES;
 
-// app envs
-extern const std::string ENV_SLOW_QUERY_THRESHOLD;
-extern const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS;
-extern const std::string ENV_WRITE_QPS_THROTTLING;
-extern const std::string ENV_WRITE_SIZE_THROTTLING;
-
 class mutation_header;
 
 class mutation_update;
