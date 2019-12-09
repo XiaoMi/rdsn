@@ -288,6 +288,8 @@ void meta_service_test_app::state_sync_test()
         req.app_name = "make_no_sense";
         ss2->query_configuration_by_index(req, resp);
         ASSERT_EQ(dsn::ERR_OBJECT_NOT_FOUND, resp.err);
+
+        app_created->status
     }
 
     // simulate the half creating
