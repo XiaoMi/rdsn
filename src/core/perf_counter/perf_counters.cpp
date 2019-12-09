@@ -27,19 +27,19 @@
 #include <regex>
 
 #include <dsn/perf_counter/perf_counter.h>
-#include <dsn/perf_counter/perf_counter_utils.h>
 #include <dsn/perf_counter/perf_counters.h>
+#include <dsn/perf_counter/perf_counter_utils.h>
 
-#include <dsn/cpp/json_helper.h>
 #include <dsn/cpp/service_app.h>
+#include <dsn/cpp/json_helper.h>
 
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/task.h>
 #include <dsn/utility/string_view.h>
 
+#include "perf_counter_atomic.h"
 #include "builtin_counters.h"
 #include "core/core/service_engine.h"
-#include "perf_counter_atomic.h"
 
 namespace dsn {
 
@@ -47,16 +47,14 @@ perf_counters::perf_counters()
 {
     command_manager::instance().register_command(
         {"perf-counters"},
-        "perf-counters - query perf counters, filtered by OR "
-        "of POSIX basic regular expressions",
+        "perf-counters - query perf counters, filtered by OR of POSIX basic regular expressions",
         "perf-counters [regexp]...",
         [](const std::vector<std::string> &args) {
             return perf_counters::instance().list_snapshot_by_regexp(args);
         });
     command_manager::instance().register_command(
         {"perf-counters-by-substr"},
-        "perf-counters-by-substr - query perf "
-        "counters, filtered by OR of substrs",
+        "perf-counters-by-substr - query perf counters, filtered by OR of substrs",
         "perf-counters-by-substr [substr]...",
         [](const std::vector<std::string> &args) {
             return perf_counters::instance().list_snapshot_by_literal(
@@ -66,8 +64,7 @@ perf_counters::perf_counters()
         });
     command_manager::instance().register_command(
         {"perf-counters-by-prefix"},
-        "perf-counters-by-prefix - query perf "
-        "counters, filtered by OR of prefix strings",
+        "perf-counters-by-prefix - query perf counters, filtered by OR of prefix strings",
         "perf-counters-by-prefix [prefix]...",
         [](const std::vector<std::string> &args) {
             return perf_counters::instance().list_snapshot_by_literal(
@@ -78,9 +75,7 @@ perf_counters::perf_counters()
         });
     command_manager::instance().register_command(
         {"perf-counters-by-postfix"},
-        "perf-counters-by-postfix - query perf "
-        "counters, filtered by OR of postfix "
-        "strings",
+        "perf-counters-by-postfix - query perf counters, filtered by OR of postfix strings",
         "perf-counters-by-postfix [postfix]...",
         [](const std::vector<std::string> &args) {
             return perf_counters::instance().list_snapshot_by_literal(

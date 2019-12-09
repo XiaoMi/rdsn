@@ -33,8 +33,8 @@ void perf_counter_http_service::get_perf_counter_handler(const http_request &req
         } else {
             tp.add_row_name_and_data("value", perf_counter->get_value());
         }
-        tp.add_row_name_and_data("type", perf_counter->type());
-        tp.add_row_name_and_data("descriptor", perf_counter->dsptr());
+        tp.add_row_name_and_data("type", dsn_counter_type_to_string(perf_counter->type()));
+        tp.add_row_name_and_data("description", perf_counter->dsptr());
     }
 
     std::ostringstream out;
