@@ -39,32 +39,92 @@ public:
         create_app(app_name);
     }
 
+    void TearDown() override { drop_app(app_name); }
+
     const std::string app_name = "test_app_env";
-    const std::string env_slow_query_threshold = "replica.slow_query_threshold";
 };
 
 TEST_F(meta_app_envs_test, set_slow_query_threshold)
 {
-    auto app = find_app(app_name);
-
     struct test_case
     {
         error_code err;
         std::string env_value;
-        std::string expect_env_value;
-    } tests[] = {{ERR_OK, "30", "30"},
-                 {ERR_OK, "21", "21"},
-                 {ERR_OK, "20", "20"},
-                 {ERR_INVALID_PARAMETERS, "19", "20"},
-                 {ERR_INVALID_PARAMETERS, "10", "20"},
-                 {ERR_INVALID_PARAMETERS, "0", "20"}};
+        std::string hint;
+        std::string expect_value;
+    } tests[] = {{ERR_OK, "30", "", "30"},
+                 {ERR_OK, "20", "", "20"},
+                 {ERR_INVALID_PARAMETERS, "19", "Slow query threshold must be >= 20ms", "20"},
+                 {ERR_INVALID_PARAMETERS, "0", "Slow query threshold must be >= 20ms", "20"}};
 
+    const std::string env_slow_query_threshold = "replica.slow_query_threshold";
+    auto app = find_app(app_name);
     for (auto test : tests) {
-        error_code err = update_app_envs(app_name, {env_slow_query_threshold}, {test.env_value});
+        configuration_update_app_env_response response =
+            update_app_envs(app_name, {env_slow_query_threshold}, {test.env_value});
 
-        ASSERT_EQ(err, test.err);
-        ASSERT_EQ(app->envs.at(env_slow_query_threshold), test.expect_env_value);
+        ASSERT_EQ(response.err, test.err);
+        ASSERT_EQ(response.hint_message, test.hint);
+        ASSERT_EQ(app->envs.at(env_slow_query_threshold), test.expect_value);
     }
 }
+
+TEST_F(meta_app_envs_test, set_write_throttling)
+{
+    struct test_case
+    {
+        std::string env_key;
+        std::string env_value;
+        error_code err;
+        std::string hint;
+        std::string expect_value;
+    } tests[] = {
+        {"replica.write_throttling", "100*delay*100", ERR_OK, "", "100*delay*100"},
+        {"replica.write_throttling", "20K*delay*100", ERR_OK, "", "20K*delay*100"},
+        {"replica.write_throttling", "20M*delay*100", ERR_OK, "", "20M*delay*100"},
+        {"replica.write_throttling",
+         "20A*delay*100",
+         ERR_INVALID_PARAMETERS,
+         "20A should be non-negative int",
+         "20M*delay*100"},
+        {"replica.write_throttling",
+         "-20*delay*100",
+         ERR_INVALID_PARAMETERS,
+         "-20 should be non-negative int",
+         "20M*delay*100"},
+        {"replica.write_throttling",
+         "",
+         ERR_INVALID_PARAMETERS,
+         "The value shouldn't be empty",
+         "20M*delay*100"},
+        {"replica.write_throttling",
+         "20A*delay",
+         ERR_INVALID_PARAMETERS,
+         "The field count of 20A*delay should be 3",
+         "20M*delay*100"},
+        {"replica.write_throttling",
+         "20K*pass*100",
+         ERR_INVALID_PARAMETERS,
+         "pass should be \"delay\" or \"reject\"",
+         "20M*delay*100"},
+        {"replica.write_throttling",
+         "20K*delay*-100",
+         ERR_INVALID_PARAMETERS,
+         "-100 should be non-negative int",
+         "20M*delay*100"},
+        {"replica.write_throttling", "20M*reject*100", ERR_OK, "", "20M*reject*100"},
+        {"replica.write_throttling_by_size", "300*delay*100", ERR_OK, "", "300*delay*100"}};
+
+    auto app = find_app(app_name);
+    for (auto test : tests) {
+        configuration_update_app_env_response response =
+            update_app_envs(app_name, {test.env_key}, {test.env_value});
+
+        ASSERT_EQ(response.err, test.err);
+        ASSERT_EQ(response.hint_message, test.hint);
+        ASSERT_EQ(app->envs.at(test.env_key), test.expect_value);
+    }
+}
+
 } // namespace replication
 } // namespace dsn

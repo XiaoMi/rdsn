@@ -297,6 +297,12 @@ private:
     void process_one_partition(std::shared_ptr<app_state> &app);
     void transition_staging_state(std::shared_ptr<app_state> &app);
 
+    void init_env_check_functions();
+    bool check_slow_query(const std::string &env_value, std::string &hint_message);
+    bool check_write_throttling(const std::string &env_value, std::string &hint_message);
+    bool
+    check_app_envs(const std::string &key, const std::string &value, std::string &hint_message);
+
 private:
     friend class replication_checker;
     friend class test::test_checker;
@@ -340,6 +346,9 @@ private:
     perf_counter_wrapper _recent_update_config_count;
     perf_counter_wrapper _recent_partition_change_unwritable_count;
     perf_counter_wrapper _recent_partition_change_writable_count;
+
+    std::map<std::string, std::function<bool(const std::string &, std::string &)>>
+        env_check_functions;
 };
 
 } // namespace replication

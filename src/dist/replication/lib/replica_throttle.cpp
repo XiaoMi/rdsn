@@ -52,10 +52,9 @@ bool replica::throttle_request(throttling_controller &controller,
 
 void replica::update_throttle_envs(const std::map<std::string, std::string> &envs)
 {
+    update_throttle_env_internal(envs, ENV_WRITE_QPS_THROTTLING, _write_qps_throttling_controller);
     update_throttle_env_internal(
-        envs, replica_envs::WRITE_QPS_THROTTLING, _write_qps_throttling_controller);
-    update_throttle_env_internal(
-        envs, replica_envs::WRITE_SIZE_THROTTLING, _write_size_throttling_controller);
+        envs, ENV_WRITE_SIZE_THROTTLING, _write_size_throttling_controller);
 }
 
 void replica::update_throttle_env_internal(const std::map<std::string, std::string> &envs,

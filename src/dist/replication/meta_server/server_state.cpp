@@ -56,10 +56,6 @@ namespace replication {
 
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
-// env name of slow query
-static const std::string ENV_SLOW_QUERY_THRESHOLD("replica.slow_query_threshold");
-// min value for slow query threshold, less than this value will be refused
-static const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS = 20;
 
 server_state::server_state()
     : _meta_svc(nullptr),
@@ -69,6 +65,7 @@ server_state::server_state()
       _ctrl_add_secondary_enable_flow_control(nullptr),
       _ctrl_add_secondary_max_count_for_one_node(nullptr)
 {
+    init_env_check_functions();
 }
 
 server_state::~server_state()
@@ -88,6 +85,86 @@ server_state::~server_state()
             _ctrl_add_secondary_max_count_for_one_node);
         _ctrl_add_secondary_max_count_for_one_node = nullptr;
     }
+}
+
+void server_state::init_env_check_functions()
+{
+    env_check_functions[ENV_SLOW_QUERY_THRESHOLD] = std::bind(
+        &server_state::check_slow_query, this, std::placeholders::_1, std::placeholders::_2);
+    env_check_functions[ENV_WRITE_QPS_THROTTLING] = std::bind(
+        &server_state::check_write_throttling, this, std::placeholders::_1, std::placeholders::_2);
+    env_check_functions[ENV_WRITE_SIZE_THROTTLING] = std::bind(
+        &server_state::check_write_throttling, this, std::placeholders::_1, std::placeholders::_2);
+}
+
+bool server_state::check_slow_query(const std::string &env_value, std::string &hint_message)
+{
+    uint64_t threshold = 0;
+    if (!dsn::buf2uint64(env_value, threshold) || threshold < MIN_SLOW_QUERY_THRESHOLD_MS) {
+        hint_message =
+            fmt::format("Slow query threshold must be >= {}ms", MIN_SLOW_QUERY_THRESHOLD_MS);
+        return false;
+    }
+    return true;
+}
+
+bool server_state::check_write_throttling(const std::string &env_value, std::string &hint_message)
+{
+    std::vector<std::string> sargs;
+    utils::split_args(env_value.c_str(), sargs, ',');
+    if (sargs.empty()) {
+        hint_message = "The value shouldn't be empty";
+        return false;
+    }
+
+    // example for arg: 100K*delay*100 / 100M*reject*100
+    for (std::string &sarg : sargs) {
+        std::vector<std::string> sub_sargs;
+        utils::split_args(sarg.c_str(), sub_sargs, '*');
+        if (sub_sargs.size() != 3) {
+            hint_message = fmt::format("The field count of {} should be 3", sarg);
+            return false;
+        }
+
+        int64_t units = 0;
+        if (!sub_sargs[0].empty() &&
+            ('M' == *sub_sargs[0].rbegin() || 'K' == *sub_sargs[0].rbegin())) {
+            sub_sargs[0].pop_back();
+        }
+        if (!buf2int64(sub_sargs[0], units) || units < 0) {
+            hint_message = fmt::format("{} should be non-negative int", sub_sargs[0]);
+            return false;
+        }
+
+        if (sub_sargs[1] != "delay" && sub_sargs[1] != "reject") {
+            hint_message = fmt::format("{} should be \"delay\" or \"reject\"", sub_sargs[1]);
+            return false;
+        }
+
+        int64_t ms = 0;
+        if (!buf2int64(sub_sargs[2], ms) || ms < 0) {
+            hint_message = fmt::format("{} should be non-negative int", sub_sargs[2]);
+            return false;
+        };
+    }
+
+    return true;
+}
+
+bool server_state::check_app_envs(const std::string &key,
+                                  const std::string &value,
+                                  std::string &hint_message)
+{
+
+    auto func_iter = env_check_functions.find(key);
+    if (func_iter != env_check_functions.end()) {
+        if (!func_iter->second(value, hint_message)) {
+            dwarn("{}={} is invalid.", key.c_str(), value.c_str());
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void server_state::register_cli_commands()
@@ -2616,20 +2693,14 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
 
     std::ostringstream os;
     for (int i = 0; i < keys.size(); i++) {
-        // check whether if slow query threshold is abnormal
-        if (0 == keys[i].compare(ENV_SLOW_QUERY_THRESHOLD)) {
-            uint64_t threshold = 0;
-            if (!dsn::buf2uint64(values[i], threshold) || threshold < MIN_SLOW_QUERY_THRESHOLD_MS) {
-                dwarn("{}={} is invalid.", keys[i].c_str(), threshold);
-                env_rpc.response().err = ERR_INVALID_PARAMETERS;
-                env_rpc.response().hint_message = fmt::format(
-                    "slow query threshold must be >= {}ms", MIN_SLOW_QUERY_THRESHOLD_MS);
-                return;
-            }
-        }
-
         if (i != 0)
             os << ", ";
+
+        if (!check_app_envs(keys[i], values[i], env_rpc.response().hint_message)) {
+            env_rpc.response().err = ERR_INVALID_PARAMETERS;
+            return;
+        }
+
         os << keys[i] << "=" << values[i];
     }
     ddebug("set app envs for app(%s) from remote(%s): kvs = {%s}",
