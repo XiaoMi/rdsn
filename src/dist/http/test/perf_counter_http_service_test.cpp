@@ -23,7 +23,7 @@ TEST_F(perf_counter_http_service_test, get_perf_counter)
         const char *section;
         const char *name;
         dsn_perf_counter_type_t type;
-        const char *dsptr;
+        const char *description;
     } tests[] = {
         {"replica", "http", "number", COUNTER_TYPE_NUMBER, "number type"},
         {"replica", "http", "volatile", COUNTER_TYPE_VOLATILE_NUMBER, "volatile type"},
@@ -33,7 +33,7 @@ TEST_F(perf_counter_http_service_test, get_perf_counter)
     for (auto test : tests) {
         // create perf counter
         perf_counter_wrapper counter;
-        counter.init_global_counter(test.app, test.section, test.name, test.type, test.dsptr);
+        counter.init_global_counter(test.app, test.section, test.name, test.type, test.description);
 
         std::string perf_counter_name;
         perf_counter::build_full_name(test.app, test.section, test.name, perf_counter_name);
@@ -49,13 +49,13 @@ TEST_F(perf_counter_http_service_test, get_perf_counter)
         if (COUNTER_TYPE_NUMBER_PERCENTILES == test.type) {
             fake_json = R"({"name":")" + perf_counter_name + R"(",)" +
                         R"("p99":"0.00","p999":"0.00",)" +
-                        R"("type":")" + std::to_string(test.type) + R"(",)" +
-                        R"("descriptor":")" + test.dsptr + R"("})" + "\n";
+                        R"("type":")" + dsn_counter_type_to_string(test.type) + R"(",)" +
+                        R"("description":")" + test.description + R"("})" + "\n";
         } else {
             fake_json = R"({"name":")" + perf_counter_name + R"(",)" +
                         R"("value":"0.00",)" +
-                        R"("type":")" + std::to_string(test.type) + R"(",)" +
-                        R"("descriptor":")" + test.dsptr + R"("})" + "\n";
+                        R"("type":")" + dsn_counter_type_to_string(test.type) + R"(",)" +
+                        R"("description":")" + test.description + R"("})" + "\n";
         }
 
         ASSERT_EQ(fake_resp.status_code, http_status_code::ok);
