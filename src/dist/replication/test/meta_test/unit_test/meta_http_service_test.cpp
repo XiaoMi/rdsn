@@ -114,15 +114,16 @@ public:
         ASSERT_EQ(response.err, ERR_OK);
     }
 
-    void test_get_backup_policy(const std::string &name, const std::string &expected_json)
+    void test_get_backup_policy(const std::string &name,
+                                const std::string &expected_json,
+                                const http_status_code &http_status)
     {
         http_request req;
         http_response resp;
         if (!name.empty())
             req.query_args.emplace("name", name);
         _mhs->query_backup_policy_handler(req, resp);
-        ASSERT_EQ(resp.status_code, http_status_code::ok)
-            << http_status_code_to_string(resp.status_code);
+        ASSERT_EQ(resp.status_code, http_status) << http_status_code_to_string(resp.status_code);
         ASSERT_EQ(resp.body, expected_json);
     }
 
@@ -143,31 +144,35 @@ TEST_F(meta_backup_test_base, get_backup_policy)
     {
         std::string name;
         std::string expected_json;
+        http_status_code http_status;
     } tests[5] = {
-        {"", "{}\n"},
+        {"", "{}\n", http_status_code::not_found},
         {"TEST1",
          "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\","
          "\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_time\":\"12:00\","
-         "\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n"},
+         "\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n",
+         http_status_code::ok},
         {"TEST2",
          "{\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_type\":\"local_service\","
          "\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_time\":\"12:00\","
-         "\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n"},
+         "\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n",
+         http_status_code::ok},
         {"",
          "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\",\"backup_"
          "interval\":\"1\",\"app_ids\":\"[2]\",\"start_time\":\"12:00\",\"status\":\"enabled\","
          "\"backup_history_count\":\"1\"},\"TEST2\":{\"name\":\"TEST2\",\"backup_provider_"
          "type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_"
-         "time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n"},
-        {"TEST3", "{}\n"},
+         "time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n",
+         http_status_code::ok},
+        {"TEST3", "{}\n", http_status_code::not_found},
     };
-    test_get_backup_policy(tests[0].name, tests[0].expected_json);
+    test_get_backup_policy(tests[0].name, tests[0].expected_json, tests[0].http_status);
     add_backup_policy("TEST1");
-    test_get_backup_policy(tests[1].name, tests[1].expected_json);
+    test_get_backup_policy(tests[1].name, tests[1].expected_json, tests[1].http_status);
     add_backup_policy("TEST2");
-    test_get_backup_policy(tests[2].name, tests[2].expected_json);
-    test_get_backup_policy(tests[3].name, tests[3].expected_json);
-    test_get_backup_policy(tests[4].name, tests[4].expected_json);
+    test_get_backup_policy(tests[2].name, tests[2].expected_json, tests[2].http_status);
+    test_get_backup_policy(tests[3].name, tests[3].expected_json, tests[3].http_status);
+    test_get_backup_policy(tests[4].name, tests[4].expected_json, tests[4].http_status);
 }
 
 } // namespace replication
