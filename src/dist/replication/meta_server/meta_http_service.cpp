@@ -516,7 +516,7 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     resp.status_code = http_status_code::ok;
 }
 
-std::string set_to_string(std::set<int32_t> s)
+std::string set_to_string(const std::set<int32_t>& s)
 {
     std::stringstream out;
     rapidjson::OStreamWrapper wrapper(out);
@@ -525,14 +525,14 @@ std::string set_to_string(std::set<int32_t> s)
     return out.str();
 }
 
-void meta_http_service::get_backup_policy_handler(const http_request &req, http_response &resp)
+void meta_http_service::query_backup_policy_handler(const http_request &req, http_response &resp)
 {
-
     if (!redirect_if_not_primary(req, resp))
         return;
 
     if (_service->_backup_handler == nullptr) {
         resp.body = "cold_backup_disabled";
+        resp.status_code = http_status_code::not_found;
         return;
     }
     auto request = dsn::make_unique<configuration_query_backup_policy_request>();
