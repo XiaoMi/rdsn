@@ -38,7 +38,7 @@ public:
             req.max_gced_decree = 3;
 
             // local_committed_decree = 5
-            _replica->set_max_gced_decree(0);
+            _replica->mock_max_gced_decree(0);
             _replica->_prepare_list->reset(5);
 
             ASSERT_EQ(_replica->get_learn_start_decree(req), 6);
@@ -111,7 +111,7 @@ public:
         int id = 1;
         for (auto tt : tests) {
             _replica = create_duplicating_replica();
-            _replica->set_max_gced_decree(tt.learnee_max_gced_decree);
+            _replica->mock_max_gced_decree(tt.learnee_max_gced_decree);
 
             learn_request req;
             req.last_committed_decree_in_app = tt.learner_last_committed_decree;
@@ -129,7 +129,27 @@ public:
         }
     }
 
-    void test_get_max_gced_decree_for_learn() {}
+    void test_get_max_gced_decree_for_learn()
+    {
+        struct test_data
+        {
+            decree first_learn_start_decree;
+            decree plog_max_gced_decree;
+
+            decree want;
+        } tests[] = {{invalid_decree, 10, 10},
+                     {invalid_decree, invalid_decree, invalid_decree},
+                     {10, 20, 9},
+                     {10, invalid_decree, 9},
+                     {10, 5, 5}};
+        for (auto tt : tests) {
+            _replica = create_duplicating_replica();
+            _replica->mock_max_gced_decree(tt.plog_max_gced_decree);
+            _replica->_potential_secondary_states.first_learn_start_decree =
+                tt.first_learn_start_decree;
+            ASSERT_EQ(_replica->get_max_gced_decree_for_learn(), tt.want);
+        }
+    }
 };
 
 TEST_F(replica_learn_test, get_learn_start_decree) { test_get_learn_start_decree(); }
