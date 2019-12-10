@@ -298,8 +298,6 @@ private:
     void transition_staging_state(std::shared_ptr<app_state> &app);
 
     void init_env_check_functions();
-    bool check_slow_query(const std::string &env_value, std::string &hint_message);
-    bool check_write_throttling(const std::string &env_value, std::string &hint_message);
     bool
     check_app_envs(const std::string &key, const std::string &value, std::string &hint_message);
 

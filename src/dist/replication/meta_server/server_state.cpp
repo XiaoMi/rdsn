@@ -57,47 +57,7 @@ namespace replication {
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
 
-server_state::server_state()
-    : _meta_svc(nullptr),
-      _add_secondary_enable_flow_control(false),
-      _add_secondary_max_count_for_one_node(0),
-      _cli_dump_handle(nullptr),
-      _ctrl_add_secondary_enable_flow_control(nullptr),
-      _ctrl_add_secondary_max_count_for_one_node(nullptr)
-{
-    init_env_check_functions();
-}
-
-server_state::~server_state()
-{
-    _tracker.cancel_outstanding_tasks();
-    if (_cli_dump_handle != nullptr) {
-        dsn::command_manager::instance().deregister_command(_cli_dump_handle);
-        _cli_dump_handle = nullptr;
-    }
-    if (_ctrl_add_secondary_enable_flow_control != nullptr) {
-        dsn::command_manager::instance().deregister_command(
-            _ctrl_add_secondary_enable_flow_control);
-        _ctrl_add_secondary_enable_flow_control = nullptr;
-    }
-    if (_ctrl_add_secondary_max_count_for_one_node != nullptr) {
-        dsn::command_manager::instance().deregister_command(
-            _ctrl_add_secondary_max_count_for_one_node);
-        _ctrl_add_secondary_max_count_for_one_node = nullptr;
-    }
-}
-
-void server_state::init_env_check_functions()
-{
-    env_check_functions[replica_envs::SLOW_QUERY_THRESHOLD] = std::bind(
-        &server_state::check_slow_query, this, std::placeholders::_1, std::placeholders::_2);
-    env_check_functions[replica_envs::WRITE_QPS_THROTTLING] = std::bind(
-        &server_state::check_write_throttling, this, std::placeholders::_1, std::placeholders::_2);
-    env_check_functions[replica_envs::WRITE_SIZE_THROTTLING] = std::bind(
-        &server_state::check_write_throttling, this, std::placeholders::_1, std::placeholders::_2);
-}
-
-bool server_state::check_slow_query(const std::string &env_value, std::string &hint_message)
+bool check_slow_query(const std::string &env_value, std::string &hint_message)
 {
     uint64_t threshold = 0;
     if (!dsn::buf2uint64(env_value, threshold) ||
@@ -109,7 +69,7 @@ bool server_state::check_slow_query(const std::string &env_value, std::string &h
     return true;
 }
 
-bool server_state::check_write_throttling(const std::string &env_value, std::string &hint_message)
+bool check_write_throttling(const std::string &env_value, std::string &hint_message)
 {
     std::vector<std::string> sargs;
     utils::split_args(env_value.c_str(), sargs, ',');
@@ -150,6 +110,46 @@ bool server_state::check_write_throttling(const std::string &env_value, std::str
     }
 
     return true;
+}
+
+server_state::server_state()
+    : _meta_svc(nullptr),
+      _add_secondary_enable_flow_control(false),
+      _add_secondary_max_count_for_one_node(0),
+      _cli_dump_handle(nullptr),
+      _ctrl_add_secondary_enable_flow_control(nullptr),
+      _ctrl_add_secondary_max_count_for_one_node(nullptr)
+{
+    init_env_check_functions();
+}
+
+server_state::~server_state()
+{
+    _tracker.cancel_outstanding_tasks();
+    if (_cli_dump_handle != nullptr) {
+        dsn::command_manager::instance().deregister_command(_cli_dump_handle);
+        _cli_dump_handle = nullptr;
+    }
+    if (_ctrl_add_secondary_enable_flow_control != nullptr) {
+        dsn::command_manager::instance().deregister_command(
+            _ctrl_add_secondary_enable_flow_control);
+        _ctrl_add_secondary_enable_flow_control = nullptr;
+    }
+    if (_ctrl_add_secondary_max_count_for_one_node != nullptr) {
+        dsn::command_manager::instance().deregister_command(
+            _ctrl_add_secondary_max_count_for_one_node);
+        _ctrl_add_secondary_max_count_for_one_node = nullptr;
+    }
+}
+
+void server_state::init_env_check_functions()
+{
+    env_check_functions[replica_envs::SLOW_QUERY_THRESHOLD] =
+        std::bind(&check_slow_query, std::placeholders::_1, std::placeholders::_2);
+    env_check_functions[replica_envs::WRITE_QPS_THROTTLING] =
+        std::bind(&check_write_throttling, std::placeholders::_1, std::placeholders::_2);
+    env_check_functions[replica_envs::WRITE_SIZE_THROTTLING] =
+        std::bind(&check_write_throttling, std::placeholders::_1, std::placeholders::_2);
 }
 
 bool server_state::check_app_envs(const std::string &key,
