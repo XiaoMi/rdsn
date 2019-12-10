@@ -305,6 +305,8 @@ public:
     };
 
     typedef std::function<std::shared_ptr<policy_context>(backup_service *)> policy_factory;
+    typedef rpc_holder<configuration_query_backup_policy_request,
+            configuration_query_backup_policy_response> query_backup_policy_rpc;
     explicit backup_service(meta_service *meta_svc,
                             const std::string &policy_meta_root,
                             const std::string &backup_root,
@@ -317,7 +319,7 @@ public:
     const std::string &backup_root() const { return _backup_root; }
     const std::string &policy_root() const { return _policy_meta_root; }
     void add_backup_policy(dsn::message_ex* msg);
-    void query_backup_policy(rpc_holder<configuration_query_backup_policy_request, configuration_query_backup_policy_response> rpc);
+    void query_backup_policy(query_backup_policy_rpc rpc);
     void modify_backup_policy(dsn::message_ex* msg);
 
     // compose the absolute path(AP) for policy

@@ -146,7 +146,7 @@ TEST_F(meta_backup_test_base, get_backup_policy)
         std::string expected_json;
         http_status_code http_status;
     } tests[5] = {
-        {"", "{}\n", http_status_code::not_found},
+        {"", "{}\n", http_status_code::ok},
         {"TEST1",
          "{\"TEST1\":{\"name\":\"TEST1\",\"backup_provider_type\":\"local_service\","
          "\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_time\":\"12:00\","
@@ -164,7 +164,7 @@ TEST_F(meta_backup_test_base, get_backup_policy)
          "type\":\"local_service\",\"backup_interval\":\"1\",\"app_ids\":\"[2]\",\"start_"
          "time\":\"12:00\",\"status\":\"enabled\",\"backup_history_count\":\"1\"}}\n",
          http_status_code::ok},
-        {"TEST3", "{}\n", http_status_code::not_found},
+        {"TEST3", "{}\n", http_status_code::ok},
     };
     test_get_backup_policy(tests[0].name, tests[0].expected_json, tests[0].http_status);
     add_backup_policy("TEST1");

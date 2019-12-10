@@ -532,7 +532,7 @@ void meta_http_service::query_backup_policy_handler(const http_request &req, htt
 
     if (_service->_backup_handler == nullptr) {
         resp.body = "cold_backup_disabled";
-        resp.status_code = http_status_code::bad_request;
+        resp.status_code = http_status_code::not_found;
         return;
     }
     auto request = dsn::make_unique<configuration_query_backup_policy_request>();
@@ -571,11 +571,7 @@ void meta_http_service::query_backup_policy_handler(const http_request &req, htt
     std::ostringstream out;
     tp_query_backup_policy.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
     resp.body = out.str();
-    if (rpc_return.policys.empty()) {
-        resp.status_code = http_status_code::not_found;
-    } else {
-        resp.status_code = http_status_code::ok;
-    }
+    resp.status_code = http_status_code::ok;
 
     return;
 }
