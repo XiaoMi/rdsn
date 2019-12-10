@@ -516,7 +516,7 @@ void meta_http_service::get_app_envs_handler(const http_request &req, http_respo
     resp.status_code = http_status_code::ok;
 }
 
-std::string set_to_string(const std::set<int32_t>& s)
+std::string set_to_string(const std::set<int32_t> &s)
 {
     std::stringstream out;
     rapidjson::OStreamWrapper wrapper(out);
