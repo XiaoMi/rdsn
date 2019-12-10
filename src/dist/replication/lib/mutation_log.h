@@ -228,6 +228,7 @@ public:
     }
 
     // Resets private-log with log files under `dir`.
+    // The original plog will be removed after this call.
     // NOTE: private-log should be opened before this method called.
     virtual error_code reset_from(const std::string &dir, io_failure_callback)
     {
