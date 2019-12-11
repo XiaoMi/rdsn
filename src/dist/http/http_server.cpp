@@ -101,19 +101,19 @@ void http_server::add_service(http_service *service)
         unresolved_path[data_length] = '\0';
     }
 
-    // decode resolved path
-    auto decoded_unresolved_path = url_decoder::instance().decode(unresolved_path);
-    if (!decoded_unresolved_path.is_ok()) {
-        return decoded_unresolved_path.get_error();
-    }
-    unresolved_path = decoded_unresolved_path.get_value();
-
     std::string unresolved_query;
     if (u.field_set & (1u << UF_QUERY)) {
         uint16_t data_length = u.field_data[UF_QUERY].len;
         unresolved_query.resize(data_length);
         strncpy(
             &unresolved_query[0], ret.full_url.data() + u.field_data[UF_QUERY].off, data_length);
+
+        // decode resolved query
+        auto decoded_unresolved_query = url_decoder::instance().decode(unresolved_query);
+        if (!decoded_unresolved_query.is_ok()) {
+            return decoded_unresolved_query.get_error();
+        }
+        unresolved_query = decoded_unresolved_query.get_value();
     }
 
     std::vector<std::string> args;
