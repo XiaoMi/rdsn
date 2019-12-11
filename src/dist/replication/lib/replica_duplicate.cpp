@@ -31,13 +31,5 @@
 namespace dsn {
 namespace replication {
 
-// `duplicating` is actually a field in app_info, but on the principle
-// of changing app_info as less as possible, we store it in .init_info
-// instead.
-
-void replica::update_init_info_duplicating(bool duplicating) { /*TBD*/}
-
-bool replica::is_duplicating() const { /*TBD*/ return false; }
-
 } // namespace replication
 } // namespace dsn
