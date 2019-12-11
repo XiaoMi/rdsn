@@ -54,22 +54,22 @@ public:
             decree wlearn_start_decree;
         } tests[] = {
             // min_confirmed_decree(3) >= 0
-            // new_learn_start_decree(4) < learn_start_decree(6)
+            // learn_start_decree_for_dup(4) < learn_start_decree_no_dup(6)
             // request.max_gced_decree == invalid_decree
             {5, invalid_decree, 5, 0, 3, 4},
 
             // min_confirmed_decree(3) >= 0
-            // new_learn_start_decree(4) < learn_start_decree(6)
-            // new_learn_start_decree(4) <= request.max_gced_decree(4)
+            // learn_start_decree_for_dup(4) < learn_start_decree_no_dup(6)
+            // learn_start_decree_for_dup(4) <= request.max_gced_decree(4)
             {5, 4, 5, 0, 3, 4},
 
             // min_confirmed_decree(3) >= 0
-            // new_learn_start_decree(4) < learn_start_decree(6)
-            // new_learn_start_decree(4) > request.max_gced_decree(0)
+            // learn_start_decree_for_dup(4) < learn_start_decree_no_dup(6)
+            // learn_start_decree_for_dup(4) > request.max_gced_decree(0)
             {5, 0, 5, 0, 3, 6},
 
             // min_confirmed_decree(3) >= 0
-            // new_learn_start_decree(4) > learn_start_decree(1)
+            // learn_start_decree_for_dup(4) > learn_start_decree_no_dup(1)
             {0, 4, 5, 0, 3, 1},
 
             // min_confirmed_decree == invalid_decree
@@ -79,31 +79,31 @@ public:
 
             // min_confirmed_decree == invalid_decree
             // local_gced(2) != invalid_decree
-            // new_learn_start_decree(3) < learn_start_decree(6)
+            // learn_start_decree_for_dup(3) < learn_start_decree_no_dup(6)
             // request.max_gced_decree == invalid_decree
             {5, invalid_decree, 5, 2, invalid_decree, 3},
 
             // min_confirmed_decree == invalid_decree
             // local_gced(2) != invalid_decree
-            // new_learn_start_decree(3) < learn_start_decree(6)
-            // new_learn_start_decree(3) <= request.max_gced_decree(3)
+            // learn_start_decree_for_dup(3) < learn_start_decree_no_dup(6)
+            // learn_start_decree_for_dup(3) <= request.max_gced_decree(3)
             {5, 3, 5, 2, invalid_decree, 3},
             // local_gced(0) != invalid_decree
-            // new_learn_start_decree(1) < learn_start_decree(6)
-            // new_learn_start_decree(1) <= request.max_gced_decree(3)
+            // learn_start_decree_for_dup(1) < learn_start_decree_no_dup(6)
+            // learn_start_decree_for_dup(1) <= request.max_gced_decree(3)
             {5, 3, 5, 0, invalid_decree, 1},
 
             // min_confirmed_decree == invalid_decree
             // local_gced(2) != invalid_decree
-            // new_learn_start_decree(3) < learn_start_decree(6)
-            // new_learn_start_decree(3) > request.max_gced_decree(0)
+            // learn_start_decree_for_dup(3) < learn_start_decree_no_dup(6)
+            // learn_start_decree_for_dup(3) > request.max_gced_decree(0)
             {5, 0, 5, 2, invalid_decree, 6},
 
             // min_confirmed_decree == invalid_decree
             // local_gced(2) != invalid_decree
-            // new_learn_start_decree(3) > learn_start_decree(1)
+            // learn_start_decree_for_dup(3) > learn_start_decree_no_dup(1)
             {0, invalid_decree, 5, 2, invalid_decree, 1},
-            // new_learn_start_decree(3) > learn_start_decree(2)
+            // learn_start_decree_for_dup(3) > learn_start_decree_no_dup(2)
             {1, invalid_decree, 5, 2, invalid_decree, 2},
 
         };
