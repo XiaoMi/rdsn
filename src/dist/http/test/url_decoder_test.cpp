@@ -50,10 +50,10 @@ TEST_F(url_decoder_test, decode)
          "ERR_INVALID_PARAMETERS: The characters 2% do not form a hex value. "
          "Please escape it or pass "
          "a valid hex value"},
-        {"%G%",
+        {"%G0",
          ERR_INVALID_PARAMETERS,
          "",
-         "ERR_INVALID_PARAMETERS: The characters G% do not form a hex value. "
+         "ERR_INVALID_PARAMETERS: The characters G0 do not form a hex value. "
          "Please escape it or pass "
          "a valid hex value"},
         {"%0G",
@@ -61,7 +61,9 @@ TEST_F(url_decoder_test, decode)
          "",
          "ERR_INVALID_PARAMETERS: The characters 0G do not form a hex value. "
          "Please escape it or pass "
-         "a valid hex value"}};
+         "a valid hex value"},
+        {"%20", ERR_OK, " ", "ERR_OK"},
+        {"%80", ERR_OK, "\x80", "ERR_OK"}};
 
     for (auto test : tests) {
         auto decode_res = url_decoder::instance().decode(test.to_decode_url);
