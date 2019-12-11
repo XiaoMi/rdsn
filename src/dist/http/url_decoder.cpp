@@ -11,7 +11,7 @@ error_with<std::string> url_decoder::decode(const std::string &encoded_url)
 {
     std::string out;
     for (size_t i = 0; i < encoded_url.size(); ++i) {
-        // '%' is followed by 2 hex char
+        // '%' is followed by 2 hex chars
         if ('%' == encoded_url[i]) {
             if (i + 2 >= encoded_url.size()) {
                 return error_s::make(ERR_INVALID_PARAMETERS,
@@ -24,7 +24,7 @@ error_with<std::string> url_decoder::decode(const std::string &encoded_url)
                 return error_s::make(
                     ERR_INVALID_PARAMETERS,
                     fmt::format("The characters after the {} do not "
-                                "form a hex value. Please escape the it or pass a valid hex value",
+                                "form a hex value. Please escape it or pass a valid hex value",
                                 encoded_char));
             }
             out += decoded_char.get_value();
