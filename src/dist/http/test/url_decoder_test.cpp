@@ -25,7 +25,7 @@ TEST_F(url_decoder_test, decode)
          ERR_OK,
          "http://127.0.0.1:34101/perfCounter?name=collector*app#_all_",
          "ERR_OK"},
-        {"%EB%B2%95%EC%A0%95%EB%8F%99", ERR_OK, "\xEB\xB2\x95\xEC\xA0\x95\xEB\x8F\x99", "ERR_OK"},
+        {"%EB%B2%95%EC%A0%95%EB%8F%99%80%20", ERR_OK, "\xEB\xB2\x95\xEC\xA0\x95\xEB\x8F\x99\x80\x20", "ERR_OK"},
         {"%21%23%24%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D",
          ERR_OK,
          "!#$&'()*+,/:;=?@[]",
@@ -61,9 +61,7 @@ TEST_F(url_decoder_test, decode)
          "",
          "ERR_INVALID_PARAMETERS: The characters 0G do not form a hex value. "
          "Please escape it or pass "
-         "a valid hex value"},
-        {"%20", ERR_OK, " ", "ERR_OK"},
-        {"%80", ERR_OK, "\x80", "ERR_OK"}};
+         "a valid hex value"}};
 
     for (auto test : tests) {
         auto decode_res = url_decoder::instance().decode(test.to_decode_url);
