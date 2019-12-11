@@ -23,7 +23,7 @@ error_with<std::string> url_decoder::decode(const std::string &encoded_url)
             if (!decoded_char.is_ok()) {
                 return error_s::make(
                     ERR_INVALID_PARAMETERS,
-                    fmt::format("The characters after the {} do not "
+                    fmt::format("The characters {} do not "
                                 "form a hex value. Please escape it or pass a valid hex value",
                                 encoded_char));
             }
