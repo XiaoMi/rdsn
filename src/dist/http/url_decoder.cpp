@@ -11,6 +11,7 @@ error_with<std::string> url_decoder::decode(const std::string &encoded_url)
 {
     std::string out;
     for (size_t i = 0; i < encoded_url.size(); ++i) {
+        // '%' is followed by 2 hex char
         if ('%' == encoded_url[i]) {
             if (i + 2 >= encoded_url.size()) {
                 return error_s::make(ERR_INVALID_PARAMETERS,
