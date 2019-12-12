@@ -12,7 +12,7 @@ namespace uri {
 
 /// \brief Decodes a sequence according to the percent decoding rules.
 /// \returns the decoded uri path
-error_with<std::string> decode(const std::string &encoded_uri);
+error_with<std::string> decode(string_view encoded_uri);
 
 } // namespace uri
 } // namespace dsn

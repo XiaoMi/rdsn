@@ -22,7 +22,7 @@ error_with<char> from_hex(const char c)
     }
 }
 
-error_with<char> decode_char(const std::string &hex)
+error_with<char> decode_char(string_view &hex)
 {
     assert(2 == hex.size());
 
@@ -35,7 +35,7 @@ error_with<char> decode_char(const std::string &hex)
     return error_s::make(ERR_INVALID_PARAMETERS);
 }
 
-error_with<std::string> decode(const std::string &encoded_uri)
+error_with<std::string> decode(string_view encoded_uri)
 {
     std::string decoded_uri;
     for (size_t i = 0; i < encoded_uri.size(); ++i) {
@@ -46,14 +46,14 @@ error_with<std::string> decode(const std::string &encoded_uri)
                                      "Encountered partial escape sequence at end of string");
             }
 
-            std::string encoded_char = encoded_uri.substr(i + 1, 2);
+            string_view encoded_char = encoded_uri.substr(i + 1, 2);
             auto decoded_char = decode_char(encoded_char);
             if (!decoded_char.is_ok()) {
                 return error_s::make(
                     ERR_INVALID_PARAMETERS,
                     fmt::format("The characters {} do not "
                                 "form a hex value. Please escape it or pass a valid hex value",
-                                encoded_char));
+                                encoded_char.data()));
             }
             decoded_uri += decoded_char.get_value();
             i += 2;
