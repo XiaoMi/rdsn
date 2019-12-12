@@ -608,14 +608,16 @@ const std::string MANUAL_COMPACT_PREFIX("manual_compact.");
 const std::string MANUAL_COMPACT_PERIODIC_PREFIX(MANUAL_COMPACT_PREFIX + "periodic.");
 const std::string MANUAL_COMPACT_ONCE_PREFIX(MANUAL_COMPACT_PREFIX + "once.");
 const std::string replica_envs::MANUAL_COMPACT_DISABLED(MANUAL_COMPACT_PREFIX + "disabled");
-const std::string replica_envs::MANUAL_COMPACT_MAX_CONCURRENT_RUNNING_COUNT(MANUAL_COMPACT_PREFIX +
-                                                                  "max_concurrent_running_count");
-const std::string replica_envs::MANUAL_COMPACT_PERIODIC_TRIGGER_TIME(MANUAL_COMPACT_PERIODIC_PREFIX +
-                                                           "trigger_time");
+const std::string replica_envs::MANUAL_COMPACT_MAX_CONCURRENT_RUNNING_COUNT(
+    MANUAL_COMPACT_PREFIX + "max_concurrent_running_count");
+const std::string replica_envs::MANUAL_COMPACT_PERIODIC_TRIGGER_TIME(
+    MANUAL_COMPACT_PERIODIC_PREFIX + "trigger_time");
 const std::string replica_envs::MANUAL_COMPACT_ONCE_TRIGGER_TIME(MANUAL_COMPACT_ONCE_PREFIX +
-                                                       "trigger_time");
-const std::string replica_envs::MANUAL_COMPACT_ONCE_TARGET_LEVEL_KEY(MANUAL_COMPACT_ONCE_PREFIX + "target_level");
-const std::string replica_envs::MANUAL_COMPACT_ONCE_PERIODIC_LEVEL_KEY(MANUAL_COMPACT_PERIODIC_PREFIX + "target_level");
+                                                                 "trigger_time");
+const std::string replica_envs::MANUAL_COMPACT_ONCE_TARGET_LEVEL_KEY(MANUAL_COMPACT_ONCE_PREFIX +
+                                                                     "target_level");
+const std::string replica_envs::MANUAL_COMPACT_ONCE_PERIODIC_LEVEL_KEY(
+    MANUAL_COMPACT_PERIODIC_PREFIX + "target_level");
 
 namespace cold_backup {
 std::string get_policy_path(const std::string &root, const std::string &policy_name)
