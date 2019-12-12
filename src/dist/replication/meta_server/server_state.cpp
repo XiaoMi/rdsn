@@ -184,6 +184,7 @@ bool server_state::check_app_envs(const std::string &key,
         return true;
     }
 
+    hint_message = fmt::format("The env of {} is not supported", key);
     return false;
 }
 
