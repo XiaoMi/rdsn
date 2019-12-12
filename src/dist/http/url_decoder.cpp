@@ -8,7 +8,7 @@
 namespace dsn {
 namespace uri {
 
-dsn::error_with<char> from_hex(char c)
+error_with<char> from_hex(char c)
 {
     switch (c) {
     case '0' ... '9':
@@ -22,7 +22,7 @@ dsn::error_with<char> from_hex(char c)
     }
 }
 
-dsn::error_with<char> decode_char(std::string hex)
+error_with<char> decode_char(std::string hex)
 {
     auto high = from_hex(hex[0]);
     auto low = from_hex(hex[1]);
@@ -33,7 +33,7 @@ dsn::error_with<char> decode_char(std::string hex)
     return error_s::make(ERR_INVALID_PARAMETERS);
 }
 
-dsn::error_with<std::string> decode(const std::string &encoded_url)
+error_with<std::string> decode(const std::string &encoded_url)
 {
     std::string out;
     for (size_t i = 0; i < encoded_url.size(); ++i) {
