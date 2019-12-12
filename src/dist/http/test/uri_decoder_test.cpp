@@ -22,7 +22,7 @@ TEST_F(uri_decoder_test, decode)
         error_code err;
         std::string decoded_uri;
         std::string description;
-    } tests[]{
+    } tests[] = {
         {"http%3A%2F%2F127.0.0.1%3A34101%2FperfCounter%3Fname%3Dcollector*app%23_all_",
          ERR_OK,
          "http://127.0.0.1:34101/perfCounter?name=collector*app#_all_",
