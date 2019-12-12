@@ -20,6 +20,9 @@ class meta_service;
 class server_state;
 class backup_service;
 
+typedef rpc_holder<configuration_query_backup_policy_request,
+        configuration_query_backup_policy_response> query_backup_policy_rpc;
+
 struct backup_info_status
 {
     enum type
@@ -305,8 +308,6 @@ public:
     };
 
     typedef std::function<std::shared_ptr<policy_context>(backup_service *)> policy_factory;
-    typedef rpc_holder<configuration_query_backup_policy_request,
-            configuration_query_backup_policy_response> query_backup_policy_rpc;
     explicit backup_service(meta_service *meta_svc,
                             const std::string &policy_meta_root,
                             const std::string &backup_root,
