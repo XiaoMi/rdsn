@@ -26,7 +26,6 @@ public:
         app_info.duplicating = true;
         auto r = make_unique<mock_replica>(stub.get(), gpid, app_info, "./");
         r->as_primary();
-        r->update_init_info_duplicating(app_info.duplicating);
         return r;
     }
 
