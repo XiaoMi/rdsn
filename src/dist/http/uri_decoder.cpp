@@ -8,7 +8,7 @@
 namespace dsn {
 namespace uri {
 
-error_with<char> from_hex(char c)
+error_with<char> from_hex(const char c)
 {
     switch (c) {
     case '0' ... '9':
@@ -22,8 +22,10 @@ error_with<char> from_hex(char c)
     }
 }
 
-error_with<char> decode_char(std::string hex)
+error_with<char> decode_char(const std::string &hex)
 {
+    assert(2 == hex.size());
+
     auto high = from_hex(hex[0]);
     auto low = from_hex(hex[1]);
     if (high.is_ok() && low.is_ok()) {
