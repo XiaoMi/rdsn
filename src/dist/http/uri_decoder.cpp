@@ -22,7 +22,7 @@ error_with<char> from_hex(const char c)
     }
 }
 
-error_with<char> decode_char(string_view &hex)
+error_with<char> decode_char(string_view hex)
 {
     assert(2 == hex.size());
 
