@@ -150,6 +150,22 @@ void server_state::init_env_check_functions()
         std::bind(&check_write_throttling, std::placeholders::_1, std::placeholders::_2);
     env_check_functions[replica_envs::WRITE_SIZE_THROTTLING] =
         std::bind(&check_write_throttling, std::placeholders::_1, std::placeholders::_2);
+    // TODO: not implemented
+    env_check_functions[replica_envs::BUSINESS_INFO] = nullptr;
+    env_check_functions[replica_envs::DENY_CLIENT_WRITE] = nullptr;
+    env_check_functions[replica_envs::TABLE_LEVEL_DEFAULT_TTL] = nullptr;
+    env_check_functions[replica_envs::ROCKSDB_USAGE_SCENARIO] = nullptr;
+    env_check_functions[replica_envs::ROCKSDB_CHECKPOINT_RESERVE_MIN_COUNT] = nullptr;
+    env_check_functions[replica_envs::ROCKSDB_CHECKPOINT_RESERVE_TIME_SECONDS] = nullptr;
+    env_check_functions[replica_envs::MANUAL_COMPACT_DISABLED] = nullptr;
+    env_check_functions[replica_envs::MANUAL_COMPACT_MAX_CONCURRENT_RUNNING_COUNT] = nullptr;
+    env_check_functions[replica_envs::MANUAL_COMPACT_ONCE_TRIGGER_TIME] = nullptr;
+    env_check_functions[replica_envs::MANUAL_COMPACT_ONCE_TARGET_LEVEL] = nullptr;
+    env_check_functions[replica_envs::MANUAL_COMPACT_ONCE_BOTTOMMOST_LEVEL_COMPACTION] = nullptr;
+    env_check_functions[replica_envs::MANUAL_COMPACT_PERIODIC_TRIGGER_TIME] = nullptr;
+    env_check_functions[replica_envs::MANUAL_COMPACT_PERIODIC_TARGET_LEVEL] = nullptr;
+    env_check_functions[replica_envs::MANUAL_COMPACT_PERIODIC_BOTTOMMOST_LEVEL_COMPACTION] =
+        nullptr;
 }
 
 bool server_state::check_app_envs(const std::string &key,
@@ -159,13 +175,16 @@ bool server_state::check_app_envs(const std::string &key,
 
     auto func_iter = env_check_functions.find(key);
     if (func_iter != env_check_functions.end()) {
-        if (!func_iter->second(value, hint_message)) {
+        // check function == nullptr means no check
+        if (nullptr != func_iter->second && !func_iter->second(value, hint_message)) {
             dwarn("{}={} is invalid.", key.c_str(), value.c_str());
             return false;
         }
+
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 void server_state::register_cli_commands()
