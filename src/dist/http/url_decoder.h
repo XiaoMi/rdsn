@@ -8,16 +8,10 @@
 #include <dsn/utility/errors.h>
 
 namespace dsn {
+namespace uri {
 
-class url_decoder : public ::dsn::utils::singleton<url_decoder>
-{
-public:
-    // decode the encoded url received from front-end, to recover escaped characters
-    error_with<std::string> decode(const std::string &encoded_url);
+// decode the encoded url received from front-end, to recover escaped characters
+error_with<std::string> decode(const std::string &encoded_url);
 
-private:
-    error_with<char> decode_char(std::string hex);
-    error_with<char> from_hex(char c);
-};
-
+} // namespace uri
 } // namespace dsn

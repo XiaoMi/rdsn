@@ -67,7 +67,7 @@ TEST_F(url_decoder_test, decode)
         {"%80", ERR_OK, "\x80", "ERR_OK"}};
 
     for (auto test : tests) {
-        auto decode_res = url_decoder::instance().decode(test.to_decode_url);
+        auto decode_res = uri::decode(test.to_decode_url);
 
         ASSERT_EQ(decode_res.get_error().code(), test.err);
         if (ERR_OK == test.err) {

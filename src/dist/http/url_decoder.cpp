@@ -6,8 +6,34 @@
 #include "url_decoder.h"
 
 namespace dsn {
+namespace uri {
 
-error_with<std::string> url_decoder::decode(const std::string &encoded_url)
+dsn::error_with<char> from_hex(char c)
+{
+    switch (c) {
+    case '0' ... '9':
+        return c - '0';
+    case 'a' ... 'f':
+        return c - 'a' + 10;
+    case 'A' ... 'F':
+        return c - 'A' + 10;
+    default:
+        return error_s::make(ERR_INVALID_PARAMETERS);
+    }
+}
+
+dsn::error_with<char> decode_char(std::string hex)
+{
+    auto high = from_hex(hex[0]);
+    auto low = from_hex(hex[1]);
+    if (high.is_ok() && low.is_ok()) {
+        return (high.get_value() << 4) | low.get_value();
+    }
+
+    return error_s::make(ERR_INVALID_PARAMETERS);
+}
+
+dsn::error_with<std::string> decode(const std::string &encoded_url)
 {
     std::string out;
     for (size_t i = 0; i < encoded_url.size(); ++i) {
@@ -37,29 +63,5 @@ error_with<std::string> url_decoder::decode(const std::string &encoded_url)
     return out;
 }
 
-error_with<char> url_decoder::decode_char(std::string hex)
-{
-    auto high = from_hex(hex[0]);
-    auto low = from_hex(hex[1]);
-    if (high.is_ok() && low.is_ok()) {
-        return (high.get_value() << 4) | low.get_value();
-    }
-
-    return error_s::make(ERR_INVALID_PARAMETERS);
-}
-
-error_with<char> url_decoder::from_hex(char c)
-{
-    switch (c) {
-    case '0' ... '9':
-        return c - '0';
-    case 'a' ... 'f':
-        return c - 'a' + 10;
-    case 'A' ... 'F':
-        return c - 'A' + 10;
-    default:
-        return error_s::make(ERR_INVALID_PARAMETERS);
-    }
-}
-
+} // namespace uri
 } // namespace dsn
