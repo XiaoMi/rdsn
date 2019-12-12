@@ -21,7 +21,8 @@ class server_state;
 class backup_service;
 
 typedef rpc_holder<configuration_query_backup_policy_request,
-        configuration_query_backup_policy_response> query_backup_policy_rpc;
+                   configuration_query_backup_policy_response>
+    query_backup_policy_rpc;
 
 struct backup_info_status
 {
