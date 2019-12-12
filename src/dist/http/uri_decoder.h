@@ -10,7 +10,8 @@
 namespace dsn {
 namespace uri {
 
-// decode the encoded uri received from front-end, to recover escaped characters
+/// \brief Decodes a sequence according to the percent decoding rules.
+/// \returns the decoded uri path
 error_with<std::string> decode(const std::string &encoded_uri);
 
 } // namespace uri
