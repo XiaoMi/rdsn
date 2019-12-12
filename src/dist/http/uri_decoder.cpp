@@ -35,7 +35,7 @@ error_with<char> decode_char(std::string hex)
 
 error_with<std::string> decode(const std::string &encoded_uri)
 {
-    std::string out;
+    std::string decoded_uri;
     for (size_t i = 0; i < encoded_uri.size(); ++i) {
         // '%' is followed by 2 hex chars
         if ('%' == encoded_uri[i]) {
@@ -53,14 +53,14 @@ error_with<std::string> decode(const std::string &encoded_uri)
                                 "form a hex value. Please escape it or pass a valid hex value",
                                 encoded_char));
             }
-            out += decoded_char.get_value();
+            decoded_uri += decoded_char.get_value();
             i += 2;
         } else {
-            out += encoded_uri[i];
+            decoded_uri += encoded_uri[i];
         }
     }
 
-    return out;
+    return decoded_uri;
 }
 
 } // namespace uri
