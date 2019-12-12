@@ -7,6 +7,7 @@
 #include <dist/http/url_decoder.h>
 
 namespace dsn {
+namespace uri {
 
 class url_decoder_test : public testing::Test
 {
@@ -67,7 +68,7 @@ TEST_F(url_decoder_test, decode)
         {"%80", ERR_OK, "\x80", "ERR_OK"}};
 
     for (auto test : tests) {
-        auto decode_res = uri::decode(test.to_decode_url);
+        auto decode_res = decode(test.to_decode_url);
 
         ASSERT_EQ(decode_res.get_error().code(), test.err);
         if (ERR_OK == test.err) {
@@ -78,3 +79,4 @@ TEST_F(url_decoder_test, decode)
 }
 
 } // namespace dsn
+} // namespace uri
