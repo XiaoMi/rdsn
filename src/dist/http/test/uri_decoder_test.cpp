@@ -4,23 +4,23 @@
 
 #include <gtest/gtest.h>
 #include <dsn/utility/error_code.h>
-#include <dist/http/url_decoder.h>
+#include <dist/http/uri_decoder.h>
 
 namespace dsn {
 namespace uri {
 
-class url_decoder_test : public testing::Test
+class uri_decoder_test : public testing::Test
 {
 };
 
-TEST_F(url_decoder_test, decode)
+TEST_F(uri_decoder_test, decode)
 {
     /// Extract from https://github.com/cpp-netlib/uri/blob/master/test/uri_encoding_test.cpp
     struct test_case
     {
-        std::string to_decode_url;
+        std::string to_decode_uri;
         error_code err;
-        std::string decoded_url;
+        std::string decoded_uri;
         std::string description;
     } tests[]{
         {"http%3A%2F%2F127.0.0.1%3A34101%2FperfCounter%3Fname%3Dcollector*app%23_all_",
@@ -68,11 +68,11 @@ TEST_F(url_decoder_test, decode)
         {"%80", ERR_OK, "\x80", "ERR_OK"}};
 
     for (auto test : tests) {
-        auto decode_res = decode(test.to_decode_url);
+        auto decode_res = decode(test.to_decode_uri);
 
         ASSERT_EQ(decode_res.get_error().code(), test.err);
         if (ERR_OK == test.err) {
-            ASSERT_EQ(decode_res.get_value(), test.decoded_url);
+            ASSERT_EQ(decode_res.get_value(), test.decoded_uri);
         }
         ASSERT_EQ(decode_res.get_error().description(), test.description);
     }

@@ -10,8 +10,8 @@
 namespace dsn {
 namespace uri {
 
-// decode the encoded url received from front-end, to recover escaped characters
-error_with<std::string> decode(const std::string &encoded_url);
+// decode the encoded uri received from front-end, to recover escaped characters
+error_with<std::string> decode(const std::string &encoded_uri);
 
 } // namespace uri
 } // namespace dsn

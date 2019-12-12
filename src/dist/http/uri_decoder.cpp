@@ -3,7 +3,7 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <fmt/format.h>
-#include "url_decoder.h"
+#include "uri_decoder.h"
 
 namespace dsn {
 namespace uri {
@@ -33,18 +33,18 @@ error_with<char> decode_char(std::string hex)
     return error_s::make(ERR_INVALID_PARAMETERS);
 }
 
-error_with<std::string> decode(const std::string &encoded_url)
+error_with<std::string> decode(const std::string &encoded_uri)
 {
     std::string out;
-    for (size_t i = 0; i < encoded_url.size(); ++i) {
+    for (size_t i = 0; i < encoded_uri.size(); ++i) {
         // '%' is followed by 2 hex chars
-        if ('%' == encoded_url[i]) {
-            if (i + 2 >= encoded_url.size()) {
+        if ('%' == encoded_uri[i]) {
+            if (i + 2 >= encoded_uri.size()) {
                 return error_s::make(ERR_INVALID_PARAMETERS,
                                      "Encountered partial escape sequence at end of string");
             }
 
-            std::string encoded_char = encoded_url.substr(i + 1, 2);
+            std::string encoded_char = encoded_uri.substr(i + 1, 2);
             auto decoded_char = decode_char(encoded_char);
             if (!decoded_char.is_ok()) {
                 return error_s::make(
@@ -56,7 +56,7 @@ error_with<std::string> decode(const std::string &encoded_url)
             out += decoded_char.get_value();
             i += 2;
         } else {
-            out += encoded_url[i];
+            out += encoded_uri[i];
         }
     }
 

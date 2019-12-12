@@ -11,7 +11,7 @@
 #include "root_http_service.h"
 #include "pprof_http_service.h"
 #include "perf_counter_http_service.h"
-#include "url_decoder.h"
+#include "uri_decoder.h"
 
 namespace dsn {
 
