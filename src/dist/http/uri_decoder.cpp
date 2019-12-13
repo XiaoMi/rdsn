@@ -35,7 +35,7 @@ error_with<char> decode_char(const string_view &hex)
     return error_s::make(ERR_INVALID_PARAMETERS);
 }
 
-error_with<std::string> decode(const string_view encoded_uri)
+error_with<std::string> decode(const string_view &encoded_uri)
 {
     std::string decoded_uri;
     for (size_t i = 0; i < encoded_uri.size(); ++i) {
@@ -46,7 +46,7 @@ error_with<std::string> decode(const string_view encoded_uri)
                                      "Encountered partial escape sequence at end of string");
             }
 
-            const string_view encoded_char = encoded_uri.substr(i + 1, 2);
+            const string_view encoded_char(encoded_uri.data() + i + 1, 2);
             auto decoded_char = decode_char(encoded_char);
             if (!decoded_char.is_ok()) {
                 return error_s::make(
