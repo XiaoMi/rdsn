@@ -38,7 +38,6 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
-#include "duplication/replica_duplicator_manager.h"
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/string_conv.h>
@@ -209,8 +208,6 @@ void replica::add_potential_secondary(configuration_update_request &proposal)
     _primary_states.get_replica_config(
         partition_status::PS_POTENTIAL_SECONDARY, request.config, state.signature);
     request.last_committed_decree = last_committed_decree();
-    // broadcast `confirmed_decree` to replica group to avoid unconfirmed logs being cleaned.
-    request.confirmed_decree = _duplication_mgr->min_confirmed_decree();
 
     ddebug("%s: call one way %s to start learning with signature [%016" PRIx64 "]",
            name(),

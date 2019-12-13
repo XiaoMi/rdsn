@@ -1460,16 +1460,13 @@ void replica::on_learn_completion_notification_reply(error_code err,
 
 void replica::on_add_learner(const group_check_request &request)
 {
-    _checker.only_one_thread_access();
-
     ddebug("%s: process add learner, primary = %s, ballot = %" PRId64
-           ", status = %s, last_committed_decree = %" PRId64 ", confirmed_decree = %" PRId64,
+           ", status = %s, last_committed_decree = %" PRId64,
            name(),
            request.config.primary.to_string(),
            request.config.ballot,
            enum_to_string(request.config.status),
-           request.last_committed_decree,
-           request.confirmed_decree);
+           request.last_committed_decree);
 
     if (request.config.ballot < get_ballot()) {
         dwarn("%s: on_add_learner ballot is old, skipped", name());
@@ -1484,8 +1481,6 @@ void replica::on_add_learner(const group_check_request &request)
         dassert(partition_status::PS_POTENTIAL_SECONDARY == status(),
                 "invalid partition_status, status = %s",
                 enum_to_string(status()));
-
-        _duplication_mgr->update_confirmed_decree_if_secondary(request.confirmed_decree);
         init_learn(request.config.learner_signature);
     }
 }
@@ -1547,17 +1542,17 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                        });
 
     err = mutation_log::replay(state.files,
-                               [&plist, this](int log_length, mutation_ptr &mu) {
+                               [&plist](int log_length, mutation_ptr &mu) {
                                    auto d = mu->data.header.decree;
                                    if (d <= plist.last_committed_decree())
-                                       return true;
+                                       return false;
 
                                    auto old = plist.get_mutation_by_decree(d);
                                    if (old != nullptr &&
                                        old->data.header.ballot >= mu->data.header.ballot)
-                                       return true;
-                                   auto ec = plist.prepare(mu, partition_status::PS_SECONDARY);
-                                   dcheck_eq_replica(ec, ERR_OK);
+                                       return false;
+
+                                   plist.prepare(mu, partition_status::PS_SECONDARY);
                                    return true;
                                },
                                offset);
@@ -1641,5 +1636,5 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     _private_log->flush();
     return err;
 }
-} // namespace replication
-} // namespace dsn
+}
+} // namespace
