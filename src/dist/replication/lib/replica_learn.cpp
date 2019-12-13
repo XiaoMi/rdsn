@@ -270,7 +270,7 @@ decree replica::get_learn_start_decree(const learn_request &request) // on prima
 
     decree learn_start_decree_no_dup = request.last_committed_decree_in_app + 1;
     if (!is_duplicating()) {
-        // fast path for no duplication case: only learn those not flushed in the checkpoint.
+        // fast path for no duplication case: only learn those that the learner is not having.
         return learn_start_decree_no_dup;
     }
 
