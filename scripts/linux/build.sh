@@ -89,6 +89,14 @@ else
     echo "DISABLE_GPERF=NO"
 fi
 
+if [ ! -z "$SANITIZER" ]
+then
+    echo "Use sanitizer to build: sanitizer=$SANITIZER"
+    CMAKE_OPTIONS="$CMAKE_OPTIONS -DSANITIZER=$SANITIZER"
+else
+    echo "No use sanitizer to build"
+fi
+
 # You can specify customized boost by defining BOOST_DIR.
 # Install boost like this:
 #   wget http://downloads.sourceforge.net/project/boost/boost/1.54.0/boost_1_54_0.zip?r=&ts=1442891144&use_mirror=jaist
