@@ -32,16 +32,6 @@ if(ENABLE_GCOV)
 
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lgcov")
 endif()
-
-if(DEFINED SANITIZER)
-    if(NOT ("${COMPILER_FAMILY}" STREQUAL "gcc" AND "${COMPILER_VERSION}" VERSION_GREATER "4.8"))
-        message(SEND_ERROR "Cannot use sanitizer without gcc >= 4.8")
-    endif()
-    message(STATUS "Running cmake with sanitizer=${SANITIZER}")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -g -fsanitize=${SANITIZER} -fno-omit-frame-pointer")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -fsanitize=${SANITIZER} -fno-omit-frame-pointer")
-endif()
-
 # Users don't have to configure CMAKE_INSTALL_PREFIX unless they want to customize
 # the destination.
 set(CMAKE_INSTALL_PREFIX ${DSN_ROOT} CACHE STRING "" FORCE)

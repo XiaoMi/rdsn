@@ -212,6 +212,16 @@ function(dsn_setup_compiler_flags)
         message(STATUS "use ccache to speed up compilation")
     endif(CCACHE_FOUND)
 
+    # add sanitizer check
+    if(DEFINED SANITIZER)
+        if(NOT ("${COMPILER_FAMILY}" STREQUAL "gcc" AND "${COMPILER_VERSION}" VERSION_GREATER "4.8"))
+            message(SEND_ERROR "Cannot use sanitizer without gcc >= 4.8")
+        endif()
+        message(STATUS "Running cmake with sanitizer=${SANITIZER}")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=${SANITIZER}")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${SANITIZER}")
+    endif()
+
     set(CMAKE_EXE_LINKER_FLAGS
         "${CMAKE_EXE_LINKER_FLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
         CACHE
