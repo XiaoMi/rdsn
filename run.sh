@@ -139,11 +139,12 @@ function run_build()
             --sanitizer)
                 if echo "${SANITIZERS[@]}" | grep -w "$2" &>/dev/null; then
                     SANITIZER="$2"
+                    shift
+                else
+                    echo "ERROR: unknown sanitizer type \"$2\""
+                    usage_build
+                    exit 1
                 fi
-                echo "ERROR: unknown sanitize type \"$2\""
-                usage_build
-                exit 1
-                shift
                 ;;
             -m|--test_module)
                 if [ "$ONLY_BUILD" == "YES" ]; then
