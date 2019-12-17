@@ -55,7 +55,7 @@ function usage_build()
     echo "                         to enable valgrind memcheck, default no"
     echo "   --skip_thirdparty     whether to skip building thirdparties, default no"
     echo "   --check               whether to perform code check before building"
-    echo "   --sanitizer <type>     build with sanitizer to check potential problem: address, leak, memory, thread, undefined etc."
+    echo "   --sanitizer <type>     build with sanitizer to check potential problem: address, leak, thread, undefined etc."
     if [ "$ONLY_BUILD" == "NO" ]; then
         echo "   -m|--test_module      specify modules to test, split by ',',"
         echo "                         e.g., \"dsn.core.tests,dsn.tests\","
@@ -138,14 +138,14 @@ function run_build()
                 CHECK=YES
                 ;;
             --sanitizer)
-                if echo "${SANITIZERS[@]}" | grep -w "$2" &>/dev/null; then
-                    SANITIZER="$2"
-                    shift
-                else
+                IS_SANITIZERS=`echo ${SANITIZERS[@]} | grep -w $2`
+                if [[ -z ${IS_SANITIZERS} ]]; then
                     echo "ERROR: unknown sanitizer type \"$2\""
                     usage_build
                     exit 1
                 fi
+                SANITIZER="$2"
+                shift
                 ;;
             -m|--test_module)
                 if [ "$ONLY_BUILD" == "YES" ]; then
