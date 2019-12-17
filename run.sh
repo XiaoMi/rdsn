@@ -55,7 +55,7 @@ function usage_build()
     echo "                         to enable valgrind memcheck, default no"
     echo "   --skip_thirdparty     whether to skip building thirdparties, default no"
     echo "   --check               whether to perform code check before building"
-    echo "   --sanitizer <type>     build with sanitizer to check potential problem: address, leak, thread, undefined etc."
+    echo "   --sanitizer <type>    build with sanitizer to check potential problem: address, leak, thread, undefined etc."
     if [ "$ONLY_BUILD" == "NO" ]; then
         echo "   -m|--test_module      specify modules to test, split by ',',"
         echo "                         e.g., \"dsn.core.tests,dsn.tests\","
