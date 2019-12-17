@@ -91,10 +91,10 @@ fi
 
 if [ ! -z "$SANITIZER" ]
 then
-    echo "Use sanitizer to build: sanitizer=$SANITIZER"
+    echo "Build with sanitizer: sanitizer=$SANITIZER"
     CMAKE_OPTIONS="$CMAKE_OPTIONS -DSANITIZER=$SANITIZER"
 else
-    echo "No use sanitizer to build"
+    echo "Build without sanitizer"
 fi
 
 # You can specify customized boost by defining BOOST_DIR.
