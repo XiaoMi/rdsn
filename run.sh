@@ -64,7 +64,8 @@ function usage_build()
 }
 function run_build()
 {
-    SANITIZERS=("address" "leak" "memory" "thread" "undefined")
+    #Note: No memory mode, because MemorySanitizer is only available in Clang for Linux x86_64 targets
+    SANITIZERS=("address" "leak" "thread" "undefined")
 
     C_COMPILER="gcc"
     CXX_COMPILER="g++"
