@@ -214,9 +214,15 @@ function(dsn_setup_compiler_flags)
 
     # add sanitizer check
     if(DEFINED SANITIZER)
-        if(NOT ("${COMPILER_FAMILY}" STREQUAL "gcc" AND "${COMPILER_VERSION}" VERSION_GREATER "4.8"))
-            message(SEND_ERROR "Cannot use sanitizer without gcc >= 4.8")
+        if(NOT (("${COMPILER_FAMILY}" STREQUAL "clang") OR
+        ("${COMPILER_FAMILY}" STREQUAL "gcc" AND "${COMPILER_VERSION}" VERSION_GREATER "4.8")))
+            message(SEND_ERROR "Cannot use sanitizer without clang or gcc >= 4.8")
         endif()
+
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            add_compile_options(-g)
+        endif()
+
         message(STATUS "Running cmake with sanitizer=${SANITIZER}")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=${SANITIZER}")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${SANITIZER}")
