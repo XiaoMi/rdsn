@@ -173,7 +173,6 @@ endfunction()
 function(dsn_setup_compiler_flags)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         add_definitions(-DDSN_BUILD_TYPE=Debug)
-        # for sanitizer
         add_definitions(-g)
     else()
         add_definitions(-g)
