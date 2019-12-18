@@ -301,7 +301,7 @@ function(dsn_setup_thirdparty_libs)
 endfunction(dsn_setup_thirdparty_libs)
 
 function(dsn_common_setup)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(notdir $(abspath $<))\"'")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(notdir $(abspath $<))\"'" CACHE STRING "" FORCE)
 
     if(NOT (UNIX))
         message(FATAL_ERROR "Only Unix are supported.")
