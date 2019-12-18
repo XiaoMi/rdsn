@@ -1536,6 +1536,7 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                                // TODO: assign the returned error_code to err and check it
                                _app->apply_mutation(mu);
 
+                               // appends logs-in-cache into plog to ensure them can be duplicated.
                                _private_log->append(
                                    mu, LPC_WRITE_REPLICATION_LOG_COMMON, &_tracker, nullptr);
                            }
@@ -1636,5 +1637,5 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     _private_log->flush();
     return err;
 }
-}
-} // namespace
+} // namespace replication
+} // namespace dsn
