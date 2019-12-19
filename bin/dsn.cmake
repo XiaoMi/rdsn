@@ -173,6 +173,7 @@ endfunction()
 function(dsn_setup_compiler_flags)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         add_definitions(-DDSN_BUILD_TYPE=Debug)
+        add_definitions(-g)
     else()
         add_definitions(-g)
         add_definitions(-O2)
@@ -184,10 +185,7 @@ function(dsn_setup_compiler_flags)
     # We want access to the PRI* print format macros.
     add_definitions(-D__STDC_FORMAT_MACROS)
 
-    # -fno-omit-frame-pointer
-    #   use frame pointers to allow simple stack frame walking for backtraces.
-    #   This has a small perf hit but worth it for the ability to profile in production
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -fno-omit-frame-pointer" CACHE STRING "" FORCE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y" CACHE STRING "" FORCE)
 
     #  -Wall: Enable all warnings.
     add_compile_options(-Wall)
@@ -201,6 +199,10 @@ function(dsn_setup_compiler_flags)
     add_compile_options(-Wno-deprecated-declarations)
     add_compile_options(-Wno-inconsistent-missing-override)
     add_compile_options(-Wno-attributes)
+    # -fno-omit-frame-pointer
+    #   use frame pointers to allow simple stack frame walking for backtraces.
+    #   This has a small perf hit but worth it for the ability to profile in production
+    add_compile_options( -fno-omit-frame-pointer)
 
     find_program(CCACHE_FOUND ccache)
     if(CCACHE_FOUND)
@@ -211,6 +213,18 @@ function(dsn_setup_compiler_flags)
         endif()
         message(STATUS "use ccache to speed up compilation")
     endif(CCACHE_FOUND)
+
+    # add sanitizer check
+    if(DEFINED SANITIZER)
+        if(NOT (("${COMPILER_FAMILY}" STREQUAL "clang") OR
+        ("${COMPILER_FAMILY}" STREQUAL "gcc" AND "${COMPILER_VERSION}" VERSION_GREATER "4.8")))
+            message(SEND_ERROR "Cannot use sanitizer without clang or gcc >= 4.8")
+        endif()
+
+        message(STATUS "Running cmake with sanitizer=${SANITIZER}")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=${SANITIZER}" CACHE STRING "" FORCE)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${SANITIZER}" CACHE STRING "" FORCE)
+    endif()
 
     set(CMAKE_EXE_LINKER_FLAGS
         "${CMAKE_EXE_LINKER_FLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free"
@@ -286,7 +300,7 @@ function(dsn_setup_thirdparty_libs)
 endfunction(dsn_setup_thirdparty_libs)
 
 function(dsn_common_setup)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(notdir $(abspath $<))\"'")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(notdir $(abspath $<))\"'" CACHE STRING "" FORCE)
 
     if(NOT (UNIX))
         message(FATAL_ERROR "Only Unix are supported.")
