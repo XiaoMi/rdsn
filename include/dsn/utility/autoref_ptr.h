@@ -35,10 +35,10 @@
 
 #pragma once
 
-#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <type_traits>
+#include <utility>
 
 namespace dsn {
 class ref_counter
