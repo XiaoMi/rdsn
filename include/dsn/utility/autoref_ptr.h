@@ -35,8 +35,10 @@
 
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <type_traits>
 
 namespace dsn {
 class ref_counter
@@ -106,13 +108,6 @@ public:
             _obj->add_ref();
     }
 
-    template <typename U>
-    ref_ptr(U *obj) : _obj(obj)
-    {
-        if (nullptr != _obj)
-            _obj->add_ref();
-    }
-
     ref_ptr(const ref_ptr<T> &r)
     {
         _obj = r.get();
@@ -133,7 +128,7 @@ public:
 
     template <typename U,
               typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
-    ref_ptr(ref_ptr<U> &&r) : _obj(r._obj)
+    ref_ptr(ref_ptr<U> &&r) noexcept : _obj(r._obj)
     {
         r._obj = nullptr;
     }
@@ -147,13 +142,22 @@ public:
 
     ref_ptr<T> &operator=(T *obj) { return *this = ref_ptr(obj); }
 
-    ref_ptr &operator=(ref_ptr r) noexcept
+    ref_ptr<T> &operator=(ref_ptr<T> r) noexcept
     {
         swap(r);
         return *this;
     }
 
-    void swap(ref_ptr &r) noexcept { std::swap(_obj, r._obj); }
+    template <typename U,
+              typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
+    ref_ptr<T> &operator=(ref_ptr<U> r) noexcept
+    {
+        ref_ptr<T> p(r);
+        swap(p);
+        return *this;
+    }
+
+    void swap(ref_ptr<T> &r) noexcept { std::swap(_obj, r._obj); }
 
     T *get() const { return _obj; }
 
