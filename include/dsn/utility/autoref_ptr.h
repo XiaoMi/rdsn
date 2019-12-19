@@ -148,14 +148,15 @@ public:
         if (_obj == obj)
             return *this;
 
-        if (nullptr != _obj) {
-            _obj->release_ref();
-        }
-
+        T *old = _obj;
         _obj = obj;
 
-        if (obj != nullptr) {
+        if (_obj != nullptr) {
             _obj->add_ref();
+        }
+
+        if (old != nullptr) {
+            old->release_ref();
         }
 
         return *this;
@@ -166,13 +167,18 @@ public:
     {
         if (_obj == obj)
             return *this;
-        if (nullptr != _obj) {
-            _obj->release_ref();
-        }
+
+        T *old = _obj;
         _obj = obj;
+
         if (_obj != nullptr) {
             _obj->add_ref();
         }
+
+        if (old != nullptr) {
+            old->release_ref();
+        }
+
         return *this;
     }
 
@@ -190,23 +196,30 @@ public:
             return *this;
         }
 
-        if (nullptr != _obj) {
-            _obj->release_ref();
-        }
+        T *old = _obj;
 
         _obj = obj._obj;
         obj._obj = nullptr;
+
+        if (old != nullptr) {
+            old->release_ref();
+        }
+
         return *this;
     }
 
     template <typename U>
     ref_ptr<T> &operator=(ref_ptr<U> &&obj)
     {
-        if (nullptr != _obj) {
-            _obj->release_ref();
-        }
+        T *old = _obj;
+
         _obj = obj._obj;
         obj._obj = nullptr;
+
+        if (old != nullptr) {
+            old->release_ref();
+        }
+
         return *this;
     }
 

@@ -34,11 +34,13 @@ private:
 class ScopedRefPtrToSelf : public dsn::ref_counter
 {
 public:
-    ScopedRefPtrToSelf() {}
+    ScopedRefPtrToSelf() : self_ptr_(this) {}
 
     static bool was_destroyed() { return was_destroyed_; }
 
     static void reset_was_destroyed() { was_destroyed_ = false; }
+
+    dsn::ref_ptr<ScopedRefPtrToSelf> self_ptr_;
 
 private:
     friend class dsn::ref_counter;
@@ -150,9 +152,9 @@ TEST(RefCountedUnitTest, ScopedRefPtrToSelfPointerAssignment)
 {
     ScopedRefPtrToSelf::reset_was_destroyed();
 
-    dsn::ref_ptr<ScopedRefPtrToSelf> check(new ScopedRefPtrToSelf());
+    ScopedRefPtrToSelf *check = new ScopedRefPtrToSelf();
     EXPECT_FALSE(ScopedRefPtrToSelf::was_destroyed());
-    check = nullptr;
+    check->self_ptr_ = nullptr;
     EXPECT_TRUE(ScopedRefPtrToSelf::was_destroyed());
 }
 
@@ -160,12 +162,12 @@ TEST(RefCountedUnitTest, ScopedRefPtrToSelfMoveAssignment)
 {
     ScopedRefPtrToSelf::reset_was_destroyed();
 
-    dsn::ref_ptr<ScopedRefPtrToSelf> check(new ScopedRefPtrToSelf());
+    ScopedRefPtrToSelf *check = new ScopedRefPtrToSelf();
     EXPECT_FALSE(ScopedRefPtrToSelf::was_destroyed());
     // Releasing |check->self_ptr_| will delete |check|.
     // The move assignment operator must assign |check->self_ptr_| first then
     // release |check->self_ptr_|.
-    check = dsn::ref_ptr<ScopedRefPtrToSelf>();
+    check->self_ptr_ = dsn::ref_ptr<ScopedRefPtrToSelf>();
     EXPECT_TRUE(ScopedRefPtrToSelf::was_destroyed());
 }
 
