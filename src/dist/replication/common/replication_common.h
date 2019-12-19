@@ -103,6 +103,10 @@ public:
     bool config_sync_disabled;
     int32_t config_sync_interval_ms;
 
+    bool mem_release_enabled;
+    int32_t mem_release_check_interval_ms;
+    int32_t mem_release_max_reserved_mem_percentage;
+
     int32_t lb_interval_ms;
 
     int32_t learn_app_max_concurrent_count;
@@ -149,7 +153,8 @@ class replica_envs
 {
 public:
     static const std::string DENY_CLIENT_WRITE;
-    static const std::string WRITE_THROTTLING;
+    static const std::string WRITE_QPS_THROTTLING;
+    static const std::string WRITE_SIZE_THROTTLING;
 };
 
 namespace cold_backup {

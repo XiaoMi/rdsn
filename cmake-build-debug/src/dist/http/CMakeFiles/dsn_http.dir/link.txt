@@ -1,0 +1,2 @@
+ccache /usr/bin/ar qc libdsn_http.a  CMakeFiles/dsn_http.dir/http_message_parser.cpp.o CMakeFiles/dsn_http.dir/http_parser.c.o CMakeFiles/dsn_http.dir/http_server.cpp.o CMakeFiles/dsn_http.dir/perf_counter_http_service.cpp.o CMakeFiles/dsn_http.dir/pprof_http_service.cpp.o CMakeFiles/dsn_http.dir/server_info_http_services.cpp.o CMakeFiles/dsn_http.dir/uri_decoder.cpp.o
+ccache /usr/bin/ranlib libdsn_http.a

@@ -1287,5 +1287,17 @@ void cold_backup_context::file_upload_complete(const std::string &filename)
     _cur_upload_file_cnt -= 1;
     _file_status[filename] = file_status::FileUploadComplete;
 }
+
+bool partition_split_context::cleanup(bool force)
+{
+    CLEANUP_TASK(async_learn_task, force)
+
+    parent_gpid.set_app_id(0);
+    is_prepare_list_copied = false;
+    return true;
 }
-} // end namespace
+
+bool partition_split_context::is_cleaned() const { return async_learn_task == nullptr; }
+
+} // namespace replication
+} // namespace dsn

@@ -42,6 +42,12 @@ namespace dsn {
 
 constexpr int TASK_SPEC_STORE_CAPACITY = 512;
 
+std::set<dsn::task_code> &get_storage_rpc_req_codes()
+{
+    static std::set<dsn::task_code> s_storage_rpc_req_codes;
+    return s_storage_rpc_req_codes;
+}
+
 // A sequential storage maps task_code to task_spec.
 static std::array<std::unique_ptr<task_spec>, TASK_SPEC_STORE_CAPACITY> s_task_spec_store;
 
@@ -112,6 +118,9 @@ void task_spec::register_storage_task_code(task_code code,
     spec->rpc_request_is_write_operation = is_write_operation;
     spec->rpc_request_is_write_allow_batch = allow_batch;
     spec->rpc_request_is_write_idempotent = is_idempotent;
+    if (TASK_TYPE_RPC_REQUEST == type) {
+        get_storage_rpc_req_codes().insert(code);
+    }
 }
 
 task_spec *task_spec::get(int code)

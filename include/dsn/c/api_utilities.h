@@ -76,8 +76,11 @@ extern DSN_API void dsn_logf(const char *file,
                              dsn_log_level_t log_level,
                              const char *fmt,
                              ...);
-extern DSN_API void
-dsn_log(const char *file, const char *function, const int line, dsn_log_level_t log_level);
+extern DSN_API void dsn_log(const char *file,
+                            const char *function,
+                            const int line,
+                            dsn_log_level_t log_level,
+                            const char *str);
 extern DSN_API void dsn_coredump();
 
 // __FILENAME__ macro comes from the cmake, in which we calculate a filename without path.
@@ -102,7 +105,7 @@ extern DSN_API void dsn_coredump();
 
 #define dreturn_not_ok_logged(err, ...)                                                            \
     do {                                                                                           \
-        if ((err) != dsn::ERR_OK) {                                                                \
+        if (dsn_unlikely((err) != dsn::ERR_OK)) {                                                  \
             derror(__VA_ARGS__);                                                                   \
             return err;                                                                            \
         }                                                                                          \
@@ -125,7 +128,7 @@ extern DSN_API void dsn_coredump();
 /*@}*/
 
 #define dverify(exp)                                                                               \
-    if (!(exp))                                                                                    \
+    if (dsn_unlikely(!(exp)))                                                                      \
     return false
 
 #define dverify_exception(exp)                                                                     \
@@ -139,18 +142,18 @@ extern DSN_API void dsn_coredump();
 
 #define dverify_logged(exp, level, ...)                                                            \
     do {                                                                                           \
-        if (!(exp)) {                                                                              \
+        if (dsn_unlikely(!(exp))) {                                                                \
             dlog(level, __VA_ARGS__);                                                              \
             return false;                                                                          \
         }                                                                                          \
     } while (0)
 
 #define dstop_on_false(exp)                                                                        \
-    if (!(exp))                                                                                    \
+    if (dsn_unlikely(!(exp)))                                                                      \
     return
 #define dstop_on_false_logged(exp, level, ...)                                                     \
     do {                                                                                           \
-        if (!(exp)) {                                                                              \
+        if (dsn_unlikely(!(exp))) {                                                                \
             dlog(level, __VA_ARGS__);                                                              \
             return;                                                                                \
         }                                                                                          \

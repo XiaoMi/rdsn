@@ -56,6 +56,10 @@ namespace replication {
 
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
+// env name of slow query
+static const std::string ENV_SLOW_QUERY_THRESHOLD("replica.slow_query_threshold");
+// min value for slow query threshold, less than this value will be refused
+static const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS = 20;
 
 server_state::server_state()
     : _meta_svc(nullptr),
@@ -945,10 +949,22 @@ void server_state::query_configuration_by_index(
 
     std::shared_ptr<app_state> &app = iter->second;
     if (app->status != app_status::AS_AVAILABLE) {
-        dassert(app->status == app_status::AS_CREATING || app->status == app_status::AS_DROPPING,
-                "invalid status in exist app");
-        response.err =
-            (app->status == app_status::AS_CREATING ? ERR_BUSY_CREATING : ERR_BUSY_DROPPING);
+        derror("invalid status(%s) in exist app(%s), app_id(%d)",
+               enum_to_string(app->status),
+               (app->app_name).c_str(),
+               app->app_id);
+
+        switch (app->status) {
+        case app_status::AS_CREATING:
+        case app_status::AS_RECALLING:
+            response.err = ERR_BUSY_CREATING;
+            break;
+        case app_status::AS_DROPPING:
+            response.err = ERR_BUSY_DROPPING;
+            break;
+        default:
+            response.err = ERR_UNKNOWN;
+        }
         return;
     }
 
@@ -984,7 +1000,7 @@ void server_state::init_app_partition_node(std::shared_ptr<app_state> &app,
             // TODO: add parameter of the retry time interval in config file
             tasking::enqueue(
                 LPC_META_STATE_HIGH,
-                nullptr,
+                tracker(),
                 std::bind(&server_state::init_app_partition_node, this, app, pidx, callback),
                 0,
                 std::chrono::milliseconds(1000));
@@ -1016,7 +1032,7 @@ void server_state::do_app_create(std::shared_ptr<app_state> &app)
         } else if (ERR_TIMEOUT == ec) {
             dwarn("the storage service is not available currently, continue to create later");
             tasking::enqueue(LPC_META_STATE_HIGH,
-                             nullptr,
+                             tracker(),
                              std::bind(&server_state::do_app_create, this, app),
                              0,
                              std::chrono::seconds(1));
@@ -1121,7 +1137,7 @@ void server_state::do_app_drop(std::shared_ptr<app_state> &app)
         } else if (ERR_TIMEOUT == ec) {
             dinfo("drop app(%s) prepare timeout, continue to drop later", app->get_logname());
             tasking::enqueue(LPC_META_STATE_HIGH,
-                             nullptr,
+                             tracker(),
                              std::bind(&server_state::do_app_drop, this, app),
                              0,
                              std::chrono::seconds(1));
@@ -1504,7 +1520,7 @@ task_ptr server_state::update_configuration_on_remote(
         // NOTICE: pending_sync_task need to be reassigned
         return tasking::enqueue(
             LPC_META_STATE_HIGH,
-            nullptr,
+            tracker(),
             [this, config_request]() mutable {
                 std::shared_ptr<app_state> app = get_app(config_request->config.pid.get_app_id());
                 config_context &cc =
@@ -1526,7 +1542,8 @@ task_ptr server_state::update_configuration_on_remote(
         std::bind(&server_state::on_update_configuration_on_remote_reply,
                   this,
                   std::placeholders::_1,
-                  config_request));
+                  config_request),
+        tracker());
 }
 
 void server_state::on_update_configuration_on_remote_reply(
@@ -1543,7 +1560,7 @@ void server_state::on_update_configuration_on_remote_reply(
     if (ec == ERR_TIMEOUT) {
         cc.pending_sync_task =
             tasking::enqueue(LPC_META_STATE_HIGH,
-                             nullptr,
+                             tracker(),
                              [this, config_request, &cc]() mutable {
                                  cc.pending_sync_task =
                                      update_configuration_on_remote(config_request);
@@ -1597,7 +1614,7 @@ void server_state::recall_partition(std::shared_ptr<app_state> &app, int pidx)
             process_one_partition(app);
         } else if (error == dsn::ERR_TIMEOUT) {
             tasking::enqueue(LPC_META_STATE_HIGH,
-                             nullptr,
+                             tracker(),
                              std::bind(&server_state::recall_partition, this, app, pidx),
                              server_state::sStateHash,
                              std::chrono::seconds(1));
@@ -2610,6 +2627,18 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
 
     std::ostringstream os;
     for (int i = 0; i < keys.size(); i++) {
+        // check whether if slow query threshold is abnormal
+        if (0 == keys[i].compare(ENV_SLOW_QUERY_THRESHOLD)) {
+            uint64_t threshold = 0;
+            if (!dsn::buf2uint64(values[i], threshold) || threshold < MIN_SLOW_QUERY_THRESHOLD_MS) {
+                dwarn("{}={} is invalid.", keys[i].c_str(), threshold);
+                env_rpc.response().err = ERR_INVALID_PARAMETERS;
+                env_rpc.response().hint_message = fmt::format(
+                    "slow query threshold must be >= {}ms", MIN_SLOW_QUERY_THRESHOLD_MS);
+                return;
+            }
+        }
+
         if (i != 0)
             os << ", ";
         os << keys[i] << "=" << values[i];

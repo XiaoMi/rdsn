@@ -48,7 +48,7 @@ replication_options::replication_options()
     delay_for_fd_timeout_on_start = false;
     empty_write_disabled = false;
     allow_non_idempotent_write = false;
-    duplication_disabled = false;
+    duplication_disabled = true;
 
     prepare_timeout_ms_for_secondaries = 1000;
     prepare_timeout_ms_for_potential_secondaries = 3000;
@@ -98,6 +98,10 @@ replication_options::replication_options()
 
     config_sync_disabled = false;
     config_sync_interval_ms = 30000;
+
+    mem_release_enabled = true;
+    mem_release_check_interval_ms = 3600000;
+    mem_release_max_reserved_mem_percentage = 10;
 
     lb_interval_ms = 10000;
 
@@ -267,9 +271,9 @@ void replication_options::initialize()
                                   "whether to allow non-idempotent write, default is false");
 
     duplication_disabled = dsn_config_get_value_bool(
-        "replication", "duplication_disabled", false, "is duplication disabled");
+        "replication", "duplication_disabled", duplication_disabled, "is duplication disabled");
     if (allow_non_idempotent_write && !duplication_disabled) {
-        dfatal("duplication and idempotent write cannot be enabled together");
+        dassert(false, "duplication and non-idempotent write cannot be enabled together");
     }
 
     prepare_timeout_ms_for_secondaries = (int)dsn_config_get_value_uint64(
@@ -471,6 +475,24 @@ void replication_options::initialize()
         config_sync_interval_ms,
         "every this period(ms) the replica syncs replica configuration with the meta server");
 
+    mem_release_enabled = dsn_config_get_value_bool("replication",
+                                                    "mem_release_enabled",
+                                                    mem_release_enabled,
+                                                    "whether to enable periodic memory release");
+
+    mem_release_check_interval_ms = (int)dsn_config_get_value_uint64(
+        "replication",
+        "mem_release_check_interval_ms",
+        mem_release_check_interval_ms,
+        "the replica check if should release memory to the system every this period of time(ms)");
+
+    mem_release_max_reserved_mem_percentage = (int)dsn_config_get_value_uint64(
+        "replication",
+        "mem_release_max_reserved_mem_percentage",
+        mem_release_max_reserved_mem_percentage,
+        "if tcmalloc reserved but not-used memory exceed this percentage of application allocated "
+        "memory, replica server will release the exceeding memory back to operating system");
+
     lb_interval_ms = (int)dsn_config_get_value_uint64(
         "replication",
         "lb_interval_ms",
@@ -576,7 +598,8 @@ const std::string backup_restore_constant::BACKUP_ID("restore.backup_id");
 const std::string backup_restore_constant::SKIP_BAD_PARTITION("restore.skip_bad_partition");
 
 const std::string replica_envs::DENY_CLIENT_WRITE("replica.deny_client_write");
-const std::string replica_envs::WRITE_THROTTLING("replica.write_throttling");
+const std::string replica_envs::WRITE_QPS_THROTTLING("replica.write_throttling");
+const std::string replica_envs::WRITE_SIZE_THROTTLING("replica.write_throttling_by_size");
 
 namespace cold_backup {
 std::string get_policy_path(const std::string &root, const std::string &policy_name)

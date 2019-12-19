@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #include "mutation_cache.h"
 #include "mutation.h"
 
@@ -45,6 +36,22 @@ mutation_cache::mutation_cache(decree init_decree, int max_count)
     _array.resize(max_count, nullptr);
 
     reset(init_decree, false);
+}
+
+mutation_cache::mutation_cache(const mutation_cache &cache)
+{
+    _array.clear();
+    _array.reserve(cache._array.size());
+    for (const mutation_ptr &old_mu : cache._array) {
+        _array.emplace_back(old_mu == nullptr ? nullptr : mutation::copy_no_reply(old_mu));
+    }
+
+    _max_count = cache._max_count;
+    _interval = cache._interval;
+    _start_idx = cache._start_idx;
+    _end_idx = cache._end_idx;
+    _start_decree = cache._start_decree;
+    _end_decree.store(cache._end_decree.load());
 }
 
 mutation_cache::~mutation_cache() { _array.clear(); }
@@ -137,18 +144,6 @@ mutation_ptr mutation_cache::get_mutation_by_decree(decree decree)
         return nullptr;
     else
         return _array[(_start_idx + (decree - _start_decree) + _max_count) % _max_count];
-}
-
-mutation_ptr mutation_cache::remove_mutation_by_decree(decree decree)
-{
-    if (decree < _start_decree || decree > _end_decree)
-        return nullptr;
-    else {
-        int idx = (_start_idx + (decree - _start_decree) + _max_count) % _max_count;
-        auto ret = _array[idx];
-        _array[idx] = nullptr;
-        return ret;
-    }
 }
 }
 } // namespace end

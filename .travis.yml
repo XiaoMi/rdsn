@@ -5,7 +5,7 @@ language: cpp
 
 os: linux
 
-compiler: 
+compiler:
     - gcc
 
 cache:
@@ -14,15 +14,11 @@ cache:
 
 addons:
     apt:
-        update: true
-        sources:
-            - ubuntu-toolchain-r-test
         packages:
             - clang-format-3.9
-            - g++-5
 
 before_install:
-    - wget https://raw.githubusercontent.com/xiaomi/pegasus-common/master/build-depends.tar.gz
+    - wget https://github.com/XiaoMi/pegasus-common/releases/download/deps/build-depends.tar.gz
     - tar xfz build-depends.tar.gz
     - rm -f build-depends.tar.gz
     - cd packages
@@ -31,14 +27,14 @@ before_install:
 
 before_script:
     - cd thirdparty
-    - wget https://raw.githubusercontent.com/xiaomi/pegasus-common/master/pegasus-thirdparty-prebuild.tar.gz
-    - tar xfz pegasus-thirdparty-prebuild.tar.gz
+    - wget https://github.com/XiaoMi/pegasus-common/releases/download/deps/pegasus-thirdparty-prebuild.tar.gz
+    - tar xf pegasus-thirdparty-prebuild.tar.gz
     - rm -f pegasus-thirdparty-prebuild.tar.gz
     - cd ..
     - ulimit -c unlimited -S
 
 script:
-    - ./run.sh test --compiler "gcc-5,g++-5" --skip_thirdparty --check --disable_gperf
+    - ./run.sh test --skip_thirdparty --check --disable_gperf
 
 after_script:
     - ./run.sh stop_zk

@@ -89,6 +89,14 @@ else
     echo "DISABLE_GPERF=NO"
 fi
 
+if [ ! -z "$SANITIZER" ]
+then
+    echo "SANITIZER=$SANITIZER"
+    CMAKE_OPTIONS="$CMAKE_OPTIONS -DSANITIZER=$SANITIZER"
+else
+    echo "Build without sanitizer"
+fi
+
 # You can specify customized boost by defining BOOST_DIR.
 # Install boost like this:
 #   wget http://downloads.sourceforge.net/project/boost/boost/1.54.0/boost_1_54_0.zip?r=&ts=1442891144&use_mirror=jaist
@@ -145,6 +153,13 @@ fi
 
 cd $ROOT
 DSN_GIT_COMMIT=`git log | head -n 1 | awk '{print $2}'`
+if [ $? -ne 0 ] || [ -z "$DSN_GIT_COMMIT" ] 
+then
+    echo "ERROR: get DSN_GIT_COMMIT failed"
+    echo "HINT: check if rdsn is a git repo"
+    echo "   or check gitdir in .git (edit it or use \"git --git-dir='../.git/modules/rdsn' log\" to get commit)"
+    exit 1
+fi
 GIT_COMMIT_FILE=include/dsn/git_commit.h
 if [ ! -f $GIT_COMMIT_FILE ] || ! grep $DSN_GIT_COMMIT $GIT_COMMIT_FILE
 then
@@ -175,7 +190,7 @@ echo "################################# start testing ##########################
 if [ -z "$TEST_MODULE" ]
 then
     # supported test module
-    TEST_MODULE="dsn.core.tests,dsn.tests,dsn_nfs_test,dsn.replication.simple_kv,dsn.rep_tests.simple_kv,dsn.meta.test,dsn.replica.test"
+    TEST_MODULE="dsn.core.tests,dsn.tests,dsn_nfs_test,dsn.replication.simple_kv,dsn.rep_tests.simple_kv,dsn.meta.test,dsn.replica.test,dsn_http_test"
 fi
 
 echo "TEST_MODULE=$TEST_MODULE"

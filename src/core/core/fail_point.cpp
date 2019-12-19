@@ -18,7 +18,9 @@
 #include "fail_point_impl.h"
 
 #include <dsn/c/api_layer1.h>
-#include <regex>
+// TOOD(wutao1): use <regex> instead when our lowest compiler support
+//               advances to gcc-4.9.
+#include <boost/regex.hpp>
 #include <dsn/utility/rand.h>
 
 namespace dsn {
@@ -35,15 +37,42 @@ static fail_point_registry REGISTRY;
     return p->eval();
 }
 
+inline const char *task_type_to_string(fail_point::task_type t)
+{
+    switch (t) {
+    case fail_point::Off:
+        return "Off";
+    case fail_point::Return:
+        return "Return";
+    case fail_point::Print:
+        return "Print";
+    default:
+        dfatal("unexpected type: %d", t);
+        __builtin_unreachable();
+    }
+}
+
 /*extern*/ void cfg(string_view name, string_view action)
 {
     fail_point &p = REGISTRY.create_if_not_exists(name);
     p.set_action(action);
+    ddebug("add fail_point [name: %s, task: %s(%s), frequency: %d%, max_count: %d]",
+           name.data(),
+           task_type_to_string(p.get_task()),
+           p.get_arg().data(),
+           p.get_frequency(),
+           p.get_max_count());
 }
 
-/*extern*/ void setup() {}
+/*static*/ bool _S_FAIL_POINT_ENABLED = false;
 
-/*extern*/ void teardown() { REGISTRY.clear(); }
+/*extern*/ void setup() { _S_FAIL_POINT_ENABLED = true; }
+
+/*extern*/ void teardown()
+{
+    REGISTRY.clear();
+    _S_FAIL_POINT_ENABLED = false;
+}
 
 void fail_point::set_action(string_view action)
 {
@@ -57,13 +86,13 @@ bool fail_point::parse_from_string(string_view action)
     _max_cnt = -1;
     _freq = 100;
 
-    std::regex regex(R"((\d+\%)?(\d+\*)?(\w+)(\((.*)\))?)");
-    std::smatch match;
+    boost::regex regex(R"((\d+\%)?(\d+\*)?(\w+)(\((.*)\))?)");
+    boost::smatch match;
 
     std::string tmp(action.data(), action.length());
-    if (std::regex_match(tmp, match, regex)) {
+    if (boost::regex_match(tmp, match, regex)) {
         if (match.size() == 6) {
-            std::ssub_match sub_match = match[1];
+            boost::ssub_match sub_match = match[1];
             if (!sub_match.str().empty()) {
                 sscanf(sub_match.str().data(), "%d%%", &_freq);
             }
@@ -106,6 +135,7 @@ const std::string *fail_point::eval()
         return nullptr;
     }
     _max_cnt--;
+    ddebug("fail on %s", _name.data());
 
     switch (_task) {
     case Off:

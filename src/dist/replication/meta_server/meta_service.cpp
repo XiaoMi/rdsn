@@ -43,6 +43,7 @@
 #include "meta_server_failure_detector.h"
 #include "server_load_balancer.h"
 #include "duplication/meta_duplication_service.h"
+#include "meta_split_service.h"
 
 namespace dsn {
 namespace replication {
@@ -314,6 +315,9 @@ error_code meta_service::start()
     }
 
     initialize_duplication_service();
+    recover_duplication_from_meta_state();
+
+    _split_svc = dsn::make_unique<meta_split_service>(this);
 
     _state->register_cli_commands();
 
@@ -350,7 +354,7 @@ void meta_service::register_rpc_handlers()
     register_rpc_handler(RPC_CM_START_RESTORE, "start_restore", &meta_service::on_start_restore);
     register_rpc_handler(
         RPC_CM_ADD_BACKUP_POLICY, "add_backup_policy", &meta_service::on_add_backup_policy);
-    register_rpc_handler(
+    register_rpc_handler_with_rpc_holder(
         RPC_CM_QUERY_BACKUP_POLICY, "query_backup_policy", &meta_service::on_query_backup_policy);
     register_rpc_handler(RPC_CM_MODIFY_BACKUP_POLICY,
                          "modify_backup_policy",
@@ -367,6 +371,8 @@ void meta_service::register_rpc_handlers()
         RPC_CM_UPDATE_APP_ENV, "update_app_env(set/del/clear)", &meta_service::update_app_env);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_DDD_DIAGNOSE, "ddd_diagnose", &meta_service::ddd_diagnose);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_APP_PARTITION_SPLIT, "app_partition_split", &meta_service::on_app_partition_split);
 }
 
 int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address)
@@ -725,24 +731,23 @@ void meta_service::on_add_backup_policy(dsn::message_ex *req)
         req->add_ref();
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
                          nullptr,
-                         std::bind(&backup_service::add_new_policy, _backup_handler.get(), req));
+                         std::bind(&backup_service::add_backup_policy, _backup_handler.get(), req));
     }
 }
 
-void meta_service::on_query_backup_policy(dsn::message_ex *req)
+void meta_service::on_query_backup_policy(query_backup_policy_rpc policy_rpc)
 {
-    configuration_query_backup_policy_response response;
-    RPC_CHECK_STATUS(req, response);
+    auto &response = policy_rpc.response();
+    RPC_CHECK_STATUS(policy_rpc.dsn_request(), response);
 
     if (_backup_handler == nullptr) {
         derror("meta doesn't enable backup service");
         response.err = ERR_SERVICE_NOT_ACTIVE;
-        reply(req, response);
     } else {
-        req->add_ref();
-        tasking::enqueue(LPC_DEFAULT_CALLBACK,
-                         nullptr,
-                         std::bind(&backup_service::query_policy, _backup_handler.get(), req));
+        tasking::enqueue(
+            LPC_DEFAULT_CALLBACK,
+            nullptr,
+            std::bind(&backup_service::query_backup_policy, _backup_handler.get(), policy_rpc));
     }
 }
 
@@ -757,9 +762,10 @@ void meta_service::on_modify_backup_policy(dsn::message_ex *req)
         reply(req, response);
     } else {
         req->add_ref();
-        tasking::enqueue(LPC_DEFAULT_CALLBACK,
-                         nullptr,
-                         std::bind(&backup_service::modify_policy, _backup_handler.get(), req));
+        tasking::enqueue(
+            LPC_DEFAULT_CALLBACK,
+            nullptr,
+            std::bind(&backup_service::modify_backup_policy, _backup_handler.get(), req));
     }
 }
 
@@ -824,6 +830,29 @@ void meta_service::on_query_duplication_info(duplication_query_rpc rpc)
     }
 }
 
+void meta_service::on_duplication_sync(duplication_sync_rpc rpc)
+{
+    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     tracker(),
+                     [this, rpc]() {
+                         if (_dup_svc) {
+                             _dup_svc->duplication_sync(std::move(rpc));
+                         } else {
+                             rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
+                         }
+                     },
+                     server_state::sStateHash);
+}
+
+void meta_service::recover_duplication_from_meta_state()
+{
+    if (_dup_svc) {
+        _dup_svc->recover_from_meta_state();
+    }
+}
+
 void meta_service::register_duplication_rpc_handlers()
 {
     register_rpc_handler_with_rpc_holder(
@@ -834,6 +863,8 @@ void meta_service::register_duplication_rpc_handlers()
     register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_DUPLICATION,
                                          "query duplication info",
                                          &meta_service::on_query_duplication_info);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_DUPLICATION_SYNC, "sync duplication", &meta_service::on_duplication_sync);
 }
 
 void meta_service::initialize_duplication_service()
@@ -881,6 +912,16 @@ void meta_service::ddd_diagnose(ddd_diagnose_rpc rpc)
 
     get_balancer()->get_ddd_partitions(rpc.request().pid, response.partitions);
     response.err = ERR_OK;
+}
+
+void meta_service::on_app_partition_split(app_partition_split_rpc rpc)
+{
+    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     tracker(),
+                     [this, rpc]() { _split_svc->app_partition_split(std::move(rpc)); },
+                     server_state::sStateHash);
 }
 
 } // namespace replication

@@ -38,10 +38,17 @@ typedef rpc_holder<duplication_status_change_request, duplication_status_change_
 typedef rpc_holder<duplication_add_request, duplication_add_response> duplication_add_rpc;
 typedef rpc_holder<duplication_query_request, duplication_query_response> duplication_query_rpc;
 typedef rpc_holder<duplication_sync_request, duplication_sync_response> duplication_sync_rpc;
+typedef rpc_holder<configuration_update_app_env_request, configuration_update_app_env_response>
+    update_app_env_rpc;
 
 typedef int32_t dupid_t;
 
 extern const char *duplication_status_to_string(duplication_status::type status);
+
+inline bool is_duplication_status_valid(duplication_status::type status)
+{
+    return status == duplication_status::DS_PAUSE || status == duplication_status::DS_START;
+}
 
 /// Returns the cluster name (i.e, "onebox") if it's configured under
 /// "replication" section:

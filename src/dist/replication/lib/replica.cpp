@@ -28,6 +28,7 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
+#include "duplication/replica_duplicator_manager.h"
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -54,7 +55,8 @@ replica::replica(
       _chkpt_total_size(0),
       _cur_download_size(0),
       _restore_progress(0),
-      _restore_status(ERR_OK)
+      _restore_status(ERR_OK),
+      _duplication_mgr(new replica_duplicator_manager(this))
 {
     dassert(_app_info.app_type != "", "");
     dassert(stub != nullptr, "");
@@ -76,6 +78,9 @@ replica::replica(
     _counter_recent_write_throttling_reject_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
+    // init table level latency perf counters
+    init_table_level_latency_counters();
+
     if (need_restore) {
         // add an extra env for restore
         _extra_envs.insert(
@@ -92,9 +97,13 @@ void replica::update_last_checkpoint_generate_time()
         _last_checkpoint_generate_time_ms + rand::next_u64(max_interval_ms / 2, max_interval_ms);
 }
 
-void replica::update_commit_statistics(int count)
+//            //
+// Statistics //
+//            //
+
+void replica::update_commit_qps(int count)
 {
-    _stub->_counter_replicas_total_commit_throught->add((uint64_t)count);
+    _stub->_counter_replicas_commit_qps->add((uint64_t)count);
 }
 
 void replica::init_state()
@@ -131,7 +140,7 @@ replica::~replica(void)
     dinfo("%s: replica destroyed", name());
 }
 
-void replica::on_client_read(task_code code, dsn::message_ex *request)
+void replica::on_client_read(dsn::message_ex *request)
 {
     if (status() == partition_status::PS_INACTIVE ||
         status() == partition_status::PS_POTENTIAL_SECONDARY) {
@@ -155,8 +164,15 @@ void replica::on_client_read(task_code code, dsn::message_ex *request)
         return;
     }
 
+    uint64_t start_time_ns = dsn_now_ns();
     dassert(_app != nullptr, "");
     _app->on_request(request);
+
+    // If the corresponding perf counter exist, count the duration of this operation.
+    // rpc code of request is already checked in message_ex::rpc_code, so it will always be legal
+    if (_counters_table_level_latency[request->rpc_code()] != nullptr) {
+        _counters_table_level_latency[request->rpc_code()]->set(dsn_now_ns() - start_time_ns);
+    }
 }
 
 void replica::response_client_read(dsn::message_ex *request, error_code error)
@@ -169,46 +185,6 @@ void replica::response_client_write(dsn::message_ex *request, error_code error)
     _stub->response_client(get_gpid(), false, request, status(), error);
 }
 
-// error_code replica::check_and_fix_private_log_completeness()
-//{
-//    error_code err = ERR_OK;
-//
-//    auto mind = _private_log->max_gced_decree(get_gpid());
-//    if (_prepare_list->max_decree())
-//
-//    if (!(mind <= last_durable_decree()))
-//    {
-//        err = ERR_INCOMPLETE_DATA;
-//        derror("%s: private log is incomplete (gced/durable): %" PRId64 " vs %" PRId64,
-//            name(),
-//            mind,
-//            last_durable_decree()
-//            );
-//    }
-//    else
-//    {
-//        mind = _private_log->max_decree(get_gpid());
-//        if (!(mind >= _app->last_committed_decree()))
-//        {
-//            err = ERR_INCOMPLETE_DATA;
-//            derror("%s: private log is incomplete (max/commit): %" PRId64 " vs %" PRId64,
-//                name(),
-//                mind,
-//                _app->last_committed_decree()
-//                );
-//        }
-//    }
-//
-//    if (ERR_INCOMPLETE_DATA == err)
-//    {
-//        _private_log->close(true);
-//        _private_log->open(nullptr);
-//        _private_log->set_private(get_gpid(), _app->last_durable_decree());
-//    }
-//
-//    return err;
-//}
-
 void replica::check_state_completeness()
 {
     /* prepare commit durable */
@@ -220,20 +196,6 @@ void replica::check_state_completeness()
             "%" PRId64 " VS %" PRId64 "",
             last_committed_decree(),
             last_durable_decree());
-
-    /*
-    auto mind = _stub->_log->max_gced_decree(get_gpid(),
-    _app->init_info().init_offset_in_shared_log);
-    dassert(mind <= last_durable_decree(), "%" PRId64 " VS %" PRId64, mind, last_durable_decree());
-
-    if (_private_log != nullptr)
-    {
-        auto mind = _private_log->max_gced_decree(get_gpid(),
-    _app->init_info().init_offset_in_private_log);
-        dassert(mind <= last_durable_decree(), "%" PRId64 " VS %" PRId64, mind,
-    last_durable_decree());
-    }
-    */
 }
 
 void replica::execute_mutation(mutation_ptr &mu)
@@ -330,6 +292,18 @@ void replica::execute_mutation(mutation_ptr &mu)
             init_prepare(next, false);
         }
     }
+
+    // update table level latency perf-counters for primary partition
+    if (partition_status::PS_PRIMARY == status()) {
+        uint64_t now_ns = dsn_now_ns();
+        for (auto update : mu->data.updates) {
+            // If the corresponding perf counter exist, count the duration of this operation.
+            // code in update will always be legal
+            if (_counters_table_level_latency[update.code] != nullptr) {
+                _counters_table_level_latency[update.code]->set(now_ns - update.start_time_ns);
+            }
+        }
+    }
 }
 
 mutation_ptr replica::new_mutation(decree decree)
@@ -395,6 +369,7 @@ void replica::close()
         dassert(_secondary_states.is_cleaned(), "secondary context is not cleared");
         dassert(_potential_secondary_states.is_cleaned(),
                 "potential secondary context is not cleared");
+        dassert(_split_states.is_cleaned(), "partition split context is not cleared");
     }
 
     // for partition_status::PS_ERROR, context cleanup is done here as they may block
@@ -428,6 +403,32 @@ std::string replica::query_compact_state() const
 {
     dassert_replica(_app != nullptr, "");
     return _app->query_compact_state();
+}
+
+// Replicas on the server which serves for the same table will share the same perf-counter.
+// For example counter `table.level.RPC_RRDB_RRDB_MULTI_PUT.latency(ns)@test_table` is shared by
+// all the replicas for `test_table`.
+void replica::init_table_level_latency_counters()
+{
+    int max_task_code = task_code::max();
+    _counters_table_level_latency.resize(max_task_code + 1);
+
+    for (int code = 0; code <= max_task_code; code++) {
+        _counters_table_level_latency[code] = nullptr;
+        if (get_storage_rpc_req_codes().find(task_code(code)) !=
+            get_storage_rpc_req_codes().end()) {
+            std::string counter_str =
+                fmt::format("table.level.{}.latency(ns)@{}", task_code(code), _app_info.app_name);
+            _counters_table_level_latency[code] =
+                dsn::perf_counters::instance()
+                    .get_app_counter("eon.replica",
+                                     counter_str.c_str(),
+                                     COUNTER_TYPE_NUMBER_PERCENTILES,
+                                     counter_str.c_str(),
+                                     true)
+                    .get();
+        }
+    }
 }
 } // namespace replication
 } // namespace dsn
