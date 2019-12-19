@@ -245,8 +245,8 @@ message_ex *thrift_message_parser::get_message_on_receive(message_reader *reader
             _is_v0_header = true;
             reader->consume_buffer(HEADER_LENGTH_V0);
         } else {
-            _meta_length = second_field;
-            _body_length = input.read_u32();
+            _body_length = second_field;
+            _meta_length = input.read_u32();
             _is_v0_header = false;
             reader->consume_buffer(HEADER_LENGTH);
         }
