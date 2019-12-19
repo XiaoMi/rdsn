@@ -40,7 +40,6 @@ public:
 
     static void reset_was_destroyed() { was_destroyed_ = false; }
 
-
 private:
     friend class dsn::ref_counter;
     ~ScopedRefPtrToSelf() { was_destroyed_ = true; }
