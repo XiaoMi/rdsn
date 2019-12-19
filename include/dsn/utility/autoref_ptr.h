@@ -120,7 +120,8 @@ public:
             _obj->add_ref();
     }
 
-    template <typename U>
+    template <typename U,
+              typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
     ref_ptr(const ref_ptr<U> &r)
     {
         _obj = r.get();
@@ -130,7 +131,8 @@ public:
 
     ref_ptr(ref_ptr<T> &&r) : _obj(r._obj) { r._obj = nullptr; }
 
-    template <typename U>
+    template <typename U,
+              typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
     ref_ptr(ref_ptr<U> &&r) : _obj(r._obj)
     {
         r._obj = nullptr;
@@ -143,85 +145,15 @@ public:
         }
     }
 
-    ref_ptr<T> &operator=(T *obj)
+    ref_ptr<T> &operator=(T *obj) { return *this = ref_ptr(obj); }
+
+    ref_ptr &operator=(ref_ptr r) noexcept
     {
-        if (_obj == obj)
-            return *this;
-
-        T *old = _obj;
-        _obj = obj;
-
-        if (_obj != nullptr) {
-            _obj->add_ref();
-        }
-
-        if (old != nullptr) {
-            old->release_ref();
-        }
-
+        swap(r);
         return *this;
     }
 
-    template <typename U>
-    ref_ptr<T> &operator=(U *obj)
-    {
-        if (_obj == obj)
-            return *this;
-
-        T *old = _obj;
-        _obj = obj;
-
-        if (_obj != nullptr) {
-            _obj->add_ref();
-        }
-
-        if (old != nullptr) {
-            old->release_ref();
-        }
-
-        return *this;
-    }
-
-    ref_ptr<T> &operator=(const ref_ptr<T> &obj) { return operator=(obj._obj); }
-
-    template <typename U>
-    ref_ptr<T> &operator=(const ref_ptr<U> &obj)
-    {
-        return operator=(obj._obj);
-    }
-
-    ref_ptr<T> &operator=(ref_ptr<T> &&obj)
-    {
-        if (this == &obj) {
-            return *this;
-        }
-
-        T *old = _obj;
-
-        _obj = obj._obj;
-        obj._obj = nullptr;
-
-        if (old != nullptr) {
-            old->release_ref();
-        }
-
-        return *this;
-    }
-
-    template <typename U>
-    ref_ptr<T> &operator=(ref_ptr<U> &&obj)
-    {
-        T *old = _obj;
-
-        _obj = obj._obj;
-        obj._obj = nullptr;
-
-        if (old != nullptr) {
-            old->release_ref();
-        }
-
-        return *this;
-    }
+    void swap(ref_ptr &r) noexcept { std::swap(_obj, r._obj); }
 
     T *get() const { return _obj; }
 
