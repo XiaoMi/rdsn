@@ -1281,6 +1281,8 @@ void meta_load_balance_test::simple_lb_construct_replica()
     }
 }
 
+TEST_F(meta_load_balance_test, simple_lb_balanced_cure) { simple_lb_balanced_cure(); }
+
 TEST_F(meta_load_balance_test, simple_lb_cure_test) { simple_lb_cure_test(); }
 
 TEST_F(meta_load_balance_test, simple_lb_from_proposal_test) { simple_lb_from_proposal_test(); }
