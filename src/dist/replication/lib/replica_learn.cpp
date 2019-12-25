@@ -307,7 +307,8 @@ decree replica::get_learn_start_decree(const learn_request &request) // on prima
     decree learn_start_decree = learn_start_decree_no_dup;
     if (learn_start_decree_for_dup <= request.max_gced_decree ||
         request.max_gced_decree == invalid_decree) {
-        // max_gced_decree == invalid_decree indicates the learner's plog directory is empty.
+        // `request.max_gced_decree == invalid_decree` indicates the learner has no log,
+        // see replica::get_max_gced_decree_for_learn for details.
         if (learn_start_decree_for_dup < learn_start_decree_no_dup) {
             learn_start_decree = learn_start_decree_for_dup;
             ddebug_replica("learn_start_decree steps back to {} to ensure learner having enough "
