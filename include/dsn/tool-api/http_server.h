@@ -106,15 +106,15 @@ public:
 
     void serve(message_ex *msg);
 
-    struct service_help_entry
+    struct service_method_help_entry
     {
         std::string name;
         std::string method;
         std::string help;
     };
-    std::vector<service_help_entry> get_help() const
+    std::vector<service_method_help_entry> get_help() const
     {
-        std::vector<service_help_entry> ret;
+        std::vector<service_method_help_entry> ret;
         for (const auto &service : _service_map) {
             for (const auto &method : service.second->get_help()) {
                 ret.push_back({service.first, method.name, method.help});
