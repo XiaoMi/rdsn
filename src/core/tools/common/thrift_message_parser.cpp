@@ -189,6 +189,7 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
     message_ex *msg = parse_request_data(buf);
     if (msg == nullptr) {
         read_next = -1;
+        reset();
         return nullptr;
     }
 
@@ -234,6 +235,7 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
     message_ex *msg = parse_request_data(buf);
     if (msg == nullptr) {
         read_next = -1;
+        reset();
         return nullptr;
     }
 
@@ -248,6 +250,7 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
     msg->header->client.thread_hash = gpid_to_thread_hash(msg->header->gpid);
     msg->header->client.partition_hash = _meta->client_partition_hash;
     msg->header->context.u.is_backup_request = _meta->is_backup_request;
+    reset();
     return msg;
 }
 
@@ -263,23 +266,16 @@ message_ex *thrift_message_parser::get_message_on_receive(message_reader *reader
     }
 
     // Parses request body
-    message_ex *res = nullptr;
     switch (_header_version) {
     case 0:
-        res = parse_request_body_v0(reader, read_next);
-        break;
+        return parse_request_body_v0(reader, read_next);
     case 1:
-        res = parse_request_body_v1(reader, read_next);
-        break;
+        return parse_request_body_v1(reader, read_next);
     default:
         assert("invalid header version");
     }
 
-    // nullptr != res means that the request has been parsed
-    if (nullptr != res) {
-        reset();
-    }
-    return res;
+    return nullptr;
 }
 
 void thrift_message_parser::reset()
