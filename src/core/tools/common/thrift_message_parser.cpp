@@ -289,7 +289,7 @@ void thrift_message_parser::reset()
     _meta_length = 0;
     _body_length = 0;
     _meta_0.reset();
-    // TODO: _meta.reset();
+    _meta.reset(new thrift_request_meta);
 }
 
 //                   //
