@@ -1096,12 +1096,6 @@ void thrift_request_meta::__set_client_partition_hash(const int64_t val)
     __isset.client_partition_hash = true;
 }
 
-void thrift_request_meta::__set_body_length(const int32_t val)
-{
-    this->body_length = val;
-    __isset.body_length = true;
-}
-
 void thrift_request_meta::__set_is_backup_request(const bool val)
 {
     this->is_backup_request = val;
@@ -1160,14 +1154,6 @@ uint32_t thrift_request_meta::read(::apache::thrift::protocol::TProtocol *iprot)
             }
             break;
         case 5:
-            if (ftype == ::apache::thrift::protocol::T_I32) {
-                xfer += iprot->readI32(this->body_length);
-                this->__isset.body_length = true;
-            } else {
-                xfer += iprot->skip(ftype);
-            }
-            break;
-        case 6:
             if (ftype == ::apache::thrift::protocol::T_BOOL) {
                 xfer += iprot->readBool(this->is_backup_request);
                 this->__isset.is_backup_request = true;
@@ -1214,13 +1200,8 @@ uint32_t thrift_request_meta::write(::apache::thrift::protocol::TProtocol *oprot
         xfer += oprot->writeI64(this->client_partition_hash);
         xfer += oprot->writeFieldEnd();
     }
-    if (this->__isset.body_length) {
-        xfer += oprot->writeFieldBegin("body_length", ::apache::thrift::protocol::T_I32, 5);
-        xfer += oprot->writeI32(this->body_length);
-        xfer += oprot->writeFieldEnd();
-    }
     if (this->__isset.is_backup_request) {
-        xfer += oprot->writeFieldBegin("is_backup_request", ::apache::thrift::protocol::T_BOOL, 6);
+        xfer += oprot->writeFieldBegin("is_backup_request", ::apache::thrift::protocol::T_BOOL, 5);
         xfer += oprot->writeBool(this->is_backup_request);
         xfer += oprot->writeFieldEnd();
     }
@@ -1236,7 +1217,6 @@ void swap(thrift_request_meta &a, thrift_request_meta &b)
     swap(a.partition_index, b.partition_index);
     swap(a.client_timeout, b.client_timeout);
     swap(a.client_partition_hash, b.client_partition_hash);
-    swap(a.body_length, b.body_length);
     swap(a.is_backup_request, b.is_backup_request);
     swap(a.__isset, b.__isset);
 }
@@ -1247,7 +1227,6 @@ thrift_request_meta::thrift_request_meta(const thrift_request_meta &other49)
     partition_index = other49.partition_index;
     client_timeout = other49.client_timeout;
     client_partition_hash = other49.client_partition_hash;
-    body_length = other49.body_length;
     is_backup_request = other49.is_backup_request;
     __isset = other49.__isset;
 }
@@ -1257,7 +1236,6 @@ thrift_request_meta::thrift_request_meta(thrift_request_meta &&other50)
     partition_index = std::move(other50.partition_index);
     client_timeout = std::move(other50.client_timeout);
     client_partition_hash = std::move(other50.client_partition_hash);
-    body_length = std::move(other50.body_length);
     is_backup_request = std::move(other50.is_backup_request);
     __isset = std::move(other50.__isset);
 }
@@ -1267,7 +1245,6 @@ thrift_request_meta &thrift_request_meta::operator=(const thrift_request_meta &o
     partition_index = other51.partition_index;
     client_timeout = other51.client_timeout;
     client_partition_hash = other51.client_partition_hash;
-    body_length = other51.body_length;
     is_backup_request = other51.is_backup_request;
     __isset = other51.__isset;
     return *this;
@@ -1278,7 +1255,6 @@ thrift_request_meta &thrift_request_meta::operator=(thrift_request_meta &&other5
     partition_index = std::move(other52.partition_index);
     client_timeout = std::move(other52.client_timeout);
     client_partition_hash = std::move(other52.client_partition_hash);
-    body_length = std::move(other52.body_length);
     is_backup_request = std::move(other52.is_backup_request);
     __isset = std::move(other52.__isset);
     return *this;
@@ -1298,9 +1274,6 @@ void thrift_request_meta::printTo(std::ostream &out) const
     out << ", "
         << "client_partition_hash=";
     (__isset.client_partition_hash ? (out << to_string(client_partition_hash)) : (out << "<null>"));
-    out << ", "
-        << "body_length=";
-    (__isset.body_length ? (out << to_string(body_length)) : (out << "<null>"));
     out << ", "
         << "is_backup_request=";
     (__isset.is_backup_request ? (out << to_string(is_backup_request)) : (out << "<null>"));

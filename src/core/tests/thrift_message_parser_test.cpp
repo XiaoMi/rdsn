@@ -26,7 +26,7 @@ public:
 
     void test_get_message_on_receive_incomplete_second_field()
     {
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 4; i++) {
             thrift_message_parser parser;
 
             std::string data;
@@ -39,7 +39,7 @@ public:
 
             message_ex *msg = parser.get_message_on_receive(&reader, read_next);
             ASSERT_EQ(msg, nullptr);
-            ASSERT_EQ(read_next, 8 - i);
+            ASSERT_EQ(read_next, 4 - i);
             ASSERT_EQ(parser._header_version, -1);
             ASSERT_EQ(parser._meta_parsed, false);
             ASSERT_EQ(parser._meta_length, 0);
@@ -52,7 +52,7 @@ public:
 
     void test_get_message_on_receive_incomplete_v0_hdr()
     {
-        for (int i = 8; i < 44; i++) {
+        for (int i = 4; i < 44; i++) {
             thrift_message_parser parser;
 
             std::string data;
@@ -201,6 +201,8 @@ public:
             // must be reset
             ASSERT_EQ(parser._header_version, -1);
             ASSERT_EQ(parser._meta_parsed, false);
+            ASSERT_EQ(parser._meta_length, 0);
+            ASSERT_EQ(parser._body_length, 0);
         } else {
             ASSERT_EQ(msg, nullptr);
             ASSERT_EQ(read_next, -1);
@@ -213,19 +215,21 @@ public:
         std::string data;
         int read_next = 0;
         message_reader reader(64);
-        data = std::string("THFT") + std::string(8, '\0'); // full 12 bytes
-        data_output out(&data[4], 8);
+        data = std::string("THFT") + std::string(12, '\0'); // full 12 bytes
+        data_output out(&data[4], 12);
         out.write_u32(1);   // header_version
         out.write_u32(100); // meta_length
+        out.write_u32(200);
 
         mock_reader_read_data(reader, data);
-        ASSERT_EQ(reader.buffer().size(), 12);
+        ASSERT_EQ(reader.buffer().size(), 16);
 
         message_ex *msg = parser.get_message_on_receive(&reader, read_next);
         ASSERT_EQ(msg, nullptr);
         ASSERT_EQ(read_next, 100); // required to read more
         ASSERT_EQ(parser._header_version, 1);
         ASSERT_EQ(parser._meta_length, 100);
+        ASSERT_EQ(parser._body_length, 200);
         ASSERT_EQ(parser._meta_parsed, false);
         ASSERT_EQ(reader.buffer().size(), 0);
     }
@@ -257,7 +261,6 @@ public:
         thrift_request_meta meta;
         meta.__set_is_backup_request(is_backup_request);
         meta.__set_app_id(1);
-        meta.__set_body_length(body_length);
         meta.__set_partition_index(28);
         meta.__set_client_timeout(1000);
         meta.__set_client_partition_hash(5000000000);
@@ -274,19 +277,20 @@ public:
         thrift_message_parser parser;
         std::string data;
         int read_next = 0;
-        data = std::string("THFT") + std::string(8 + meta_length + body_length, '\0');
-        data_output out(&data[4], 8);
+        data = std::string("THFT") + std::string(12 + meta_length + body_length, '\0');
+        data_output out(&data[4], 12);
         out.write_u32(1);
         out.write_u32(meta_length);
+        out.write_u32(body_length);
 
-        memcpy(&data[12], meta_writer.get_buffer().data(), meta_writer.get_buffer().size());
-        memcpy(&data[12 + meta_length],
+        memcpy(&data[16], meta_writer.get_buffer().data(), meta_writer.get_buffer().size());
+        memcpy(&data[16 + meta_length],
                body_stream.get_buffer().data(),
                body_stream.get_buffer().size());
 
         mock_reader_read_data(reader, data);
         ASSERT_EQ(reader.buffer().size(), data.size());
-        ASSERT_EQ(reader.buffer().size(), 12 + meta_length + body_length);
+        ASSERT_EQ(reader.buffer().size(), 16 + meta_length + body_length);
 
         msg = parser.get_message_on_receive(&reader, read_next);
 

@@ -435,7 +435,6 @@ typedef struct _thrift_request_meta__isset
           partition_index(false),
           client_timeout(false),
           client_partition_hash(false),
-          body_length(false),
           is_backup_request(false)
     {
     }
@@ -443,7 +442,6 @@ typedef struct _thrift_request_meta__isset
     bool partition_index : 1;
     bool client_timeout : 1;
     bool client_partition_hash : 1;
-    bool body_length : 1;
     bool is_backup_request : 1;
 } _thrift_request_meta__isset;
 
@@ -459,7 +457,6 @@ public:
           partition_index(0),
           client_timeout(0),
           client_partition_hash(0),
-          body_length(0),
           is_backup_request(0)
     {
     }
@@ -469,7 +466,6 @@ public:
     int32_t partition_index;
     int32_t client_timeout;
     int64_t client_partition_hash;
-    int32_t body_length;
     bool is_backup_request;
 
     _thrift_request_meta__isset __isset;
@@ -481,8 +477,6 @@ public:
     void __set_client_timeout(const int32_t val);
 
     void __set_client_partition_hash(const int64_t val);
-
-    void __set_body_length(const int32_t val);
 
     void __set_is_backup_request(const bool val);
 
@@ -504,10 +498,6 @@ public:
             return false;
         else if (__isset.client_partition_hash &&
                  !(client_partition_hash == rhs.client_partition_hash))
-            return false;
-        if (__isset.body_length != rhs.__isset.body_length)
-            return false;
-        else if (__isset.body_length && !(body_length == rhs.body_length))
             return false;
         if (__isset.is_backup_request != rhs.__isset.is_backup_request)
             return false;

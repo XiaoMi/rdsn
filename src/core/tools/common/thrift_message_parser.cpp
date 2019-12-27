@@ -48,19 +48,20 @@ namespace dsn {
 /// |-"THFT"-|-  uint32(0)  + uint32(48) -|-           36bytes        -|-              -|
 /// |-               12bytes             -|-           36bytes        -|-              -|
 ///
-/// For new version (since pegasus-server-1.11.4):
-/// <--         fixed-size request header              --> <--       request body         -->
-/// |-"THFT"-|- uint32(body_length) + uint32(meta_length) -|- thrift_request_meta -|- blob -|
-/// |-                      12bytes                       -|-   thrift struct     -|-      -|
-///
-/// Currently, our implementation can be backward compatible with version 0 by identifying
-/// the second 4 bytes, for version 0 this field (`hdr_version`) is always 0, for the new
-/// version it is replaced with a non-zero `body_length`.
+/// For new version (since pegasus-server-1.13.0):
+/// <--                 fixed-size request header                     --> <--       request body -->
+/// |-"THFT"-|- hdr_version + uint32(meta_length) + uint32(body_length) -|- thrift_request_meta -|-
+/// blob -|
+/// |-                             16bytes                              -|-   thrift struct     -|-
+/// -|
 ///
 /// TODO(wutao1): remove v0 can once it has no user
 
-// "THFT" + uint32(body_length) + uint32(meta_length)
-static constexpr size_t HEADER_LENGTH = 12;
+// "THFT" + uint_32(hdr_version) + uint32(body_length) + uint32(meta_length)
+static constexpr size_t HEADER_LENGTH = 16;
+
+// "THFT" + uint_32(hdr_version)
+static constexpr size_t THFT_HDR_VERSION_LENGTH = 8;
 
 // "THFT" + uint32(hdr_version) + uint32(hdr_length) + 36bytes(thrift_request_meta_v0)
 static constexpr size_t HEADER_LENGTH_V0 = 48;
@@ -97,6 +98,7 @@ message_ex *parse_request_data(const blob &data)
     ::apache::thrift::protocol::TMessageType mtype;
     int32_t seqid;
     iprot.readMessageBegin(fname, mtype, seqid);
+    ddebug("fname = %s, mtype = %d, seqid = %d\n", fname.c_str(), mtype, seqid);
 
     message_header *dsn_hdr = msg->header;
     dsn_hdr->hdr_type = THRIFT_HDR_SIG;
@@ -123,8 +125,9 @@ message_ex *parse_request_data(const blob &data)
 bool thrift_message_parser::parse_request_header(message_reader *reader, int &read_next)
 {
     blob buf = reader->buffer();
-    if (buf.size() < HEADER_LENGTH) {
-        read_next = HEADER_LENGTH - buf.size();
+    // make sure there is enough space for 'THFT' and header_version
+    if (buf.size() < THFT_HDR_VERSION_LENGTH) {
+        read_next = THFT_HDR_VERSION_LENGTH - buf.size();
         return false;
     }
 
@@ -144,6 +147,7 @@ bool thrift_message_parser::parse_request_header(message_reader *reader, int &re
             read_next = HEADER_LENGTH_V0 - buf.size();
             return false;
         }
+
         uint32_t hdr_length = input.read_u32();
         if (hdr_length != HEADER_LENGTH_V0) {
             derror("hdr_length should be %u, but %u", HEADER_LENGTH_V0, hdr_length);
@@ -154,7 +158,13 @@ bool thrift_message_parser::parse_request_header(message_reader *reader, int &re
         parse_request_meta_v0(input, *_meta_0);
         reader->consume_buffer(HEADER_LENGTH_V0);
     } else if (1 == header_version) {
+        if (buf.size() < HEADER_LENGTH) {
+            read_next = HEADER_LENGTH - buf.size();
+            return false;
+        }
+
         _meta_length = input.read_u32();
+        _body_length = input.read_u32();
         reader->consume_buffer(HEADER_LENGTH);
     } else {
         derror("invalid hdr_version %d", _header_version);
@@ -162,6 +172,10 @@ bool thrift_message_parser::parse_request_header(message_reader *reader, int &re
         return false;
     }
     _header_version = header_version;
+    ddebug("_meta_length = %d, header_version = %d, body_length = %d",
+           _meta_length,
+           _header_version,
+           _body_length);
 
     return true;
 }
@@ -213,18 +227,27 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
             &trans, [](::dsn::binary_reader_transport *) {});
         ::apache::thrift::protocol::TBinaryProtocol proto(transport);
         _meta->read(&proto);
-
+        ddebug("meta: appid = %d, partition_hash = %d, client_timeout=%d, partition_index=%d, "
+               "backup=%d",
+               _meta->app_id,
+               _meta->client_partition_hash,
+               _meta->client_timeout,
+               _meta->partition_index,
+               _meta->is_backup_request);
         _meta_parsed = true;
     }
     buf = buf.range(_meta_length);
 
-    // Parses request data
-    _body_length = _meta->body_length;
+    ddebug("_meta_length = %d, header_version = %d, body_length = %d",
+           _meta_length,
+           _header_version,
+           _body_length);
+
+    // Parses request body
     if (buf.size() < _body_length) {
         read_next = _body_length - buf.size();
         return nullptr;
     }
-
     message_ex *msg = parse_request_data(buf);
     if (msg == nullptr) {
         read_next = -1;
@@ -257,17 +280,23 @@ message_ex *thrift_message_parser::get_message_on_receive(message_reader *reader
     }
 
     // Parses request body
+    message_ex *res = nullptr;
     switch (_header_version) {
     case 0:
-        return parse_request_body_v0(reader, read_next);
+        res = parse_request_body_v0(reader, read_next);
+        break;
     case 1:
-        return parse_request_body_v1(reader, read_next);
+        res = parse_request_body_v1(reader, read_next);
+        break;
     default:
         assert("invalid header version");
     }
 
-    reset();
-    return nullptr;
+    // nullptr != res means that the request has been parsed
+    if (nullptr != res) {
+        reset();
+    }
+    return res;
 }
 
 void thrift_message_parser::reset()
