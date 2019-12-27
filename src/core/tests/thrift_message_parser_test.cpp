@@ -219,7 +219,7 @@ public:
         data_output out(&data[4], 12);
         out.write_u32(1);   // header_version
         out.write_u32(100); // meta_length
-        out.write_u32(200);
+        out.write_u32(200); // body_length
 
         mock_reader_read_data(reader, data);
         ASSERT_EQ(reader.buffer().size(), 16);

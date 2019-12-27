@@ -98,7 +98,6 @@ message_ex *parse_request_data(const blob &data)
     ::apache::thrift::protocol::TMessageType mtype;
     int32_t seqid;
     iprot.readMessageBegin(fname, mtype, seqid);
-    ddebug("fname = %s, mtype = %d, seqid = %d\n", fname.c_str(), mtype, seqid);
 
     message_header *dsn_hdr = msg->header;
     dsn_hdr->hdr_type = THRIFT_HDR_SIG;
@@ -172,10 +171,6 @@ bool thrift_message_parser::parse_request_header(message_reader *reader, int &re
         return false;
     }
     _header_version = header_version;
-    ddebug("_meta_length = %d, header_version = %d, body_length = %d",
-           _meta_length,
-           _header_version,
-           _body_length);
 
     return true;
 }
@@ -227,21 +222,9 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
             &trans, [](::dsn::binary_reader_transport *) {});
         ::apache::thrift::protocol::TBinaryProtocol proto(transport);
         _meta->read(&proto);
-        ddebug("meta: appid = %d, partition_hash = %d, client_timeout=%d, partition_index=%d, "
-               "backup=%d",
-               _meta->app_id,
-               _meta->client_partition_hash,
-               _meta->client_timeout,
-               _meta->partition_index,
-               _meta->is_backup_request);
         _meta_parsed = true;
     }
     buf = buf.range(_meta_length);
-
-    ddebug("_meta_length = %d, header_version = %d, body_length = %d",
-           _meta_length,
-           _header_version,
-           _body_length);
 
     // Parses request body
     if (buf.size() < _body_length) {
