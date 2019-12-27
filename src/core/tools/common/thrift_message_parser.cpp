@@ -120,6 +120,52 @@ message_ex *parse_request_data(const blob &data)
     return msg;
 }
 
+bool thrift_message_parser::parse_request_header(message_reader *reader, int &read_next)
+{
+    blob buf = reader->buffer();
+    if (buf.size() < HEADER_LENGTH) {
+        read_next = HEADER_LENGTH - buf.size();
+        return false;
+    }
+
+    // The first 4 bytes is "THFT"
+    data_input input(buf);
+    if (memcmp(buf.data(), "THFT", 4) != 0) {
+        derror("hdr_type mismatch %s", message_parser::get_debug_string(buf.data()).c_str());
+        read_next = -1;
+        return false;
+    }
+    input.skip(4);
+
+    // deal with different versions
+    int header_version = input.read_u32();
+    if (0 == header_version) {
+        if (buf.size() < HEADER_LENGTH_V0) {
+            read_next = HEADER_LENGTH_V0 - buf.size();
+            return false;
+        }
+        uint32_t hdr_length = input.read_u32();
+        if (hdr_length != HEADER_LENGTH_V0) {
+            derror("hdr_length should be %u, but %u", HEADER_LENGTH_V0, hdr_length);
+            read_next = -1;
+            return false;
+        }
+
+        parse_request_meta_v0(input, *_meta_0);
+        reader->consume_buffer(HEADER_LENGTH_V0);
+    } else if (1 == header_version) {
+        _meta_length = input.read_u32();
+        reader->consume_buffer(HEADER_LENGTH);
+    } else {
+        derror("invalid hdr_version %d", _header_version);
+        read_next = -1;
+        return false;
+    }
+    _header_version = header_version;
+
+    return true;
+}
+
 message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader, int &read_next)
 {
     blob buf = reader->buffer();
@@ -138,7 +184,6 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
     }
 
     reader->consume_buffer(_meta_0->body_length);
-    reset();
     read_next = (reader->_buffer_occupied >= HEADER_LENGTH_V0
                      ? 0
                      : HEADER_LENGTH_V0 - reader->_buffer_occupied);
@@ -152,11 +197,10 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
     return msg;
 }
 
-message_ex *thrift_message_parser::parse_request_body_v_new(message_reader *reader, int &read_next)
+message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader, int &read_next)
 {
-    blob buf = reader->buffer();
-
     // Parses request meta
+    blob buf = reader->buffer();
     if (!_meta_parsed) {
         if (buf.size() < _meta_length) {
             read_next = _meta_length - buf.size();
@@ -175,6 +219,7 @@ message_ex *thrift_message_parser::parse_request_body_v_new(message_reader *read
     buf = buf.range(_meta_length);
 
     // Parses request data
+    _body_length = _meta->body_length;
     if (buf.size() < _body_length) {
         read_next = _body_length - buf.size();
         return nullptr;
@@ -187,7 +232,6 @@ message_ex *thrift_message_parser::parse_request_body_v_new(message_reader *read
     }
 
     reader->consume_buffer(_meta_length + _body_length);
-    reset();
     read_next =
         (reader->_buffer_occupied >= HEADER_LENGTH ? 0 : HEADER_LENGTH - reader->_buffer_occupied);
 
@@ -205,67 +249,35 @@ message_ex *thrift_message_parser::get_message_on_receive(message_reader *reader
                                                           /*out*/ int &read_next)
 {
     read_next = 4096;
-
-    // Parses request header
-    if (!_header_parsed) {
-        blob buf = reader->buffer();
-
-        if (buf.size() < HEADER_LENGTH) {
-            read_next = HEADER_LENGTH - buf.size();
+    // Parses request header, -1 means header is not parsed
+    if (-1 == _header_version) {
+        if (!parse_request_header(reader, read_next)) {
             return nullptr;
         }
-
-        data_input input(buf);
-
-        // The first 4 bytes is "THFT"
-        if (memcmp(buf.data(), "THFT", 4) != 0) {
-            derror("hdr_type mismatch %s", message_parser::get_debug_string(buf.data()).c_str());
-            read_next = -1;
-            return nullptr;
-        }
-        input.skip(4);
-
-        // Check second 4 bytes, for version 0 it must be 0,
-        // and otherwise for later version.
-        uint32_t second_field = input.read_u32();
-        if (second_field == 0) {
-            if (buf.size() < HEADER_LENGTH_V0) {
-                read_next = HEADER_LENGTH_V0 - buf.size();
-                return nullptr;
-            }
-
-            uint32_t hdr_length = input.read_u32();
-            if (hdr_length != HEADER_LENGTH_V0) {
-                derror("hdr_length should be %u, but %u", HEADER_LENGTH_V0, hdr_length);
-                read_next = -1;
-                return nullptr;
-            }
-
-            parse_request_meta_v0(input, *_meta_0);
-            _is_v0_header = true;
-            reader->consume_buffer(HEADER_LENGTH_V0);
-        } else {
-            _body_length = second_field;
-            _meta_length = input.read_u32();
-            _is_v0_header = false;
-            reader->consume_buffer(HEADER_LENGTH);
-        }
-
-        _header_parsed = true;
     }
 
     // Parses request body
-    if (_is_v0_header) {
+    switch (_header_version) {
+    case 0:
         return parse_request_body_v0(reader, read_next);
+    case 1:
+        return parse_request_body_v1(reader, read_next);
+    default:
+        assert("invalid header version");
     }
-    return parse_request_body_v_new(reader, read_next);
+
+    reset();
+    return nullptr;
 }
 
 void thrift_message_parser::reset()
 {
     _meta_parsed = false;
-    _header_parsed = false;
-    _is_v0_header = false;
+    _header_version = -1;
+    _meta_length = 0;
+    _body_length = 0;
+    _meta_0.reset();
+    // TODO: _meta.reset();
 }
 
 //                   //

@@ -81,5 +81,6 @@ struct thrift_request_meta
     2:optional i32 partition_index;
     3:optional i32 client_timeout;
     4:optional i64 client_partition_hash;
-    5:optional bool is_backup_request;
+    5:optional i32 body_length;
+    6:optional bool is_backup_request;
 }

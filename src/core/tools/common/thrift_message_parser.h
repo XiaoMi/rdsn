@@ -29,6 +29,7 @@
 #include <dsn/tool-api/message_parser.h>
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/utility/ports.h>
+#include <dsn/utility/endians.h>
 
 namespace dsn {
 
@@ -36,6 +37,18 @@ class thrift_request_meta;
 
 struct thrift_request_meta_v0
 {
+    void reset()
+    {
+        hdr_crc32 = 0;
+        body_length = 0;
+        body_crc32 = 0;
+        app_id = 0;
+        partition_index = 0;
+        client_timeout = 0;
+        client_thread_hash = 0;
+        client_partition_hash = 0;
+    }
+
     uint32_t hdr_crc32;
     uint32_t body_length;
     uint32_t body_crc32;
@@ -76,23 +89,22 @@ private:
     message_ex *parse_request_body_v0(message_reader *reader,
                                       /*out*/ int &read_next);
 
-    message_ex *parse_request_body_v_new(message_reader *reader,
-                                         /*out*/ int &read_next);
+    message_ex *parse_request_body_v1(message_reader *reader,
+                                      /*out*/ int &read_next);
+
+    bool parse_request_header(message_reader *reader, int &read_next);
 
 private:
     friend class thrift_message_parser_test;
 
     // for meta version new
+    int _header_version{-1};
     bool _meta_parsed{false};
     uint32_t _meta_length{0};
     uint32_t _body_length{0};
     std::unique_ptr<thrift_request_meta> _meta;
-
     // for meta version 0
     std::unique_ptr<thrift_request_meta_v0> _meta_0;
-
-    bool _header_parsed{false};
-    bool _is_v0_header{false};
 };
 
 } // namespace dsn
