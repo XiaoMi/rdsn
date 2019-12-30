@@ -49,11 +49,13 @@ namespace dsn {
 /// |-               12bytes             -|-           36bytes        -|-              -|
 ///
 /// For new version (since pegasus-server-1.13.0):
-/// <--                 fixed-size request header                     --> <--       request body       -->
-/// |-"THFT"-|- hdr_version + uint32(meta_length) + uint32(body_length) -|- thrift_request_meta -|-blob -|
-/// |-                             16bytes                              -|-    thrift struct    -|-     -|
+/// <--                 fixed-size request header                     --> <--       request body -->
+/// |-"THFT"-|- hdr_version + uint32(meta_length) + uint32(body_length) -|- thrift_request_meta -|-
+/// blob -|
+/// |-                             16bytes                              -|-    thrift struct    -|-
+/// -|
 ///
-/// TODO(wutao1): remove v0 can once it has no user
+/// TODO(wutao1): remove v0 once it has no user
 
 // "THFT" + uint_32(hdr_version) + uint32(body_length) + uint32(meta_length)
 static constexpr size_t HEADER_LENGTH = 16;
@@ -202,6 +204,7 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
     msg->header->client.timeout_ms = _meta_0->client_timeout;
     msg->header->client.thread_hash = _meta_0->client_thread_hash;
     msg->header->client.partition_hash = _meta_0->client_partition_hash;
+    reset();
     return msg;
 }
 

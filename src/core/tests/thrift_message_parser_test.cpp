@@ -209,7 +209,32 @@ public:
         }
     }
 
-    void test_get_message_on_receive_valid_vnew_hdr()
+    void test_get_message_on_receive_incomplete_v1_hdr()
+    {
+        for (int i = 4; i < 12; i++) {
+            thrift_message_parser parser;
+
+            std::string data;
+            int read_next = 0;
+            message_reader reader(64);
+            data = std::string("THFT") + std::string(i, ' ');
+
+            data_output out(&data[4], 8);
+            out.write_u32(1);
+
+            mock_reader_read_data(reader, data);
+            ASSERT_EQ(reader.buffer().size(), data.length());
+
+            message_ex *msg = parser.get_message_on_receive(&reader, read_next);
+            ASSERT_EQ(msg, nullptr);
+            ASSERT_EQ(read_next, 16 - data.length()); // read remaining fields
+            ASSERT_EQ(parser._header_version, -1);
+            ASSERT_EQ(parser._meta_length, 0);
+            ASSERT_EQ(parser._body_length, 0);
+        }
+    }
+
+    void test_get_message_on_receive_valid_v1_hdr()
     {
         thrift_message_parser parser;
         std::string data;
@@ -234,10 +259,10 @@ public:
         ASSERT_EQ(reader.buffer().size(), 0);
     }
 
-    void test_get_message_on_receive_vnew_data(message_reader &reader,
-                                               apache::thrift::protocol::TMessageType messageType,
-                                               bool is_request,
-                                               bool is_backup_request)
+    void test_get_message_on_receive_v1_data(message_reader &reader,
+                                             apache::thrift::protocol::TMessageType messageType,
+                                             bool is_request,
+                                             bool is_backup_request)
     {
         /// write rpc message
         size_t body_length = 0;
@@ -367,20 +392,25 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_v0_not_request)
     reader.truncate_read();
 }
 
-TEST_F(thrift_message_parser_test, get_message_on_receive_valid_vnew_hdr)
+TEST_F(thrift_message_parser_test, get_message_on_receive_incomplete_v1_hdr)
 {
-    test_get_message_on_receive_valid_vnew_hdr();
+    test_get_message_on_receive_incomplete_v1_hdr();
 }
 
-TEST_F(thrift_message_parser_test, get_message_on_receive_vnew_data)
+TEST_F(thrift_message_parser_test, get_message_on_receive_valid_v1_hdr)
+{
+    test_get_message_on_receive_valid_v1_hdr();
+}
+
+TEST_F(thrift_message_parser_test, get_message_on_receive_v1_data)
 {
     message_reader reader(64);
-    test_get_message_on_receive_vnew_data(reader, apache::thrift::protocol::T_CALL, true, true);
-    test_get_message_on_receive_vnew_data(reader, apache::thrift::protocol::T_CALL, true, false);
-    test_get_message_on_receive_vnew_data(reader, apache::thrift::protocol::T_ONEWAY, true, true);
-    test_get_message_on_receive_vnew_data(reader, apache::thrift::protocol::T_ONEWAY, true, false);
+    test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_CALL, true, true);
+    test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_CALL, true, false);
+    test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_ONEWAY, true, true);
+    test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_ONEWAY, true, false);
 
-    test_get_message_on_receive_vnew_data(
+    test_get_message_on_receive_v1_data(
         reader, apache::thrift::protocol::TMessageType(65), false, false);
     reader.truncate_read();
 }
