@@ -57,7 +57,7 @@ namespace dsn {
 /// TODO(wutao1): remove v0 once it has no user
 
 // "THFT" + uint_32(hdr_version) + uint32(body_length) + uint32(meta_length)
-static constexpr size_t HEADER_LENGTH = 16;
+static constexpr size_t HEADER_LENGTH_V1 = 16;
 
 // "THFT" + uint_32(hdr_version)
 static constexpr size_t THFT_HDR_VERSION_LENGTH = 8;
@@ -156,14 +156,14 @@ bool thrift_message_parser::parse_request_header(message_reader *reader, int &re
         parse_request_meta_v0(input, *_meta_v0);
         reader->consume_buffer(HEADER_LENGTH_V0);
     } else if (1 == header_version) {
-        if (buf.size() < HEADER_LENGTH) {
-            read_next = HEADER_LENGTH - buf.size();
+        if (buf.size() < HEADER_LENGTH_V1) {
+            read_next = HEADER_LENGTH_V1 - buf.size();
             return false;
         }
 
         _meta_length = input.read_u32();
         _body_length = input.read_u32();
-        reader->consume_buffer(HEADER_LENGTH);
+        reader->consume_buffer(HEADER_LENGTH_V1);
     } else {
         derror("invalid hdr_version %d", _header_version);
         read_next = -1;
@@ -240,8 +240,9 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
     }
 
     reader->consume_buffer(_meta_length + _body_length);
-    read_next =
-        (reader->_buffer_occupied >= HEADER_LENGTH ? 0 : HEADER_LENGTH - reader->_buffer_occupied);
+    read_next = (reader->_buffer_occupied >= HEADER_LENGTH_V1
+                     ? 0
+                     : HEADER_LENGTH_V1 - reader->_buffer_occupied);
 
     msg->header->body_length = _body_length;
     msg->header->gpid.set_app_id(_meta_v1->app_id);
