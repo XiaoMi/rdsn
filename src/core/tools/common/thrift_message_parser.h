@@ -97,11 +97,11 @@ private:
 private:
     friend class thrift_message_parser_test;
 
-    // for meta version new
     int _header_version{-1};
     bool _meta_parsed{false};
     uint32_t _meta_length{0};
     uint32_t _body_length{0};
+    // for meta version 1
     std::unique_ptr<thrift_request_meta_v1> _meta_v1;
     // for meta version 0
     std::unique_ptr<thrift_request_meta_v0> _meta_v0;
