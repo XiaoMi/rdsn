@@ -48,12 +48,11 @@ namespace dsn {
 /// |-"THFT"-|-  uint32(0)  + uint32(48) -|-           36bytes        -|-              -|
 /// |-               12bytes             -|-           36bytes        -|-              -|
 ///
-/// For new version (since pegasus-server-1.13.0):
-/// <--                 fixed-size request header                     --> <--       request body -->
-/// |-"THFT"-|- hdr_version + uint32(meta_length) + uint32(body_length) -|- thrift_request_meta -|-
-/// blob -|
-/// |-                             16bytes                              -|-    thrift struct    -|-
-/// -|
+/// For version 1:
+/// <--          fixed-size request header            --> <--       request body        -->
+/// |-"THFT"-|- hdr_version + meta_length + body_length -|- thrift_request_meta -|- blob -|
+/// |-"THFT"-|-  uint32(0)  +   uint32    +    uint32   -|-    thrift struct    -|-      -|
+/// |-                      16bytes                     -|-    thrift struct    -|-      -|
 ///
 /// TODO(wutao1): remove v0 once it has no user
 
