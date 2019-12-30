@@ -49,10 +49,10 @@ namespace dsn {
 /// |-               12bytes             -|-           36bytes        -|-              -|
 ///
 /// For version 1:
-/// <--          fixed-size request header            --> <--       request body        -->
-/// |-"THFT"-|- hdr_version + meta_length + body_length -|- thrift_request_meta -|- blob -|
-/// |-"THFT"-|-  uint32(0)  +   uint32    +    uint32   -|-    thrift struct    -|-      -|
-/// |-                      16bytes                     -|-    thrift struct    -|-      -|
+/// <--          fixed-size request header            --> <--         request body         -->
+/// |-"THFT"-|- hdr_version + meta_length + body_length -|- thrift_request_meta_v1 -|- blob -|
+/// |-"THFT"-|-  uint32(0)  +   uint32    +    uint32   -|-      thrift struct     -|-      -|
+/// |-                      16bytes                     -|-      thrift struct     -|-      -|
 ///
 /// TODO(wutao1): remove v0 once it has no user
 
@@ -153,7 +153,7 @@ bool thrift_message_parser::parse_request_header(message_reader *reader, int &re
             return false;
         }
 
-        parse_request_meta_v0(input, *_meta_0);
+        parse_request_meta_v0(input, *_meta_v0);
         reader->consume_buffer(HEADER_LENGTH_V0);
     } else if (1 == header_version) {
         if (buf.size() < HEADER_LENGTH) {
@@ -180,8 +180,8 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
 
     // Parses request data
     // TODO(wutao1): handle the case where body_length is too short to parse.
-    if (buf.size() < _meta_0->body_length) {
-        read_next = _meta_0->body_length - buf.size();
+    if (buf.size() < _meta_v0->body_length) {
+        read_next = _meta_v0->body_length - buf.size();
         return nullptr;
     }
 
@@ -192,17 +192,17 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
         return nullptr;
     }
 
-    reader->consume_buffer(_meta_0->body_length);
+    reader->consume_buffer(_meta_v0->body_length);
     read_next = (reader->_buffer_occupied >= HEADER_LENGTH_V0
                      ? 0
                      : HEADER_LENGTH_V0 - reader->_buffer_occupied);
 
-    msg->header->body_length = _meta_0->body_length;
-    msg->header->gpid.set_app_id(_meta_0->app_id);
-    msg->header->gpid.set_partition_index(_meta_0->partition_index);
-    msg->header->client.timeout_ms = _meta_0->client_timeout;
-    msg->header->client.thread_hash = _meta_0->client_thread_hash;
-    msg->header->client.partition_hash = _meta_0->client_partition_hash;
+    msg->header->body_length = _meta_v0->body_length;
+    msg->header->gpid.set_app_id(_meta_v0->app_id);
+    msg->header->gpid.set_partition_index(_meta_v0->partition_index);
+    msg->header->client.timeout_ms = _meta_v0->client_timeout;
+    msg->header->client.thread_hash = _meta_v0->client_thread_hash;
+    msg->header->client.partition_hash = _meta_v0->client_partition_hash;
     reset();
     return msg;
 }
@@ -222,7 +222,7 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
         boost::shared_ptr<::dsn::binary_reader_transport> transport(
             &trans, [](::dsn::binary_reader_transport *) {});
         ::apache::thrift::protocol::TBinaryProtocol proto(transport);
-        _meta->read(&proto);
+        _meta_v1->read(&proto);
         _meta_parsed = true;
     }
     buf = buf.range(_meta_length);
@@ -244,12 +244,12 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
         (reader->_buffer_occupied >= HEADER_LENGTH ? 0 : HEADER_LENGTH - reader->_buffer_occupied);
 
     msg->header->body_length = _body_length;
-    msg->header->gpid.set_app_id(_meta->app_id);
-    msg->header->gpid.set_partition_index(_meta->partition_index);
-    msg->header->client.timeout_ms = _meta->client_timeout;
+    msg->header->gpid.set_app_id(_meta_v1->app_id);
+    msg->header->gpid.set_partition_index(_meta_v1->partition_index);
+    msg->header->client.timeout_ms = _meta_v1->client_timeout;
     msg->header->client.thread_hash = gpid_to_thread_hash(msg->header->gpid);
-    msg->header->client.partition_hash = _meta->client_partition_hash;
-    msg->header->context.u.is_backup_request = _meta->is_backup_request;
+    msg->header->client.partition_hash = _meta_v1->client_partition_hash;
+    msg->header->context.u.is_backup_request = _meta_v1->is_backup_request;
     reset();
     return msg;
 }
@@ -284,8 +284,8 @@ void thrift_message_parser::reset()
     _header_version = -1;
     _meta_length = 0;
     _body_length = 0;
-    _meta_0.reset();
-    _meta.reset(new thrift_request_meta);
+    _meta_v0.reset();
+    _meta_v1.reset(new thrift_request_meta_v1);
 }
 
 //                   //
@@ -391,7 +391,7 @@ int thrift_message_parser::get_buffers_on_send(message_ex *msg, /*out*/ send_buf
 }
 
 thrift_message_parser::thrift_message_parser()
-    : _meta(new thrift_request_meta), _meta_0(new thrift_request_meta_v0)
+    : _meta_v1(new thrift_request_meta_v1), _meta_v0(new thrift_request_meta_v0)
 {
 }
 

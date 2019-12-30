@@ -74,8 +74,7 @@ struct app_info
 }
 
 // Request meta data in rDSN's thrift protocol.
-// Since v1.11.4
-struct thrift_request_meta
+struct thrift_request_meta_v1
 {
     1:optional i32 app_id;
     2:optional i32 partition_index;

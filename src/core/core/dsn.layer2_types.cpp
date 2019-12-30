@@ -1070,39 +1070,39 @@ void app_info::printTo(std::ostream &out) const
     out << ")";
 }
 
-thrift_request_meta::~thrift_request_meta() throw() {}
+thrift_request_meta_v1::~thrift_request_meta_v1() throw() {}
 
-void thrift_request_meta::__set_app_id(const int32_t val)
+void thrift_request_meta_v1::__set_app_id(const int32_t val)
 {
     this->app_id = val;
     __isset.app_id = true;
 }
 
-void thrift_request_meta::__set_partition_index(const int32_t val)
+void thrift_request_meta_v1::__set_partition_index(const int32_t val)
 {
     this->partition_index = val;
     __isset.partition_index = true;
 }
 
-void thrift_request_meta::__set_client_timeout(const int32_t val)
+void thrift_request_meta_v1::__set_client_timeout(const int32_t val)
 {
     this->client_timeout = val;
     __isset.client_timeout = true;
 }
 
-void thrift_request_meta::__set_client_partition_hash(const int64_t val)
+void thrift_request_meta_v1::__set_client_partition_hash(const int64_t val)
 {
     this->client_partition_hash = val;
     __isset.client_partition_hash = true;
 }
 
-void thrift_request_meta::__set_is_backup_request(const bool val)
+void thrift_request_meta_v1::__set_is_backup_request(const bool val)
 {
     this->is_backup_request = val;
     __isset.is_backup_request = true;
 }
 
-uint32_t thrift_request_meta::read(::apache::thrift::protocol::TProtocol *iprot)
+uint32_t thrift_request_meta_v1::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
     apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
@@ -1173,11 +1173,11 @@ uint32_t thrift_request_meta::read(::apache::thrift::protocol::TProtocol *iprot)
     return xfer;
 }
 
-uint32_t thrift_request_meta::write(::apache::thrift::protocol::TProtocol *oprot) const
+uint32_t thrift_request_meta_v1::write(::apache::thrift::protocol::TProtocol *oprot) const
 {
     uint32_t xfer = 0;
     apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
-    xfer += oprot->writeStructBegin("thrift_request_meta");
+    xfer += oprot->writeStructBegin("thrift_request_meta_v1");
 
     if (this->__isset.app_id) {
         xfer += oprot->writeFieldBegin("app_id", ::apache::thrift::protocol::T_I32, 1);
@@ -1210,7 +1210,7 @@ uint32_t thrift_request_meta::write(::apache::thrift::protocol::TProtocol *oprot
     return xfer;
 }
 
-void swap(thrift_request_meta &a, thrift_request_meta &b)
+void swap(thrift_request_meta_v1 &a, thrift_request_meta_v1 &b)
 {
     using ::std::swap;
     swap(a.app_id, b.app_id);
@@ -1221,7 +1221,7 @@ void swap(thrift_request_meta &a, thrift_request_meta &b)
     swap(a.__isset, b.__isset);
 }
 
-thrift_request_meta::thrift_request_meta(const thrift_request_meta &other49)
+thrift_request_meta_v1::thrift_request_meta_v1(const thrift_request_meta_v1 &other49)
 {
     app_id = other49.app_id;
     partition_index = other49.partition_index;
@@ -1230,7 +1230,7 @@ thrift_request_meta::thrift_request_meta(const thrift_request_meta &other49)
     is_backup_request = other49.is_backup_request;
     __isset = other49.__isset;
 }
-thrift_request_meta::thrift_request_meta(thrift_request_meta &&other50)
+thrift_request_meta_v1::thrift_request_meta_v1(thrift_request_meta_v1 &&other50)
 {
     app_id = std::move(other50.app_id);
     partition_index = std::move(other50.partition_index);
@@ -1239,7 +1239,7 @@ thrift_request_meta::thrift_request_meta(thrift_request_meta &&other50)
     is_backup_request = std::move(other50.is_backup_request);
     __isset = std::move(other50.__isset);
 }
-thrift_request_meta &thrift_request_meta::operator=(const thrift_request_meta &other51)
+thrift_request_meta_v1 &thrift_request_meta_v1::operator=(const thrift_request_meta_v1 &other51)
 {
     app_id = other51.app_id;
     partition_index = other51.partition_index;
@@ -1249,7 +1249,7 @@ thrift_request_meta &thrift_request_meta::operator=(const thrift_request_meta &o
     __isset = other51.__isset;
     return *this;
 }
-thrift_request_meta &thrift_request_meta::operator=(thrift_request_meta &&other52)
+thrift_request_meta_v1 &thrift_request_meta_v1::operator=(thrift_request_meta_v1 &&other52)
 {
     app_id = std::move(other52.app_id);
     partition_index = std::move(other52.partition_index);
@@ -1259,10 +1259,10 @@ thrift_request_meta &thrift_request_meta::operator=(thrift_request_meta &&other5
     __isset = std::move(other52.__isset);
     return *this;
 }
-void thrift_request_meta::printTo(std::ostream &out) const
+void thrift_request_meta_v1::printTo(std::ostream &out) const
 {
     using ::apache::thrift::to_string;
-    out << "thrift_request_meta(";
+    out << "thrift_request_meta_v1(";
     out << "app_id=";
     (__isset.app_id ? (out << to_string(app_id)) : (out << "<null>"));
     out << ", "

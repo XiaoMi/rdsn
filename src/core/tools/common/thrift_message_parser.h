@@ -33,7 +33,7 @@
 
 namespace dsn {
 
-class thrift_request_meta;
+class thrift_request_meta_v1;
 
 struct thrift_request_meta_v0
 {
@@ -102,9 +102,9 @@ private:
     bool _meta_parsed{false};
     uint32_t _meta_length{0};
     uint32_t _body_length{0};
-    std::unique_ptr<thrift_request_meta> _meta;
+    std::unique_ptr<thrift_request_meta_v1> _meta_v1;
     // for meta version 0
-    std::unique_ptr<thrift_request_meta_v0> _meta_0;
+    std::unique_ptr<thrift_request_meta_v0> _meta_v0;
 };
 
 } // namespace dsn

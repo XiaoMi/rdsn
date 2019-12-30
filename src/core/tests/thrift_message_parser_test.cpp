@@ -124,14 +124,14 @@ public:
         ASSERT_EQ(read_next, 100); // required to read more
         ASSERT_EQ(parser._header_version, 0);
         ASSERT_EQ(reader.buffer().size(), 0);
-        ASSERT_EQ(parser._meta_0->hdr_crc32, 0);
-        ASSERT_EQ(parser._meta_0->body_length, 100);
-        ASSERT_EQ(parser._meta_0->body_crc32, 0);
-        ASSERT_EQ(parser._meta_0->app_id, 1);
-        ASSERT_EQ(parser._meta_0->partition_index, 28);
-        ASSERT_EQ(parser._meta_0->client_timeout, 1000);
-        ASSERT_EQ(parser._meta_0->client_thread_hash, 64);
-        ASSERT_EQ(parser._meta_0->client_partition_hash, 5000000000);
+        ASSERT_EQ(parser._meta_v0->hdr_crc32, 0);
+        ASSERT_EQ(parser._meta_v0->body_length, 100);
+        ASSERT_EQ(parser._meta_v0->body_crc32, 0);
+        ASSERT_EQ(parser._meta_v0->app_id, 1);
+        ASSERT_EQ(parser._meta_v0->partition_index, 28);
+        ASSERT_EQ(parser._meta_v0->client_timeout, 1000);
+        ASSERT_EQ(parser._meta_v0->client_thread_hash, 64);
+        ASSERT_EQ(parser._meta_v0->client_partition_hash, 5000000000);
     }
 
     void test_get_message_on_receive_v0_data(message_reader &reader,
@@ -283,7 +283,7 @@ public:
 
         // write rpc meta
         size_t meta_length = 0;
-        thrift_request_meta meta;
+        thrift_request_meta_v1 meta;
         meta.__set_is_backup_request(is_backup_request);
         meta.__set_app_id(1);
         meta.__set_partition_index(28);

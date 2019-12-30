@@ -44,7 +44,7 @@ class configuration_query_by_index_response;
 
 class app_info;
 
-class thrift_request_meta;
+class thrift_request_meta_v1;
 
 typedef struct _partition_configuration__isset
 {
@@ -428,9 +428,9 @@ inline std::ostream &operator<<(std::ostream &out, const app_info &obj)
     return out;
 }
 
-typedef struct _thrift_request_meta__isset
+typedef struct _thrift_request_meta_v1__isset
 {
-    _thrift_request_meta__isset()
+    _thrift_request_meta_v1__isset()
         : app_id(false),
           partition_index(false),
           client_timeout(false),
@@ -443,16 +443,16 @@ typedef struct _thrift_request_meta__isset
     bool client_timeout : 1;
     bool client_partition_hash : 1;
     bool is_backup_request : 1;
-} _thrift_request_meta__isset;
+} _thrift_request_meta_v1__isset;
 
-class thrift_request_meta
+class thrift_request_meta_v1
 {
 public:
-    thrift_request_meta(const thrift_request_meta &);
-    thrift_request_meta(thrift_request_meta &&);
-    thrift_request_meta &operator=(const thrift_request_meta &);
-    thrift_request_meta &operator=(thrift_request_meta &&);
-    thrift_request_meta()
+    thrift_request_meta_v1(const thrift_request_meta_v1 &);
+    thrift_request_meta_v1(thrift_request_meta_v1 &&);
+    thrift_request_meta_v1 &operator=(const thrift_request_meta_v1 &);
+    thrift_request_meta_v1 &operator=(thrift_request_meta_v1 &&);
+    thrift_request_meta_v1()
         : app_id(0),
           partition_index(0),
           client_timeout(0),
@@ -461,14 +461,14 @@ public:
     {
     }
 
-    virtual ~thrift_request_meta() throw();
+    virtual ~thrift_request_meta_v1() throw();
     int32_t app_id;
     int32_t partition_index;
     int32_t client_timeout;
     int64_t client_partition_hash;
     bool is_backup_request;
 
-    _thrift_request_meta__isset __isset;
+    _thrift_request_meta_v1__isset __isset;
 
     void __set_app_id(const int32_t val);
 
@@ -480,7 +480,7 @@ public:
 
     void __set_is_backup_request(const bool val);
 
-    bool operator==(const thrift_request_meta &rhs) const
+    bool operator==(const thrift_request_meta_v1 &rhs) const
     {
         if (__isset.app_id != rhs.__isset.app_id)
             return false;
@@ -505,9 +505,9 @@ public:
             return false;
         return true;
     }
-    bool operator!=(const thrift_request_meta &rhs) const { return !(*this == rhs); }
+    bool operator!=(const thrift_request_meta_v1 &rhs) const { return !(*this == rhs); }
 
-    bool operator<(const thrift_request_meta &) const;
+    bool operator<(const thrift_request_meta_v1 &) const;
 
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
@@ -515,9 +515,9 @@ public:
     virtual void printTo(std::ostream &out) const;
 };
 
-void swap(thrift_request_meta &a, thrift_request_meta &b);
+void swap(thrift_request_meta_v1 &a, thrift_request_meta_v1 &b);
 
-inline std::ostream &operator<<(std::ostream &out, const thrift_request_meta &obj)
+inline std::ostream &operator<<(std::ostream &out, const thrift_request_meta_v1 &obj)
 {
     obj.printTo(out);
     return out;
