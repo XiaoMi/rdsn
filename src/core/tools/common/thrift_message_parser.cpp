@@ -51,7 +51,7 @@ namespace dsn {
 /// For version 1:
 /// <--          fixed-size request header            --> <--         request body         -->
 /// |-"THFT"-|- hdr_version + meta_length + body_length -|- thrift_request_meta_v1 -|- blob -|
-/// |-"THFT"-|-  uint32(0)  +   uint32    +    uint32   -|-      thrift struct     -|-      -|
+/// |-"THFT"-|-  uint32(1)  +   uint32    +    uint32   -|-      thrift struct     -|-      -|
 /// |-                      16bytes                     -|-      thrift struct     -|-      -|
 ///
 /// TODO(wutao1): remove v0 once it has no user
