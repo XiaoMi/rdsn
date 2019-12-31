@@ -56,16 +56,16 @@ namespace dsn {
 ///
 /// TODO(wutao1): remove v0 once it has no user
 
-// "THFT" + uint_32(hdr_version) + uint32(body_length) + uint32(meta_length)
+// "THFT" + uint32(hdr_version) + uint32(body_length) + uint32(meta_length)
 static constexpr size_t HEADER_LENGTH_V1 = 16;
 
-// "THFT" + uint_32(hdr_version)
+// "THFT" + uint32(hdr_version)
 static constexpr size_t THFT_HDR_VERSION_LENGTH = 8;
 
 // "THFT" + uint32(hdr_version) + uint32(hdr_length) + 36bytes(thrift_request_meta_v0)
 static constexpr size_t HEADER_LENGTH_V0 = 48;
 
-void parse_request_meta_v0(data_input &input, /*out*/ thrift_request_meta_v0 &meta)
+static void parse_request_meta_v0(data_input &input, /*out*/ thrift_request_meta_v0 &meta)
 {
     meta.hdr_crc32 = input.read_u32();
     meta.body_length = input.read_u32();
@@ -82,29 +82,27 @@ static int32_t gpid_to_thread_hash(gpid id)
     return id.get_app_id() * 7919 + id.get_partition_index();
 }
 
-message_ex *parse_request_data(const blob &data)
+// Reads the requests's name, seqid, and TMessageType from the binary data,
+// and constructs a `message_ex` object.
+static message_ex *create_message_from_request_blob(const blob &body_data)
 {
-    message_ex *msg = message_ex::create_receive_message_with_standalone_header(data);
+    dsn::message_ex *msg = message_ex::create_receive_message_with_standalone_header(body_data);
+    dsn::message_header *dsn_hdr = msg->header;
 
-    // Reads rpc_name, seqid, and TMessageType
-    rpc_read_stream stream(msg);
-    binary_reader_transport binary_transport(stream);
-    boost::shared_ptr<binary_reader_transport> trans_ptr(&binary_transport,
-                                                         [](binary_reader_transport *) {});
+    dsn::rpc_read_stream stream(msg);
+    ::dsn::binary_reader_transport binary_transport(stream);
+    boost::shared_ptr<::dsn::binary_reader_transport> trans_ptr(
+        &binary_transport, [](::dsn::binary_reader_transport *) {});
     ::apache::thrift::protocol::TBinaryProtocol iprot(trans_ptr);
 
     std::string fname;
     ::apache::thrift::protocol::TMessageType mtype;
     int32_t seqid;
     iprot.readMessageBegin(fname, mtype, seqid);
-
-    message_header *dsn_hdr = msg->header;
-    dsn_hdr->hdr_type = THRIFT_HDR_SIG;
-    dsn_hdr->hdr_length = sizeof(message_header);
-    dsn_hdr->hdr_crc32 = dsn_hdr->body_crc32 = CRC_INVALID;
     dsn_hdr->id = seqid;
     strncpy(dsn_hdr->rpc_name, fname.c_str(), sizeof(dsn_hdr->rpc_name) - 1);
     dsn_hdr->rpc_name[sizeof(dsn_hdr->rpc_name) - 1] = '\0';
+
     if (mtype == ::apache::thrift::protocol::T_CALL ||
         mtype == ::apache::thrift::protocol::T_ONEWAY) {
         dsn_hdr->context.u.is_request = 1;
@@ -116,10 +114,22 @@ message_ex *parse_request_data(const blob &data)
     }
     dsn_hdr->context.u.serialize_format = DSF_THRIFT_BINARY; // always serialize in thrift binary
 
+    // common fields
     msg->hdr_format = NET_HDR_THRIFT;
+    dsn_hdr->hdr_type = THRIFT_HDR_SIG;
+    dsn_hdr->hdr_length = sizeof(message_header);
+    dsn_hdr->hdr_crc32 = msg->header->body_crc32 = CRC_INVALID;
     return msg;
 }
 
+// Parses the request's fixed-size header.
+//
+// For version 0:
+// |-"THFT"-|- hdr_version + hdr_length -|-  thrift_request_meta_v0  -|
+//
+// For version 1:
+// |-"THFT"-|- hdr_version + meta_length + body_length -|
+//
 bool thrift_message_parser::parse_request_header(message_reader *reader, int &read_next)
 {
     blob buf = reader->buffer();
@@ -185,7 +195,7 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
         return nullptr;
     }
 
-    message_ex *msg = parse_request_data(buf);
+    message_ex *msg = create_message_from_request_blob(buf);
     if (msg == nullptr) {
         read_next = -1;
         reset();
@@ -232,7 +242,7 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
         read_next = _body_length - buf.size();
         return nullptr;
     }
-    message_ex *msg = parse_request_data(buf);
+    message_ex *msg = create_message_from_request_blob(buf);
     if (msg == nullptr) {
         read_next = -1;
         reset();
@@ -259,7 +269,7 @@ message_ex *thrift_message_parser::get_message_on_receive(message_reader *reader
                                                           /*out*/ int &read_next)
 {
     read_next = 4096;
-    // Parses request header, -1 means header is not parsed
+    // Parses request header, -1 means header has not been parsed
     if (-1 == _header_version) {
         if (!parse_request_header(reader, read_next)) {
             return nullptr;

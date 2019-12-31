@@ -148,20 +148,23 @@ void replica::on_client_read(dsn::message_ex *request)
         return;
     }
 
-    if (!request->is_backup_request() && status() != partition_status::PS_PRIMARY) {
-        response_client_read(request, ERR_INVALID_STATE);
-        return;
-    }
+    if (!request->is_backup_request()) {
+        // backup request is allowed to read from a stale replica
 
-    // a small window where the state is not the latest yet
-    if (!request->is_backup_request() &&
-        last_committed_decree() < _primary_states.last_prepare_decree_on_new_primary) {
-        derror_replica("last_committed_decree(%" PRId64
-                       ") < last_prepare_decree_on_new_primary(%" PRId64 ")",
-                       last_committed_decree(),
-                       _primary_states.last_prepare_decree_on_new_primary);
-        response_client_read(request, ERR_INVALID_STATE);
-        return;
+        if (status() != partition_status::PS_PRIMARY) {
+            response_client_read(request, ERR_INVALID_STATE);
+            return;
+        }
+
+        // a small window where the state is not the latest yet
+        if (last_committed_decree() < _primary_states.last_prepare_decree_on_new_primary) {
+            derror_replica("last_committed_decree(%" PRId64
+                           ") < last_prepare_decree_on_new_primary(%" PRId64 ")",
+                           last_committed_decree(),
+                           _primary_states.last_prepare_decree_on_new_primary);
+            response_client_read(request, ERR_INVALID_STATE);
+            return;
+        }
     }
 
     uint64_t start_time_ns = dsn_now_ns();
