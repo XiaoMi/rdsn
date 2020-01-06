@@ -2225,6 +2225,11 @@ void replica_stub::close()
         _config_sync_timer_task = nullptr;
     }
 
+    if (_duplication_sync_timer != nullptr) {
+        _duplication_sync_timer->close();
+        _duplication_sync_timer = nullptr;
+    }
+
     if (_config_query_task != nullptr) {
         _config_query_task->cancel(true);
         _config_query_task = nullptr;
@@ -2388,7 +2393,7 @@ void replica_stub::create_child_replica(rpc_address primary_address,
     if (child_replica != nullptr) {
         ddebug_f("create child replica ({}) succeed", child_gpid);
         tasking::enqueue(LPC_PARTITION_SPLIT,
-                         &_tracker,
+                         child_replica->tracker(),
                          std::bind(&replica::child_init_replica,
                                    child_replica,
                                    parent_gpid,

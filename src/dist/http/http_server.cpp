@@ -10,6 +10,8 @@
 #include "http_message_parser.h"
 #include "root_http_service.h"
 #include "pprof_http_service.h"
+#include "perf_counter_http_service.h"
+#include "uri_decoder.h"
 
 namespace dsn {
 
@@ -32,18 +34,24 @@ namespace dsn {
     }
 }
 
-http_server::http_server() : serverlet<http_server>("http_server")
+http_server::http_server(bool start /*default=true*/) : serverlet<http_server>("http_server")
 {
+    if (!start) {
+        return;
+    }
+
     register_rpc_handler(RPC_HTTP_SERVICE, "http_service", &http_server::serve);
 
     tools::register_message_header_parser<http_message_parser>(NET_HDR_HTTP, {"GET ", "POST"});
 
     // add builtin services
-    add_service(new root_http_service());
+    add_service(new root_http_service(this));
 
 #ifdef DSN_ENABLE_GPERF
     add_service(new pprof_http_service());
 #endif // DSN_ENABLE_GPERF
+
+    add_service(new perf_counter_http_service());
 }
 
 void http_server::serve(message_ex *msg)
@@ -95,6 +103,13 @@ void http_server::add_service(http_service *service)
         unresolved_path.resize(data_length + 1);
         strncpy(&unresolved_path[0], ret.full_url.data() + u.field_data[UF_PATH].off, data_length);
         unresolved_path[data_length] = '\0';
+
+        // decode resolved path
+        auto decoded_unresolved_path = uri::decode(unresolved_path);
+        if (!decoded_unresolved_path.is_ok()) {
+            return decoded_unresolved_path.get_error();
+        }
+        unresolved_path = decoded_unresolved_path.get_value();
     }
 
     std::string unresolved_query;
@@ -103,6 +118,13 @@ void http_server::add_service(http_service *service)
         unresolved_query.resize(data_length);
         strncpy(
             &unresolved_query[0], ret.full_url.data() + u.field_data[UF_QUERY].off, data_length);
+
+        // decode resolved query
+        auto decoded_unresolved_query = uri::decode(unresolved_query);
+        if (!decoded_unresolved_query.is_ok()) {
+            return decoded_unresolved_query.get_error();
+        }
+        unresolved_query = decoded_unresolved_query.get_value();
     }
 
     std::vector<std::string> args;
