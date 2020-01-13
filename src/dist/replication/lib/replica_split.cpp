@@ -330,13 +330,15 @@ error_code replica::child_apply_private_logs(std::vector<std::string> plog_files
                                              uint64_t total_file_size,
                                              decree last_committed_decree) // on child partition
 {
-    FAIL_POINT_INJECT_F("replica_child_apply_private_logs",
-                        [](dsn::string_view) { return ERR_OK; });
-    FAIL_POINT_INJECT_F("replica_child_apply_private_logs_error",
-                        [](dsn::string_view) { return ERR_FILE_OPERATION_FAILED; });
+    FAIL_POINT_INJECT_F("replica_child_apply_private_logs", [](dsn::string_view arg) {
+        if (arg == "error") {
+            return ERR_FILE_OPERATION_FAILED;
+        }
+        return ERR_OK;
+    });
 
     if (status() != partition_status::PS_PARTITION_SPLIT) {
-        dwarn_replica("wrong status=", enum_to_string(status()));
+        dwarn_replica("wrong status={}", enum_to_string(status()));
         return ERR_INVALID_STATE;
     }
 
@@ -346,61 +348,63 @@ error_code replica::child_apply_private_logs(std::vector<std::string> plog_files
     prepare_list plist(this,
                        _app->last_committed_decree(),
                        _options->max_mutation_count_in_prepare_list,
-                       [this, &ec](mutation_ptr &mu) {
+                       [this](mutation_ptr &mu) {
                            if (mu->data.header.decree == _app->last_committed_decree() + 1) {
                                _app->apply_mutation(mu);
                            }
                        });
 
     // replay private log
-    ec = mutation_log::replay(
-        plog_files,
-        [this, &plist](int log_length, mutation_ptr &mu) {
-            decree d = mu->data.header.decree;
-            if (d <= plist.last_committed_decree()) {
-                return false;
-            }
-            mutation_ptr origin_mu = plist.get_mutation_by_decree(d);
-            if (origin_mu != nullptr && origin_mu->data.header.ballot >= mu->data.header.ballot) {
-                dwarn_replica("mutation({}) existed, origin mutation={}, ignore obsolete mutation",
-                              mu->name(),
-                              origin_mu->data.header.ballot);
-                return false;
-            }
-            plist.prepare(mu, partition_status::PS_SECONDARY);
-            return true;
-        },
-        offset);
-
-    // apply in-memory mutations if replay private logs succeed
-    if (ec == ERR_OK) {
-        ddebug_replica(
-            "replay private_log files succeed, file count={}, app last_committed_decree={}",
+    ec = mutation_log::replay(plog_files,
+                              [this, &plist](int log_length, mutation_ptr &mu) {
+                                  decree d = mu->data.header.decree;
+                                  if (d <= plist.last_committed_decree()) {
+                                      return false;
+                                  }
+                                  mutation_ptr origin_mu = plist.get_mutation_by_decree(d);
+                                  if (origin_mu != nullptr &&
+                                      origin_mu->data.header.ballot >= mu->data.header.ballot) {
+                                      return false;
+                                  }
+                                  plist.prepare(mu, partition_status::PS_SECONDARY);
+                                  return true;
+                              },
+                              offset);
+    if (ec != ERR_OK) {
+        dwarn_replica(
+            "replay private_log files failed, file count={}, app last_committed_decree={}",
             plog_files.size(),
             _app->last_committed_decree());
-
-        int count = 0;
-        for (mutation_ptr &mu : mutation_list) {
-            decree d = mu->data.header.decree;
-            if (d <= plist.last_committed_decree()) {
-                continue;
-            }
-            mutation_ptr origin_mu = plist.get_mutation_by_decree(d);
-            if (origin_mu != nullptr && origin_mu->data.header.ballot >= mu->data.header.ballot) {
-                continue;
-            }
-            if (!mu->is_logged()) {
-                mu->set_logged();
-            }
-            plist.prepare(mu, partition_status::PS_SECONDARY);
-            ++count;
-        }
-        plist.commit(last_committed_decree, COMMIT_TO_DECREE_HARD);
-        ddebug_replica(
-            "apply in-memory mutations succeed, mutation count={}, app last_committed_decree={}",
-            count,
-            _app->last_committed_decree());
+        return ec;
     }
+
+    ddebug_replica("replay private_log files succeed, file count={}, app last_committed_decree={}",
+                   plog_files.size(),
+                   _app->last_committed_decree());
+
+    // apply in-memory mutations if replay private logs succeed
+    int count = 0;
+    for (mutation_ptr &mu : mutation_list) {
+        decree d = mu->data.header.decree;
+        if (d <= plist.last_committed_decree()) {
+            continue;
+        }
+        mutation_ptr origin_mu = plist.get_mutation_by_decree(d);
+        if (origin_mu != nullptr && origin_mu->data.header.ballot >= mu->data.header.ballot) {
+            continue;
+        }
+        if (!mu->is_logged()) {
+            mu->set_logged();
+        }
+        plist.prepare(mu, partition_status::PS_SECONDARY);
+        ++count;
+    }
+    plist.commit(last_committed_decree, COMMIT_TO_DECREE_HARD);
+    ddebug_replica(
+        "apply in-memory mutations succeed, mutation count={}, app last_committed_decree={}",
+        count,
+        _app->last_committed_decree());
+
     return ec;
 }
 
@@ -410,7 +414,7 @@ void replica::child_catch_up_states() // on child partition
     FAIL_POINT_INJECT_F("replica_child_catch_up_states", [](dsn::string_view) {});
 
     if (status() != partition_status::PS_PARTITION_SPLIT) {
-        derror_replica("wrong status = {}", status());
+        dwarn_replica("wrong status, status is {}", enum_to_string(status()));
         return;
     }
 
@@ -446,7 +450,7 @@ void replica::child_catch_up_states() // on child partition
                 LPC_CATCHUP_WITH_PRIVATE_LOGS,
                 tracker(),
                 [this]() {
-                    this->catch_up_with_private_logs(partition_status::PS_PARTITION_SPLIT);
+                    catch_up_with_private_logs(partition_status::PS_PARTITION_SPLIT);
                     _split_states.async_learn_task = nullptr;
                 },
                 get_gpid().thread_hash());

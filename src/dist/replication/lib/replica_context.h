@@ -528,8 +528,10 @@ public:
 
 public:
     gpid parent_gpid;
-    bool is_prepare_list_copied;
-    bool is_caught_up;
+    // whether child has copied parent prepare list
+    bool is_prepare_list_copied{false};
+    // whether child has catched up with parent during async-learn
+    bool is_caught_up{false};
 
     // child replica async learn parent states
     dsn::task_ptr async_learn_task;

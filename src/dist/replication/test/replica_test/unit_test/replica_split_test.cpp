@@ -106,14 +106,6 @@ public:
         }
     }
 
-    void mock_app_last_committed_decree(mock_replica_ptr rep, decree d)
-    {
-        learn_state lstate;
-        lstate.to_decree_included = d;
-        lstate.files.push_back("file_name");
-        rep->_app->apply_checkpoint(replication_app_base::chkpt_apply_mode::learn, lstate);
-    }
-
     void
     mock_child_async_learn_states(mock_replica_ptr plist_rep, bool add_to_plog, decree min_decree)
     {
@@ -184,7 +176,7 @@ public:
     void test_child_catch_up_states(decree local_decree, decree goal_decree, decree min_decree)
     {
         mock_child_async_learn_states(_child, true, 0);
-        mock_app_last_committed_decree(_child, local_decree);
+        _child->set_app_last_committed_decree(local_decree);
         if (local_decree < goal_decree) {
             // set prepare_list's start_decree = {min_decree}
             _child->prepare_list_truncate(min_decree);
@@ -328,7 +320,7 @@ TEST_F(replica_split_test, learn_states_with_replay_private_log_error)
     mock_child_split_context(_parent_pid, true, false);
 
     fail::setup();
-    fail::cfg("replica_child_apply_private_logs_error", "return()");
+    fail::cfg("replica_child_apply_private_logs", "return(error)");
     fail::cfg("replica_child_catch_up_states", "return()");
     test_child_learn_states();
     fail::teardown();
@@ -393,9 +385,10 @@ TEST_F(replica_split_test, catch_up_succeed_with_learn_private_logs)
     mock_child_split_context(_parent_pid, true, false);
 
     fail::setup();
-    fail::cfg("replica_chkpt_catch_up_with_private_logs", "return()");
+    fail::cfg("replica_chkpt_catch_up_with_private_logs", "return(PS_PARTITION_SPLIT)");
     test_child_catch_up_states(_decree, _max_count - 1, _max_count - 1);
     fail::teardown();
+    ASSERT_EQ(_child->get_app_last_committed_decree(), _max_count - 1);
 
     cleanup_prepare_list(_child);
     cleanup_child_split_context();
