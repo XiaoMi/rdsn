@@ -34,6 +34,7 @@ namespace replication {
 
 class replica;
 class replica_stub;
+class replication_app_base;
 
 extern replica *create_test_replica(
     replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool restore_if_necessary);
@@ -43,6 +44,8 @@ extern replica_stub *create_test_replica_stub();
 extern void destroy_replica(replica *r);
 
 extern void destroy_replica_stub(replica_stub *rs);
+
+extern void replica_app_set_duplicating(replica *r, replication_app_base *app, bool duplicating);
 
 } // namespace replication
 } // namespace dsn

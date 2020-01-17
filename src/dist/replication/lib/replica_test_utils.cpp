@@ -25,6 +25,7 @@
  */
 
 #include <dsn/dist/replication/replica_test_utils.h>
+#include <dsn/dist/replication/replication_app_base.h>
 
 #include "dist/replication/lib/replica.h"
 #include "dist/replication/lib/replica_stub.h"
@@ -43,6 +44,11 @@ public:
         : replica(stub, gpid, app, dir, restore_if_necessary)
     {
     }
+
+    void app_set_duplicating(replication_app_base *app, bool duplicating)
+    {
+        app->_info.init_duplicating = duplicating;
+    }
 };
 
 replica *create_test_replica(
@@ -56,6 +62,11 @@ replica_stub *create_test_replica_stub() { return new replica_stub(); }
 void destroy_replica(replica *r) { delete r; }
 
 void destroy_replica_stub(replica_stub *rs) { delete rs; }
+
+void replica_app_set_duplicating(replica *r, replication_app_base *app, bool duplicating)
+{
+    dynamic_cast<mock_replica *>(r)->app_set_duplicating(app, duplicating);
+}
 
 } // namespace replication
 } // namespace dsn
