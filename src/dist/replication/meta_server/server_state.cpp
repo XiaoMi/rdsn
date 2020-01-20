@@ -46,8 +46,8 @@
 
 #include "server_state.h"
 #include "server_load_balancer.h"
-
 #include "dump_file.h"
+#include "app_env_validator.h"
 
 using namespace dsn;
 
@@ -57,61 +57,6 @@ namespace replication {
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
 
-bool check_slow_query(const std::string &env_value, std::string &hint_message)
-{
-    uint64_t threshold = 0;
-    if (!dsn::buf2uint64(env_value, threshold) ||
-        threshold < replica_envs::MIN_SLOW_QUERY_THRESHOLD_MS) {
-        hint_message = fmt::format("Slow query threshold must be >= {}ms",
-                                   replica_envs::MIN_SLOW_QUERY_THRESHOLD_MS);
-        return false;
-    }
-    return true;
-}
-
-bool check_write_throttling(const std::string &env_value, std::string &hint_message)
-{
-    std::vector<std::string> sargs;
-    utils::split_args(env_value.c_str(), sargs, ',');
-    if (sargs.empty()) {
-        hint_message = "The value shouldn't be empty";
-        return false;
-    }
-
-    // example for arg: 100K*delay*100 / 100M*reject*100
-    for (std::string &sarg : sargs) {
-        std::vector<std::string> sub_sargs;
-        utils::split_args(sarg.c_str(), sub_sargs, '*');
-        if (sub_sargs.size() != 3) {
-            hint_message = fmt::format("The field count of {} should be 3", sarg);
-            return false;
-        }
-
-        int64_t units = 0;
-        if (!sub_sargs[0].empty() &&
-            ('M' == *sub_sargs[0].rbegin() || 'K' == *sub_sargs[0].rbegin())) {
-            sub_sargs[0].pop_back();
-        }
-        if (!buf2int64(sub_sargs[0], units) || units < 0) {
-            hint_message = fmt::format("{} should be non-negative int", sub_sargs[0]);
-            return false;
-        }
-
-        if (sub_sargs[1] != "delay" && sub_sargs[1] != "reject") {
-            hint_message = fmt::format("{} should be \"delay\" or \"reject\"", sub_sargs[1]);
-            return false;
-        }
-
-        int64_t ms = 0;
-        if (!buf2int64(sub_sargs[2], ms) || ms < 0) {
-            hint_message = fmt::format("{} should be non-negative int", sub_sargs[2]);
-            return false;
-        };
-    }
-
-    return true;
-}
-
 server_state::server_state()
     : _meta_svc(nullptr),
       _add_secondary_enable_flow_control(false),
@@ -120,7 +65,6 @@ server_state::server_state()
       _ctrl_add_secondary_enable_flow_control(nullptr),
       _ctrl_add_secondary_max_count_for_one_node(nullptr)
 {
-    init_env_check_functions();
 }
 
 server_state::~server_state()
@@ -140,52 +84,6 @@ server_state::~server_state()
             _ctrl_add_secondary_max_count_for_one_node);
         _ctrl_add_secondary_max_count_for_one_node = nullptr;
     }
-}
-
-void server_state::init_env_check_functions()
-{
-    env_check_functions[replica_envs::SLOW_QUERY_THRESHOLD] =
-        std::bind(&check_slow_query, std::placeholders::_1, std::placeholders::_2);
-    env_check_functions[replica_envs::WRITE_QPS_THROTTLING] =
-        std::bind(&check_write_throttling, std::placeholders::_1, std::placeholders::_2);
-    env_check_functions[replica_envs::WRITE_SIZE_THROTTLING] =
-        std::bind(&check_write_throttling, std::placeholders::_1, std::placeholders::_2);
-    // TODO: not implemented
-    env_check_functions[replica_envs::BUSINESS_INFO] = nullptr;
-    env_check_functions[replica_envs::DENY_CLIENT_WRITE] = nullptr;
-    env_check_functions[replica_envs::TABLE_LEVEL_DEFAULT_TTL] = nullptr;
-    env_check_functions[replica_envs::ROCKSDB_USAGE_SCENARIO] = nullptr;
-    env_check_functions[replica_envs::ROCKSDB_CHECKPOINT_RESERVE_MIN_COUNT] = nullptr;
-    env_check_functions[replica_envs::ROCKSDB_CHECKPOINT_RESERVE_TIME_SECONDS] = nullptr;
-    env_check_functions[replica_envs::MANUAL_COMPACT_DISABLED] = nullptr;
-    env_check_functions[replica_envs::MANUAL_COMPACT_MAX_CONCURRENT_RUNNING_COUNT] = nullptr;
-    env_check_functions[replica_envs::MANUAL_COMPACT_ONCE_TRIGGER_TIME] = nullptr;
-    env_check_functions[replica_envs::MANUAL_COMPACT_ONCE_TARGET_LEVEL] = nullptr;
-    env_check_functions[replica_envs::MANUAL_COMPACT_ONCE_BOTTOMMOST_LEVEL_COMPACTION] = nullptr;
-    env_check_functions[replica_envs::MANUAL_COMPACT_PERIODIC_TRIGGER_TIME] = nullptr;
-    env_check_functions[replica_envs::MANUAL_COMPACT_PERIODIC_TARGET_LEVEL] = nullptr;
-    env_check_functions[replica_envs::MANUAL_COMPACT_PERIODIC_BOTTOMMOST_LEVEL_COMPACTION] =
-        nullptr;
-}
-
-bool server_state::check_app_envs(const std::string &key,
-                                  const std::string &value,
-                                  std::string &hint_message)
-{
-
-    auto func_iter = env_check_functions.find(key);
-    if (func_iter != env_check_functions.end()) {
-        // check function == nullptr means no check
-        if (nullptr != func_iter->second && !func_iter->second(value, hint_message)) {
-            dwarn("{}={} is invalid.", key.c_str(), value.c_str());
-            return false;
-        }
-
-        return true;
-    }
-
-    hint_message = fmt::format("The env of {} is not supported", key);
-    return false;
 }
 
 void server_state::register_cli_commands()
@@ -2728,7 +2626,8 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
         if (i != 0)
             os << ", ";
 
-        if (!check_app_envs(keys[i], values[i], env_rpc.response().hint_message)) {
+        if (!app_env_validator::instance().validate_app_env(
+                keys[i], values[i], env_rpc.response().hint_message)) {
             env_rpc.response().err = ERR_INVALID_PARAMETERS;
             return;
         }

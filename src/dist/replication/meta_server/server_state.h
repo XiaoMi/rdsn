@@ -297,10 +297,6 @@ private:
     void process_one_partition(std::shared_ptr<app_state> &app);
     void transition_staging_state(std::shared_ptr<app_state> &app);
 
-    void init_env_check_functions();
-    bool
-    check_app_envs(const std::string &key, const std::string &value, std::string &hint_message);
-
 private:
     friend class replication_checker;
     friend class test::test_checker;
