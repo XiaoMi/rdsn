@@ -6,7 +6,8 @@
 
 #include "meta_service_test_app.h"
 
-using namespace ::dsn::replication;
+namespace dsn {
+namespace replication {
 
 static const std::vector<std::string> keys = {"manual_compact.once.trigger_time",
                                               "manual_compact.once.target_level",
@@ -175,3 +176,5 @@ void meta_service_test_app::app_envs_basic_test()
         }
     }
 }
+} // namespace replication
+} // namespace dsn

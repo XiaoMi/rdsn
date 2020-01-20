@@ -36,6 +36,9 @@
 
 #include <gtest/gtest.h>
 
+namespace dsn {
+namespace replication {
+
 class spin_counter
 {
 private:
@@ -109,11 +112,6 @@ public:
     void cannot_run_balancer_test();
     void construct_apps_test();
 
-    void simple_lb_cure_test();
-    void simple_lb_balanced_cure();
-    void simple_lb_from_proposal_test();
-    void simple_lb_collect_replica();
-    void simple_lb_construct_replica();
     void json_compacity();
 
     void policy_context_test();
@@ -179,9 +177,19 @@ fake_rpc_call(dsn::task_code rpc_code,
     fake_rpc_call(                                                                                 \
         RPC_CM_RECALL_APP, LPC_META_STATE_NORMAL, state, &server_state::recall_app, request_data)
 
+#define fake_create_policy(state, request_data)                                                    \
+    fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,                                                        \
+                  LPC_DEFAULT_CALLBACK,                                                            \
+                  state,                                                                           \
+                  &backup_service::add_backup_policy,                                              \
+                  request_data)
+
 #define fake_wait_rpc(context, response_data)                                                      \
     do {                                                                                           \
         context->e.wait();                                                                         \
         ::dsn::unmarshall(context->response, response_data);                                       \
         context->response->release_ref();                                                          \
     } while (0)
+
+} // namespace replication
+} // namespace dsn
