@@ -213,7 +213,6 @@ public:
         _timer.reset(new boost::asio::deadline_timer(tools::shared_io_service::instance().ios));
         _timer->expires_from_now(
             boost::posix_time::seconds(rand() % _counter_computation_interval_seconds + 1));
-        this->add_ref();
         _timer->async_wait(std::bind(
             &perf_counter_number_percentile_atomic::on_timer, this, _timer, std::placeholders::_1));
     }
@@ -415,23 +414,18 @@ private:
         // as the callback is not in tls context, so the log system calls like ddebug, dassert will
         // cause a lock
         if (!ec) {
-            // only when others also hold the reference
-            if (this->get_count() > 1) {
-                boost::shared_ptr<compute_context> ctx(new compute_context());
-                calc(ctx);
+            boost::shared_ptr<compute_context> ctx(new compute_context());
+            calc(ctx);
 
-                timer->expires_from_now(
-                    boost::posix_time::seconds(_counter_computation_interval_seconds));
-                this->add_ref();
-                timer->async_wait(std::bind(&perf_counter_number_percentile_atomic::on_timer,
-                                            this,
-                                            timer,
-                                            std::placeholders::_1));
-            }
+            timer->expires_from_now(
+                boost::posix_time::seconds(_counter_computation_interval_seconds));
+            timer->async_wait(std::bind(&perf_counter_number_percentile_atomic::on_timer,
+                                        this,
+                                        timer,
+                                        std::placeholders::_1));
         } else if (boost::system::errc::operation_canceled != ec) {
             dassert(false, "on_timer error!!!");
         }
-        this->release_ref();
     }
 
     std::shared_ptr<boost::asio::deadline_timer> _timer;
