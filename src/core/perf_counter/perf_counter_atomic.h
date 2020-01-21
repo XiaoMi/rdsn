@@ -413,6 +413,8 @@ private:
     {
         // as the callback is not in tls context, so the log system calls like ddebug, dassert will
         // cause a lock
+        // !ec = true (ec.value() = 0) means the timer expires successfully, rather than being
+        // canceled or other abnormal cases.
         if (!ec) {
             boost::shared_ptr<compute_context> ctx(new compute_context());
             calc(ctx);
