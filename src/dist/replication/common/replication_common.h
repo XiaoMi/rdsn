@@ -149,29 +149,6 @@ public:
     static const std::string SKIP_BAD_PARTITION;
 };
 
-class replica_envs
-{
-public:
-    static const std::string DENY_CLIENT_WRITE;
-    static const std::string WRITE_QPS_THROTTLING;
-    static const std::string WRITE_SIZE_THROTTLING;
-    static const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS;
-    static const std::string SLOW_QUERY_THRESHOLD;
-    static const std::string TABLE_LEVEL_DEFAULT_TTL;
-    static const std::string ROCKSDB_USAGE_SCENARIO;
-    static const std::string ROCKSDB_CHECKPOINT_RESERVE_MIN_COUNT;
-    static const std::string ROCKSDB_CHECKPOINT_RESERVE_TIME_SECONDS;
-    static const std::string MANUAL_COMPACT_DISABLED;
-    static const std::string MANUAL_COMPACT_MAX_CONCURRENT_RUNNING_COUNT;
-    static const std::string MANUAL_COMPACT_ONCE_TRIGGER_TIME;
-    static const std::string MANUAL_COMPACT_ONCE_TARGET_LEVEL;
-    static const std::string MANUAL_COMPACT_ONCE_BOTTOMMOST_LEVEL_COMPACTION;
-    static const std::string MANUAL_COMPACT_PERIODIC_TRIGGER_TIME;
-    static const std::string MANUAL_COMPACT_PERIODIC_TARGET_LEVEL;
-    static const std::string MANUAL_COMPACT_PERIODIC_BOTTOMMOST_LEVEL_COMPACTION;
-    static const std::string BUSINESS_INFO;
-};
-
 namespace cold_backup {
 //
 //  Attention: when compose the path on block service, we use appname_appid, because appname_appid

@@ -30,6 +30,7 @@
 #include <fmt/format.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/env/replica_envs.h>
 #include "app_env_validator.h"
 
 namespace dsn {
@@ -59,7 +60,7 @@ bool check_write_throttling(const std::string &env_value, std::string &hint_mess
     // example for sarg: 100K*delay*100 / 100M*reject*100
     for (std::string &sarg : sargs) {
         std::vector<std::string> sub_sargs;
-        utils::split_args(sarg.c_str(), sub_sargs, '*');
+        utils::split_args(sarg.c_str(), sub_sargs, '*', true);
         if (sub_sargs.size() != 3) {
             hint_message = fmt::format("The field count of {} should be 3", sarg);
             return false;

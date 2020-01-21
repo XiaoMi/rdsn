@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <dsn/env/replica_envs.h>
 #include "meta_test_base.h"
 
 namespace dsn {
@@ -86,6 +87,16 @@ TEST_F(meta_app_envs_test, update_app_envs_test)
          "20K*delay*-100",
          ERR_INVALID_PARAMETERS,
          "-100 should be non-negative int",
+         "20M*delay*100"},
+        {replica_envs::WRITE_QPS_THROTTLING,
+         "2K**delay*100",
+         ERR_INVALID_PARAMETERS,
+         "The field count of 2K**delay*100 should be 3",
+         "20M*delay*100"},
+        {replica_envs::WRITE_QPS_THROTTLING,
+         "2K*delay**100",
+         ERR_INVALID_PARAMETERS,
+         "The field count of 2K*delay**100 should be 3",
          "20M*delay*100"},
         {replica_envs::WRITE_QPS_THROTTLING, "20M*reject*100", ERR_OK, "", "20M*reject*100"},
         {replica_envs::WRITE_SIZE_THROTTLING, "300*delay*100", ERR_OK, "", "300*delay*100"},
