@@ -43,7 +43,7 @@ private:
     void register_all_validators();
 
     using validator_func = std::function<bool(const std::string &, std::string &)>;
-    std::map<const std::string, validator_func> validator_funcs;
+    std::map<const std::string, validator_func> _validator_funcs;
 };
 
 } // namespace replication
