@@ -9,8 +9,9 @@
 #include <functional>
 
 // Example:
-//    DSN_DEFINE_string("core", filename, "my_file.txt", "The file to read")
+//    DSN_DEFINE_string("core", filename, "my_file.txt", "The file to read");
 //    DSN_DEFINE_validator(filename, [](const char *fname){ return is_file(fname); });
+//    auto fptr = file::open(FLAGS_filename, O_RDONLY | O_BINARY, 0);
 
 #define DSN_DECLARE_VARIABLE(type, name) extern type FLAGS_##name
 
@@ -41,9 +42,10 @@
 #define DSN_DEFINE_string(section, name, val, desc)                                                \
     DSN_DEFINE_VARIABLE(const char *, section, name, val, desc)
 
-// Convenience macro for the registration of a flag validator
+// Convenience macro for the registration of a flag validator.
 // `validator` must be a std::function<bool(FLAG_TYPE)> and receives the flag value as argument,
 // returns true if validation passed.
+// The program corrupts if the validation failed.
 #define DSN_DEFINE_validator(name, validator)                                                      \
     static auto FLAGS_VALIDATOR_FN_##name = validator;                                             \
     static const dsn::flag_validator FLAGS_VALIDATOR_##name(#name, []() {                          \
