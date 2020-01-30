@@ -86,8 +86,9 @@ public:
         auto it = _flags.find(name);
         dassert(it != _flags.end(), "flag \"%s\" does not exist", name);
         flag_data &flag = it->second;
-        dassert(!flag.validator(), "\"%s\" validator already registered", name);
-        flag.set_validator(validator);
+        if (!flag.validator()) {
+            flag.set_validator(validator);
+        }
     }
 
     void load_from_config()
