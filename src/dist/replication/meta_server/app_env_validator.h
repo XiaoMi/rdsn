@@ -31,7 +31,7 @@
 namespace dsn {
 namespace replication {
 
-class app_env_validator : public ::dsn::utils::singleton<app_env_validator>
+class app_env_validator : public utils::singleton<app_env_validator>
 {
 public:
     app_env_validator() { register_all_validators(); }

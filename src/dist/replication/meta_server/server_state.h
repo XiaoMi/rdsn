@@ -339,9 +339,6 @@ private:
     perf_counter_wrapper _recent_update_config_count;
     perf_counter_wrapper _recent_partition_change_unwritable_count;
     perf_counter_wrapper _recent_partition_change_writable_count;
-
-    std::map<std::string, std::function<bool(const std::string &, std::string &)>>
-        env_check_functions;
 };
 
 } // namespace replication

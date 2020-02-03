@@ -1,5 +1,4 @@
 /*
-
  * The MIT License (MIT)
  *
  * Copyright (c) 2015 Microsoft Corporation
@@ -25,7 +24,6 @@
  * THE SOFTWARE.
  */
 
-#include <regex>
 #include <dist/replication/common/replication_common.h>
 #include <fmt/format.h>
 #include <dsn/utility/string_conv.h>
@@ -106,7 +104,7 @@ bool app_env_validator::validate_app_env(const std::string &env_name,
         return true;
     }
 
-    hint_message = fmt::format("The env of {} is not supported", env_name);
+    hint_message = fmt::format("app_env \"{}\" is not supported", env_name);
     return false;
 }
 
