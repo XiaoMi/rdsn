@@ -142,7 +142,7 @@ TEST_F(meta_app_envs_test, update_app_envs_test)
         {"not_exist_env",
          "500",
          ERR_INVALID_PARAMETERS,
-         "The env of \"not_exist_env\" is not supported",
+         "app_env \"not_exist_env\" is not supported",
          ""}};
 
     auto app = find_app(app_name);
