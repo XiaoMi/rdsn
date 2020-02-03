@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include <dsn/env/replica_envs.h>
+#include <dsn/dist/replication/replica_envs.h>
 #include "meta_test_base.h"
 
 namespace dsn {

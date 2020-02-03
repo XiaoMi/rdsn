@@ -9,7 +9,7 @@
 
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/env/replica_envs.h>
+#include <dsn/dist/replication/replica_envs.h>
 
 namespace dsn {
 namespace replication {

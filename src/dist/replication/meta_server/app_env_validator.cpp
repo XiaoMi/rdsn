@@ -28,7 +28,7 @@
 #include <fmt/format.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/env/replica_envs.h>
+#include <dsn/dist/replication/replica_envs.h>
 #include "app_env_validator.h"
 
 namespace dsn {

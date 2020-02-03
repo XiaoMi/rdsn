@@ -27,7 +27,7 @@
 #include "replication_common.h"
 #include <dsn/utility/filesystem.h>
 #include <fstream>
-#include <dsn/env/replica_envs.h>
+#include <dsn/dist/replication/replica_envs.h>
 
 namespace dsn {
 namespace replication {
