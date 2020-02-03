@@ -31,6 +31,10 @@
 namespace dsn {
 namespace replication {
 
+bool validate_app_env(const std::string &env_name,
+                      const std::string &env_value,
+                      std::string &hint_message);
+
 class app_env_validator : public utils::singleton<app_env_validator>
 {
 public:

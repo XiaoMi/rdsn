@@ -2626,8 +2626,7 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
         if (i != 0)
             os << ", ";
 
-        if (!app_env_validator::instance().validate_app_env(
-                keys[i], values[i], env_rpc.response().hint_message)) {
+        if (!validate_app_env(keys[i], values[i], env_rpc.response().hint_message)) {
             env_rpc.response().err = ERR_INVALID_PARAMETERS;
             return;
         }

@@ -34,6 +34,13 @@
 namespace dsn {
 namespace replication {
 
+bool validate_app_env(const std::string &env_name,
+                      const std::string &env_value,
+                      std::string &hint_message)
+{
+    return app_env_validator::instance().validate_app_env(env_name, env_value, hint_message);
+}
+
 bool check_slow_query(const std::string &env_value, std::string &hint_message)
 {
     uint64_t threshold = 0;
