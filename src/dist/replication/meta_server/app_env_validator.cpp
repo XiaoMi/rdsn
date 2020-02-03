@@ -85,13 +85,13 @@ bool check_write_throttling(const std::string &env_value, std::string &hint_mess
         }
 
         // check the second part, which is must be "delay" or "reject"
-        if (sargs1[1] == "delay") {
+        if (sub_sargs[1] == "delay") {
             if (delay_parsed) {
                 hint_message = "duplicate delay config";
                 return false;
             }
             delay_parsed = true;
-        } else if (sargs1[1] == "reject") {
+        } else if (sub_sargs[1] == "reject") {
             if (reject_parsed) {
                 hint_message = "duplicate reject config";
                 return false;
