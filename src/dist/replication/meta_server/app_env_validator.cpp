@@ -63,6 +63,8 @@ bool check_write_throttling(const std::string &env_value, std::string &hint_mess
     }
 
     // example for sarg: 100K*delay*100 / 100M*reject*100
+    bool reject_parsed = false;
+    bool delay_parsed = false;
     for (std::string &sarg : sargs) {
         std::vector<std::string> sub_sargs;
         utils::split_args(sarg.c_str(), sub_sargs, '*', true);
@@ -71,6 +73,7 @@ bool check_write_throttling(const std::string &env_value, std::string &hint_mess
             return false;
         }
 
+        // check the first part, which is must be a positive number followed with 'K' or 'M'
         int64_t units = 0;
         if (!sub_sargs[0].empty() &&
             ('M' == *sub_sargs[0].rbegin() || 'K' == *sub_sargs[0].rbegin())) {
@@ -81,11 +84,25 @@ bool check_write_throttling(const std::string &env_value, std::string &hint_mess
             return false;
         }
 
-        if (sub_sargs[1] != "delay" && sub_sargs[1] != "reject") {
+        // check the second part, which is must be "delay" or "reject"
+        if (sargs1[1] == "delay") {
+            if (delay_parsed) {
+                hint_message = "duplicate delay config";
+                return false;
+            }
+            delay_parsed = true;
+        } else if (sargs1[1] == "reject") {
+            if (reject_parsed) {
+                hint_message = "duplicate reject config";
+                return false;
+            }
+            reject_parsed = true;
+        } else {
             hint_message = fmt::format("{} should be \"delay\" or \"reject\"", sub_sargs[1]);
             return false;
         }
 
+        // check the third part, which is must be a positive number or 0
         int64_t ms = 0;
         if (!buf2int64(sub_sargs[2], ms) || ms < 0) {
             hint_message = fmt::format("{} should be non-negative int", sub_sargs[2]);
