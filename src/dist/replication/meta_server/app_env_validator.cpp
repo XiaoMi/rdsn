@@ -103,8 +103,8 @@ bool check_write_throttling(const std::string &env_value, std::string &hint_mess
         }
 
         // check the third part, which is must be a positive number or 0
-        int64_t ms = 0;
-        if (!buf2int64(sub_sargs[2], ms) || ms < 0) {
+        int64_t delay_ms = 0;
+        if (!buf2int64(sub_sargs[2], delay_ms) || delay_ms < 0) {
             hint_message = fmt::format("{} should be non-negative int", sub_sargs[2]);
             return false;
         }
