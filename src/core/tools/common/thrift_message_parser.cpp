@@ -295,7 +295,7 @@ void thrift_message_parser::reset()
     _header_version = -1;
     _meta_length = 0;
     _body_length = 0;
-    _meta_v0.reset();
+    _meta_v0->clear();
     _meta_v1.reset(new thrift_request_meta_v1);
 }
 

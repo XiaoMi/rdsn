@@ -37,7 +37,7 @@ class thrift_request_meta_v1;
 
 struct thrift_request_meta_v0
 {
-    void reset()
+    void clear()
     {
         hdr_crc32 = 0;
         body_length = 0;
