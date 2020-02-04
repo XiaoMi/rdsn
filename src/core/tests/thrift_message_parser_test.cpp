@@ -377,8 +377,10 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_valid_v0_data)
 {
     message_reader reader(64);
 
-    test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_CALL, true);
-    test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_ONEWAY, true);
+    ASSERT_NO_FATAL_FAILURE(
+        test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_CALL, true));
+    ASSERT_NO_FATAL_FAILURE(
+        test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_ONEWAY, true));
 }
 
 TEST_F(thrift_message_parser_test, get_message_on_receive_v0_not_request)
@@ -386,9 +388,11 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_v0_not_request)
     message_reader reader(64);
 
     // ensure server won't corrupt when it receives a non-request.
-    test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_REPLY, false);
+    ASSERT_NO_FATAL_FAILURE(
+        test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_REPLY, false));
     reader.truncate_read();
-    test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::TMessageType(65), false);
+    ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v0_data(
+        reader, apache::thrift::protocol::TMessageType(65), false));
     reader.truncate_read();
 }
 
@@ -405,13 +409,17 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_valid_v1_hdr)
 TEST_F(thrift_message_parser_test, get_message_on_receive_v1_data)
 {
     message_reader reader(64);
-    test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_CALL, true, true);
-    test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_CALL, true, false);
-    test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_ONEWAY, true, true);
-    test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_ONEWAY, true, false);
+    ASSERT_NO_FATAL_FAILURE(
+        test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_CALL, true, true));
+    ASSERT_NO_FATAL_FAILURE(
+        test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_CALL, true, false));
+    ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v1_data(
+        reader, apache::thrift::protocol::T_ONEWAY, true, true));
+    ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v1_data(
+        reader, apache::thrift::protocol::T_ONEWAY, true, false));
 
-    test_get_message_on_receive_v1_data(
-        reader, apache::thrift::protocol::TMessageType(65), false, false);
+    ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v1_data(
+        reader, apache::thrift::protocol::TMessageType(65), false, false));
     reader.truncate_read();
 }
 
