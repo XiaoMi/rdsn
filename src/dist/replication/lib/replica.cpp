@@ -149,7 +149,7 @@ void replica::on_client_read(dsn::message_ex *request)
     }
 
     if (!request->is_backup_request()) {
-        // backup request is allowed to read from a stale replica
+        // only backup request is allowed to read from a stale replica
 
         if (status() != partition_status::PS_PRIMARY) {
             response_client_read(request, ERR_INVALID_STATE);
