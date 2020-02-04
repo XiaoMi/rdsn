@@ -43,13 +43,13 @@ namespace dsn {
 
 ///
 /// For version 0:
-/// <--               fixed-size request header                    --> <--request body-->
-/// |-"THFT"-|- hdr_version + hdr_length -|-  thrift_request_meta_v0  -|-     blob     -|
-/// |-"THFT"-|-  uint32(0)  + uint32(48) -|-           36bytes        -|-              -|
-/// |-               12bytes             -|-           36bytes        -|-              -|
+/// |<--                fixed-size request header                   -->|<--request body-->|
+/// |-"THFT"-|- hdr_version + hdr_length -|-  thrift_request_meta_v0  -|-      blob      -|
+/// |-"THFT"-|-  uint32(0)  + uint32(48) -|-           36bytes        -|-                -|
+/// |-               12bytes             -|-           36bytes        -|-                -|
 ///
 /// For version 1:
-/// <--          fixed-size request header            --> <--         request body         -->
+/// |<--          fixed-size request header           -->| <--        request body        -->|
 /// |-"THFT"-|- hdr_version + meta_length + body_length -|- thrift_request_meta_v1 -|- blob -|
 /// |-"THFT"-|-  uint32(1)  +   uint32    +    uint32   -|-      thrift struct     -|-      -|
 /// |-                      16bytes                     -|-      thrift struct     -|-      -|
