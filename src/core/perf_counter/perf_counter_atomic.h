@@ -3,6 +3,7 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <atomic>
+#include <boost/make_shared.hpp>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/config_api.h>
 #include <dsn/c/api_utilities.h>
@@ -283,7 +284,7 @@ private:
         int calc_queue[MAX_QUEUE_LENGTH][4];
     };
 
-    void insert_calc_queue(boost::shared_ptr<compute_context> &ctx,
+    void insert_calc_queue(const boost::shared_ptr<compute_context> &ctx,
                            int left,
                            int right,
                            int qleft,
@@ -298,7 +299,7 @@ private:
         return;
     }
 
-    int64_t find_mid(boost::shared_ptr<compute_context> &ctx, int left, int right)
+    int64_t find_mid(const boost::shared_ptr<compute_context> &ctx, int left, int right)
     {
         if (left == right)
             return ctx->mid_tmp[left];
@@ -318,7 +319,7 @@ private:
         return find_mid(ctx, 0, (right - left - 1) / 5);
     }
 
-    void select(boost::shared_ptr<compute_context> &ctx,
+    void select(const boost::shared_ptr<compute_context> &ctx,
                 int left,
                 int right,
                 int qleft,
@@ -375,7 +376,7 @@ private:
         return;
     }
 
-    void calc(boost::shared_ptr<compute_context> &ctx)
+    void calc(const boost::shared_ptr<compute_context> &ctx)
     {
         uint64_t _num = _tail.load();
         if (_num > MAX_QUEUE_LENGTH)
@@ -413,11 +414,8 @@ private:
     {
         // as the callback is not in tls context, so the log system calls like ddebug, dassert will
         // cause a lock
-        // !ec = true (ec.value() = 0) means the timer expires successfully, rather than being
-        // canceled or other abnormal cases.
         if (!ec) {
-            boost::shared_ptr<compute_context> ctx(new compute_context());
-            calc(ctx);
+            calc(boost::make_shared<compute_context>());
 
             timer->expires_from_now(
                 boost::posix_time::seconds(_counter_computation_interval_seconds));
