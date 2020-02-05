@@ -459,7 +459,9 @@ public:
             return false;
         if (!(data == rhs.data))
             return false;
-        if (!(start_time_ns == rhs.start_time_ns))
+        if (__isset.start_time_ns != rhs.__isset.start_time_ns)
+            return false;
+        else if (__isset.start_time_ns && !(start_time_ns == rhs.start_time_ns))
             return false;
         return true;
     }
