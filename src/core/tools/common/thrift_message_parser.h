@@ -31,10 +31,9 @@
 #include <dsn/utility/ports.h>
 #include <dsn/utility/endians.h>
 #include <gtest/gtest.h>
+#include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
 
 namespace dsn {
-
-class thrift_request_meta_v1;
 
 struct request_meta_v0
 {
