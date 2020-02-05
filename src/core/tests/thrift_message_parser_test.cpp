@@ -90,9 +90,9 @@ public:
 
             // must be reset
             ASSERT_EQ(parser._header_version, -1);
-            ASSERT_EQ(parser._meta_parsed, false);
-            ASSERT_EQ(parser._meta_length, 0);
-            ASSERT_EQ(parser._body_length, 0);
+            ASSERT_EQ(parser._v1_specific_vars->_meta_parsed, false);
+            ASSERT_EQ(parser._v1_specific_vars->_meta_length, 0);
+            ASSERT_EQ(parser._v1_specific_vars->_body_length, 0);
         } else {
             ASSERT_EQ(msg, nullptr);
             ASSERT_EQ(read_next, -1);
@@ -185,7 +185,7 @@ public:
 
             // must be reset
             ASSERT_EQ(parser._header_version, -1);
-            ASSERT_EQ(parser._meta_parsed, false);
+            ASSERT_EQ(parser._v1_specific_vars->_meta_parsed, false);
         } else {
             ASSERT_EQ(msg, nullptr);
             ASSERT_EQ(read_next, -1);
@@ -210,8 +210,8 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_incomplete_second_fiel
         ASSERT_EQ(msg, nullptr);
         ASSERT_EQ(read_next, 4 - i);
         ASSERT_EQ(parser._header_version, -1);
-        ASSERT_EQ(parser._meta_parsed, false);
-        ASSERT_EQ(parser._meta_length, 0);
+        ASSERT_EQ(parser._v1_specific_vars->_meta_parsed, false);
+        ASSERT_EQ(parser._v1_specific_vars->_meta_length, 0);
 
         // not consumed
         ASSERT_EQ(reader._buffer_occupied, data.length());
@@ -346,8 +346,8 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_incomplete_v1_hdr)
         ASSERT_EQ(msg, nullptr);
         ASSERT_EQ(read_next, 16 - data.length()); // read remaining fields
         ASSERT_EQ(parser._header_version, -1);
-        ASSERT_EQ(parser._meta_length, 0);
-        ASSERT_EQ(parser._body_length, 0);
+        ASSERT_EQ(parser._v1_specific_vars->_meta_length, 0);
+        ASSERT_EQ(parser._v1_specific_vars->_body_length, 0);
     }
 }
 
@@ -370,9 +370,9 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_valid_v1_hdr)
     ASSERT_EQ(msg, nullptr);
     ASSERT_EQ(read_next, 100); // required to read more
     ASSERT_EQ(parser._header_version, 1);
-    ASSERT_EQ(parser._meta_length, 100);
-    ASSERT_EQ(parser._body_length, 200);
-    ASSERT_EQ(parser._meta_parsed, false);
+    ASSERT_EQ(parser._v1_specific_vars->_meta_length, 100);
+    ASSERT_EQ(parser._v1_specific_vars->_body_length, 200);
+    ASSERT_EQ(parser._v1_specific_vars->_meta_parsed, false);
     ASSERT_EQ(reader.buffer().size(), 0);
 }
 

@@ -36,8 +36,10 @@ namespace dsn {
 
 class thrift_request_meta_v1;
 
-struct thrift_request_meta_v0
+struct request_meta_v0
 {
+    request_meta_v0() { clear(); }
+
     void clear()
     {
         hdr_crc32 = 0;
@@ -58,6 +60,24 @@ struct thrift_request_meta_v0
     int32_t client_timeout;
     int32_t client_thread_hash;
     uint64_t client_partition_hash;
+};
+
+struct v1_specific_vars
+{
+    v1_specific_vars() { clear(); }
+
+    void clear()
+    {
+        _meta_v1.reset(new thrift_request_meta_v1);
+        _meta_parsed = false;
+        _meta_length = 0;
+        _body_length = 0;
+    }
+
+    bool _meta_parsed{false};
+    uint32_t _meta_length{0};
+    uint32_t _body_length{0};
+    std::unique_ptr<thrift_request_meta_v1> _meta_v1;
 };
 
 #define THRIFT_HDR_SIG (*(uint32_t *)"THFT")
@@ -105,13 +125,12 @@ private:
     FRIEND_TEST(thrift_message_parser_test, get_message_on_receive_valid_v1_hdr);
 
     int _header_version{-1};
-    bool _meta_parsed{false};
-    uint32_t _meta_length{0};
-    uint32_t _body_length{0};
-    // for meta version 1
-    std::unique_ptr<thrift_request_meta_v1> _meta_v1;
-    // for meta version 0
-    std::unique_ptr<thrift_request_meta_v0> _meta_v0;
+
+    // meta version 1 specific variables
+    std::unique_ptr<v1_specific_vars> _v1_specific_vars;
+
+    // meta version 0 specific variables
+    std::unique_ptr<request_meta_v0> _meta_v0;
 };
 
 } // namespace dsn

@@ -43,10 +43,10 @@ namespace dsn {
 
 ///
 /// For version 0:
-/// |<--                fixed-size request header                   -->|<--request body-->|
-/// |-"THFT"-|- hdr_version + hdr_length -|-  thrift_request_meta_v0  -|-      blob      -|
-/// |-"THFT"-|-  uint32(0)  + uint32(48) -|-           36bytes        -|-                -|
-/// |-               12bytes             -|-           36bytes        -|-                -|
+/// |<--              fixed-size request header              -->|<--request body-->|
+/// |-"THFT"-|- hdr_version + hdr_length -|-  request_meta_v0  -|-      blob      -|
+/// |-"THFT"-|-  uint32(0)  + uint32(48) -|-      36bytes      -|-                -|
+/// |-               12bytes             -|-      36bytes      -|-                -|
 ///
 /// For version 1:
 /// |<--          fixed-size request header           -->| <--        request body        -->|
@@ -62,10 +62,10 @@ static constexpr size_t HEADER_LENGTH_V1 = 16;
 // "THFT" + uint32(hdr_version)
 static constexpr size_t THFT_HDR_VERSION_LENGTH = 8;
 
-// "THFT" + uint32(hdr_version) + uint32(hdr_length) + 36bytes(thrift_request_meta_v0)
+// "THFT" + uint32(hdr_version) + uint32(hdr_length) + 36bytes(request_meta_v0)
 static constexpr size_t HEADER_LENGTH_V0 = 48;
 
-static void parse_request_meta_v0(data_input &input, /*out*/ thrift_request_meta_v0 &meta)
+static void parse_request_meta_v0(data_input &input, /*out*/ request_meta_v0 &meta)
 {
     meta.hdr_crc32 = input.read_u32();
     meta.body_length = input.read_u32();
@@ -126,7 +126,7 @@ static message_ex *create_message_from_request_blob(const blob &body_data)
 // Parses the request's fixed-size header.
 //
 // For version 0:
-// |-"THFT"-|- hdr_version + hdr_length -|-  thrift_request_meta_v0  -|
+// |-"THFT"-|- hdr_version + hdr_length -|-  request_meta_v0  -|
 //
 // For version 1:
 // |-"THFT"-|- hdr_version + meta_length + body_length -|
@@ -172,8 +172,8 @@ bool thrift_message_parser::parse_request_header(message_reader *reader, int &re
             return false;
         }
 
-        _meta_length = input.read_u32();
-        _body_length = input.read_u32();
+        _v1_specific_vars->_meta_length = input.read_u32();
+        _v1_specific_vars->_body_length = input.read_u32();
         reader->consume_buffer(HEADER_LENGTH_V1);
     } else {
         derror("invalid hdr_version %d", _header_version);
@@ -222,9 +222,9 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
 {
     // Parses request meta
     blob buf = reader->buffer();
-    if (!_meta_parsed) {
-        if (buf.size() < _meta_length) {
-            read_next = _meta_length - buf.size();
+    if (!_v1_specific_vars->_meta_parsed) {
+        if (buf.size() < _v1_specific_vars->_meta_length) {
+            read_next = _v1_specific_vars->_meta_length - buf.size();
             return nullptr;
         }
 
@@ -233,14 +233,14 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
         boost::shared_ptr<::dsn::binary_reader_transport> transport(
             &trans, [](::dsn::binary_reader_transport *) {});
         ::apache::thrift::protocol::TBinaryProtocol proto(transport);
-        _meta_v1->read(&proto);
-        _meta_parsed = true;
+        _v1_specific_vars->_meta_v1->read(&proto);
+        _v1_specific_vars->_meta_parsed = true;
     }
-    buf = buf.range(_meta_length);
+    buf = buf.range(_v1_specific_vars->_meta_length);
 
     // Parses request body
-    if (buf.size() < _body_length) {
-        read_next = _body_length - buf.size();
+    if (buf.size() < _v1_specific_vars->_body_length) {
+        read_next = _v1_specific_vars->_body_length - buf.size();
         return nullptr;
     }
     message_ex *msg = create_message_from_request_blob(buf);
@@ -250,18 +250,18 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
         return nullptr;
     }
 
-    reader->consume_buffer(_meta_length + _body_length);
+    reader->consume_buffer(_v1_specific_vars->_meta_length + _v1_specific_vars->_body_length);
     read_next = (reader->_buffer_occupied >= HEADER_LENGTH_V1
                      ? 0
                      : HEADER_LENGTH_V1 - reader->_buffer_occupied);
 
-    msg->header->body_length = _body_length;
-    msg->header->gpid.set_app_id(_meta_v1->app_id);
-    msg->header->gpid.set_partition_index(_meta_v1->partition_index);
-    msg->header->client.timeout_ms = _meta_v1->client_timeout;
+    msg->header->body_length = _v1_specific_vars->_body_length;
+    msg->header->gpid.set_app_id(_v1_specific_vars->_meta_v1->app_id);
+    msg->header->gpid.set_partition_index(_v1_specific_vars->_meta_v1->partition_index);
+    msg->header->client.timeout_ms = _v1_specific_vars->_meta_v1->client_timeout;
     msg->header->client.thread_hash = gpid_to_thread_hash(msg->header->gpid);
-    msg->header->client.partition_hash = _meta_v1->client_partition_hash;
-    msg->header->context.u.is_backup_request = _meta_v1->is_backup_request;
+    msg->header->client.partition_hash = _v1_specific_vars->_meta_v1->client_partition_hash;
+    msg->header->context.u.is_backup_request = _v1_specific_vars->_meta_v1->is_backup_request;
     reset();
     return msg;
 }
@@ -292,12 +292,9 @@ message_ex *thrift_message_parser::get_message_on_receive(message_reader *reader
 
 void thrift_message_parser::reset()
 {
-    _meta_parsed = false;
     _header_version = -1;
-    _meta_length = 0;
-    _body_length = 0;
     _meta_v0->clear();
-    _meta_v1.reset(new thrift_request_meta_v1);
+    _v1_specific_vars->clear();
 }
 
 //                   //
@@ -403,7 +400,7 @@ int thrift_message_parser::get_buffers_on_send(message_ex *msg, /*out*/ send_buf
 }
 
 thrift_message_parser::thrift_message_parser()
-    : _meta_v1(new thrift_request_meta_v1), _meta_v0(new thrift_request_meta_v0)
+    : _v1_specific_vars(new v1_specific_vars), _meta_v0(new request_meta_v0)
 {
 }
 
