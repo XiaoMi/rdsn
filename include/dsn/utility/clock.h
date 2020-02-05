@@ -33,7 +33,7 @@ namespace dsn {
 namespace utils {
 
 // get time string, which format is yyyy-MM-dd hh:mm:ss.SSS
-void time_ms_to_string(uint64_t ts_ms, char *str)
+inline void time_ms_to_string(uint64_t ts_ms, char *str)
 {
     auto t = (time_t)(ts_ms / 1000);
     struct tm tmp;
@@ -50,7 +50,7 @@ void time_ms_to_string(uint64_t ts_ms, char *str)
 }
 
 // get date string with format of 'yyyy-MM-dd' from given timestamp
-void time_ms_to_date(uint64_t ts_ms, char *str, int len)
+inline void time_ms_to_date(uint64_t ts_ms, char *str, int len)
 {
     auto t = (time_t)(ts_ms / 1000);
     struct tm tmp;
@@ -58,7 +58,7 @@ void time_ms_to_date(uint64_t ts_ms, char *str, int len)
 }
 
 // get date string with format of 'yyyy-MM-dd hh:mm:ss' from given timestamp
-void time_ms_to_date_time(uint64_t ts_ms, char *str, int len)
+inline void time_ms_to_date_time(uint64_t ts_ms, char *str, int len)
 {
     auto t = (time_t)(ts_ms / 1000);
     struct tm tmp;
@@ -66,7 +66,7 @@ void time_ms_to_date_time(uint64_t ts_ms, char *str, int len)
 }
 
 // parse hour/min/sec from the given timestamp
-void time_ms_to_date_time(uint64_t ts_ms, int32_t &hour, int32_t &min, int32_t &sec)
+inline void time_ms_to_date_time(uint64_t ts_ms, int32_t &hour, int32_t &min, int32_t &sec)
 {
     auto t = (time_t)(ts_ms / 1000);
     struct tm tmp;
@@ -76,7 +76,7 @@ void time_ms_to_date_time(uint64_t ts_ms, int32_t &hour, int32_t &min, int32_t &
     sec = ret->tm_sec;
 }
 
-uint64_t get_current_physical_time_ns()
+inline uint64_t get_current_physical_time_ns()
 {
     auto now = std::chrono::high_resolution_clock::now();
     return std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
@@ -84,7 +84,7 @@ uint64_t get_current_physical_time_ns()
 
 // get unix timestamp of today's zero o'clock.
 // eg. `1525881600` returned when called on May 10, 2018, CST
-int64_t get_unix_sec_today_midnight()
+inline int64_t get_unix_sec_today_midnight()
 {
     time_t t = time(nullptr);
     struct tm tmp;
@@ -98,7 +98,7 @@ int64_t get_unix_sec_today_midnight()
 // `hh:mm` (range in [00:00, 23:59]) to seconds since 00:00:00
 // eg. `01:00` => `3600`
 // Return: -1 when invalid
-int hh_mm_to_seconds(dsn::string_view hhmm)
+inline int hh_mm_to_seconds(dsn::string_view hhmm)
 {
     int hour = 0, min = 0, sec = -1;
     if (::sscanf(hhmm.data(), "%d:%d", &hour, &min) == 2 && (0 <= hour && hour <= 23) &&
@@ -111,7 +111,7 @@ int hh_mm_to_seconds(dsn::string_view hhmm)
 // local time `hh:mm` to unix timestamp.
 // eg. `18:10` => `1525947000` when called on May 10, 2018, CST
 // Return: -1 when invalid
-int64_t hh_mm_today_to_unix_sec(string_view hhmm_of_day)
+inline int64_t hh_mm_today_to_unix_sec(string_view hhmm_of_day)
 {
     int sec_of_day = hh_mm_to_seconds(hhmm_of_day);
     if (sec_of_day == -1) {
