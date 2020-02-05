@@ -1,4 +1,5 @@
 #include <dsn/utility/filesystem.h>
+#include <dsn/utility/clock.h>
 
 #include "meta_backup_service.h"
 #include "dist/replication/meta_server/meta_service.h"

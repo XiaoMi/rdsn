@@ -9,6 +9,7 @@
 #include <dsn/utility/utils.h>
 #include <dsn/utility/preloadable.h>
 #include <dsn/utility/process_utils.h>
+#include <dsn/utility/clock.h>
 
 namespace dsn {
 namespace utils {
