@@ -79,7 +79,8 @@ static void parse_request_meta_v0(data_input &input, /*out*/ thrift_request_meta
 
 static int32_t gpid_to_thread_hash(gpid id)
 {
-    return id.get_app_id() * 7919 + id.get_partition_index();
+    static const int magic_number = 7919;
+    return id.get_app_id() * magic_number + id.get_partition_index();
 }
 
 // Reads the requests's name, seqid, and TMessageType from the binary data,
