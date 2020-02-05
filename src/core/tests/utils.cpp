@@ -43,7 +43,7 @@
 #include <dsn/c/api_layer1.h>
 #include <gtest/gtest.h>
 #include <dsn/utility/rand.h>
-#include <dsn/utility/clock.h>
+#include <dsn/utility/time_utils.h>
 
 using namespace ::dsn;
 using namespace ::dsn::utils;
