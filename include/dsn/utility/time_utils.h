@@ -85,13 +85,16 @@ inline uint64_t get_current_physical_time_ns()
 
 // get unix timestamp of today's zero o'clock.
 // eg. `1525881600` returned when called on May 10, 2018, CST
+
 inline int64_t get_unix_sec_today_midnight()
 {
-    auto localtime = get_localtime(get_current_physical_time_ns() * 1e-6);
-    localtime->tm_hour = 0;
-    localtime->tm_min = 0;
-    localtime->tm_sec = 0;
-    return static_cast<int64_t>(mktime(localtime));
+    time_t t = time(nullptr);
+    struct tm tmp;
+    auto ret = localtime_r(&t, &tmp);
+    ret->tm_hour = 0;
+    ret->tm_min = 0;
+    ret->tm_sec = 0;
+    return static_cast<int64_t>(mktime(ret));
 }
 
 // `hh:mm` (range in [00:00, 23:59]) to seconds since 00:00:00
