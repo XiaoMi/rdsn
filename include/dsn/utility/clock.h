@@ -32,12 +32,17 @@
 namespace dsn {
 namespace utils {
 
-// get time string, which format is yyyy-MM-dd hh:mm:ss.SSS
-inline void time_ms_to_string(uint64_t ts_ms, char *str)
+static struct tm *get_localtime(uint64_t ts_ms)
 {
     auto t = (time_t)(ts_ms / 1000);
     struct tm tmp;
-    auto ret = localtime_r(&t, &tmp);
+    return localtime_r(&t, &tmp);
+}
+
+// get time string, which format is yyyy-MM-dd hh:mm:ss.SSS
+inline void time_ms_to_string(uint64_t ts_ms, char *str)
+{
+    auto ret = get_localtime(ts_ms);
     sprintf(str,
             "%04d-%02d-%02d %02d:%02d:%02d.%03u",
             ret->tm_year + 1900,
@@ -52,28 +57,24 @@ inline void time_ms_to_string(uint64_t ts_ms, char *str)
 // get date string with format of 'yyyy-MM-dd' from given timestamp
 inline void time_ms_to_date(uint64_t ts_ms, char *str, int len)
 {
-    auto t = (time_t)(ts_ms / 1000);
-    struct tm tmp;
-    strftime(str, len, "%Y-%m-%d", localtime_r(&t, &tmp));
+    auto localtime = get_localtime(ts_ms);
+    strftime(str, len, "%Y-%m-%d", localtime);
 }
 
 // get date string with format of 'yyyy-MM-dd hh:mm:ss' from given timestamp
 inline void time_ms_to_date_time(uint64_t ts_ms, char *str, int len)
 {
-    auto t = (time_t)(ts_ms / 1000);
-    struct tm tmp;
-    strftime(str, len, "%Y-%m-%d %H:%M:%S", localtime_r(&t, &tmp));
+    auto localtime = get_localtime(ts_ms);
+    strftime(str, len, "%Y-%m-%d %H:%M:%S", localtime);
 }
 
 // parse hour/min/sec from the given timestamp
 inline void time_ms_to_date_time(uint64_t ts_ms, int32_t &hour, int32_t &min, int32_t &sec)
 {
-    auto t = (time_t)(ts_ms / 1000);
-    struct tm tmp;
-    auto ret = localtime_r(&t, &tmp);
-    hour = ret->tm_hour;
-    min = ret->tm_min;
-    sec = ret->tm_sec;
+    auto localtime = get_localtime(ts_ms);
+    hour = localtime->tm_hour;
+    min = localtime->tm_min;
+    sec = localtime->tm_sec;
 }
 
 inline uint64_t get_current_physical_time_ns()
@@ -86,13 +87,11 @@ inline uint64_t get_current_physical_time_ns()
 // eg. `1525881600` returned when called on May 10, 2018, CST
 inline int64_t get_unix_sec_today_midnight()
 {
-    time_t t = time(nullptr);
-    struct tm tmp;
-    auto ret = localtime_r(&t, &tmp);
-    ret->tm_hour = 0;
-    ret->tm_min = 0;
-    ret->tm_sec = 0;
-    return static_cast<int64_t>(mktime(ret));
+    auto localtime = get_localtime(get_current_physical_time_ns() * 1e-6);
+    localtime->tm_hour = 0;
+    localtime->tm_min = 0;
+    localtime->tm_sec = 0;
+    return static_cast<int64_t>(mktime(localtime));
 }
 
 // `hh:mm` (range in [00:00, 23:59]) to seconds since 00:00:00
