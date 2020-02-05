@@ -22,7 +22,9 @@ public:
         _ms = make_unique<fake_receiver_meta_service>();
         _ms->_failure_detector.reset(new meta_server_failure_detector(_ms.get()));
         _ms->_balancer.reset(utils::factory_store<server_load_balancer>::create(
-            _ms->_meta_opts._lb_opts.server_load_balancer_type.c_str(), PROVIDER_TYPE_MAIN, this));
+            _ms->_meta_opts._lb_opts.server_load_balancer_type.c_str(),
+            PROVIDER_TYPE_MAIN,
+            _ms.get()));
         ASSERT_EQ(_ms->remote_storage_initialize(), ERR_OK);
         _ms->initialize_duplication_service();
         ASSERT_TRUE(_ms->_dup_svc);
@@ -101,9 +103,9 @@ public:
         ASSERT_TRUE(_ss->spin_wait_staging(30));
     }
 
-    error_code update_app_envs(const std::string &app_name,
-                               const std::vector<std::string> &env_keys,
-                               const std::vector<std::string> &env_vals)
+    configuration_update_app_env_response update_app_envs(const std::string &app_name,
+                                                          const std::vector<std::string> &env_keys,
+                                                          const std::vector<std::string> &env_vals)
     {
         auto req = make_unique<configuration_update_app_env_request>();
         req->__set_app_name(std::move(app_name));
@@ -114,7 +116,7 @@ public:
         app_env_rpc rpc(std::move(req), RPC_CM_UPDATE_APP_ENV); // don't need reply
         _ss->set_app_envs(rpc);
         _ss->wait_all_task();
-        return rpc.response().err;
+        return rpc.response();
     }
 
     std::shared_ptr<app_state> find_app(const std::string &name) { return _ss->get_app(name); }

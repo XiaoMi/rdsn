@@ -46,8 +46,8 @@
 
 #include "server_state.h"
 #include "server_load_balancer.h"
-
 #include "dump_file.h"
+#include "app_env_validator.h"
 
 using namespace dsn;
 
@@ -56,10 +56,6 @@ namespace replication {
 
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
-// env name of slow query
-static const std::string ENV_SLOW_QUERY_THRESHOLD("replica.slow_query_threshold");
-// min value for slow query threshold, less than this value will be refused
-static const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS = 20;
 
 server_state::server_state()
     : _meta_svc(nullptr),
@@ -953,8 +949,18 @@ void server_state::query_configuration_by_index(
                enum_to_string(app->status),
                (app->app_name).c_str(),
                app->app_id);
-        response.err =
-            (app->status == app_status::AS_CREATING ? ERR_BUSY_CREATING : ERR_BUSY_DROPPING);
+
+        switch (app->status) {
+        case app_status::AS_CREATING:
+        case app_status::AS_RECALLING:
+            response.err = ERR_BUSY_CREATING;
+            break;
+        case app_status::AS_DROPPING:
+            response.err = ERR_BUSY_DROPPING;
+            break;
+        default:
+            response.err = ERR_UNKNOWN;
+        }
         return;
     }
 
@@ -2617,20 +2623,14 @@ void server_state::set_app_envs(const app_env_rpc &env_rpc)
 
     std::ostringstream os;
     for (int i = 0; i < keys.size(); i++) {
-        // check whether if slow query threshold is abnormal
-        if (0 == keys[i].compare(ENV_SLOW_QUERY_THRESHOLD)) {
-            uint64_t threshold = 0;
-            if (!dsn::buf2uint64(values[i], threshold) || threshold < MIN_SLOW_QUERY_THRESHOLD_MS) {
-                dwarn("{}={} is invalid.", keys[i].c_str(), threshold);
-                env_rpc.response().err = ERR_INVALID_PARAMETERS;
-                env_rpc.response().hint_message = fmt::format(
-                    "slow query threshold must be >= {}ms", MIN_SLOW_QUERY_THRESHOLD_MS);
-                return;
-            }
-        }
-
         if (i != 0)
             os << ", ";
+
+        if (!validate_app_env(keys[i], values[i], env_rpc.response().hint_message)) {
+            env_rpc.response().err = ERR_INVALID_PARAMETERS;
+            return;
+        }
+
         os << keys[i] << "=" << values[i];
     }
     ddebug("set app envs for app(%s) from remote(%s): kvs = {%s}",

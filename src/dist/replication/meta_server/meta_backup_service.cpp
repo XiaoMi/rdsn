@@ -1,5 +1,7 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/clock.h>
+#include <dsn/utility/output_utils.h>
+#include <dsn/tool-api/http_server.h>
 
 #include "meta_backup_service.h"
 #include "dist/replication/meta_server/meta_service.h"
@@ -1202,7 +1204,7 @@ void backup_service::start()
     start_create_policy_meta_root(after_create_policy_meta_root);
 }
 
-void backup_service::add_new_policy(dsn::message_ex *msg)
+void backup_service::add_backup_policy(dsn::message_ex *msg)
 {
     configuration_add_backup_policy_request request;
     configuration_add_backup_policy_response response;
@@ -1367,12 +1369,10 @@ bool backup_service::is_valid_policy_name_unlocked(const std::string &policy_nam
     return (iter == _policy_states.end());
 }
 
-void backup_service::query_policy(dsn::message_ex *msg)
+void backup_service::query_backup_policy(query_backup_policy_rpc rpc)
 {
-    configuration_query_backup_policy_request request;
-    configuration_query_backup_policy_response response;
-
-    ::dsn::unmarshall(msg, request);
+    const configuration_query_backup_policy_request &request = rpc.request();
+    configuration_query_backup_policy_response &response = rpc.response();
 
     response.err = ERR_OK;
 
@@ -1410,7 +1410,7 @@ void backup_service::query_policy(dsn::message_ex *msg)
         p_entry.backup_history_count_to_keep = cur_policy.backup_history_count_to_keep;
         p_entry.start_time = cur_policy.start_time.to_string();
         p_entry.is_disable = cur_policy.is_disable;
-        response.policys.emplace_back(std::move(p_entry));
+        response.policys.emplace_back(p_entry);
         // acquire backup_infos
         std::vector<backup_info> b_infos =
             policy_context_ptr->get_backup_infos(request.backup_info_count);
@@ -1436,12 +1436,9 @@ void backup_service::query_policy(dsn::message_ex *msg)
     if (!response.hint_msg.empty()) {
         response.__isset.hint_msg = true;
     }
-
-    _meta_svc->reply_data(msg, response);
-    msg->release_ref();
 }
 
-void backup_service::modify_policy(dsn::message_ex *msg)
+void backup_service::modify_backup_policy(dsn::message_ex *msg)
 {
     configuration_modify_backup_policy_request request;
     configuration_modify_backup_policy_response response;
@@ -1595,5 +1592,5 @@ std::string backup_service::get_backup_path(const std::string &policy_name, int6
     ss << _policy_meta_root << "/" << policy_name << "/" << backup_id;
     return ss.str();
 }
-}
-}
+} // namespace replication
+} // namespace dsn

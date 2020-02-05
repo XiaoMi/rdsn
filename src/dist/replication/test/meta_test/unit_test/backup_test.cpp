@@ -7,8 +7,8 @@
 #include "meta_service_test_app.h"
 #include "../misc/misc.h"
 
-using namespace ::dsn::replication;
-using namespace dsn;
+namespace dsn {
+namespace replication {
 
 struct method_record
 {
@@ -25,6 +25,7 @@ class mock_base
 {
 public:
     void reset_records() { _records.clear(); }
+
 protected:
     std::map<std::string, method_record> _records;
 };
@@ -663,9 +664,9 @@ void meta_service_test_app::backup_service_test()
         ASSERT_TRUE(flag);
     }
 
-    // testing add_new_policy()
+    // testing add_backup_policy()
     {
-        std::cout << "add_new_policy()..." << std::endl;
+        std::cout << "add_backup_policy()..." << std::endl;
         // create a fake add_backup_policy_request
         configuration_add_backup_policy_request req;
         req.backup_provider_type = std::string("local_service");
@@ -680,7 +681,7 @@ void meta_service_test_app::backup_service_test()
             auto r = fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,
                                    LPC_DEFAULT_CALLBACK,
                                    backup_svc,
-                                   &backup_service::add_new_policy,
+                                   &backup_service::add_backup_policy,
                                    req);
             fake_wait_rpc(r, resp);
             ASSERT_TRUE(resp.err == ERR_INVALID_PARAMETERS);
@@ -695,7 +696,7 @@ void meta_service_test_app::backup_service_test()
             auto r = fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,
                                    LPC_DEFAULT_CALLBACK,
                                    backup_svc,
-                                   &backup_service::add_new_policy,
+                                   &backup_service::add_backup_policy,
                                    req);
             fake_wait_rpc(r, resp);
             ASSERT_TRUE(resp.err == ERR_OK);
@@ -723,3 +724,5 @@ void meta_service_test_app::backup_service_test()
         ASSERT_TRUE(p.policy_name == test_policy_name);
     }
 }
+} // namespace replication
+} // namespace dsn

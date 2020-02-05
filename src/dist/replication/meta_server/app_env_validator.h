@@ -24,20 +24,31 @@
  * THE SOFTWARE.
  */
 
-#include "replica.h"
+#pragma once
 
-#include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/utility/singleton.h>
 
 namespace dsn {
 namespace replication {
 
-// `duplicating` is actually a field in app_info, but on the principle
-// of changing app_info as less as possible, we store it in .init_info
-// instead.
+bool validate_app_env(const std::string &env_name,
+                      const std::string &env_value,
+                      std::string &hint_message);
 
-void replica::update_init_info_duplicating(bool duplicating) { /*TBD*/}
+class app_env_validator : public utils::singleton<app_env_validator>
+{
+public:
+    app_env_validator() { register_all_validators(); }
+    bool validate_app_env(const std::string &env_name,
+                          const std::string &env_value,
+                          std::string &hint_message);
 
-bool replica::is_duplicating() const { /*TBD*/ return false; }
+private:
+    void register_all_validators();
+
+    using validator_func = std::function<bool(const std::string &, std::string &)>;
+    std::map<const std::string, validator_func> _validator_funcs;
+};
 
 } // namespace replication
 } // namespace dsn

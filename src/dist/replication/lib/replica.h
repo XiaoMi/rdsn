@@ -170,10 +170,11 @@ public:
     bool verbose_commit_log() const;
     dsn::task_tracker *tracker() { return &_tracker; }
 
-    /// \see replica_duplicate.cpp
+    //
+    // Duplication
+    //
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
-    bool is_duplicating() const;
-    void update_init_info_duplicating(bool duplicating);
+    bool is_duplicating() const { return _app_info.duplicating; }
 
     void update_last_checkpoint_generate_time();
 
@@ -184,6 +185,10 @@ public:
 
     // routine for get extra envs from replica
     const std::map<std::string, std::string> &get_replica_extra_envs() const { return _extra_envs; }
+
+protected:
+    // this method is marked protected to enable us to mock it in unit tests.
+    virtual decree max_gced_decree_no_lock() const;
 
 private:
     // common helpers
@@ -232,6 +237,17 @@ private:
                                                     uint64_t learn_signature);
     void notify_learn_completion();
     error_code apply_learned_state_from_private_log(learn_state &state);
+
+    // Gets the position where this round of the learning process should begin.
+    // This method is called on primary-side.
+    // TODO(wutao1): mark it const
+    decree get_learn_start_decree(const learn_request &req);
+
+    // This method differs with `_private_log->max_gced_decree()` in that
+    // it also takes `learn/` dir into account, since the learned logs are
+    // a part of plog as well.
+    // This method is called on learner-side.
+    decree get_max_gced_decree_for_learn() const;
 
     /////////////////////////////////////////////////////////////////
     // failure handling
