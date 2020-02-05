@@ -30,6 +30,7 @@
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/endians.h>
+#include <gtest/gtest.h>
 
 namespace dsn {
 
@@ -96,6 +97,12 @@ private:
 
 private:
     friend class thrift_message_parser_test;
+    FRIEND_TEST(thrift_message_parser_test, get_message_on_receive_incomplete_second_field);
+    FRIEND_TEST(thrift_message_parser_test, get_message_on_receive_incomplete_v0_hdr_len);
+    FRIEND_TEST(thrift_message_parser_test, get_message_on_receive_invalid_v0_hdr_length);
+    FRIEND_TEST(thrift_message_parser_test, get_message_on_receive_valid_v0_hdr);
+    FRIEND_TEST(thrift_message_parser_test, get_message_on_receive_incomplete_v1_hdr);
+    FRIEND_TEST(thrift_message_parser_test, get_message_on_receive_valid_v1_hdr);
 
     int _header_version{-1};
     bool _meta_parsed{false};
