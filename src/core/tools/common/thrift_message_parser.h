@@ -37,8 +37,6 @@ namespace dsn {
 
 struct request_meta_v0
 {
-    request_meta_v0() { clear(); }
-
     void clear()
     {
         hdr_crc32 = 0;
@@ -51,14 +49,14 @@ struct request_meta_v0
         client_partition_hash = 0;
     }
 
-    uint32_t hdr_crc32;
-    uint32_t body_length;
-    uint32_t body_crc32;
-    int32_t app_id;
-    int32_t partition_index;
-    int32_t client_timeout;
-    int32_t client_thread_hash;
-    uint64_t client_partition_hash;
+    uint32_t hdr_crc32 = 0;
+    uint32_t body_length = 0;
+    uint32_t body_crc32 = 0;
+    int32_t app_id = 0;
+    int32_t partition_index = 0;
+    int32_t client_timeout = 0;
+    int32_t client_thread_hash = 0;
+    uint64_t client_partition_hash = 0;
 };
 
 struct v1_specific_vars
