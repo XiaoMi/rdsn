@@ -57,24 +57,22 @@ inline void time_ms_to_string(uint64_t ts_ms, char *str)
 // get date string with format of 'yyyy-MM-dd' from given timestamp
 inline void time_ms_to_date(uint64_t ts_ms, char *str, int len)
 {
-    auto localtime = get_localtime(ts_ms);
-    strftime(str, len, "%Y-%m-%d", localtime);
+    strftime(str, len, "%Y-%m-%d", get_localtime(ts_ms));
 }
 
 // get date string with format of 'yyyy-MM-dd hh:mm:ss' from given timestamp
 inline void time_ms_to_date_time(uint64_t ts_ms, char *str, int len)
 {
-    auto localtime = get_localtime(ts_ms);
-    strftime(str, len, "%Y-%m-%d %H:%M:%S", localtime);
+    strftime(str, len, "%Y-%m-%d %H:%M:%S", get_localtime(ts_ms));
 }
 
 // parse hour/min/sec from the given timestamp
 inline void time_ms_to_date_time(uint64_t ts_ms, int32_t &hour, int32_t &min, int32_t &sec)
 {
-    auto localtime = get_localtime(ts_ms);
-    hour = localtime->tm_hour;
-    min = localtime->tm_min;
-    sec = localtime->tm_sec;
+    auto ret = get_localtime(ts_ms);
+    hour = ret->tm_hour;
+    min = ret->tm_min;
+    sec = ret->tm_sec;
 }
 
 inline uint64_t get_current_physical_time_ns()
