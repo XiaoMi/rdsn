@@ -219,6 +219,39 @@ void replica_stub::install_perf_counters()
         COUNTER_TYPE_VOLATILE_NUMBER,
         "trigger emergency checkpoint count in the recent period");
 
+    // <- Duplication Metrics ->
+
+    _counter_dup_log_read_in_bytes_rate.init_app_counter("eon.replica_stub",
+                                                         "dup.log_read_in_bytes_rate",
+                                                         COUNTER_TYPE_RATE,
+                                                         "reading rate of private log in bytes");
+    _counter_dup_log_mutations_read_rate.init_app_counter(
+        "eon.replica_stub",
+        "dup.log_mutations_read_rate",
+        COUNTER_TYPE_RATE,
+        "reading rate of mutations from private log");
+    _counter_dup_shipped_size_in_bytes_rate.init_app_counter(
+        "eon.replica_stub",
+        "dup.shipped_size_in_bytes_rate",
+        COUNTER_TYPE_RATE,
+        "shipping rate of private log in bytes");
+    _counter_dup_confirmed_rate.init_app_counter("eon.replica_stub",
+                                                 "dup.confirmed_rate",
+                                                 COUNTER_TYPE_RATE,
+                                                 "increasing rate of confirmed mutations");
+    _counter_dup_pending_mutations_count.init_app_counter(
+        "eon.replica_stub",
+        "dup.pending_mutations_count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "number of mutations pending for duplication");
+    _counter_dup_time_lag.init_app_counter(
+        "eon.replica_stub",
+        "dup.time_lag(ms)",
+        COUNTER_TYPE_NUMBER_PERCENTILES,
+        "time (in ms) lag between master and slave in the duplication");
+
+    // <- Cold Backup Metrics ->
+
     _counter_cold_backup_running_count.init_app_counter("eon.replica_stub",
                                                         "cold.backup.running.count",
                                                         COUNTER_TYPE_NUMBER,

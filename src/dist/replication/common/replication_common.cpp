@@ -49,7 +49,7 @@ replication_options::replication_options()
     delay_for_fd_timeout_on_start = false;
     empty_write_disabled = false;
     allow_non_idempotent_write = false;
-    duplication_disabled = true;
+    duplication_disabled = false;
 
     prepare_timeout_ms_for_secondaries = 1000;
     prepare_timeout_ms_for_potential_secondaries = 3000;
@@ -273,9 +273,6 @@ void replication_options::initialize()
 
     duplication_disabled = dsn_config_get_value_bool(
         "replication", "duplication_disabled", duplication_disabled, "is duplication disabled");
-    if (allow_non_idempotent_write && !duplication_disabled) {
-        dassert(false, "duplication and non-idempotent write cannot be enabled together");
-    }
 
     prepare_timeout_ms_for_secondaries = (int)dsn_config_get_value_uint64(
         "replication",
