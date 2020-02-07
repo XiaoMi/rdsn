@@ -57,7 +57,8 @@ public:
         : next_learning_version(0),
           write_queue(gpid, max_concurrent_2pc_count, batch_write_disabled),
           last_prepare_decree_on_new_primary(0),
-          last_prepare_ts_ms(dsn_now_ms())
+          last_prepare_ts_ms(dsn_now_ms()),
+          sync_send_write_request(false)
     {
     }
 
@@ -102,6 +103,20 @@ public:
     dsn::task_ptr checkpoint_task;
 
     uint64_t last_prepare_ts_ms;
+
+    // Used for partition split
+    // child addresses who has been caught up its parent
+    std::unordered_set<dsn::rpc_address> caught_up_child;
+
+    // Used for partition split
+    // whether parent's write request should send to child synchronously
+    // if {sync_send_write_request} = true
+    // - parent should recevie prepare ack from child synchronously during 2pc
+    // if {sync_send_write_request} = false && _child_gpid.get_app_id() > 0
+    // - parent should copy mutations to child asynchronously, child is during async-learn
+    // if {sync_send_write_request} = false && _child_gpid.get_app_id() = 0 
+    // - current partition is not during partition split
+    bool sync_send_write_request;
 };
 
 class secondary_context
