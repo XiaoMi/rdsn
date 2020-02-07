@@ -30,7 +30,7 @@
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/endians.h>
-#include <gtest/gtest.h>
+#include <gtest/gtest_prod.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
 
 namespace dsn {
