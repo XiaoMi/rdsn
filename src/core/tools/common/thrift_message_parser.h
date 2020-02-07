@@ -61,7 +61,7 @@ struct request_meta_v0
 
 struct v1_specific_vars
 {
-    v1_specific_vars() { clear(); }
+    v1_specific_vars() : _meta_v1(new thrift_request_meta_v1) {}
 
     void clear()
     {
