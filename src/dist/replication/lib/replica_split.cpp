@@ -416,7 +416,8 @@ void replica::child_catch_up_states() // on child partition
     }
 
     // parent will copy mutations to child during async-learn, as a result:
-    // - child prepare_list last_committed_decree = parent prepare_list last_committed_decree, also is catch_up goal_decree
+    // - child prepare_list last_committed_decree = parent prepare_list last_committed_decree, also
+    // is catch_up goal_decree
     // - local_decree is child local last_committed_decree which is the last decree in async-learn.
     decree goal_decree = _prepare_list->last_committed_decree();
     decree local_decree = _app->last_committed_decree();
@@ -424,8 +425,7 @@ void replica::child_catch_up_states() // on child partition
     // there are mutations written to parent during async-learn
     // child does not catch up parent, there are still some mutations child not learn
     if (local_decree < goal_decree) {
-        if (local_decree >=
-            _prepare_list->min_decree()) { 
+        if (local_decree >= _prepare_list->min_decree()) {
             // all missing mutations are all in prepare list
             dwarn_replica("there are some in-memory mutations should be learned, app "
                           "last_committed_decree={}, "

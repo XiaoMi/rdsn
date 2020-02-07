@@ -173,6 +173,20 @@ public:
         _child->tracker()->wait_outstanding_tasks();
     }
 
+    void test_child_catch_up_states(decree local_decree, decree goal_decree, decree min_decree)
+    {
+        mock_child_async_learn_states(_child, true, 0);
+        _child->set_app_last_committed_decree(local_decree);
+        if (local_decree < goal_decree) {
+            // set prepare_list's start_decree = {min_decree}
+            _child->prepare_list_truncate(min_decree);
+            // set prepare_list's last_committed_decree = {goal_decree}
+            _child->prepare_list_commit_hard(goal_decree);
+        }
+        _child->child_catch_up_states();
+        _child->tracker()->wait_outstanding_tasks();
+    }
+
 public:
     std::unique_ptr<mock_replica_stub> _stub;
 

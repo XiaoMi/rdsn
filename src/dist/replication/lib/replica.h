@@ -374,8 +374,10 @@ private:
 
     // TODO(heyuchen): total_file_size is used for split perf-counter in further pull request
     // Applies mutation logs that were learned from the parent of this child.
-    // This stage follows after that child applies the checkpoint of parent, and begins to apply the mutations.
-    // \param last_committed_decree: parent's last_committed_decree when the checkpoint was generated.
+    // This stage follows after that child applies the checkpoint of parent, and begins to apply the
+    // mutations.
+    // \param last_committed_decree: parent's last_committed_decree when the checkpoint was
+    // generated.
     error_code child_apply_private_logs(std::vector<std::string> plog_files,
                                         std::vector<mutation_ptr> mutation_list,
                                         uint64_t total_file_size,
