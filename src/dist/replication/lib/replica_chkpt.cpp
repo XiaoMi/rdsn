@@ -38,7 +38,6 @@
 #include "mutation_log.h"
 #include "replica_stub.h"
 #include "duplication/replica_duplicator_manager.h"
-#include <dsn/utility/fail_point.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/chrono_literals.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -361,12 +360,6 @@ error_code replica::background_sync_checkpoint()
 // in non-replication thread
 void replica::catch_up_with_private_logs(partition_status::type s)
 {
-    FAIL_POINT_INJECT_F("replica_chkpt_catch_up_with_private_logs", [this](dsn::string_view arg) {
-        if (arg == "PS_PARTITION_SPLIT") {
-            _app->_last_committed_decree = 9;
-        }
-    });
-
     learn_state state;
     _private_log->get_learn_state(get_gpid(), _app->last_committed_decree() + 1, state);
 

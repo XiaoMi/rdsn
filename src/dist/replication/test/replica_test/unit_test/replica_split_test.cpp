@@ -173,20 +173,6 @@ public:
         _child->tracker()->wait_outstanding_tasks();
     }
 
-    void test_child_catch_up_states(decree local_decree, decree goal_decree, decree min_decree)
-    {
-        mock_child_async_learn_states(_child, true, 0);
-        _child->set_app_last_committed_decree(local_decree);
-        if (local_decree < goal_decree) {
-            // set prepare_list's start_decree = {min_decree}
-            _child->prepare_list_truncate(min_decree);
-            // set prepare_list's last_committed_decree = {goal_decree}
-            _child->prepare_list_commit_hard(goal_decree);
-        }
-        _child->child_catch_up_states();
-        _child->tracker()->wait_outstanding_tasks();
-    }
-
 public:
     std::unique_ptr<mock_replica_stub> _stub;
 
@@ -375,21 +361,6 @@ TEST_F(replica_split_test, catch_up_succeed_with_learn_in_memory_mutations)
 
     partition_split_context split_context = get_split_context();
     ASSERT_EQ(split_context.is_caught_up, true);
-
-    cleanup_prepare_list(_child);
-    cleanup_child_split_context();
-}
-
-TEST_F(replica_split_test, catch_up_succeed_with_learn_private_logs)
-{
-    generate_child(partition_status::PS_PARTITION_SPLIT);
-    mock_child_split_context(_parent_pid, true, false);
-
-    fail::setup();
-    fail::cfg("replica_chkpt_catch_up_with_private_logs", "return(PS_PARTITION_SPLIT)");
-    test_child_catch_up_states(_decree, _max_count - 1, _max_count - 1);
-    fail::teardown();
-    ASSERT_EQ(_child->get_app_last_committed_decree(), _max_count - 1);
 
     cleanup_prepare_list(_child);
     cleanup_child_split_context();

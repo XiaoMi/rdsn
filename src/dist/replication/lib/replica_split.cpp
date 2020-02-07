@@ -331,10 +331,7 @@ error_code replica::child_apply_private_logs(std::vector<std::string> plog_files
                                              decree last_committed_decree) // on child partition
 {
     FAIL_POINT_INJECT_F("replica_child_apply_private_logs", [](dsn::string_view arg) {
-        if (arg == "error") {
-            return ERR_FILE_OPERATION_FAILED;
-        }
-        return ERR_OK;
+        return error_code::try_get(arg.data(), ERR_OK);
     });
 
     if (status() != partition_status::PS_PARTITION_SPLIT) {
@@ -418,13 +415,18 @@ void replica::child_catch_up_states() // on child partition
         return;
     }
 
+    // parent will copy mutations to child during async-learn, as a result:
+    // - child prepare_list last_committed_decree = parent prepare_list last_committed_decree, also is catch_up goal_decree
+    // - local_decree is child local last_committed_decree which is the last decree in async-learn.
     decree goal_decree = _prepare_list->last_committed_decree();
     decree local_decree = _app->last_committed_decree();
 
-    // there are still some mutations child not learn
+    // there are mutations written to parent during async-learn
+    // child does not catch up parent, there are still some mutations child not learn
     if (local_decree < goal_decree) {
         if (local_decree >=
-            _prepare_list->min_decree()) { // missing mutations are all in prepare_list
+            _prepare_list->min_decree()) { 
+            // all missing mutations are all in prepare list
             dwarn_replica("there are some in-memory mutations should be learned, app "
                           "last_committed_decree={}, "
                           "goal decree={}, prepare_list min_decree={}",
@@ -440,7 +442,9 @@ void replica::child_catch_up_states() // on child partition
                     return;
                 }
             }
-        } else { // some missing mutations are not in memory
+        } else {
+            // some missing mutations have already in private log
+            // should call `catch_up_with_private_logs` to catch up all missing mutations
             dwarn_replica(
                 "there are some private logs should be learned, app last_committed_decree="
                 "{}, prepare_list min_decree={}, please wait",
@@ -470,6 +474,7 @@ void replica::child_catch_up_states() // on child partition
 void replica::child_notify_catch_up() // on child partition
 {
     FAIL_POINT_INJECT_F("replica_child_notify_catch_up", [](dsn::string_view) {});
+    // TODO(heyuchen): TBD
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
