@@ -26,51 +26,34 @@
 
 #pragma once
 
-#include <dsn/tool-api/rpc_message.h>
-#include <dsn/utility/priority_queue.h>
-#include <dsn/tool-api/message_parser.h>
-#include <boost/asio.hpp>
-#include "asio_net_provider.h"
+#include <cstdint>
+#include <string>
 
 namespace dsn {
-namespace tools {
+namespace replication {
 
-// A TCP session implementation based on Boost.Asio.
-// Thread-safe
-class asio_rpc_session : public rpc_session
+class replica_envs
 {
 public:
-    asio_rpc_session(asio_network_provider &net,
-                     ::dsn::rpc_address remote_addr,
-                     std::shared_ptr<boost::asio::ip::tcp::socket> &socket,
-                     message_parser_ptr &parser,
-                     bool is_client);
-
-    ~asio_rpc_session() override = default;
-
-    void send(uint64_t signature) override;
-
-    void close() override;
-
-    void connect() override;
-
-private:
-    void do_read(int read_next) override;
-    void on_failure(bool is_write = false);
-    void set_options();
-    void on_message_read(message_ex *msg)
-    {
-        if (!on_recv_message(msg, 0)) {
-            on_failure(false);
-        }
-    }
-
-private:
-    // boost::asio::socket is thread-unsafe, must use lock to prevent a
-    // reading/writing socket being modified or closed concurrently.
-    std::shared_ptr<boost::asio::ip::tcp::socket> _socket;
-    ::dsn::utils::rw_lock_nr _socket_lock;
+    static const std::string DENY_CLIENT_WRITE;
+    static const std::string WRITE_QPS_THROTTLING;
+    static const std::string WRITE_SIZE_THROTTLING;
+    static const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS;
+    static const std::string SLOW_QUERY_THRESHOLD;
+    static const std::string TABLE_LEVEL_DEFAULT_TTL;
+    static const std::string ROCKSDB_USAGE_SCENARIO;
+    static const std::string ROCKSDB_CHECKPOINT_RESERVE_MIN_COUNT;
+    static const std::string ROCKSDB_CHECKPOINT_RESERVE_TIME_SECONDS;
+    static const std::string MANUAL_COMPACT_DISABLED;
+    static const std::string MANUAL_COMPACT_MAX_CONCURRENT_RUNNING_COUNT;
+    static const std::string MANUAL_COMPACT_ONCE_TRIGGER_TIME;
+    static const std::string MANUAL_COMPACT_ONCE_TARGET_LEVEL;
+    static const std::string MANUAL_COMPACT_ONCE_BOTTOMMOST_LEVEL_COMPACTION;
+    static const std::string MANUAL_COMPACT_PERIODIC_TRIGGER_TIME;
+    static const std::string MANUAL_COMPACT_PERIODIC_TARGET_LEVEL;
+    static const std::string MANUAL_COMPACT_PERIODIC_BOTTOMMOST_LEVEL_COMPACTION;
+    static const std::string BUSINESS_INFO;
 };
 
-} // namespace tools
+} // namespace replication
 } // namespace dsn

@@ -24,27 +24,31 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
+#pragma once
 
-#include <dsn/tool-api/env_provider.h>
-#include <dsn/utility/utils.h>
-#include <dsn/c/api_utilities.h>
-#include <chrono>
-#include <dsn/utility/time_utils.h>
+#include <dsn/utility/singleton.h>
 
 namespace dsn {
+namespace replication {
 
-//------------ env_provider ---------------
+bool validate_app_env(const std::string &env_name,
+                      const std::string &env_value,
+                      std::string &hint_message);
 
-env_provider::env_provider(env_provider *inner_provider) {}
+class app_env_validator : public utils::singleton<app_env_validator>
+{
+public:
+    app_env_validator() { register_all_validators(); }
+    bool validate_app_env(const std::string &env_name,
+                          const std::string &env_value,
+                          std::string &hint_message);
 
-uint64_t env_provider::now_ns() const { return utils::get_current_physical_time_ns(); }
+private:
+    void register_all_validators();
 
-} // end namespace
+    using validator_func = std::function<bool(const std::string &, std::string &)>;
+    std::map<const std::string, validator_func> _validator_funcs;
+};
+
+} // namespace replication
+} // namespace dsn
