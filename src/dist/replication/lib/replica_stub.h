@@ -95,6 +95,8 @@ public:
                          /*out*/ query_replica_decree_response &resp);
     void on_query_replica_info(const query_replica_info_request &req,
                                /*out*/ query_replica_info_response &resp);
+    void on_query_disk_info(const query_disk_info_request &req,
+                            /*out*/ query_disk_info_response &resp);
     void on_query_app_info(const query_app_info_request &req,
                            /*out*/ query_app_info_response &resp);
     void on_cold_backup(const backup_request &request, /*out*/ backup_response &response);
@@ -252,6 +254,7 @@ private:
                          dsn::message_ex *request,
                          partition_status::type status,
                          error_code error);
+    void update_disk_holding_replicas();
 
 #ifdef DSN_ENABLE_GPERF
     // Try to release tcmalloc memory back to operating system
@@ -274,6 +277,7 @@ private:
     friend class duplication_sync_timer_test;
     friend class replica_duplicator_manager_test;
     friend class replica_test;
+    friend class replica_disk_test;
 
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>
