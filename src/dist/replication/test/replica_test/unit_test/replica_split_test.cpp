@@ -43,6 +43,7 @@ public:
 
     void mock_notify_catch_up_request()
     {
+        _parent->set_child_gpid(_child_pid);
         _catch_up_req.child_gpid = _child_pid;
         _catch_up_req.parent_gpid = _parent_pid;
         _catch_up_req.child_ballot = _init_ballot;
@@ -116,16 +117,20 @@ public:
 
     void mock_parent_primary_context(bool will_all_caught_up)
     {
-        _parent->_primary_states.statuses[dsn::rpc_address("127.0.0.1", 1)] =partition_status::PS_PRIMARY;
-        _parent->_primary_states.statuses[dsn::rpc_address("127.0.0.1", 2)] =partition_status::PS_SECONDARY;
-        _parent->_primary_states.statuses[dsn::rpc_address("127.0.0.1", 3)] =partition_status::PS_SECONDARY;
-        _parent->_primary_states.insert(dsn::rpc_address("127.0.0.1", 2));
-        if(will_all_caught_up)
-        {
-            _parent->_primary_states.insert(dsn::rpc_address("127.0.0.1", 3));
+        _parent->_primary_states.statuses[dsn::rpc_address("127.0.0.1", 1)] =
+            partition_status::PS_PRIMARY;
+        _parent->_primary_states.statuses[dsn::rpc_address("127.0.0.1", 2)] =
+            partition_status::PS_SECONDARY;
+        _parent->_primary_states.statuses[dsn::rpc_address("127.0.0.1", 3)] =
+            partition_status::PS_SECONDARY;
+        _parent->_primary_states.caught_up_child.insert(dsn::rpc_address("127.0.0.1", 2));
+        if (will_all_caught_up) {
+            _parent->_primary_states.caught_up_child.insert(dsn::rpc_address("127.0.0.1", 3));
         }
         _parent->_primary_states.sync_send_write_request = false;
     }
+
+    bool get_sync_send_write_request() { return _parent->_primary_states.sync_send_write_request; }
 
     void
     mock_child_async_learn_states(mock_replica_ptr plist_rep, bool add_to_plog, decree min_decree)
@@ -416,7 +421,7 @@ TEST_F(replica_split_test, handle_catch_up_with_ballot_wrong)
     _catch_up_req.child_ballot = 1;
 
     fail::setup();
-    fail::cfg("parent_check_sync_point_commit", "return()");
+    fail::cfg("replica_parent_check_sync_point_commit", "return()");
     dsn::error_code err = test_parent_handle_child_catch_up();
     fail::teardown();
 
@@ -429,27 +434,26 @@ TEST_F(replica_split_test, handle_catch_up_with_not_all_caught_up)
     mock_notify_catch_up_request();
 
     fail::setup();
-    fail::cfg("parent_check_sync_point_commit", "return()");
+    fail::cfg("replica_parent_check_sync_point_commit", "return()");
     dsn::error_code err = test_parent_handle_child_catch_up();
     fail::teardown();
 
     ASSERT_EQ(err, ERR_OK);
-    ASSERT_FALSE(_parent->_primary_states.is_sync_to_child);
+    ASSERT_FALSE(get_sync_send_write_request());
 }
 
-TEST_F(replica_split_test, handle_catch_up_with_not_all_caught_up)
+TEST_F(replica_split_test, handle_catch_up_with_all_caught_up)
 {
     mock_parent_primary_context(true);
     mock_notify_catch_up_request();
 
     fail::setup();
-    fail::cfg("parent_check_sync_point_commit", "return()");
+    fail::cfg("replica_parent_check_sync_point_commit", "return()");
     dsn::error_code err = test_parent_handle_child_catch_up();
     fail::teardown();
 
     ASSERT_EQ(err, ERR_OK);
-    ASSERT_EQ(_parent->_primary_states.caught_up_child.size(), 0);
-    ASSERT_TRUE(_parent->_primary_states.is_sync_to_child);
+    ASSERT_TRUE(get_sync_send_write_request());
 }
 
 } // namespace replication

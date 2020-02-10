@@ -390,7 +390,8 @@ private:
     void child_notify_catch_up();
 
     // primary parent handle child catch_up request
-    void parent_handle_child_catch_up(notify_catch_up_request request, notify_cacth_up_response &response);
+    void parent_handle_child_catch_up(notify_catch_up_request request,
+                                      notify_cacth_up_response &response);
 
     // primary parent check if sync_point has been committed
     // sync_point is the first decree after parent send write request to child synchronously

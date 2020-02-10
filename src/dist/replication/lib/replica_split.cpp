@@ -474,13 +474,6 @@ void replica::child_catch_up_states() // on child partition
 void replica::child_notify_catch_up() // on child partition
 {
     FAIL_POINT_INJECT_F("replica_child_notify_catch_up", [](dsn::string_view) {});
-    // TODO(heyuchen): TBD
-}
-
-// ThreadPool: THREAD_POOL_REPLICATION
-void replica::child_notify_catch_up() // on child partition
-{
-    FAIL_POINT_INJECT_F("replica_child_notify_catch_up", [](dsn::string_view) {});
 
     std::shared_ptr<notify_catch_up_request> request(new notify_catch_up_request);
     request->parent_gpid = _split_states.parent_gpid;
@@ -489,15 +482,16 @@ void replica::child_notify_catch_up() // on child partition
     request->child_address = _stub->_primary_address;
 
     ddebug_replica("send notification to primary: {}@{}, ballot={}",
-             _split_states.parent_gpid.to_string(),
-             _config.primary.to_string(),
-             get_ballot());
+                   _split_states.parent_gpid.to_string(),
+                   _config.primary.to_string(),
+                   get_ballot());
 
     rpc::call(_config.primary,
               RPC_SPLIT_NOTIFY_CATCH_UP,
               *request,
               tracker(),
-              [this](error_code ec, std::shared_ptr<notify_cacth_up_response> response) {
+              [this](error_code ec, notify_cacth_up_response &&resp) {
+                  auto response = std::move(resp);
                   if (ec == ERR_TIMEOUT) {
                       dwarn_replica("notify primary catch up timeout, please wait and retry");
                       tasking::enqueue(LPC_PARTITION_SPLIT,
@@ -505,21 +499,25 @@ void replica::child_notify_catch_up() // on child partition
                                        std::bind(&replica::child_notify_catch_up, this),
                                        get_gpid().thread_hash(),
                                        std::chrono::seconds(1));
-                  } else if (ec != ERR_OK || response->err != ERR_OK) {
-                      error_code err = (ec == ERR_OK) ? response->err : ec;
-                      derror_replica("failed to notify primary catch up, error={}", err.to_string());
-                      _stub->split_replica_error_handler(_split_states.parent_gpid, std::bind(&replica::parent_cleanup_split_context, std::placeholders::_1));
+                  } else if (ec != ERR_OK || response.err != ERR_OK) {
+                      error_code err = (ec == ERR_OK) ? response.err : ec;
+                      derror_replica("failed to notify primary catch up, error={}",
+                                     err.to_string());
+                      _stub->split_replica_error_handler(
+                          _split_states.parent_gpid,
+                          std::bind(&replica::parent_cleanup_split_context, std::placeholders::_1));
                       child_handle_split_error("notify_primary_split_catch_up");
                   } else {
                       ddebug_replica("notify primary catch up succeed");
                   }
               },
               std::chrono::seconds(0),
-              _split_states.parent_gpid.thread_hash());   
-} 
+              _split_states.parent_gpid.thread_hash());
+}
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica::parent_handle_child_catch_up(notify_catch_up_request request, notify_cacth_up_response &response) // on primary parent
+void replica::parent_handle_child_catch_up(notify_catch_up_request request,
+                                           notify_cacth_up_response &response) // on primary parent
 {
     if (status() != partition_status::PS_PRIMARY) {
         derror_replica("status is {}", enum_to_string(status()));
@@ -529,25 +527,26 @@ void replica::parent_handle_child_catch_up(notify_catch_up_request request, noti
 
     if (request.child_ballot != get_ballot()) {
         derror_replica("receive out-date request, request ballot = {}, local ballot = {}",
-                 request.child_ballot,
-                 get_ballot());
+                       request.child_ballot,
+                       get_ballot());
         response.err = ERR_INVALID_STATE;
         return;
     }
 
     if (request.child_gpid != _child_gpid) {
-        derror_replica("receive wrong child request, request child_gpid = {}, local child_gpid = {}",
-                 request.child_gpid.to_string(),
-                 _child_gpid.to_string());
+        derror_replica(
+            "receive wrong child request, request child_gpid = {}, local child_gpid = {}",
+            request.child_gpid.to_string(),
+            _child_gpid.to_string());
         response.err = ERR_INVALID_STATE;
         return;
     }
 
     response.err = ERR_OK;
     ddebug_replica("receive catch_up request from {}@{}, current ballot={}",
-             request.child_gpid.to_string(),
-             request.child_address.to_string(),
-             request.child_ballot);
+                   request.child_gpid.to_string(),
+                   request.child_address.to_string(),
+                   request.child_ballot);
 
     _primary_states.caught_up_child.insert(request.child_address);
     for (auto &iter : _primary_states.statuses) {
@@ -570,7 +569,10 @@ void replica::parent_handle_child_catch_up(notify_catch_up_request request, noti
         mutation_ptr mu = new_mutation(invalid_decree);
         mu->add_client_request(RPC_REPLICATION_WRITE_EMPTY, nullptr);
         init_prepare(mu, false);
-        dassert_replica(sync_point == mu->data.header.decree, "sync_point should be equal to mutation's decree, {} vs {}", sync_point, mu->data.header.decree);
+        dassert_replica(sync_point == mu->data.header.decree,
+                        "sync_point should be equal to mutation's decree, {} vs {}",
+                        sync_point,
+                        mu->data.header.decree);
     };
 
     // check if sync_point has been committed
@@ -585,7 +587,9 @@ void replica::parent_handle_child_catch_up(notify_catch_up_request request, noti
 void replica::parent_check_sync_point_commit(decree sync_point) // on primary parent
 {
     FAIL_POINT_INJECT_F("replica_parent_check_sync_point_commit", [](dsn::string_view) {});
-    ddebug_replica("sync_point = {}, app last_committed_decree = {}", sync_point, _app->last_committed_decree());
+    ddebug_replica("sync_point = {}, app last_committed_decree = {}",
+                   sync_point,
+                   _app->last_committed_decree());
     if (_app->last_committed_decree() >= sync_point) {
         // TODO(heyuchen): TBD
         // update child replica group partition_count

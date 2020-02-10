@@ -114,7 +114,7 @@ public:
     // - parent should recevie prepare ack from child synchronously during 2pc
     // if {sync_send_write_request} = false && _child_gpid.get_app_id() > 0
     // - parent should copy mutations to child asynchronously, child is during async-learn
-    // if {sync_send_write_request} = false && _child_gpid.get_app_id() = 0 
+    // if {sync_send_write_request} = false && _child_gpid.get_app_id() = 0
     // - current partition is not during partition split
     bool sync_send_write_request;
 };
