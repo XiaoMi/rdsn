@@ -429,6 +429,8 @@ void replica::on_register_child_on_meta_reply(
     std::shared_ptr<register_child_request> request,
     std::shared_ptr<register_child_response> response) // on primary parent
 {
+    FAIL_POINT_INJECT_F("replica_on_register_child_on_meta_reply", [](dsn::string_view) {});
+    
     _checker.only_one_thread_access();
 
     // primary parent is under reconfiguration, whose status should be PS_INACTIVE
@@ -552,7 +554,7 @@ void replica::on_register_child_on_meta_reply(
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica::child_partition_active(const partition_configuration &config) // on child
 {
-    ddebug_replica("finish partition split and become active");
+    ddebug_replica("child partition become active");
     // TODO(heyuchen):
     // _primary_states.sync_send_write_request = false;
     _primary_states.last_prepare_decree_on_new_primary = _prepare_list->max_decree();
