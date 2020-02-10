@@ -174,7 +174,8 @@ void meta_split_service::register_child_on_meta(register_child_rpc rpc)
         return;
     }
 
-    ddebug_f("gpid({}) will resgiter child gpid({})", parent_gpid.to_string(), child_gpid.to_string());
+    ddebug_f(
+        "gpid({}) will resgiter child gpid({})", parent_gpid.to_string(), child_gpid.to_string());
     parent_context.stage = config_status::pending_remote_sync;
     parent_context.msg = rpc.dsn_request();
     parent_context.pending_sync_task = add_child_on_remote_storage(rpc, true);
@@ -221,7 +222,8 @@ void meta_split_service::on_add_child_on_remote_storage_reply(error_code ec,
 
     std::shared_ptr<app_state> app = _state->get_app(request.app.app_id);
     dassert_f(app->status == app_status::AS_AVAILABLE || app->status == app_status::AS_DROPPING,
-            "app is not available now, id({})", request.app.app_id);
+              "app is not available now, id({})",
+              request.app.app_id);
 
     dsn::gpid parent_gpid = request.parent_config.pid;
     dsn::gpid child_gpid = request.child_config.pid;
@@ -243,7 +245,7 @@ void meta_split_service::on_add_child_on_remote_storage_reply(error_code ec,
         return;
     }
     dassert_f(ec == ERR_OK, "we can't handle this right now, err = {}", ec.to_string());
-    
+
     ddebug_f("gpid({}) resgiter child gpid({}) on remote storage succeed",
              parent_gpid.to_string(),
              child_gpid.to_string());
@@ -255,7 +257,7 @@ void meta_split_service::on_add_child_on_remote_storage_reply(error_code ec,
     update_child_request->info = *app;
     update_child_request->type = config_type::CT_REGISTER_CHILD;
     update_child_request->node = request.primary_address;
-    
+
     partition_configuration child_config = app->partitions[child_gpid.get_partition_index()];
     child_config.secondaries = request.child_config.secondaries;
     _state->update_configuration_locally(*app, update_child_request);
@@ -268,7 +270,7 @@ void meta_split_service::on_add_child_on_remote_storage_reply(error_code ec,
         response.parent_config = app->partitions[parent_gpid.get_partition_index()];
         response.child_config = app->partitions[child_gpid.get_partition_index()];
         parent_context.msg = nullptr;
-    }    
+    }
 }
 
 } // namespace replication

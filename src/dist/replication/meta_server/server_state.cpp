@@ -1438,8 +1438,7 @@ void server_state::update_configuration_locally(
         case config_type::CT_ADD_SECONDARY_FOR_LB:
             dassert(false, "invalid execution work flow");
             break;
-        case config_type::CT_REGISTER_CHILD:
-        {
+        case config_type::CT_REGISTER_CHILD: {
             ns->put_partition(gpid, true);
             for (auto &secondary : config_request->config.secondaries) {
                 auto secondary_node = get_node_state(_nodes, secondary, false);

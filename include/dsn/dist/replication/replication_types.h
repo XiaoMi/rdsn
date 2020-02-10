@@ -91,7 +91,8 @@ struct config_type
         CT_REMOVE = 7,
         CT_ADD_SECONDARY_FOR_LB = 8,
         CT_PRIMARY_FORCE_UPDATE_BALLOT = 9,
-        CT_DROP_PARTITION = 10
+        CT_DROP_PARTITION = 10,
+        CT_REGISTER_CHILD = 11
     };
 };
 

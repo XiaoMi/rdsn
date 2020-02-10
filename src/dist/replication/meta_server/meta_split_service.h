@@ -44,7 +44,8 @@ private:
 
     // meta -> remote storage to update child replica config
     dsn::task_ptr add_child_on_remote_storage(register_child_rpc rpc, bool create_new);
-    void on_add_child_on_remote_storage_reply(error_code ec, register_child_rpc rpc, bool create_new);
+    void
+    on_add_child_on_remote_storage_reply(error_code ec, register_child_rpc rpc, bool create_new);
 
 private:
     meta_service *_meta_svc;

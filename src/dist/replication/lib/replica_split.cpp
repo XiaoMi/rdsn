@@ -376,9 +376,10 @@ void replica::register_child_on_meta(ballot b) // on primary parent
     }
 
     if (b != get_ballot()) {
-        dwarn_replica("failed to register child because ballot not match, request ballot = {}, local ballot = {}",
-            b,
-            get_ballot());
+        dwarn_replica("failed to register child because ballot not match, request ballot = {}, "
+                      "local ballot = {}",
+                      b,
+                      get_ballot());
         return;
     }
 
@@ -398,14 +399,15 @@ void replica::register_child_on_meta(ballot b) // on primary parent
     // disable 2pc during reconfiguration
     update_local_configuration_with_no_ballot_change(partition_status::PS_INACTIVE);
     set_inactive_state_transient(true);
-    
+
     // TODO(heyuchen):
     // set partition_version = -1 to reject client request
 
-    ddebug_replica("send register child({}) request to meta_server, current ballot = {}, child ballot = {}",
-             request->child_config.pid.to_string(),
-             request->parent_config.ballot,
-             request->child_config.ballot);
+    ddebug_replica(
+        "send register child({}) request to meta_server, current ballot = {}, child ballot = {}",
+        request->child_config.pid.to_string(),
+        request->parent_config.ballot,
+        request->child_config.ballot);
 
     rpc_address meta_address(_stub->_failure_detector->get_servers());
     _primary_states.register_child_task = rpc::call(
@@ -431,7 +433,8 @@ void replica::on_register_child_on_meta_reply(
 
     // primary parent is under reconfiguration, whose status should be PS_INACTIVE
     if (partition_status::PS_INACTIVE != status() || _stub->is_connected() == false) {
-        dwarn_replica("status wrong or stub is not connected, status = {}", enum_to_string(status()));
+        dwarn_replica("status wrong or stub is not connected, status = {}",
+                      enum_to_string(status()));
         _primary_states.register_child_task = nullptr;
         // TODO(heyuchen):
         // clear all split tasks in primary context
@@ -442,11 +445,12 @@ void replica::on_register_child_on_meta_reply(
         ec = response->err;
     }
     if (ec != ERR_OK) {
-        dwarn_replica("register child({}) failed, error = {}, request child ballot = {}, local ballot = {}",
-                request->child_config.pid.to_string(),
-                ec.to_string(),
-                request->child_config.ballot,
-                get_ballot());
+        dwarn_replica(
+            "register child({}) failed, error = {}, request child ballot = {}, local ballot = {}",
+            request->child_config.pid.to_string(),
+            ec.to_string(),
+            request->child_config.ballot,
+            get_ballot());
 
         // when the rpc call timeout, we would delay to do the recall
         if (ec != ERR_INVALID_VERSION && ec != ERR_CHILD_REGISTERED) {
@@ -478,11 +482,12 @@ void replica::on_register_child_on_meta_reply(
     }
 
     if (response->parent_config.pid != get_gpid() || response->child_config.pid != _child_gpid) {
-        derror_replica("remote parent gpid ({}) VS local gpid ({}), remote child ({}) VS local child ({}), something wrong with meta, retry register",
-                 response->parent_config.pid.to_string(),
-                 get_gpid().to_string(),
-                 response->child_config.pid.to_string(),
-                 _child_gpid.to_string());
+        derror_replica("remote parent gpid ({}) VS local gpid ({}), remote child ({}) VS local "
+                       "child ({}), something wrong with meta, retry register",
+                       response->parent_config.pid.to_string(),
+                       get_gpid().to_string(),
+                       response->child_config.pid.to_string(),
+                       _child_gpid.to_string());
 
         _primary_states.register_child_task = tasking::enqueue(
             LPC_DELAY_UPDATE_CONFIG,
@@ -510,36 +515,36 @@ void replica::on_register_child_on_meta_reply(
     }
 
     if (ec == ERR_OK && response->err == ERR_OK) {
-        ddebug_replica("register child({}) succeed, parent ballot = {}, local ballot = {}, local status = {}",
+        ddebug_replica(
+            "register child({}) succeed, parent ballot = {}, local ballot = {}, local status = {}",
             response->child_config.pid.to_string(),
             response->parent_config.ballot,
             get_ballot(),
             enum_to_string(status()));
-        
+
         dassert_f(_app_info.partition_count * 2 == response->app.partition_count,
-                "local partition count is {}, remote partition count is {}",
-                _app_info.partition_count,
-                response->app.partition_count);
+                  "local partition count is {}, remote partition count is {}",
+                  _app_info.partition_count,
+                  response->app.partition_count);
 
         // TODO(heyuchen): refactor this function
-        _stub->split_replica_error_handler(LPC_PARTITION_SPLIT,
-                       response->child_config.pid,
-                       std::bind(&replica::child_partition_active,
-                                 std::placeholders::_1,
-                                 response->child_config));
+        _stub->split_replica_error_handler(response->child_config.pid,
+                                           std::bind(&replica::child_partition_active,
+                                                     std::placeholders::_1,
+                                                     response->child_config));
         // TODO(heyuchen):
         // update parent group partition_count
     }
 
     _primary_states.register_child_task = nullptr;
-    // TODO(heyuchen): 
+    // TODO(heyuchen):
     // _primary_states.sync_send_write_request = true;
     _child_gpid.set_app_id(0);
 
     if (response->parent_config.ballot >= get_ballot()) {
         ddebug_replica("response ballot = {}, local ballot = {}, should update configuration",
-                 response->parent_config.ballot,
-                 get_ballot());
+                       response->parent_config.ballot,
+                       get_ballot());
         update_configuration(response->parent_config);
     }
 }
@@ -548,7 +553,7 @@ void replica::on_register_child_on_meta_reply(
 void replica::child_partition_active(const partition_configuration &config) // on child
 {
     ddebug_replica("finish partition split and become active");
-    // TODO(heyuchen): 
+    // TODO(heyuchen):
     // _primary_states.sync_send_write_request = false;
     _primary_states.last_prepare_decree_on_new_primary = _prepare_list->max_decree();
     update_configuration(config);

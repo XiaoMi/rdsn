@@ -75,7 +75,8 @@ int _kconfig_typeValues[] = {config_type::CT_INVALID,
                              config_type::CT_REMOVE,
                              config_type::CT_ADD_SECONDARY_FOR_LB,
                              config_type::CT_PRIMARY_FORCE_UPDATE_BALLOT,
-                             config_type::CT_DROP_PARTITION};
+                             config_type::CT_DROP_PARTITION,
+                             config_type::CT_REGISTER_CHILD};
 const char *_kconfig_typeNames[] = {"CT_INVALID",
                                     "CT_ASSIGN_PRIMARY",
                                     "CT_UPGRADE_TO_PRIMARY",
@@ -86,9 +87,10 @@ const char *_kconfig_typeNames[] = {"CT_INVALID",
                                     "CT_REMOVE",
                                     "CT_ADD_SECONDARY_FOR_LB",
                                     "CT_PRIMARY_FORCE_UPDATE_BALLOT",
-                                    "CT_DROP_PARTITION"};
+                                    "CT_DROP_PARTITION",
+                                    "CT_REGISTER_CHILD"};
 const std::map<int, const char *> _config_type_VALUES_TO_NAMES(
-    ::apache::thrift::TEnumIterator(11, _kconfig_typeValues, _kconfig_typeNames),
+    ::apache::thrift::TEnumIterator(12, _kconfig_typeValues, _kconfig_typeNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 int _knode_statusValues[] = {

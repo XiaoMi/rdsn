@@ -382,7 +382,6 @@ private:
     // child catch up parent states while executing async learn task
     void child_catch_up_states();
 
-
     // primary parent register children on meta_server
     void register_child_on_meta(ballot b);
     void on_register_child_on_meta_reply(dsn::error_code ec,
