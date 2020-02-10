@@ -195,7 +195,8 @@ enum config_type
     CT_REMOVE,
     CT_ADD_SECONDARY_FOR_LB,
     CT_PRIMARY_FORCE_UPDATE_BALLOT,
-    CT_DROP_PARTITION
+    CT_DROP_PARTITION,
+    CT_REGISTER_CHILD
 }
 
 enum node_status

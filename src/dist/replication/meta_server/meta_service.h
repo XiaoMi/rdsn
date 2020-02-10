@@ -68,6 +68,7 @@ typedef rpc_holder<configuration_update_app_env_request, configuration_update_ap
 typedef rpc_holder<ddd_diagnose_request, ddd_diagnose_response> ddd_diagnose_rpc;
 typedef rpc_holder<app_partition_split_request, app_partition_split_response>
     app_partition_split_rpc;
+typedef rpc_holder<register_child_request, register_child_response> register_child_rpc;
 
 class meta_service : public serverlet<meta_service>
 {

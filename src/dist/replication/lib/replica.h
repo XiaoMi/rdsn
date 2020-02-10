@@ -382,6 +382,16 @@ private:
     // child catch up parent states while executing async learn task
     void child_catch_up_states();
 
+
+    // primary parent register children on meta_server
+    void register_child_on_meta(ballot b);
+    void on_register_child_on_meta_reply(dsn::error_code ec,
+                                         std::shared_ptr<register_child_request> request,
+                                         std::shared_ptr<register_child_response> response);
+
+    // child partition has been registered on meta_server, could be active
+    void child_partition_active(const partition_configuration &config);
+
     // return true if parent status is valid
     bool parent_check_states();
 

@@ -102,6 +102,10 @@ public:
     dsn::task_ptr checkpoint_task;
 
     uint64_t last_prepare_ts_ms;
+
+    // Used for partition split
+    // primary parent register child on meta_server task
+    dsn::task_ptr register_child_task;
 };
 
 class secondary_context
