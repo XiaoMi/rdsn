@@ -13227,5 +13227,336 @@ void app_partition_split_response::printTo(std::ostream &out) const
         << "partition_count=" << to_string(partition_count);
     out << ")";
 }
+
+register_child_request::~register_child_request() throw() {}
+
+void register_child_request::__set_app(const ::dsn::app_info &val) { this->app = val; }
+
+void register_child_request::__set_parent_config(const ::dsn::partition_configuration &val)
+{
+    this->parent_config = val;
+}
+
+void register_child_request::__set_child_config(const ::dsn::partition_configuration &val)
+{
+    this->child_config = val;
+}
+
+void register_child_request::__set_primary_address(const ::dsn::rpc_address &val)
+{
+    this->primary_address = val;
+}
+
+uint32_t register_child_request::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->app.read(iprot);
+                this->__isset.app = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->parent_config.read(iprot);
+                this->__isset.parent_config = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 3:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->child_config.read(iprot);
+                this->__isset.child_config = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 4:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->primary_address.read(iprot);
+                this->__isset.primary_address = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t register_child_request::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("register_child_request");
+
+    xfer += oprot->writeFieldBegin("app", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->app.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("parent_config", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += this->parent_config.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("child_config", ::apache::thrift::protocol::T_STRUCT, 3);
+    xfer += this->child_config.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("primary_address", ::apache::thrift::protocol::T_STRUCT, 4);
+    xfer += this->primary_address.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(register_child_request &a, register_child_request &b)
+{
+    using ::std::swap;
+    swap(a.app, b.app);
+    swap(a.parent_config, b.parent_config);
+    swap(a.child_config, b.child_config);
+    swap(a.primary_address, b.primary_address);
+    swap(a.__isset, b.__isset);
+}
+
+register_child_request::register_child_request(const register_child_request &other578)
+{
+    app = other578.app;
+    parent_config = other578.parent_config;
+    child_config = other578.child_config;
+    primary_address = other578.primary_address;
+    __isset = other578.__isset;
+}
+register_child_request::register_child_request(register_child_request &&other579)
+{
+    app = std::move(other579.app);
+    parent_config = std::move(other579.parent_config);
+    child_config = std::move(other579.child_config);
+    primary_address = std::move(other579.primary_address);
+    __isset = std::move(other579.__isset);
+}
+register_child_request &register_child_request::operator=(const register_child_request &other580)
+{
+    app = other580.app;
+    parent_config = other580.parent_config;
+    child_config = other580.child_config;
+    primary_address = other580.primary_address;
+    __isset = other580.__isset;
+    return *this;
+}
+register_child_request &register_child_request::operator=(register_child_request &&other581)
+{
+    app = std::move(other581.app);
+    parent_config = std::move(other581.parent_config);
+    child_config = std::move(other581.child_config);
+    primary_address = std::move(other581.primary_address);
+    __isset = std::move(other581.__isset);
+    return *this;
+}
+void register_child_request::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "register_child_request(";
+    out << "app=" << to_string(app);
+    out << ", "
+        << "parent_config=" << to_string(parent_config);
+    out << ", "
+        << "child_config=" << to_string(child_config);
+    out << ", "
+        << "primary_address=" << to_string(primary_address);
+    out << ")";
+}
+
+register_child_response::~register_child_response() throw() {}
+
+void register_child_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
+
+void register_child_response::__set_app(const ::dsn::app_info &val) { this->app = val; }
+
+void register_child_response::__set_parent_config(const ::dsn::partition_configuration &val)
+{
+    this->parent_config = val;
+}
+
+void register_child_response::__set_child_config(const ::dsn::partition_configuration &val)
+{
+    this->child_config = val;
+}
+
+uint32_t register_child_response::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->err.read(iprot);
+                this->__isset.err = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->app.read(iprot);
+                this->__isset.app = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 3:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->parent_config.read(iprot);
+                this->__isset.parent_config = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 4:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->child_config.read(iprot);
+                this->__isset.child_config = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t register_child_response::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("register_child_response");
+
+    xfer += oprot->writeFieldBegin("err", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->err.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("app", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += this->app.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("parent_config", ::apache::thrift::protocol::T_STRUCT, 3);
+    xfer += this->parent_config.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("child_config", ::apache::thrift::protocol::T_STRUCT, 4);
+    xfer += this->child_config.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(register_child_response &a, register_child_response &b)
+{
+    using ::std::swap;
+    swap(a.err, b.err);
+    swap(a.app, b.app);
+    swap(a.parent_config, b.parent_config);
+    swap(a.child_config, b.child_config);
+    swap(a.__isset, b.__isset);
+}
+
+register_child_response::register_child_response(const register_child_response &other582)
+{
+    err = other582.err;
+    app = other582.app;
+    parent_config = other582.parent_config;
+    child_config = other582.child_config;
+    __isset = other582.__isset;
+}
+register_child_response::register_child_response(register_child_response &&other583)
+{
+    err = std::move(other583.err);
+    app = std::move(other583.app);
+    parent_config = std::move(other583.parent_config);
+    child_config = std::move(other583.child_config);
+    __isset = std::move(other583.__isset);
+}
+register_child_response &register_child_response::operator=(const register_child_response &other584)
+{
+    err = other584.err;
+    app = other584.app;
+    parent_config = other584.parent_config;
+    child_config = other584.child_config;
+    __isset = other584.__isset;
+    return *this;
+}
+register_child_response &register_child_response::operator=(register_child_response &&other585)
+{
+    err = std::move(other585.err);
+    app = std::move(other585.app);
+    parent_config = std::move(other585.parent_config);
+    child_config = std::move(other585.child_config);
+    __isset = std::move(other585.__isset);
+    return *this;
+}
+void register_child_response::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "register_child_response(";
+    out << "err=" << to_string(err);
+    out << ", "
+        << "app=" << to_string(app);
+    out << ", "
+        << "parent_config=" << to_string(parent_config);
+    out << ", "
+        << "child_config=" << to_string(child_config);
+    out << ")";
+}
 }
 } // namespace

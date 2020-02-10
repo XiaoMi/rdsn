@@ -328,6 +328,10 @@ class app_partition_split_request;
 
 class app_partition_split_response;
 
+class register_child_request;
+
+class register_child_response;
+
 typedef struct _mutation_header__isset
 {
     _mutation_header__isset()
@@ -5600,6 +5604,140 @@ public:
 void swap(app_partition_split_response &a, app_partition_split_response &b);
 
 inline std::ostream &operator<<(std::ostream &out, const app_partition_split_response &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _register_child_request__isset
+{
+    _register_child_request__isset()
+        : app(false), parent_config(false), child_config(false), primary_address(false)
+    {
+    }
+    bool app : 1;
+    bool parent_config : 1;
+    bool child_config : 1;
+    bool primary_address : 1;
+} _register_child_request__isset;
+
+class register_child_request
+{
+public:
+    register_child_request(const register_child_request &);
+    register_child_request(register_child_request &&);
+    register_child_request &operator=(const register_child_request &);
+    register_child_request &operator=(register_child_request &&);
+    register_child_request() {}
+
+    virtual ~register_child_request() throw();
+    ::dsn::app_info app;
+    ::dsn::partition_configuration parent_config;
+    ::dsn::partition_configuration child_config;
+    ::dsn::rpc_address primary_address;
+
+    _register_child_request__isset __isset;
+
+    void __set_app(const ::dsn::app_info &val);
+
+    void __set_parent_config(const ::dsn::partition_configuration &val);
+
+    void __set_child_config(const ::dsn::partition_configuration &val);
+
+    void __set_primary_address(const ::dsn::rpc_address &val);
+
+    bool operator==(const register_child_request &rhs) const
+    {
+        if (!(app == rhs.app))
+            return false;
+        if (!(parent_config == rhs.parent_config))
+            return false;
+        if (!(child_config == rhs.child_config))
+            return false;
+        if (!(primary_address == rhs.primary_address))
+            return false;
+        return true;
+    }
+    bool operator!=(const register_child_request &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const register_child_request &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(register_child_request &a, register_child_request &b);
+
+inline std::ostream &operator<<(std::ostream &out, const register_child_request &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _register_child_response__isset
+{
+    _register_child_response__isset()
+        : err(false), app(false), parent_config(false), child_config(false)
+    {
+    }
+    bool err : 1;
+    bool app : 1;
+    bool parent_config : 1;
+    bool child_config : 1;
+} _register_child_response__isset;
+
+class register_child_response
+{
+public:
+    register_child_response(const register_child_response &);
+    register_child_response(register_child_response &&);
+    register_child_response &operator=(const register_child_response &);
+    register_child_response &operator=(register_child_response &&);
+    register_child_response() {}
+
+    virtual ~register_child_response() throw();
+    ::dsn::error_code err;
+    ::dsn::app_info app;
+    ::dsn::partition_configuration parent_config;
+    ::dsn::partition_configuration child_config;
+
+    _register_child_response__isset __isset;
+
+    void __set_err(const ::dsn::error_code &val);
+
+    void __set_app(const ::dsn::app_info &val);
+
+    void __set_parent_config(const ::dsn::partition_configuration &val);
+
+    void __set_child_config(const ::dsn::partition_configuration &val);
+
+    bool operator==(const register_child_response &rhs) const
+    {
+        if (!(err == rhs.err))
+            return false;
+        if (!(app == rhs.app))
+            return false;
+        if (!(parent_config == rhs.parent_config))
+            return false;
+        if (!(child_config == rhs.child_config))
+            return false;
+        return true;
+    }
+    bool operator!=(const register_child_response &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const register_child_response &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(register_child_response &a, register_child_response &b);
+
+inline std::ostream &operator<<(std::ostream &out, const register_child_response &obj)
 {
     obj.printTo(out);
     return out;

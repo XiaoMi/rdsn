@@ -781,6 +781,27 @@ struct app_partition_split_response
     3:i32                    partition_count;
 }
 
+// primary parent -> meta server, register child on meta_server
+struct register_child_request
+{
+    1:dsn.layer2.app_info                   app;
+    2:dsn.layer2.partition_configuration    parent_config;
+    3:dsn.layer2.partition_configuration    child_config;
+    4:dsn.rpc_address                       primary_address;
+}
+
+struct register_child_response
+{
+    // Possible errors:
+    // - ERR_INVALID_VERSION: request is out-dated
+    // - ERR_CHILD_REGISTERED: child has been registered
+    // - ERR_IO_PENDING: meta is executing another remote sync task
+    1:dsn.error_code                        err;
+    2:dsn.layer2.app_info                   app;
+    3:dsn.layer2.partition_configuration    parent_config;
+    4:dsn.layer2.partition_configuration    child_config;
+}
+
 /*
 service replica_s
 {
