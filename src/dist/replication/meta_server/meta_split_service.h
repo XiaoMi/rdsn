@@ -48,6 +48,8 @@ private:
     on_add_child_on_remote_storage_reply(error_code ec, register_child_rpc rpc, bool create_new);
 
 private:
+    friend class meta_split_service_test;
+    
     meta_service *_meta_svc;
     server_state *_state;
 
