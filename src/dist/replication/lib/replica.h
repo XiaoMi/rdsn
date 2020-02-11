@@ -390,6 +390,14 @@ private:
     // all replicas update partition_count in memory and disk
     void on_update_group_partition_count(update_group_partition_count_request request, 
                                          update_group_partition_count_response &response);
+    // primary wait for all replicas update partition count
+    void on_update_group_partition_count_reply(
+        error_code ec,
+        std::shared_ptr<update_group_partition_count_request> request,
+        std::shared_ptr<update_group_partition_count_response> response,
+        std::unordered_set<dsn::rpc_address> &not_finished_addresses,
+        rpc_address finished_address,
+        bool is_update_child);
 
     // return true if parent status is valid
     bool parent_check_states();

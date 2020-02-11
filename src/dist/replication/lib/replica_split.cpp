@@ -434,15 +434,15 @@ void replica::on_update_group_partition_count(
         return;
     }
 
-    if (_split_states.parent_gpid.get_app_id() != 0 && _split_states.is_caught_up == false) {
-        dwarn_replica("receive out-dated update_group_partition_count_request, child is not caught "
-                "up, request ballot = {}, local ballot = {}",
-                request.config.ballot,
-                get_ballot());
-        response.err = ERR_VERSION_OUTDATED;
-        // TODO(heyuchen): consider error hanlde
-        return;
-    }
+    // TODO(heyuchen): add this after merge pr #319
+    // if (_split_states.parent_gpid.get_app_id() != 0 && _split_states.is_caught_up == false) {
+    //     dwarn_replica("receive out-dated update_group_partition_count_request, child is not caught "
+    //             "up, request ballot = {}, local ballot = {}",
+    //             request.config.ballot,
+    //             get_ballot());
+    //     response.err = ERR_VERSION_OUTDATED;
+    //     return;
+    // }
 
     ddebug_replica("will update partition count = {}, ballot = {}", request.new_partition_count, request.ballot);
 
@@ -480,8 +480,8 @@ void replica::on_update_group_partition_count_reply(
     error_code ec,
     std::shared_ptr<update_group_partition_count_request> request,
     std::shared_ptr<update_group_partition_count_response> response,
-    std::shared_ptr<std::set<dsn::rpc_address>> left_replicas,
-    rpc_address finish_update_address,
+    std::unordered_set<dsn::rpc_address> not_finished_addresses,
+    rpc_address finished_address,
     bool is_update_child) // on primary parent
 {
     _checker.only_one_thread_access();
@@ -497,8 +497,8 @@ void replica::on_update_group_partition_count_reply(
     }
 
     if (ec == ERR_OK && response->err == ERR_OK) {
-        left_replicas->erase(finish_update_address);
-        if (left_replicas->empty()) {
+        not_finished_addresses->erase(finished_address);
+        if (not_finished_addresses->empty()) {
           ddebug_replica("update {} group partition_count", is_update_child ? "child" : "parent");
           // if (is_update_child) {
           //     register_child_on_meta(get_ballot());
@@ -507,7 +507,7 @@ void replica::on_update_group_partition_count_reply(
           // }
         } else { // not all reply
             ddebug_replica("there are still {} replica not update partition count in {} group",
-                     left_replicas->size(),
+                     not_finished_addresses->size(),
                      is_update_child ? "child" : "parent");
         }
         return;
@@ -531,20 +531,20 @@ void replica::on_update_group_partition_count_reply(
     tasking::enqueue(
         LPC_PARTITION_SPLIT,
         tracker(),
-        [this, request, finish_update_address, left_replicas, is_update_child]() {
+        [this, request, finished_address, not_finished_addresses, is_update_child]() {
             request->ballot = get_ballot();
-            rpc::call(finish_update_address,
+            rpc::call(finished_address,
                       RPC_SPLIT_UPDATE_PARTITION_COUNT,
                       *request,
                       tracker(),
-                      [this, request, finish_update_address, left_replicas, is_update_child](error_code err, update_group_partition_count_response &&response) {
+                      [this, request, finished_address, not_finished_addresses, is_update_child](error_code err, update_group_partition_count_response &&response) {
                           on_update_group_partition_count_reply(
                               err,
                               request,
                               std::make_shared<update_group_partition_count_response>(
                                   std::move(response)),
-                              left_replicas,
-                              finish_update_address,
+                              not_finished_addresses,
+                              finished_address,
                               is_update_child);
                       },
                       std::chrono::seconds(1),
