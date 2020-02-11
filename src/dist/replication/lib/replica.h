@@ -388,7 +388,7 @@ private:
                                          std::shared_ptr<register_child_request> request,
                                          std::shared_ptr<register_child_response> response);
     // primary sends register request to meta_server
-    void parent_send_register_request();
+    void parent_send_register_request(std::shared_ptr<register_child_request> request);
 
     // child partition has been registered on meta_server, could be active
     void child_partition_active(const partition_configuration &config);
