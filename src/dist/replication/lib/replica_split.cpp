@@ -409,6 +409,26 @@ void replica::register_child_on_meta(ballot b) // on primary parent
         request->parent_config.ballot,
         request->child_config.ballot);
 
+    parent_send_register_request(request);
+
+    // rpc_address meta_address(_stub->_failure_detector->get_servers());
+    // _primary_states.register_child_task = rpc::call(
+    //     meta_address,
+    //     RPC_CM_REGISTER_CHILD_REPLICA,
+    //     *request,
+    //     tracker(),
+    //     [=](error_code ec, register_child_response &&response) {
+    //         on_register_child_on_meta_reply(
+    //             ec, request, std::make_shared<register_child_response>(std::move(response)));
+    //     },
+    //     std::chrono::seconds(0),
+    //     get_gpid().thread_hash());
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::parent_send_register_request(std::shared_ptr<register_child_request> request) // on primary parent
+{
+    dassert_replica(status() == partition_status::PS_INACTIVE, "current status should be inactive, wrong status = {}", enum_to_string(status()));
     rpc_address meta_address(_stub->_failure_detector->get_servers());
     _primary_states.register_child_task = rpc::call(
         meta_address,
@@ -454,27 +474,26 @@ void replica::on_register_child_on_meta_reply(
             request->child_config.ballot,
             get_ballot());
 
-        // when the rpc call timeout, we would delay to do the recall
         if (ec != ERR_INVALID_VERSION && ec != ERR_CHILD_REGISTERED) {
-            // TODO(heyuchen): add a function here
             _primary_states.register_child_task = tasking::enqueue(
                 LPC_DELAY_UPDATE_CONFIG,
                 tracker(),
                 [this, request]() {
-                    rpc_address target(_stub->_failure_detector->get_servers());
-                    auto rpc_task_ptr = rpc::call(
-                        target,
-                        RPC_CM_REGISTER_CHILD_REPLICA,
-                        *request,
-                        tracker(),
-                        [=](error_code err, register_child_response &&resp) {
-                            on_register_child_on_meta_reply(
-                                err,
-                                request,
-                                std::make_shared<register_child_response>(std::move(resp)));
-                        },
-                        std::chrono::seconds(0),
-                        get_gpid().thread_hash());
+                    // rpc_address target(_stub->_failure_detector->get_servers());
+                    // auto rpc_task_ptr = rpc::call(
+                    //     target,
+                    //     RPC_CM_REGISTER_CHILD_REPLICA,
+                    //     *request,
+                    //     tracker(),
+                    //     [=](error_code err, register_child_response &&resp) {
+                    //         on_register_child_on_meta_reply(
+                    //             err,
+                    //             request,
+                    //             std::make_shared<register_child_response>(std::move(resp)));
+                    //     },
+                    //     std::chrono::seconds(0),
+                    //     get_gpid().thread_hash());
+                    parent_send_register_request(request);
                     _primary_states.register_child_task = rpc_task_ptr;
                 },
                 get_gpid().thread_hash(),
@@ -483,6 +502,7 @@ void replica::on_register_child_on_meta_reply(
         }
     }
 
+    // meta_server error
     if (response->parent_config.pid != get_gpid() || response->child_config.pid != _child_gpid) {
         derror_replica("remote parent gpid ({}) VS local gpid ({}), remote child ({}) VS local "
                        "child ({}), something wrong with meta, retry register",
@@ -495,20 +515,21 @@ void replica::on_register_child_on_meta_reply(
             LPC_DELAY_UPDATE_CONFIG,
             tracker(),
             [this, request]() {
-                rpc_address target(_stub->_failure_detector->get_servers());
-                auto rpc_task_ptr =
-                    rpc::call(target,
-                              RPC_CM_REGISTER_CHILD_REPLICA,
-                              *request,
-                              tracker(),
-                              [=](error_code err, register_child_response &&resp) {
-                                  on_register_child_on_meta_reply(
-                                      err,
-                                      request,
-                                      std::make_shared<register_child_response>(std::move(resp)));
-                              },
-                              std::chrono::seconds(0),
-                              get_gpid().thread_hash());
+                // rpc_address target(_stub->_failure_detector->get_servers());
+                // auto rpc_task_ptr =
+                //     rpc::call(target,
+                //               RPC_CM_REGISTER_CHILD_REPLICA,
+                //               *request,
+                //               tracker(),
+                //               [=](error_code err, register_child_response &&resp) {
+                //                   on_register_child_on_meta_reply(
+                //                       err,
+                //                       request,
+                //                       std::make_shared<register_child_response>(std::move(resp)));
+                //               },
+                //               std::chrono::seconds(0),
+                //               get_gpid().thread_hash());
+                parent_send_register_request(request);
                 _primary_states.register_child_task = rpc_task_ptr;
             },
             get_gpid().thread_hash(),

@@ -370,9 +370,5 @@ TEST_F(replica_split_test, register_child_reply_succeed)
     ASSERT_TRUE(is_parent_not_in_split());
 }
 
-// 1. status is not primary
-// 2. child has been registered
-// 3. registered succeed
-
 } // namespace replication
 } // namespace dsn
