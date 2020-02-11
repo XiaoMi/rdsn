@@ -1940,6 +1940,9 @@ void replica_stub::open_service()
 
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler(RPC_COLD_BACKUP, "ColdBackup", &replica_stub::on_cold_backup);
+    register_rpc_handler(RPC_SPLIT_UPDATE_PARTITION_COUNT,
+                         "split_update_group_partition_count",
+                         &replica_stub::on_update_group_partition_count);
 
     _kill_partition_command = ::dsn::command_manager::instance().register_app_command(
         {"kill_partition"},
@@ -2477,6 +2480,19 @@ void replica_stub::split_replica_error_handler(gpid pid, local_execution handler
         handler(replica);
     } else {
         dwarn_f("replica({}) is invalid", pid);
+    }
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_stub::on_update_group_partition_count(
+    const update_group_partition_count_request &request,
+    update_group_partition_count_response &response)
+{
+    replica_ptr replica = get_replica(request.config.pid);
+    if (replica != nullptr) {
+        replica->on_update_group_partition_count(request, response);
+    } else {
+        response.err = ERR_OBJECT_NOT_FOUND;
     }
 }
 

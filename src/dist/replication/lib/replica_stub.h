@@ -193,6 +193,10 @@ public:
     // if replica <pid> valid and exist, execute <handler>, otherwise return
     void split_replica_error_handler(gpid pid, local_execution handler);
 
+    // on all replica, update new partition count
+    void on_update_group_partition_count(const update_group_partition_count_request &request,
+                                         update_group_partition_count_response &response);
+
 private:
     enum replica_node_state
     {

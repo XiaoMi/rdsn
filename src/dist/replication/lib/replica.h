@@ -382,6 +382,15 @@ private:
     // child catch up parent states while executing async learn task
     void child_catch_up_states();
 
+    // primary parent send update partition count request to replicas in the group
+    // - {is_update_child} = true:  update child group partition count
+    // - {is_update_child} = false: update parent group partition count
+    void update_group_partition_count(int new_partition_count, bool is_update_child);
+
+    // all replicas update partition_count in memory and disk
+    void on_update_group_partition_count(update_group_partition_count_request request, 
+                                         update_group_partition_count_response &response);
+
     // return true if parent status is valid
     bool parent_check_states();
 
