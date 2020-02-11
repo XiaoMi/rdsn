@@ -430,7 +430,7 @@ void replica::on_register_child_on_meta_reply(
     std::shared_ptr<register_child_response> response) // on primary parent
 {
     FAIL_POINT_INJECT_F("replica_on_register_child_on_meta_reply", [](dsn::string_view) {});
-    
+
     _checker.only_one_thread_access();
 
     // primary parent is under reconfiguration, whose status should be PS_INACTIVE

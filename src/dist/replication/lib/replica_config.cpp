@@ -40,6 +40,7 @@
 #include "replica_stub.h"
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/utility/fail_point.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/dist/replication/replica_envs.h>
 
@@ -570,6 +571,8 @@ void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
 
 bool replica::update_configuration(const partition_configuration &config)
 {
+    FAIL_POINT_INJECT_F("replica_update_configuration", [](dsn::string_view) { return true; });
+
     dassert(config.ballot >= get_ballot(),
             "invalid ballot, %" PRId64 " VS %" PRId64 "",
             config.ballot,
@@ -837,6 +840,28 @@ bool replica::update_local_configuration(const replica_configuration &config,
             // => do this in close as it may block
             // r = _potential_secondary_states.cleanup(true);
             // dassert(r, "%s: potential secondary context cleanup failed", name());
+            break;
+        default:
+            dassert(false, "invalid execution path");
+        }
+        break;
+    case partition_status::PS_PARTITION_SPLIT:
+        switch (config.status) {
+        case partition_status::PS_PRIMARY:
+            _split_states.cleanup(true);
+            init_group_check();
+            replay_prepare_list();
+            break;
+        case partition_status::PS_SECONDARY:
+            _split_states.cleanup(true);
+            break;
+        case partition_status::PS_POTENTIAL_SECONDARY:
+            dassert(false, "invalid execution path");
+            break;
+        case partition_status::PS_INACTIVE:
+            break;
+        case partition_status::PS_ERROR:
+            _split_states.cleanup(false);
             break;
         default:
             dassert(false, "invalid execution path");

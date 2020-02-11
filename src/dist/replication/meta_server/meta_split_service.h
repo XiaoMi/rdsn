@@ -49,7 +49,7 @@ private:
 
 private:
     friend class meta_split_service_test;
-    
+
     meta_service *_meta_svc;
     server_state *_state;
 

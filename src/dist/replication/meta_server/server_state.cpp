@@ -1388,7 +1388,7 @@ void server_state::update_configuration_locally(
     health_status new_health_status = partition_health_status(new_cfg, min_2pc_count);
 
     if (app.is_stateful) {
-        dassert(old_cfg.ballot + 1 == new_cfg.ballot,
+        dassert(old_cfg.ballot == invalid_ballot || old_cfg.ballot + 1 == new_cfg.ballot,
                 "invalid configuration update request, old ballot %" PRId64 ", new ballot %" PRId64
                 "",
                 old_cfg.ballot,
