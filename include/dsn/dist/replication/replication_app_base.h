@@ -228,6 +228,8 @@ public:
     // query app envs.
     virtual void query_app_envs(/*out*/ std::map<std::string, std::string> &envs) = 0;
 
+    virtual void set_partition_version(uint32_t partition_version) {}
+
 public:
     //
     // utility functions to be used by app
