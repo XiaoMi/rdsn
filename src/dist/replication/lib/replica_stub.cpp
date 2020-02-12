@@ -2488,7 +2488,7 @@ void replica_stub::on_update_group_partition_count(
     const update_group_partition_count_request &request,
     update_group_partition_count_response &response)
 {
-    replica_ptr replica = get_replica(request.config.pid);
+    replica_ptr replica = get_replica(request.pid);
     if (replica != nullptr) {
         replica->on_update_group_partition_count(request, response);
     } else {

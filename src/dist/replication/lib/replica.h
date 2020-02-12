@@ -388,7 +388,7 @@ private:
     void update_group_partition_count(int new_partition_count, bool is_update_child);
 
     // all replicas update partition_count in memory and disk
-    void on_update_group_partition_count(update_group_partition_count_request request, 
+    void on_update_group_partition_count(update_group_partition_count_request request,
                                          update_group_partition_count_response &response);
     // primary wait for all replicas update partition count
     void on_update_group_partition_count_reply(
@@ -446,7 +446,7 @@ private:
     replica_stub *_stub;
     std::string _dir;
     replication_options *_options;
-    const app_info _app_info;
+    app_info _app_info;
     std::map<std::string, std::string> _extra_envs;
 
     // uniq timestamp generator for this replica.
