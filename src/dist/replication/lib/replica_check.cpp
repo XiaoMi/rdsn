@@ -96,6 +96,7 @@ void replica::broadcast_group_check()
         _primary_states.get_replica_config(it->second, request->config);
         request->last_committed_decree = last_committed_decree();
         request->__set_confirmed_decree(_duplication_mgr->min_confirmed_decree());
+        request->__set_child_gpid(_child_gpid);
 
         if (request->config.status == partition_status::PS_POTENTIAL_SECONDARY) {
             auto it = _primary_states.learners.find(addr);
@@ -169,6 +170,12 @@ void replica::on_group_check(const group_check_request &request,
     case partition_status::PS_SECONDARY:
         if (request.last_committed_decree > last_committed_decree()) {
             _prepare_list->commit(request.last_committed_decree, COMMIT_TO_DECREE_HARD);
+        }
+        if (request.__isset.child_gpid && request.child_gpid.get_app_id() > 0) {
+            // secondary create child replica
+            on_add_child(request);
+        } else {
+            _child_gpid.set_app_id(0);
         }
         break;
     case partition_status::PS_POTENTIAL_SECONDARY:

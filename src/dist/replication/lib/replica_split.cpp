@@ -384,5 +384,162 @@ void replica::child_handle_async_learn_error() // on child partition
     _split_states.async_learn_task = nullptr;
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::parent_check_partition_count(int32_t partition_count) // on primary parent partition
+{
+    if (partition_count == _app_info.partition_count * 2) {
+        ddebug_replica("app {} partition count changed, local partition count={}, remote partitin count={}",
+            _app_info.app_name,
+            _app_info.partition_count,
+            partition_count);
+        if (_child_gpid.get_app_id() <= 0) {
+            // TODO(heyuchen): after merge pr #394
+            // _partition_version = -1;
+            query_child_state();
+        }
+    }
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::query_child_state() // on primary parent partition
+{
+    if (status() != partition_status::PS_PRIMARY) {
+        dwarn_replica("current state is not primary, but {}", enum_to_string(status()));
+        return;
+    }
+
+    if (_primary_states.query_child_state_task != nullptr) {
+        dwarn_replica("is executing query child state task, skip this request");
+        return;
+    }
+
+    ddebug_replica("{} query child partition state on meta");
+    std::shared_ptr<query_child_state_request> request = std::make_shared<query_child_state_request>();
+    request->parent_gpid = get_gpid();
+    
+    parent_send_query_child_request(request);
+}
+
+void replica::on_query_child_state_reply(dsn::error_code ec,
+                                         std::shared_ptr<query_child_state_request> request,
+                                         std::shared_ptr<query_child_state_response> response)
+{
+    _checker.only_one_thread_access();
+
+    if (status() != partition_status::PS_PRIMARY) {
+        dwarn_replica("is not primary, but {}, ignore this response", enum_to_string(status()));
+        _primary_states.query_child_state_task = nullptr;
+        return;
+    }
+
+    if (_child_gpid.get_app_id() > 0) {
+        dwarn_replica("child partition({}) already valid, ignore this response", _child_gpid.to_string());
+        _primary_states.query_child_state_task = nullptr;
+        return;
+    }
+
+    if (ec == ERR_OK) {
+        ec = response->err;
+    }
+    if (ec != ERR_OK) {
+        dwarn_replica("query child state failed, error = {}, please retry", ec.to_string());
+
+        _primary_states.query_child_state_task = tasking::enqueue(
+            LPC_PARTITION_SPLIT,
+            tracker(),
+            std::bind(&replica::parent_send_query_child_request, this, request);
+            get_gpid().thread_hash(),
+            std::chrono::seconds(1));
+        return;
+    }
+
+    _primary_states.query_child_state_task = nullptr;
+    int partition_count = response->partition_count;
+    if (partition_count <= 0) {
+        dwarn_replica("query child state failed because something wrong with meta server, got invalid "
+                "partition_count = {}, please retry",
+                partition_count);
+        _primary_states.query_child_state_task = tasking::enqueue(
+            LPC_PARTITION_SPLIT,
+            tracker(),
+            std::bind(&replica::parent_send_query_child_request, this, request);
+            get_gpid().thread_hash(),
+            std::chrono::seconds(1));
+        return;
+    }
+
+    // current app finish partition split
+    if (partition_count == _app_info.partition_count) {
+        ddebug_replica("app({}) has been finished partition split, current partition count = {}",
+                 _app_info.app_name,
+                 partition_count);
+        // TODO(heyuchen): set partition_version
+        // _partition_version = partition_count - 1;
+        // _app->set_partition_version(_partition_version);
+        return;
+    }
+
+    dassert_replica(_app_info.partition_count * 2 == partition_count,
+            "partition_count not match, local:{} vs remote:{}",
+            _app_info.partition_count,
+            partition_count);
+
+    if (response->ballot != invalid_ballot ||
+        get_gpid().get_partition_index() >= partition_count / 2) {
+        ddebug_replica("has registered its child replica, local partition count = {}, remote partition count = {}, response ballot = {}",
+                 _app_info.partition_count,
+                 partition_count,
+                 response->child_ballot);
+        // TODO(heyuchen): add update_group_partition_count
+        // update_group_partition_count(partition_count, false);
+    } else if (!_primary_states.learners.empty() ||
+               _primary_states.membership.secondaries.size() + 1 <
+                   _primary_states.membership.max_replica_count) {
+        ddebug_replica(
+            "there are {} learners or not have enough secondaries({}), wait for next round",
+            _primary_states.learners.size(),
+            _primary_states.membership.secondaries.size());
+        // TODO(heyuchen): set partition_version
+        // _partition_version = _app_info.partition_count - 1;
+        // _app->set_partition_version(_partition_version);
+    } else {
+        // add child
+        gpid child_gpid(get_gpid().get_app_id(),
+                        get_gpid().get_partition_index() + partition_count / 2);
+        ddebug_replica("start to add child({})", child_gpid.to_string());
+
+        group_check_request add_child_request;
+        add_child_request.app = _app_info;
+        add_child_request.config.ballot = get_ballot();
+        add_child_request.__set_child_gpid(child_gpid);
+        
+        // TODO(heyuchen): add is_sync_to_child
+        // _primary_states.is_sync_to_child = false;
+
+        on_add_child(add_child_request); // parent create child replica
+        broadcast_group_check();         // secondaries create child during group check
+
+        // TODO(heyuchen): set partition_version
+        // _partition_version = _app_info.partition_count - 1;
+        // _app->set_partition_version(_partition_version);
+    }
+}
+
+void replica::parent_send_query_child_request(std::shared_ptr<query_child_state_request> request)
+{
+    dsn::rpc_address meta_address(_stub->_failure_detector->get_servers());
+    _primary_states.query_child_state_task = rpc::call(
+        meta_address,
+        RPC_CM_QUERY_CHILD_STATE,
+        *request,
+        tracker(),
+        [this, request](error_code ec, query_child_state_response &&response) {
+            on_query_child_state_reply(
+                ec, request, std::make_shared<query_child_state_response>(std::move(response)));
+        },
+        std::chrono::seconds(0),
+        get_gpid().thread_hash());
+}
+
 } // namespace replication
 } // namespace dsn

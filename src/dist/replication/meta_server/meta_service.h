@@ -68,6 +68,7 @@ typedef rpc_holder<configuration_update_app_env_request, configuration_update_ap
 typedef rpc_holder<ddd_diagnose_request, ddd_diagnose_response> ddd_diagnose_rpc;
 typedef rpc_holder<app_partition_split_request, app_partition_split_response>
     app_partition_split_rpc;
+typedef rpc_holder<query_child_state_request, query_child_state_response> query_child_state_rpc;
 
 class meta_service : public serverlet<meta_service>
 {
@@ -183,6 +184,7 @@ private:
 
     // split
     void on_app_partition_split(app_partition_split_rpc rpc);
+    void on_query_child_state(query_child_state_rpc rpc)
 
     // common routines
     // ret:

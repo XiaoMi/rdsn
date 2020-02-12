@@ -91,13 +91,17 @@ void primary_context::cleanup(bool clean_pending_mutations)
     // clean up checkpoint
     CLEANUP_TASK_ALWAYS(checkpoint_task)
 
+    // clean up query child state task
+    CLEANUP_TASK_ALWAYS(query_child_state_task)
+
     membership.ballot = 0;
 }
 
 bool primary_context::is_cleaned()
 {
     return nullptr == group_check_task && nullptr == reconfiguration_task &&
-           nullptr == checkpoint_task && group_check_pending_replies.empty();
+           nullptr == checkpoint_task && group_check_pending_replies.empty() &&
+           nullptr == query_child_state_task;
 }
 
 void primary_context::do_cleanup_pending_mutations(bool clean_pending_mutations)

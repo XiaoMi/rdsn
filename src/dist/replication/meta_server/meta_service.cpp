@@ -373,6 +373,8 @@ void meta_service::register_rpc_handlers()
         RPC_CM_DDD_DIAGNOSE, "ddd_diagnose", &meta_service::ddd_diagnose);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_APP_PARTITION_SPLIT, "app_partition_split", &meta_service::on_app_partition_split);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_QUERY_CHILD_STATE, "query_child_state", &meta_service::on_query_child_state);
 }
 
 int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address)
@@ -921,6 +923,16 @@ void meta_service::on_app_partition_split(app_partition_split_rpc rpc)
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
                      [this, rpc]() { _split_svc->app_partition_split(std::move(rpc)); },
+                     server_state::sStateHash);
+}
+
+void meta_service::on_query_child_state(query_child_state_rpc rpc)
+{
+    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     tracker(),
+                     [this, rpc]() { _split_svc->on_query_child_state(std::move(rpc)); },
                      server_state::sStateHash);
 }
 

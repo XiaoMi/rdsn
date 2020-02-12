@@ -781,6 +781,22 @@ struct app_partition_split_response
     3:i32                    partition_count;
 }
 
+// primary -> meta server
+// query child partition state during partition split
+struct query_child_state_request
+{
+    1:dsn.gpid          parent_gpid;
+}
+
+struct query_child_state_response
+{
+    // Possible errors:
+    // - ERR_TRY_AGAIN: meta is executing another remote sync task
+    1:dsn.error_code    err;
+    2:i32               partition_count;
+    3:i64               child_ballot;
+}
+
 /*
 service replica_s
 {

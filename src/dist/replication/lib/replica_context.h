@@ -102,6 +102,9 @@ public:
     dsn::task_ptr checkpoint_task;
 
     uint64_t last_prepare_ts_ms;
+
+    // parent -> meta_server: query child partition configuration
+    dsn::task_ptr query_child_state_task;
 };
 
 class secondary_context

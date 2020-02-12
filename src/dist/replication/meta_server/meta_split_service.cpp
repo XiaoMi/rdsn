@@ -131,5 +131,33 @@ void meta_split_service::do_app_partition_split(std::shared_ptr<app_state> app,
     _meta_svc->get_meta_storage()->set_data(
         _state->get_app_path(*app), std::move(value), on_write_storage_complete);
 }
+
+void meta_split_service::on_query_child_state(query_child_state_rpc rpc)
+{
+    dsn::gpid parent_gpid = rpc.request().parent_gpid;
+    auto &response = rpc.response();
+
+    zauto_write_lock l(app_lock());
+    std::shared_ptr<app_state> app = _state->get_app(parent_gpid.get_app_id());
+    dassert_f(app != nullptr, "get app failed, app_id({})", parent_gpid.get_app_id());
+
+    if (app->helpers->contexts[parent_gpid.get_partition_index()].pending_sync_task != nullptr) {
+        dwarn_f("app({}), partition({}) is execute pending sync task, please wait and try later",
+                app->app_name,
+                parent_gpid.to_string());
+        response.err = ERR_TRY_AGAIN;
+        return;
+    }
+
+    ddebug_f("app({}), partition({}) query child partition state", app->app_name, parent_gpid.to_string());
+
+    response.err = ERR_OK;
+    response.partition_count = app->partition_count;
+    response.child_ballot = invalid_ballot;
+    if (parent_gpid.get_partition_index() <= app->partition_count / 2) {
+        response.child_ballot = app->partitions[parent_gpid.get_partition_index() + app->partition_count / 2].ballot;
+    }
+}
+
 } // namespace replication
 } // namespace dsn
