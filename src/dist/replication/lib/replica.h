@@ -382,7 +382,6 @@ private:
     // child catch up parent states while executing async learn task
     void child_catch_up_states();
 
-
     // parent primary replica check if partition count changed during 'on_config_sync'
     void parent_check_partition_count(int32_t partition_count);
     // TODO(heyuchen): add comments

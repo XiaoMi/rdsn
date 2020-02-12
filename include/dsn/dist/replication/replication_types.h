@@ -328,6 +328,10 @@ class app_partition_split_request;
 
 class app_partition_split_response;
 
+class query_child_state_request;
+
+class query_child_state_response;
+
 typedef struct _mutation_header__isset
 {
     _mutation_header__isset()
@@ -5600,6 +5604,112 @@ public:
 void swap(app_partition_split_response &a, app_partition_split_response &b);
 
 inline std::ostream &operator<<(std::ostream &out, const app_partition_split_response &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _query_child_state_request__isset
+{
+    _query_child_state_request__isset() : parent_gpid(false) {}
+    bool parent_gpid : 1;
+} _query_child_state_request__isset;
+
+class query_child_state_request
+{
+public:
+    query_child_state_request(const query_child_state_request &);
+    query_child_state_request(query_child_state_request &&);
+    query_child_state_request &operator=(const query_child_state_request &);
+    query_child_state_request &operator=(query_child_state_request &&);
+    query_child_state_request() {}
+
+    virtual ~query_child_state_request() throw();
+    ::dsn::gpid parent_gpid;
+
+    _query_child_state_request__isset __isset;
+
+    void __set_parent_gpid(const ::dsn::gpid &val);
+
+    bool operator==(const query_child_state_request &rhs) const
+    {
+        if (!(parent_gpid == rhs.parent_gpid))
+            return false;
+        return true;
+    }
+    bool operator!=(const query_child_state_request &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const query_child_state_request &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(query_child_state_request &a, query_child_state_request &b);
+
+inline std::ostream &operator<<(std::ostream &out, const query_child_state_request &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _query_child_state_response__isset
+{
+    _query_child_state_response__isset() : err(false), partition_count(false), child_ballot(false)
+    {
+    }
+    bool err : 1;
+    bool partition_count : 1;
+    bool child_ballot : 1;
+} _query_child_state_response__isset;
+
+class query_child_state_response
+{
+public:
+    query_child_state_response(const query_child_state_response &);
+    query_child_state_response(query_child_state_response &&);
+    query_child_state_response &operator=(const query_child_state_response &);
+    query_child_state_response &operator=(query_child_state_response &&);
+    query_child_state_response() : partition_count(0), child_ballot(0) {}
+
+    virtual ~query_child_state_response() throw();
+    ::dsn::error_code err;
+    int32_t partition_count;
+    int64_t child_ballot;
+
+    _query_child_state_response__isset __isset;
+
+    void __set_err(const ::dsn::error_code &val);
+
+    void __set_partition_count(const int32_t val);
+
+    void __set_child_ballot(const int64_t val);
+
+    bool operator==(const query_child_state_response &rhs) const
+    {
+        if (!(err == rhs.err))
+            return false;
+        if (!(partition_count == rhs.partition_count))
+            return false;
+        if (!(child_ballot == rhs.child_ballot))
+            return false;
+        return true;
+    }
+    bool operator!=(const query_child_state_response &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const query_child_state_response &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(query_child_state_response &a, query_child_state_response &b);
+
+inline std::ostream &operator<<(std::ostream &out, const query_child_state_response &obj)
 {
     obj.printTo(out);
     return out;

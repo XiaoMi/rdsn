@@ -184,7 +184,7 @@ private:
 
     // split
     void on_app_partition_split(app_partition_split_rpc rpc);
-    void on_query_child_state(query_child_state_rpc rpc)
+    void on_query_child_state(query_child_state_rpc rpc);
 
     // common routines
     // ret:

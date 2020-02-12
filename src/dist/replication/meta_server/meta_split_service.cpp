@@ -149,13 +149,16 @@ void meta_split_service::on_query_child_state(query_child_state_rpc rpc)
         return;
     }
 
-    ddebug_f("app({}), partition({}) query child partition state", app->app_name, parent_gpid.to_string());
+    ddebug_f("app({}), partition({}) query child partition state",
+             app->app_name,
+             parent_gpid.to_string());
 
     response.err = ERR_OK;
     response.partition_count = app->partition_count;
     response.child_ballot = invalid_ballot;
     if (parent_gpid.get_partition_index() <= app->partition_count / 2) {
-        response.child_ballot = app->partitions[parent_gpid.get_partition_index() + app->partition_count / 2].ballot;
+        response.child_ballot =
+            app->partitions[parent_gpid.get_partition_index() + app->partition_count / 2].ballot;
     }
 }
 

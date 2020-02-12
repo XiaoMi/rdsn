@@ -35,6 +35,8 @@ public:
     explicit meta_split_service(meta_service *meta);
     // client -> meta to start split
     void app_partition_split(app_partition_split_rpc rpc);
+    // primary replica -> meta to query child partition states
+    void on_query_child_state(query_child_state_rpc rpc);
 
 private:
     void do_app_partition_split(std::shared_ptr<app_state> app, app_partition_split_rpc rpc);
