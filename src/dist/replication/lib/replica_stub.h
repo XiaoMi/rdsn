@@ -373,7 +373,7 @@ private:
     //               if we need to duplicate to multiple clusters someday.
     perf_counter_wrapper _counter_dup_log_read_in_bytes_rate;
     perf_counter_wrapper _counter_dup_log_mutations_read_rate;
-    perf_counter_wrapper _counter_dup_shipped_size_in_bytes_rate;
+    perf_counter_wrapper _counter_dup_shipped_bytes_rate;
     perf_counter_wrapper _counter_dup_confirmed_rate;
     perf_counter_wrapper _counter_dup_pending_mutations_count;
     perf_counter_wrapper _counter_dup_time_lag;

@@ -102,7 +102,7 @@ public:
     decree get_max_gced_decree() const;
 
     // For metric "dup.pending_mutations_count"
-    int64_t get_pending_mutations_count() const;
+    uint64_t get_pending_mutations_count() const;
 
 private:
     friend class replica_duplicator_test;

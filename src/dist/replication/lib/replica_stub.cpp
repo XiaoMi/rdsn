@@ -230,9 +230,9 @@ void replica_stub::install_perf_counters()
         "dup.log_mutations_read_rate",
         COUNTER_TYPE_RATE,
         "reading rate of mutations from private log");
-    _counter_dup_shipped_size_in_bytes_rate.init_app_counter(
+    _counter_dup_shipped_bytes_rate.init_app_counter(
         "eon.replica_stub",
-        "dup.shipped_size_in_bytes_rate",
+        "dup.shipped_bytes_rate",
         COUNTER_TYPE_RATE,
         "shipping rate of private log in bytes");
     _counter_dup_confirmed_rate.init_app_counter("eon.replica_stub",

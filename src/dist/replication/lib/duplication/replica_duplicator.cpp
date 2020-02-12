@@ -165,11 +165,11 @@ decree replica_duplicator::get_max_gced_decree() const
     return _replica->private_log()->max_gced_decree(_replica->get_gpid());
 }
 
-int64_t replica_duplicator::get_pending_mutations_count() const
+uint64_t replica_duplicator::get_pending_mutations_count() const
 {
     // it's not atomic to read last_committed_decree in not-REPLICATION thread pool,
     // but enough for approximate statistic.
-    int64_t cnt = _replica->last_committed_decree() - progress().last_decree;
+    uint64_t cnt = _replica->last_committed_decree() - progress().last_decree;
     return cnt > 0 ? cnt : 0;
 }
 

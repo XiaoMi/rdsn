@@ -55,7 +55,7 @@ void ship_mutation::ship(mutation_tuple_set &&in)
 {
     _mutation_duplicator->duplicate(std::move(in), [this](size_t total_shipped_size) mutable {
         update_progress();
-        _stub->_counter_dup_shipped_size_in_bytes_rate->add(total_shipped_size);
+        _stub->_counter_dup_shipped_bytes_rate->add(total_shipped_size);
         step_down_next_stage();
     });
 }
