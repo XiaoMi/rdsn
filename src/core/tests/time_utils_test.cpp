@@ -25,6 +25,7 @@
  */
 
 #include <dsn/utility/time_utils.h>
+#include <gtest/gtest.h>
 
 using namespace ::dsn;
 using namespace ::dsn::utils;
@@ -89,7 +90,7 @@ TEST(core, time_ms_to_date)
 {
     uint64_t ts_ms = 1581568230235; // 2020-02-13 12:30:30.235
     char buf[11];
-    time_ms_to_date(ts_ms, buf, sifzeof(buf));
+    time_ms_to_date(ts_ms, buf, sizeof(buf));
     ASSERT_EQ("2020-02-13", buf);
 }
 
@@ -107,7 +108,7 @@ TEST(core, time_ms_to_date_time_str)
 {
     uint64_t ts_ms = 1581568230235; // 2020-02-13 12:30:30.235
     char buf[20];
-    time_ms_to_date_time(ts_ms, buf, sifzeof(buf));
+    time_ms_to_date_time(ts_ms, buf, sizeof(buf));
     ASSERT_EQ("2020-02-13 12:30:30", buf);
 }
 
