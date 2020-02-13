@@ -978,11 +978,14 @@ void replica::on_config_sync(const app_info &info, const partition_configuration
 
     update_app_envs(info.envs);
 
-    if (status() == partition_status::PS_PRIMARY ||
-        nullptr != _primary_states.reconfiguration_task) {
-        // nothing to do as primary always holds the truth
+    if (nullptr != _primary_states.reconfiguration_task) {
+        // already under reconfiguration, skip configuration sync
+    } else if (status() == partition_status::PS_PRIMARY) {
+        // check if partition_count changed and start partition split
+        check_partition_count(info.partition_count);
     } else {
         if (_is_initializing) {
+            check_partition_count(info.partition_count);
             // in initializing, when replica still primary, need to inc ballot
             if (config.primary == _stub->_primary_address &&
                 status() == partition_status::PS_INACTIVE && _inactive_is_transient) {

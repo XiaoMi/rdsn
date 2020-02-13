@@ -387,7 +387,7 @@ void replica::child_handle_async_learn_error() // on child partition
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica::parent_check_partition_count(int32_t partition_count) // on primary parent partition
+void replica::check_partition_count(int32_t partition_count) // on primary parent partition
 {
     if (partition_count == _app_info.partition_count * 2) {
         ddebug_replica(
