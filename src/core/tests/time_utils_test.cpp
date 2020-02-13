@@ -117,5 +117,5 @@ TEST(core, get_current_physical_time_ns)
     int64_t ts_ns = get_current_physical_time_ns();
     ASSERT_LT(0, ts_ns);
     ASSERT_GE(get_current_physical_time_ns() - ts_ns, 0);
-    ASSERT_LT(get_current_physical_time_ns() - ts_ns, 1e9); // < 1s
+    ASSERT_LT(get_current_physical_time_ns() - ts_ns, 1e7); // < 10 ms
 }
