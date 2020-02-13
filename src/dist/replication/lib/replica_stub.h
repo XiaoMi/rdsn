@@ -371,7 +371,7 @@ private:
     // <- Duplication Metrics ->
     // TODO(wutao1): calculate the counters independently for each remote cluster
     //               if we need to duplicate to multiple clusters someday.
-    perf_counter_wrapper _counter_dup_log_read_in_bytes_rate;
+    perf_counter_wrapper _counter_dup_log_read_bytes_rate;
     perf_counter_wrapper _counter_dup_log_mutations_read_rate;
     perf_counter_wrapper _counter_dup_shipped_bytes_rate;
     perf_counter_wrapper _counter_dup_confirmed_rate;

@@ -221,8 +221,8 @@ void replica_stub::install_perf_counters()
 
     // <- Duplication Metrics ->
 
-    _counter_dup_log_read_in_bytes_rate.init_app_counter("eon.replica_stub",
-                                                         "dup.log_read_in_bytes_rate",
+    _counter_dup_log_read_bytes_rate.init_app_counter("eon.replica_stub",
+                                                         "dup.log_read_bytes_rate",
                                                          COUNTER_TYPE_RATE,
                                                          "reading rate of private log in bytes");
     _counter_dup_log_mutations_read_rate.init_app_counter(
