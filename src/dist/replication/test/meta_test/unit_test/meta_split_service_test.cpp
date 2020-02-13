@@ -73,16 +73,14 @@ public:
         return rpc.response();
     }
 
-    query_child_response on_query_child_state(int32_t new_partition_count, ballot child_ballot, bool is_reconfig = false)
+    query_child_state_response
+    on_query_child_state(int32_t new_partition_count, ballot child_ballot, bool is_reconfig = false)
     {
-        mock_local_app(new_partition_count, child_ballot);
+        mock_local_split_app(new_partition_count, child_ballot);
         auto app = find_app(NAME);
-        if(is_reconfig){
-            app->helpers->contexts[PARENT_INDEX].pending_sync_task = tasking::enqueue(LPC_META_STATE_HIGH,
-                             tracker(),
-                             [this]()  {
-                                ddebug_f("This is a mock reconfig task");
-                             });
+        if (is_reconfig) {
+            app->helpers->contexts[PARENT_INDEX].pending_sync_task =
+                tasking::enqueue(LPC_META_STATE_HIGH, nullptr, []() {});
         }
 
         auto request = dsn::make_unique<query_child_state_request>();
@@ -91,7 +89,7 @@ public:
         query_child_state_rpc rpc(std::move(request), RPC_CM_QUERY_CHILD_STATE);
         split_svc().on_query_child_state(rpc);
         wait_all();
-        app->helpers->contexts[PARENT_INDEX].pending_sync_task = nullptr；
+        app->helpers->contexts[PARENT_INDEX].pending_sync_task = nullptr;
         return rpc.response();
     }
 

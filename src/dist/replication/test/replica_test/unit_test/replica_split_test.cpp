@@ -130,7 +130,8 @@ public:
     partition_split_context get_split_context() { return _child->_split_states; }
 
     // TODO(heyuchen): after merge pr #394
-    // int32_t get_partition_version(mock_replica_ptr rep) { return rep->_partition_version.load(); }
+    // int32_t get_partition_version(mock_replica_ptr rep) { return rep->_partition_version.load();
+    // }
 
     void test_on_add_child()
     {
@@ -168,9 +169,11 @@ public:
 
     void test_on_query_child_reply(int32_t partition_count)
     {
-        std::shared_ptr<query_child_state_request> req = std::make_shared<query_child_state_request>();
+        std::shared_ptr<query_child_state_request> req =
+            std::make_shared<query_child_state_request>();
         req->parent_gpid = _parent_pid;
-        std::shared_ptr<query_child_state_response> resp = std::make_shared<query_child_state_response>();
+        std::shared_ptr<query_child_state_response> resp =
+            std::make_shared<query_child_state_response>();
         resp->err = ERR_OK;
         resp->partition_count = partition_count;
         resp->child_ballot = invalid_ballot;
