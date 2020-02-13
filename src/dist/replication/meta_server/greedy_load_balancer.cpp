@@ -826,7 +826,9 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
         bool is_skip = false;
         for (auto &partition : app->partitions) {
             if (partition.ballot == invalid_ballot) {
-                dinfo("app(name:%s id:%d) is during partition split, skip.", app->app_name.c_str(), app->app_id);
+                dinfo("app(name:%s id:%d) is during partition split, skip.",
+                      app->app_name.c_str(),
+                      app->app_id);
                 is_skip = true;
                 break;
             }

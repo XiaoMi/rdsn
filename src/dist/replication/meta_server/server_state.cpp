@@ -1596,7 +1596,7 @@ void server_state::on_update_configuration_on_remote_reply(
                 }
             }
         }
-    } else if (ec == ERR_OBJECT_NOT_FOUND) { 
+    } else if (ec == ERR_OBJECT_NOT_FOUND) {
         // child partition has not been registered, but app is dropped
         dassert(config_request->type == config_type::CT_DROP_PARTITION,
                 "invalid type %s",
