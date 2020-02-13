@@ -27,7 +27,8 @@
 #include <dsn/utility/time_utils.h>
 #include <gtest/gtest.h>
 
-using namespace ::dsn::utils;
+namespace dsn {
+namespace utils {
 
 TEST(core, hh_mm_to_seconds)
 {
@@ -84,3 +85,6 @@ TEST(core, get_current_physical_time_ns)
     ASSERT_GE(get_current_physical_time_ns() - ts_ns, 0);
     ASSERT_LT(get_current_physical_time_ns() - ts_ns, 1e7); // < 10 ms
 }
+
+} // namespace utils
+} // namespace dsn
