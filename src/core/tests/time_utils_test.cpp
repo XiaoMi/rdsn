@@ -27,7 +27,6 @@
 #include <dsn/utility/time_utils.h>
 #include <gtest/gtest.h>
 
-using namespace ::dsn;
 using namespace ::dsn::utils;
 
 TEST(core, hh_mm_to_seconds)
