@@ -370,6 +370,8 @@ void replica::update_configuration_on_meta_server(config_type::type type,
                 "");
         dassert(
             newConfig.primary == node, "%s VS %s", newConfig.primary.to_string(), node.to_string());
+    } else if (type == config_type::CT_REGISTER_CHILD) {
+        dassert(false, "invalid config_type, type = %s", enum_to_string(type));
     } else if (type != config_type::CT_ASSIGN_PRIMARY &&
                type != config_type::CT_UPGRADE_TO_PRIMARY) {
         dassert(status() == partition_status::PS_PRIMARY,
@@ -703,6 +705,16 @@ bool replica::update_local_configuration(const replica_configuration &config,
                       native_handle);
                 return false;
             }
+        }
+        break;
+    case partition_status::PS_PARTITION_SPLIT:
+        if (config.status == partition_status::PS_INACTIVE) {
+            dwarn_replica("status change from {} @ {} to {} @ {} is not allowed",
+                          enum_to_string(old_status),
+                          old_ballot,
+                          enum_to_string(config.status),
+                          config.ballot);
+            return false;
         }
         break;
     default:
