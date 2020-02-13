@@ -83,7 +83,7 @@ TEST(core, time_ms_to_string)
     uint64_t ts_ms = 1581568230235; // 2020-02-13 12:30:30.235
     char buf[24];
     time_ms_to_string(ts_ms, buf);
-    ASSERT_EQ("2020-02-13 12:30:30.235", buf);
+    ASSERT_EQ("2020-02-13 12:30:30.235", std::string(buf));
 }
 
 TEST(core, time_ms_to_date)
@@ -91,7 +91,7 @@ TEST(core, time_ms_to_date)
     uint64_t ts_ms = 1581568230235; // 2020-02-13 12:30:30.235
     char buf[11];
     time_ms_to_date(ts_ms, buf, sizeof(buf));
-    ASSERT_EQ("2020-02-13", buf);
+    ASSERT_EQ("2020-02-13", std::string(buf));
 }
 
 TEST(core, time_ms_to_date_time)
@@ -109,13 +109,13 @@ TEST(core, time_ms_to_date_time_str)
     uint64_t ts_ms = 1581568230235; // 2020-02-13 12:30:30.235
     char buf[20];
     time_ms_to_date_time(ts_ms, buf, sizeof(buf));
-    ASSERT_EQ("2020-02-13 12:30:30", buf);
+    ASSERT_EQ("2020-02-13 12:30:30", std::string(buf));
 }
 
 TEST(core, get_current_physical_time_ns)
 {
     int64_t ts_ns = get_current_physical_time_ns();
     ASSERT_LT(0, ts_ns);
-    ASSERT_GE(get_unix_sec_today_midnight() - ts_ns, 0);
-    ASSERT_LT(get_unix_sec_today_midnight() - ts_ns, 1e9); // < 1s
+    ASSERT_GE(get_current_physical_time_ns() - ts_ns, 0);
+    ASSERT_LT(get_current_physical_time_ns() - ts_ns, 1e9); // < 1s
 }
