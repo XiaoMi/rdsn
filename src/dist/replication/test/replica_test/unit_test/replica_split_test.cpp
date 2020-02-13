@@ -113,6 +113,12 @@ public:
         }
     }
 
+    void mock_parent_learner()
+    {
+        remote_learner_state state;
+        _parent->_primary_states.learners[rpc_address("127.0.0.1", 10086)] = state;
+    }
+
     void cleanup_prepare_list(mock_replica_ptr rep) { rep->_prepare_list->reset(0); }
 
     void cleanup_child_split_context()
@@ -122,6 +128,9 @@ public:
     }
 
     partition_split_context get_split_context() { return _child->_split_states; }
+
+    // TODO(heyuchen): after merge pr #394
+    // int32_t get_partition_version(mock_replica_ptr rep) { return rep->_partition_version.load(); }
 
     void test_on_add_child()
     {
@@ -155,6 +164,19 @@ public:
         _child->child_learn_states(
             _mock_learn_state, _mutation_list, _private_log_files, _total_file_size, _decree);
         _child->tracker()->wait_outstanding_tasks();
+    }
+
+    void test_on_query_child_reply(int32_t partition_count)
+    {
+        std::shared_ptr<query_child_state_request> req = std::make_shared<query_child_state_request>();
+        req->parent_gpid = _parent_pid;
+        std::shared_ptr<query_child_state_response> resp = std::make_shared<query_child_state_response>();
+        resp->err = ERR_OK;
+        resp->partition_count = partition_count;
+        resp->child_ballot = invalid_ballot;
+
+        _parent->on_query_child_state_reply(ERR_OK, req, resp);
+        _parent->tracker()->wait_outstanding_tasks();
     }
 
 public:
@@ -287,6 +309,33 @@ TEST_F(replica_split_test, learn_states_succeed)
 }
 
 // TODO(heyuchen): add learn_states failed case
+
+TEST_F(replica_split_test, query_child_state_with_app_finish_split)
+{
+    test_on_query_child_reply(_old_partition_count);
+    // TODO(heyuchen): after merge pr #394
+    // ASSERT_EQ(_old_partition_count-1, get_partition_version(_parent));
+}
+
+TEST_F(replica_split_test, query_child_state_with_learner)
+{
+    mock_parent_learner();
+    test_on_query_child_reply(_old_partition_count * 2);
+    // TODO(heyuchen): after merge pr #394
+    // ASSERT_EQ(_old_partition_count-1, get_partition_version(_parent));
+}
+
+TEST_F(replica_split_test, query_child_state_with_start_split)
+{
+    fail::setup();
+    fail::cfg("replica_on_add_child", "return()");
+    fail::cfg("replica_broadcast_group_check", "return()");
+    test_on_query_child_reply(_old_partition_count * 2);
+    fail::teardown();
+
+    // TODO(heyuchen): after merge pr #394
+    // ASSERT_EQ(_old_partition_count-1, get_partition_version(_parent));
+}
 
 } // namespace replication
 } // namespace dsn

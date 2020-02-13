@@ -17,6 +17,8 @@ namespace replication {
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica::on_add_child(const group_check_request &request) // on parent partition
 {
+    FAIL_POINT_INJECT_F("replica_on_add_child", [](dsn::string_view) {});
+
     if (status() != partition_status::PS_PRIMARY && status() != partition_status::PS_SECONDARY &&
         (status() != partition_status::PS_INACTIVE || !_inactive_is_transient)) {
         dwarn_replica("receive add child request with wrong status {}, ignore this request",
@@ -477,7 +479,7 @@ void replica::on_query_child_state_reply(dsn::error_code ec,
         ddebug_replica("app({}) has been finished partition split, current partition count = {}",
                        _app_info.app_name,
                        partition_count);
-        // TODO(heyuchen): set partition_version
+        // TODO(heyuchen): after merge pr #394
         // _partition_version = partition_count - 1;
         // _app->set_partition_version(_partition_version);
         return;
@@ -495,7 +497,7 @@ void replica::on_query_child_state_reply(dsn::error_code ec,
                        _app_info.partition_count,
                        partition_count,
                        response->child_ballot);
-        // TODO(heyuchen): add update_group_partition_count
+        // TODO(heyuchen): after merge pr #392
         // update_group_partition_count(partition_count, false);
     } else if (!_primary_states.learners.empty() ||
                _primary_states.membership.secondaries.size() + 1 <
@@ -504,7 +506,7 @@ void replica::on_query_child_state_reply(dsn::error_code ec,
             "there are {} learners or not have enough secondaries({}), wait for next round",
             _primary_states.learners.size(),
             _primary_states.membership.secondaries.size());
-        // TODO(heyuchen): set partition_version
+        // TODO(heyuchen): after merge pr #394
         // _partition_version = _app_info.partition_count - 1;
         // _app->set_partition_version(_partition_version);
     } else {
@@ -518,13 +520,13 @@ void replica::on_query_child_state_reply(dsn::error_code ec,
         add_child_request.config.ballot = get_ballot();
         add_child_request.__set_child_gpid(child_gpid);
 
-        // TODO(heyuchen): add is_sync_to_child
-        // _primary_states.is_sync_to_child = false;
+        // TODO(heyuchen): after merge pr #390
+        // _primary_states.sync_send_write_request = false;
 
         on_add_child(add_child_request); // parent create child replica
         broadcast_group_check();         // secondaries create child during group check
 
-        // TODO(heyuchen): set partition_version
+        // TODO(heyuchen): after merge pr #394
         // _partition_version = _app_info.partition_count - 1;
         // _app->set_partition_version(_partition_version);
     }
