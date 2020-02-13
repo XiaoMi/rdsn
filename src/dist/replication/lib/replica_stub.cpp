@@ -1074,6 +1074,11 @@ void replica_stub::get_local_replicas(std::vector<replica_info> &replicas)
 
     for (auto &pairs : _replicas) {
         replica_ptr &rep = pairs.second;
+        // ignore child partition during partition split
+        if (rep->status() == partition_status::PS_PARTITION_SPLIT) {
+            dinfo_f("{} is during partition split", rep->name());
+            continue;
+        }
         replica_info info;
         get_replica_info(info, rep);
         replicas.push_back(std::move(info));
@@ -1276,7 +1281,8 @@ void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
 void replica_stub::on_node_query_reply_scatter2(replica_stub_ptr this_, gpid id)
 {
     replica_ptr replica = get_replica(id);
-    if (replica != nullptr && replica->status() != partition_status::PS_POTENTIAL_SECONDARY) {
+    if (replica != nullptr && replica->status() != partition_status::PS_POTENTIAL_SECONDARY &&
+        replica->status() != partition_status::PS_PARTITION_SPLIT) {
         if (replica->status() == partition_status::PS_INACTIVE &&
             dsn_now_ms() - replica->create_time_milliseconds() <
                 _options.gc_memory_replica_interval_ms) {

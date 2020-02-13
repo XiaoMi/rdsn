@@ -1596,6 +1596,23 @@ void server_state::on_update_configuration_on_remote_reply(
                 }
             }
         }
+    } else if (ec == ERR_OBJECT_NOT_FOUND) { 
+        // child partition has not been registered, but app is dropped
+        dassert(config_request->type == config_type::CT_DROP_PARTITION,
+                "invalid type %s",
+                _config_type_VALUES_TO_NAMES.find(config_request->type)->second);
+        cc.pending_sync_task = nullptr;
+        cc.pending_sync_request.reset();
+        cc.stage = config_status::not_pending;
+        if (cc.msg) {
+            configuration_update_response resp;
+            resp.err = ERR_OK;
+            resp.config = config_request->config;
+            _meta_svc->reply_data(cc.msg, resp);
+            cc.msg->release_ref();
+            cc.msg = nullptr;
+        }
+        process_one_partition(app);
     } else {
         dassert(false, "we can't handle this right now, err = %s", ec.to_string());
     }
@@ -2361,7 +2378,7 @@ bool server_state::check_all_partitions()
             partition_configuration &pc = app->partitions[i];
             config_context &cc = app->helpers->contexts[i];
 
-            if (cc.stage != config_status::pending_remote_sync) {
+            if (pc.ballot != invalid_ballot && cc.stage != config_status::pending_remote_sync) {
                 configuration_proposal_action action;
                 pc_status s =
                     _meta_svc->get_balancer()->cure({&_all_apps, &_nodes}, pc.pid, action);

@@ -979,6 +979,9 @@ bool simple_load_balancer::collect_replica(meta_view view,
 {
     partition_configuration &pc = *get_config(*view.apps, info.pid);
     config_context &cc = *get_config_context(*view.apps, info.pid);
+    // current partition is during partition split
+    if (pc.ballot == invalid_ballot)
+        return false;
     if (is_member(pc, node)) {
         cc.collect_serving_replica(node, info);
         return true;

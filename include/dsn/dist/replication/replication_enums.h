@@ -21,6 +21,7 @@ ENUM_REG(replication::partition_status::PS_ERROR)
 ENUM_REG(replication::partition_status::PS_PRIMARY)
 ENUM_REG(replication::partition_status::PS_SECONDARY)
 ENUM_REG(replication::partition_status::PS_POTENTIAL_SECONDARY)
+ENUM_REG(replication::partition_status::PS_PARTITION_SPLIT)
 ENUM_END2(replication::partition_status::type, partition_status)
 
 ENUM_BEGIN2(replication::read_semantic::type,
