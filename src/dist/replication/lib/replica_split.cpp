@@ -82,7 +82,8 @@ void replica::child_init_replica(gpid parent_gpid,
 
     if (status() != partition_status::PS_INACTIVE) {
         dwarn_replica("wrong status {}", enum_to_string(status()));
-        _stub->split_replica_error_handler(parent_gpid, std::bind(&replica::parent_cleanup_split_context, std::placeholders::_1));
+        _stub->split_replica_error_handler(
+            parent_gpid, std::bind(&replica::parent_cleanup_split_context, std::placeholders::_1));
         return;
     }
 
@@ -97,10 +98,12 @@ void replica::child_init_replica(gpid parent_gpid,
 
     ddebug_replica("init ballot is {}, parent gpid is ({})", init_ballot, parent_gpid);
 
-    dsn::error_code ec = _stub->split_replica_exec(LPC_PARTITION_SPLIT, _split_states.parent_gpid,
+    dsn::error_code ec = _stub->split_replica_exec(
+        LPC_PARTITION_SPLIT,
+        _split_states.parent_gpid,
         std::bind(&replica::parent_prepare_states, std::placeholders::_1, _app->learn_dir()));
-    if(ec != ERR_OK){
-      child_handle_split_error("parent not exist when execute parent_prepare_states");
+    if (ec != ERR_OK) {
+        child_handle_split_error("parent not exist when execute parent_prepare_states");
     }
 }
 
@@ -186,16 +189,17 @@ void replica::parent_prepare_states(const std::string &dir) // on parent partiti
                    total_file_size,
                    last_committed_decree());
 
-    dsn::error_code ec = _stub->split_replica_exec(LPC_PARTITION_SPLIT, _child_gpid, 
-        std::bind(&replica::child_copy_prepare_list,
-                                        std::placeholders::_1,
-                                        parent_states,
-                                        mutation_list,
-                                        files,
-                                        total_file_size,
-                                        std::move(plist)));
-    if(ec != ERR_OK){
-      parent_cleanup_split_context();
+    ec = _stub->split_replica_exec(LPC_PARTITION_SPLIT,
+                                   _child_gpid,
+                                   std::bind(&replica::child_copy_prepare_list,
+                                             std::placeholders::_1,
+                                             parent_states,
+                                             mutation_list,
+                                             files,
+                                             total_file_size,
+                                             std::move(plist)));
+    if (ec != ERR_OK) {
+        parent_cleanup_split_context();
     }
 }
 
@@ -206,8 +210,6 @@ void replica::child_copy_prepare_list(learn_state lstate,
                                       uint64_t total_file_size,
                                       std::shared_ptr<prepare_list> plist) // on child partition
 {
-    FAIL_POINT_INJECT_F("replica_child_copy_prepare_list", [](dsn::string_view) {});
-
     if (status() != partition_status::PS_PARTITION_SPLIT) {
         dwarn_replica("wrong status, status is {}", enum_to_string(status()));
         _stub->split_replica_error_handler(
@@ -260,8 +262,6 @@ void replica::child_learn_states(learn_state lstate,
                                  uint64_t total_file_size,
                                  decree last_committed_decree) // on child partition
 {
-    FAIL_POINT_INJECT_F("replica_child_learn_states", [](dsn::string_view) {});
-
     if (status() != partition_status::PS_PARTITION_SPLIT) {
         dwarn_replica("wrong status, status is {}", enum_to_string(status()));
         child_handle_async_learn_error();
