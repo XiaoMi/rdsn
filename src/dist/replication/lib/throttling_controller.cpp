@@ -28,7 +28,6 @@
 
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/strings.h>
-#include <dsn/tool-api/clock.h>
 #include <dsn/tool-api/rpc_message.h>
 
 namespace dsn {

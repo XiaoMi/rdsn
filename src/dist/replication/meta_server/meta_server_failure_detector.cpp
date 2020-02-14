@@ -34,7 +34,6 @@
  */
 
 #include <dsn/utility/factory_store.h>
-#include <dsn/tool-api/clock.h>
 #include "meta_server_failure_detector.h"
 #include "server_state.h"
 #include "meta_service.h"

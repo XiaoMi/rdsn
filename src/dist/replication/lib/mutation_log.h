@@ -40,7 +40,6 @@
 
 #include <atomic>
 #include <dsn/tool-api/zlocks.h>
-#include <dsn/tool-api/clock.h>
 #include <dsn/utility/errors.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/dist/replication/replica_base.h>

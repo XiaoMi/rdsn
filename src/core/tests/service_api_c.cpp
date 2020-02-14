@@ -38,7 +38,6 @@
 #include <dsn/tool-api/file_io.h>
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/tool-api/zlocks.h>
-#include <dsn/tool-api/clock.h>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/filesystem.h>
 #include <gtest/gtest.h>

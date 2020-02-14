@@ -5,7 +5,6 @@
 #include <gtest/gtest.h>
 #include <dsn/service_api_cpp.h>
 #include <vector>
-#include <dsn/tool-api/clock.h>
 
 using namespace dsn;
 using namespace dsn::fd;

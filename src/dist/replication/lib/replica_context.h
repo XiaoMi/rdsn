@@ -29,7 +29,6 @@
 #include <dsn/tool-api/zlocks.h>
 #include <dsn/dist/block_service.h>
 #include <dsn/cpp/json_helper.h>
-#include <dsn/tool-api/clock.h>
 
 #include "mutation.h"
 

@@ -151,6 +151,12 @@ DSN_API void dsn_rpc_forward(dsn::message_ex *request, dsn::rpc_address addr)
                                             ::dsn::rpc_address(addr));
 }
 
+DSN_API uint64_t dsn_now_ns()
+{
+    assert(dsn::tools::g_clock.get() != nullptr);
+    return dsn::tools::g_clock->now_ns();
+}
+
 //------------------------------------------------------------------------------
 //
 // system

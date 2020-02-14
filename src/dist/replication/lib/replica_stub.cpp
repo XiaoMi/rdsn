@@ -43,7 +43,6 @@
 #include <dsn/utility/rand.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/tool-api/command_manager.h>
-#include <dsn/tool-api/clock.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <vector>
 #include <deque>

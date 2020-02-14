@@ -276,6 +276,12 @@ typedef struct
     int size;
 } dsn_file_buffer_t;
 
+extern DSN_API uint64_t dsn_now_ns();
+
+__inline uint64_t dsn_now_us() { return dsn_now_ns() / 1000; }
+__inline uint64_t dsn_now_ms() { return dsn_now_ns() / 1000000; }
+__inline uint64_t dsn_now_s() { return dsn_now_ns() / 1000000000; }
+
 /*@}*/
 
 /*@}*/

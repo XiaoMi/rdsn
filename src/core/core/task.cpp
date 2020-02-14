@@ -38,7 +38,6 @@
 #include <dsn/tool-api/task.h>
 #include <dsn/tool-api/env_provider.h>
 #include <dsn/tool-api/zlocks.h>
-#include <dsn/tool-api/clock.h>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/synchronize.h>
 #include <dsn/utility/rand.h>
