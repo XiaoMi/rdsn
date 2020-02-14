@@ -2,6 +2,7 @@
 #include <dsn/utility/time_utils.h>
 #include <dsn/utility/output_utils.h>
 #include <dsn/tool-api/http_server.h>
+#include <dsn/tool-api/clock.h>
 
 #include "meta_backup_service.h"
 #include "dist/replication/meta_server/meta_service.h"

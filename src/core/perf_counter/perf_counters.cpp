@@ -35,6 +35,7 @@
 
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/task.h>
+#include <dsn/tool-api/clock.h>
 #include <dsn/utility/string_view.h>
 #include <dsn/utility/time_utils.h>
 

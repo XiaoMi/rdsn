@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <dsn/utility/ports.h>
 #include <dsn/c/api_layer1.h>
+#include <dsn/tool-api/clock.h>
 
 namespace dsn {
 //

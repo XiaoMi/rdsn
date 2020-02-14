@@ -43,6 +43,7 @@
 #include "profiler_header.h"
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/time_utils.h>
+#include <dsn/tool-api/clock.h>
 
 namespace dsn {
 namespace tools {

@@ -5,13 +5,11 @@
 #include <dsn/tool-api/clock.h>
 
 namespace dsn {
-namespace tools {
 
 uint64_t clock::now_ns() const {
     return utils::get_current_physical_time_ns();
 }
 
-std::shared_ptr<clock> g_clock = nullptr;
+std::shared_ptr<clock> g_clock;
 
-} // namespace tools
 } // namespace dsn

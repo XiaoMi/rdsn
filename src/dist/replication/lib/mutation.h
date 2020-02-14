@@ -39,6 +39,7 @@
 #include <list>
 #include <atomic>
 #include <dsn/utility/link.h>
+#include <dsn/tool-api/clock.h>
 
 #ifndef __linux__
 #pragma warning(disable : 4201)

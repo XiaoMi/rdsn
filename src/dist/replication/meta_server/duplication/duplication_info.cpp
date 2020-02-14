@@ -29,6 +29,7 @@
 
 #include <rapidjson/prettywriter.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/tool-api/clock.h>
 
 namespace dsn {
 namespace replication {

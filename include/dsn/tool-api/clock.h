@@ -7,7 +7,6 @@
 #include <assert.h>
 
 namespace dsn {
-namespace tools {
 
 class clock {
 public:
@@ -32,5 +31,4 @@ inline uint64_t dsn_now_us() { return dsn_now_ns() * 1e-3; }
 inline uint64_t dsn_now_ms() { return dsn_now_ns() * 1e-6; }
 inline uint64_t dsn_now_s() { return dsn_now_ns() * 1e-9; }
 
-} // namespace tools
 } // namespace dsn

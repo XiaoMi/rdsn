@@ -37,6 +37,7 @@
 #include <sstream>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/time_utils.h>
+#include <dsn/tool-api/clock.h>
 
 namespace dsn {
 namespace tools {

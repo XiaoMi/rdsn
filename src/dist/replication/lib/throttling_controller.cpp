@@ -26,9 +26,9 @@
 
 #include "throttling_controller.h"
 
-#include <dsn/c/api_layer1.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/strings.h>
+#include <dsn/tool-api/clock.h>
 #include <dsn/tool-api/rpc_message.h>
 
 namespace dsn {

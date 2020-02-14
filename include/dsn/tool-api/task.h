@@ -48,6 +48,7 @@
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/tool-api/auto_codes.h>
+#include <dsn/tool-api/clock.h>
 #include <dsn/c/api_task.h>
 #include <dsn/c/api_layer1.h>
 

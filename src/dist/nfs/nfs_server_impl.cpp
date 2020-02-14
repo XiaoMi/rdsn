@@ -36,6 +36,7 @@
 #include <sys/stat.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/tool-api/async_calls.h>
+#include <dsn/tool-api/clock.h>
 
 #include "nfs_server_impl.h"
 

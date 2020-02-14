@@ -27,6 +27,7 @@
 #include <dsn/utility/utils.h>
 #include <dsn/utility/rand.h>
 #include <dsn/tool-api/async_calls.h>
+#include <dsn/tool-api/clock.h>
 #include "dist/replication/client/partition_resolver_simple.h"
 
 namespace dsn {

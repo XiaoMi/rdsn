@@ -42,6 +42,7 @@
 #include <dsn/utility/chrono_literals.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/tool-api/clock.h>
 
 namespace dsn {
 namespace replication {
