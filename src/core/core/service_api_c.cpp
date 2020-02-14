@@ -30,6 +30,7 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/process_utils.h>
 #include <dsn/tool-api/command_manager.h>
+#include <dsn/tool-api/clock.h>
 #include <fstream>
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
