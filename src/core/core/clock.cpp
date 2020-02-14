@@ -3,6 +3,7 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <dsn/tool-api/clock.h>
+#include <dsn/utility/time_utils.h>
 
 namespace dsn {
 
