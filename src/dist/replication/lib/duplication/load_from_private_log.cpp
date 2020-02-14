@@ -109,7 +109,7 @@ void load_from_private_log::replay_log_block()
             auto es = _mutation_batch.add(std::move(mu));
             dassert_replica(es.is_ok(), es.description());
             _stub->_counter_dup_log_read_bytes_rate->add(log_bytes_length);
-            _stub->_counter_dup_log_mutations_read_rate->increment();
+            _stub->_counter_dup_log_read_mutations_rate->increment();
             return true;
         },
         _start_offset,
