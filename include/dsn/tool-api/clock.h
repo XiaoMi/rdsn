@@ -5,6 +5,8 @@
 #pragma once
 
 #include <assert.h>
+#include <memory>
+#include <stdint.h>
 
 namespace dsn {
 
