@@ -39,6 +39,7 @@
 #include "diske.sim.h"
 #include "env.sim.h"
 #include "task_engine.sim.h"
+#include "sim_clock.h"
 
 namespace dsn {
 namespace tools {
@@ -118,6 +119,8 @@ void simulator::install(service_spec &spec)
     }
 
     sys_exit.put_front(simulator::on_system_exit, "simulator");
+
+    g_clock = std::make_shared<sim_clock>();
 }
 
 void simulator::on_system_exit(sys_exit_type st)

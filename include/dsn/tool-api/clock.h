@@ -7,7 +7,7 @@
 #include <assert.h>
 
 namespace dsn {
-namespace utils {
+namespace tools {
 
 class clock {
 public:
@@ -22,7 +22,7 @@ public:
     uint64_t now_ns() const;
 };
 
-extern clock *g_clock;
+extern std::shared_ptr<clock> g_clock;
 
 inline uint64_t dsn_now_ns() {
     assert(g_clock != nullptr);

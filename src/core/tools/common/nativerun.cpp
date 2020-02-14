@@ -34,6 +34,7 @@
  */
 
 #include <dsn/tool/nativerun.h>
+#include <dsn/tool-api/clock.h>
 
 namespace dsn {
 namespace tools {
@@ -105,6 +106,8 @@ void nativerun::install(service_spec &spec)
         if (tspec.queue_factory_name == "")
             tspec.queue_factory_name = ("dsn::tools::simple_task_queue");
     }
+
+    g_clock = std::make_shared<clock>();
 }
 
 void nativerun::run() { tool_app::run(); }

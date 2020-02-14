@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include <dsn/tool-api>
+#include <dsn/tool-api/clock.h>
+#include "scheduler.h"
 
 namespace dsn {
 namespace tools {
