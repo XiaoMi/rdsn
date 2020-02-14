@@ -10,10 +10,9 @@
 namespace dsn {
 namespace tools {
 
-class sim_clock : public clock {
-    uint64_t now_ns() const {
-        return scheduler::instance().now_ns();
-    }
+class sim_clock : public clock
+{
+    uint64_t now_ns() const { return scheduler::instance().now_ns(); }
 };
 
 } // namespace tools

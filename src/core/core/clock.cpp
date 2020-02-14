@@ -6,11 +6,11 @@
 #include <dsn/utility/time_utils.h>
 
 namespace dsn {
+namespace tools {
 
-uint64_t clock::now_ns() const {
-    return utils::get_current_physical_time_ns();
-}
+uint64_t clock::now_ns() const { return utils::get_current_physical_time_ns(); }
 
 std::shared_ptr<clock> g_clock;
 
+} // namespace tools
 } // namespace dsn

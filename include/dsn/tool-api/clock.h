@@ -11,7 +11,8 @@
 namespace dsn {
 namespace tools {
 
-class clock {
+class clock
+{
 public:
     clock() = default;
     uint64_t now_ns() const;
@@ -22,11 +23,11 @@ extern std::shared_ptr<clock> g_clock;
 } // namespace tools
 } // namespace dsn
 
-inline uint64_t dsn_now_ns() {
+inline uint64_t dsn_now_ns()
+{
     assert(dsn::tools::g_clock != nullptr);
     return dsn::tools::g_clock->now_ns();
 }
 inline uint64_t dsn_now_us() { return dsn_now_ns() * 1e-3; }
 inline uint64_t dsn_now_ms() { return dsn_now_ns() * 1e-6; }
 inline uint64_t dsn_now_s() { return dsn_now_ns() * 1e-9; }
-
