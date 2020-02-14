@@ -25,7 +25,7 @@ extern std::shared_ptr<clock> g_clock;
 
 inline uint64_t dsn_now_ns()
 {
-    assert(dsn::tools::g_clock != nullptr);
+    assert(dsn::tools::g_clock.get() != nullptr);
     return dsn::tools::g_clock->now_ns();
 }
 inline uint64_t dsn_now_us() { return dsn_now_ns() * 1e-3; }
