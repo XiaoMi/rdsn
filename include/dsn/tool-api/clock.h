@@ -15,7 +15,8 @@ class clock
 {
 public:
     clock() = default;
-    uint64_t now_ns() const;
+    virtual ~clock() = default;
+    virtual uint64_t now_ns() const;
 };
 
 extern std::shared_ptr<clock> g_clock;

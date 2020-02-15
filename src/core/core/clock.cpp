@@ -10,7 +10,7 @@ namespace tools {
 
 uint64_t clock::now_ns() const { return utils::get_current_physical_time_ns(); }
 
-std::shared_ptr<clock> g_clock;
+std::shared_ptr<clock> g_clock = std::make_shared<clock>();
 
 } // namespace tools
 } // namespace dsn
