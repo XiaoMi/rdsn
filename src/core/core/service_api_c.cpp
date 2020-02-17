@@ -30,7 +30,7 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/process_utils.h>
 #include <dsn/tool-api/command_manager.h>
-#include <dsn/tool-api/clock.h>
+#include <dsn/utility/clock.h>
 #include <fstream>
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
@@ -150,12 +150,6 @@ DSN_API void dsn_rpc_forward(dsn::message_ex *request, dsn::rpc_address addr)
 {
     ::dsn::task::get_current_rpc()->forward((::dsn::message_ex *)(request),
                                             ::dsn::rpc_address(addr));
-}
-
-DSN_API uint64_t dsn_now_ns()
-{
-    assert(dsn::tools::g_clock.get() != nullptr);
-    return dsn::tools::g_clock->now_ns();
 }
 
 //------------------------------------------------------------------------------

@@ -4,22 +4,29 @@
 
 #pragma once
 
-#include <assert.h>
 #include <memory>
-#include <stdint.h>
 
 namespace dsn {
-namespace tools {
+namespace utils {
 
 class clock
 {
 public:
     clock() = default;
     virtual ~clock() = default;
+
+    // Gets current time in nanoseconds.
     virtual uint64_t now_ns() const;
+
+    // Gets singleton instance. Hungry-man style singleton, which is thread safety
+    static std::shared_ptr<clock> instance();
+
+    // Resets the global clock implementation (not thread-safety)
+    static void mock(std::shared_ptr<clock> mock_clock);
+
+private:
+    static std::shared_ptr<clock> _clock;
 };
 
-extern std::shared_ptr<clock> g_clock;
-
-} // namespace tools
+} // namespace utils
 } // namespace dsn

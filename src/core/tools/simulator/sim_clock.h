@@ -4,14 +4,19 @@
 
 #pragma once
 
-#include <dsn/tool-api/clock.h>
+#include <dsn/utility/clock.h>
 #include "scheduler.h"
 
 namespace dsn {
 namespace tools {
 
-class sim_clock : public clock
+class sim_clock : public utils::clock
 {
+public:
+    sim_clock() = default;
+    virtual ~sim_clock() = default;
+
+    // Gets simulated time in nanoseconds.
     virtual uint64_t now_ns() const { return scheduler::instance().now_ns(); }
 };
 

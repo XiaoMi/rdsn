@@ -120,7 +120,8 @@ void simulator::install(service_spec &spec)
 
     sys_exit.put_front(simulator::on_system_exit, "simulator");
 
-    g_clock = std::make_shared<sim_clock>();
+    // the sim_clock is deleted by clock`s destrctor
+    utils::clock::instance()->mock(std::make_shared<sim_clock>());
 }
 
 void simulator::on_system_exit(sys_exit_type st)
@@ -134,5 +135,5 @@ void simulator::run()
     scheduler::instance().start();
     tool_app::run();
 }
-}
-} // end namespace dsn::tools
+} // namespace tools
+} // namespace dsn

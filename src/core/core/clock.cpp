@@ -2,15 +2,21 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include <dsn/tool-api/clock.h>
+#include <dsn/utility/clock.h>
 #include <dsn/utility/time_utils.h>
 
+DSN_API uint64_t dsn_now_ns() { return clock::instance()->now_ns(); }
+
 namespace dsn {
-namespace tools {
+namespace utils {
 
-uint64_t clock::now_ns() const { return utils::get_current_physical_time_ns(); }
+std::shared_ptr<clock> clock::_clock = std::make_shared<clock>();
 
-std::shared_ptr<clock> g_clock = std::make_shared<clock>();
+std::shared_ptr<clock> clock::instance() { return _clock; }
 
-} // namespace tools
+uint64_t clock::now_ns() const { return get_current_physical_time_ns(); }
+
+void clock::mock(std::shared_ptr<clock> mock_clock) { _clock = mock_clock; }
+
+} // namespace utils
 } // namespace dsn

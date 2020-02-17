@@ -34,7 +34,6 @@
  */
 
 #include <dsn/tool/nativerun.h>
-#include <dsn/tool-api/clock.h>
 
 namespace dsn {
 namespace tools {
