@@ -120,7 +120,6 @@ void simulator::install(service_spec &spec)
 
     sys_exit.put_front(simulator::on_system_exit, "simulator");
 
-    // the sim_clock is deleted by clock`s destrctor
     utils::clock::instance()->mock(std::make_shared<sim_clock>());
 }
 
