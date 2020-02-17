@@ -5,8 +5,6 @@
 #include <dsn/utility/clock.h>
 #include <dsn/utility/time_utils.h>
 
-DSN_API uint64_t dsn_now_ns() { return clock::instance()->now_ns(); }
-
 namespace dsn {
 namespace utils {
 
@@ -20,3 +18,5 @@ void clock::mock(std::shared_ptr<clock> mock_clock) { _clock = mock_clock; }
 
 } // namespace utils
 } // namespace dsn
+
+DSN_API uint64_t dsn_now_ns() { return clock::instance()->now_ns(); }
