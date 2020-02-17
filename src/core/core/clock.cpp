@@ -4,6 +4,7 @@
 
 #include <dsn/utility/clock.h>
 #include <dsn/utility/time_utils.h>
+#include <dsn/utility/dlib.h>
 
 namespace dsn {
 namespace utils {
