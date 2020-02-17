@@ -18,7 +18,7 @@ public:
     // Gets current time in nanoseconds.
     virtual uint64_t now_ns() const;
 
-    // Gets singleton instance. Hungry-man style singleton, which is thread safety
+    // Gets singleton instance. eager singleton, which is thread safe
     static std::shared_ptr<clock> instance();
 
     // Resets the global clock implementation (not thread-safety)
