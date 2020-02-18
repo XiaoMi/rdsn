@@ -69,7 +69,7 @@ public:
     void query_app_envs(std::map<std::string, std::string> &out) override { out = _envs; }
     decree last_durable_decree() const override { return 0; }
 
-    void set_partition_version(uint32_t partition_version) override {}
+    void set_partition_version(int32_t partition_version) override {}
 
 private:
     std::map<std::string, std::string> _envs;

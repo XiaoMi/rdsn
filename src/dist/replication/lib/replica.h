@@ -496,7 +496,7 @@ private:
     ballot _child_init_ballot{0};
     // in normal case _partition_version = partition_count-1
     // when parent register child, _partition_version = -1, will reject client read write request
-    std::atomic<int> _partition_version;
+    std::atomic<int32_t> _partition_version;
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
