@@ -90,6 +90,8 @@ public:
 
     virtual void query_app_envs(/*out*/ std::map<std::string, std::string> &envs) {}
 
+    virtual void set_partition_version(int32_t partition_version) {}
+
 private:
     void recover();
     void recover(const std::string &name, int64_t version);
