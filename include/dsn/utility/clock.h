@@ -19,13 +19,13 @@ public:
     virtual uint64_t now_ns() const;
 
     // Gets singleton instance. eager singleton, which is thread safe
-    static std::shared_ptr<clock> instance();
+    static const clock *instance();
 
     // Resets the global clock implementation (not thread-safety)
-    static void mock(std::shared_ptr<clock> mock_clock);
+    static void mock(clock *mock_clock);
 
 private:
-    static std::shared_ptr<clock> _clock;
+    static std::unique_ptr<clock> _clock;
 };
 
 } // namespace utils

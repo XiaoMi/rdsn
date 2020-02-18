@@ -120,7 +120,8 @@ void simulator::install(service_spec &spec)
 
     sys_exit.put_front(simulator::on_system_exit, "simulator");
 
-    utils::clock::instance()->mock(std::make_shared<sim_clock>());
+    // the new sim_clock is taken over by unique_ptr in clock instance
+    utils::clock::instance()->mock(new sim_clock());
 }
 
 void simulator::on_system_exit(sys_exit_type st)
