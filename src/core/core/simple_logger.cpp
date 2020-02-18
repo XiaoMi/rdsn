@@ -24,99 +24,17 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #include "simple_logger.h"
 #include <sstream>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/time_utils.h>
+#include <dsn/tool_api.h>
+#include <dsn/utility/config_api.h>
 
 namespace dsn {
-namespace tools {
+namespace utils {
 
-static void print_header(FILE *fp, dsn_log_level_t log_level)
-{
-    static char s_level_char[] = "IDWEF";
-
-    uint64_t ts = 0;
-    if (::dsn::tools::is_engine_ready())
-        ts = dsn_now_ns();
-
-    char str[24];
-    ::dsn::utils::time_ms_to_string(ts / 1000000, str);
-
-    int tid = ::dsn::utils::get_current_tid();
-
-    fprintf(fp, "%c%s (%" PRIu64 " %04x) ", s_level_char[log_level], str, ts, tid);
-
-    auto t = task::get_current_task_id();
-    if (t) {
-        if (nullptr != task::get_current_worker2()) {
-            fprintf(fp,
-                    "%6s.%7s%d.%016" PRIx64 ": ",
-                    task::get_current_node_name(),
-                    task::get_current_worker2()->pool_spec().name.c_str(),
-                    task::get_current_worker2()->index(),
-                    t);
-        } else {
-            fprintf(fp,
-                    "%6s.%7s.%05d.%016" PRIx64 ": ",
-                    task::get_current_node_name(),
-                    "io-thrd",
-                    tid,
-                    t);
-        }
-    } else {
-        if (nullptr != task::get_current_worker2()) {
-            fprintf(fp,
-                    "%6s.%7s%u: ",
-                    task::get_current_node_name(),
-                    task::get_current_worker2()->pool_spec().name.c_str(),
-                    task::get_current_worker2()->index());
-        } else {
-            fprintf(fp, "%6s.%7s.%05d: ", task::get_current_node_name(), "io-thrd", tid);
-        }
-    }
-}
-
-screen_logger::screen_logger(const char *log_dir) : logging_provider(log_dir)
-{
-    _short_header =
-        dsn_config_get_value_bool("tools.screen_logger",
-                                  "short_header",
-                                  true,
-                                  "whether to use short header (excluding file/function etc.)");
-}
-
-screen_logger::~screen_logger(void) {}
-
-void screen_logger::dsn_logv(const char *file,
-                             const char *function,
-                             const int line,
-                             dsn_log_level_t log_level,
-                             const char *fmt,
-                             va_list args)
-{
-    utils::auto_lock<::dsn::utils::ex_lock_nr> l(_lock);
-
-    print_header(stdout, log_level);
-    if (!_short_header) {
-        printf("%s:%d:%s(): ", file, line, function);
-    }
-    vprintf(fmt, args);
-    printf("\n");
-}
-
-void screen_logger::flush() { ::fflush(stdout); }
-
-simple_logger::simple_logger(const char *log_dir) : logging_provider(log_dir)
+simple_logger::simple_logger(const char *log_dir) : logger(log_dir)
 {
     _log_dir = std::string(log_dir);
     // we assume all valid entries are positive
@@ -215,12 +133,12 @@ void simple_logger::flush()
     ::fflush(stdout);
 }
 
-void simple_logger::dsn_logv(const char *file,
-                             const char *function,
-                             const int line,
-                             dsn_log_level_t log_level,
-                             const char *fmt,
-                             va_list args)
+void simple_logger::logv(const char *file,
+                         const char *function,
+                         const int line,
+                         dsn_log_level_t log_level,
+                         const char *fmt,
+                         va_list args)
 {
     va_list args2;
     if (log_level >= _stderr_start_level) {
@@ -253,11 +171,11 @@ void simple_logger::dsn_logv(const char *file,
     }
 }
 
-void simple_logger::dsn_log(const char *file,
-                            const char *function,
-                            const int line,
-                            dsn_log_level_t log_level,
-                            const char *str)
+void simple_logger::log(const char *file,
+                        const char *function,
+                        const int line,
+                        dsn_log_level_t log_level,
+                        const char *str)
 {
     utils::auto_lock<::dsn::utils::ex_lock> l(_lock);
 
@@ -282,5 +200,5 @@ void simple_logger::dsn_log(const char *file,
         create_log_file();
     }
 }
-}
-}
+} // namespace utils
+} // namespace dsn

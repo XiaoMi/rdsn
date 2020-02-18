@@ -36,10 +36,63 @@
 
 #include <dsn/service_api_c.h>
 #include <dsn/tool-api/command_manager.h>
-#include <dsn/tool-api/logging_provider.h>
+#include <dsn/utility/logger.h>
 #include <dsn/tool_api.h>
 #include "service_engine.h"
 #include <dsn/tool-api/auto_codes.h>
+#include <dsn/utility/logger.h>
+#include <dsn/utility/time_utils.h>
+
+namespace dsn {
+namespace utils {
+
+void logger::print_header(FILE *fp, dsn_log_level_t log_level)
+{
+    static char s_level_char[] = "IDWEF";
+
+    uint64_t ts = 0;
+    if (::dsn::tools::is_engine_ready())
+        ts = dsn_now_ns();
+
+    char str[24];
+    ::dsn::utils::time_ms_to_string(ts / 1000000, str);
+
+    int tid = ::dsn::utils::get_current_tid();
+
+    fprintf(fp, "%c%s (%" PRIu64 " %04x) ", s_level_char[log_level], str, ts, tid);
+
+    auto t = task::get_current_task_id();
+    if (t) {
+        if (nullptr != task::get_current_worker2()) {
+            fprintf(fp,
+                    "%6s.%7s%d.%016" PRIx64 ": ",
+                    task::get_current_node_name(),
+                    task::get_current_worker2()->pool_spec().name.c_str(),
+                    task::get_current_worker2()->index(),
+                    t);
+        } else {
+            fprintf(fp,
+                    "%6s.%7s.%05d.%016" PRIx64 ": ",
+                    task::get_current_node_name(),
+                    "io-thrd",
+                    tid,
+                    t);
+        }
+    } else {
+        if (nullptr != task::get_current_worker2()) {
+            fprintf(fp,
+                    "%6s.%7s%u: ",
+                    task::get_current_node_name(),
+                    task::get_current_worker2()->pool_spec().name.c_str(),
+                    task::get_current_worker2()->index());
+        } else {
+            fprintf(fp, "%6s.%7s.%05d: ", task::get_current_node_name(), "io-thrd", tid);
+        }
+    }
+}
+
+} // namespace utils
+} // namespace dsn
 
 DSN_API dsn_log_level_t dsn_log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
 
@@ -76,9 +129,9 @@ void dsn_log_init()
         "flush-log - flush log to stderr or log file",
         "flush-log",
         [](const std::vector<std::string> &args) {
-            ::dsn::logging_provider *logger = ::dsn::service_engine::instance().logging();
-            if (logger != nullptr) {
-                logger->flush();
+            ::dsn::utils::logger *logger_ = ::dsn::service_engine::instance().logging();
+            if (logger_ != nullptr) {
+                logger_->flush();
             }
             return "Flush done.";
         });
@@ -119,9 +172,9 @@ DSN_API void dsn_logv(const char *file,
                       const char *fmt,
                       va_list args)
 {
-    ::dsn::logging_provider *logger = ::dsn::service_engine::instance().logging();
-    if (logger != nullptr) {
-        logger->dsn_logv(file, function, line, log_level, fmt, args);
+    ::dsn::utils::logger *logger_ = ::dsn::service_engine::instance().logging();
+    if (logger_ != nullptr) {
+        logger_->logv(file, function, line, log_level, fmt, args);
     } else {
         printf("%s:%d:%s():", file, line, function);
         vprintf(fmt, args);
@@ -148,9 +201,9 @@ DSN_API void dsn_log(const char *file,
                      dsn_log_level_t log_level,
                      const char *str)
 {
-    ::dsn::logging_provider *logger = ::dsn::service_engine::instance().logging();
-    if (logger != nullptr) {
-        logger->dsn_log(file, function, line, log_level, str);
+    ::dsn::utils::logger *logger_ = ::dsn::service_engine::instance().logging();
+    if (logger_ != nullptr) {
+        logger_->log(file, function, line, log_level, str);
     } else {
         printf("%s:%d:%s():%s\n", file, line, function, str);
     }

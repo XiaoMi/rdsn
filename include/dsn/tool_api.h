@@ -60,7 +60,7 @@ Component providers define the interface for the local components (e.g., network
 #include <dsn/tool-api/aio_provider.h>
 #include <dsn/tool-api/env_provider.h>
 #include <dsn/tool-api/message_parser.h>
-#include <dsn/tool-api/logging_provider.h>
+#include <dsn/utility/logger.h>
 #include <dsn/tool-api/timer_service.h>
 
 namespace dsn {

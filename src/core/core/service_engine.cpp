@@ -214,7 +214,7 @@ void service_engine::init_before_toollets(const service_spec &spec)
     _spec = spec;
 
     // init common providers (first half)
-    _logging.reset(factory_store<logging_provider>::create(
+    _logging.reset(factory_store<logger>::create(
         spec.logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, spec.dir_log.c_str()));
 
     // init common for all per-node providers

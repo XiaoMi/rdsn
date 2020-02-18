@@ -35,64 +35,35 @@
 
 #pragma once
 
-#include <dsn/tool_api.h>
 #include <thread>
 #include <cstdio>
+#include <dsn/utility/logger.h>
 
 namespace dsn {
-namespace tools {
+namespace utils {
 
-class screen_logger : public logging_provider
-{
-public:
-    screen_logger(const char *log_dir);
-    virtual ~screen_logger(void);
-
-    virtual void dsn_logv(const char *file,
-                          const char *function,
-                          const int line,
-                          dsn_log_level_t log_level,
-                          const char *fmt,
-                          va_list args);
-
-    virtual void dsn_log(const char *file,
-                         const char *function,
-                         const int line,
-                         dsn_log_level_t log_level,
-                         const char *str){};
-
-    virtual void flush();
-
-private:
-    ::dsn::utils::ex_lock_nr _lock;
-    bool _short_header;
-};
-
-class simple_logger : public logging_provider
+class simple_logger : public logger
 {
 public:
     simple_logger(const char *log_dir);
     virtual ~simple_logger(void);
 
-    virtual void dsn_logv(const char *file,
-                          const char *function,
-                          const int line,
-                          dsn_log_level_t log_level,
-                          const char *fmt,
-                          va_list args);
-
-    virtual void dsn_log(const char *file,
-                         const char *function,
-                         const int line,
-                         dsn_log_level_t log_level,
-                         const char *str);
-
+    virtual void logv(const char *file,
+                      const char *function,
+                      const int line,
+                      dsn_log_level_t log_level,
+                      const char *fmt,
+                      va_list args);
+    virtual void log(const char *file,
+                     const char *function,
+                     const int line,
+                     dsn_log_level_t log_level,
+                     const char *str);
     virtual void flush();
 
 private:
     void create_log_file();
 
-private:
     std::string _log_dir;
     ::dsn::utils::ex_lock _lock; // use recursive lock to avoid dead lock when flush() is called
                                  // in signal handler if cored for bad logging format reason.
@@ -105,5 +76,6 @@ private:
     dsn_log_level_t _stderr_start_level;
     int _max_number_of_log_files_on_disk;
 };
-}
-}
+
+} // namespace utils
+} // namespace dsn
