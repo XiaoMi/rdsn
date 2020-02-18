@@ -683,7 +683,7 @@ void replica_stub::initialize_start()
     }
 #endif
 
-    if (!_options.duplication_disabled) {
+    if (_options.duplication_enabled) {
         _duplication_sync_timer = dsn::make_unique<duplication_sync_timer>(this);
         _duplication_sync_timer->start();
     }

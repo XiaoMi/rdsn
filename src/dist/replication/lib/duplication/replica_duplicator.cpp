@@ -139,7 +139,8 @@ error_s replica_duplicator::update_progress(const duplication_progress &p)
                        _progress.last_decree,
                        _progress.confirmed_decree);
     }
-    if (_progress.confirmed_decree > last_confirmed_decree) { // progress advances
+    if (_progress.confirmed_decree > last_confirmed_decree) {
+        // has confirmed_decree updated.
         _stub->_counter_dup_confirmed_rate->add(_progress.confirmed_decree - last_confirmed_decree);
     }
 
@@ -169,8 +170,9 @@ uint64_t replica_duplicator::get_pending_mutations_count() const
 {
     // it's not atomic to read last_committed_decree in not-REPLICATION thread pool,
     // but enough for approximate statistic.
-    uint64_t cnt = _replica->last_committed_decree() - progress().last_decree;
-    return cnt > 0 ? cnt : 0;
+    int64_t cnt = _replica->last_committed_decree() - progress().last_decree;
+    // since last_committed_decree() is not atomic, `cnt` could probably be negative.
+    return cnt > 0 ? static_cast<uint64_t>(cnt) : 0;
 }
 
 } // namespace replication

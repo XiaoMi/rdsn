@@ -122,7 +122,7 @@ void replica_duplicator_manager::update_confirmed_decree_if_secondary(decree con
 int64_t replica_duplicator_manager::get_pending_mutations_count() const
 {
     int64_t total = 0;
-    for (auto &dup : _duplications) {
+    for (const auto &dup : _duplications) {
         total += dup.second->get_pending_mutations_count();
     }
     return total;
