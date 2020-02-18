@@ -36,7 +36,7 @@ class logger_proxy : public singleton<logger_proxy>, public logger
 public:
     logger_proxy();
     ~logger_proxy() = default;
-    void init(logger *logger_);
+    void bind(logger *logger_);
 
     virtual void logv(const char *file,
                       const char *function,

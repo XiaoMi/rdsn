@@ -37,7 +37,7 @@ logger_proxy::logger_proxy() {
     _logger = make_unique<screen_logger>();
 }
 
-void logger_proxy::init(logger *logger_) {
+void logger_proxy::bind(logger *logger_) {
     _logger.reset(logger_);
 }
 
