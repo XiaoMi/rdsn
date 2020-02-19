@@ -233,7 +233,7 @@ public:
     // and write request, partition_version = -1.
     //
     // Thread-safe.
-    virtual void set_partition_version(int32_t partition_version) = 0;
+    virtual void set_partition_version(int32_t partition_version){};
 
 public:
     //
