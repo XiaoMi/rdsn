@@ -42,6 +42,7 @@
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/utility/logger.h>
 #include <dsn/utility/time_utils.h>
+#include "logger_proxy.h"
 
 namespace dsn {
 namespace utils {
@@ -96,71 +97,6 @@ void logger::print_header(FILE *fp, dsn_log_level_t log_level)
 
 DSN_API dsn_log_level_t dsn_log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
 
-static void log_on_sys_exit(::dsn::sys_exit_type)
-{
-    ::dsn::logging_provider *logger = ::dsn::service_engine::instance().logging();
-    if (logger != nullptr) {
-        logger->flush();
-    }
-}
-
-void dsn_log_init()
-{
-    dsn_log_start_level = enum_from_string(
-        dsn_config_get_value_string("core",
-                                    "logging_start_level",
-                                    enum_to_string(dsn_log_start_level),
-                                    "logs with level below this will not be logged"),
-        dsn_log_level_t::LOG_LEVEL_INVALID);
-
-    dassert(dsn_log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID,
-            "invalid [core] logging_start_level specified");
-
-    // register log flush on exit
-    bool logging_flush_on_exit = dsn_config_get_value_bool(
-        "core", "logging_flush_on_exit", true, "flush log when exit system");
-    if (logging_flush_on_exit) {
-        ::dsn::tools::sys_exit.put_back(log_on_sys_exit, "log.flush");
-    }
-
-    // register command for logging
-    ::dsn::command_manager::instance().register_command(
-        {"flush-log"},
-        "flush-log - flush log to stderr or log file",
-        "flush-log",
-        [](const std::vector<std::string> &args) {
-            ::dsn::utils::logger *logger_ = ::dsn::service_engine::instance().logging();
-            if (logger_ != nullptr) {
-                logger_->flush();
-            }
-            return "Flush done.";
-        });
-    ::dsn::command_manager::instance().register_command(
-        {"reset-log-start-level"},
-        "reset-log-start-level - reset the log start level",
-        "reset-log-start-level [INFORMATION | DEBUG | WARNING | ERROR | FATAL]",
-        [](const std::vector<std::string> &args) {
-            dsn_log_level_t start_level;
-            if (args.size() == 0) {
-                start_level = enum_from_string(
-                    dsn_config_get_value_string("core",
-                                                "logging_start_level",
-                                                enum_to_string(dsn_log_start_level),
-                                                "logs with level below this will not be logged"),
-                    dsn_log_level_t::LOG_LEVEL_INVALID);
-            } else {
-                std::string level_str = "LOG_LEVEL_" + args[0];
-                start_level =
-                    enum_from_string(level_str.c_str(), dsn_log_level_t::LOG_LEVEL_INVALID);
-                if (start_level == dsn_log_level_t::LOG_LEVEL_INVALID) {
-                    return "ERROR: invalid level '" + args[0] + "'";
-                }
-            }
-            dsn_log_set_start_level(start_level);
-            return std::string("OK, current level is ") + enum_to_string(start_level);
-        });
-}
-
 DSN_API dsn_log_level_t dsn_log_get_start_level() { return dsn_log_start_level; }
 
 DSN_API void dsn_log_set_start_level(dsn_log_level_t level) { dsn_log_start_level = level; }
@@ -172,14 +108,8 @@ DSN_API void dsn_logv(const char *file,
                       const char *fmt,
                       va_list args)
 {
-    ::dsn::utils::logger *logger_ = ::dsn::service_engine::instance().logging();
-    if (logger_ != nullptr) {
-        logger_->logv(file, function, line, log_level, fmt, args);
-    } else {
-        printf("%s:%d:%s():", file, line, function);
-        vprintf(fmt, args);
-        printf("\n");
-    }
+    ::dsn::utils::logger *logger_ = &dsn::utils::logger_proxy::instance();
+    logger_->logv(file, function, line, log_level, fmt, args);
 }
 
 DSN_API void dsn_logf(const char *file,
@@ -201,10 +131,6 @@ DSN_API void dsn_log(const char *file,
                      dsn_log_level_t log_level,
                      const char *str)
 {
-    ::dsn::utils::logger *logger_ = ::dsn::service_engine::instance().logging();
-    if (logger_ != nullptr) {
-        logger_->log(file, function, line, log_level, str);
-    } else {
-        printf("%s:%d:%s():%s\n", file, line, function, str);
-    }
+    ::dsn::utils::logger *logger_ = &dsn::utils::logger_proxy::instance();
+    logger_->log(file, function, line, log_level, str);
 }

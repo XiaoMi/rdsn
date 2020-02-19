@@ -33,9 +33,11 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-#include "core/tools/common/simple_logger.h"
 #include <gtest/gtest.h>
 #include <dsn/utility/filesystem.h>
+#include <dsn/utility/logger.h>
+#include "screen_logger.h"
+#include "simple_logger.h"
 
 using namespace dsn;
 using namespace dsn::tools;
@@ -86,18 +88,18 @@ static void finish_test_dir()
     rmdir(dir);
 }
 
-void log_print(logging_provider *logger, const char *fmt, ...)
+void log_print(dsn::utils::logger *log, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
-    logger->dsn_logv(__FILE__, __FUNCTION__, __LINE__, LOG_LEVEL_INFORMATION, fmt, vl);
+    log->logv(__FILE__, __FUNCTION__, __LINE__, LOG_LEVEL_INFORMATION, fmt, vl);
     va_end(vl);
 }
 
 TEST(tools_common, simple_logger)
 {
     // cases for print_header
-    screen_logger *logger = new screen_logger("./");
+    dsn::utils::screen_logger *logger = new dsn::utils::screen_logger("./");
     log_print(logger, "%s", "test_print");
     std::thread t(
         [](screen_logger *lg) {
@@ -113,7 +115,7 @@ TEST(tools_common, simple_logger)
     prepare_test_dir();
     // create multiple files
     for (unsigned int i = 0; i < simple_logger_gc_gap + 10; ++i) {
-        simple_logger *logger = new simple_logger("./");
+        dsn::utils::simple_logger *logger = new dsn::utils::simple_logger("./");
         // in this case stdout is useless
         for (unsigned int i = 0; i != 1000; ++i)
             log_print(logger, "%s", "test_print");

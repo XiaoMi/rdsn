@@ -144,7 +144,7 @@ register_component_provider(const char *name, aio_provider::factory f, ::dsn::pr
 DSN_API bool
 register_component_provider(const char *name, env_provider::factory f, ::dsn::provider_type type);
 DSN_API bool register_component_provider(const char *name,
-                                         logging_provider::factory f,
+                                         dsn::utils::logger::factory f,
                                          ::dsn::provider_type type);
 DSN_API bool register_component_provider(network_header_format fmt,
                                          const std::vector<const char *> &signatures,
@@ -153,7 +153,7 @@ DSN_API bool register_component_provider(network_header_format fmt,
 DSN_API bool register_toollet(const char *name, toollet::factory f, ::dsn::provider_type type);
 DSN_API bool register_tool(const char *name, tool_app::factory f, ::dsn::provider_type type);
 DSN_API toollet *get_toollet(const char *name, ::dsn::provider_type type);
-}
+} // namespace internal_use_only
 
 /*!
 @addtogroup tool-api-hooks
@@ -214,5 +214,5 @@ bool register_message_header_parser(network_header_format fmt,
     return internal_use_only::register_component_provider(
         fmt, signatures, T::template create<T>, sizeof(T));
 }
-}
-} // end namespace dsn::tools
+} // namespace tools
+} // namespace dsn

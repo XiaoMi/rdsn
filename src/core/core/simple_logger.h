@@ -60,21 +60,22 @@ public:
                      dsn_log_level_t log_level,
                      const char *str);
     virtual void flush();
+    void set_stderr_start_level(dsn_log_level_t stderr_start_level);
 
 private:
     void create_log_file();
 
     std::string _log_dir;
-    ::dsn::utils::ex_lock _lock; // use recursive lock to avoid dead lock when flush() is called
-                                 // in signal handler if cored for bad logging format reason.
+    // use recursive lock to avoid dead lock when flush() is called
+    // in signal handler if cored for bad logging format reason.
+    ::dsn::utils::ex_lock _lock;
     FILE *_log;
     int _start_index;
     int _index;
     int _lines;
-    bool _short_header;
-    bool _fast_flush;
-    dsn_log_level_t _stderr_start_level;
-    int _max_number_of_log_files_on_disk;
+    dsn_log_level_t _stderr_start_level = LOG_LEVEL_WARNING;
+    const int _max_number_of_log_files_on_disk = 20;
+    const int _max_line_of_log_file = 2 * 1e5;
 };
 
 } // namespace utils

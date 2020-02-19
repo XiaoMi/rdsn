@@ -68,6 +68,7 @@ public:
                      dsn_log_level_t log_level,
                      const char *str) = 0;
     virtual void flush() = 0;
+    virtual void set_stderr_start_level(dsn_log_level_t stderr_start_level) {}
 };
 
 } // namespace utils

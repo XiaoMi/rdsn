@@ -29,14 +29,7 @@
 namespace dsn {
 namespace utils {
 
-screen_logger::screen_logger(const char *log_dir) : logger(log_dir)
-{
-    _short_header =
-        dsn_config_get_value_bool("tools.screen_logger",
-                                  "short_header",
-                                  true,
-                                  "whether to use short header (excluding file/function etc.)");
-}
+screen_logger::screen_logger(const char *log_dir) : logger(log_dir) {}
 
 void screen_logger::logv(const char *file,
                          const char *function,
@@ -48,11 +41,19 @@ void screen_logger::logv(const char *file,
     utils::auto_lock<::dsn::utils::ex_lock_nr> l(_lock);
 
     print_header(stdout, log_level);
-    if (!_short_header) {
-        printf("%s:%d:%s(): ", file, line, function);
-    }
+    printf("%s:%d:%s(): ", file, line, function);
     vprintf(fmt, args);
     printf("\n");
+}
+
+void screen_logger::log(const char *file,
+                        const char *function,
+                        const int line,
+                        dsn_log_level_t log_level,
+                        const char *str)
+{
+    print_header(stdout, log_level);
+    printf("%s:%d:%s(): %s\n", file, line, function, str);
 }
 
 void screen_logger::flush() { ::fflush(stdout); }

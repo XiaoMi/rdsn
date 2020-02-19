@@ -40,6 +40,7 @@
 #include "disk_engine.h"
 #include "task_engine.h"
 #include "coredump.h"
+#include "logger_proxy.h"
 
 //
 // global state
@@ -275,7 +276,80 @@ tool_app *get_current_tool() { return dsn_all.tool.get(); }
 } // namespace tools
 } // namespace dsn
 
-extern void dsn_log_init();
+static void log_on_sys_exit(::dsn::sys_exit_type)
+{
+    ::dsn::utils::logger *logger_ = &dsn::utils::logger_proxy::instance();
+    logger_->flush();
+}
+
+static void dsn_log_init(const std::string &logging_factory_name, const std::string &dir_log)
+{
+    dsn_log_start_level = enum_from_string(
+        dsn_config_get_value_string("core",
+                                    "logging_start_level",
+                                    enum_to_string(dsn_log_start_level),
+                                    "logs with level below this will not be logged"),
+        dsn_log_level_t::LOG_LEVEL_INVALID);
+
+    dsn_log_level_t stderr_start_level = enum_from_string(
+        dsn_config_get_value_string(
+            "tools.simple_logger",
+            "stderr_start_level",
+            enum_to_string(LOG_LEVEL_WARNING),
+            "copy log messages at or above this level to stderr in addition to logfiles"),
+        LOG_LEVEL_INVALID);
+    dassert(stderr_start_level != LOG_LEVEL_INVALID,
+            "invalid [tools.simple_logger] stderr_start_level specified");
+
+    // create a logger and bind it to logger_proxy
+    dsn::utils::logger *log = dsn::utils::factory_store<dsn::utils::logger>::create(
+        logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
+    log->set_stderr_start_level(stderr_start_level);
+    dsn::utils::logger_proxy::instance().bind(log, dsn_log_start_level);
+
+    // register log flush on exit
+    bool logging_flush_on_exit = dsn_config_get_value_bool(
+        "core", "logging_flush_on_exit", true, "flush log when exit system");
+    if (logging_flush_on_exit) {
+        ::dsn::tools::sys_exit.put_back(log_on_sys_exit, "log.flush");
+    }
+
+    // register command for logging
+    ::dsn::command_manager::instance().register_command(
+        {"flush-log"},
+        "flush-log - flush log to stderr or log file",
+        "flush-log",
+        [](const std::vector<std::string> &args) {
+            ::dsn::utils::logger *logger_ = &dsn::utils::logger_proxy::instance();
+            logger_->flush();
+            return "Flush done.";
+        });
+    ::dsn::command_manager::instance().register_command(
+        {"reset-log-start-level"},
+        "reset-log-start-level - reset the log start level",
+        "reset-log-start-level [INFORMATION | DEBUG | WARNING | ERROR | FATAL]",
+        [](const std::vector<std::string> &args) {
+            dsn_log_level_t start_level;
+            if (args.size() == 0) {
+                start_level = enum_from_string(
+                    dsn_config_get_value_string("core",
+                                                "logging_start_level",
+                                                enum_to_string(dsn_log_start_level),
+                                                "logs with level below this will not be logged"),
+                    dsn_log_level_t::LOG_LEVEL_INVALID);
+            } else {
+                std::string level_str = "LOG_LEVEL_" + args[0];
+                start_level =
+                    enum_from_string(level_str.c_str(), dsn_log_level_t::LOG_LEVEL_INVALID);
+                if (start_level == dsn_log_level_t::LOG_LEVEL_INVALID) {
+                    return "ERROR: invalid level '" + args[0] + "'";
+                }
+            }
+            dsn_log_set_start_level(start_level);
+            return std::string("OK, current level is ") + enum_to_string(start_level);
+        });
+}
+
 extern void dsn_core_init();
 
 inline void dsn_global_init()
@@ -387,7 +461,7 @@ bool run(const char *config_file,
     ::dsn::service_engine::instance().init_before_toollets(spec);
 
     // init logging
-    dsn_log_init();
+    dsn_log_init(spec.logging_factory_name, spec.dir_log);
 
     ddebug("process(%ld) start: %" PRIu64 ", date: %s",
            getpid(),

@@ -164,10 +164,10 @@ bool register_component_provider(const char *name,
 }
 
 bool register_component_provider(const char *name,
-                                 logging_provider::factory f,
+                                 utils::logger::factory f,
                                  ::dsn::provider_type type)
 {
-    return dsn::utils::factory_store<logging_provider>::register_factory(name, f, type);
+    return dsn::utils::factory_store<utils::logger>::register_factory(name, f, type);
 }
 
 bool register_component_provider(network_header_format fmt,
@@ -190,6 +190,6 @@ toollet *get_toollet(const char *name, ::dsn::provider_type type)
         return tlt;
     }
 }
-}
-}
-} // end namespace dsn::tool_api
+} // namespace internal_use_only
+} // namespace tools
+} // namespace dsn

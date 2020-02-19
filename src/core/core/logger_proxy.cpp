@@ -35,10 +35,16 @@ std::unique_ptr<logger> logger_proxy::_logger = make_unique<screen_logger>();
 
 logger_proxy::logger_proxy() {
     _logger = make_unique<screen_logger>();
+    _log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
 }
 
-void logger_proxy::bind(logger *logger_) {
+logger* logger_proxy::bind(logger *logger_, const dsn_log_level_t &log_start_level)
+{
+    dassert(log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID,
+            "invalid [core] logging_start_level specified");
+    _log_start_level = log_start_level;
     _logger.reset(logger_);
+    return &instance();
 }
 
 void logger_proxy::logv(const char *file,
@@ -48,7 +54,9 @@ void logger_proxy::logv(const char *file,
                         const char *fmt,
                         va_list args)
 {
-    _logger->logv(file, function, line, log_level, fmt, args);
+    if (log_level >= _log_start_level) {
+        _logger->logv(file, function, line, log_level, fmt, args);
+    }
 }
 
 void logger_proxy::log(const char *file,
@@ -57,10 +65,17 @@ void logger_proxy::log(const char *file,
                        dsn_log_level_t log_level,
                        const char *str)
 {
-    _logger->log(file, function, line, log_level, str);
+    if (log_level >= _log_start_level) {
+        _logger->log(file, function, line, log_level, str);
+    }
 }
 
 void logger_proxy::flush() { _logger->flush(); }
+
+void logger_proxy::set_stderr_start_level(dsn_log_level_t stderr_start_level)
+{
+    _logger->set_stderr_start_level(stderr_start_level);
+}
 
 } // namespace utils
 } // namespace dsn
