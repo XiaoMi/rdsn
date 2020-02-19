@@ -494,8 +494,8 @@ private:
     // ballot when starting partition split and split will stop if ballot changed
     // _child_init_ballot = 0 if partition not in partition split
     ballot _child_init_ballot{0};
-    // in normal case _partition_version = partition_count-1
-    // when parent register child, _partition_version = -1, will reject client read write request
+    // in normal cases, _partition_version = partition_count-1
+    // when replica reject client read write request, partition_version = -1
     std::atomic<int32_t> _partition_version;
 
     // perf counters
