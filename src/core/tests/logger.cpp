@@ -36,11 +36,12 @@
 #include <gtest/gtest.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/logger.h>
+#include <dsn/tool-api/task.h>
 #include "../core/screen_logger.h"
 #include "../core/simple_logger.h"
 
 using namespace dsn;
-using namespace dsn::tools;
+using namespace dsn::utils;
 
 static const int simple_logger_gc_gap = 20;
 
@@ -99,7 +100,7 @@ void log_print(dsn::utils::logger *log, const char *fmt, ...)
 TEST(tools_common, simple_logger)
 {
     // cases for print_header
-    dsn::utils::screen_logger *logger = new dsn::utils::screen_logger("./");
+    screen_logger *logger = new screen_logger("./");
     log_print(logger, "%s", "test_print");
     std::thread t(
         [](screen_logger *lg) {
