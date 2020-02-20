@@ -457,11 +457,11 @@ bool run(const char *config_file,
     ::MallocExtension::instance()->SetMemoryReleaseRate(tcmalloc_release_rate);
 #endif
 
-    // prepare minimum necessary
-    ::dsn::service_engine::instance().init_before_toollets(spec);
-
     // init logging
     dsn_log_init(spec.logging_factory_name, spec.dir_log);
+
+    // prepare minimum necessary
+    ::dsn::service_engine::instance().init_before_toollets(spec);
 
     ddebug("process(%ld) start: %" PRIu64 ", date: %s",
            getpid(),
