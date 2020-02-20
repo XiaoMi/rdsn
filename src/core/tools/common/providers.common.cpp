@@ -35,6 +35,8 @@
 
 #include "asio_net_provider.h"
 #include <dsn/tool/providers.common.h>
+#include <screen_logger.h>
+#include <simple_logger.h>
 #include "lockp.std.h"
 #include "native_aio_provider.linux.h"
 #include "simple_task_queue.h"
@@ -42,8 +44,6 @@
 #include "dsn_message_parser.h"
 #include "thrift_message_parser.h"
 #include "raw_message_parser.h"
-#include "simple_logger.h"
-#include "screen_logger.h"
 
 namespace dsn {
 namespace tools {
