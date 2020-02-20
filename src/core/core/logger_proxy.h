@@ -34,7 +34,8 @@ namespace utils {
 class logger_proxy : public logger, public singleton<logger_proxy>
 {
 public:
-    logger_proxy(const char *log_dir = nullptr);
+    logger_proxy();
+    logger_proxy(const char *log_dir);
     ~logger_proxy() = default;
 
     /// not thread safe
