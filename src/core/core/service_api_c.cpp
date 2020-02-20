@@ -278,8 +278,8 @@ tool_app *get_current_tool() { return dsn_all.tool.get(); }
 
 static void log_on_sys_exit(::dsn::sys_exit_type)
 {
-    ::dsn::utils::logger *logger_ = &dsn::utils::logger_proxy::instance();
-    logger_->flush();
+    ::dsn::utils::logger *log = &dsn::utils::logger_proxy::instance();
+    log->flush();
 }
 
 static void dsn_log_init(const std::string &logging_factory_name, const std::string &dir_log)
@@ -320,8 +320,8 @@ static void dsn_log_init(const std::string &logging_factory_name, const std::str
         "flush-log - flush log to stderr or log file",
         "flush-log",
         [](const std::vector<std::string> &args) {
-            ::dsn::utils::logger *logger_ = &dsn::utils::logger_proxy::instance();
-            logger_->flush();
+            ::dsn::utils::logger *log = &dsn::utils::logger_proxy::instance();
+            log->flush();
             return "Flush done.";
         });
     ::dsn::command_manager::instance().register_command(

@@ -108,8 +108,8 @@ DSN_API void dsn_logv(const char *file,
                       const char *fmt,
                       va_list args)
 {
-    ::dsn::utils::logger *logger_ = &dsn::utils::logger_proxy::instance();
-    logger_->logv(file, function, line, log_level, fmt, args);
+    ::dsn::utils::logger *log = &dsn::utils::logger_proxy::instance();
+    log->logv(file, function, line, log_level, fmt, args);
 }
 
 DSN_API void dsn_logf(const char *file,
@@ -131,6 +131,6 @@ DSN_API void dsn_log(const char *file,
                      dsn_log_level_t log_level,
                      const char *str)
 {
-    ::dsn::utils::logger *logger_ = &dsn::utils::logger_proxy::instance();
-    logger_->log(file, function, line, log_level, str);
+    ::dsn::utils::logger *log = &dsn::utils::logger_proxy::instance();
+    log->log(file, function, line, log_level, str);
 }

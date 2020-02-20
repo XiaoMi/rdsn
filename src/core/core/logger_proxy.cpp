@@ -38,12 +38,12 @@ logger_proxy::logger_proxy() {
     _log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
 }
 
-logger* logger_proxy::bind(logger *logger_, const dsn_log_level_t &log_start_level)
+logger* logger_proxy::bind(logger *log, const dsn_log_level_t &log_start_level)
 {
     dassert(log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID,
             "invalid [core] logging_start_level specified");
     _log_start_level = log_start_level;
-    _logger.reset(logger_);
+    _logger.reset(log);
     return &instance();
 }
 

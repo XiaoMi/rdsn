@@ -38,7 +38,7 @@ public:
 
     /// not thread safe
     /// bind the specific logger, and return the logger_proxy
-    logger *bind(logger *logger_, const dsn_log_level_t &log_start_level);
+    logger *bind(logger *log, const dsn_log_level_t &log_start_level);
 
     virtual void logv(const char *file,
                       const char *function,
