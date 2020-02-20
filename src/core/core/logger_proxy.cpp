@@ -31,8 +31,6 @@
 namespace dsn {
 namespace utils {
 
-std::unique_ptr<logger> logger_proxy::_logger = make_unique<screen_logger>();
-
 logger_proxy::logger_proxy() {
     _logger = make_unique<screen_logger>();
     _log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;

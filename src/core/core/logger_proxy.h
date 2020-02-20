@@ -34,6 +34,7 @@ namespace utils {
 class logger_proxy : public logger, public singleton<logger_proxy>
 {
 public:
+    logger_proxy();
     ~logger_proxy() = default;
 
     /// not thread safe
@@ -52,10 +53,9 @@ public:
                      dsn_log_level_t log_level,
                      const char *str);
     virtual void flush();
-    virtual void set_stderr_start_level(dsn_log_level_t stderr_start_level);
+    void set_stderr_start_level(dsn_log_level_t stderr_start_level) override;
 
 private:
-    logger_proxy();
     std::unique_ptr<logger> _logger;
     dsn_log_level_t _log_start_level;
 };
