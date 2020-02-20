@@ -24,12 +24,12 @@
  * THE SOFTWARE.
  */
 
-#include "simple_logger.h"
 #include <sstream>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/time_utils.h>
 #include <dsn/tool_api.h>
-#include <dsn/utility/config_api.h>
+
+#include "simple_logger.h"
 
 namespace dsn {
 namespace utils {

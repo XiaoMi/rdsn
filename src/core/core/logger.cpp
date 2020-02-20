@@ -34,13 +34,9 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-#include <dsn/service_api_c.h>
-#include <dsn/tool-api/command_manager.h>
 #include <dsn/utility/logger.h>
 #include <dsn/tool_api.h>
 #include "service_engine.h"
-#include <dsn/tool-api/auto_codes.h>
-#include <dsn/utility/logger.h>
 #include <dsn/utility/time_utils.h>
 #include "logger_proxy.h"
 
@@ -50,16 +46,12 @@ namespace utils {
 void logger::print_header(FILE *fp, dsn_log_level_t log_level)
 {
     static char s_level_char[] = "IDWEF";
-
-    uint64_t ts = 0;
-    if (::dsn::tools::is_engine_ready())
-        ts = dsn_now_ns();
+    uint64_t ts = dsn_now_ns();
 
     char str[24];
     ::dsn::utils::time_ms_to_string(ts / 1000000, str);
 
     int tid = ::dsn::utils::get_current_tid();
-
     fprintf(fp, "%c%s (%" PRIu64 " %04x) ", s_level_char[log_level], str, ts, tid);
 
     auto t = task::get_current_task_id();
