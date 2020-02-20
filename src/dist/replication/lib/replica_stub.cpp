@@ -1972,7 +1972,6 @@ void replica_stub::open_service()
 
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler(RPC_COLD_BACKUP, "ColdBackup", &replica_stub::on_cold_backup);
-
     register_rpc_handler(RPC_SPLIT_NOTIFY_CATCH_UP,
                          "child_notify_catch_up",
                          &replica_stub::on_notify_primary_split_catch_up);

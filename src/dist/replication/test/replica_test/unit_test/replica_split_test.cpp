@@ -350,6 +350,21 @@ TEST_F(replica_split_test, learn_states_succeed)
     cleanup_child_split_context();
 }
 
+TEST_F(replica_split_test, learn_states_with_replay_private_log_error)
+{
+    generate_child(partition_status::PS_PARTITION_SPLIT);
+    mock_child_split_context(_parent_pid, true, false);
+
+    fail::setup();
+    fail::cfg("replica_child_apply_private_logs", "return(error)");
+    fail::cfg("replica_child_catch_up_states", "return()");
+    test_child_learn_states();
+    fail::teardown();
+
+    cleanup_prepare_list(_child);
+    cleanup_child_split_context();
+}
+
 TEST_F(replica_split_test, child_apply_private_logs_succeed)
 {
     generate_child(partition_status::PS_PARTITION_SPLIT);

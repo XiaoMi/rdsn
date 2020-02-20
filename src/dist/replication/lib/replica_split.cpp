@@ -499,17 +499,18 @@ void replica::child_notify_catch_up() // on child partition
                                        std::bind(&replica::child_notify_catch_up, this),
                                        get_gpid().thread_hash(),
                                        std::chrono::seconds(1));
-                  } else if (ec != ERR_OK || response.err != ERR_OK) {
+                      return;
+                  }
+                  if (ec != ERR_OK || response.err != ERR_OK) {
                       error_code err = (ec == ERR_OK) ? response.err : ec;
-                      derror_replica("failed to notify primary catch up, error={}",
-                                     err.to_string());
+                      dwarn_replica("failed to notify primary catch up, error={}", err.to_string());
                       _stub->split_replica_error_handler(
                           _split_states.parent_gpid,
                           std::bind(&replica::parent_cleanup_split_context, std::placeholders::_1));
                       child_handle_split_error("notify_primary_split_catch_up");
-                  } else {
-                      ddebug_replica("notify primary catch up succeed");
+                      return;
                   }
+                  ddebug_replica("notify primary catch up succeed");
               },
               std::chrono::seconds(0),
               _split_states.parent_gpid.thread_hash());

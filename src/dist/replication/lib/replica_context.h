@@ -57,8 +57,7 @@ public:
         : next_learning_version(0),
           write_queue(gpid, max_concurrent_2pc_count, batch_write_disabled),
           last_prepare_decree_on_new_primary(0),
-          last_prepare_ts_ms(dsn_now_ms()),
-          sync_send_write_request(false)
+          last_prepare_ts_ms(dsn_now_ms())
     {
     }
 
@@ -112,11 +111,11 @@ public:
     // whether parent's write request should send to child synchronously
     // if {sync_send_write_request} = true
     // - parent should recevie prepare ack from child synchronously during 2pc
-    // if {sync_send_write_request} = false && _child_gpid.get_app_id() > 0
+    // if {sync_send_write_request} = false && replica {child_gpid}.get_app_id() > 0
     // - parent should copy mutations to child asynchronously, child is during async-learn
-    // if {sync_send_write_request} = false && _child_gpid.get_app_id() = 0
+    // if {sync_send_write_request} = false && replica {_child_gpid}.get_app_id() = 0
     // - current partition is not during partition split
-    bool sync_send_write_request;
+    bool sync_send_write_request{false};
 };
 
 class secondary_context
