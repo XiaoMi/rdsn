@@ -29,7 +29,7 @@
 namespace dsn {
 namespace utils {
 
-screen_logger::screen_logger(const char *log_dir) : logger(log_dir) {}
+screen_logger::screen_logger(const char *log_dir) {}
 
 void screen_logger::logv(const char *file,
                          const char *function,

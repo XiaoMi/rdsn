@@ -34,7 +34,7 @@ namespace utils {
 class screen_logger : public logger
 {
 public:
-    screen_logger(const char *log_dir);
+    screen_logger(const char *log_dir = "./");
     virtual ~screen_logger(void) = default;
 
     virtual void logv(const char *file,

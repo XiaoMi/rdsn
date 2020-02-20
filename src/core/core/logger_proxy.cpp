@@ -31,16 +31,13 @@
 namespace dsn {
 namespace utils {
 
-logger_proxy::logger_proxy() {
-    logger_proxy("./");
-}
-
-logger_proxy::logger_proxy(const char *dir) {
+logger_proxy::logger_proxy(const char *dir)
+{
     _logger = make_unique<screen_logger>(dir);
     _log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
 }
 
-logger* logger_proxy::bind(logger *log, const dsn_log_level_t &log_start_level)
+logger *logger_proxy::bind(logger *log, const dsn_log_level_t &log_start_level)
 {
     dassert(log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID,
             "invalid [core] logging_start_level specified");

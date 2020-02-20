@@ -34,7 +34,7 @@
 namespace dsn {
 namespace utils {
 
-simple_logger::simple_logger(const char *log_dir) : logger(log_dir)
+simple_logger::simple_logger(const char *log_dir)
 {
     _log_dir = std::string(log_dir);
     // we assume all valid entries are positive

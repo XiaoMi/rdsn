@@ -52,7 +52,7 @@ public:
     typedef logger *(*factory)(const char *);
 
 public:
-    logger(const char *log_dir){};
+    logger(const char *log_dir = "./"){};
     virtual ~logger() = default;
 
     virtual void print_header(FILE *fp, dsn_log_level_t log_level);
