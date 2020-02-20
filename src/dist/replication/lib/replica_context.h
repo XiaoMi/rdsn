@@ -537,7 +537,6 @@ typedef dsn::ref_ptr<cold_backup_context> cold_backup_context_ptr;
 class partition_split_context
 {
 public:
-    partition_split_context() : is_prepare_list_copied(false), is_caught_up(false) {}
     bool cleanup(bool force);
     bool is_cleaned() const;
 

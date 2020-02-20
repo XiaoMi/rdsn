@@ -475,14 +475,14 @@ void replica::child_notify_catch_up() // on child partition
 {
     FAIL_POINT_INJECT_F("replica_child_notify_catch_up", [](dsn::string_view) {});
 
-    std::shared_ptr<notify_catch_up_request> request(new notify_catch_up_request);
+    std::shared_ptr<notify_catch_up_request> request = std::make_shared<notify_catch_up_request>();
     request->parent_gpid = _split_states.parent_gpid;
     request->child_gpid = get_gpid();
     request->child_ballot = get_ballot();
     request->child_address = _stub->_primary_address;
 
     ddebug_replica("send notification to primary: {}@{}, ballot={}",
-                   _split_states.parent_gpid.to_string(),
+                   _split_states.parent_gpid,
                    _config.primary.to_string(),
                    get_ballot());
 
@@ -516,7 +516,7 @@ void replica::child_notify_catch_up() // on child partition
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica::parent_handle_child_catch_up(notify_catch_up_request request,
+void replica::parent_handle_child_catch_up(const notify_catch_up_request &request,
                                            notify_cacth_up_response &response) // on primary parent
 {
     if (status() != partition_status::PS_PRIMARY) {
@@ -536,15 +536,15 @@ void replica::parent_handle_child_catch_up(notify_catch_up_request request,
     if (request.child_gpid != _child_gpid) {
         derror_replica(
             "receive wrong child request, request child_gpid = {}, local child_gpid = {}",
-            request.child_gpid.to_string(),
-            _child_gpid.to_string());
+            request.child_gpid,
+            _child_gpid);
         response.err = ERR_INVALID_STATE;
         return;
     }
 
     response.err = ERR_OK;
     ddebug_replica("receive catch_up request from {}@{}, current ballot={}",
-                   request.child_gpid.to_string(),
+                   request.child_gpid,
                    request.child_address.to_string(),
                    request.child_ballot);
 
@@ -562,7 +562,7 @@ void replica::parent_handle_child_catch_up(notify_catch_up_request request,
     _primary_states.sync_send_write_request = true;
 
     // sync_point is the first decree after parent send write request to child synchronously
-    // when sync_point commit, parent consider child has all data it should learn
+    // when sync_point commit, parent consider child has all data it should have during async-learn
     decree sync_point = _prepare_list->max_decree() + 1;
     if (!_options->empty_write_disabled) {
         // empty wirte here to commit sync_point

@@ -36,6 +36,7 @@
 #include <dsn/utility/rand.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/strings.h>
+#include <dsn/tool-api/rpc_message.h>
 
 namespace dsn {
 namespace replication {
@@ -64,6 +65,7 @@ replica::replica(
     _options = &stub->options();
     init_state();
     _config.pid = gpid;
+    _partition_version = app.partition_count - 1;
 
     std::string counter_str = fmt::format("private.log.size(MB)@{}", gpid);
     _counter_private_log_size.init_app_counter(
@@ -147,15 +149,15 @@ void replica::on_client_read(dsn::message_ex *request)
         return;
     }
 
-    if (status() != partition_status::PS_PRIMARY ||
+    if (!request->is_backup_request()) {
+        // only backup request is allowed to read from a stale replica
 
-        // a small window where the state is not the latest yet
-        last_committed_decree() < _primary_states.last_prepare_decree_on_new_primary) {
         if (status() != partition_status::PS_PRIMARY) {
             response_client_read(request, ERR_INVALID_STATE);
             return;
         }
 
+        // a small window where the state is not the latest yet
         if (last_committed_decree() < _primary_states.last_prepare_decree_on_new_primary) {
             derror_replica("last_committed_decree(%" PRId64
                            ") < last_prepare_decree_on_new_primary(%" PRId64 ")",
