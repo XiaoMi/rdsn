@@ -174,9 +174,8 @@ void simple_logger::log(const char *file,
 void simple_logger::set_stderr_start_level(dsn_log_level_t stderr_start_level)
 {
     auto_lock<ex_lock> l(_lock);
-    if (stderr_start_level != LOG_LEVEL_INVALID) {
-        _stderr_start_level = stderr_start_level;
-    }
+    assert(stderr_start_level != LOG_LEVEL_INVALID);
+    _stderr_start_level = stderr_start_level;
 }
 
 } // namespace utils
