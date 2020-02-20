@@ -36,8 +36,8 @@
 #include <gtest/gtest.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/logger.h>
-#include "screen_logger.h"
-#include "simple_logger.h"
+#include "../core/screen_logger.h"
+#include "../core/simple_logger.h"
 
 using namespace dsn;
 using namespace dsn::tools;
