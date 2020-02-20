@@ -68,7 +68,7 @@ private:
     std::string _log_dir;
     // use recursive lock to avoid dead lock when flush() is called
     // in signal handler if cored for bad logging format reason.
-    ::dsn::utils::ex_lock _lock;
+    ex_lock _lock;
     FILE *_log;
     int _start_index;
     int _index;

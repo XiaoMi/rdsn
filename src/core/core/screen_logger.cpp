@@ -38,7 +38,7 @@ void screen_logger::logv(const char *file,
                          const char *fmt,
                          va_list args)
 {
-    utils::auto_lock<::dsn::utils::ex_lock_nr> l(_lock);
+    auto_lock<ex_lock_nr> l(_lock);
 
     print_header(stdout, log_level);
     printf("%s:%d:%s(): ", file, line, function);
@@ -52,11 +52,16 @@ void screen_logger::log(const char *file,
                         dsn_log_level_t log_level,
                         const char *str)
 {
+    auto_lock<ex_lock_nr> l(_lock);
+
     print_header(stdout, log_level);
     printf("%s:%d:%s(): %s\n", file, line, function, str);
 }
 
-void screen_logger::flush() { ::fflush(stdout); }
+void screen_logger::flush() {
+    auto_lock<ex_lock_nr> l(_lock);
+    fflush(stdout);
+}
 
 } // namespace utils
 } // namespace dsn

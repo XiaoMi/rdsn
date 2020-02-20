@@ -51,7 +51,7 @@ public:
     virtual void flush();
 
 private:
-    ::dsn::utils::ex_lock_nr _lock;
+    ex_lock_nr _lock;
 };
 
 } // namespace utils
