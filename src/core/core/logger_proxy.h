@@ -35,7 +35,7 @@ class logger_proxy : public logger, public singleton<logger_proxy>
 {
 public:
     logger_proxy(const char *log_dir = "./");
-    ~logger_proxy() = default;
+    virtual ~logger_proxy(void) = default;
 
     /// not thread safe
     /// bind the specific logger, and return the logger_proxy
