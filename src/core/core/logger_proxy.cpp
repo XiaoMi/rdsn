@@ -31,8 +31,8 @@
 namespace dsn {
 namespace utils {
 
-logger_proxy::logger_proxy() {
-    _logger = make_unique<screen_logger>("./");
+logger_proxy::logger_proxy(const char *dir) {
+    _logger = make_unique<screen_logger>(dir);
     _log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
 }
 
