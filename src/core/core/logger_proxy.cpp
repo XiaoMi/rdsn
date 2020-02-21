@@ -25,7 +25,7 @@
  */
 
 #include <dsn/utility/smart_pointers.h>
-#include <dsn/utility/logger_proxy.h>
+#include "logger_proxy.h"
 #include "screen_logger.h"
 
 namespace dsn {

@@ -29,7 +29,6 @@
 #include <dsn/cpp/serialization.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/process_utils.h>
-#include <dsn/utility/logger_proxy.h>
 #include <dsn/tool-api/command_manager.h>
 #include <fstream>
 #ifdef DSN_ENABLE_GPERF
@@ -41,6 +40,7 @@
 #include "disk_engine.h"
 #include "task_engine.h"
 #include "coredump.h"
+#include "logger_proxy.h"
 
 //
 // global state
