@@ -38,7 +38,7 @@
 #include <dsn/tool_api.h>
 #include "service_engine.h"
 #include <dsn/utility/time_utils.h>
-#include "logger_proxy.h"
+#include <dsn/utility/logger_proxy.h>
 
 namespace dsn {
 namespace utils {
