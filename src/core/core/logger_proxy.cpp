@@ -45,8 +45,7 @@ logger_proxy *logger_proxy::instance() {
 
 logger *logger_proxy::bind(logger *log, const dsn_log_level_t &log_start_level)
 {
-    dassert(log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID,
-            "invalid [core] logging_start_level specified");
+    dassert(log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID);
     _log_start_level = log_start_level;
     _logger.reset(log);
     return instance();
@@ -79,6 +78,7 @@ void logger_proxy::flush() { _logger->flush(); }
 
 void logger_proxy::set_stderr_start_level(dsn_log_level_t stderr_start_level)
 {
+    assert(stderr_start_level != dsn_log_level_t::LOG_LEVEL_INVALID);
     _logger->set_stderr_start_level(stderr_start_level);
 }
 
