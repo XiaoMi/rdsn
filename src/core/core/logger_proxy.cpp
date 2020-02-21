@@ -45,7 +45,7 @@ logger_proxy *logger_proxy::instance() {
 
 logger *logger_proxy::bind(logger *log, const dsn_log_level_t &log_start_level)
 {
-    dassert(log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID);
+    assert(log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID);
     _log_start_level = log_start_level;
     _logger.reset(log);
     return instance();
