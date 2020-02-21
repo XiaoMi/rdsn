@@ -278,7 +278,7 @@ tool_app *get_current_tool() { return dsn_all.tool.get(); }
 
 static void log_on_sys_exit(::dsn::sys_exit_type)
 {
-    ::dsn::utils::logger *log = &dsn::utils::logger_proxy::instance();
+    ::dsn::utils::logger *log = dsn::utils::logger_proxy::instance();
     log->flush();
 }
 
@@ -305,7 +305,7 @@ static void dsn_log_init(const std::string &logging_factory_name, const std::str
     dsn::utils::logger *log = dsn::utils::factory_store<dsn::utils::logger>::create(
         logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
     log->set_stderr_start_level(stderr_start_level);
-    dsn::utils::logger_proxy::instance().bind(log, dsn_log_start_level);
+    dsn::utils::logger_proxy::instance()->bind(log, dsn_log_start_level);
 
     // register log flush on exit
     bool logging_flush_on_exit = dsn_config_get_value_bool(
@@ -320,7 +320,7 @@ static void dsn_log_init(const std::string &logging_factory_name, const std::str
         "flush-log - flush log to stderr or log file",
         "flush-log",
         [](const std::vector<std::string> &args) {
-            ::dsn::utils::logger *log = &dsn::utils::logger_proxy::instance();
+            ::dsn::utils::logger *log = dsn::utils::logger_proxy::instance();
             log->flush();
             return "Flush done.";
         });

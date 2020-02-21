@@ -31,14 +31,16 @@
 namespace dsn {
 namespace utils {
 
-class logger_proxy : public logger, public singleton<logger_proxy>
+class logger_proxy : public logger
 {
 public:
     logger_proxy(const char *log_dir = "./");
-    virtual ~logger_proxy(void) = default;
+    virtual ~logger_proxy(void);
 
-    /// not thread safe
+    static logger_proxy *instance();
+
     /// bind the specific logger, and return the logger_proxy
+    /// not thread safe
     logger *bind(logger *log, const dsn_log_level_t &log_start_level);
 
     virtual void logv(const char *file,
@@ -53,9 +55,11 @@ public:
                      dsn_log_level_t log_level,
                      const char *str);
     virtual void flush();
+
     void set_stderr_start_level(dsn_log_level_t stderr_start_level) override;
 
 private:
+    static std::unique_ptr<logger_proxy> _instance;
     std::unique_ptr<logger> _logger;
     dsn_log_level_t _log_start_level;
 };
