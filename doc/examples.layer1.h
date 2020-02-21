@@ -566,7 +566,7 @@ partitioned = false
 ### STEP 13. Plug-in your own low level components (optional)
 You probably already notice that there is a configuration above like "[core] logging_factory_name =
 dsn::tools::screen_logger". In this case, we are specifying that we would like to use the
-**screen_logger** as our logging provider. You may also change it to "dsn::tools::screen_logger" as
+**screen_logger** as our logging provider. You may also change it to "dsn::tools::simple_logger" as
 a file logger. Or even better, you may already have your own logging system already, and rDSN allows
 easy integration as follows.
 
