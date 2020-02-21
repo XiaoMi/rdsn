@@ -35,7 +35,7 @@ class logger_proxy : public logger
 {
 public:
     logger_proxy(const char *log_dir = "./");
-    virtual ~logger_proxy(void);
+    virtual ~logger_proxy(void) = default;
 
     static logger_proxy *instance();
 

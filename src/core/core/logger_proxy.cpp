@@ -39,10 +39,6 @@ logger_proxy::logger_proxy(const char *dir)
     _log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
 }
 
-~logger_proxy::logger_proxy(void) {
-    _instance = nullptr;
-}
-
 logger_proxy *logger_proxy::instance() {
     return _instance.get();
 }
@@ -53,7 +49,7 @@ logger *logger_proxy::bind(logger *log, const dsn_log_level_t &log_start_level)
             "invalid [core] logging_start_level specified");
     _log_start_level = log_start_level;
     _logger.reset(log);
-    return &instance();
+    return instance();
 }
 
 void logger_proxy::logv(const char *file,

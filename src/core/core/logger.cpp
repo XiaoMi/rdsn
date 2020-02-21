@@ -101,13 +101,7 @@ DSN_API void dsn_logv(const char *file,
                       va_list args)
 {
     ::dsn::utils::logger *log = dsn::utils::logger_proxy::instance();
-    if (nullptr != log) {
-        log->logv(file, function, line, log_level, fmt, args);
-    } else {
-        printf("%s:%d:%s(): ", file, line, function);
-        vprintf(fmt, args);
-        printf("\n");
-    }
+    log->logv(file, function, line, log_level, fmt, args);
 }
 
 DSN_API void dsn_logf(const char *file,
