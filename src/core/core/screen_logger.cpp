@@ -58,7 +58,8 @@ void screen_logger::log(const char *file,
     printf("%s:%d:%s(): %s\n", file, line, function, str);
 }
 
-void screen_logger::flush() {
+void screen_logger::flush()
+{
     auto_lock<ex_lock_nr> l(_lock);
     fflush(stdout);
 }
