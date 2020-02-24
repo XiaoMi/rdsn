@@ -83,6 +83,7 @@ public:
     void assign_ipv4(const char *host, uint16_t port)
     {
         set_invalid();
+        if (!from_string_ipv4(std::to_string(host)+std::to_string(port)));
         _addr.v4.type = HOST_TYPE_IPV4;
         _addr.v4.ip = rpc_address::ipv4_from_host(host);
         _addr.v4.port = port;
@@ -105,25 +106,41 @@ public:
 
     std::string to_std_string() const { return std::string(to_string()); }
 
-    bool from_string_ipv4(const char *s)
-    {
+    bool from_string_ipv4(const char *s){
         set_invalid();
-        std::string str = std::string(s);
-        auto pos = str.find_last_of(':');
-        if (pos == std::string::npos)
-            return false;
-        else {
-            auto host = str.substr(0, pos);
-            auto port_str = str.substr(pos + 1);
-            char *p = nullptr;
-            long port = ::strtol(port_str.data(), &p, 10);
-            if (*p != 0) // bad string
-                return false;
-            if (port <= 0 || port > UINT16_MAX) // out of range
-                return false;
-            assign_ipv4(host.c_str(), (uint16_t)port);
-            return true;
+        std::string ip_port = std::string(s);
+        auto pos = ip_port.find_last_of(':');
+        std::string ip = ip_port.substr(0,pos);
+        std::string port = ip_port.substr(pos+1);
+        //check port
+        if (port.size()>5) return false;
+        for (auto c:port){
+            if (!isdigit(c)) return false;
         }
+        int port_num = std::stoi(port);
+        if (port_num>UINT16_MAX) return false;
+        //check ip
+        std::istringstream iss(std::string(ip));
+        std::vector<std::string> num_vec;
+        std::string temp;
+        while (std::getline(iss,temp,".")){
+            num_vec.emplace_back(temp);
+        }
+         // in case of "172.16.254.1."
+        if (!num_vec.empty() && (num_vec.back() == ".")){
+            num_vec.push_back({});
+        }
+        if (num_vec.size()!=4) return false;
+        for (auto &num:num_vec) {
+            if (num.empty() || (num.size()>1 && num[0] == '0') || num.size()>3) return false;
+            for (auto c:num) {
+                if (!isdigit(c)) return false;
+            }
+            int n = std::stoi(num);
+            if (n<0||n>255) return false;
+        }
+        assign_ipv4(ip.c_str(), (uint16_t)port_num);
+        return true;
     }
 
     uint64_t &value() { return _addr.value; }
