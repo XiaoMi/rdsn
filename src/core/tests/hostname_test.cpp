@@ -10,6 +10,27 @@
 namespace dsn {
 namespace replication {
 
+TEST(ip_to_hostname, ipv4_validate)
+{
+    rpc_address rpc_test_ipv4;
+    std::string tests[11] = {"127.0.0.1:8080",
+                             "172.16.254.1:1234",
+                             "172.16.254.1:222222",
+                             "172.16.254.1",
+                             "2222,123,33,1:8080",
+                             "123.456.789.1:8080",
+                             "001.223.110.002:8080",
+                             "172.16.254.1.8080",
+                             "172.16.254.1:8080.",
+                             "127.0.0.11:123!",
+                             "192.168.0.1"};
+    bool result[11] = {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+
+    for (int i = 0; i < 11; i++) {
+        ASSERT_EQ(rpc_test_ipv4.from_string_ipv4(tests[i].c_str()), result[i]);
+    }
+}
+
 TEST(ip_to_hostname, localhost)
 {
     std::string hostname_result;
