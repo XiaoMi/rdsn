@@ -25,15 +25,16 @@
  */
 #pragma once
 
+#include <cstdlib>
+#include <cstdint>
+#include <cstring>
+#include <iostream>
+#include <sstream>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <cstring>
-#include <string>
-#include <iostream>
-#include <cstdlib>
-#include <cstdint>
-#include <sstream>
+
 #include <thrift/protocol/TProtocol.h>
 
 typedef enum dsn_host_type_t {
