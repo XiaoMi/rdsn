@@ -26,51 +26,44 @@
 
 #include <dsn/utility/smart_pointers.h>
 #include "logger_proxy.h"
-#include "screen_logger.h"
+#include "simple_logger.h"
 
 namespace dsn {
-namespace utils {
+namespace tools {
 
 std::unique_ptr<logger_proxy> logger_proxy::_instance = make_unique<logger_proxy>();
 
-logger_proxy::logger_proxy(const char *dir)
+logger_proxy::logger_proxy(const char *dir) : logging_provider(dir)
 {
     _logger = make_unique<screen_logger>(dir);
-    _log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
 }
 
 logger_proxy *logger_proxy::instance() { return _instance.get(); }
 
-logging_provider *logger_proxy::bind(logging_provider *logger,
-                                     const dsn_log_level_t &log_start_level)
+logging_provider *logger_proxy::bind(logging_provider *logger, dsn_log_level_t stderr_start_level)
 {
-    assert(log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID);
-    _log_start_level = log_start_level;
     _logger.reset(logger);
+    _logger->set_stderr_start_level(stderr_start_level);
     return instance();
 }
 
-void logger_proxy::logv(const char *file,
-                        const char *function,
-                        const int line,
-                        dsn_log_level_t log_level,
-                        const char *fmt,
-                        va_list args)
+void logger_proxy::dsn_logv(const char *file,
+                            const char *function,
+                            const int line,
+                            dsn_log_level_t log_level,
+                            const char *fmt,
+                            va_list args)
 {
-    if (log_level >= _log_start_level) {
-        _logger->logv(file, function, line, log_level, fmt, args);
-    }
+    _logger->dsn_logv(file, function, line, log_level, fmt, args);
 }
 
-void logger_proxy::log(const char *file,
-                       const char *function,
-                       const int line,
-                       dsn_log_level_t log_level,
-                       const char *str)
+void logger_proxy::dsn_log(const char *file,
+                           const char *function,
+                           const int line,
+                           dsn_log_level_t log_level,
+                           const char *str)
 {
-    if (log_level >= _log_start_level) {
-        _logger->log(file, function, line, log_level, str);
-    }
+    _logger->dsn_log(file, function, line, log_level, str);
 }
 
 void logger_proxy::flush() { _logger->flush(); }
@@ -81,5 +74,5 @@ void logger_proxy::set_stderr_start_level(dsn_log_level_t stderr_start_level)
     _logger->set_stderr_start_level(stderr_start_level);
 }
 
-} // namespace utils
+} // namespace tools
 } // namespace dsn

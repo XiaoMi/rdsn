@@ -26,11 +26,10 @@
 
 #include "asio_net_provider.h"
 #include <dsn/tool/providers.common.h>
-#include <core/core/screen_logger.h>
-#include <core/core/simple_logger.h>
 #include "lockp.std.h"
 #include "native_aio_provider.linux.h"
 #include "simple_task_queue.h"
+#include "simple_logger.h"
 #include "network.sim.h"
 #include "dsn_message_parser.h"
 #include "thrift_message_parser.h"
@@ -42,8 +41,8 @@ void register_common_providers()
 {
     register_component_provider<env_provider>("dsn::env_provider");
     register_component_provider<task_worker>("dsn::task_worker");
-    register_component_provider<utils::screen_logger>("dsn::tools::screen_logger");
-    register_component_provider<utils::simple_logger>("dsn::tools::simple_logger");
+    register_component_provider<screen_logger>("dsn::tools::screen_logger");
+    register_component_provider<simple_logger>("dsn::tools::simple_logger");
 
     register_std_lock_providers();
 

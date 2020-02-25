@@ -24,21 +24,40 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     simple_logger provides a logger which is write to file. The max line of a logger
- * file is 200000. And the maximum number of log files on disk is 20.
- *
- */
-
 #pragma once
 
+#include <dsn/tool_api.h>
 #include <thread>
 #include <cstdio>
-#include <dsn/utility/logging_provider.h>
 
 namespace dsn {
-namespace utils {
+namespace tools {
+
+class screen_logger : public logging_provider
+{
+public:
+    screen_logger(const char *log_dir);
+    virtual ~screen_logger(void);
+
+    virtual void dsn_logv(const char *file,
+                          const char *function,
+                          const int line,
+                          dsn_log_level_t log_level,
+                          const char *fmt,
+                          va_list args);
+
+    virtual void dsn_log(const char *file,
+                         const char *function,
+                         const int line,
+                         dsn_log_level_t log_level,
+                         const char *str){};
+
+    virtual void flush();
+
+private:
+    ::dsn::utils::ex_lock_nr _lock;
+    bool _short_header;
+};
 
 class simple_logger : public logging_provider
 {
@@ -46,27 +65,30 @@ public:
     simple_logger(const char *log_dir);
     virtual ~simple_logger(void);
 
-    virtual void logv(const char *file,
-                      const char *function,
-                      const int line,
-                      dsn_log_level_t log_level,
-                      const char *fmt,
-                      va_list args);
-    virtual void log(const char *file,
-                     const char *function,
-                     const int line,
-                     dsn_log_level_t log_level,
-                     const char *str);
+    virtual void dsn_logv(const char *file,
+                          const char *function,
+                          const int line,
+                          dsn_log_level_t log_level,
+                          const char *fmt,
+                          va_list args);
+
+    virtual void dsn_log(const char *file,
+                         const char *function,
+                         const int line,
+                         dsn_log_level_t log_level,
+                         const char *str);
+
     virtual void flush();
-    void set_stderr_start_level(dsn_log_level_t stderr_start_level);
+
+    virtual void set_stderr_start_level(dsn_log_level_t stderr_start_level);
 
 private:
     void create_log_file();
 
+private:
     std::string _log_dir;
-    // use recursive lock to avoid dead lock when flush() is called
-    // in signal handler if cored for bad logging format reason.
-    ex_lock _lock;
+    ::dsn::utils::ex_lock _lock; // use recursive lock to avoid dead lock when flush() is called
+                                 // in signal handler if cored for bad logging format reason.
     FILE *_log;
     int _start_index;
     int _index;
@@ -75,6 +97,5 @@ private:
     const int _max_number_of_log_files_on_disk = 20;
     const int _max_line_of_log_file = 2 * 1e5;
 };
-
-} // namespace utils
+} // namespace tools
 } // namespace dsn

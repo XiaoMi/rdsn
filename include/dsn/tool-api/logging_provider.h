@@ -26,38 +26,58 @@
 
 /*
  * Description:
- *     screen_logger provides a logger which is write to terminal.
+ *     base prototype for logging
+ *
+ * Revision history:
+ *     Mar., 2015, @imzhenyu (Zhenyu Guo), first version
+ *     xxxx-xx-xx, author, fix bug about xxx
  */
 
 #pragma once
 
-#include <dsn/utility/logging_provider.h>
+#include <dsn/service_api_c.h>
+#include <stdarg.h>
 
 namespace dsn {
-namespace utils {
 
-class screen_logger : public logging_provider
+/*!
+@addtogroup tool-api-providers
+@{
+*/
+class logging_provider
 {
 public:
-    screen_logger(const char *log_dir = "./");
-    virtual ~screen_logger(void) = default;
+    template <typename T>
+    static logging_provider *create(const char *log_dir)
+    {
+        return new T(log_dir);
+    }
 
-    virtual void logv(const char *file,
-                      const char *function,
-                      const int line,
-                      dsn_log_level_t log_level,
-                      const char *fmt,
-                      va_list args);
-    virtual void log(const char *file,
-                     const char *function,
-                     const int line,
-                     dsn_log_level_t log_level,
-                     const char *str);
-    virtual void flush();
+    typedef logging_provider *(*factory)(const char *);
 
-private:
-    ex_lock_nr _lock;
+public:
+    logging_provider(const char *) {}
+
+    virtual ~logging_provider(void) {}
+
+    virtual void dsn_logv(const char *file,
+                          const char *function,
+                          const int line,
+                          dsn_log_level_t log_level,
+                          const char *fmt,
+                          va_list args) = 0;
+
+    virtual void dsn_log(const char *file,
+                         const char *function,
+                         const int line,
+                         dsn_log_level_t log_level,
+                         const char *str) = 0;
+
+    virtual void flush() = 0;
+
+    virtual void set_stderr_start_level(dsn_log_level_t stderr_start_level){};
 };
 
-} // namespace utils
-} // namespace dsn
+/*@}*/
+// ----------------------- inline implementation ---------------------------------------
+} // end namespace

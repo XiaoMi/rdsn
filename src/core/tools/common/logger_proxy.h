@@ -26,50 +26,48 @@
 
 /*
  * Description:
- *     base prototype for logging
- *
- * Revision history:
- *     Mar., 2015, @imzhenyu (Zhenyu Guo), first version
- *     xxxx-xx-xx, author, fix bug about xxx
+ *     logger_proxy is a proxy of logger_provider. The reference to the target
+ * object of logger_provider is controlled by logger_proxy.
  */
 
 #pragma once
 
-#include <dsn/service_api_c.h>
-#include <stdarg.h>
+#include <dsn/tool-api/logging_provider.h>
 
 namespace dsn {
-namespace utils {
+namespace tools {
 
-class logging_provider
+class logger_proxy : public logging_provider
 {
 public:
-    template <typename T>
-    static logging_provider *create(const char *log_dir)
-    {
-        return new T(log_dir);
-    }
-    typedef logging_provider *(*factory)(const char *);
+    logger_proxy(const char *log_dir = "./");
+    virtual ~logger_proxy(void) = default;
 
-public:
-    logging_provider(const char *log_dir = "./"){};
-    virtual ~logging_provider() = default;
+    static logger_proxy *instance();
 
-    virtual void print_header(FILE *fp, dsn_log_level_t log_level);
-    virtual void logv(const char *file,
-                      const char *function,
-                      const int line,
-                      dsn_log_level_t log_level,
-                      const char *fmt,
-                      va_list args) = 0;
-    virtual void log(const char *file,
-                     const char *function,
-                     const int line,
-                     dsn_log_level_t log_level,
-                     const char *str) = 0;
-    virtual void flush() = 0;
-    virtual void set_stderr_start_level(dsn_log_level_t stderr_start_level) {}
+    /// bind the specific logger, and return the logger_proxy
+    /// not thread safe
+    logging_provider *bind(logging_provider *logger, dsn_log_level_t stderr_start_level);
+
+    virtual void dsn_logv(const char *file,
+                          const char *function,
+                          const int line,
+                          dsn_log_level_t log_level,
+                          const char *fmt,
+                          va_list args);
+    virtual void dsn_log(const char *file,
+                         const char *function,
+                         const int line,
+                         dsn_log_level_t log_level,
+                         const char *str);
+    virtual void flush();
+
+    virtual void set_stderr_start_level(dsn_log_level_t stderr_start_level);
+
+private:
+    static std::unique_ptr<logger_proxy> _instance;
+    std::unique_ptr<logging_provider> _logger;
 };
 
-} // namespace utils
+} // namespace tools
 } // namespace dsn

@@ -33,15 +33,12 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
+#include "core/tools/common/simple_logger.h"
 #include <gtest/gtest.h>
 #include <dsn/utility/filesystem.h>
-#include <dsn/utility/logging_provider.h>
-#include <dsn/tool-api/task.h>
-#include "../core/screen_logger.h"
-#include "../core/simple_logger.h"
 
 using namespace dsn;
-using namespace dsn::utils;
+using namespace dsn::tools;
 
 static const int simple_logger_gc_gap = 20;
 
@@ -93,7 +90,7 @@ void log_print(logging_provider *logger, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
-    logger->logv(__FILE__, __FUNCTION__, __LINE__, LOG_LEVEL_INFORMATION, fmt, vl);
+    logger->dsn_logv(__FILE__, __FUNCTION__, __LINE__, LOG_LEVEL_INFORMATION, fmt, vl);
     va_end(vl);
 }
 

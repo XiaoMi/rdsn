@@ -24,57 +24,13 @@
  * THE SOFTWARE.
  */
 
-#include <dsn/utility/logging_provider.h>
+#include <dsn/service_api_c.h>
+#include <dsn/tool-api/command_manager.h>
+#include <dsn/tool-api/logging_provider.h>
 #include <dsn/tool_api.h>
-#include <dsn/utility/time_utils.h>
-#include "logger_proxy.h"
-
-namespace dsn {
-namespace utils {
-
-void logging_provider::print_header(FILE *fp, dsn_log_level_t log_level)
-{
-    static char s_level_char[] = "IDWEF";
-    uint64_t ts = dsn_now_ns();
-
-    char str[24];
-    ::dsn::utils::time_ms_to_string(ts / 1000000, str);
-
-    int tid = ::dsn::utils::get_current_tid();
-    fprintf(fp, "%c%s (%" PRIu64 " %04x) ", s_level_char[log_level], str, ts, tid);
-
-    auto t = task::get_current_task_id();
-    if (t) {
-        if (nullptr != task::get_current_worker2()) {
-            fprintf(fp,
-                    "%6s.%7s%d.%016" PRIx64 ": ",
-                    task::get_current_node_name(),
-                    task::get_current_worker2()->pool_spec().name.c_str(),
-                    task::get_current_worker2()->index(),
-                    t);
-        } else {
-            fprintf(fp,
-                    "%6s.%7s.%05d.%016" PRIx64 ": ",
-                    task::get_current_node_name(),
-                    "io-thrd",
-                    tid,
-                    t);
-        }
-    } else {
-        if (nullptr != task::get_current_worker2()) {
-            fprintf(fp,
-                    "%6s.%7s%u: ",
-                    task::get_current_node_name(),
-                    task::get_current_worker2()->pool_spec().name.c_str(),
-                    task::get_current_worker2()->index());
-        } else {
-            fprintf(fp, "%6s.%7s.%05d: ", task::get_current_node_name(), "io-thrd", tid);
-        }
-    }
-}
-
-} // namespace utils
-} // namespace dsn
+#include "service_engine.h"
+#include <dsn/tool-api/auto_codes.h>
+#include "core/tools/common/logger_proxy.h"
 
 DSN_API dsn_log_level_t dsn_log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
 
@@ -89,9 +45,9 @@ DSN_API void dsn_logv(const char *file,
                       const char *fmt,
                       va_list args)
 {
-    ::dsn::utils::logging_provider *logger = dsn::utils::logger_proxy::instance();
-    if (nullptr != logger) {
-        logger->logv(file, function, line, log_level, fmt, args);
+    dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
+    if (logger != nullptr) {
+        logger->dsn_logv(file, function, line, log_level, fmt, args);
     } else {
         printf("%s:%d:%s():", file, line, function);
         vprintf(fmt, args);
@@ -118,9 +74,9 @@ DSN_API void dsn_log(const char *file,
                      dsn_log_level_t log_level,
                      const char *str)
 {
-    ::dsn::utils::logging_provider *logger = dsn::utils::logger_proxy::instance();
-    if (nullptr != logger) {
-        logger->log(file, function, line, log_level, str);
+    dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
+    if (logger != nullptr) {
+        logger->dsn_log(file, function, line, log_level, str);
     } else {
         printf("%s:%d:%s():%s\n", file, line, function, str);
     }

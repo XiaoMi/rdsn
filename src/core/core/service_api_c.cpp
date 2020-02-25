@@ -40,7 +40,7 @@
 #include "disk_engine.h"
 #include "task_engine.h"
 #include "coredump.h"
-#include "logger_proxy.h"
+#include "core/tools/common/logger_proxy.h"
 
 //
 // global state
@@ -278,7 +278,7 @@ tool_app *get_current_tool() { return dsn_all.tool.get(); }
 
 static void log_on_sys_exit(::dsn::sys_exit_type)
 {
-    ::dsn::utils::logging_provider *logger = dsn::utils::logger_proxy::instance();
+    dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
     logger->flush();
 }
 
@@ -291,6 +291,16 @@ static void dsn_log_init(const std::string &logging_factory_name, const std::str
                                     "logs with level below this will not be logged"),
         dsn_log_level_t::LOG_LEVEL_INVALID);
 
+    dassert(dsn_log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID,
+            "invalid [core] logging_start_level specified");
+
+    // register log flush on exit
+    bool logging_flush_on_exit = dsn_config_get_value_bool(
+        "core", "logging_flush_on_exit", true, "flush log when exit system");
+    if (logging_flush_on_exit) {
+        ::dsn::tools::sys_exit.put_back(log_on_sys_exit, "log.flush");
+    }
+
     dsn_log_level_t stderr_start_level = enum_from_string(
         dsn_config_get_value_string(
             "tools.simple_logger",
@@ -302,18 +312,9 @@ static void dsn_log_init(const std::string &logging_factory_name, const std::str
             "invalid [tools.simple_logger] stderr_start_level specified");
 
     // create a logger and bind it to logger_proxy
-    dsn::utils::logging_provider *logger =
-        dsn::utils::factory_store<dsn::utils::logging_provider>::create(
-            logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
-    logger->set_stderr_start_level(stderr_start_level);
-    dsn::utils::logger_proxy::instance()->bind(logger, dsn_log_start_level);
-
-    // register log flush on exit
-    bool logging_flush_on_exit = dsn_config_get_value_bool(
-        "core", "logging_flush_on_exit", true, "flush log when exit system");
-    if (logging_flush_on_exit) {
-        ::dsn::tools::sys_exit.put_back(log_on_sys_exit, "log.flush");
-    }
+    dsn::logging_provider *logger = dsn::utils::factory_store<dsn::logging_provider>::create(
+        logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
+    dsn::tools::logger_proxy::instance()->bind(logger, stderr_start_level);
 
     // register command for logging
     ::dsn::command_manager::instance().register_command(
@@ -321,7 +322,7 @@ static void dsn_log_init(const std::string &logging_factory_name, const std::str
         "flush-log - flush log to stderr or log file",
         "flush-log",
         [](const std::vector<std::string> &args) {
-            ::dsn::utils::logging_provider *logger = dsn::utils::logger_proxy::instance();
+            ::dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
             logger->flush();
             return "Flush done.";
         });
