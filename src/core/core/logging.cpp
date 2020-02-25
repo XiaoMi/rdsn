@@ -80,7 +80,7 @@ void dsn_log_init(const std::string &logging_factory_name, const std::string &di
         "flush-log - flush log to stderr or log file",
         "flush-log",
         [](const std::vector<std::string> &args) {
-            ::dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
+            dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
             logger->flush();
             return "Flush done.";
         });
