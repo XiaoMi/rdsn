@@ -30,6 +30,13 @@
 #include <thread>
 #include <cstdio>
 
+/**
+ * Description:
+ *   screen_logger provides a logger which is write to terminal.
+ *   simple_logger provides a logger which is write to file. The max line of a logger
+ * file is 200000. And the maximum number of log files on disk is 20.
+ **/
+
 namespace dsn {
 namespace tools {
 
