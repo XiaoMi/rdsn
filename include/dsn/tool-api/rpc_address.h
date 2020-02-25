@@ -128,7 +128,7 @@ public:
             return false;
         // check ip
         uint32_t ip_addr;
-        if (inet_pton(AF_INET, ip.c_str(), &ip_addr) != 1){
+        if (inet_pton(AF_INET, ip.c_str(), &ip_addr) != 1) {
             return false;
         }
         assign_ipv4(ip.c_str(), (uint16_t)port_num);
