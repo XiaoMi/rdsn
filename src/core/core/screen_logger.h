@@ -24,6 +24,11 @@
  * THE SOFTWARE.
  */
 
+/*
+ * Description:
+ *     screen_logger provides a logger which is write to terminal.
+ */
+
 #pragma once
 
 #include <dsn/utility/logging_provider.h>
