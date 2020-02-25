@@ -80,33 +80,33 @@ void dsn_log_init(const std::string &logging_factory_name, const std::string &di
         "flush-log - flush log to stderr or log file",
         "flush-log",
         [](const std::vector<std::string> &args) {
-          ::dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
-          logger->flush();
-          return "Flush done.";
+            ::dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
+            logger->flush();
+            return "Flush done.";
         });
     ::dsn::command_manager::instance().register_command(
         {"reset-log-start-level"},
         "reset-log-start-level - reset the log start level",
         "reset-log-start-level [INFORMATION | DEBUG | WARNING | ERROR | FATAL]",
         [](const std::vector<std::string> &args) {
-          dsn_log_level_t start_level;
-          if (args.size() == 0) {
-              start_level = enum_from_string(
-                  dsn_config_get_value_string("core",
-                                              "logging_start_level",
-                                              enum_to_string(dsn_log_start_level),
-                                              "logs with level below this will not be logged"),
-                  dsn_log_level_t::LOG_LEVEL_INVALID);
-          } else {
-              std::string level_str = "LOG_LEVEL_" + args[0];
-              start_level =
-                  enum_from_string(level_str.c_str(), dsn_log_level_t::LOG_LEVEL_INVALID);
-              if (start_level == dsn_log_level_t::LOG_LEVEL_INVALID) {
-                  return "ERROR: invalid level '" + args[0] + "'";
-              }
-          }
-          dsn_log_set_start_level(start_level);
-          return std::string("OK, current level is ") + enum_to_string(start_level);
+            dsn_log_level_t start_level;
+            if (args.size() == 0) {
+                start_level = enum_from_string(
+                    dsn_config_get_value_string("core",
+                                                "logging_start_level",
+                                                enum_to_string(dsn_log_start_level),
+                                                "logs with level below this will not be logged"),
+                    dsn_log_level_t::LOG_LEVEL_INVALID);
+            } else {
+                std::string level_str = "LOG_LEVEL_" + args[0];
+                start_level =
+                    enum_from_string(level_str.c_str(), dsn_log_level_t::LOG_LEVEL_INVALID);
+                if (start_level == dsn_log_level_t::LOG_LEVEL_INVALID) {
+                    return "ERROR: invalid level '" + args[0] + "'";
+                }
+            }
+            dsn_log_set_start_level(start_level);
+            return std::string("OK, current level is ") + enum_to_string(start_level);
         });
 }
 
