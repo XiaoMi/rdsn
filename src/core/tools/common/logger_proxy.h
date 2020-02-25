@@ -26,7 +26,7 @@
 
 /*
  * Description:
- *     logger_proxy is a proxy of logger_provider. The reference to the target
+ *   logger_proxy is a proxy of logger_provider. The reference to the target
  * object of logger_provider is controlled by logger_proxy.
  */
 
