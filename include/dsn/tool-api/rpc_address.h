@@ -114,6 +114,9 @@ public:
         set_invalid();
         std::string ip_port = std::string(s);
         auto pos = ip_port.find_last_of(':');
+        if (pos == std::string::npos) {
+            return false;
+        }
         std::string ip = ip_port.substr(0, pos);
         std::string port = ip_port.substr(pos + 1);
         // check port
