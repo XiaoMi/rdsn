@@ -41,7 +41,8 @@ logger_proxy::logger_proxy(const char *dir)
 
 logger_proxy *logger_proxy::instance() { return _instance.get(); }
 
-logging_provider *logger_proxy::bind(logging_provider *logger, const dsn_log_level_t &log_start_level)
+logging_provider *logger_proxy::bind(logging_provider *logger,
+                                     const dsn_log_level_t &log_start_level)
 {
     assert(log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID);
     _log_start_level = log_start_level;

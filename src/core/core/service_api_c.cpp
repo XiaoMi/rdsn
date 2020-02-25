@@ -302,8 +302,9 @@ static void dsn_log_init(const std::string &logging_factory_name, const std::str
             "invalid [tools.simple_logger] stderr_start_level specified");
 
     // create a logger and bind it to logger_proxy
-    dsn::utils::logging_provider *logger = dsn::utils::factory_store<dsn::utils::logging_provider>::create(
-        logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
+    dsn::utils::logging_provider *logger =
+        dsn::utils::factory_store<dsn::utils::logging_provider>::create(
+            logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
     logger->set_stderr_start_level(stderr_start_level);
     dsn::utils::logger_proxy::instance()->bind(logger, dsn_log_start_level);
 
