@@ -26,12 +26,12 @@
 
 #pragma once
 
-#include <dsn/utility/logger.h>
+#include <dsn/utility/logger_provider.h>
 
 namespace dsn {
 namespace utils {
 
-class screen_logger : public logger
+class screen_logger : public logger_provider
 {
 public:
     screen_logger(const char *log_dir = "./");

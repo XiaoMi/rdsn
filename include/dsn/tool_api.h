@@ -60,7 +60,7 @@ Component providers define the interface for the local components (e.g., network
 #include <dsn/tool-api/aio_provider.h>
 #include <dsn/tool-api/env_provider.h>
 #include <dsn/tool-api/message_parser.h>
-#include <dsn/utility/logger.h>
+#include <dsn/utility/logger_provider.h>
 #include <dsn/tool-api/timer_service.h>
 
 namespace dsn {
@@ -144,7 +144,7 @@ register_component_provider(const char *name, aio_provider::factory f, ::dsn::pr
 DSN_API bool
 register_component_provider(const char *name, env_provider::factory f, ::dsn::provider_type type);
 DSN_API bool register_component_provider(const char *name,
-                                         dsn::utils::logger::factory f,
+                                         dsn::utils::logger_provider::factory f,
                                          ::dsn::provider_type type);
 DSN_API bool register_component_provider(network_header_format fmt,
                                          const std::vector<const char *> &signatures,

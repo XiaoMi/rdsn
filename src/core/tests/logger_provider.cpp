@@ -35,7 +35,7 @@
 
 #include <gtest/gtest.h>
 #include <dsn/utility/filesystem.h>
-#include <dsn/utility/logger.h>
+#include <dsn/utility/logger_provider.h>
 #include <dsn/tool-api/task.h>
 #include "../core/screen_logger.h"
 #include "../core/simple_logger.h"
@@ -89,11 +89,11 @@ static void finish_test_dir()
     rmdir(dir);
 }
 
-void log_print(dsn::utils::logger *log, const char *fmt, ...)
+void log_print(dsn::utils::logger_provider *logger, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
-    log->logv(__FILE__, __FUNCTION__, __LINE__, LOG_LEVEL_INFORMATION, fmt, vl);
+    logger->logv(__FILE__, __FUNCTION__, __LINE__, LOG_LEVEL_INFORMATION, fmt, vl);
     va_end(vl);
 }
 
