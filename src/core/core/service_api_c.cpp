@@ -40,7 +40,6 @@
 #include "disk_engine.h"
 #include "task_engine.h"
 #include "coredump.h"
-#include "core/tools/common/logger_proxy.h"
 
 //
 // global state
