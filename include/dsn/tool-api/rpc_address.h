@@ -33,6 +33,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstdint>
+#include <sstream>
 #include <thrift/protocol/TProtocol.h>
 
 typedef enum dsn_host_type_t
@@ -129,10 +130,10 @@ public:
         if (port_num > UINT16_MAX)
             return false;
         // check ip
-        std::istringstream iss(std::string(ip));
+        std::istringstream iss(ip);
         std::vector<std::string> num_vec;
         std::string temp;
-        while (std::getline(iss, temp, ".")) {
+        while (std::getline(iss, temp, '.')) {
             num_vec.emplace_back(temp);
         }
         // in case of "172.16.254.1."
