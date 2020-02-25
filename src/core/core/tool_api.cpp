@@ -190,6 +190,6 @@ toollet *get_toollet(const char *name, ::dsn::provider_type type)
         return tlt;
     }
 }
-} // namespace internal_use_only
-} // namespace tools
-} // namespace dsn
+}
+}
+} // end namespace dsn::tool_api
