@@ -37,12 +37,12 @@
 
 #include <thread>
 #include <cstdio>
-#include <dsn/utility/logger_provider.h>
+#include <dsn/utility/logging_provider.h>
 
 namespace dsn {
 namespace utils {
 
-class simple_logger : public logger_provider
+class simple_logger : public logging_provider
 {
 public:
     simple_logger(const char *log_dir);

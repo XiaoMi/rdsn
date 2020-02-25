@@ -34,7 +34,7 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-#include <dsn/utility/logger_provider.h>
+#include <dsn/utility/logging_provider.h>
 #include <dsn/tool_api.h>
 #include <dsn/utility/time_utils.h>
 #include "logger_proxy.h"
@@ -42,7 +42,7 @@
 namespace dsn {
 namespace utils {
 
-void logger_provider::print_header(FILE *fp, dsn_log_level_t log_level)
+void logging_provider::print_header(FILE *fp, dsn_log_level_t log_level)
 {
     static char s_level_char[] = "IDWEF";
     uint64_t ts = dsn_now_ns();
@@ -99,7 +99,7 @@ DSN_API void dsn_logv(const char *file,
                       const char *fmt,
                       va_list args)
 {
-    ::dsn::utils::logger_provider *logger = dsn::utils::logger_proxy::instance();
+    ::dsn::utils::logging_provider *logger = dsn::utils::logger_proxy::instance();
     if (nullptr != logger) {
         logger->logv(file, function, line, log_level, fmt, args);
     } else {
@@ -128,7 +128,7 @@ DSN_API void dsn_log(const char *file,
                      dsn_log_level_t log_level,
                      const char *str)
 {
-    ::dsn::utils::logger_provider *logger = dsn::utils::logger_proxy::instance();
+    ::dsn::utils::logging_provider *logger = dsn::utils::logger_proxy::instance();
     if (nullptr != logger) {
         logger->log(file, function, line, log_level, str);
     } else {

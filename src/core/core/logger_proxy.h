@@ -26,12 +26,12 @@
 
 #pragma once
 
-#include <dsn/utility/logger_provider.h>
+#include <dsn/utility/logging_provider.h>
 
 namespace dsn {
 namespace utils {
 
-class logger_proxy : public logger_provider
+class logger_proxy : public logging_provider
 {
 public:
     logger_proxy(const char *log_dir = "./");
@@ -41,7 +41,7 @@ public:
 
     /// bind the specific logger, and return the logger_proxy
     /// not thread safe
-    logger_provider *bind(logger_provider *logger, const dsn_log_level_t &log_start_level);
+    logging_provider *bind(logging_provider *logger, const dsn_log_level_t &log_start_level);
 
     virtual void logv(const char *file,
                       const char *function,
@@ -60,7 +60,7 @@ public:
 
 private:
     static std::unique_ptr<logger_proxy> _instance;
-    std::unique_ptr<logger_provider> _logger;
+    std::unique_ptr<logging_provider> _logger;
     dsn_log_level_t _log_start_level;
 };
 

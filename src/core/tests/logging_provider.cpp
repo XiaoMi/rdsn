@@ -35,7 +35,7 @@
 
 #include <gtest/gtest.h>
 #include <dsn/utility/filesystem.h>
-#include <dsn/utility/logger_provider.h>
+#include <dsn/utility/logging_provider.h>
 #include <dsn/tool-api/task.h>
 #include "../core/screen_logger.h"
 #include "../core/simple_logger.h"
@@ -89,7 +89,7 @@ static void finish_test_dir()
     rmdir(dir);
 }
 
-void log_print(dsn::utils::logger_provider *logger, const char *fmt, ...)
+void log_print(logging_provider *logger, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
@@ -116,7 +116,7 @@ TEST(tools_common, simple_logger)
     prepare_test_dir();
     // create multiple files
     for (unsigned int i = 0; i < simple_logger_gc_gap + 10; ++i) {
-        dsn::utils::simple_logger *logger = new dsn::utils::simple_logger("./");
+        simple_logger *logger = new simple_logger("./");
         // in this case stdout is useless
         for (unsigned int i = 0; i != 1000; ++i)
             log_print(logger, "%s", "test_print");

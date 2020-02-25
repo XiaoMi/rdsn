@@ -41,19 +41,19 @@
 namespace dsn {
 namespace utils {
 
-class logger_provider
+class logging_provider
 {
 public:
     template <typename T>
-    static logger_provider *create(const char *log_dir)
+    static logging_provider *create(const char *log_dir)
     {
         return new T(log_dir);
     }
-    typedef logger_provider *(*factory)(const char *);
+    typedef logging_provider *(*factory)(const char *);
 
 public:
-    logger_provider(const char *log_dir = "./"){};
-    virtual ~logger_provider() = default;
+    logging_provider(const char *log_dir = "./"){};
+    virtual ~logging_provider() = default;
 
     virtual void print_header(FILE *fp, dsn_log_level_t log_level);
     virtual void logv(const char *file,
