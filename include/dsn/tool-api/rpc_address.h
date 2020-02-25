@@ -86,7 +86,6 @@ public:
     void assign_ipv4(const char *host, uint16_t port)
     {
         set_invalid();
-        std::string ip_port = std::string(host, host + strlen(host)) + ":" + std::to_string(port);
         _addr.v4.type = HOST_TYPE_IPV4;
         _addr.v4.ip = rpc_address::ipv4_from_host(host);
         _addr.v4.port = port;
