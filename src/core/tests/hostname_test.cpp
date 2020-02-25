@@ -50,9 +50,8 @@ TEST(ip_to_hostname, localhost)
     const std::string success_ip_port_list = "127.0.0.1:8080,127.0.0.1:8080,127.0.0.1:8080";
     const std::string expected_hostname_port_list = "localhost:8080,localhost:8080,localhost:8080";
 
-    rpc_address rpc_example_success, rpc_example_failed;
+    rpc_address rpc_example_success;
     rpc_example_success.assign_ipv4(success_ip.c_str(), 23010);
-    rpc_example_failed.assign_ipv4(failed_ip.c_str(), 23010);
 
     // static bool hostname(const rpc_address &address,std::string *hostname_result);
     ASSERT_TRUE(dsn::utils::hostname(rpc_example_success, &hostname_result));

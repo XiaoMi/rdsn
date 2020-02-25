@@ -35,6 +35,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <arpa/inet.h>
 #include <thrift/protocol/TProtocol.h>
 
 typedef enum dsn_host_type_t {
@@ -126,28 +127,9 @@ public:
         if (port_num > UINT16_MAX)
             return false;
         // check ip
-        std::istringstream iss(ip);
-        std::vector<std::string> num_vec;
-        std::string temp;
-        while (std::getline(iss, temp, '.')) {
-            num_vec.emplace_back(temp);
-        }
-        // in case of "172.16.254.1."
-        if (!num_vec.empty() && (num_vec.back() == ".")) {
-            num_vec.push_back({});
-        }
-        if (num_vec.size() != 4)
+        uint32_t ip_addr;
+        if (inet_pton(AF_INET, ip.c_str(), &ip_addr) != 1){
             return false;
-        for (auto &num : num_vec) {
-            if (num.empty() || (num.size() > 1 && num[0] == '0') || num.size() > 3)
-                return false;
-            for (auto c : num) {
-                if (!isdigit(c))
-                    return false;
-            }
-            int n = std::stoi(num);
-            if (n < 0 || n > 255)
-                return false;
         }
         assign_ipv4(ip.c_str(), (uint16_t)port_num);
         return true;
