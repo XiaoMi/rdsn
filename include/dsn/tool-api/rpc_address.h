@@ -86,7 +86,7 @@ public:
     void assign_ipv4(const char *host, uint16_t port)
     {
         set_invalid();
-        std::string ip_port = std::to_string(*host) + ":" + std::to_string(port);
+        std::string ip_port = std::string(host,host+strlen(host)) + ":" + std::to_string(port);
         if (!from_string_ipv4(std::move(ip_port.c_str()))) {
             return;
         }
