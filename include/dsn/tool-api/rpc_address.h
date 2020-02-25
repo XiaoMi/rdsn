@@ -119,7 +119,7 @@ public:
         }
         std::string ip = ip_port.substr(0, pos);
         std::string port = ip_port.substr(pos + 1);
-        if (pos==std::string::npos){
+        if (pos == std::string::npos) {
             return false;
         }
         // check port
