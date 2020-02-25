@@ -118,11 +118,11 @@ simple_logger::simple_logger(const char *log_dir) : logging_provider(log_dir)
 
     // check existing log files
     std::vector<std::string> sub_list;
-    if (!utils::filesystem::get_subfiles(_log_dir, sub_list, false)) {
+    if (!dsn::utils::filesystem::get_subfiles(_log_dir, sub_list, false)) {
         dassert(false, "Fail to get subfiles in %s.", _log_dir.c_str());
     }
     for (auto &fpath : sub_list) {
-        auto &&name = utils::filesystem::get_file_name(fpath);
+        auto &&name = dsn::utils::filesystem::get_file_name(fpath);
         if (name.length() <= 8 || name.substr(0, 4) != "log.")
             continue;
 
@@ -149,13 +149,13 @@ simple_logger::simple_logger(const char *log_dir) : logging_provider(log_dir)
 void simple_logger::create_log_file()
 {
     if (_log != nullptr)
-        fclose(_log);
+        ::fclose(_log);
 
     _lines = 0;
 
     std::stringstream str;
     str << _log_dir << "/log." << _index++ << ".txt";
-    _log = fopen(str.str().c_str(), "w+");
+    _log = ::fopen(str.str().c_str(), "w+");
 
     // TODO: move gc out of criticial path
     while (_index - _start_index > _max_number_of_log_files_on_disk) {
@@ -163,7 +163,7 @@ void simple_logger::create_log_file()
         str2 << "log." << _start_index++ << ".txt";
         auto dp = utils::filesystem::path_combine(_log_dir, str2.str());
         if (utils::filesystem::file_exists(dp)) {
-            if (remove(dp.c_str()) != 0) {
+            if (::remove(dp.c_str()) != 0) {
                 // if remove failed, just print log and ignore it.
                 printf("Failed to remove garbage log file %s\n", dp.c_str());
             }
@@ -173,15 +173,15 @@ void simple_logger::create_log_file()
 
 simple_logger::~simple_logger(void)
 {
-    utils::auto_lock<utils::ex_lock> l(_lock);
-    fclose(_log);
+    utils::auto_lock<::dsn::utils::ex_lock> l(_lock);
+    ::fclose(_log);
 }
 
 void simple_logger::flush()
 {
-    utils::auto_lock<utils::ex_lock> l(_lock);
-    fflush(_log);
-    fflush(stdout);
+    utils::auto_lock<::dsn::utils::ex_lock> l(_lock);
+    ::fflush(_log);
+    ::fflush(stdout);
 }
 
 void simple_logger::dsn_logv(const char *file,
@@ -196,7 +196,7 @@ void simple_logger::dsn_logv(const char *file,
         va_copy(args2, args);
     }
 
-    utils::auto_lock<utils::ex_lock> l(_lock);
+    utils::auto_lock<::dsn::utils::ex_lock> l(_lock);
 
     // print to log file
     print_header(_log, log_level);
@@ -224,7 +224,7 @@ void simple_logger::dsn_log(const char *file,
                             dsn_log_level_t log_level,
                             const char *str)
 {
-    utils::auto_lock<utils::ex_lock> l(_lock);
+    utils::auto_lock<::dsn::utils::ex_lock> l(_lock);
 
     // print to log file
     print_header(_log, log_level);
