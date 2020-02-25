@@ -58,13 +58,9 @@ TEST(ip_to_hostname, localhost)
     ASSERT_TRUE(dsn::utils::hostname(rpc_example_success, &hostname_result));
     ASSERT_STREQ(expected_hostname_port.c_str(), hostname_result.c_str());
 
-    ASSERT_FALSE(dsn::utils::hostname(rpc_example_failed, &hostname_result));
-
     // static bool hostname_from_ip(uint32_t ip, std::string* hostname_result);
     ASSERT_TRUE(dsn::utils::hostname_from_ip(htonl(rpc_example_success.ip()), &hostname_result));
     ASSERT_STREQ(expected_hostname.c_str(), hostname_result.c_str());
-
-    ASSERT_FALSE(dsn::utils::hostname_from_ip(htonl(rpc_example_failed.ip()), &hostname_result));
 
     // static bool hostname_from_ip(const char *ip,std::string *hostname_result);
     ASSERT_TRUE(dsn::utils::hostname_from_ip(success_ip.c_str(), &hostname_result));

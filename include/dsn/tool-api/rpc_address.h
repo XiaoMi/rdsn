@@ -36,8 +36,7 @@
 #include <sstream>
 #include <thrift/protocol/TProtocol.h>
 
-typedef enum dsn_host_type_t
-{
+typedef enum dsn_host_type_t {
     HOST_TYPE_INVALID = 0,
     HOST_TYPE_IPV4 = 1,
     HOST_TYPE_GROUP = 2,
@@ -86,10 +85,7 @@ public:
     void assign_ipv4(const char *host, uint16_t port)
     {
         set_invalid();
-        std::string ip_port = std::string(host,host+strlen(host)) + ":" + std::to_string(port);
-        if (!from_string_ipv4(std::move(ip_port.c_str()))) {
-            return;
-        }
+        std::string ip_port = std::string(host, host + strlen(host)) + ":" + std::to_string(port);
         _addr.v4.type = HOST_TYPE_IPV4;
         _addr.v4.ip = rpc_address::ipv4_from_host(host);
         _addr.v4.port = port;
