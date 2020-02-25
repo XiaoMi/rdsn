@@ -30,6 +30,7 @@
 #include <vector>
 #include <cstring>
 #include <string>
+#include <iostream>
 #include <cstdlib>
 #include <cstdint>
 #include <thrift/protocol/TProtocol.h>
@@ -83,7 +84,7 @@ public:
     void assign_ipv4(const char *host, uint16_t port)
     {
         set_invalid();
-        if (!from_string_ipv4(std::to_string(host)+std::to_string(port)));
+        if (!from_string_ipv4(std::to_string(*host)+std::to_string(port)));
         _addr.v4.type = HOST_TYPE_IPV4;
         _addr.v4.ip = rpc_address::ipv4_from_host(host);
         _addr.v4.port = port;
