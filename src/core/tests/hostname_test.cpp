@@ -30,7 +30,7 @@ TEST(ip_to_hostname, ipv4_validate)
                  {"127.0.0.11:123", 1}};
 
     for (auto test : tests) {
-        ASSERT_EQ(rpc_test_ipv4.from_string_ipv4(test.ip.c_str()), test.result);
+        ASSERT_EQ(rpc_test_ipv4.ipv4_validate(test.ip.c_str()), test.result);
     }
 }
 
