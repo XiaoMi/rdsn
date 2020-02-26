@@ -102,6 +102,9 @@ public:
 
     std::string to_std_string() const { return std::string(to_string()); }
 
+    // This function is to validate the format of ipv4 like "192.168.0.1:12345"
+    // Due to historical legacy, we also consider format of "localhost:8080" is valid
+    // Ip address without port like "127.0.0.1" is invalid here
     bool from_string_ipv4(const char *s)
     {
         set_invalid();
