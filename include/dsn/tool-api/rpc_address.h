@@ -105,27 +105,6 @@ public:
     bool from_string_ipv4(const char *s)
     {
         set_invalid();
-        std::string str = std::string(s);
-        auto pos = str.find_last_of(':');
-        if (pos == std::string::npos)
-            return false;
-        else {
-            auto host = str.substr(0, pos);
-            auto port_str = str.substr(pos + 1);
-            char *p = nullptr;
-            long port = ::strtol(port_str.data(), &p, 10);
-            if (*p != 0) // bad string
-                return false;
-            if (port <= 0 || port > UINT16_MAX) // out of range
-                return false;
-            assign_ipv4(host.c_str(), (uint16_t)port);
-            return true;
-        }
-    }
-
-    bool ipv4_validate(const char *s)
-    {
-        set_invalid();
         std::string ip_port = std::string(s);
         auto pos = ip_port.find_last_of(':');
         if (pos == std::string::npos) {
