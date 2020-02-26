@@ -113,7 +113,7 @@ bool hostname_from_ip(const char *ip, std::string *hostname_result)
 bool hostname_from_ip_port(const char *ip_port, std::string *hostname_result)
 {
     dsn::rpc_address addr;
-    if (!addr.from_string_ipv4(ip_port)) {
+    if (!addr.ipv4_validate(ip_port)) {
         dwarn("invalid ip_port(%s)", ip_port);
         *hostname_result = ip_port;
         return false;
@@ -190,5 +190,5 @@ bool list_hostname_from_ip_port(const char *ip_port_list, std::string *hostname_
     *hostname_result_list = result.str();
     return all_ok;
 }
-}
-}
+} // namespace utils
+} // namespace dsn
