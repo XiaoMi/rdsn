@@ -30,7 +30,8 @@
 #include <arpa/inet.h>
 #include <thrift/protocol/TProtocol.h>
 
-typedef enum dsn_host_type_t {
+typedef enum dsn_host_type_t
+{
     HOST_TYPE_INVALID = 0,
     HOST_TYPE_IPV4 = 1,
     HOST_TYPE_GROUP = 2,
@@ -124,6 +125,11 @@ public:
         int port_num = std::stoi(port);
         if (port_num > UINT16_MAX)
             return false;
+        // check localhost
+        if (ip == "localhost") {
+            assign_ipv4(ip.c_str(), (uint16_t)port_num);
+            return true;
+        }
         // check ip
         uint32_t ip_addr;
         if (inet_pton(AF_INET, ip.c_str(), &ip_addr) != 1) {
