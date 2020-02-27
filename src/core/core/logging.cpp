@@ -150,7 +150,8 @@ DSN_API void dsn_log(const char *file,
 
 namespace dsn {
 
-std::unique_ptr<logging_provider> logging_provider::_logger = std::unique_ptr<logging_provider>(nullptr);
+std::unique_ptr<logging_provider> logging_provider::_logger =
+    std::unique_ptr<logging_provider>(nullptr);
 
 logging_provider *logging_provider::instance()
 {
@@ -159,7 +160,10 @@ logging_provider *logging_provider::instance()
     return _logger ? _logger.get() : default_logger.get();
 }
 
-logging_provider *logging_provider::create_default_instance() { return new tools::screen_logger("./"); }
+logging_provider *logging_provider::create_default_instance()
+{
+    return new tools::screen_logger("./");
+}
 
 void logging_provider::set_logger(logging_provider *logger) { _logger.reset(logger); }
 } // namespace dsn
