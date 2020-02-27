@@ -43,6 +43,7 @@ namespace tools {
 class screen_logger : public logging_provider
 {
 public:
+    screen_logger(bool short_header);
     screen_logger(const char *log_dir);
     virtual ~screen_logger(void);
 

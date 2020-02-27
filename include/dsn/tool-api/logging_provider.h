@@ -56,9 +56,9 @@ public:
     typedef logging_provider *(*factory)(const char *);
 
 public:
-    logging_provider(const char *) {};
+    logging_provider(const char *) {}
 
-    virtual ~logging_provider(void) {};
+    virtual ~logging_provider(void) {}
 
     // singleton
     static logging_provider *instance();

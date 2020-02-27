@@ -112,13 +112,7 @@ DSN_API void dsn_logv(const char *file,
                       va_list args)
 {
     dsn::logging_provider *logger = dsn::logging_provider::instance();
-    if (logger != nullptr) {
-        logger->dsn_logv(file, function, line, log_level, fmt, args);
-    } else {
-        printf("%s:%d:%s():", file, line, function);
-        vprintf(fmt, args);
-        printf("\n");
-    }
+    logger->dsn_logv(file, function, line, log_level, fmt, args);
 }
 
 DSN_API void dsn_logf(const char *file,
@@ -141,11 +135,7 @@ DSN_API void dsn_log(const char *file,
                      const char *str)
 {
     dsn::logging_provider *logger = dsn::logging_provider::instance();
-    if (logger != nullptr) {
-        logger->dsn_log(file, function, line, log_level, str);
-    } else {
-        printf("%s:%d:%s():%s\n", file, line, function, str);
-    }
+    logger->dsn_log(file, function, line, log_level, str);
 }
 
 namespace dsn {
@@ -162,7 +152,7 @@ logging_provider *logging_provider::instance()
 
 logging_provider *logging_provider::create_default_instance()
 {
-    return new tools::screen_logger("./");
+    return new tools::screen_logger(true);
 }
 
 void logging_provider::set_logger(logging_provider *logger) { _logger.reset(logger); }
