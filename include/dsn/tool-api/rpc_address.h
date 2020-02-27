@@ -117,20 +117,17 @@ public:
         std::string port = ip_port.substr(pos + 1);
         // check port
         unsigned int port_num;
-        if (port.size() < 6 && dsn::internal::buf2unsigned(port, port_num) &&
-            port_num > UINT16_MAX) {
+        if (!(port.size() < 6 && dsn::internal::buf2unsigned(port, port_num) &&
+              port_num <= UINT16_MAX)) {
             return false;
         }
         // check localhost
-        if (ip != "localhost") {
-            uint32_t ip_addr;
-            // check ip
-            if (inet_pton(AF_INET, ip.c_str(), &ip_addr) != 1) {
-                return false;
-            }
+        uint32_t ip_addr;
+        if (ip == "localhost" || inet_pton(AF_INET, ip.c_str(), &ip_addr)) {
+            assign_ipv4(ip.c_str(), (uint16_t)port_num);
+            return true;
         }
-        assign_ipv4(ip.c_str(), (uint16_t)port_num);
-        return true;
+        return false;
     }
 
     uint64_t &value() { return _addr.value; }
