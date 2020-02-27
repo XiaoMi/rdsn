@@ -29,6 +29,7 @@
 
 #include <arpa/inet.h>
 #include <thrift/protocol/TProtocol.h>
+#include <dsn/utility/string_conv.h>
 
 typedef enum dsn_host_type_t {
     HOST_TYPE_INVALID = 0,
@@ -115,15 +116,11 @@ public:
         std::string ip = ip_port.substr(0, pos);
         std::string port = ip_port.substr(pos + 1);
         // check port
-        if (port.size() > 5)
+        unsigned int port_num;
+        if (port.size() < 6 && dsn::internal::buf2unsigned(port, port_num) &&
+            port_num > UINT16_MAX) {
             return false;
-        for (auto c : port) {
-            if (!isdigit(c))
-                return false;
         }
-        int port_num = std::stoi(port);
-        if (port_num > UINT16_MAX)
-            return false;
         // check localhost
         if (ip != "localhost") {
             uint32_t ip_addr;
