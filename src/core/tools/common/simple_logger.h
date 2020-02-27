@@ -40,10 +40,29 @@
 namespace dsn {
 namespace tools {
 
+struct screen_logger_options : public logger_options
+{
+    static screen_logger_options *create_from_config();
+
+    bool short_header = false;
+};
+
+struct simple_logger_options : public logger_options
+{
+    simple_logger_options() = default;
+    static simple_logger_options *create_from_config();
+
+    bool short_header = false;
+    bool fast_flush = true;
+    dsn_log_level_t stderr_start_level = LOG_LEVEL_WARNING;
+    uint64_t max_number_of_log_files_on_disk = 20;
+};
+
 class screen_logger : public logging_provider
 {
 public:
-    screen_logger(const char *log_dir);
+    screen_logger();
+    screen_logger(const char *log_dir, const logger_options *options);
     virtual ~screen_logger(void);
 
     virtual void dsn_logv(const char *file,
@@ -70,6 +89,7 @@ class simple_logger : public logging_provider
 {
 public:
     simple_logger(const char *log_dir);
+    simple_logger(const char *log_dir, const logger_options *options);
     virtual ~simple_logger(void);
 
     virtual void dsn_logv(const char *file,
@@ -87,8 +107,6 @@ public:
 
     virtual void flush();
 
-    virtual void set_stderr_start_level(dsn_log_level_t stderr_start_level);
-
 private:
     void create_log_file();
 
@@ -100,9 +118,10 @@ private:
     int _start_index;
     int _index;
     int _lines;
-    dsn_log_level_t _stderr_start_level = LOG_LEVEL_WARNING;
-    const int _max_number_of_log_files_on_disk = 20;
-    const int _max_line_of_log_file = 2 * 1e5;
+    bool _short_header;
+    bool _fast_flush;
+    dsn_log_level_t _stderr_start_level;
+    int _max_number_of_log_files_on_disk;
 };
 } // namespace tools
 } // namespace dsn

@@ -40,6 +40,21 @@
 
 namespace dsn {
 
+struct logger_options
+{
+    logger_options() = default;
+    virtual ~logger_options(void) = default;
+
+    template <typename T>
+    static logger_options *create()
+    {
+        return T::create_from_config();
+    }
+    typedef logger_options *(*factory)();
+
+    static logger_options *create_from_config() { return nullptr; };
+};
+
 /*!
 @addtogroup tool-api-providers
 @{
@@ -48,17 +63,22 @@ class logging_provider
 {
 public:
     template <typename T>
-    static logging_provider *create(const char *log_dir)
+    static logging_provider *create(const char *log_dir, const logger_options *options)
     {
-        return new T(log_dir);
+        return new T(log_dir, options);
     }
 
-    typedef logging_provider *(*factory)(const char *);
+    typedef logging_provider *(*factory)(const char *, const logger_options *);
 
 public:
-    logging_provider(const char *) {}
+    logging_provider(){};
+    logging_provider(const char *, const logger_options *options){};
+    virtual ~logging_provider(void){};
 
-    virtual ~logging_provider(void) {}
+    // singleton
+    static logging_provider *instance();
+    // not thread-safe
+    static void set_logger(logging_provider *logger);
 
     virtual void dsn_logv(const char *file,
                           const char *function,
@@ -75,9 +95,12 @@ public:
 
     virtual void flush() = 0;
 
-    virtual void set_stderr_start_level(dsn_log_level_t stderr_start_level){};
+private:
+    static std::unique_ptr<logging_provider> _logger;
+
+    static logging_provider *create_default_instance();
 };
 
 /*@}*/
 // ----------------------- inline implementation ---------------------------------------
-} // end namespace
+} // namespace dsn

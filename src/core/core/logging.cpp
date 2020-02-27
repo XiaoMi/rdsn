@@ -30,13 +30,14 @@
 #include <dsn/tool_api.h>
 #include "service_engine.h"
 #include <dsn/tool-api/auto_codes.h>
-#include "core/tools/common/logger_proxy.h"
+#include <dsn/utility/smart_pointers.h>
+#include "core/tools/common/simple_logger.h"
 
 DSN_API dsn_log_level_t dsn_log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
 
 static void log_on_sys_exit(::dsn::sys_exit_type)
 {
-    dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
+    dsn::logging_provider *logger = dsn::logging_provider::instance();
     logger->flush();
 }
 
@@ -59,20 +60,12 @@ void dsn_log_init(const std::string &logging_factory_name, const std::string &di
         ::dsn::tools::sys_exit.put_back(log_on_sys_exit, "log.flush");
     }
 
-    dsn_log_level_t stderr_start_level = enum_from_string(
-        dsn_config_get_value_string(
-            "tools.simple_logger",
-            "stderr_start_level",
-            enum_to_string(LOG_LEVEL_WARNING),
-            "copy log messages at or above this level to stderr in addition to logfiles"),
-        LOG_LEVEL_INVALID);
-    dassert(stderr_start_level != LOG_LEVEL_INVALID,
-            "invalid [tools.simple_logger] stderr_start_level specified");
-
-    // create a logger and bind it to logger_proxy
+    std::unique_ptr<dsn::logger_options> options =
+        std::unique_ptr<dsn::logger_options>(dsn::utils::factory_store<dsn::logger_options>::create(
+            logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN));
     dsn::logging_provider *logger = dsn::utils::factory_store<dsn::logging_provider>::create(
-        logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
-    dsn::tools::logger_proxy::instance()->bind(logger, stderr_start_level);
+        logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str(), options.get());
+    dsn::logging_provider::set_logger(logger);
 
     // register command for logging
     ::dsn::command_manager::instance().register_command(
@@ -80,7 +73,7 @@ void dsn_log_init(const std::string &logging_factory_name, const std::string &di
         "flush-log - flush log to stderr or log file",
         "flush-log",
         [](const std::vector<std::string> &args) {
-            dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
+            dsn::logging_provider *logger = dsn::logging_provider::instance();
             logger->flush();
             return "Flush done.";
         });
@@ -121,7 +114,7 @@ DSN_API void dsn_logv(const char *file,
                       const char *fmt,
                       va_list args)
 {
-    dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
+    dsn::logging_provider *logger = dsn::logging_provider::instance();
     if (logger != nullptr) {
         logger->dsn_logv(file, function, line, log_level, fmt, args);
     } else {
@@ -150,10 +143,26 @@ DSN_API void dsn_log(const char *file,
                      dsn_log_level_t log_level,
                      const char *str)
 {
-    dsn::logging_provider *logger = dsn::tools::logger_proxy::instance();
+    dsn::logging_provider *logger = dsn::logging_provider::instance();
     if (logger != nullptr) {
         logger->dsn_log(file, function, line, log_level, str);
     } else {
         printf("%s:%d:%s():%s\n", file, line, function, str);
     }
 }
+
+namespace dsn {
+
+std::unique_ptr<logging_provider> logging_provider::_logger = make_unique<tools::screen_logger>();
+
+logging_provider *logging_provider::instance()
+{
+    static std::unique_ptr<logging_provider> default_logger =
+        std::unique_ptr<logging_provider>(create_default_instance());
+    return _logger ? _logger.get() : default_logger.get();
+}
+
+logging_provider *logging_provider::create_default_instance() { return new tools::screen_logger(); }
+
+void logging_provider::set_logger(logging_provider *logger) { _logger.reset(logger); }
+} // namespace dsn

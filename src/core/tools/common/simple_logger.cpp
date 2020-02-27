@@ -37,6 +37,7 @@
 #include <sstream>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/time_utils.h>
+#include <dsn/utility/smart_pointers.h>
 
 namespace dsn {
 namespace tools {
@@ -86,7 +87,56 @@ static void print_header(FILE *fp, dsn_log_level_t log_level)
     }
 }
 
-screen_logger::screen_logger(const char *log_dir) : logging_provider(log_dir) {}
+screen_logger_options *screen_logger_options::create_from_config()
+{
+    screen_logger_options *options = new screen_logger_options();
+    options->short_header =
+        dsn_config_get_value_bool("tools.screen_logger",
+                                  "short_header",
+                                  true,
+                                  "whether to use short header (excluding file/function etc.)");
+    return options;
+}
+
+simple_logger_options *simple_logger_options::create_from_config()
+{
+    simple_logger_options *options = new simple_logger_options();
+    options->short_header =
+        dsn_config_get_value_bool("tools.simple_logger",
+                                  "short_header",
+                                  true,
+                                  "whether to use short header (excluding file/function etc.)");
+    options->fast_flush = dsn_config_get_value_bool(
+        "tools.simple_logger", "fast_flush", false, "whether to flush immediately");
+    options->stderr_start_level = enum_from_string(
+        dsn_config_get_value_string(
+            "tools.simple_logger",
+            "stderr_start_level",
+            enum_to_string(LOG_LEVEL_WARNING),
+            "copy log messages at or above this level to stderr in addition to logfiles"),
+        LOG_LEVEL_INVALID);
+    dassert(options->stderr_start_level != LOG_LEVEL_INVALID,
+            "invalid [tools.simple_logger] stderr_start_level specified");
+    options->max_number_of_log_files_on_disk = dsn_config_get_value_uint64(
+        "tools.simple_logger",
+        "max_number_of_log_files_on_disk",
+        20,
+        "max number of log files reserved on disk, older logs are auto deleted");
+    return options;
+}
+
+screen_logger::screen_logger()
+{
+    std::unique_ptr<screen_logger_options> options = make_unique<screen_logger_options>();
+    screen_logger("./", options.get());
+}
+
+screen_logger::screen_logger(const char *log_dir, const logger_options *options)
+{
+    const screen_logger_options *screen_options =
+        static_cast<const screen_logger_options *>(options);
+    _short_header = screen_options->short_header;
+}
 
 screen_logger::~screen_logger(void) {}
 
@@ -100,21 +150,36 @@ void screen_logger::dsn_logv(const char *file,
     utils::auto_lock<::dsn::utils::ex_lock_nr> l(_lock);
 
     print_header(stdout, log_level);
-    printf("%s:%d:%s(): ", file, line, function);
+    if (!_short_header) {
+        printf("%s:%d:%s(): ", file, line, function);
+    }
     vprintf(fmt, args);
     printf("\n");
 }
 
 void screen_logger::flush() { ::fflush(stdout); }
 
-simple_logger::simple_logger(const char *log_dir) : logging_provider(log_dir)
+simple_logger::simple_logger(const char *log_dir)
 {
-    _log_dir = std::string(log_dir);
+    std::unique_ptr<simple_logger_options> options = make_unique<simple_logger_options>();
+    simple_logger(log_dir, options.get());
+}
+
+simple_logger::simple_logger(const char *log_dir, const logger_options *options)
+{
+    const simple_logger_options *screen_options =
+        static_cast<const simple_logger_options *>(options);
+
+    _log_dir = log_dir;
     // we assume all valid entries are positive
     _start_index = 0;
     _index = 1;
     _lines = 0;
     _log = nullptr;
+    _short_header = screen_options->short_header;
+    _fast_flush = screen_options->fast_flush;
+    _stderr_start_level = screen_options->stderr_start_level;
+    _max_number_of_log_files_on_disk = screen_options->max_number_of_log_files_on_disk;
 
     // check existing log files
     std::vector<std::string> sub_list;
@@ -198,22 +263,26 @@ void simple_logger::dsn_logv(const char *file,
 
     utils::auto_lock<::dsn::utils::ex_lock> l(_lock);
 
-    // print to log file
     print_header(_log, log_level);
-    fprintf(_log, "%s:%d:%s(): ", file, line, function);
+    if (!_short_header) {
+        fprintf(_log, "%s:%d:%s(): ", file, line, function);
+    }
     vfprintf(_log, fmt, args);
     fprintf(_log, "\n");
-    fflush(_log);
+    if (_fast_flush || log_level >= LOG_LEVEL_ERROR) {
+        ::fflush(_log);
+    }
 
-    // print to stdout if log_level > _stderr_start_level
     if (log_level >= _stderr_start_level) {
         print_header(stdout, log_level);
-        printf("%s:%d:%s(): ", file, line, function);
+        if (!_short_header) {
+            printf("%s:%d:%s(): ", file, line, function);
+        }
         vprintf(fmt, args2);
         printf("\n");
     }
 
-    if (++_lines >= _max_line_of_log_file) {
+    if (++_lines >= 200000) {
         create_log_file();
     }
 }
@@ -226,31 +295,26 @@ void simple_logger::dsn_log(const char *file,
 {
     utils::auto_lock<::dsn::utils::ex_lock> l(_lock);
 
-    // print to log file
     print_header(_log, log_level);
-    fprintf(_log, "%s:%d:%s(): ", file, line, function);
+    if (!_short_header) {
+        fprintf(_log, "%s:%d:%s(): ", file, line, function);
+    }
     fprintf(_log, "%s\n", str);
-    fflush(_log);
+    if (_fast_flush || log_level >= LOG_LEVEL_ERROR) {
+        ::fflush(_log);
+    }
 
-    // print to stdout if log_level > _stderr_start_level
     if (log_level >= _stderr_start_level) {
         print_header(stdout, log_level);
-        printf("%s:%d:%s(): ", file, line, function);
+        if (!_short_header) {
+            printf("%s:%d:%s(): ", file, line, function);
+        }
         printf("%s\n", str);
     }
 
-    if (++_lines >= _max_line_of_log_file) {
+    if (++_lines >= 200000) {
         create_log_file();
     }
 }
-
-void simple_logger::set_stderr_start_level(dsn_log_level_t stderr_start_level)
-{
-    utils::auto_lock<utils::ex_lock> l(_lock);
-
-    assert(stderr_start_level != dsn_log_level_t::LOG_LEVEL_INVALID);
-    _stderr_start_level = stderr_start_level;
-}
-
 } // namespace tools
 } // namespace dsn

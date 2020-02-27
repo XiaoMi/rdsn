@@ -146,6 +146,8 @@ register_component_provider(const char *name, env_provider::factory f, ::dsn::pr
 DSN_API bool register_component_provider(const char *name,
                                          logging_provider::factory f,
                                          ::dsn::provider_type type);
+DSN_API bool
+register_component_provider(const char *name, logger_options::factory f, ::dsn::provider_type type);
 DSN_API bool register_component_provider(network_header_format fmt,
                                          const std::vector<const char *> &signatures,
                                          message_parser::factory f,
