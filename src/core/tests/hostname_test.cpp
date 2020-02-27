@@ -28,8 +28,7 @@ TEST(ip_to_hostname, ipv4_validate)
                  {"172.16.254.1:8080.", 0},
                  {"127.0.0.11:123!", 0},
                  {"127.0.0.11:123", 1},
-                 {"localhost:34601", 1}
-                 {"localhost:3460100022212312312213",0}};
+                 {"localhost:34601", 1} {"localhost:3460100022212312312213", 0}};
 
     for (auto test : tests) {
         ASSERT_EQ(rpc_test_ipv4.from_string_ipv4(test.ip.c_str()), test.result);
