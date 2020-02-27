@@ -121,7 +121,7 @@ public:
               port_num <= UINT16_MAX)) {
             return false;
         }
-        // check localhost
+        // check localhost & IP
         uint32_t ip_addr;
         if (ip == "localhost" || inet_pton(AF_INET, ip.c_str(), &ip_addr)) {
             assign_ipv4(ip.c_str(), (uint16_t)port_num);
