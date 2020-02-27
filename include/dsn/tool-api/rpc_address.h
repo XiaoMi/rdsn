@@ -101,9 +101,9 @@ public:
 
     std::string to_std_string() const { return std::string(to_string()); }
 
-    // This function is to validate the format of ipv4 like "192.168.0.1:12345"
-    // Due to historical legacy, we also consider format of "localhost:8080" is valid
-    // Ip address without port like "127.0.0.1" is invalid here
+    // This function is used for validating the format of ipv4 like "192.168.0.1:12345"
+    // Due to historical legacy, we also consider "localhost:8080" is in a valid format
+    // IP address without port like "127.0.0.1" is invalid here
     bool from_string_ipv4(const char *s)
     {
         set_invalid();
@@ -114,9 +114,6 @@ public:
         }
         std::string ip = ip_port.substr(0, pos);
         std::string port = ip_port.substr(pos + 1);
-        if (pos == std::string::npos) {
-            return false;
-        }
         // check port
         if (port.size() > 5)
             return false;
@@ -128,14 +125,12 @@ public:
         if (port_num > UINT16_MAX)
             return false;
         // check localhost
-        if (ip == "localhost") {
-            assign_ipv4(ip.c_str(), (uint16_t)port_num);
-            return true;
-        }
-        // check ip
-        uint32_t ip_addr;
-        if (inet_pton(AF_INET, ip.c_str(), &ip_addr) != 1) {
-            return false;
+        if (ip != "localhost") {
+            uint32_t ip_addr;
+            // check ip
+            if (inet_pton(AF_INET, ip.c_str(), &ip_addr) != 1) {
+                return false;
+            }
         }
         assign_ipv4(ip.c_str(), (uint16_t)port_num);
         return true;
