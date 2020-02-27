@@ -24,20 +24,10 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #include "simple_logger.h"
 #include <sstream>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/time_utils.h>
-#include <dsn/utility/smart_pointers.h>
 
 namespace dsn {
 namespace tools {
@@ -87,55 +77,13 @@ static void print_header(FILE *fp, dsn_log_level_t log_level)
     }
 }
 
-screen_logger_options *screen_logger_options::create_from_config()
+screen_logger::screen_logger(const char *log_dir) : logging_provider(log_dir)
 {
-    screen_logger_options *options = new screen_logger_options();
-    options->short_header =
+    _short_header =
         dsn_config_get_value_bool("tools.screen_logger",
                                   "short_header",
                                   true,
                                   "whether to use short header (excluding file/function etc.)");
-    return options;
-}
-
-simple_logger_options *simple_logger_options::create_from_config()
-{
-    simple_logger_options *options = new simple_logger_options();
-    options->short_header =
-        dsn_config_get_value_bool("tools.simple_logger",
-                                  "short_header",
-                                  true,
-                                  "whether to use short header (excluding file/function etc.)");
-    options->fast_flush = dsn_config_get_value_bool(
-        "tools.simple_logger", "fast_flush", false, "whether to flush immediately");
-    options->stderr_start_level = enum_from_string(
-        dsn_config_get_value_string(
-            "tools.simple_logger",
-            "stderr_start_level",
-            enum_to_string(LOG_LEVEL_WARNING),
-            "copy log messages at or above this level to stderr in addition to logfiles"),
-        LOG_LEVEL_INVALID);
-    dassert(options->stderr_start_level != LOG_LEVEL_INVALID,
-            "invalid [tools.simple_logger] stderr_start_level specified");
-    options->max_number_of_log_files_on_disk = dsn_config_get_value_uint64(
-        "tools.simple_logger",
-        "max_number_of_log_files_on_disk",
-        20,
-        "max number of log files reserved on disk, older logs are auto deleted");
-    return options;
-}
-
-screen_logger::screen_logger()
-{
-    std::unique_ptr<screen_logger_options> options = make_unique<screen_logger_options>();
-    screen_logger("./", options.get());
-}
-
-screen_logger::screen_logger(const char *log_dir, const logger_options *options)
-{
-    const screen_logger_options *screen_options =
-        static_cast<const screen_logger_options *>(options);
-    _short_header = screen_options->short_header;
 }
 
 screen_logger::~screen_logger(void) {}
@@ -159,27 +107,36 @@ void screen_logger::dsn_logv(const char *file,
 
 void screen_logger::flush() { ::fflush(stdout); }
 
-simple_logger::simple_logger(const char *log_dir)
+simple_logger::simple_logger(const char *log_dir) : logging_provider(log_dir)
 {
-    std::unique_ptr<simple_logger_options> options = make_unique<simple_logger_options>();
-    simple_logger(log_dir, options.get());
-}
-
-simple_logger::simple_logger(const char *log_dir, const logger_options *options)
-{
-    const simple_logger_options *screen_options =
-        static_cast<const simple_logger_options *>(options);
-
-    _log_dir = log_dir;
+    _log_dir = std::string(log_dir);
     // we assume all valid entries are positive
     _start_index = 0;
     _index = 1;
     _lines = 0;
     _log = nullptr;
-    _short_header = screen_options->short_header;
-    _fast_flush = screen_options->fast_flush;
-    _stderr_start_level = screen_options->stderr_start_level;
-    _max_number_of_log_files_on_disk = screen_options->max_number_of_log_files_on_disk;
+    _short_header =
+        dsn_config_get_value_bool("tools.simple_logger",
+                                  "short_header",
+                                  true,
+                                  "whether to use short header (excluding file/function etc.)");
+    _fast_flush = dsn_config_get_value_bool(
+        "tools.simple_logger", "fast_flush", false, "whether to flush immediately");
+    _stderr_start_level = enum_from_string(
+        dsn_config_get_value_string(
+            "tools.simple_logger",
+            "stderr_start_level",
+            enum_to_string(LOG_LEVEL_WARNING),
+            "copy log messages at or above this level to stderr in addition to logfiles"),
+        LOG_LEVEL_INVALID);
+    dassert(_stderr_start_level != LOG_LEVEL_INVALID,
+            "invalid [tools.simple_logger] stderr_start_level specified");
+
+    _max_number_of_log_files_on_disk = dsn_config_get_value_uint64(
+        "tools.simple_logger",
+        "max_number_of_log_files_on_disk",
+        20,
+        "max number of log files reserved on disk, older logs are auto deleted");
 
     // check existing log files
     std::vector<std::string> sub_list;
@@ -316,5 +273,5 @@ void simple_logger::dsn_log(const char *file,
         create_log_file();
     }
 }
-} // namespace tools
-} // namespace dsn
+}
+}

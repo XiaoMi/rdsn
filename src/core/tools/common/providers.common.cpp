@@ -52,8 +52,6 @@ void register_common_providers()
     register_component_provider<task_worker>("dsn::task_worker");
     register_component_provider<screen_logger>("dsn::tools::screen_logger");
     register_component_provider<simple_logger>("dsn::tools::simple_logger");
-    register_component_provider<screen_logger_options>("dsn::tools::screen_logger");
-    register_component_provider<simple_logger_options>("dsn::tools::simple_logger");
 
     register_std_lock_providers();
 

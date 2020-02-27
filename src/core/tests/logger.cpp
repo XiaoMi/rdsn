@@ -97,7 +97,7 @@ void log_print(logging_provider *logger, const char *fmt, ...)
 TEST(tools_common, simple_logger)
 {
     // cases for print_header
-    screen_logger *logger = new screen_logger();
+    screen_logger *logger = new screen_logger("./");
     log_print(logger, "%s", "test_print");
     std::thread t(
         [](screen_logger *lg) {

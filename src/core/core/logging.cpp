@@ -60,11 +60,8 @@ void dsn_log_init(const std::string &logging_factory_name, const std::string &di
         ::dsn::tools::sys_exit.put_back(log_on_sys_exit, "log.flush");
     }
 
-    std::unique_ptr<dsn::logger_options> options =
-        std::unique_ptr<dsn::logger_options>(dsn::utils::factory_store<dsn::logger_options>::create(
-            logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN));
     dsn::logging_provider *logger = dsn::utils::factory_store<dsn::logging_provider>::create(
-        logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str(), options.get());
+        logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
     dsn::logging_provider::set_logger(logger);
 
     // register command for logging
@@ -153,7 +150,7 @@ DSN_API void dsn_log(const char *file,
 
 namespace dsn {
 
-std::unique_ptr<logging_provider> logging_provider::_logger = make_unique<tools::screen_logger>();
+std::unique_ptr<logging_provider> logging_provider::_logger = std::unique_ptr<logging_provider>(nullptr);
 
 logging_provider *logging_provider::instance()
 {
@@ -162,7 +159,7 @@ logging_provider *logging_provider::instance()
     return _logger ? _logger.get() : default_logger.get();
 }
 
-logging_provider *logging_provider::create_default_instance() { return new tools::screen_logger(); }
+logging_provider *logging_provider::create_default_instance() { return new tools::screen_logger("./"); }
 
 void logging_provider::set_logger(logging_provider *logger) { _logger.reset(logger); }
 } // namespace dsn

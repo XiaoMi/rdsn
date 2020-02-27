@@ -170,12 +170,6 @@ bool register_component_provider(const char *name,
     return dsn::utils::factory_store<logging_provider>::register_factory(name, f, type);
 }
 
-DSN_API bool
-register_component_provider(const char *name, logger_options::factory f, ::dsn::provider_type type)
-{
-    return dsn::utils::factory_store<logger_options>::register_factory(name, f, type);
-}
-
 bool register_component_provider(network_header_format fmt,
                                  const std::vector<const char *> &signatures,
                                  message_parser::factory f,
