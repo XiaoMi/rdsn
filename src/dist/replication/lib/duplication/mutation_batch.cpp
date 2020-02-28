@@ -108,7 +108,7 @@ add_mutation_if_valid(mutation_ptr &mu, mutation_tuple_set &mutations, decree st
         // ERR_OPERATION_DISABLED, but there could still be a mutation written
         // before the duplication was added.
         // To ignore means this write will be lost, which is acceptable under this rare case.
-        if (task_spec::get(update.code)->rpc_request_is_write_idempotent) {
+        if (!task_spec::get(update.code)->rpc_request_is_write_idempotent) {
             continue;
         }
         blob bb;
