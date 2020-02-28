@@ -104,7 +104,7 @@ TEST(ip_to_hostname, invalid_ip)
     const std::string invalid_ip_port = "123.456.789.111:23010";
 
     ASSERT_FALSE(dsn::utils::hostname_from_ip(invalid_ip.c_str(), &hostname_result));
-    ASSERT_STREQ(invalid_ip.c_str(), hostname_result.c_str());
+    ASSERT_EQ(invalid_ip, hostname_result);
 
     ASSERT_FALSE(dsn::utils::hostname_from_ip_port(invalid_ip_port.c_str(), &hostname_result));
     ASSERT_EQ(invalid_ip_port, hostname_result);
