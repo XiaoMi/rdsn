@@ -59,5 +59,19 @@ TEST_F(mutation_batch_test, add_mutation_if_valid)
     ASSERT_EQ(result.size(), 2);
 }
 
+// idempotent write
+DEFINE_STORAGE_WRITE_RPC_CODE(RPC_MUTATION_BATCH_IDEMPOTENT_WRITE, false, true)
+
+TEST_F(mutation_batch_test, ignore_idempotent_write)
+{
+    mutation_tuple_set result;
+
+    std::string s = "hello";
+    mutation_ptr mu1 = create_test_mutation(1, s);
+    mu1->data.updates[0].code = RPC_MUTATION_BATCH_IDEMPOTENT_WRITE;
+    add_mutation_if_valid(mu1, result, 0);
+    ASSERT_EQ(result.size(), 0);
+}
+
 } // namespace replication
 } // namespace dsn
