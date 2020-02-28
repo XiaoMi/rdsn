@@ -77,7 +77,8 @@ static void print_header(FILE *fp, dsn_log_level_t log_level)
     }
 }
 
-screen_logger::screen_logger(bool short_header) : logging_provider("./") {
+screen_logger::screen_logger(bool short_header) : logging_provider("./")
+{
     _short_header = short_header;
 }
 
