@@ -117,8 +117,7 @@ public:
         std::string port = ip_port.substr(pos + 1);
         // check port
         unsigned int port_num;
-        if (!(port.size() < 6 && dsn::internal::buf2unsigned(port, port_num) &&
-              port_num <= UINT16_MAX)) {
+        if (!(dsn::internal::buf2unsigned(port, port_num) && port_num <= UINT16_MAX)) {
             return false;
         }
         // check localhost & IP
