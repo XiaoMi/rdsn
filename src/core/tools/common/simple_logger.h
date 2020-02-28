@@ -24,13 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *   screen_logger provides a logger which writes to terminal.
- *   simple_logger provides a logger which writes to file. The max line of a logger
- * file is 200000. And the maximum number of log files on disk is 20.
- */
-
 #pragma once
 
 #include <dsn/tool_api.h>
@@ -40,6 +33,9 @@
 namespace dsn {
 namespace tools {
 
+/*
+ * screen_logger provides a logger which writes to terminal.
+ */
 class screen_logger : public logging_provider
 {
 public:
@@ -67,6 +63,10 @@ private:
     bool _short_header;
 };
 
+/*
+ * simple_logger provides a logger which writes to file. The max line of a logger
+ * file is 200000. And the maximum number of log files on disk is 20.
+ */
 class simple_logger : public logging_provider
 {
 public:

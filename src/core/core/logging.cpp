@@ -61,7 +61,7 @@ void dsn_log_init(const std::string &logging_factory_name, const std::string &di
     }
 
     dsn::logging_provider *logger = dsn::utils::factory_store<dsn::logging_provider>::create(
-        logging_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
+        logging_factory_name.c_str(), dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
     dsn::logging_provider::set_logger(logger);
 
     // register command for logging
