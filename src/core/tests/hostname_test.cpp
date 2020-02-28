@@ -17,21 +17,21 @@ TEST(ip_to_hostname, ipv4_validate)
     {
         std::string ip;
         bool result;
-    } tests[] = {{"127.0.0.1:8080", 1},
-                 {"172.16.254.1:1234", 1},
-                 {"172.16.254.1:222222", 0},
-                 {"172.16.254.1", 0},
-                 {"2222,123,33,1:8080", 0},
-                 {"123.456.789.1:8080", 0},
-                 {"001.223.110.002:8080", 0},
-                 {"172.16.254.1.8080", 0},
-                 {"172.16.254.1:8080.", 0},
-                 {"127.0.0.11:123!", 0},
-                 {"127.0.0.11:123", 1},
-                 {"localhost:34601", 1},
-                 {"localhost:34601000222123112312312216112312123122312213", 0},
-                 {"localhost:-12", 0},
-                 {"localhost:1@2", 0}};
+    } tests[] = {{"127.0.0.1:8080", true},
+                 {"172.16.254.1:1234", true},
+                 {"172.16.254.1:222222", false},
+                 {"172.16.254.1", false},
+                 {"2222,123,33,1:8080", false},
+                 {"123.456.789.1:8080", false},
+                 {"001.223.110.002:8080", false},
+                 {"172.16.254.1.8080", false},
+                 {"172.16.254.1:8080.", false},
+                 {"127.0.0.11:123!", false},
+                 {"127.0.0.11:123", true},
+                 {"localhost:34601", true},
+                 {"localhost:3460100022212312312213", false},
+                 {"localhost:-12", false},
+                 {"localhost:1@2", false}};
 
     for (auto test : tests) {
         ASSERT_EQ(rpc_test_ipv4.from_string_ipv4(test.ip.c_str()), test.result);
@@ -59,41 +59,41 @@ TEST(ip_to_hostname, localhost)
 
     // static bool hostname(const rpc_address &address,std::string *hostname_result);
     ASSERT_TRUE(dsn::utils::hostname(rpc_example_valid, &hostname_result));
-    ASSERT_STREQ(expected_hostname_port.c_str(), hostname_result.c_str());
+    ASSERT_EQ(expected_hostname_port, hostname_result);
 
     // static bool hostname_from_ip(uint32_t ip, std::string* hostname_result);
     ASSERT_TRUE(dsn::utils::hostname_from_ip(htonl(rpc_example_valid.ip()), &hostname_result));
-    ASSERT_STREQ(expected_hostname.c_str(), hostname_result.c_str());
+    ASSERT_EQ(expected_hostname, hostname_result);
 
     // static bool hostname_from_ip(const char *ip,std::string *hostname_result);
     ASSERT_TRUE(dsn::utils::hostname_from_ip(valid_ip.c_str(), &hostname_result));
-    ASSERT_STREQ(expected_hostname.c_str(), hostname_result.c_str());
+    ASSERT_EQ(expected_hostname, hostname_result);
 
     // static bool hostname_from_ip_port(const char *ip_port,std::string *hostname_result);
     ASSERT_TRUE(dsn::utils::hostname_from_ip_port(valid_ip_port.c_str(), &hostname_result));
-    ASSERT_STREQ(expected_hostname_port.c_str(), hostname_result.c_str());
+    ASSERT_EQ(expected_hostname_port, hostname_result);
 
     // static bool list_hostname_from_ip(const char *ip_port_list,std::string
     // *hostname_result_list);
     ASSERT_TRUE(dsn::utils::list_hostname_from_ip(valid_ip_list.c_str(), &hostname_result));
-    ASSERT_STREQ(expected_hostname_list.c_str(), hostname_result.c_str());
+    ASSERT_EQ(expected_hostname_list, hostname_result);
 
     ASSERT_FALSE(dsn::utils::list_hostname_from_ip("127.0.0.1,127.0.0.23323,111127.0.0.3",
                                                    &hostname_result));
-    ASSERT_STREQ("localhost,127.0.0.23323,111127.0.0.3", hostname_result.c_str());
+    ASSERT_EQ("localhost,127.0.0.23323,111127.0.0.3", hostname_result);
 
     ASSERT_FALSE(dsn::utils::list_hostname_from_ip("123.456.789.111,127.0.0.1", &hostname_result));
-    ASSERT_STREQ("123.456.789.111,localhost", hostname_result.c_str());
+    ASSERT_EQ("123.456.789.111,localhost", hostname_result);
 
     // static bool list_hostname_from_ip_port(const char *ip_port_list,std::string
     // *hostname_result_list);
     ASSERT_TRUE(
         dsn::utils::list_hostname_from_ip_port(valid_ip_port_list.c_str(), &hostname_result));
-    ASSERT_STREQ(expected_hostname_port_list.c_str(), hostname_result.c_str());
+    ASSERT_EQ(expected_hostname_port_list, hostname_result);
 
     ASSERT_FALSE(dsn::utils::list_hostname_from_ip_port(
         "127.0.3333.1:23456,1127.0.0.2:22233,127.0.0.1:8080", &hostname_result));
-    ASSERT_STREQ("127.0.3333.1:23456,1127.0.0.2:22233,localhost:8080", hostname_result.c_str());
+    ASSERT_EQ("127.0.3333.1:23456,1127.0.0.2:22233,localhost:8080", hostname_result);
 }
 
 TEST(ip_to_hostname, invalid_ip)
@@ -107,7 +107,7 @@ TEST(ip_to_hostname, invalid_ip)
     ASSERT_STREQ(invalid_ip.c_str(), hostname_result.c_str());
 
     ASSERT_FALSE(dsn::utils::hostname_from_ip_port(invalid_ip_port.c_str(), &hostname_result));
-    ASSERT_STREQ(invalid_ip_port.c_str(), hostname_result.c_str());
+    ASSERT_EQ(invalid_ip_port, hostname_result);
 }
 
 } // namespace replication
