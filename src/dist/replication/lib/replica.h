@@ -174,7 +174,7 @@ public:
     // Duplication
     //
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
-    bool is_duplicating() const { return _app_info.duplicating; }
+    bool is_duplicating() const { return _duplicating; }
 
     void update_last_checkpoint_generate_time();
 
@@ -486,6 +486,7 @@ private:
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
+    bool _duplicating{false};
 
     // partition split
     // _child_gpid = gpid({app_id},{pidx}+{old_partition_count}) for parent partition
