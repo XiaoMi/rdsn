@@ -65,7 +65,7 @@ private:
 
 /*
  * simple_logger provides a logger which writes to file. The max line of a logger
- * file is 200000. And the maximum number of log files on disk is 20.
+ * file is 200000.
  */
 class simple_logger : public logging_provider
 {
