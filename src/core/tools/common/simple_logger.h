@@ -64,8 +64,8 @@ private:
 };
 
 /*
- * simple_logger provides a logger which writes to file. The max line of a logger
- * file is 200000.
+ * simple_logger provides a logger which writes to file.
+ * The max line of a logger file is 200000.
  */
 class simple_logger : public logging_provider
 {
