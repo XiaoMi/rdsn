@@ -53,7 +53,7 @@ void meta_duplication_service::query_duplication_info(const duplication_query_re
             response.appid = app->app_id;
             for (auto &dup_id_to_info : app->duplications) {
                 const duplication_info_s_ptr &dup = dup_id_to_info.second;
-                dup->append_if_valid_for_query(response.entry_list);
+                dup->append_if_valid_for_query(*app, response.entry_list);
             }
         }
     }
@@ -438,7 +438,7 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
     // restore duplication info from json
     _meta_svc->get_meta_storage()->get_data(
         std::string(store_path),
-        [ dup_id, this, app = std::move(app), store_path ](const blob &json) {
+        [dup_id, this, app = std::move(app), store_path](const blob &json) {
             zauto_write_lock l(app_lock());
 
             auto dup = duplication_info::decode_from_blob(
