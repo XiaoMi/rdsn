@@ -1522,7 +1522,6 @@ typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk
 std::vector<error_with<query_disk_info_response>>
 replication_ddl_client::query_disk_info(const std::vector<dsn::rpc_address> &targets)
 {
-    // TODO(jiashuo1): get_node_address
     auto req = make_unique<query_disk_info_request>();
     return call_rpc_async(query_disk_info_rpc(std::move(req), RPC_QUERY_DISK_INFO), targets);
 }

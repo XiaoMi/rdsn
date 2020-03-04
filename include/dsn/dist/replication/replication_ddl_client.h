@@ -233,17 +233,17 @@ private:
                                                       bool retry = false)
     {
         dsn::task_tracker tracker;
-        std::vector<error_with<TResponse>> resps;
+        std::vector<dsn::error_with<TResponse>> resps;
         std::vector<dsn::rpc_address> failed_nodes;
 
         error_code err = ERR_UNKNOWN;
         for (const auto &rpc_address : targets) {
             rpc.call(rpc_address,
                      &tracker,
-                     [&err, &resps, &rpc_address, &failed_nodes](
-                         dsn::error_code err, error_with<TResponse> &&resp) mutable {
+                     [&err, &resps, &rpc_address, &failed_nodes, rpc](error_code code) mutable {
+                         err = code;
                          if (err == dsn::ERR_OK) {
-                             resps.emplace_back(std::move(resp));
+                             resps.emplace_back(std::move(rpc.response()));
                          } else {
                              failed_nodes.emplace_back(std::move(rpc_address));
                          }
@@ -256,7 +256,9 @@ private:
         } else if (failed_nodes.size() > 0) {
             std::vector<error_with<TResponse>> retry_resps =
                 call_rpc_async(rpc, failed_nodes, reply_thread_hash, true);
-            resps.insert(retry_resps.begin(), retry_resps.end());
+            for (auto &resp : retry_resps) {
+                resps.emplace_back(std::move(resp));
+            }
         }
         return resps;
     }
