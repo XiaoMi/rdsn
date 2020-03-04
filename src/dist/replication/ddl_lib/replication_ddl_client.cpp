@@ -1520,30 +1520,11 @@ replication_ddl_client::ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &
 
 typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
 std::vector<error_with<query_disk_info_response>>
-query_disk_info(std::string node_address, std::string app_name, bool resolve_ip)
+query_disk_info(std::vector<dsn::rpc_address> node_address)
 {
     // TODO(jiashuo1): get_node_address
-
-    std::vector<dsn::rpc_address> all_node_addresses = get_node_address();
     auto req = make_unique<query_disk_info_request>();
-    if (node_address == "") {
-        return call_rpc_async(query_disk_info_rpc(req), all_node_addresses);
-    } else {
-        // TODO(jiashuo1): generate rpc_address
-        bool exist = false;
-        std::vector<dsn::rpc_address> node_addresses;
-        for (auto &node_address : all_node_addresses) {
-            if (node_address.ipv4_str().c_str() == node_address) {
-                node_addresses.emplace_back(node_address);
-                exist = true;
-            }
-        }
-        if (exist) {
-            return call_rpc_async(query_disk_info_rpc(req), node_addresses);
-        } else {
-            "retrun error"
-        }
-    }
+    return call_rpc_async(query_disk_info_rpc(req), node_address);
 }
 
 } // namespace replication

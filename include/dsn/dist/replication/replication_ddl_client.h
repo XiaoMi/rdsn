@@ -170,7 +170,7 @@ public:
     dsn::error_code ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &ddd_partitions);
 
     std::vector<error_with<query_disk_info_response>>
-    query_disk_info(std::string node_address, std::string app_name, bool resolve_ip);
+    query_disk_info(std::vector<dsn::rpc_address> node_address);
 
 private:
     bool static valid_app_char(int c);
