@@ -1519,7 +1519,7 @@ replication_ddl_client::ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &
 }
 
 typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
-std::vector<error_with<query_disk_info_response>>
+std::map<dsn::rpc_address, error_with<query_disk_info_response>>
 replication_ddl_client::query_disk_info(const std::vector<dsn::rpc_address> &targets)
 {
     auto req = make_unique<query_disk_info_request>();
