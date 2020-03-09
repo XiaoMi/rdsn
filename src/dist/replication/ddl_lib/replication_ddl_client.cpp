@@ -1520,10 +1520,17 @@ replication_ddl_client::ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &
 
 typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
 std::map<dsn::rpc_address, error_with<query_disk_info_response>>
-replication_ddl_client::query_disk_info(const std::vector<dsn::rpc_address> &targets)
+replication_ddl_client::query_disk_info(const std::vector<dsn::rpc_address> &targets, int app_id)
 {
-    auto req = make_unique<query_disk_info_request>();
-    return call_rpc_async(query_disk_info_rpc(std::move(req), RPC_QUERY_DISK_INFO), targets);
+    std::map<dsn::rpc_address, query_disk_info_rpc> query_disk_info_rpcs;
+    for (const auto &target : targets) {
+        auto request = make_unique<query_disk_info_request>();
+        request->node = target;
+        request->app_id = app_id;
+        query_disk_info_rpcs.emplace(target,
+                                     query_disk_info_rpc(std::move(request), RPC_QUERY_DISK_INFO));
+    }
+    return call_rpc_async(query_disk_info_rpcs);
 }
 
 } // namespace replication

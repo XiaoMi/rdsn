@@ -170,7 +170,7 @@ public:
     dsn::error_code ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &ddd_partitions);
 
     std::map<dsn::rpc_address, error_with<query_disk_info_response>>
-    query_disk_info(const std::vector<dsn::rpc_address> &targets);
+    query_disk_info(const std::vector<dsn::rpc_address> &targets, int app_id);
 
 private:
     bool static valid_app_char(int c);
@@ -225,38 +225,32 @@ private:
         return error_with<TResponse>(std::move(rpc.response()));
     }
 
-    /// Send request to replica server synchronously.
+    /// Send request to multi replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
-    std::map<dsn::rpc_address, error_with<query_disk_info_response>>
-    call_rpc_async(TRpcHolder rpc,
-                   const std::vector<dsn::rpc_address> &targets,
-                   int reply_thread_hash = 0,
-                   bool retry = false)
+    std::map<dsn::rpc_address, error_with<query_disk_info_response>> call_rpc_async(
+        std::map<dsn::rpc_address, TRpcHolder> &rpcs, int reply_thread_hash = 0, bool retry = false)
     {
         dsn::task_tracker tracker;
         std::map<dsn::rpc_address, dsn::error_with<TResponse>> resps;
-        std::vector<dsn::rpc_address> failed_nodes;
 
         error_code err = ERR_UNKNOWN;
-        for (const auto &rpc_address : targets) {
-            rpc.call(rpc_address,
-                     &tracker,
-                     [&err, &resps, &rpc_address, &failed_nodes, rpc](error_code code) mutable {
-                         err = code;
-                         if (err == dsn::ERR_OK) {
-                             resps.emplace(rpc_address, std::move(rpc.response()));
-                         } else {
-                             failed_nodes.emplace_back(std::move(rpc_address));
-                         }
-                     });
+        for (auto &rpc : rpcs) {
+            rpc.second.call(
+                rpc.first, &tracker, [&err, &resps, &rpcs, &rpc](error_code code) mutable {
+                    err = code;
+                    if (err == dsn::ERR_OK) {
+                        resps.emplace(rpc.first, std::move(rpc.second.response()));
+                        rpcs.erase(rpc.first);
+                    }
+                });
         }
         tracker.wait_outstanding_tasks();
 
         if (retry) {
             return resps;
-        } else if (failed_nodes.size() > 0) {
+        } else if (rpcs.size() > 0) {
             std::map<dsn::rpc_address, dsn::error_with<TResponse>> retry_resps =
-                call_rpc_async(rpc, failed_nodes, reply_thread_hash, true);
+                call_rpc_async(rpcs, reply_thread_hash, true);
             for (auto &resp : retry_resps) {
                 resps.emplace(resp.first, std::move(resp.second));
             }
