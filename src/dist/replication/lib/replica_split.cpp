@@ -549,17 +549,19 @@ void replica::parent_handle_child_catch_up(const notify_catch_up_request &reques
                    request.child_address.to_string(),
                    request.child_ballot);
 
-    _primary_states.caught_up_child.insert(request.child_address);
+    _primary_states.caught_up_children.insert(request.child_address);
+    // _primary_states.statuses is a map structure: rpc address -> partition_status
+    // it stores replica's rpc address and partition_status of this replica group
     for (auto &iter : _primary_states.statuses) {
-        if (_primary_states.caught_up_child.find(iter.first) ==
-            _primary_states.caught_up_child.end()) {
+        if (_primary_states.caught_up_children.find(iter.first) ==
+            _primary_states.caught_up_children.end()) {
             // there are child partitions not caught up its parent
             return;
         }
     }
 
     ddebug_replica("all child partitions catch up");
-    _primary_states.caught_up_child.clear();
+    _primary_states.caught_up_children.clear();
     _primary_states.sync_send_write_request = true;
 
     // sync_point is the first decree after parent send write request to child synchronously

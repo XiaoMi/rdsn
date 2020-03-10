@@ -93,7 +93,7 @@ void primary_context::cleanup(bool clean_pending_mutations)
 
     membership.ballot = 0;
 
-    caught_up_child.clear();
+    caught_up_children.clear();
 
     sync_send_write_request = false;
 }

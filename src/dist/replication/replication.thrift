@@ -782,7 +782,7 @@ struct app_partition_split_response
     3:i32                    partition_count;
 }
 
-// child to primary parent, notify itself has caught up parent
+// child to primary parent, notifying that itself has caught up with parent
 struct notify_catch_up_request
 {
     1:dsn.gpid          parent_gpid;

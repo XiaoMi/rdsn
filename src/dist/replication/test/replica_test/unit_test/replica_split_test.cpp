@@ -123,9 +123,9 @@ public:
             partition_status::PS_SECONDARY;
         _parent->_primary_states.statuses[dsn::rpc_address("127.0.0.1", 3)] =
             partition_status::PS_SECONDARY;
-        _parent->_primary_states.caught_up_child.insert(dsn::rpc_address("127.0.0.1", 2));
+        _parent->_primary_states.caught_up_children.insert(dsn::rpc_address("127.0.0.1", 2));
         if (will_all_caught_up) {
-            _parent->_primary_states.caught_up_child.insert(dsn::rpc_address("127.0.0.1", 3));
+            _parent->_primary_states.caught_up_children.insert(dsn::rpc_address("127.0.0.1", 3));
         }
         _parent->_primary_states.sync_send_write_request = false;
     }
