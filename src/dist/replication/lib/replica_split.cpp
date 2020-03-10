@@ -14,6 +14,8 @@
 namespace dsn {
 namespace replication {
 
+typedef rpc_holder<notify_catch_up_request, notify_cacth_up_response> notify_catch_up_rpc;
+
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica::on_add_child(const group_check_request &request) // on parent partition
 {
@@ -475,7 +477,7 @@ void replica::child_notify_catch_up() // on child partition
 {
     FAIL_POINT_INJECT_F("replica_child_notify_catch_up", [](dsn::string_view) {});
 
-    std::shared_ptr<notify_catch_up_request> request = std::make_shared<notify_catch_up_request>();
+    std::unique_ptr<notify_catch_up_request> request = make_unique<notify_catch_up_request>();
     request->parent_gpid = _split_states.parent_gpid;
     request->child_gpid = get_gpid();
     request->child_ballot = get_ballot();
@@ -486,34 +488,32 @@ void replica::child_notify_catch_up() // on child partition
                    _config.primary.to_string(),
                    get_ballot());
 
-    rpc::call(_config.primary,
-              RPC_SPLIT_NOTIFY_CATCH_UP,
-              *request,
-              tracker(),
-              [this](error_code ec, notify_cacth_up_response &&resp) {
-                  auto response = std::move(resp);
-                  if (ec == ERR_TIMEOUT) {
-                      dwarn_replica("notify primary catch up timeout, please wait and retry");
-                      tasking::enqueue(LPC_PARTITION_SPLIT,
-                                       tracker(),
-                                       std::bind(&replica::child_notify_catch_up, this),
-                                       get_gpid().thread_hash(),
-                                       std::chrono::seconds(1));
-                      return;
-                  }
-                  if (ec != ERR_OK || response.err != ERR_OK) {
-                      error_code err = (ec == ERR_OK) ? response.err : ec;
-                      dwarn_replica("failed to notify primary catch up, error={}", err.to_string());
-                      _stub->split_replica_error_handler(
-                          _split_states.parent_gpid,
-                          std::bind(&replica::parent_cleanup_split_context, std::placeholders::_1));
-                      child_handle_split_error("notify_primary_split_catch_up");
-                      return;
-                  }
-                  ddebug_replica("notify primary catch up succeed");
-              },
-              std::chrono::seconds(0),
-              _split_states.parent_gpid.thread_hash());
+    notify_catch_up_rpc rpc(std::move(request), RPC_SPLIT_NOTIFY_CATCH_UP);
+    rpc.call(_config.primary,
+             tracker(),
+             [this, rpc](error_code ec) mutable {
+                 auto response = rpc.response();
+                 if (ec == ERR_TIMEOUT) {
+                     dwarn_replica("notify primary catch up timeout, please wait and retry");
+                     tasking::enqueue(LPC_PARTITION_SPLIT,
+                                      tracker(),
+                                      std::bind(&replica::child_notify_catch_up, this),
+                                      get_gpid().thread_hash(),
+                                      std::chrono::seconds(1));
+                     return;
+                 }
+                 if (ec != ERR_OK || response.err != ERR_OK) {
+                     error_code err = (ec == ERR_OK) ? response.err : ec;
+                     dwarn_replica("failed to notify primary catch up, error={}", err.to_string());
+                     _stub->split_replica_error_handler(
+                         _split_states.parent_gpid,
+                         std::bind(&replica::parent_cleanup_split_context, std::placeholders::_1));
+                     child_handle_split_error("notify_primary_split_catch_up");
+                     return;
+                 }
+                 ddebug_replica("notify primary catch up succeed");
+             },
+             _split_states.parent_gpid.thread_hash());
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
