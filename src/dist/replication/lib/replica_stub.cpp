@@ -786,7 +786,6 @@ void replica_stub::on_client_write(gpid id, dsn::message_ex *request)
                request->header->rpc_name,
                request->header->client.timeout_ms);
     }
-
     replica_ptr rep = get_replica(id);
     if (rep != nullptr) {
         rep->on_client_write(request);
