@@ -85,6 +85,12 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
     _log = nullptr;
     _primary_address_str[0] = '\0';
     install_perf_counters();
+
+    _abnormal_write_size_threshold = dsn_config_get_value_uint64(
+        "pegasus.server",
+        "rocksdb_abnormal_write_size_threshold",
+        1000000,
+        "write operation exceed this threshold will be logged and reject, 0 means no check");
 }
 
 replica_stub::~replica_stub(void) { close(); }
@@ -774,6 +780,15 @@ void replica_stub::on_client_write(gpid id, dsn::message_ex *request)
                request->header->rpc_name,
                request->header->client.timeout_ms);
     }
+
+    if (request->header->body_length > _abnormal_write_size_threshold) {
+        dwarn_replica("client from {} write request body size exceed threshold: {}, it will be "
+                      "reject!",
+                      request->header->from_address.to_string(),
+                      _abnormal_write_size_threshold);
+        response_client_write(request, ERR_INVALID_DATA);
+    }
+
     replica_ptr rep = get_replica(id);
     if (rep != nullptr) {
         rep->on_client_write(request);
