@@ -328,6 +328,12 @@ void replica_stub::install_perf_counters()
                                                       "recent.write.busy.count",
                                                       COUNTER_TYPE_VOLATILE_NUMBER,
                                                       "write busy count in the recent period");
+
+    _counter_recent_write_size_exceed_threshold_count.init_app_counter(
+        "eon.replica_stub",
+        "recent.write.size.exceed.count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "write size exceed threshold count in the recent period");
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
@@ -779,14 +785,6 @@ void replica_stub::on_client_write(gpid id, dsn::message_ex *request)
                request->header->from_address.to_string(),
                request->header->rpc_name,
                request->header->client.timeout_ms);
-    }
-
-    if (request->header->body_length > _abnormal_write_size_threshold) {
-        dwarn_replica("client from {} write request body size exceed threshold: {}, it will be "
-                      "reject!",
-                      request->header->from_address.to_string(),
-                      _abnormal_write_size_threshold);
-        response_client_write(request, ERR_INVALID_DATA);
     }
 
     replica_ptr rep = get_replica(id);

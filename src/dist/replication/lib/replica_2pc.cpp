@@ -44,6 +44,15 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
+    if (request->body_size() > _stub->_abnormal_write_size_threshold) {
+        dwarn_replica("client from {} write request body size exceed threshold = {}, it will be "
+                      "reject!",
+                      request->header->from_address.to_string(),
+                      _stub->_abnormal_write_size_threshold);
+        _stub->_counter_recent_write_size_exceed_threshold_count->increment();
+        response_client_write(request, ERR_INVALID_DATA);
+    }
+
     task_spec *spec = task_spec::get(request->rpc_code());
     if (!_options->allow_non_idempotent_write && !spec->rpc_request_is_write_idempotent) {
         response_client_write(request, ERR_OPERATION_DISABLED);
