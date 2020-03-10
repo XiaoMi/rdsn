@@ -680,8 +680,8 @@ struct duplication_entry
     // partition_index => confirmed decree
     5:optional map<i32, i64> progress;
 
-    // partition_index => approximate number of pending mutations
-    6:optional map<i32, i64> pending;
+    // partition_index => approximate number of mutations that are not confirmed yet
+    6:optional map<i32, i64> not_confirmed;
 }
 
 // This request is sent from client to meta.

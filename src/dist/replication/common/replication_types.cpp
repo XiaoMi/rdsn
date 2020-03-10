@@ -11459,10 +11459,10 @@ void duplication_entry::__set_progress(const std::map<int32_t, int64_t> &val)
     __isset.progress = true;
 }
 
-void duplication_entry::__set_pending(const std::map<int32_t, int64_t> &val)
+void duplication_entry::__set_not_confirmed(const std::map<int32_t, int64_t> &val)
 {
-    this->pending = val;
-    __isset.pending = true;
+    this->not_confirmed = val;
+    __isset.not_confirmed = true;
 }
 
 uint32_t duplication_entry::read(::apache::thrift::protocol::TProtocol *iprot)
@@ -11543,7 +11543,7 @@ uint32_t duplication_entry::read(::apache::thrift::protocol::TProtocol *iprot)
         case 6:
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
-                    this->pending.clear();
+                    this->not_confirmed.clear();
                     uint32_t _size481;
                     ::apache::thrift::protocol::TType _ktype482;
                     ::apache::thrift::protocol::TType _vtype483;
@@ -11552,12 +11552,12 @@ uint32_t duplication_entry::read(::apache::thrift::protocol::TProtocol *iprot)
                     for (_i485 = 0; _i485 < _size481; ++_i485) {
                         int32_t _key486;
                         xfer += iprot->readI32(_key486);
-                        int64_t &_val487 = this->pending[_key486];
+                        int64_t &_val487 = this->not_confirmed[_key486];
                         xfer += iprot->readI64(_val487);
                     }
                     xfer += iprot->readMapEnd();
                 }
-                this->__isset.pending = true;
+                this->__isset.not_confirmed = true;
             } else {
                 xfer += iprot->skip(ftype);
             }
@@ -11611,14 +11611,15 @@ uint32_t duplication_entry::write(::apache::thrift::protocol::TProtocol *oprot) 
         }
         xfer += oprot->writeFieldEnd();
     }
-    if (this->__isset.pending) {
-        xfer += oprot->writeFieldBegin("pending", ::apache::thrift::protocol::T_MAP, 6);
+    if (this->__isset.not_confirmed) {
+        xfer += oprot->writeFieldBegin("not_confirmed", ::apache::thrift::protocol::T_MAP, 6);
         {
             xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_I32,
                                          ::apache::thrift::protocol::T_I64,
-                                         static_cast<uint32_t>(this->pending.size()));
+                                         static_cast<uint32_t>(this->not_confirmed.size()));
             std::map<int32_t, int64_t>::const_iterator _iter489;
-            for (_iter489 = this->pending.begin(); _iter489 != this->pending.end(); ++_iter489) {
+            for (_iter489 = this->not_confirmed.begin(); _iter489 != this->not_confirmed.end();
+                 ++_iter489) {
                 xfer += oprot->writeI32(_iter489->first);
                 xfer += oprot->writeI64(_iter489->second);
             }
@@ -11639,7 +11640,7 @@ void swap(duplication_entry &a, duplication_entry &b)
     swap(a.remote, b.remote);
     swap(a.create_ts, b.create_ts);
     swap(a.progress, b.progress);
-    swap(a.pending, b.pending);
+    swap(a.not_confirmed, b.not_confirmed);
     swap(a.__isset, b.__isset);
 }
 
@@ -11650,7 +11651,7 @@ duplication_entry::duplication_entry(const duplication_entry &other490)
     remote = other490.remote;
     create_ts = other490.create_ts;
     progress = other490.progress;
-    pending = other490.pending;
+    not_confirmed = other490.not_confirmed;
     __isset = other490.__isset;
 }
 duplication_entry::duplication_entry(duplication_entry &&other491)
@@ -11660,7 +11661,7 @@ duplication_entry::duplication_entry(duplication_entry &&other491)
     remote = std::move(other491.remote);
     create_ts = std::move(other491.create_ts);
     progress = std::move(other491.progress);
-    pending = std::move(other491.pending);
+    not_confirmed = std::move(other491.not_confirmed);
     __isset = std::move(other491.__isset);
 }
 duplication_entry &duplication_entry::operator=(const duplication_entry &other492)
@@ -11670,7 +11671,7 @@ duplication_entry &duplication_entry::operator=(const duplication_entry &other49
     remote = other492.remote;
     create_ts = other492.create_ts;
     progress = other492.progress;
-    pending = other492.pending;
+    not_confirmed = other492.not_confirmed;
     __isset = other492.__isset;
     return *this;
 }
@@ -11681,7 +11682,7 @@ duplication_entry &duplication_entry::operator=(duplication_entry &&other493)
     remote = std::move(other493.remote);
     create_ts = std::move(other493.create_ts);
     progress = std::move(other493.progress);
-    pending = std::move(other493.pending);
+    not_confirmed = std::move(other493.not_confirmed);
     __isset = std::move(other493.__isset);
     return *this;
 }
@@ -11700,8 +11701,8 @@ void duplication_entry::printTo(std::ostream &out) const
         << "progress=";
     (__isset.progress ? (out << to_string(progress)) : (out << "<null>"));
     out << ", "
-        << "pending=";
-    (__isset.pending ? (out << to_string(pending)) : (out << "<null>"));
+        << "not_confirmed=";
+    (__isset.not_confirmed ? (out << to_string(not_confirmed)) : (out << "<null>"));
     out << ")";
 }
 

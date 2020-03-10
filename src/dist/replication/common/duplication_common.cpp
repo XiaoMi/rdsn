@@ -123,19 +123,19 @@ static nlohmann::json duplication_entry_to_json(const duplication_entry &ent)
         {"remote", ent.remote},
         {"status", duplication_status_to_string(ent.status)},
     };
-    if (ent.__isset.pending) {
-        nlohmann::json json_pending;
-        for (const auto &p : ent.pending) {
-            json_pending[std::to_string(p.first)] = p.second;
+    if (ent.__isset.not_confirmed) {
+        nlohmann::json sub_json;
+        for (const auto &p : ent.not_confirmed) {
+            sub_json[std::to_string(p.first)] = p.second;
         }
-        json["pending"] = json_pending;
+        json["not_confirmed"] = sub_json;
     }
     if (ent.__isset.progress) {
-        nlohmann::json json_progress;
+        nlohmann::json sub_json;
         for (const auto &p : ent.progress) {
-            json_progress[std::to_string(p.first)] = p.second;
+            sub_json[std::to_string(p.first)] = p.second;
         }
-        json["progress"] = json_progress;
+        json["progress"] = sub_json;
     }
     return json;
 }

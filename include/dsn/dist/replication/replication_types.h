@@ -4922,7 +4922,7 @@ typedef struct _duplication_entry__isset
           remote(false),
           create_ts(false),
           progress(false),
-          pending(false)
+          not_confirmed(false)
     {
     }
     bool dupid : 1;
@@ -4930,7 +4930,7 @@ typedef struct _duplication_entry__isset
     bool remote : 1;
     bool create_ts : 1;
     bool progress : 1;
-    bool pending : 1;
+    bool not_confirmed : 1;
 } _duplication_entry__isset;
 
 class duplication_entry
@@ -4948,7 +4948,7 @@ public:
     std::string remote;
     int64_t create_ts;
     std::map<int32_t, int64_t> progress;
-    std::map<int32_t, int64_t> pending;
+    std::map<int32_t, int64_t> not_confirmed;
 
     _duplication_entry__isset __isset;
 
@@ -4962,7 +4962,7 @@ public:
 
     void __set_progress(const std::map<int32_t, int64_t> &val);
 
-    void __set_pending(const std::map<int32_t, int64_t> &val);
+    void __set_not_confirmed(const std::map<int32_t, int64_t> &val);
 
     bool operator==(const duplication_entry &rhs) const
     {
@@ -4978,9 +4978,9 @@ public:
             return false;
         else if (__isset.progress && !(progress == rhs.progress))
             return false;
-        if (__isset.pending != rhs.__isset.pending)
+        if (__isset.not_confirmed != rhs.__isset.not_confirmed)
             return false;
-        else if (__isset.pending && !(pending == rhs.pending))
+        else if (__isset.not_confirmed && !(not_confirmed == rhs.not_confirmed))
             return false;
         return true;
     }
