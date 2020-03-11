@@ -55,7 +55,6 @@
 #include "prepare_list.h"
 #include "replica_context.h"
 #include "throttling_controller.h"
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
