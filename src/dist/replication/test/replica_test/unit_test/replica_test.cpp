@@ -13,7 +13,6 @@ namespace replication {
 class replica_test : public replica_test_base
 {
 public:
-    int total_count = 0;
     dsn::app_info _app_info;
     dsn::gpid pid = gpid(2, 1);
 
@@ -25,9 +24,9 @@ public:
         stub->generate_replica(_app_info, pid, partition_status::PS_PRIMARY, 1);
     }
 
-    void calc_write_size_exceed_threshold_count()
+    int get_write_size_exceed_threshold_count()
     {
-        total_count += stub->_counter_recent_write_size_exceed_threshold_count->get_value();
+        return stub->_counter_recent_write_size_exceed_threshold_count->get_value();
     }
 
     void mock_app_info()
@@ -52,10 +51,9 @@ TEST_F(replica_test, write_size_limited)
     write_request->header = &header;
     while (count-- > 0) {
         stub->on_client_write(pid, write_request);
-        calc_write_size_exceed_threshold_count();
     }
 
-    ASSERT_EQ(total_count, 100);
+    ASSERT_EQ(get_write_size_exceed_threshold_count(), 100);
 }
 
 } // namespace replication
