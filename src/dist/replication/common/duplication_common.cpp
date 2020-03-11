@@ -128,7 +128,7 @@ static nlohmann::json duplication_entry_to_json(const duplication_entry &ent)
         for (const auto &p : ent.not_confirmed) {
             sub_json[std::to_string(p.first)] = p.second;
         }
-        json["not_confirmed"] = sub_json;
+        json["not_confirmed_mutations_num"] = sub_json;
     }
     if (ent.__isset.progress) {
         nlohmann::json sub_json;
