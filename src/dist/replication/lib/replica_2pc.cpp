@@ -52,6 +52,7 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
                       _stub->_max_allowed_write_size);
         _stub->_counter_recent_write_size_exceed_threshold_count->increment();
         response_client_write(request, ERR_INVALID_DATA);
+        return;
     }
 
     task_spec *spec = task_spec::get(request->rpc_code());
