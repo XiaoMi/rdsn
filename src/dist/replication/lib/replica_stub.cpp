@@ -89,7 +89,7 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
     _max_allowed_write_size = dsn_config_get_value_uint64(
         "pegasus.server",
         "max_allowed_write_size",
-        1000000,
+        1 << 20,
         "write operation exceed this threshold will be logged and reject, 0 means no check");
 }
 
