@@ -86,9 +86,9 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
     _primary_address_str[0] = '\0';
     install_perf_counters();
 
-    _abnormal_write_size_threshold = dsn_config_get_value_uint64(
+    _max_allowed_write_size = dsn_config_get_value_uint64(
         "pegasus.server",
-        "rocksdb_abnormal_write_size_threshold",
+        "max_allowed_write_size",
         1000000,
         "write operation exceed this threshold will be logged and reject, 0 means no check");
 }
@@ -331,7 +331,7 @@ void replica_stub::install_perf_counters()
 
     _counter_recent_write_size_exceed_threshold_count.init_app_counter(
         "eon.replica_stub",
-        "recent.write.size.exceed.count",
+        "recent.write.size.exceed.threshold.count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "write size exceed threshold count in the recent period");
 }
