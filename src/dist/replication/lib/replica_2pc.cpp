@@ -48,7 +48,7 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     if (dsn_unlikely(_stub->_max_allowed_write_size &&
                      request->body_size() > _stub->_max_allowed_write_size)) {
         dwarn_replica("client from {} write request body size exceed threshold, request_body_size "
-                      "= {}, max_allowed_write_size = {}, it will be reject!",
+                      "= {}, max_allowed_write_size = {}, it will be rejected!",
                       request->header->from_address.to_string(),
                       request->body_size(),
                       _stub->_max_allowed_write_size);

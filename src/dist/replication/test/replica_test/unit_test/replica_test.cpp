@@ -6,6 +6,7 @@
 
 #include <dsn/utility/fail_point.h>
 #include "replica_test_base.h"
+#include <dsn/utility/defer.h>
 
 namespace dsn {
 namespace replication {
@@ -48,12 +49,14 @@ TEST_F(replica_test, write_size_limited)
     header.body_length = 10000000;
 
     auto write_request = dsn::message_ex::create_request(default_code);
+    auto cleanup = dsn::defer([=]() { delete write_request; });
     write_request->header = &header;
-    while (count-- > 0) {
+
+    for (int i = 0; i < count; i++) {
         stub->on_client_write(pid, write_request);
     }
 
-    ASSERT_EQ(get_write_size_exceed_threshold_count(), 100);
+    ASSERT_EQ(get_write_size_exceed_threshold_count(), count);
 }
 
 } // namespace replication
