@@ -261,11 +261,13 @@ private:
     friend class load_from_private_log;
     friend class ship_mutation;
     friend class replica_duplicator;
+    friend class replica_http_service;
 
     friend class mock_replica_stub;
     friend class duplication_sync_timer;
     friend class duplication_sync_timer_test;
     friend class replica_duplicator_manager_test;
+    friend class duplication_test_base;
 
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>
