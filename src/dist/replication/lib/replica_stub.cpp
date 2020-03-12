@@ -86,7 +86,7 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
     _primary_address_str[0] = '\0';
     install_perf_counters();
 
-    _max_allowed_write_size = dsn_config_get_value_uint64("pegasus.server",
+    _max_allowed_write_size = dsn_config_get_value_uint64("replication",
                                                           "max_allowed_write_size",
                                                           1 << 20,
                                                           "write operation exceed this "
