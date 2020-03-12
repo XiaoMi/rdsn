@@ -331,7 +331,7 @@ void replica_stub::install_perf_counters()
                                                       "write busy count in the recent period");
 
     _counter_recent_write_size_exceed_threshold_count.init_app_counter(
-        "eon_replica_stub",
+        "eon.replica_stub",
         "recent_write_size_exceed_threshold_count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "write size exceed threshold count in the recent period");
