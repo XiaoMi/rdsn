@@ -227,7 +227,7 @@ private:
 
     /// Send request to multi replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
-    std::map<dsn::rpc_address, error_with<query_disk_info_response>> call_rpc_async(
+    std::map<dsn::rpc_address, error_with<TResponse>> call_rpc_async(
         std::map<dsn::rpc_address, TRpcHolder> &rpcs, int reply_thread_hash = 0, bool retry = false)
     {
         dsn::task_tracker tracker;
@@ -261,6 +261,8 @@ private:
 private:
     dsn::rpc_address _meta_server;
     dsn::task_tracker _tracker;
+
+    typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
 };
 } // namespace replication
 } // namespace dsn
