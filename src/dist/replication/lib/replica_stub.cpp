@@ -219,6 +219,38 @@ void replica_stub::install_perf_counters()
         COUNTER_TYPE_VOLATILE_NUMBER,
         "trigger emergency checkpoint count in the recent period");
 
+    // <- Duplication Metrics ->
+
+    _counter_dup_log_read_bytes_rate.init_app_counter("eon.replica_stub",
+                                                      "dup.log_read_bytes_rate",
+                                                      COUNTER_TYPE_RATE,
+                                                      "reading rate of private log in bytes");
+    _counter_dup_log_read_mutations_rate.init_app_counter(
+        "eon.replica_stub",
+        "dup.log_read_mutations_rate",
+        COUNTER_TYPE_RATE,
+        "reading rate of mutations from private log");
+    _counter_dup_shipped_bytes_rate.init_app_counter("eon.replica_stub",
+                                                     "dup.shipped_bytes_rate",
+                                                     COUNTER_TYPE_RATE,
+                                                     "shipping rate of private log in bytes");
+    _counter_dup_confirmed_rate.init_app_counter("eon.replica_stub",
+                                                 "dup.confirmed_rate",
+                                                 COUNTER_TYPE_RATE,
+                                                 "increasing rate of confirmed mutations");
+    _counter_dup_pending_mutations_count.init_app_counter(
+        "eon.replica_stub",
+        "dup.pending_mutations_count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "number of mutations pending for duplication");
+    _counter_dup_time_lag.init_app_counter(
+        "eon.replica_stub",
+        "dup.time_lag(ms)",
+        COUNTER_TYPE_NUMBER_PERCENTILES,
+        "time (in ms) lag between master and slave in the duplication");
+
+    // <- Cold Backup Metrics ->
+
     _counter_cold_backup_running_count.init_app_counter("eon.replica_stub",
                                                         "cold.backup.running.count",
                                                         COUNTER_TYPE_NUMBER,
@@ -651,7 +683,7 @@ void replica_stub::initialize_start()
     }
 #endif
 
-    if (!_options.duplication_disabled) {
+    if (_options.duplication_enabled) {
         _duplication_sync_timer = dsn::make_unique<duplication_sync_timer>(this);
         _duplication_sync_timer->start();
     }
@@ -1940,6 +1972,9 @@ void replica_stub::open_service()
 
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler(RPC_COLD_BACKUP, "ColdBackup", &replica_stub::on_cold_backup);
+    register_rpc_handler(RPC_SPLIT_NOTIFY_CATCH_UP,
+                         "child_notify_catch_up",
+                         &replica_stub::on_notify_primary_split_catch_up);
 
     _kill_partition_command = ::dsn::command_manager::instance().register_app_command(
         {"kill_partition"},
@@ -2465,6 +2500,18 @@ replica_stub::split_replica_exec(dsn::task_code code, gpid pid, local_execution 
     }
     dwarn_f("replica({}) is invalid", pid);
     return ERR_OBJECT_NOT_FOUND;
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_stub::on_notify_primary_split_catch_up(const notify_catch_up_request &request,
+                                                    notify_cacth_up_response &response)
+{
+    replica_ptr replica = get_replica(request.parent_gpid);
+    if (replica != nullptr) {
+        replica->parent_handle_child_catch_up(request, response);
+    } else {
+        response.err = ERR_OBJECT_NOT_FOUND;
+    }
 }
 
 } // namespace replication

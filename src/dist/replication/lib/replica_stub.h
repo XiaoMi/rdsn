@@ -115,6 +115,13 @@ public:
     void on_copy_checkpoint(const replica_configuration &request, /*out*/ learn_response &response);
 
     //
+    //    functions while executing partition split
+    //
+    // on primary, child notify itself has been caught up parent
+    void on_notify_primary_split_catch_up(const notify_catch_up_request &request,
+                                          notify_cacth_up_response &response);
+
+    //
     //    local messages
     //
     void on_meta_server_connected();
@@ -364,6 +371,16 @@ private:
     perf_counter_wrapper _counter_shared_log_recent_write_size;
     perf_counter_wrapper _counter_recent_trigger_emergency_checkpoint_count;
 
+    // <- Duplication Metrics ->
+    // TODO(wutao1): calculate the counters independently for each remote cluster
+    //               if we need to duplicate to multiple clusters someday.
+    perf_counter_wrapper _counter_dup_log_read_bytes_rate;
+    perf_counter_wrapper _counter_dup_log_read_mutations_rate;
+    perf_counter_wrapper _counter_dup_shipped_bytes_rate;
+    perf_counter_wrapper _counter_dup_confirmed_rate;
+    perf_counter_wrapper _counter_dup_pending_mutations_count;
+    perf_counter_wrapper _counter_dup_time_lag;
+
     perf_counter_wrapper _counter_cold_backup_running_count;
     perf_counter_wrapper _counter_cold_backup_recent_start_count;
     perf_counter_wrapper _counter_cold_backup_recent_succ_count;
@@ -383,6 +400,5 @@ private:
 
     dsn::task_tracker _tracker;
 };
-//------------ inline impl ----------------------
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

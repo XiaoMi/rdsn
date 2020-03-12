@@ -328,6 +328,10 @@ class app_partition_split_request;
 
 class app_partition_split_response;
 
+class notify_catch_up_request;
+
+class notify_cacth_up_response;
+
 typedef struct _mutation_header__isset
 {
     _mutation_header__isset()
@@ -4738,10 +4742,11 @@ inline std::ostream &operator<<(std::ostream &out, const duplication_add_request
 
 typedef struct _duplication_add_response__isset
 {
-    _duplication_add_response__isset() : err(false), appid(false), dupid(false) {}
+    _duplication_add_response__isset() : err(false), appid(false), dupid(false), hint(false) {}
     bool err : 1;
     bool appid : 1;
     bool dupid : 1;
+    bool hint : 1;
 } _duplication_add_response__isset;
 
 class duplication_add_response
@@ -4751,12 +4756,13 @@ public:
     duplication_add_response(duplication_add_response &&);
     duplication_add_response &operator=(const duplication_add_response &);
     duplication_add_response &operator=(duplication_add_response &&);
-    duplication_add_response() : appid(0), dupid(0) {}
+    duplication_add_response() : appid(0), dupid(0), hint() {}
 
     virtual ~duplication_add_response() throw();
     ::dsn::error_code err;
     int32_t appid;
     int32_t dupid;
+    std::string hint;
 
     _duplication_add_response__isset __isset;
 
@@ -4766,6 +4772,8 @@ public:
 
     void __set_dupid(const int32_t val);
 
+    void __set_hint(const std::string &val);
+
     bool operator==(const duplication_add_response &rhs) const
     {
         if (!(err == rhs.err))
@@ -4773,6 +4781,10 @@ public:
         if (!(appid == rhs.appid))
             return false;
         if (!(dupid == rhs.dupid))
+            return false;
+        if (__isset.hint != rhs.__isset.hint)
+            return false;
+        else if (__isset.hint && !(hint == rhs.hint))
             return false;
         return true;
     }
@@ -4909,7 +4921,12 @@ inline std::ostream &operator<<(std::ostream &out, const duplication_status_chan
 typedef struct _duplication_entry__isset
 {
     _duplication_entry__isset()
-        : dupid(false), status(false), remote(false), create_ts(false), progress(false)
+        : dupid(false),
+          status(false),
+          remote(false),
+          create_ts(false),
+          progress(false),
+          not_confirmed(false)
     {
     }
     bool dupid : 1;
@@ -4917,6 +4934,7 @@ typedef struct _duplication_entry__isset
     bool remote : 1;
     bool create_ts : 1;
     bool progress : 1;
+    bool not_confirmed : 1;
 } _duplication_entry__isset;
 
 class duplication_entry
@@ -4934,6 +4952,7 @@ public:
     std::string remote;
     int64_t create_ts;
     std::map<int32_t, int64_t> progress;
+    std::map<int32_t, int64_t> not_confirmed;
 
     _duplication_entry__isset __isset;
 
@@ -4947,6 +4966,8 @@ public:
 
     void __set_progress(const std::map<int32_t, int64_t> &val);
 
+    void __set_not_confirmed(const std::map<int32_t, int64_t> &val);
+
     bool operator==(const duplication_entry &rhs) const
     {
         if (!(dupid == rhs.dupid))
@@ -4957,7 +4978,13 @@ public:
             return false;
         if (!(create_ts == rhs.create_ts))
             return false;
-        if (!(progress == rhs.progress))
+        if (__isset.progress != rhs.__isset.progress)
+            return false;
+        else if (__isset.progress && !(progress == rhs.progress))
+            return false;
+        if (__isset.not_confirmed != rhs.__isset.not_confirmed)
+            return false;
+        else if (__isset.not_confirmed && !(not_confirmed == rhs.not_confirmed))
             return false;
         return true;
     }
@@ -5600,6 +5627,119 @@ public:
 void swap(app_partition_split_response &a, app_partition_split_response &b);
 
 inline std::ostream &operator<<(std::ostream &out, const app_partition_split_response &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _notify_catch_up_request__isset
+{
+    _notify_catch_up_request__isset()
+        : parent_gpid(false), child_gpid(false), child_ballot(false), child_address(false)
+    {
+    }
+    bool parent_gpid : 1;
+    bool child_gpid : 1;
+    bool child_ballot : 1;
+    bool child_address : 1;
+} _notify_catch_up_request__isset;
+
+class notify_catch_up_request
+{
+public:
+    notify_catch_up_request(const notify_catch_up_request &);
+    notify_catch_up_request(notify_catch_up_request &&);
+    notify_catch_up_request &operator=(const notify_catch_up_request &);
+    notify_catch_up_request &operator=(notify_catch_up_request &&);
+    notify_catch_up_request() : child_ballot(0) {}
+
+    virtual ~notify_catch_up_request() throw();
+    ::dsn::gpid parent_gpid;
+    ::dsn::gpid child_gpid;
+    int64_t child_ballot;
+    ::dsn::rpc_address child_address;
+
+    _notify_catch_up_request__isset __isset;
+
+    void __set_parent_gpid(const ::dsn::gpid &val);
+
+    void __set_child_gpid(const ::dsn::gpid &val);
+
+    void __set_child_ballot(const int64_t val);
+
+    void __set_child_address(const ::dsn::rpc_address &val);
+
+    bool operator==(const notify_catch_up_request &rhs) const
+    {
+        if (!(parent_gpid == rhs.parent_gpid))
+            return false;
+        if (!(child_gpid == rhs.child_gpid))
+            return false;
+        if (!(child_ballot == rhs.child_ballot))
+            return false;
+        if (!(child_address == rhs.child_address))
+            return false;
+        return true;
+    }
+    bool operator!=(const notify_catch_up_request &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const notify_catch_up_request &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(notify_catch_up_request &a, notify_catch_up_request &b);
+
+inline std::ostream &operator<<(std::ostream &out, const notify_catch_up_request &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _notify_cacth_up_response__isset
+{
+    _notify_cacth_up_response__isset() : err(false) {}
+    bool err : 1;
+} _notify_cacth_up_response__isset;
+
+class notify_cacth_up_response
+{
+public:
+    notify_cacth_up_response(const notify_cacth_up_response &);
+    notify_cacth_up_response(notify_cacth_up_response &&);
+    notify_cacth_up_response &operator=(const notify_cacth_up_response &);
+    notify_cacth_up_response &operator=(notify_cacth_up_response &&);
+    notify_cacth_up_response() {}
+
+    virtual ~notify_cacth_up_response() throw();
+    ::dsn::error_code err;
+
+    _notify_cacth_up_response__isset __isset;
+
+    void __set_err(const ::dsn::error_code &val);
+
+    bool operator==(const notify_cacth_up_response &rhs) const
+    {
+        if (!(err == rhs.err))
+            return false;
+        return true;
+    }
+    bool operator!=(const notify_cacth_up_response &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const notify_cacth_up_response &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(notify_cacth_up_response &a, notify_cacth_up_response &b);
+
+inline std::ostream &operator<<(std::ostream &out, const notify_cacth_up_response &obj)
 {
     obj.printTo(out);
     return out;

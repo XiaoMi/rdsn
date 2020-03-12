@@ -14,6 +14,8 @@
 namespace dsn {
 namespace replication {
 
+typedef rpc_holder<notify_catch_up_request, notify_cacth_up_response> notify_catch_up_rpc;
+
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica::on_add_child(const group_check_request &request) // on parent partition
 {
@@ -95,6 +97,7 @@ void replica::child_init_replica(gpid parent_gpid,
     // init split states
     _split_states.parent_gpid = parent_gpid;
     _split_states.is_prepare_list_copied = false;
+    _split_states.is_caught_up = false;
 
     ddebug_replica("init ballot is {}, parent gpid is ({})", init_ballot, parent_gpid);
 
@@ -277,7 +280,6 @@ void replica::child_learn_states(learn_state lstate,
                    plog_files.size(),
                    mutation_list.size());
 
-    // apply parent checkpoint
     error_code err;
     auto cleanup = defer([this, &err]() {
         if (err != ERR_OK) {
@@ -285,23 +287,18 @@ void replica::child_learn_states(learn_state lstate,
         }
     });
 
+    // apply parent checkpoint
     err = _app->apply_checkpoint(replication_app_base::chkpt_apply_mode::learn, lstate);
     if (err != ERR_OK) {
         derror_replica("failed to apply checkpoint, error={}", err);
         return;
     }
 
-    // replay parent private log
-    err = child_replay_private_log(plog_files, total_file_size, last_committed_decree);
+    // replay parent private log and learn in-memory mutations
+    err =
+        child_apply_private_logs(plog_files, mutation_list, total_file_size, last_committed_decree);
     if (err != ERR_OK) {
         derror_replica("failed to replay private log, error={}", err);
-        return;
-    }
-
-    // learn parent in-memory mutations
-    err = child_learn_mutations(mutation_list, last_committed_decree);
-    if (err != ERR_OK) {
-        derror_replica("failed to learn mutations, error={}", err);
         return;
     }
 
@@ -328,30 +325,283 @@ void replica::child_learn_states(learn_state lstate,
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION_LONG
-error_code replica::child_replay_private_log(std::vector<std::string> plog_files,
+error_code replica::child_apply_private_logs(std::vector<std::string> plog_files,
+                                             std::vector<mutation_ptr> mutation_list,
                                              uint64_t total_file_size,
                                              decree last_committed_decree) // on child partition
 {
-    FAIL_POINT_INJECT_F("replica_child_replay_private_log",
-                        [](dsn::string_view) { return ERR_OK; });
-    // TODO(heyuchen): TBD
-    return ERR_OK;
-}
+    FAIL_POINT_INJECT_F("replica_child_apply_private_logs", [](dsn::string_view arg) {
+        return error_code::try_get(arg.data(), ERR_OK);
+    });
 
-// ThreadPool: THREAD_POOL_REPLICATION_LONG
-error_code replica::child_learn_mutations(std::vector<mutation_ptr> mutation_list,
-                                          decree last_committed_decree) // on child partition
-{
-    FAIL_POINT_INJECT_F("replica_child_learn_mutations", [](dsn::string_view) { return ERR_OK; });
-    // TODO(heyuchen): TBD
-    return ERR_OK;
+    if (status() != partition_status::PS_PARTITION_SPLIT) {
+        dwarn_replica("wrong status={}", enum_to_string(status()));
+        return ERR_INVALID_STATE;
+    }
+
+    error_code ec;
+    int64_t offset;
+    // temp prepare_list used for apply states
+    prepare_list plist(this,
+                       _app->last_committed_decree(),
+                       _options->max_mutation_count_in_prepare_list,
+                       [this](mutation_ptr &mu) {
+                           if (mu->data.header.decree == _app->last_committed_decree() + 1) {
+                               _app->apply_mutation(mu);
+                           }
+                       });
+
+    // replay private log
+    ec = mutation_log::replay(plog_files,
+                              [this, &plist](int log_length, mutation_ptr &mu) {
+                                  decree d = mu->data.header.decree;
+                                  if (d <= plist.last_committed_decree()) {
+                                      return false;
+                                  }
+                                  mutation_ptr origin_mu = plist.get_mutation_by_decree(d);
+                                  if (origin_mu != nullptr &&
+                                      origin_mu->data.header.ballot >= mu->data.header.ballot) {
+                                      return false;
+                                  }
+                                  plist.prepare(mu, partition_status::PS_SECONDARY);
+                                  return true;
+                              },
+                              offset);
+    if (ec != ERR_OK) {
+        dwarn_replica(
+            "replay private_log files failed, file count={}, app last_committed_decree={}",
+            plog_files.size(),
+            _app->last_committed_decree());
+        return ec;
+    }
+
+    ddebug_replica("replay private_log files succeed, file count={}, app last_committed_decree={}",
+                   plog_files.size(),
+                   _app->last_committed_decree());
+
+    // apply in-memory mutations if replay private logs succeed
+    int count = 0;
+    for (mutation_ptr &mu : mutation_list) {
+        decree d = mu->data.header.decree;
+        if (d <= plist.last_committed_decree()) {
+            continue;
+        }
+        mutation_ptr origin_mu = plist.get_mutation_by_decree(d);
+        if (origin_mu != nullptr && origin_mu->data.header.ballot >= mu->data.header.ballot) {
+            continue;
+        }
+        if (!mu->is_logged()) {
+            mu->set_logged();
+        }
+        plist.prepare(mu, partition_status::PS_SECONDARY);
+        ++count;
+    }
+    plist.commit(last_committed_decree, COMMIT_TO_DECREE_HARD);
+    ddebug_replica(
+        "apply in-memory mutations succeed, mutation count={}, app last_committed_decree={}",
+        count,
+        _app->last_committed_decree());
+
+    return ec;
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica::child_catch_up_states() // on child partition
 {
     FAIL_POINT_INJECT_F("replica_child_catch_up_states", [](dsn::string_view) {});
-    // TODO(heyuchen): TBD
+
+    if (status() != partition_status::PS_PARTITION_SPLIT) {
+        dwarn_replica("wrong status, status is {}", enum_to_string(status()));
+        return;
+    }
+
+    // parent will copy mutations to child during async-learn, as a result:
+    // - child prepare_list last_committed_decree = parent prepare_list last_committed_decree, also
+    // is catch_up goal_decree
+    // - local_decree is child local last_committed_decree which is the last decree in async-learn.
+    decree goal_decree = _prepare_list->last_committed_decree();
+    decree local_decree = _app->last_committed_decree();
+
+    // there are mutations written to parent during async-learn
+    // child does not catch up parent, there are still some mutations child not learn
+    if (local_decree < goal_decree) {
+        if (local_decree >= _prepare_list->min_decree()) {
+            // all missing mutations are all in prepare list
+            dwarn_replica("there are some in-memory mutations should be learned, app "
+                          "last_committed_decree={}, "
+                          "goal decree={}, prepare_list min_decree={}",
+                          local_decree,
+                          goal_decree,
+                          _prepare_list->min_decree());
+            for (decree d = local_decree + 1; d <= goal_decree; ++d) {
+                auto mu = _prepare_list->get_mutation_by_decree(d);
+                dassert(mu != nullptr, "");
+                error_code ec = _app->apply_mutation(mu);
+                if (ec != ERR_OK) {
+                    child_handle_split_error("child_catchup failed because apply mutation failed");
+                    return;
+                }
+            }
+        } else {
+            // some missing mutations have already in private log
+            // should call `catch_up_with_private_logs` to catch up all missing mutations
+            dwarn_replica(
+                "there are some private logs should be learned, app last_committed_decree="
+                "{}, prepare_list min_decree={}, please wait",
+                local_decree,
+                _prepare_list->min_decree());
+            _split_states.async_learn_task = tasking::enqueue(
+                LPC_CATCHUP_WITH_PRIVATE_LOGS,
+                tracker(),
+                [this]() {
+                    catch_up_with_private_logs(partition_status::PS_PARTITION_SPLIT);
+                    _split_states.async_learn_task = nullptr;
+                },
+                get_gpid().thread_hash());
+            return;
+        }
+    }
+
+    ddebug_replica("child catch up parent states, goal decree={}, local decree={}",
+                   _prepare_list->last_committed_decree(),
+                   _app->last_committed_decree());
+    _split_states.is_caught_up = true;
+
+    child_notify_catch_up();
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::child_notify_catch_up() // on child partition
+{
+    FAIL_POINT_INJECT_F("replica_child_notify_catch_up", [](dsn::string_view) {});
+
+    std::unique_ptr<notify_catch_up_request> request = make_unique<notify_catch_up_request>();
+    request->parent_gpid = _split_states.parent_gpid;
+    request->child_gpid = get_gpid();
+    request->child_ballot = get_ballot();
+    request->child_address = _stub->_primary_address;
+
+    ddebug_replica("send notification to primary: {}@{}, ballot={}",
+                   _split_states.parent_gpid,
+                   _config.primary.to_string(),
+                   get_ballot());
+
+    notify_catch_up_rpc rpc(std::move(request), RPC_SPLIT_NOTIFY_CATCH_UP);
+    rpc.call(_config.primary,
+             tracker(),
+             [this, rpc](error_code ec) mutable {
+                 auto response = rpc.response();
+                 if (ec == ERR_TIMEOUT) {
+                     dwarn_replica("notify primary catch up timeout, please wait and retry");
+                     tasking::enqueue(LPC_PARTITION_SPLIT,
+                                      tracker(),
+                                      std::bind(&replica::child_notify_catch_up, this),
+                                      get_gpid().thread_hash(),
+                                      std::chrono::seconds(1));
+                     return;
+                 }
+                 if (ec != ERR_OK || response.err != ERR_OK) {
+                     error_code err = (ec == ERR_OK) ? response.err : ec;
+                     dwarn_replica("failed to notify primary catch up, error={}", err.to_string());
+                     _stub->split_replica_error_handler(
+                         _split_states.parent_gpid,
+                         std::bind(&replica::parent_cleanup_split_context, std::placeholders::_1));
+                     child_handle_split_error("notify_primary_split_catch_up");
+                     return;
+                 }
+                 ddebug_replica("notify primary catch up succeed");
+             },
+             _split_states.parent_gpid.thread_hash());
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::parent_handle_child_catch_up(const notify_catch_up_request &request,
+                                           notify_cacth_up_response &response) // on primary parent
+{
+    if (status() != partition_status::PS_PRIMARY) {
+        derror_replica("status is {}", enum_to_string(status()));
+        response.err = ERR_INVALID_STATE;
+        return;
+    }
+
+    if (request.child_ballot != get_ballot()) {
+        derror_replica("receive out-date request, request ballot = {}, local ballot = {}",
+                       request.child_ballot,
+                       get_ballot());
+        response.err = ERR_INVALID_STATE;
+        return;
+    }
+
+    if (request.child_gpid != _child_gpid) {
+        derror_replica(
+            "receive wrong child request, request child_gpid = {}, local child_gpid = {}",
+            request.child_gpid,
+            _child_gpid);
+        response.err = ERR_INVALID_STATE;
+        return;
+    }
+
+    response.err = ERR_OK;
+    ddebug_replica("receive catch_up request from {}@{}, current ballot={}",
+                   request.child_gpid,
+                   request.child_address.to_string(),
+                   request.child_ballot);
+
+    _primary_states.caught_up_children.insert(request.child_address);
+    // _primary_states.statuses is a map structure: rpc address -> partition_status
+    // it stores replica's rpc address and partition_status of this replica group
+    for (auto &iter : _primary_states.statuses) {
+        if (_primary_states.caught_up_children.find(iter.first) ==
+            _primary_states.caught_up_children.end()) {
+            // there are child partitions not caught up its parent
+            return;
+        }
+    }
+
+    ddebug_replica("all child partitions catch up");
+    _primary_states.caught_up_children.clear();
+    _primary_states.sync_send_write_request = true;
+
+    // sync_point is the first decree after parent send write request to child synchronously
+    // when sync_point commit, parent consider child has all data it should have during async-learn
+    decree sync_point = _prepare_list->max_decree() + 1;
+    if (!_options->empty_write_disabled) {
+        // empty wirte here to commit sync_point
+        mutation_ptr mu = new_mutation(invalid_decree);
+        mu->add_client_request(RPC_REPLICATION_WRITE_EMPTY, nullptr);
+        init_prepare(mu, false);
+        dassert_replica(sync_point == mu->data.header.decree,
+                        "sync_point should be equal to mutation's decree, {} vs {}",
+                        sync_point,
+                        mu->data.header.decree);
+    };
+
+    // check if sync_point has been committed
+    tasking::enqueue(LPC_PARTITION_SPLIT,
+                     tracker(),
+                     std::bind(&replica::parent_check_sync_point_commit, this, sync_point),
+                     get_gpid().thread_hash(),
+                     std::chrono::seconds(1));
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::parent_check_sync_point_commit(decree sync_point) // on primary parent
+{
+    FAIL_POINT_INJECT_F("replica_parent_check_sync_point_commit", [](dsn::string_view) {});
+    ddebug_replica("sync_point = {}, app last_committed_decree = {}",
+                   sync_point,
+                   _app->last_committed_decree());
+    if (_app->last_committed_decree() >= sync_point) {
+        // TODO(heyuchen): TBD
+        // update child replica group partition_count
+    } else {
+        dwarn_replica("sync_point has not been committed, please wait and retry");
+        tasking::enqueue(LPC_PARTITION_SPLIT,
+                         tracker(),
+                         std::bind(&replica::parent_check_sync_point_commit, this, sync_point),
+                         get_gpid().thread_hash(),
+                         std::chrono::seconds(1));
+    }
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
