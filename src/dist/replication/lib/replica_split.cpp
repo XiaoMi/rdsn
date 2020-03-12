@@ -265,6 +265,8 @@ void replica::child_learn_states(learn_state lstate,
                                  uint64_t total_file_size,
                                  decree last_committed_decree) // on child partition
 {
+    FAIL_POINT_INJECT_F("replica_child_learn_states", [](dsn::string_view) {});
+
     if (status() != partition_status::PS_PARTITION_SPLIT) {
         dwarn_replica("wrong status, status is {}", enum_to_string(status()));
         child_handle_async_learn_error();

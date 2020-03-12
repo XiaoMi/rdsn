@@ -306,6 +306,7 @@ TEST_F(replica_split_test, copy_prepare_list_succeed)
 
     fail::setup();
     fail::cfg("replica_stub_split_replica_exec", "return()");
+    fail::cfg("replica_child_learn_states", "return()");
     test_child_copy_prepare_list();
     fail::teardown();
 
