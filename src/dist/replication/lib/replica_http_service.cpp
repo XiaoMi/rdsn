@@ -1,3 +1,6 @@
+// Copyright (c) 2017-present, Xiaomi, Inc.  All rights reserved.
+// This source code is licensed under the Apache License Version 2.0, which
+// can be found in the LICENSE file in the root directory of this source tree.
 
 #include <nlohmann/json.hpp>
 #include <fmt/format.h>
@@ -30,7 +33,12 @@ void replica_http_service::query_duplication_handler(const http_request &req, ht
     auto states = _stub->_duplication_sync_timer->get_dup_states(appid, &app_found);
     if (!app_found) {
         resp.status_code = http_status_code::not_found;
-        resp.body = fmt::format("no such app [appid={}]", appid);
+        resp.body = fmt::format("no primary for app [appid={}]", appid);
+        return;
+    }
+    if (states.empty()) {
+        resp.status_code = http_status_code::not_found;
+        resp.body = fmt::format("no duplication assigned for app [appid={}]", appid);
         return;
     }
 
