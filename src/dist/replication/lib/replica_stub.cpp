@@ -2629,10 +2629,12 @@ void replica_stub::update_disk_holding_replicas()
             const std::set<dsn::gpid> &pids = holding_replicas.second;
             for (const auto &pid : pids) {
                 replica_ptr replica = get_replica(pid);
-                if (replica->status() == partition_status::PS_PRIMARY) {
-                    dir_node->holding_primary_replicas[holding_replicas.first].emplace(pid);
-                } else if (replica->status() == partition_status::PS_SECONDARY) {
-                    dir_node->holding_secondary_replicas[holding_replicas.first].emplace(pid);
+                if (replica != nullptr) {
+                    if (replica->status() == partition_status::PS_PRIMARY) {
+                        dir_node->holding_primary_replicas[holding_replicas.first].emplace(pid);
+                    } else if (replica->status() == partition_status::PS_SECONDARY) {
+                        dir_node->holding_secondary_replicas[holding_replicas.first].emplace(pid);
+                    }
                 }
             }
         }
