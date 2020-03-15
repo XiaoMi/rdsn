@@ -156,6 +156,7 @@ void duplication_sync_timer::start()
 std::multimap<dupid_t, duplication_sync_timer::replica_dup_state>
 duplication_sync_timer::get_dup_states(int app_id, /*out*/ bool *app_found)
 {
+    *app_found = false;
     std::multimap<dupid_t, replica_dup_state> result;
     for (const replica_ptr &r : get_all_primaries()) {
         gpid rid = r->get_gpid();

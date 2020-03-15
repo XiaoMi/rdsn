@@ -135,14 +135,14 @@ replica_duplicator_manager::get_dup_states() const
 
     std::vector<dup_state> ret;
     ret.reserve(_duplications.size());
-    for (auto &dup : _duplications) {
+    for (const auto &dup : _duplications) {
         dup_state state;
         state.dupid = dup.first;
         state.duplicating = !dup.second->paused();
         auto progress = dup.second->progress();
         state.last_decree = progress.last_decree;
         state.confirmed_decree = progress.confirmed_decree;
-        ret.push_back(state);
+        ret.emplace_back(state);
     }
     return ret;
 }
