@@ -850,7 +850,6 @@ void replica_stub::on_config_proposal(const configuration_update_request &propos
     }
 }
 
-// ThreadPool: THREAD_POOL_DEFAULT
 void replica_stub::on_query_decree(const query_replica_decree_request &req,
                                    /*out*/ query_replica_decree_response &resp)
 {
@@ -903,6 +902,7 @@ void replica_stub::on_query_replica_info(const query_replica_info_request &req,
     resp.err = ERR_OK;
 }
 
+// ThreadPool: THREAD_POOL_DEFAULT
 void replica_stub::on_query_disk_info(const query_disk_info_request &req,
                                       /*out*/ query_disk_info_response &resp)
 {
