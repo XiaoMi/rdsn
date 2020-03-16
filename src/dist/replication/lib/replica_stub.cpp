@@ -910,7 +910,7 @@ void replica_stub::on_query_disk_info(const query_disk_info_request &req,
 
     for (const auto &dir_node : _fs_manager._dir_nodes) {
         disk_info info;
-        // app_id == 0 means query all app replica_count
+        // app_name == "" means query all app replica_count
         if (req.app_name == "") {
             for (const auto &holding_primary_replicas : dir_node->holding_primary_replicas) {
                 info.holding_primary_replica_counts[holding_primary_replicas.first] =
