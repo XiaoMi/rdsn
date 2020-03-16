@@ -10,7 +10,6 @@ namespace replication {
 
 class replica_http_service_test : public duplication_test_base
 {
-public:
 };
 
 TEST_F(replica_http_service_test, query_duplication_handler)
