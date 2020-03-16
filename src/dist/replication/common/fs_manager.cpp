@@ -80,9 +80,8 @@ void dir_node::update_disk_stat()
     if (dsn::utils::filesystem::get_disk_space_info(full_dir, info)) {
         disk_capacity_mb = info.capacity / 1024 / 1024;
         disk_available_mb = info.available / 1024 / 1024;
-        disk_available_ratio =
-            static_cast<int>(disk_capacity_mb == 0 ? 0 : std::round((double)disk_available_mb *
-                                                                    100 / disk_capacity_mb));
+        disk_available_ratio = static_cast<int>(
+            disk_capacity_mb == 0 ? 0 : std::round(disk_available_mb * 100.0 / disk_capacity_mb));
         ddebug_f("update disk space succeed: dir = {}, capacity_mb = {}, available_mb = {}, "
                  "available_ratio = {}%",
                  full_dir.c_str(),
@@ -289,9 +288,8 @@ void fs_manager::update_disk_stat()
         _min_available_ratio = std::min(dir_node->disk_available_ratio, _min_available_ratio);
         _max_available_ratio = std::max(dir_node->disk_available_ratio, _max_available_ratio);
     }
-    _total_available_ratio =
-        static_cast<int>(_total_capacity_mb == 0 ? 0 : std::round((double)_total_available_mb *
-                                                                  100 / _total_capacity_mb));
+    _total_available_ratio = static_cast<int>(
+        _total_capacity_mb == 0 ? 0 : std::round(_total_available_mb * 100.0 / _total_capacity_mb));
     compute_disk_density();
 
     ddebug_f("update disk space succeed: disk_count = {}, total_capacity_mb = {}, "
