@@ -114,6 +114,10 @@ public:
     std::string cold_backup_root;
     int32_t max_concurrent_uploading_file_count;
 
+    // write body size exceed this threshold will be logged and reject, 0 means no check, default
+    // 1MB
+    uint64_t max_allowed_write_size;
+
 public:
     replication_options();
     void initialize();

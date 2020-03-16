@@ -109,6 +109,8 @@ replication_options::replication_options()
     learn_app_max_concurrent_count = 5;
 
     max_concurrent_uploading_file_count = 10;
+
+    max_allowed_write_size = 1 << 20;
 }
 
 replication_options::~replication_options() {}
@@ -511,6 +513,13 @@ void replication_options::initialize()
                                              "max_concurrent_uploading_file_count",
                                              max_concurrent_uploading_file_count,
                                              "concurrent uploading file count");
+
+    max_allowed_write_size = dsn_config_get_value_uint64("replication",
+                                                         "max_allowed_write_size",
+                                                         max_allowed_write_size,
+                                                         "write operation exceed this "
+                                                         "threshold will be logged and reject, "
+                                                         "default is 1MB, 0 means no check");
 
     replica_helper::load_meta_servers(meta_servers);
 

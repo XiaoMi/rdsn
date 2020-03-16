@@ -346,9 +346,6 @@ private:
     // cli service
     std::unique_ptr<dsn::cli_service> _cli_service;
 
-    // write body size exceed this threshold will be logged and reject, 0 means no check
-    uint64_t _max_allowed_write_size;
-
     // performance counters
     perf_counter_wrapper _counter_replicas_count;
     perf_counter_wrapper _counter_replicas_opening_count;
