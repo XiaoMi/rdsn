@@ -2618,6 +2618,7 @@ void replica_stub::on_notify_primary_split_catch_up(const notify_catch_up_reques
     }
 }
 
+// ThreadPool: THREAD_POOL_DEFAULT
 void replica_stub::update_disk_holding_replicas()
 {
     for (const auto &dir_node : _fs_manager._dir_nodes) {
