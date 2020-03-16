@@ -3231,9 +3231,9 @@ inline std::ostream &operator<<(std::ostream &out, const disk_info &obj)
 
 typedef struct _query_disk_info_request__isset
 {
-    _query_disk_info_request__isset() : node(false), app_id(false) {}
+    _query_disk_info_request__isset() : node(false), app_name(false) {}
     bool node : 1;
-    bool app_id : 1;
+    bool app_name : 1;
 } _query_disk_info_request__isset;
 
 class query_disk_info_request
@@ -3243,23 +3243,23 @@ public:
     query_disk_info_request(query_disk_info_request &&);
     query_disk_info_request &operator=(const query_disk_info_request &);
     query_disk_info_request &operator=(query_disk_info_request &&);
-    query_disk_info_request() : app_id(0) {}
+    query_disk_info_request() : app_name() {}
 
     virtual ~query_disk_info_request() throw();
     ::dsn::rpc_address node;
-    int32_t app_id;
+    std::string app_name;
 
     _query_disk_info_request__isset __isset;
 
     void __set_node(const ::dsn::rpc_address &val);
 
-    void __set_app_id(const int32_t val);
+    void __set_app_name(const std::string &val);
 
     bool operator==(const query_disk_info_request &rhs) const
     {
         if (!(node == rhs.node))
             return false;
-        if (!(app_id == rhs.app_id))
+        if (!(app_name == rhs.app_name))
             return false;
         return true;
     }

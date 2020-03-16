@@ -7266,7 +7266,7 @@ query_disk_info_request::~query_disk_info_request() throw() {}
 
 void query_disk_info_request::__set_node(const ::dsn::rpc_address &val) { this->node = val; }
 
-void query_disk_info_request::__set_app_id(const int32_t val) { this->app_id = val; }
+void query_disk_info_request::__set_app_name(const std::string &val) { this->app_name = val; }
 
 uint32_t query_disk_info_request::read(::apache::thrift::protocol::TProtocol *iprot)
 {
@@ -7296,9 +7296,9 @@ uint32_t query_disk_info_request::read(::apache::thrift::protocol::TProtocol *ip
             }
             break;
         case 2:
-            if (ftype == ::apache::thrift::protocol::T_I32) {
-                xfer += iprot->readI32(this->app_id);
-                this->__isset.app_id = true;
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->app_name);
+                this->__isset.app_name = true;
             } else {
                 xfer += iprot->skip(ftype);
             }
@@ -7325,8 +7325,8 @@ uint32_t query_disk_info_request::write(::apache::thrift::protocol::TProtocol *o
     xfer += this->node.write(oprot);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("app_id", ::apache::thrift::protocol::T_I32, 2);
-    xfer += oprot->writeI32(this->app_id);
+    xfer += oprot->writeFieldBegin("app_name", ::apache::thrift::protocol::T_STRING, 2);
+    xfer += oprot->writeString(this->app_name);
     xfer += oprot->writeFieldEnd();
 
     xfer += oprot->writeFieldStop();
@@ -7338,33 +7338,33 @@ void swap(query_disk_info_request &a, query_disk_info_request &b)
 {
     using ::std::swap;
     swap(a.node, b.node);
-    swap(a.app_id, b.app_id);
+    swap(a.app_name, b.app_name);
     swap(a.__isset, b.__isset);
 }
 
 query_disk_info_request::query_disk_info_request(const query_disk_info_request &other295)
 {
     node = other295.node;
-    app_id = other295.app_id;
+    app_name = other295.app_name;
     __isset = other295.__isset;
 }
 query_disk_info_request::query_disk_info_request(query_disk_info_request &&other296)
 {
     node = std::move(other296.node);
-    app_id = std::move(other296.app_id);
+    app_name = std::move(other296.app_name);
     __isset = std::move(other296.__isset);
 }
 query_disk_info_request &query_disk_info_request::operator=(const query_disk_info_request &other297)
 {
     node = other297.node;
-    app_id = other297.app_id;
+    app_name = other297.app_name;
     __isset = other297.__isset;
     return *this;
 }
 query_disk_info_request &query_disk_info_request::operator=(query_disk_info_request &&other298)
 {
     node = std::move(other298.node);
-    app_id = std::move(other298.app_id);
+    app_name = std::move(other298.app_name);
     __isset = std::move(other298.__isset);
     return *this;
 }
@@ -7374,7 +7374,7 @@ void query_disk_info_request::printTo(std::ostream &out) const
     out << "query_disk_info_request(";
     out << "node=" << to_string(node);
     out << ", "
-        << "app_id=" << to_string(app_id);
+        << "app_name=" << to_string(app_name);
     out << ")";
 }
 

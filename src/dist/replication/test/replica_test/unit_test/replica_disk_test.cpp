@@ -151,7 +151,7 @@ TEST_F(replica_disk_test, on_query_disk_info_app_not_existed)
     // test app_id not existed
     query_disk_info_request disk_info_request_without_existed_app;
     query_disk_info_response disk_info_response_without_existed_app;
-    disk_info_request_without_existed_app.app_id = 3;
+    disk_info_request_without_existed_app.app_name = "not_existed_app";
     stub->on_query_disk_info(disk_info_request_without_existed_app,
                              disk_info_response_without_existed_app);
     ASSERT_EQ(disk_info_response_without_existed_app.err, ERR_OBJECT_NOT_FOUND);
@@ -159,10 +159,10 @@ TEST_F(replica_disk_test, on_query_disk_info_app_not_existed)
 
 TEST_F(replica_disk_test, on_query_disk_info_one_app)
 {
-    // test app_id = 1
+    // test app_name = "disk_test_1"
     query_disk_info_request disk_info_request_with_app_1;
     query_disk_info_response disk_info_response_with_app_1;
-    disk_info_request_with_app_1.app_id = app_id_1;
+    disk_info_request_with_app_1.app_name = app_info_1.app_name;
     stub->on_query_disk_info(disk_info_request_with_app_1, disk_info_response_with_app_1);
     auto &disk_infos_with_app_1 = disk_info_response_with_app_1.disk_infos;
     int info_size = disk_infos_with_app_1.size();

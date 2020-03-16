@@ -907,10 +907,11 @@ void replica_stub::on_query_disk_info(const query_disk_info_request &req,
                                       /*out*/ query_disk_info_response &resp)
 {
     resp.err = ERR_OK;
+
     for (const auto &dir_node : _fs_manager._dir_nodes) {
         disk_info info;
         // app_id == 0 means query all app replica_count
-        if (req.app_id == 0) {
+        if (req.app_name == "") {
             for (const auto &holding_primary_replicas : dir_node->holding_primary_replicas) {
                 info.holding_primary_replica_counts[holding_primary_replicas.first] =
                     static_cast<int>(holding_primary_replicas.second.size());
@@ -921,25 +922,26 @@ void replica_stub::on_query_disk_info(const query_disk_info_request &req,
                     static_cast<int>(holding_secondary_replicas.second.size());
             }
         } else {
+            int app_id = 0;
             {
                 zauto_read_lock l(_replicas_lock);
-                if (!is_contain_in_replicas(req.app_id) &&
-                    !is_contain_in_closing_replicas(req.app_id) &&
-                    !is_contain_in_closed_replicas(req.app_id)) {
+                if (!(app_id = get_app_id_from_replicas(req.app_name)) &&
+                    !(app_id = get_app_id_from_closing_replicas(req.app_name)) &&
+                    !(app_id = get_app_id_from_closed_replicas(req.app_name))) {
                     resp.err = ERR_OBJECT_NOT_FOUND;
                     return;
                 }
             }
 
-            const auto &primary_iter = dir_node->holding_primary_replicas.find(req.app_id);
+            const auto &primary_iter = dir_node->holding_primary_replicas.find(app_id);
             if (primary_iter != dir_node->holding_primary_replicas.end()) {
-                info.holding_primary_replica_counts[req.app_id] =
+                info.holding_primary_replica_counts[app_id] =
                     static_cast<int>(primary_iter->second.size());
             }
 
-            const auto &secondary_iter = dir_node->holding_secondary_replicas.find(req.app_id);
+            const auto &secondary_iter = dir_node->holding_secondary_replicas.find(app_id);
             if (secondary_iter != dir_node->holding_secondary_replicas.end()) {
-                info.holding_secondary_replica_counts[req.app_id] =
+                info.holding_secondary_replica_counts[app_id] =
                     static_cast<int>(secondary_iter->second.size());
             }
         }

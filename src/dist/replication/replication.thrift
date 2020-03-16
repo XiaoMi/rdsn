@@ -452,7 +452,7 @@ struct disk_info
 struct query_disk_info_request
 {
     1:dsn.rpc_address node;
-    2:i32           app_id;
+    2:string          app_name;
 }
 
 // This response is recieved replica_server.

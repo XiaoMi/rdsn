@@ -256,37 +256,37 @@ private:
                          error_code error);
     void update_disk_holding_replicas();
 
-    bool is_contain_in_replicas(dsn::replication::app_id app_id)
+    int get_app_id_from_replicas(std::string app_name)
     {
         for (const auto &replica : _replicas) {
             const app_info &info = *(replica.second)->get_app_info();
-            if (info.app_id == app_id) {
-                return true;
+            if (info.app_name == app_name) {
+                return info.app_id;
             }
         }
-        return false;
+        return 0;
     }
 
-    bool is_contain_in_closing_replicas(dsn::replication::app_id app_id)
+    int get_app_id_from_closing_replicas(std::string app_name)
     {
         for (const auto &closing_replica : _closing_replicas) {
             const app_info &info = std::get<2>(closing_replica.second);
-            if (info.app_id == app_id) {
-                return true;
+            if (info.app_name == app_name) {
+                return info.app_id;
             }
         }
-        return false;
+        return 0;
     }
 
-    bool is_contain_in_closed_replicas(dsn::replication::app_id app_id)
+    int get_app_id_from_closed_replicas(std::string app_name)
     {
         for (const auto &closed_replica : _closed_replicas) {
             const app_info &info = closed_replica.second.first;
-            if (info.app_id == app_id) {
-                return true;
+            if (info.app_name == app_name) {
+                return info.app_id;
             }
         }
-        return false;
+        return 0;
     }
 
 #ifdef DSN_ENABLE_GPERF
