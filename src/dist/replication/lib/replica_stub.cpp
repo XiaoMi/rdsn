@@ -923,34 +923,9 @@ void replica_stub::on_query_disk_info(const query_disk_info_request &req,
         } else {
             {
                 zauto_read_lock l(_replicas_lock);
-                bool app_existed = false;
-                for (const auto &replica : _replicas) {
-                    const app_info &info = *(replica.second)->get_app_info();
-                    if (info.app_id == req.app_id) {
-                        app_existed = true;
-                        break;
-                    }
-                }
-                if (!app_existed) {
-                    for (const auto &closing_replica : _closing_replicas) {
-                        const app_info &info = std::get<2>(closing_replica.second);
-                        if (info.app_id == req.app_id) {
-                            app_existed = true;
-                            break;
-                        }
-                    }
-                }
-                if (!app_existed) {
-                    for (const auto &closed_replica : _closed_replicas) {
-                        const app_info &info = closed_replica.second.first;
-                        if (info.app_id == req.app_id) {
-                            app_existed = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!app_existed) {
+                if (!is_contain_in_replicas(req.app_id) &&
+                    !is_contain_in_closing_replicas(req.app_id) &&
+                    !is_contain_in_closed_replicas(req.app_id)) {
                     resp.err = ERR_OBJECT_NOT_FOUND;
                     return;
                 }
