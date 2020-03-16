@@ -850,6 +850,7 @@ void replica_stub::on_config_proposal(const configuration_update_request &propos
     }
 }
 
+// ThreadPool: THREAD_POOL_DEFAULT
 void replica_stub::on_query_decree(const query_replica_decree_request &req,
                                    /*out*/ query_replica_decree_response &resp)
 {
@@ -2618,7 +2619,6 @@ void replica_stub::on_notify_primary_split_catch_up(const notify_catch_up_reques
     }
 }
 
-// ThreadPool: THREAD_POOL_DEFAULT
 void replica_stub::update_disk_holding_replicas()
 {
     for (const auto &dir_node : _fs_manager._dir_nodes) {
