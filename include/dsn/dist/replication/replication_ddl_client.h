@@ -169,8 +169,10 @@ public:
 
     dsn::error_code ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &ddd_partitions);
 
-    std::map<dsn::rpc_address, error_with<query_disk_info_response>>
-    query_disk_info(const std::vector<dsn::rpc_address> &targets, int app_id);
+    void
+    query_disk_info(const std::vector<dsn::rpc_address> &targets,
+                    /*out*/ std::map<dsn::rpc_address, error_with<query_disk_info_response>> &resps,
+                    int app_id);
 
 private:
     bool static valid_app_char(int c);
@@ -227,14 +229,12 @@ private:
 
     /// Send request to multi replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
-    std::map<dsn::rpc_address, error_with<TResponse>>
-    call_rpc_async(std::map<dsn::rpc_address, TRpcHolder> &rpcs,
-                   int reply_thread_hash = 0,
-                   bool enable_retry = true)
+    void call_rpcs_async(std::map<dsn::rpc_address, TRpcHolder> &rpcs,
+                         std::map<dsn::rpc_address, error_with<TResponse>> &resps,
+                         int reply_thread_hash = 0,
+                         bool enable_retry = true)
     {
         dsn::task_tracker tracker;
-        std::map<dsn::rpc_address, dsn::error_with<TResponse>> resps;
-
         error_code err = ERR_UNKNOWN;
         for (auto &rpc : rpcs) {
             rpc.second.call(
@@ -252,16 +252,13 @@ private:
         }
         tracker.wait_outstanding_tasks();
 
-        if (!enable_retry) {
-            return resps;
-        } else if (rpcs.size() > 0) {
-            std::map<dsn::rpc_address, dsn::error_with<TResponse>> retry_resps =
-                call_rpc_async(rpcs, reply_thread_hash, false);
+        if (enable_retry && rpcs.size() > 0) {
+            std::map<dsn::rpc_address, dsn::error_with<TResponse>> retry_resps;
+            call_rpcs_async(rpcs, retry_resps, reply_thread_hash, false);
             for (auto &resp : retry_resps) {
                 resps.emplace(resp.first, std::move(resp.second));
             }
         }
-        return resps;
     }
 
 private:
