@@ -56,7 +56,8 @@ replica::replica(
       _cur_download_size(0),
       _restore_progress(0),
       _restore_status(ERR_OK),
-      _duplication_mgr(new replica_duplicator_manager(this))
+      _duplication_mgr(new replica_duplicator_manager(this)),
+      _duplicating(app.duplicating)
 {
     dassert(_app_info.app_type != "", "");
     dassert(stub != nullptr, "");
