@@ -85,6 +85,13 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
     _log = nullptr;
     _primary_address_str[0] = '\0';
     install_perf_counters();
+
+    _max_allowed_write_size = dsn_config_get_value_uint64("replication",
+                                                          "max_allowed_write_size",
+                                                          1 << 20,
+                                                          "write operation exceed this "
+                                                          "threshold will be logged and reject, "
+                                                          "default is 1MB, 0 means no check");
 }
 
 replica_stub::~replica_stub(void) { close(); }
@@ -322,6 +329,12 @@ void replica_stub::install_perf_counters()
                                                       "recent.write.busy.count",
                                                       COUNTER_TYPE_VOLATILE_NUMBER,
                                                       "write busy count in the recent period");
+
+    _counter_recent_write_size_exceed_threshold_count.init_app_counter(
+        "eon.replica_stub",
+        "recent_write_size_exceed_threshold_count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "write size exceed threshold count in the recent period");
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
@@ -1972,6 +1985,9 @@ void replica_stub::open_service()
 
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler(RPC_COLD_BACKUP, "ColdBackup", &replica_stub::on_cold_backup);
+    register_rpc_handler(RPC_SPLIT_NOTIFY_CATCH_UP,
+                         "child_notify_catch_up",
+                         &replica_stub::on_notify_primary_split_catch_up);
 
     _kill_partition_command = ::dsn::command_manager::instance().register_app_command(
         {"kill_partition"},
@@ -2509,6 +2525,18 @@ void replica_stub::split_replica_error_handler(gpid pid, local_execution handler
         handler(replica);
     } else {
         dwarn_f("replica({}) is invalid", pid);
+    }
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_stub::on_notify_primary_split_catch_up(const notify_catch_up_request &request,
+                                                    notify_cacth_up_response &response)
+{
+    replica_ptr replica = get_replica(request.parent_gpid);
+    if (replica != nullptr) {
+        replica->parent_handle_child_catch_up(request, response);
+    } else {
+        response.err = ERR_OBJECT_NOT_FOUND;
     }
 }
 

@@ -115,6 +115,13 @@ public:
     void on_copy_checkpoint(const replica_configuration &request, /*out*/ learn_response &response);
 
     //
+    //    functions while executing partition split
+    //
+    // on primary, child notify itself has been caught up parent
+    void on_notify_primary_split_catch_up(const notify_catch_up_request &request,
+                                          notify_cacth_up_response &response);
+
+    //
     //    local messages
     //
     void on_meta_server_connected();
@@ -261,11 +268,14 @@ private:
     friend class load_from_private_log;
     friend class ship_mutation;
     friend class replica_duplicator;
+    friend class replica_http_service;
 
     friend class mock_replica_stub;
     friend class duplication_sync_timer;
     friend class duplication_sync_timer_test;
     friend class replica_duplicator_manager_test;
+    friend class duplication_test_base;
+    friend class replica_test;
 
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>
@@ -336,6 +346,9 @@ private:
     // cli service
     std::unique_ptr<dsn::cli_service> _cli_service;
 
+    // write body size exceed this threshold will be logged and reject, 0 means no check
+    uint64_t _max_allowed_write_size;
+
     // performance counters
     perf_counter_wrapper _counter_replicas_count;
     perf_counter_wrapper _counter_replicas_opening_count;
@@ -394,6 +407,8 @@ private:
     perf_counter_wrapper _counter_recent_write_fail_count;
     perf_counter_wrapper _counter_recent_read_busy_count;
     perf_counter_wrapper _counter_recent_write_busy_count;
+
+    perf_counter_wrapper _counter_recent_write_size_exceed_threshold_count;
 
     dsn::task_tracker _tracker;
 };
