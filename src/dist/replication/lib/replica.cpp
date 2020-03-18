@@ -80,6 +80,10 @@ replica::replica(
     _counter_recent_write_throttling_reject_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
+    counter_str = fmt::format("dup.disabled_non_idempotent_write_count@{}", _app_info.app_name);
+    _counter_dup_disabled_non_idempotent_write_count.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
+
     // init table level latency perf counters
     init_table_level_latency_counters();
 

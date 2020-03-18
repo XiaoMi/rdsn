@@ -17,7 +17,7 @@
 namespace dsn {
 namespace replication {
 
-DEFINE_STORAGE_WRITE_RPC_CODE(RPC_RRDB_RRDB_PUT, true, true)
+DEFINE_STORAGE_WRITE_RPC_CODE(RPC_RRDB_RRDB_PUT, ALLOW_BATCH, IS_IDEMPOTENT)
 
 class load_from_private_log_test : public duplication_test_base
 {
