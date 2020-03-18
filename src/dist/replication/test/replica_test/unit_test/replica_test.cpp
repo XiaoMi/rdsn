@@ -76,7 +76,7 @@ TEST_F(replica_test, backup_request_qps)
 
     _mock_replica->on_client_read(backup_request);
 
-    // we have to sleep >= 0.1s, or the value this perf-counter will be 0, according to the
+    // We have to sleep >= 0.1s, or the value this perf-counter will be 0, according to the
     // implementation of perf-counter which type is COUNTER_TYPE_RATE.
     usleep(1e5);
     ASSERT_GT(get_table_level_backup_request_qps(), 0);
