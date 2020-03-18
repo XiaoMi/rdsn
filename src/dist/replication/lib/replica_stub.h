@@ -187,10 +187,8 @@ public:
 
     // This function is used for partition split, caller(replica)
     // parent/child may want child/parent to execute function during partition split
-    // for parent, if replica existed, will execute function {handler} and return ERR_OK, else
-    // return ERR_OBJECT_NOT_FOUND
-    // for child, if pid.app_id > 0 and existed, will execute function {handler} and return ERR_OK,
-    // else return ERR_OBJECT_NOT_FOUND
+    // if replica `pid` exists, will execute function `handler` and return ERR_OK, otherwise return
+    // ERR_OBJECT_NOT_FOUND
     dsn::error_code split_replica_exec(dsn::task_code code, gpid pid, local_execution handler);
 
     // This function is used for partition split error handler
