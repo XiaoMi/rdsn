@@ -261,28 +261,6 @@ private:
         return 0;
     }
 
-    int get_app_id_from_closing_replicas(std::string app_name)
-    {
-        for (const auto &closing_replica : _closing_replicas) {
-            const app_info &info = std::get<2>(closing_replica.second);
-            if (info.app_name == app_name) {
-                return info.app_id;
-            }
-        }
-        return 0;
-    }
-
-    int get_app_id_from_closed_replicas(std::string app_name)
-    {
-        for (const auto &closed_replica : _closed_replicas) {
-            const app_info &info = closed_replica.second.first;
-            if (info.app_name == app_name) {
-                return info.app_id;
-            }
-        }
-        return 0;
-    }
-
 #ifdef DSN_ENABLE_GPERF
     // Try to release tcmalloc memory back to operating system
     void gc_tcmalloc_memory();

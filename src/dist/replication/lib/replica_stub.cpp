@@ -906,9 +906,8 @@ void replica_stub::on_query_replica_info(const query_replica_info_request &req,
 void replica_stub::on_query_disk_info(const query_disk_info_request &req,
                                       /*out*/ query_disk_info_response &resp)
 {
-    resp.err = ERR_OK;
     int app_id = 0;
-    {
+    if (!req.app_name.empty()) {
         zauto_read_lock l(_replicas_lock);
         if (!(app_id = get_app_id_from_replicas(req.app_name))) {
             resp.err = ERR_OBJECT_NOT_FOUND;
@@ -952,6 +951,8 @@ void replica_stub::on_query_disk_info(const query_disk_info_request &req,
 
     resp.total_capacity_mb = _fs_manager._total_capacity_mb;
     resp.total_available_mb = _fs_manager._total_available_mb;
+
+    resp.err = ERR_OK;
 }
 
 void replica_stub::on_query_app_info(const query_app_info_request &req,
