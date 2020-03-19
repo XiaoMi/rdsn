@@ -925,9 +925,7 @@ void replica_stub::on_query_disk_info(const query_disk_info_request &req,
             int app_id = 0;
             {
                 zauto_read_lock l(_replicas_lock);
-                if (!(app_id = get_app_id_from_replicas(req.app_name)) &&
-                    !(app_id = get_app_id_from_closing_replicas(req.app_name)) &&
-                    !(app_id = get_app_id_from_closed_replicas(req.app_name))) {
+                if (!(app_id = get_app_id_from_replicas(req.app_name))) {
                     resp.err = ERR_OBJECT_NOT_FOUND;
                     return;
                 }
@@ -2607,12 +2605,13 @@ void replica_stub::update_disk_holding_replicas()
             const std::set<dsn::gpid> &pids = holding_replicas.second;
             for (const auto &pid : pids) {
                 replica_ptr replica = get_replica(pid);
-                if (replica != nullptr) {
-                    if (replica->status() == partition_status::PS_PRIMARY) {
-                        dir_node->holding_primary_replicas[holding_replicas.first].emplace(pid);
-                    } else if (replica->status() == partition_status::PS_SECONDARY) {
-                        dir_node->holding_secondary_replicas[holding_replicas.first].emplace(pid);
-                    }
+                if (replica == nullptr) {
+                    continue;
+                }
+                if (replica->status() == partition_status::PS_PRIMARY) {
+                    dir_node->holding_primary_replicas[holding_replicas.first].emplace(pid);
+                } else if (replica->status() == partition_status::PS_SECONDARY) {
+                    dir_node->holding_secondary_replicas[holding_replicas.first].emplace(pid);
                 }
             }
         }
