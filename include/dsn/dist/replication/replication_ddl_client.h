@@ -172,7 +172,7 @@ public:
     void
     query_disk_info(const std::vector<dsn::rpc_address> &targets,
                     /*out*/ std::map<dsn::rpc_address, error_with<query_disk_info_response>> &resps,
-                    std::string app_name);
+                    const std::string &app_name);
 
 private:
     bool static valid_app_char(int c);

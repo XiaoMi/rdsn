@@ -1521,7 +1521,7 @@ replication_ddl_client::ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &
 void replication_ddl_client::query_disk_info(
     const std::vector<dsn::rpc_address> &targets,
     std::map<dsn::rpc_address, error_with<query_disk_info_response>> &resps,
-    std::string app_name)
+    const std::string &app_name)
 {
     std::map<dsn::rpc_address, query_disk_info_rpc> query_disk_info_rpcs;
     for (const auto &target : targets) {
