@@ -88,36 +88,6 @@ private:
     }
 };
 
-TEST_F(replica_disk_test, on_query_disk_info_dir_nodes)
-{
-    // disk_info_request.app_id default value = 0 means test query all apps' replica_count
-    query_disk_info_request disk_info_request;
-    query_disk_info_response disk_info_response;
-    stub->on_query_disk_info(disk_info_request, disk_info_response);
-
-    // sort dir_node by density.
-    // disk_density = disk_available_ratio - _total_available_ratio
-    // (based method replica_disk_test::generate_mock_dir_nodes() and
-    // fs_manager::compute_disk_density())
-    auto dir_nodes = get_fs_manager_nodes();
-    ASSERT_EQ(dir_nodes.at(0)->disk_density, 20);
-    ASSERT_EQ(dir_nodes.at(1)->disk_density, 10);
-    ASSERT_EQ(dir_nodes.at(2)->disk_density, 0);
-    ASSERT_EQ(dir_nodes.at(3)->disk_density, -10);
-    ASSERT_EQ(dir_nodes.at(4)->disk_density, -20);
-
-    std::sort(dir_nodes.begin(), dir_nodes.end(), fs_manager::sorted_by_density);
-
-    // test sorted dir_nodes
-    // origin density order: (20,10,0,-10,-20)->sorted order:(-20,-10,0,10,20)
-    ASSERT_EQ(dir_nodes.size(), 5);
-    ASSERT_EQ(dir_nodes.at(0)->disk_density, -20);
-    ASSERT_EQ(dir_nodes.at(1)->disk_density, -10);
-    ASSERT_EQ(dir_nodes.at(2)->disk_density, 0);
-    ASSERT_EQ(dir_nodes.at(3)->disk_density, 10);
-    ASSERT_EQ(dir_nodes.at(4)->disk_density, 20);
-}
-
 TEST_F(replica_disk_test, on_query_disk_info_all_app)
 {
     // disk_info_request.app_id default value = 0 means test query all apps' replica_count

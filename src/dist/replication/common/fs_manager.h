@@ -51,13 +51,6 @@ public:
     int64_t disk_capacity_mb;
     int64_t disk_available_mb;
     int disk_available_ratio;
-    // disk_density = disk_available_ratio - total_available_ratio, it's used to evaluate whether a
-    // disk is balanced:
-    // disk_density < 0 : the disk is below average and it need to move in replica from other disk
-    // disk_density > 0 : the disk is above average and it need to move out replica to other disk
-    // disk_density = 0 : the disk is equal average and can be ignored
-    // atcually, we expect find the max and min node (sorted by density) to create move action.
-    int disk_density;
     std::map<app_id, std::set<gpid>> holding_replicas;
     std::map<app_id, std::set<gpid>> holding_primary_replicas;
     std::map<app_id, std::set<gpid>> holding_secondary_replicas;
@@ -67,14 +60,12 @@ public:
              const std::string &dir_,
              int64_t disk_capacity_mb_ = 0,
              int64_t disk_available_mb_ = 0,
-             int disk_available_ratio_ = 0,
-             int disk_density_ = 0)
+             int disk_available_ratio_ = 0)
         : tag(tag_),
           full_dir(dir_),
           disk_capacity_mb(disk_capacity_mb_),
           disk_available_mb(disk_available_mb_),
-          disk_available_ratio(disk_available_ratio_),
-          disk_density(disk_density_)
+          disk_available_ratio(disk_available_ratio_)
     {
     }
     unsigned replicas_count(app_id id) const;
@@ -105,13 +96,6 @@ public:
     bool for_each_dir_node(const std::function<bool(const dir_node &)> &func) const;
     void update_disk_stat();
 
-    // when executing "disk rebalance", we need find min and max node(sorted_by_density)
-    static bool sorted_by_density(const std::shared_ptr<dir_node> &left,
-                                  const std::shared_ptr<dir_node> &right)
-    {
-        return left->disk_density < right->disk_density;
-    };
-
 private:
     void reset_disk_stat()
     {
@@ -122,12 +106,6 @@ private:
         _max_available_ratio = 0;
     }
 
-    void compute_disk_density()
-    {
-        for (const auto &dir_node : _dir_nodes) {
-            dir_node->disk_density = dir_node->disk_available_ratio - _total_available_ratio;
-        }
-    };
     dir_node *get_dir_node(const std::string &subdir);
 
     // when visit the tag/storage of the _dir_nodes map, there's no need to protect by the lock.

@@ -290,7 +290,6 @@ void fs_manager::update_disk_stat()
     }
     _total_available_ratio = static_cast<int>(
         _total_capacity_mb == 0 ? 0 : std::round(_total_available_mb * 100.0 / _total_capacity_mb));
-    compute_disk_density();
 
     ddebug_f("update disk space succeed: disk_count = {}, total_capacity_mb = {}, "
              "total_available_mb = {}, total_available_ratio = {}%, min_available_ratio = {}%, "
