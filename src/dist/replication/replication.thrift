@@ -678,7 +678,10 @@ struct duplication_entry
     4:i64                  create_ts;
 
     // partition_index => confirmed decree
-    5:map<i32, i64>        progress;
+    5:optional map<i32, i64> progress;
+
+    // partition_index => approximate number of mutations that are not confirmed yet
+    6:optional map<i32, i64> not_confirmed;
 }
 
 // This request is sent from client to meta.
@@ -780,6 +783,23 @@ struct app_partition_split_response
     // if split succeed, partition_count = new partition_count
     // if split failed, partition_count = original partition_count
     3:i32                    partition_count;
+}
+
+// child to primary parent, notifying that itself has caught up with parent
+struct notify_catch_up_request
+{
+    1:dsn.gpid          parent_gpid;
+    2:dsn.gpid          child_gpid;
+    3:i64               child_ballot;
+    4:dsn.rpc_address   child_address;
+}
+
+struct notify_cacth_up_response
+{
+    // Possible errors:
+    // - ERR_OBJECT_NOT_FOUND: replica can not be found
+    // - ERR_INVALID_STATE: replica is not primary or ballot not match or child_gpid not match
+    1:dsn.error_code    err;
 }
 
 /*
