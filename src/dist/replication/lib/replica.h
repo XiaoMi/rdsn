@@ -512,7 +512,7 @@ private:
     perf_counter_wrapper _counter_recent_write_throttling_delay_count;
     perf_counter_wrapper _counter_recent_write_throttling_reject_count;
     std::vector<perf_counter *> _counters_table_level_latency;
-    perf_counter_wrapper _counter_table_level_backup_request_qps;
+    perf_counter_wrapper _counter_backup_request_qps;
 
     dsn::task_tracker _tracker;
     // the thread access checker

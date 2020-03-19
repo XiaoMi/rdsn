@@ -82,8 +82,8 @@ replica::replica(
     // init table level latency perf counters
     init_table_level_latency_counters();
 
-    counter_str = fmt::format("table_level_backup_request_qps@{}", _app_info.app_name);
-    _counter_table_level_backup_request_qps.init_app_counter(
+    counter_str = fmt::format("backup_request_qps@{}", _app_info.app_name);
+    _counter_backup_request_qps.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_RATE, counter_str.c_str());
 
     if (need_restore) {
@@ -171,7 +171,7 @@ void replica::on_client_read(dsn::message_ex *request)
             return;
         }
     } else {
-        _counter_table_level_backup_request_qps->increment();
+        _counter_backup_request_qps->increment();
     }
 
     uint64_t start_time_ns = dsn_now_ns();

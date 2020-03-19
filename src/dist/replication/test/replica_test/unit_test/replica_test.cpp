@@ -33,7 +33,7 @@ public:
 
     int get_table_level_backup_request_qps()
     {
-        return _mock_replica->_counter_table_level_backup_request_qps->get_integer_value();
+        return _mock_replica->_counter_backup_request_qps->get_integer_value();
     }
 
     void mock_app_info()
