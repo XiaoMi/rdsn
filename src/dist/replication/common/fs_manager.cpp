@@ -84,12 +84,12 @@ void dir_node::update_disk_stat()
             disk_capacity_mb == 0 ? 0 : std::round(disk_available_mb * 100.0 / disk_capacity_mb));
         ddebug_f("update disk space succeed: dir = {}, capacity_mb = {}, available_mb = {}, "
                  "available_ratio = {}%",
-                 full_dir.c_str(),
+                 full_dir,
                  disk_capacity_mb,
                  disk_available_mb,
                  disk_available_ratio);
     } else {
-        derror_f("update disk space failed: dir = {}", full_dir.c_str());
+        derror_f("update disk space failed: dir = {}", full_dir);
     }
 }
 
