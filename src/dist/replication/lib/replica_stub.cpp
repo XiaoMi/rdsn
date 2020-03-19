@@ -907,6 +907,14 @@ void replica_stub::on_query_disk_info(const query_disk_info_request &req,
                                       /*out*/ query_disk_info_response &resp)
 {
     resp.err = ERR_OK;
+    int app_id = 0;
+    {
+        zauto_read_lock l(_replicas_lock);
+        if (!(app_id = get_app_id_from_replicas(req.app_name))) {
+            resp.err = ERR_OBJECT_NOT_FOUND;
+            return;
+        }
+    }
 
     for (const auto &dir_node : _fs_manager._dir_nodes) {
         disk_info info;
@@ -922,15 +930,6 @@ void replica_stub::on_query_disk_info(const query_disk_info_request &req,
                     static_cast<int>(holding_secondary_replicas.second.size());
             }
         } else {
-            int app_id = 0;
-            {
-                zauto_read_lock l(_replicas_lock);
-                if (!(app_id = get_app_id_from_replicas(req.app_name))) {
-                    resp.err = ERR_OBJECT_NOT_FOUND;
-                    return;
-                }
-            }
-
             const auto &primary_iter = dir_node->holding_primary_replicas.find(app_id);
             if (primary_iter != dir_node->holding_primary_replicas.end()) {
                 info.holding_primary_replica_counts[app_id] =
