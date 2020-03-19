@@ -68,7 +68,7 @@ TEST_F(replica_test, write_size_limited)
 TEST_F(replica_test, backup_request_qps)
 {
     // create backup request
-    auto backup_request = dsn::message_ex::create_request(task_code());
+    message_ptr backup_request = dsn::message_ex::create_request(task_code());
     auto cleanup = dsn::defer([=]() { delete backup_request; });
     struct dsn::message_header header;
     header.context.u.is_backup_request = true;
