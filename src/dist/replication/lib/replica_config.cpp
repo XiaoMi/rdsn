@@ -573,8 +573,6 @@ void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
 
 bool replica::update_configuration(const partition_configuration &config)
 {
-    FAIL_POINT_INJECT_F("replica_update_configuration", [](dsn::string_view) { return true; });
-
     dassert(config.ballot >= get_ballot(),
             "invalid ballot, %" PRId64 " VS %" PRId64 "",
             config.ballot,

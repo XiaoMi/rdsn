@@ -243,15 +243,15 @@ public:
     {
         mock_register_child_request();
         _parent->_config.status = status;
-        auto resp = std::make_shared<register_child_response>();
-        resp->err = resp_err;
-        resp->app = _register_req.app;
-        resp->app.partition_count *= 2;
-        resp->parent_config = _register_req.parent_config;
-        resp->child_config = _register_req.child_config;
 
-        _parent->on_register_child_on_meta_reply(
-            ERR_OK, std::make_shared<register_child_request>(_register_req), resp);
+        register_child_response resp;
+        resp.err = resp_err;
+        resp.app = _register_req.app;
+        resp.app.partition_count *= 2;
+        resp.parent_config = _register_req.parent_config;
+        resp.child_config = _register_req.child_config;
+
+        _parent->on_register_child_on_meta_reply(ERR_OK, _register_req, resp);
         _parent->tracker()->wait_outstanding_tasks();
     }
 
@@ -500,8 +500,6 @@ TEST_F(replica_split_test, register_child_reply_with_child_registered)
 
     primary_context parent_primary_states = get_replica_primary_context(_parent);
     ASSERT_EQ(parent_primary_states.register_child_task, nullptr);
-    // TODO(heyuchen): add until 390 merge
-    // ASSERT_TRUE(parent_primary_states.sync_send_write_request);
     ASSERT_TRUE(is_parent_not_in_split());
 }
 
@@ -511,14 +509,10 @@ TEST_F(replica_split_test, register_child_reply_succeed)
     mock_child_split_context(_parent_pid, true, true);
 
     fail::setup();
-    fail::cfg("replica_update_configuration", "return()");
+    fail::cfg("replica_stub_split_replica_exec", "return()");
     test_on_register_child_rely(partition_status::PS_INACTIVE, ERR_OK);
-    _child->tracker()->wait_outstanding_tasks();
     fail::teardown();
 
-    // TODO(heyuchen): add until 390 merge
-    // primary_context child_primary_states = get_replica_primary_context(_child);
-    // ASSERT_FALSE(child_primary_states.sync_send_write_request);
     ASSERT_TRUE(is_parent_not_in_split());
 }
 

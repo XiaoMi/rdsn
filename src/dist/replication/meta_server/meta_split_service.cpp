@@ -140,7 +140,7 @@ void meta_split_service::register_child_on_meta(register_child_rpc rpc)
 
     zauto_write_lock(app_lock());
     std::shared_ptr<app_state> app = _state->get_app(request.app.app_id);
-    dassert_f(app != nullptr, "get get app for app id({})", request.app.app_id);
+    dassert_f(app != nullptr, "app is not existed, id({})", request.app.app_id);
     dassert_f(app->is_stateful, "app is stateless currently, id({})", request.app.app_id);
 
     dsn::gpid parent_gpid = request.parent_config.pid;
@@ -151,8 +151,8 @@ void meta_split_service::register_child_on_meta(register_child_rpc rpc)
 
     if (request.parent_config.ballot < parent_config.ballot) {
         dwarn_f("partition({}) register child failed, request is out-dated, request ballot = {}, "
-                "local ballot = {}",
-                parent_gpid.to_string(),
+                "meta ballot = {}",
+                parent_gpid,
                 request.parent_config.ballot,
                 parent_config.ballot);
         response.err = ERR_INVALID_VERSION;
@@ -161,8 +161,8 @@ void meta_split_service::register_child_on_meta(register_child_rpc rpc)
 
     if (child_config.ballot != invalid_ballot) {
         dwarn_f(
-            "duplicated register child request, gpid({}) has already been registered, ballot = {}",
-            child_gpid.to_string(),
+            "duplicated register child request, child({}) has already been registered, ballot = {}",
+            child_gpid,
             child_config.ballot);
         response.err = ERR_CHILD_REGISTERED;
         return;
@@ -174,8 +174,7 @@ void meta_split_service::register_child_on_meta(register_child_rpc rpc)
         return;
     }
 
-    ddebug_f(
-        "gpid({}) will resgiter child gpid({})", parent_gpid.to_string(), child_gpid.to_string());
+    ddebug_f("parent({}) will resgiter child({})", parent_gpid, child_gpid);
     parent_context.stage = config_status::pending_remote_sync;
     parent_context.msg = rpc.dsn_request();
     parent_context.pending_sync_task = add_child_on_remote_storage(rpc, true);
@@ -184,7 +183,7 @@ void meta_split_service::register_child_on_meta(register_child_rpc rpc)
 dsn::task_ptr meta_split_service::add_child_on_remote_storage(register_child_rpc rpc,
                                                               bool create_new)
 {
-    auto &request = rpc.request();
+    const auto &request = rpc.request();
     std::string partition_path = _state->get_partition_path(request.child_config.pid);
     blob value = dsn::json::json_forwarder<partition_configuration>::encode(request.child_config);
     if (create_new) {
@@ -221,6 +220,7 @@ void meta_split_service::on_add_child_on_remote_storage_reply(error_code ec,
     auto &response = rpc.response();
 
     std::shared_ptr<app_state> app = _state->get_app(request.app.app_id);
+    dassert_f(app != nullptr, "app is not existed, id({})", request.app.app_id);
     dassert_f(app->status == app_status::AS_AVAILABLE || app->status == app_status::AS_DROPPING,
               "app is not available now, id({})",
               request.app.app_id);
@@ -246,13 +246,11 @@ void meta_split_service::on_add_child_on_remote_storage_reply(error_code ec,
     }
     dassert_f(ec == ERR_OK, "we can't handle this right now, err = {}", ec.to_string());
 
-    ddebug_f("gpid({}) resgiter child gpid({}) on remote storage succeed",
-             parent_gpid.to_string(),
-             child_gpid.to_string());
+    ddebug_f("parent({}) resgiter child({}) on remote storage succeed", parent_gpid, child_gpid);
 
     // update local child partition configuration
-    std::shared_ptr<configuration_update_request> update_child_request(
-        new configuration_update_request);
+    std::shared_ptr<configuration_update_request> update_child_request =
+        std::make_shared<configuration_update_request>();
     update_child_request->config = request.child_config;
     update_child_request->info = *app;
     update_child_request->type = config_type::CT_REGISTER_CHILD;
