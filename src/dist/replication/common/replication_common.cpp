@@ -618,7 +618,7 @@ const std::string
     replica_envs::ROCKSDB_CHECKPOINT_RESERVE_MIN_COUNT("rocksdb.checkpoint.reserve_min_count");
 const std::string replica_envs::ROCKSDB_CHECKPOINT_RESERVE_TIME_SECONDS(
     "rocksdb.checkpoint.reserve_time_seconds");
-const std::string replica_envs::ROCKSDB_ITERATION_THRESHOLD("replica.iterate_threshold");
+const std::string replica_envs::ROCKSDB_ITERATION_THRESHOLD("replica.rocksdb_iteration_threshold");
 const std::string replica_envs::BUSINESS_INFO("business.info");
 
 namespace cold_backup {
