@@ -53,7 +53,7 @@ void meta_duplication_service::query_duplication_info(const duplication_query_re
             response.appid = app->app_id;
             for (auto &dup_id_to_info : app->duplications) {
                 const duplication_info_s_ptr &dup = dup_id_to_info.second;
-                dup->append_if_valid_for_query(response.entry_list);
+                dup->append_if_valid_for_query(*app, response.entry_list);
             }
         }
     }
@@ -133,17 +133,17 @@ void meta_duplication_service::add_duplication(duplication_add_rpc rpc)
     response.err = ERR_OK;
 
     if (request.remote_cluster_name == get_current_cluster_name()) {
-        dwarn("illegal operation: adding duplication to itself");
         response.err = ERR_INVALID_PARAMETERS;
+        response.__set_hint("illegal operation: adding duplication to itself");
         return;
     }
 
     auto remote_cluster_id = get_duplication_cluster_id(request.remote_cluster_name);
     if (!remote_cluster_id.is_ok()) {
-        dwarn_f("get_duplication_cluster_id({}) failed, error: {}",
-                request.remote_cluster_name,
-                remote_cluster_id.get_error());
         response.err = ERR_INVALID_PARAMETERS;
+        response.__set_hint(fmt::format("get_duplication_cluster_id({}) failed, error: {}",
+                                        request.remote_cluster_name,
+                                        remote_cluster_id.get_error()));
         return;
     }
 

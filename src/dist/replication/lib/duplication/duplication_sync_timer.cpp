@@ -39,12 +39,15 @@ void duplication_sync_timer::run()
     req->node = _stub->primary_address();
 
     // collects confirm points from all primaries on this server
+    uint64_t pending_muts_cnt = 0;
     for (const replica_ptr &r : get_all_primaries()) {
         auto confirmed = r->get_duplication_manager()->get_duplication_confirms_to_update();
         if (!confirmed.empty()) {
             req->confirm_list[r->get_gpid()] = std::move(confirmed);
         }
+        pending_muts_cnt += r->get_duplication_manager()->get_pending_mutations_count();
     }
+    _stub->_counter_dup_pending_mutations_count->set(pending_muts_cnt);
 
     duplication_sync_rpc rpc(std::move(req), RPC_CM_DUPLICATION_SYNC, 3_s);
     rpc_address meta_server_address(_stub->get_meta_server_address());
@@ -148,6 +151,31 @@ void duplication_sync_timer::start()
                                          DUPLICATION_SYNC_PERIOD_SECOND * 1_s,
                                          0,
                                          DUPLICATION_SYNC_PERIOD_SECOND * 1_s);
+}
+
+std::multimap<dupid_t, duplication_sync_timer::replica_dup_state>
+duplication_sync_timer::get_dup_states(int app_id, /*out*/ bool *app_found)
+{
+    *app_found = false;
+    std::multimap<dupid_t, replica_dup_state> result;
+    for (const replica_ptr &r : get_all_primaries()) {
+        gpid rid = r->get_gpid();
+        if (rid.get_app_id() != app_id) {
+            continue;
+        }
+        *app_found = true;
+        replica_dup_state state;
+        state.id = rid;
+        auto states = r->get_duplication_manager()->get_dup_states();
+        decree last_committed_decree = r->last_committed_decree();
+        for (const auto &s : states) {
+            state.duplicating = s.duplicating;
+            state.not_confirmed = std::max(decree(0), last_committed_decree - s.confirmed_decree);
+            state.not_duplicated = std::max(decree(0), last_committed_decree - s.last_decree);
+            result.emplace(std::make_pair(s.dupid, state));
+        }
+    }
+    return result;
 }
 
 } // namespace replication

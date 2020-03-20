@@ -8,9 +8,13 @@
 #include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
 #include "dist/replication/lib/duplication/replica_duplicator.h"
 #include "dist/replication/lib/duplication/replica_duplicator_manager.h"
+#include "dist/replication/lib/duplication/duplication_sync_timer.h"
 
 namespace dsn {
 namespace replication {
+
+DEFINE_STORAGE_WRITE_RPC_CODE(RPC_DUPLICATION_IDEMPOTENT_WRITE, NOT_ALLOW_BATCH, IS_IDEMPOTENT)
+DEFINE_STORAGE_WRITE_RPC_CODE(RPC_DUPLICATION_NON_IDEMPOTENT_WRITE, NOT_ALLOW_BATCH, NOT_IDEMPOTENT)
 
 class duplication_test_base : public replica_test_base
 {
@@ -20,6 +24,7 @@ public:
         mutation_duplicator::creator = [](replica_base *r, dsn::string_view, dsn::string_view) {
             return make_unique<mock_mutation_duplicator>(r);
         };
+        stub->_duplication_sync_timer = make_unique<duplication_sync_timer>(stub.get());
     }
 
     void add_dup(mock_replica *r, replica_duplicator_u_ptr dup)
@@ -52,6 +57,13 @@ public:
         error_s err = log_utils::open_log_file_map(log_dir, log_file_map);
         EXPECT_EQ(err, error_s::ok());
         return log_file_map;
+    }
+
+    mutation_ptr create_test_mutation(int64_t decree, string_view data) override
+    {
+        auto mut = replica_test_base::create_test_mutation(decree, data);
+        mut->data.updates[0].code = RPC_DUPLICATION_IDEMPOTENT_WRITE; // must be idempotent write
+        return mut;
     }
 };
 

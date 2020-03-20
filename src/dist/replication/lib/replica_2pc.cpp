@@ -29,6 +29,7 @@
 #include "mutation_log.h"
 #include "replica_stub.h"
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
@@ -44,8 +45,23 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
+    if (dsn_unlikely(_stub->_max_allowed_write_size &&
+                     request->body_size() > _stub->_max_allowed_write_size)) {
+        dwarn_replica("client from {} write request body size exceed threshold, request_body_size "
+                      "= {}, max_allowed_write_size = {}, it will be rejected!",
+                      request->header->from_address.to_string(),
+                      request->body_size(),
+                      _stub->_max_allowed_write_size);
+        _stub->_counter_recent_write_size_exceed_threshold_count->increment();
+        response_client_write(request, ERR_INVALID_DATA);
+        return;
+    }
+
     task_spec *spec = task_spec::get(request->rpc_code());
-    if (!_options->allow_non_idempotent_write && !spec->rpc_request_is_write_idempotent) {
+    if (is_duplicating() && !spec->rpc_request_is_write_idempotent) {
+        // Ignore non-idempotent write, because duplication provides no guarantee of atomicity to
+        // make this write produce the same result on multiple clusters.
+        _counter_dup_disabled_non_idempotent_write_count->increment();
         response_client_write(request, ERR_OPERATION_DISABLED);
         return;
     }

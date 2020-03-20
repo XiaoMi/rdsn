@@ -1007,13 +1007,13 @@ bool replica::update_local_configuration_with_no_ballot_change(partition_status:
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica::on_config_sync(const app_info &info, const partition_configuration &config)
 {
-    ddebug("%s: configuration sync", name());
-
+    dinfo_replica("configuration sync");
     // no outdated update
     if (config.ballot < get_ballot())
         return;
 
     update_app_envs(info.envs);
+    _duplicating = info.duplicating;
 
     if (status() == partition_status::PS_PRIMARY ||
         nullptr != _primary_states.reconfiguration_task) {
