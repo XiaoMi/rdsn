@@ -95,6 +95,8 @@ public:
                          /*out*/ query_replica_decree_response &resp);
     void on_query_replica_info(const query_replica_info_request &req,
                                /*out*/ query_replica_info_response &resp);
+    void on_query_disk_info(const query_disk_info_request &req,
+                            /*out*/ query_disk_info_response &resp);
     void on_query_app_info(const query_app_info_request &req,
                            /*out*/ query_app_info_response &resp);
     void on_cold_backup(const backup_request &request, /*out*/ backup_response &response);
@@ -186,18 +188,12 @@ public:
     typedef std::function<void(::dsn::replication::replica *rep)> local_execution;
 
     // This function is used for partition split, caller(replica)
-    // - case1. parent want child execute <handler>, child will execute <handler> if child is
-    // valid(<pid>.app_id>0) and existed, otherwise parent will execute <error_handler>
-    // - case2. child want parent execute <handler>, parent will execute <handler> if parent
-    // exist, otherwise child will execute <error_handler>
-    void split_replica_exec(gpid pid,
-                            local_execution handler,
-                            local_execution error_handler,
-                            gpid error_handler_gpid);
+    // parent/child may want child/parent to execute function during partition split
+    // if replica `pid` exists, will execute function `handler` and return ERR_OK, otherwise return
+    // ERR_OBJECT_NOT_FOUND
+    dsn::error_code split_replica_exec(dsn::task_code code, gpid pid, local_execution handler);
 
-    // This function is used for partition split error handler, caller(replica)
-    // if partition split meet error, parent/child may want child/parent execute error handler
-    // if replica <pid> valid and exist, execute <handler>, otherwise return
+    // This function is used for partition split error handler
     void split_replica_error_handler(gpid pid, local_execution handler);
 
 private:
@@ -252,6 +248,18 @@ private:
                          dsn::message_ex *request,
                          partition_status::type status,
                          error_code error);
+    void update_disk_holding_replicas();
+
+    int get_app_id_from_replicas(std::string app_name)
+    {
+        for (const auto &replica : _replicas) {
+            const app_info &info = *(replica.second)->get_app_info();
+            if (info.app_name == app_name) {
+                return info.app_id;
+            }
+        }
+        return 0;
+    }
 
 #ifdef DSN_ENABLE_GPERF
     // Try to release tcmalloc memory back to operating system
@@ -268,12 +276,15 @@ private:
     friend class load_from_private_log;
     friend class ship_mutation;
     friend class replica_duplicator;
+    friend class replica_http_service;
 
     friend class mock_replica_stub;
     friend class duplication_sync_timer;
     friend class duplication_sync_timer_test;
     friend class replica_duplicator_manager_test;
+    friend class duplication_test_base;
     friend class replica_test;
+    friend class replica_disk_test;
 
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>
