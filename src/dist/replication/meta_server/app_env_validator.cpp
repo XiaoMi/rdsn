@@ -151,7 +151,7 @@ void app_env_validator::register_all_validators()
          std::bind(&check_write_throttling, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::WRITE_SIZE_THROTTLING,
          std::bind(&check_write_throttling, std::placeholders::_1, std::placeholders::_2)},
-        {replica_envs::ROCKSDB_ITERATION_THRESHOLD,
+        {replica_envs::ROCKSDB_ITERATION_THRESHOLD_TIME_MS,
          std::bind(&check_rocksdb_iteration, std::placeholders::_1, std::placeholders::_2)},
         // TODO(zhaoliwei): not implemented
         {replica_envs::BUSINESS_INFO, nullptr},
