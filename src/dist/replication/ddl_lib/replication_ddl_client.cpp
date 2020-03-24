@@ -1354,15 +1354,14 @@ replication_ddl_client::add_dup(std::string app_name, std::string remote_cluster
     return call_rpc_sync(duplication_add_rpc(std::move(req), RPC_CM_ADD_DUPLICATION));
 }
 
-error_with<duplication_status_change_response> replication_ddl_client::change_dup_status(
+error_with<duplication_modify_response> replication_ddl_client::change_dup_status(
     std::string app_name, int dupid, duplication_status::type status)
 {
-    auto req = make_unique<duplication_status_change_request>();
+    auto req = make_unique<duplication_modify_request>();
     req->app_name = std::move(app_name);
     req->dupid = dupid;
-    req->status = status;
-    return call_rpc_sync(
-        duplication_status_change_rpc(std::move(req), RPC_CM_CHANGE_DUPLICATION_STATUS));
+    req->__set_status(status);
+    return call_rpc_sync(duplication_modify_rpc(std::move(req), RPC_CM_MODIFY_DUPLICATION));
 }
 
 error_with<duplication_query_response> replication_ddl_client::query_dup(std::string app_name)
@@ -1517,5 +1516,22 @@ replication_ddl_client::ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &
 
     return dsn::ERR_OK;
 }
+
+void replication_ddl_client::query_disk_info(
+    const std::vector<dsn::rpc_address> &targets,
+    const std::string &app_name,
+    /*out*/ std::map<dsn::rpc_address, error_with<query_disk_info_response>> &resps)
+{
+    std::map<dsn::rpc_address, query_disk_info_rpc> query_disk_info_rpcs;
+    for (const auto &target : targets) {
+        auto request = make_unique<query_disk_info_request>();
+        request->node = target;
+        request->app_name = app_name;
+        query_disk_info_rpcs.emplace(target,
+                                     query_disk_info_rpc(std::move(request), RPC_QUERY_DISK_INFO));
+    }
+    call_rpcs_async(query_disk_info_rpcs, resps);
+}
+
 } // namespace replication
 } // namespace dsn
