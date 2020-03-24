@@ -25,8 +25,7 @@ class log_block
     std::vector<blob> _data; // the first blob is log_block_header
     size_t _size{0};         // total data size of all blobs
 public:
-    log_block() = default;
-    log_block(blob &&init_blob) : _data({init_blob}), _size(init_blob.length()) {}
+    log_block();
 
     // get all blobs in the block
     const std::vector<blob> &data() const { return _data; }

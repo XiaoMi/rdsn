@@ -54,7 +54,7 @@ namespace replication {
 
     // init pending buffer
     if (nullptr == _pending_write) {
-        _pending_write.reset(log_file::prepare_log_block());
+        _pending_write.reset(new log_block());
         _pending_write_callbacks.reset(new callbacks());
         _pending_write_mutations.reset(new mutations());
         _pending_write_start_offset = mark_new_offset(0, true).second;
