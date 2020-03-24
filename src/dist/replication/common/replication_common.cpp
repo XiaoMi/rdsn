@@ -109,6 +109,8 @@ replication_options::replication_options()
     learn_app_max_concurrent_count = 5;
 
     max_concurrent_uploading_file_count = 10;
+
+    checkpoint_reserve_time_min = 10;
 }
 
 replication_options::~replication_options() {}
@@ -511,6 +513,12 @@ void replication_options::initialize()
                                              "max_concurrent_uploading_file_count",
                                              max_concurrent_uploading_file_count,
                                              "concurrent uploading file count");
+
+    checkpoint_reserve_time_min =
+        (int)dsn_config_get_value_uint64("replication",
+                                         "checkpoint_reserve_time_min",
+                                         checkpoint_reserve_time_min,
+                                         "reserve time of cold backup checkpoint");
 
     replica_helper::load_meta_servers(meta_servers);
 

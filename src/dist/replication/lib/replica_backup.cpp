@@ -43,9 +43,11 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
                     send_backup_request_to_secondary(request);
                 }
                 // clear local checkpoint dirs in background thread
-                tasking::enqueue(LPC_BACKGROUND_COLD_BACKUP, &_tracker, [this, policy_name]() {
-                    clear_backup_checkpoint(policy_name);
-                });
+                tasking::enqueue(LPC_BACKGROUND_COLD_BACKUP,
+                                 &_tracker,
+                                 [this, policy_name]() { clear_backup_checkpoint(policy_name); },
+                                 get_gpid().thread_hash(),
+                                 std::chrono::minutes(options()->checkpoint_reserve_time_min));
                 return;
             }
 
@@ -107,9 +109,12 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
                         send_backup_request_to_secondary(request);
                     }
                     // clear local checkpoint dirs in background thread
-                    tasking::enqueue(LPC_BACKGROUND_COLD_BACKUP, &_tracker, [this, policy_name]() {
-                        clear_backup_checkpoint(policy_name);
-                    });
+                    tasking::enqueue(
+                        LPC_BACKGROUND_COLD_BACKUP,
+                        &_tracker,
+                        [this, policy_name]() { clear_backup_checkpoint(policy_name); },
+                        get_gpid().thread_hash(),
+                        std::chrono::minutes(options()->checkpoint_reserve_time_min));
                 }
             }
             return;
@@ -195,9 +200,12 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
             new_request.backup_id = 0;
             send_backup_request_to_secondary(new_request);
             // clear local checkpoint dirs in background thread
-            tasking::enqueue(LPC_BACKGROUND_COLD_BACKUP, &_tracker, [this, policy_name]() {
-                clear_backup_checkpoint(policy_name);
-            });
+            tasking::enqueue(LPC_BACKGROUND_COLD_BACKUP,
+                             &_tracker,
+                             [this, policy_name]() { clear_backup_checkpoint(policy_name); },
+                             get_gpid().thread_hash(),
+                             std::chrono::minutes(options()->checkpoint_reserve_time_min));
+
             response.err = ERR_OK;
         } else {
             dwarn(
