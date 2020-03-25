@@ -420,6 +420,9 @@ static bool backup_parse_dir_name(const char *name,
 
 void replica::background_clear_backup_checkpoint(const std::string &policy_name)
 {
+    ddebug_replica("schedule to clear all checkpoint dirs of policy({}) in {} minutes",
+                   policy_name,
+                   options()->cold_backup_checkpoint_reserve_minutes);
     tasking::enqueue(LPC_BACKGROUND_COLD_BACKUP,
                      &_tracker,
                      [this, policy_name]() { clear_backup_checkpoint(policy_name); },
