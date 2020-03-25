@@ -14,6 +14,7 @@ namespace dsn {
 namespace replication {
 
 /*static*/ constexpr int load_from_private_log::MAX_ALLOWED_BLOCK_REPEATS;
+/*static*/ constexpr int load_from_private_log::MAX_ALLOWED_FILE_REPEATS;
 
 // Fast path to next file. If next file (_current->index + 1) is invalid,
 // we try to list all files and select a new one to start (find_log_file_to_start).
@@ -122,6 +123,13 @@ void load_from_private_log::replay_log_block()
             return;
         }
 
+        // Error handling on loading failure:
+        // - If block loading failed for `MAX_ALLOWED_REPEATS` times, it restarts reading the file.
+        // - If file loading failed for `MAX_ALLOWED_FILE_REPEATS` times, which means it
+        //   met some permanent problem (maybe data corruption), there are 2 options for
+        //   the next move:
+        //   1. skip this file, abandon the data, can be adopted by who allows minor data lost.
+        //   2. fail-slow, retry reading this file until human interference.
         _err_block_repeats_num++;
         if (_err_block_repeats_num >= MAX_ALLOWED_BLOCK_REPEATS) {
             derror_replica(
@@ -131,6 +139,24 @@ void load_from_private_log::replay_log_block()
                 _current->path(),
                 _start_offset);
             _counter_dup_load_file_failed_count->increment();
+            _err_file_repeats_num++;
+            if (_err_file_repeats_num >= MAX_ALLOWED_FILE_REPEATS &&
+                _duplicator->fail_mode() == duplication_fail_mode::FAIL_SKIP) {
+                // skip this file
+                derror_replica("failed loading for {} times, abandon file {} and try next",
+                               _err_file_repeats_num,
+                               _current->path());
+                _err_file_repeats_num = 0;
+
+                auto prev_offset = _current_global_end_offset;
+                if (switch_to_next_log_file()) {
+                    // successfully skip to next file
+                    auto skipped_bytes = _current_global_end_offset - prev_offset;
+                    _counter_dup_load_skipped_bytes_count->add(skipped_bytes);
+                    repeat(_repeat_delay);
+                    return;
+                }
+            }
             // retry from file start
             find_log_file_to_start();
         }
@@ -165,6 +191,11 @@ load_from_private_log::load_from_private_log(replica *r, replica_duplicator *dup
         "dup.load_file_failed_count",
         COUNTER_TYPE_NUMBER,
         "the number of failures loading a private log file during duplication");
+    _counter_dup_load_skipped_bytes_count.init_app_counter(
+        "eon.replica_stub",
+        "dup.load_skipped_bytes_count",
+        COUNTER_TYPE_NUMBER,
+        "bytes of mutations that were skipped because of failure during duplication");
 }
 
 void load_from_private_log::set_start_decree(decree start_decree)

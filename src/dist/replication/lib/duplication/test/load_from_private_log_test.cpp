@@ -371,5 +371,108 @@ TEST_F(load_from_private_log_test, ignore_useless)
     ASSERT_EQ(result.size(), 0);
 }
 
+class load_fail_mode_test : public load_from_private_log_test
+{
+public:
+    void SetUp() override
+    {
+        mlog = create_private_log();
+
+        // generate multiple log files
+        const int num_entries = 20000;
+        for (int i = 1; i <= num_entries + 1; i++) {
+            std::string msg = "hello!";
+            mutation_ptr mu = create_test_mutation(i, msg);
+            mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
+            if (i % 10000 == 0) {
+                // ensure pending logs are written
+                sleep(1);
+            }
+        }
+        mlog->close();
+
+        // prepare loading pipeline
+        mlog = create_private_log();
+        _replica->init_private_log(mlog);
+        duplicator = create_test_duplicator(100 - 1);
+        load = make_unique<load_from_private_log>(_replica.get(), duplicator.get());
+        load->TEST_set_repeat_delay(0_ms); // no delay
+        load->set_start_decree(duplicator->progress().last_decree + 1);
+        end_stage = make_unique<end_stage_t>(
+            [this, num_entries](decree &&d, mutation_tuple_set &&mutations) {
+                load->set_start_decree(d + 1);
+                if (d < num_entries) {
+                    load->run();
+                }
+            });
+        duplicator->from(*load).link(*end_stage);
+    }
+
+    mutation_log_ptr mlog;
+    std::unique_ptr<load_from_private_log> load;
+
+    using end_stage_t = pipeline::do_when<decree, mutation_tuple_set>;
+    std::unique_ptr<end_stage_t> end_stage;
+};
+
+TEST_F(load_fail_mode_test, fail_skip)
+{
+    duplicator->update_fail_mode(duplication_fail_mode::FAIL_SKIP);
+    ASSERT_EQ(load->_counter_dup_load_skipped_bytes_count->get_integer_value(), 0);
+
+    // will trigger fail-skip and read the subsequent file, some mutations will be lost.
+    auto repeats = load->MAX_ALLOWED_BLOCK_REPEATS * load->MAX_ALLOWED_FILE_REPEATS;
+    fail::setup();
+    fail::cfg("mutation_log_replay_block", fmt::format("100%{}*return()", repeats));
+    duplicator->run_pipeline();
+    duplicator->wait_all();
+    fail::teardown();
+
+    ASSERT_EQ(load->_counter_dup_load_file_failed_count->get_integer_value(),
+              load_from_private_log::MAX_ALLOWED_FILE_REPEATS);
+    ASSERT_GT(load->_counter_dup_load_skipped_bytes_count->get_integer_value(), 0);
+}
+
+TEST_F(load_fail_mode_test, fail_slow)
+{
+    duplicator->update_fail_mode(duplication_fail_mode::FAIL_SLOW);
+    ASSERT_EQ(load->_counter_dup_load_skipped_bytes_count->get_integer_value(), 0);
+    ASSERT_EQ(load->_counter_dup_load_file_failed_count->get_integer_value(), 0);
+
+    // will trigger fail-slow and retry infinitely
+    auto repeats = load->MAX_ALLOWED_BLOCK_REPEATS * load->MAX_ALLOWED_FILE_REPEATS;
+    fail::setup();
+    fail::cfg("mutation_log_replay_block", fmt::format("100%{}*return()", repeats));
+    duplicator->run_pipeline();
+    duplicator->wait_all();
+    fail::teardown();
+
+    ASSERT_EQ(load->_counter_dup_load_file_failed_count->get_integer_value(),
+              load_from_private_log::MAX_ALLOWED_FILE_REPEATS);
+    ASSERT_EQ(load->_counter_dup_load_skipped_bytes_count->get_integer_value(), 0);
+}
+
+TEST_F(load_fail_mode_test, fail_skip_real_corrupted_file)
+{
+    { // inject some bad data in the middle of the first file
+        std::string log_path = _log_dir + "/log.1.0";
+        auto file_size = boost::filesystem::file_size(log_path);
+        int fd = open(log_path.c_str(), O_WRONLY);
+        const char buf[] = "xxxxxx";
+        auto written_size = pwrite(fd, buf, sizeof(buf), file_size / 2);
+        ASSERT_EQ(written_size, sizeof(buf));
+        close(fd);
+    }
+
+    duplicator->update_fail_mode(duplication_fail_mode::FAIL_SKIP);
+    duplicator->run_pipeline();
+    duplicator->wait_all();
+
+    // ensure the bad file will be skipped
+    ASSERT_EQ(load->_counter_dup_load_file_failed_count->get_integer_value(),
+              load_from_private_log::MAX_ALLOWED_FILE_REPEATS);
+    ASSERT_GT(load->_counter_dup_load_skipped_bytes_count->get_integer_value(), 0);
+}
+
 } // namespace replication
 } // namespace dsn
