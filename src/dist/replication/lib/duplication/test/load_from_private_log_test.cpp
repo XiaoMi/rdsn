@@ -376,9 +376,6 @@ class load_fail_mode_test : public load_from_private_log_test
 public:
     void SetUp() override
     {
-        mlog = create_private_log();
-
-        // generate multiple log files
         const int num_entries = generate_multiple_log_files();
 
         // prepare loading pipeline
