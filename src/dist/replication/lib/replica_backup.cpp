@@ -420,7 +420,6 @@ static bool backup_parse_dir_name(const char *name,
 
 void replica::background_clear_backup_checkpoint(const std::string &policy_name)
 {
-    ddebug("checkpoint reserve time = %d min", options()->checkpoint_reserve_time_min);
     tasking::enqueue(LPC_BACKGROUND_COLD_BACKUP,
                      &_tracker,
                      [this, policy_name]() { clear_backup_checkpoint(policy_name); },
@@ -433,7 +432,6 @@ void replica::clear_backup_checkpoint(const std::string &policy_name)
 {
     ddebug_replica("clear all checkpoint dirs of policy({})", policy_name);
     auto backup_dir = _app->backup_dir();
-    ddebug("backup_dir = %s", backup_dir.c_str());
     if (!utils::filesystem::directory_exists(backup_dir)) {
         return;
     }
