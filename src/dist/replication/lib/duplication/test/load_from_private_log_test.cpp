@@ -28,6 +28,24 @@ public:
         duplicator = create_test_duplicator();
     }
 
+    // return number of entries written
+    int generate_multiple_log_files(int files_num = 3)
+    {
+        // decree ranges from [1, files_num*10)
+        for (int f = 0; f < files_num; f++) {
+            // each round mlog will replay the former logs, and create new file
+            mutation_log_ptr mlog = create_private_log();
+            for (int i = 1; i <= 10; i++) {
+                std::string msg = "hello!";
+                mutation_ptr mu = create_test_mutation(10 * f + i, msg);
+                mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
+            }
+            mlog->tracker()->wait_outstanding_tasks();
+            mlog->close();
+        }
+        return 30;
+    }
+
     void test_find_log_file_to_start()
     {
         load_from_private_log load(_replica.get(), duplicator.get());
@@ -47,15 +65,7 @@ public:
         load.find_log_file_to_start({});
         ASSERT_FALSE(load._current);
 
-        { // writing mutations to log which will generate multiple files
-            for (int i = 0; i < 1000 * 50; i++) {
-                std::string msg = "hello!";
-                mutations.push_back(msg);
-                mutation_ptr mu = create_test_mutation(2 + i, msg);
-                mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
-            }
-            mlog->tracker()->wait_outstanding_tasks();
-        }
+        int num_entries = generate_multiple_log_files(3);
 
         auto files = open_log_file_map(_log_dir);
 
@@ -65,14 +75,14 @@ public:
         ASSERT_EQ(load._current->index(), 1);
 
         load._current = nullptr;
-        load.set_start_decree(50);
+        load.set_start_decree(5);
         load.find_log_file_to_start(files);
         ASSERT_TRUE(load._current);
         ASSERT_EQ(load._current->index(), 1);
 
         int last_idx = files.rbegin()->first;
         load._current = nullptr;
-        load.set_start_decree(1000 * 50 + 200);
+        load.set_start_decree(num_entries + 200);
         load.find_log_file_to_start(files);
         ASSERT_TRUE(load._current);
         ASSERT_EQ(load._current->index(), last_idx);
@@ -165,17 +175,7 @@ public:
     {
         load_from_private_log load(_replica.get(), duplicator.get());
 
-        // start duplication from a compacted plog dir.
-        // first log file is log.2.xxx
-        for (int f = 0; f < 2; f++) {
-            mutation_log_ptr mlog = create_private_log();
-            for (int i = 0; i < 100; i++) {
-                std::string msg = "hello!";
-                mutation_ptr mu = create_test_mutation(39000 + 100 * f + i, msg);
-                mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
-            }
-            mlog->tracker()->wait_outstanding_tasks();
-        }
+        int num_entries = generate_multiple_log_files(2);
 
         std::vector<std::string> files;
         ASSERT_EQ(log_utils::list_all_files(_log_dir, files), error_s::ok());
@@ -379,29 +379,19 @@ public:
         mlog = create_private_log();
 
         // generate multiple log files
-        const int num_entries = 20000;
-        for (int i = 1; i <= num_entries + 1; i++) {
-            std::string msg = "hello!";
-            mutation_ptr mu = create_test_mutation(i, msg);
-            mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
-            if (i % 10000 == 0) {
-                // ensure pending logs are written
-                sleep(1);
-            }
-        }
-        mlog->close();
+        const int num_entries = generate_multiple_log_files();
 
         // prepare loading pipeline
         mlog = create_private_log();
         _replica->init_private_log(mlog);
-        duplicator = create_test_duplicator(100 - 1);
+        duplicator = create_test_duplicator(1);
         load = make_unique<load_from_private_log>(_replica.get(), duplicator.get());
         load->TEST_set_repeat_delay(0_ms); // no delay
         load->set_start_decree(duplicator->progress().last_decree + 1);
         end_stage = make_unique<end_stage_t>(
             [this, num_entries](decree &&d, mutation_tuple_set &&mutations) {
                 load->set_start_decree(d + 1);
-                if (d < num_entries) {
+                if (d < num_entries - 1) {
                     load->run();
                 }
             });
