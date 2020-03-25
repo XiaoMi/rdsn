@@ -662,7 +662,7 @@ enum duplication_status
 // How duplication reacts on permanent failure.
 enum duplication_fail_mode
 {
-    // The default mode. If some permanent failure occured makes duplication
+    // The default mode. If some permanent failure occurred that makes duplication
     // blocked, it will retry forever until external interference.
     FAIL_SLOW = 0,
 
