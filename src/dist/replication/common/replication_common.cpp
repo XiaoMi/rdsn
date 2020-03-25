@@ -512,7 +512,7 @@ void replication_options::initialize()
         (int)dsn_config_get_value_uint64("replication",
                                          "cold_backup_checkpoint_reserve_minutes",
                                          cold_backup_checkpoint_reserve_minutes,
-                                         "reserve time of cold backup checkpoint");
+                                         "reserve minutes of cold backup checkpoint");
 
     replica_helper::load_meta_servers(meta_servers);
 
