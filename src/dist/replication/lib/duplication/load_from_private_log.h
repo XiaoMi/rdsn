@@ -49,6 +49,9 @@ public:
 
     void start_from_log_file(log_file_ptr f);
 
+    bool will_fail_skip() const;
+    bool will_fail_fast() const;
+
     void TEST_set_repeat_delay(std::chrono::milliseconds delay)
     {
         const_cast<std::chrono::milliseconds &>(_repeat_delay) = delay;

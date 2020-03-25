@@ -167,7 +167,8 @@ struct duplication_fail_mode
     enum type
     {
         FAIL_SLOW = 0,
-        FAIL_SKIP = 1
+        FAIL_SKIP = 1,
+        FAIL_FAST = 2
     };
 };
 

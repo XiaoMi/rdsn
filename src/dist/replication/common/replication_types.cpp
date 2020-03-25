@@ -138,10 +138,11 @@ const std::map<int, const char *> _duplication_status_VALUES_TO_NAMES(
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 int _kduplication_fail_modeValues[] = {duplication_fail_mode::FAIL_SLOW,
-                                       duplication_fail_mode::FAIL_SKIP};
-const char *_kduplication_fail_modeNames[] = {"FAIL_SLOW", "FAIL_SKIP"};
+                                       duplication_fail_mode::FAIL_SKIP,
+                                       duplication_fail_mode::FAIL_FAST};
+const char *_kduplication_fail_modeNames[] = {"FAIL_SLOW", "FAIL_SKIP", "FAIL_FAST"};
 const std::map<int, const char *> _duplication_fail_mode_VALUES_TO_NAMES(
-    ::apache::thrift::TEnumIterator(2, _kduplication_fail_modeValues, _kduplication_fail_modeNames),
+    ::apache::thrift::TEnumIterator(3, _kduplication_fail_modeValues, _kduplication_fail_modeNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 mutation_header::~mutation_header() throw() {}

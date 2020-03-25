@@ -668,7 +668,11 @@ enum duplication_fail_mode
 
     // Skip the writes that failed to duplicate, which means minor data loss on the remote cluster.
     // This will certainly achieve better stability of the system.
-    FAIL_SKIP
+    FAIL_SKIP,
+
+    // Suicide immediately after it ensures itself unable to duplicate.
+    // WARN: this mode kills the server process, replicas on the server will all be effected.
+    FAIL_FAST
 }
 
 // This request is sent from client to meta.

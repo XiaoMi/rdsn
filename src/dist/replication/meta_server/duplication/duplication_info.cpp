@@ -74,6 +74,7 @@ namespace replication {
         _duplication_fail_mode_NAMES_TO_VALUES = {
             {"FAIL_SLOW", duplication_fail_mode::FAIL_SLOW},
             {"FAIL_SKIP", duplication_fail_mode::FAIL_SKIP},
+            {"FAIL_FAST", duplication_fail_mode::FAIL_FAST},
         };
 
     std::string name;
