@@ -12,11 +12,13 @@ namespace replication {
 // each block in log file has a log_block_header
 struct log_block_header
 {
-    int32_t magic;    // 0xdeadbeef
-    int32_t length;   // block data length (not including log_block_header)
-    int32_t body_crc; // block data crc (not including log_block_header)
-    uint32_t
-        local_offset; // start offset of the block (including log_block_header) in this log file
+    int32_t magic{static_cast<int32_t>(0xdeadbeef)}; // 0xdeadbeef
+    int32_t length{0};   // block data length (not including log_block_header)
+    int32_t body_crc{0}; // block data crc (not including log_block_header)
+
+    // start offset of the block (including log_block_header) in this log file
+    // TODO(wutao1): this field is unusable. the value is always set, but not read.
+    uint32_t local_offset{0};
 };
 
 // a memory structure holding data which belongs to one block.

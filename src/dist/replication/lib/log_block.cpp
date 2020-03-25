@@ -12,10 +12,6 @@ log_block::log_block() { init(); }
 void log_block::init()
 {
     log_block_header hdr;
-    hdr.magic = 0xdeadbeef;
-    hdr.length = 0;
-    hdr.body_crc = 0;
-    hdr.local_offset = 0;
 
     binary_writer temp_writer;
     temp_writer.write_pod(hdr);
