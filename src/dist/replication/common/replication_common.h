@@ -113,7 +113,7 @@ public:
 
     std::string cold_backup_root;
     int32_t max_concurrent_uploading_file_count;
-    int32_t checkpoint_reserve_time_min;
+    int32_t cold_backup_checkpoint_reserve_minutes;
 
 public:
     replication_options();

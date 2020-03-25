@@ -424,7 +424,7 @@ void replica::background_clear_backup_checkpoint(const std::string &policy_name)
                      &_tracker,
                      [this, policy_name]() { clear_backup_checkpoint(policy_name); },
                      get_gpid().thread_hash(),
-                     std::chrono::minutes(options()->checkpoint_reserve_time_min));
+                     std::chrono::minutes(options()->cold_backup_checkpoint_reserve_minutes));
 }
 
 // clear all checkpoint dirs of the policy
