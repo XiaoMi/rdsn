@@ -48,7 +48,6 @@ replication_options::replication_options()
     verbose_commit_log_on_start = false;
     delay_for_fd_timeout_on_start = false;
     empty_write_disabled = false;
-    allow_non_idempotent_write = false;
     duplication_enabled = true;
 
     prepare_timeout_ms_for_secondaries = 1000;
@@ -267,11 +266,6 @@ void replication_options::initialize()
                                   "empty_write_disabled",
                                   empty_write_disabled,
                                   "whether to disable empty write, default is false");
-    allow_non_idempotent_write =
-        dsn_config_get_value_bool("replication",
-                                  "allow_non_idempotent_write",
-                                  allow_non_idempotent_write,
-                                  "whether to allow non-idempotent write, default is false");
 
     duplication_enabled = dsn_config_get_value_bool(
         "replication", "duplication_enabled", duplication_enabled, "is duplication enabled");
@@ -632,6 +626,8 @@ const std::string
     replica_envs::ROCKSDB_CHECKPOINT_RESERVE_MIN_COUNT("rocksdb.checkpoint.reserve_min_count");
 const std::string replica_envs::ROCKSDB_CHECKPOINT_RESERVE_TIME_SECONDS(
     "rocksdb.checkpoint.reserve_time_seconds");
+const std::string replica_envs::ROCKSDB_ITERATION_THRESHOLD_TIME_MS(
+    "replica.rocksdb_iteration_threshold_time_ms");
 const std::string replica_envs::BUSINESS_INFO("business.info");
 
 namespace cold_backup {
