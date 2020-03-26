@@ -247,12 +247,12 @@ mutation_log_private::mutation_log_private(const std::string &dir,
 bool mutation_log_private::get_learn_state_in_memory(decree start_decree,
                                                      binary_writer &writer) const
 {
-    std::shared_ptr<log_block> emitted_block;
+    std::shared_ptr<log_block> issued_block;
     mutations pending_mutations;
     {
         zauto_lock l(_plock);
 
-        emitted_block = _emitted_block.lock();
+        issued_block = _issued_write.lock();
 
         if (_pending_write) {
             pending_mutations = _pending_write->mutations();
@@ -261,8 +261,8 @@ bool mutation_log_private::get_learn_state_in_memory(decree start_decree,
 
     int learned_count = 0;
 
-    if (emitted_block) {
-        for (auto &mu : emitted_block->mutations()) {
+    if (issued_block) {
+        for (auto &mu : issued_block->mutations()) {
             if (mu->get_decree() >= start_decree) {
                 mu->write_to(writer, nullptr);
                 learned_count++;
@@ -284,18 +284,18 @@ void mutation_log_private::get_in_memory_mutations(decree start_decree,
                                                    ballot start_ballot,
                                                    std::vector<mutation_ptr> &mutation_list) const
 {
-    std::shared_ptr<log_block> emitted_block;
+    std::shared_ptr<log_block> issued_block;
     mutations pending_mutations;
     {
         zauto_lock l(_plock);
-        emitted_block = _emitted_block.lock();
+        issued_block = _issued_write.lock();
         if (_pending_write) {
             pending_mutations = _pending_write->mutations();
         }
     }
 
-    if (emitted_block) {
-        for (auto &mu : emitted_block->mutations()) {
+    if (issued_block) {
+        for (auto &mu : issued_block->mutations()) {
             // if start_ballot is invalid or equal to mu.ballot, check decree
             // otherwise check ballot
             ballot current_ballot =
@@ -352,7 +352,7 @@ void mutation_log_private::init_states()
     mutation_log::init_states();
 
     _is_writing.store(false, std::memory_order_release);
-    _emitted_block.reset();
+    _issued_write.reset();
     _pending_write = nullptr;
     _pending_write_start_time_ms = 0;
     _pending_write_max_commit = 0;
@@ -374,7 +374,7 @@ void mutation_log_private::write_pending_mutations(bool release_lock_required)
 
     // move or reset pending variables
     std::shared_ptr<log_block> blk = std::move(_pending_write);
-    _emitted_block = blk;
+    _issued_write = blk;
     int64_t start_offset = blk->start_offset();
     _pending_write_start_time_ms = 0;
     decree max_commit = _pending_write_max_commit;

@@ -543,8 +543,8 @@ private:
     std::shared_ptr<log_block> _pending_write;
     // Writes that are emitted to `commit_log_block` but are not completely written.
     // The weak_ptr used here is a trick. Once the pointer freed, ie.
-    // `_emitted_block.lock() == nullptr`, it means the emitted writes all finished.
-    std::weak_ptr<log_block> _emitted_block;
+    // `_issued_write.lock() == nullptr`, it means the emitted writes all finished.
+    std::weak_ptr<log_block> _issued_write;
     uint64_t _pending_write_start_time_ms;
     decree _pending_write_max_commit;
     decree _pending_write_max_decree;
