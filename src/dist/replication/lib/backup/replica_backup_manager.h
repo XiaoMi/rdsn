@@ -9,14 +9,16 @@
 namespace dsn {
 namespace replication {
 
-class replica_backup_manager
+class replica_backup_manager : replica_base
 {
 public:
-    replica_backup_manager(replica *r) : _replica(r) {}
+    replica_backup_manager(replica *r) : replica_base(r), _replica(r) {}
 
-    void clear_backup(const backup_clear_request &request);
+    void clear_backup(const std::string &policy_name, int64_t backup_id);
 
 private:
+    void clear_backup_checkpoint(const std::string &policy_name, int64_t backup_id);
+
     replica *_replica;
 };
 

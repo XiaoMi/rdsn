@@ -429,6 +429,7 @@ private:
     friend class load_mutation;
     friend class replica_split_test;
     friend class replica_test;
+    friend class replica_backup_manager;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -507,7 +508,6 @@ private:
 
     // cold backup
     std::unique_ptr<replica_backup_manager> _backup_mgr;
-
 
     // partition split
     // _child_gpid = gpid({app_id},{pidx}+{old_partition_count}) for parent partition
