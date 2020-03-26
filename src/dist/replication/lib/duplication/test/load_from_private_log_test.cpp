@@ -29,7 +29,7 @@ public:
     }
 
     // return number of entries written
-    int generate_multiple_log_files(int files_num = 3)
+    int generate_multiple_log_files(uint files_num = 3)
     {
         // decree ranges from [1, files_num*10)
         for (int f = 0; f < files_num; f++) {
@@ -43,7 +43,7 @@ public:
             mlog->tracker()->wait_outstanding_tasks();
             mlog->close();
         }
-        return 30;
+        return static_cast<int>(files_num * 10);
     }
 
     void test_find_log_file_to_start()
