@@ -51,6 +51,7 @@
 #include <gperftools/malloc_extension.h>
 #endif
 #include <dsn/utility/fail_point.h>
+#include <backup/replica_backup_manager.h>
 
 namespace dsn {
 namespace replication {
@@ -1004,6 +1005,19 @@ void replica_stub::on_cold_backup(const backup_request &request, /*out*/ backup_
                request.policy.policy_name.c_str(),
                request.backup_id);
         response.err = ERR_OBJECT_NOT_FOUND;
+    }
+}
+
+void replica_stub::on_cold_backup_clear(const backup_clear_request &request)
+{
+    ddebug("received cold backup clear request: backup{{}.{}.{}}",
+           request.pid.to_string(),
+           request.policy_name.c_str(),
+           request.backup_id);
+
+    replica_ptr rep = get_replica(request.pid);
+    if (rep != nullptr) {
+        rep->get_backup_manager()->clear_backup(request);
     }
 }
 
@@ -2026,6 +2040,8 @@ void replica_stub::open_service()
     register_rpc_handler(RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler(RPC_COLD_BACKUP, "ColdBackup", &replica_stub::on_cold_backup);
+    register_rpc_handler(
+        RPC_COLD_BACKUP_CLEAR, "ColdBackupClear", &replica_stub::on_cold_backup_clear);
     register_rpc_handler(RPC_SPLIT_NOTIFY_CATCH_UP,
                          "child_notify_catch_up",
                          &replica_stub::on_notify_primary_split_catch_up);
