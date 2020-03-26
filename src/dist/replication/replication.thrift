@@ -670,7 +670,7 @@ enum duplication_fail_mode
     // This will certainly achieve better stability of the system.
     FAIL_SKIP,
 
-    // Suicide immediately after it ensures itself unable to duplicate.
+    // Stop immediately after it ensures itself unable to duplicate.
     // WARN: this mode kills the server process, replicas on the server will all be effected.
     FAIL_FAST
 }
