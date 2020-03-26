@@ -152,7 +152,7 @@ void load_from_private_log::replay_log_block()
                 _start_offset);
             _counter_dup_load_file_failed_count->increment();
             _err_file_repeats_num++;
-            if (will_fail_skip()) {
+            if (dsn_unlikely(will_fail_skip())) {
                 // skip this file
                 derror_replica("failed loading for {} times, abandon file {} and try next",
                                _err_file_repeats_num,
@@ -167,8 +167,11 @@ void load_from_private_log::replay_log_block()
                     repeat(_repeat_delay);
                     return;
                 }
-            } else if (will_fail_fast()) {
-                dassert_replica(false, "unable to load file {}, fail fast", _current->path());
+            } else if (dsn_unlikely(will_fail_fast())) {
+                dassert_replica(
+                    false,
+                    "unable to load file {}, fail fast. please check if the file is corrupted",
+                    _current->path());
             }
             // retry from file start
             find_log_file_to_start();
