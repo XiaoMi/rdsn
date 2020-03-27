@@ -531,7 +531,6 @@ struct backup_clear_request
 {
     1:dsn.gpid          pid;
     2:string            policy_name;
-    3:i64               backup_id;
 }
 
 struct configuration_modify_backup_policy_request

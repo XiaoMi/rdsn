@@ -1010,14 +1010,13 @@ void replica_stub::on_cold_backup(const backup_request &request, /*out*/ backup_
 
 void replica_stub::on_cold_backup_clear(const backup_clear_request &request)
 {
-    ddebug("received cold backup clear request: backup{{}.{}.{}}",
+    ddebug("received cold backup clear request: backup({}.{})",
            request.pid.to_string(),
-           request.policy_name.c_str(),
-           request.backup_id);
+           request.policy_name.c_str());
 
     replica_ptr rep = get_replica(request.pid);
     if (rep != nullptr) {
-        rep->get_backup_manager()->clear_backup(request.policy_name, request.backup_id);
+        rep->get_backup_manager()->clear_backup(request.policy_name);
     }
 }
 

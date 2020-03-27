@@ -8841,8 +8841,6 @@ void backup_clear_request::__set_pid(const ::dsn::gpid &val) { this->pid = val; 
 
 void backup_clear_request::__set_policy_name(const std::string &val) { this->policy_name = val; }
 
-void backup_clear_request::__set_backup_id(const int64_t val) { this->backup_id = val; }
-
 uint32_t backup_clear_request::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -8878,14 +8876,6 @@ uint32_t backup_clear_request::read(::apache::thrift::protocol::TProtocol *iprot
                 xfer += iprot->skip(ftype);
             }
             break;
-        case 3:
-            if (ftype == ::apache::thrift::protocol::T_I64) {
-                xfer += iprot->readI64(this->backup_id);
-                this->__isset.backup_id = true;
-            } else {
-                xfer += iprot->skip(ftype);
-            }
-            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -8912,10 +8902,6 @@ uint32_t backup_clear_request::write(::apache::thrift::protocol::TProtocol *opro
     xfer += oprot->writeString(this->policy_name);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("backup_id", ::apache::thrift::protocol::T_I64, 3);
-    xfer += oprot->writeI64(this->backup_id);
-    xfer += oprot->writeFieldEnd();
-
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -8926,7 +8912,6 @@ void swap(backup_clear_request &a, backup_clear_request &b)
     using ::std::swap;
     swap(a.pid, b.pid);
     swap(a.policy_name, b.policy_name);
-    swap(a.backup_id, b.backup_id);
     swap(a.__isset, b.__isset);
 }
 
@@ -8934,21 +8919,18 @@ backup_clear_request::backup_clear_request(const backup_clear_request &other353)
 {
     pid = other353.pid;
     policy_name = other353.policy_name;
-    backup_id = other353.backup_id;
     __isset = other353.__isset;
 }
 backup_clear_request::backup_clear_request(backup_clear_request &&other354)
 {
     pid = std::move(other354.pid);
     policy_name = std::move(other354.policy_name);
-    backup_id = std::move(other354.backup_id);
     __isset = std::move(other354.__isset);
 }
 backup_clear_request &backup_clear_request::operator=(const backup_clear_request &other355)
 {
     pid = other355.pid;
     policy_name = other355.policy_name;
-    backup_id = other355.backup_id;
     __isset = other355.__isset;
     return *this;
 }
@@ -8956,7 +8938,6 @@ backup_clear_request &backup_clear_request::operator=(backup_clear_request &&oth
 {
     pid = std::move(other356.pid);
     policy_name = std::move(other356.policy_name);
-    backup_id = std::move(other356.backup_id);
     __isset = std::move(other356.__isset);
     return *this;
 }
@@ -8967,8 +8948,6 @@ void backup_clear_request::printTo(std::ostream &out) const
     out << "pid=" << to_string(pid);
     out << ", "
         << "policy_name=" << to_string(policy_name);
-    out << ", "
-        << "backup_id=" << to_string(backup_id);
     out << ")";
 }
 

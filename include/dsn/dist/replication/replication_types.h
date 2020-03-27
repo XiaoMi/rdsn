@@ -3871,10 +3871,9 @@ inline std::ostream &operator<<(std::ostream &out, const backup_response &obj)
 
 typedef struct _backup_clear_request__isset
 {
-    _backup_clear_request__isset() : pid(false), policy_name(false), backup_id(false) {}
+    _backup_clear_request__isset() : pid(false), policy_name(false) {}
     bool pid : 1;
     bool policy_name : 1;
-    bool backup_id : 1;
 } _backup_clear_request__isset;
 
 class backup_clear_request
@@ -3884,12 +3883,11 @@ public:
     backup_clear_request(backup_clear_request &&);
     backup_clear_request &operator=(const backup_clear_request &);
     backup_clear_request &operator=(backup_clear_request &&);
-    backup_clear_request() : policy_name(), backup_id(0) {}
+    backup_clear_request() : policy_name() {}
 
     virtual ~backup_clear_request() throw();
     ::dsn::gpid pid;
     std::string policy_name;
-    int64_t backup_id;
 
     _backup_clear_request__isset __isset;
 
@@ -3897,15 +3895,11 @@ public:
 
     void __set_policy_name(const std::string &val);
 
-    void __set_backup_id(const int64_t val);
-
     bool operator==(const backup_clear_request &rhs) const
     {
         if (!(pid == rhs.pid))
             return false;
         if (!(policy_name == rhs.policy_name))
-            return false;
-        if (!(backup_id == rhs.backup_id))
             return false;
         return true;
     }
