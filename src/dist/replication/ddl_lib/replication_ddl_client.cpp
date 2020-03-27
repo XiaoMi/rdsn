@@ -1367,6 +1367,10 @@ error_with<duplication_modify_response> replication_ddl_client::change_dup_statu
 error_with<duplication_modify_response> replication_ddl_client::update_dup_fail_mode(
     std::string app_name, int dupid, duplication_fail_mode::type fmode)
 {
+    if (_duplication_fail_mode_VALUES_TO_NAMES.find(fmode) ==
+        _duplication_fail_mode_VALUES_TO_NAMES.end()) {
+        return FMT_ERR(ERR_INVALID_PARAMETERS, "unexpected duplication_fail_mode {}", fmode);
+    }
     auto req = make_unique<duplication_modify_request>();
     req->app_name = std::move(app_name);
     req->dupid = dupid;
