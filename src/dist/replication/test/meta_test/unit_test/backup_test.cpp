@@ -672,7 +672,7 @@ void meta_service_test_app::backup_service_test()
         req.backup_provider_type = std::string("local_service");
         req.policy_name = test_policy_name;
         req.app_ids = {1, 2, 3};
-        req.backup_interval_seconds = 30 * 60;
+        req.backup_interval_seconds = 24 * 60 * 60;
 
         // case1: backup policy don't contain invalid app_id
         // result: backup policy will not be added, and return ERR_INVALID_PARAMETERS
@@ -690,6 +690,7 @@ void meta_service_test_app::backup_service_test()
         // case2: backup policy interval time < checkpoint reserve time
         // result: backup policy will not be added, and return ERR_INVALID_PARAMETERS
         {
+            int64_t old_backup_interval_seconds = req.backup_interval_seconds;
             req.backup_interval_seconds = 10;
             configuration_add_backup_policy_response resp;
             server_state *state = meta_svc->get_server_state();
@@ -703,6 +704,7 @@ void meta_service_test_app::backup_service_test()
             ASSERT_TRUE(resp.err == ERR_INVALID_PARAMETERS);
             ASSERT_TRUE(resp.hint_message ==
                         "backup interval must be greater than checkpoint reserve time");
+            req.backup_interval_seconds = old_backup_interval_seconds;
         }
 
         // case3: backup policy contains valid app_id
@@ -738,7 +740,7 @@ void meta_service_test_app::backup_service_test()
         const policy &p = backup_svc->_policy_states.at(test_policy_name)->get_policy();
         ASSERT_TRUE(p.app_ids.size() == 1 && p.app_ids.count(1) == 1);
         ASSERT_TRUE(p.backup_provider_type == std::string("local_service"));
-        ASSERT_TRUE(p.backup_interval_seconds == 30 * 60);
+        ASSERT_TRUE(p.backup_interval_seconds == 24 * 60 * 60);
         ASSERT_TRUE(p.policy_name == test_policy_name);
     }
 }
