@@ -1219,7 +1219,9 @@ void backup_service::add_backup_policy(dsn::message_ex *msg)
     if (request.backup_interval_seconds <=
         _meta_svc->get_options().cold_backup_checkpoint_reserve_minutes * 60) {
         response.err = ERR_INVALID_PARAMETERS;
-        response.hint_message = fmt::format("backup interval must be greater than cold_backup_checkpoint_reserve_minutes={}", _meta_svc->get_options().cold_backup_checkpoint_reserve_minutes);
+        response.hint_message = fmt::format(
+            "backup interval must be greater than cold_backup_checkpoint_reserve_minutes={}",
+            _meta_svc->get_options().cold_backup_checkpoint_reserve_minutes);
         _meta_svc->reply_data(msg, response);
         msg->release_ref();
         return;
