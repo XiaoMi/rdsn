@@ -701,9 +701,12 @@ void meta_service_test_app::backup_service_test()
                                    &backup_service::add_backup_policy,
                                    req);
             fake_wait_rpc(r, resp);
+
+            std::string hint_message = fmt::format(
+                "backup interval must be greater than cold_backup_checkpoint_reserve_minutes={}",
+                meta_svc->get_options().cold_backup_checkpoint_reserve_minutes);
             ASSERT_TRUE(resp.err == ERR_INVALID_PARAMETERS);
-            ASSERT_TRUE(resp.hint_message ==
-                        "backup interval must be greater than checkpoint reserve time");
+            ASSERT_TRUE(resp.hint_message == hint_message);
             req.backup_interval_seconds = old_backup_interval_seconds;
         }
 
