@@ -75,17 +75,17 @@ public:
         _next_status = duplication_status::DS_START;
     }
 
-    // change current status to `to_status`.
     // error will be returned if this state transition is not allowed.
-    error_code alter_status(duplication_status::type to_status)
-    {
-        zauto_write_lock l(_lock);
-        return do_alter_status(to_status);
-    }
+    error_code
+    alter_status(duplication_status::type to_status,
+                 duplication_fail_mode::type to_fail_mode = duplication_fail_mode::FAIL_SLOW);
 
-    // persist current status to `next_status`
     // call this function after data has been persisted on meta storage.
     void persist_status();
+
+    // not thread-safe
+    duplication_status::type status() const { return _status; }
+    duplication_fail_mode::type fail_mode() const { return _fail_mode; }
 
     // if this duplication is in valid status.
     bool is_valid() const { return is_duplication_status_valid(_status); }
@@ -125,6 +125,7 @@ public:
         entry.create_ts = create_timestamp_ms;
         entry.remote = remote;
         entry.status = _status;
+        entry.__set_fail_mode(_fail_mode);
         entry.__isset.progress = true;
         for (const auto &kv : _progress) {
             if (!kv.second.is_inited) {
@@ -151,8 +152,6 @@ private:
     friend class duplication_info_test;
     friend class meta_duplication_service_test;
 
-    error_code do_alter_status(duplication_status::type to_status);
-
     // Whether there's ongoing meta storage update.
     bool _is_altering{false};
 
@@ -178,13 +177,16 @@ private:
     duplication_status::type _status{duplication_status::DS_INIT};
     duplication_status::type _next_status{duplication_status::DS_INIT};
 
+    duplication_fail_mode::type _fail_mode{duplication_fail_mode::FAIL_SLOW};
+    duplication_fail_mode::type _next_fail_mode{duplication_fail_mode::FAIL_SLOW};
     struct json_helper
     {
         std::string remote;
         duplication_status::type status;
         int64_t create_timestamp_ms;
+        duplication_fail_mode::type fail_mode;
 
-        DEFINE_JSON_SERIALIZATION(remote, status, create_timestamp_ms);
+        DEFINE_JSON_SERIALIZATION(remote, status, create_timestamp_ms, fail_mode);
     };
 
 public:
@@ -198,6 +200,10 @@ public:
 extern void json_encode(dsn::json::JsonWriter &out, const duplication_status::type &s);
 
 extern bool json_decode(const dsn::json::JsonObject &in, duplication_status::type &s);
+
+extern void json_encode(dsn::json::JsonWriter &out, const duplication_fail_mode::type &s);
+
+extern bool json_decode(const dsn::json::JsonObject &in, duplication_fail_mode::type &s);
 
 // Macros for writing log message prefixed by appid and dupid.
 #define ddebug_dup(_dup_, ...)                                                                     \
