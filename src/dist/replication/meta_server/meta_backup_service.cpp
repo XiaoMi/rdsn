@@ -1204,7 +1204,7 @@ void backup_service::start()
     start_create_policy_meta_root(after_create_policy_meta_root);
 }
 
-// TODO(zhaoliwei) refactor
+// TODO(zhaoliwei) refactor function add_backup_policy
 void backup_service::add_backup_policy(dsn::message_ex *msg)
 {
     configuration_add_backup_policy_request request;
