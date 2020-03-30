@@ -38,6 +38,7 @@
 #include "mutation_log.h"
 #include "mutation.h"
 #include "duplication/duplication_sync_timer.h"
+#include "dist/replication/lib/backup/replica_backup_manager.h"
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
@@ -51,7 +52,6 @@
 #include <gperftools/malloc_extension.h>
 #endif
 #include <dsn/utility/fail_point.h>
-#include <backup/replica_backup_manager.h>
 
 namespace dsn {
 namespace replication {
@@ -1016,7 +1016,7 @@ void replica_stub::on_cold_backup_clear(const backup_clear_request &request)
 
     replica_ptr rep = get_replica(request.pid);
     if (rep != nullptr) {
-        rep->get_backup_manager()->clear_backup(request.policy_name);
+        rep->get_backup_manager()->on_cold_backup_clear(request);
     }
 }
 

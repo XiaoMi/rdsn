@@ -13,13 +13,16 @@ class replica_backup_manager : replica_base
 {
 public:
     replica_backup_manager(replica *r) : replica_base(r), _replica(r) {}
-
-    void clear_backup(const std::string &policy_name);
+    void on_cold_backup_clear(const backup_clear_request &request);
 
 private:
     void clear_backup_checkpoint(const std::string &policy_name);
+    void send_clear_request_to_secondaries(const gpid &pid, const std::string &policy_name);
+    void background_clear_backup_checkpoint(const std::string &policy_name);
 
     replica *_replica;
+
+    friend class replica;
 };
 
 } // namespace replication
