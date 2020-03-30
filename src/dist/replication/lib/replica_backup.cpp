@@ -25,10 +25,9 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
     cold_backup_context_ptr new_context(
         new cold_backup_context(this, request, _options->max_concurrent_uploading_file_count));
 
-    ddebug("%s: received cold backup request, partition_status = %s%s",
-           new_context->name,
-           enum_to_string(status()),
-           backup_id == 0 ? ", this is a clear request" : "");
+    ddebug_replica("{}: received cold backup request, partition_status = {}",
+                   new_context->name,
+                   enum_to_string(status()));
 
     if (status() == partition_status::type::PS_PRIMARY ||
         status() == partition_status::type::PS_SECONDARY) {
@@ -166,7 +165,8 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
             _cold_backup_contexts.erase(policy_name);
         } else if (backup_status == ColdBackupCompleted) {
             ddebug("%s: upload checkpoint completed, response ERR_OK", backup_context->name);
-            _backup_mgr->send_clear_request_to_secondaries(request.pid, request.policy.policy_name);
+            _backup_mgr->send_clear_request_to_secondaries(backup_context->request.pid,
+                                                           policy_name);
 
             // clear local checkpoint dirs in background thread
             _backup_mgr->background_clear_backup_checkpoint(policy_name);
