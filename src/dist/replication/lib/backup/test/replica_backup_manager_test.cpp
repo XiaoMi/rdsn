@@ -8,9 +8,11 @@
 namespace dsn {
 namespace replication {
 
-class replica_backup_manager_test : public replica_test_base {
+class replica_backup_manager_test : public replica_test_base
+{
 public:
-    void clear_backup_checkpoint(const std::string policy_name) {
+    void clear_backup_checkpoint(const std::string policy_name)
+    {
         _replica->get_backup_manager()->clear_backup_checkpoint(policy_name);
     }
 
