@@ -179,7 +179,7 @@ public:
     bool is_duplicating() const { return _duplicating; }
 
     //
-    // Cold Backup
+    // Backup
     //
     replica_backup_manager *get_backup_manager() const { return _backup_mgr.get(); }
 
@@ -504,7 +504,7 @@ private:
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
     bool _duplicating{false};
 
-    // cold backup
+    // backup
     std::unique_ptr<replica_backup_manager> _backup_mgr;
 
     // partition split
