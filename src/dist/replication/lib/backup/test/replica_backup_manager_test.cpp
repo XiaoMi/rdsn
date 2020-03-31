@@ -11,16 +11,16 @@ namespace replication {
 class replica_backup_manager_test : public replica_test_base
 {
 public:
-    void clear_backup_checkpoint(const std::string policy_name)
+    void clear_backup_checkpoint(const std::string &policy_name)
     {
         _replica->get_backup_manager()->clear_backup_checkpoint(policy_name);
     }
-
-    std::string policy_name = "test_policy";
 };
 
 TEST_F(replica_backup_manager_test, clear_cold_backup)
 {
+    std::string policy_name = "test_policy";
+
     // create policy dir: <backup_dir>/backup.<policy_name>.*
     std::string policy_dir = _replica->get_app()->backup_dir() + "/backup." + policy_name;
     utils::filesystem::create_directory(policy_dir);
