@@ -3,16 +3,30 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
+#include "dist/replication/lib/backup/replica_backup_manager.h"
 
 namespace dsn {
 namespace replication {
 
 class replica_backup_manager_test : public replica_test_base {
 public:
-    void SetUp() override { stub = make_unique<mock_replica_stub>(); }
+    void clear_backup_checkpoint(const std::string policy_name) {
+        _replica->get_backup_manager()->clear_backup_checkpoint(policy_name);
+    }
 
-    void TearDown() override { stub.reset(); }
+    std::string policy_name = "test_policy";
 };
+
+TEST_F(replica_backup_manager_test, clear_cold_backup)
+{
+    // create policy dir: <backup_dir>/backup.<policy_name>.*
+    std::string policy_dir = _replica->get_app()->backup_dir() + "/backup." + policy_name;
+    utils::filesystem::create_directory(policy_dir);
+
+    // clear policy dir
+    clear_backup_checkpoint(policy_name);
+    ASSERT_FALSE(utils::filesystem::directory_exists(policy_dir));
+}
 
 } // namespace replication
 } // namespace dsn

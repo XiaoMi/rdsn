@@ -23,6 +23,7 @@ private:
     replica *_replica;
 
     friend class replica;
+    friend class replica_backup_manager_test;
 };
 
 } // namespace replication
