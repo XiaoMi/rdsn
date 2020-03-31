@@ -368,11 +368,6 @@ void replica::close()
         _checkpoint_timer = nullptr;
     }
 
-    if (_collect_info_timer != nullptr) {
-        _collect_info_timer->cancel(true);
-        _collect_info_timer = nullptr;
-    }
-
     if (_app != nullptr) {
         _app->cancel_background_work(true);
     }

@@ -44,6 +44,19 @@ static bool get_policy_checkpoint_dirs(const std::string &dir,
     return true;
 }
 
+replica_backup_manager::replica_backup_manager(replica *r) : replica_base(r), _replica(r) {
+    _collect_info_timer =
+        tasking::enqueue_timer(LPC_PER_REPLICA_COLLECT_INFO_TIMER,
+                               &_replica->_tracker,
+                               [this]() { collect_backup_info(); },
+                               std::chrono::milliseconds(_replica->options()->gc_interval_ms),
+                               get_gpid().thread_hash());
+}
+
+replica_backup_manager::~replica_backup_manager() {
+    _collect_info_timer->cancel(false);
+}
+
 void replica_backup_manager::on_cold_backup_clear(const backup_clear_request &request)
 {
     auto find = _replica->_cold_backup_contexts.find(request.policy_name);
@@ -75,6 +88,7 @@ void replica_backup_manager::collect_backup_info()
     uint64_t cold_backup_running_count = 0;
     uint64_t cold_backup_max_duration_time_ms = 0;
     uint64_t cold_backup_max_upload_file_size = 0;
+    uint64_t now_ms = dsn_now_ms();
     for (const auto &p : _replica->_cold_backup_contexts) {
         const cold_backup_context_ptr &backup_context = p.second;
         cold_backup_status backup_status = backup_context->status();
@@ -94,7 +108,7 @@ void replica_backup_manager::collect_backup_info()
         if (backup_status == ColdBackupUploading) {
             cold_backup_max_duration_time_ms =
                 std::max(cold_backup_max_duration_time_ms,
-                         (dsn_now_ms() - backup_context->get_start_time_ms()));
+                         (now_ms - backup_context->get_start_time_ms()));
             cold_backup_max_upload_file_size =
                 std::max(cold_backup_max_upload_file_size, backup_context->get_upload_file_size());
         }
