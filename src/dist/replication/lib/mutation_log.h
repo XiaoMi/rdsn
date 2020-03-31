@@ -37,6 +37,7 @@
 
 #include "dist/replication/common/replication_common.h"
 #include "dist/replication/lib/mutation.h"
+#include "dist/replication/lib/log_block.h"
 
 #include <atomic>
 #include <dsn/tool-api/zlocks.h>
@@ -73,16 +74,6 @@ struct replica_log_info
 
 typedef std::unordered_map<gpid, replica_log_info> replica_log_info_map;
 
-// each block in log file has a log_block_header
-struct log_block_header
-{
-    int32_t magic;    // 0xdeadbeef
-    int32_t length;   // block data length (not including log_block_header)
-    int32_t body_crc; // block data crc (not including log_block_header)
-    uint32_t
-        local_offset; // start offset of the block (including log_block_header) in this log file
-};
-
 // each log file has a log_file_header stored at the beginning of the first block's data content
 struct log_file_header
 {
@@ -90,32 +81,6 @@ struct log_file_header
     int32_t version; // current 0x1
     int64_t
         start_global_offset; // start offset in the global space, equals to the file name's postfix
-};
-
-// a memory structure holding data which belongs to one block.
-class log_block /* : public ::dsn::transient_object*/
-{
-    std::vector<blob> _data; // the first blob is log_block_header
-    size_t _size;            // total data size of all blobs
-public:
-    log_block() : _size(0) {}
-    log_block(blob &&init_blob) : _data({init_blob}), _size(init_blob.length()) {}
-    // get all blobs in the block
-    const std::vector<blob> &data() const { return _data; }
-    // get the first blob (which contains the log_block_header) from the block
-    blob &front()
-    {
-        dassert(!_data.empty(), "trying to get first blob out of an empty log block");
-        return _data.front();
-    }
-    // add a blob into the block
-    void add(const blob &bb)
-    {
-        _size += bb.length();
-        _data.push_back(bb);
-    }
-    // return total data size in the block
-    size_t size() const { return _size; }
 };
 
 //
@@ -465,7 +430,6 @@ public:
                         perf_counter_wrapper *write_size_counter = nullptr)
         : mutation_log(dir, max_log_file_mb, dsn::gpid(), nullptr),
           _is_writing(false),
-          _pending_write_start_offset(0),
           _force_flush(force_flush),
           _write_size_counter(write_size_counter)
     {
@@ -502,14 +466,9 @@ private:
 
 private:
     // bufferring - only one concurrent write is allowed
-    typedef std::vector<aio_task_ptr> callbacks;
-    typedef std::vector<mutation_ptr> mutations;
     mutable zlock _slock;
     std::atomic_bool _is_writing;
     std::shared_ptr<log_block> _pending_write;
-    std::shared_ptr<callbacks> _pending_write_callbacks;
-    std::shared_ptr<mutations> _pending_write_mutations;
-    int64_t _pending_write_start_offset;
 
     bool _force_flush;
     perf_counter_wrapper *_write_size_counter;
@@ -580,10 +539,11 @@ private:
     // bufferring - only one concurrent write is allowed
     typedef std::vector<mutation_ptr> mutations;
     std::atomic_bool _is_writing;
-    std::weak_ptr<mutations> _issued_write_mutations;
+    // Writes that are emitted to `commit_log_block` but are not completely written.
+    // The weak_ptr used here is a trick. Once the pointer freed, ie.
+    // `_issued_write.lock() == nullptr`, it means the emitted writes all finished.
+    std::weak_ptr<log_block> _issued_write;
     std::shared_ptr<log_block> _pending_write;
-    std::shared_ptr<mutations> _pending_write_mutations;
-    int64_t _pending_write_start_offset;
     uint64_t _pending_write_start_time_ms;
     decree _pending_write_max_commit;
     decree _pending_write_max_decree;
@@ -650,10 +610,6 @@ public:
     //
     // write routines
     //
-
-    // prepare a log entry buffer, with block header reserved and inited
-    // always returns non-nullptr
-    static log_block *prepare_log_block();
 
     // async write log entry into the file
     // 'block' is the date to be written
