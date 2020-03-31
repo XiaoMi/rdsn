@@ -14,6 +14,7 @@ class replica_backup_manager : replica_base
 public:
     replica_backup_manager(replica *r) : replica_base(r), _replica(r) {}
     void on_cold_backup_clear(const backup_clear_request &request);
+    void collect_backup_info();
 
 private:
     void clear_backup_checkpoint(const std::string &policy_name);
