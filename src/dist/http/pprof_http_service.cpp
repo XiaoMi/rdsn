@@ -25,10 +25,13 @@
 
 #include "pprof_http_service.h"
 
+// TODO(heyuchen): remove it
+#include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/defer.h>
 #include <dsn/utility/timer.h>
 #include <dsn/utility/string_splitter.h>
+#include <gperftools/heap-profiler.h>
 #include <gperftools/malloc_extension.h>
 #include <gperftools/profiler.h>
 
@@ -320,25 +323,71 @@ void pprof_http_service::symbol_handler(const http_request &req, http_response &
 // == ip:port/pprof/heap == //
 //                          //
 
-static constexpr const char *TCMALLOC_SAMPLE_PARAMETER = "TCMALLOC_SAMPLE_PARAMETER";
+//static constexpr const char *TCMALLOC_SAMPLE_PARAMETER = "TCMALLOC_SAMPLE_PARAMETER";
 
-static bool is_heap_profile_enabled() { return ::getenv(TCMALLOC_SAMPLE_PARAMETER) != nullptr; }
+//static bool is_heap_profile_enabled() { return ::getenv(TCMALLOC_SAMPLE_PARAMETER) != nullptr; }
 
-static bool get_heap_profile(std::string &result)
+//static bool get_heap_profile(std::string &result)
+//{
+//    if (!is_heap_profile_enabled()) {
+//        result = "no TCMALLOC_SAMPLE_PARAMETER in env";
+//        return false;
+//    }
+//    MallocExtension::instance()->GetHeapSample(&result);
+//    return true;
+//}
+
+// pprof default sample time in seconds.
+static const std::string SECOND_KEY = "seconds";
+static const int kPprofDefaultSampleSecs = 30;
+
+static void get_heap_profile_hyc(const http_request &req, std::string &result)
 {
-    if (!is_heap_profile_enabled()) {
-        result = "no TCMALLOC_SAMPLE_PARAMETER in env";
-        return false;
+    int seconds = kPprofDefaultSampleSecs;
+    const auto iter = req.query_args.find(SECOND_KEY);
+    if(iter != req.query_args.end())
+    {
+        const std::string& seconds_str = iter->second;
+        if (!seconds_str.empty()) {
+            seconds = std::atoi(seconds_str.c_str());
+        }
     }
-    MallocExtension::instance()->GetHeapSample(&result);
-    return true;
+
+//    const std::string& seconds_str = req.query_args.find(SECOND_KEY)->second;
+//    if (!seconds_str.empty()) {
+//        seconds = std::atoi(seconds_str.c_str());
+//    }
+    ddebug_f("hyc1: seconds={}", seconds);
+
+    std::stringstream tmp_prof_file_name;
+    // Build a temporary file name that is hopefully unique.
+    tmp_prof_file_name << "heap_profile." << getpid() << "."
+                       << rand();
+    ddebug_f("hyc2: temp_file_name={}", tmp_prof_file_name.str());
+
+    ddebug_f("hyc3: heap profiler start...");
+
+    HeapProfilerStart(tmp_prof_file_name.str().c_str());
+    // Sleep to allow for some samples to be collected.
+    sleep(seconds);
+    const char* profile = GetHeapProfile();
+    HeapProfilerStop();
+
+    ddebug_f("hyc4: heap profiler stop...");
+
+    result = profile;
+
+    delete profile;
+
+    ddebug_f("hyc5: delete heap profiler...");
 }
 
 void pprof_http_service::heap_handler(const http_request &req, http_response &resp)
 {
     resp.status_code = http_status_code::ok;
 
-    get_heap_profile(resp.body);
+    // get_heap_profile(resp.body);
+    get_heap_profile_hyc(req, resp.body);
 }
 
 //                             //
