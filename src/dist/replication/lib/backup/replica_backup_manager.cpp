@@ -50,6 +50,8 @@ replica_backup_manager::~replica_backup_manager() { _collect_info_timer->cancel(
 
 void replica_backup_manager::on_cold_backup_clear(const backup_clear_request &request)
 {
+    _replica->_checker.only_one_thread_access();
+
     auto find = _replica->_cold_backup_contexts.find(request.policy_name);
     if (find != _replica->_cold_backup_contexts.end()) {
         cold_backup_context_ptr backup_context = find->second;
