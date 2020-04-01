@@ -46,7 +46,12 @@ static bool get_policy_checkpoint_dirs(const std::string &dir,
 
 replica_backup_manager::replica_backup_manager(replica *r) : replica_base(r), _replica(r) {}
 
-replica_backup_manager::~replica_backup_manager() { _collect_info_timer->cancel(false); }
+replica_backup_manager::~replica_backup_manager()
+{
+    if (_collect_info_timer != nullptr) {
+        _collect_info_timer->cancel(false);
+    }
+}
 
 void replica_backup_manager::on_cold_backup_clear(const backup_clear_request &request)
 {
