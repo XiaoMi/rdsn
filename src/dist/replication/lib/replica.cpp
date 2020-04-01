@@ -98,6 +98,8 @@ replica::replica(
         _extra_envs.insert(
             std::make_pair(backup_restore_constant::FORCE_RESTORE, std::string("true")));
     }
+
+    _backup_mgr->start_collect_backup_info();
 }
 
 void replica::update_last_checkpoint_generate_time()

@@ -44,15 +44,7 @@ static bool get_policy_checkpoint_dirs(const std::string &dir,
     return true;
 }
 
-replica_backup_manager::replica_backup_manager(replica *r) : replica_base(r), _replica(r)
-{
-    _collect_info_timer =
-        tasking::enqueue_timer(LPC_PER_REPLICA_COLLECT_INFO_TIMER,
-                               &_replica->_tracker,
-                               [this]() { collect_backup_info(); },
-                               std::chrono::milliseconds(_replica->options()->gc_interval_ms),
-                               get_gpid().thread_hash());
-}
+replica_backup_manager::replica_backup_manager(replica *r) : replica_base(r), _replica(r) {}
 
 replica_backup_manager::~replica_backup_manager() { _collect_info_timer->cancel(false); }
 
@@ -80,6 +72,16 @@ void replica_backup_manager::on_cold_backup_clear(const backup_clear_request &re
     }
 
     background_clear_backup_checkpoint(request.policy_name);
+}
+
+void replica_backup_manager::start_collect_backup_info()
+{
+    _collect_info_timer =
+        tasking::enqueue_timer(LPC_PER_REPLICA_COLLECT_INFO_TIMER,
+                               &_replica->_tracker,
+                               [this]() { collect_backup_info(); },
+                               std::chrono::milliseconds(_replica->options()->gc_interval_ms),
+                               get_gpid().thread_hash());
 }
 
 void replica_backup_manager::collect_backup_info()
