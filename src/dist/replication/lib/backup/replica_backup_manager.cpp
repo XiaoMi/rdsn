@@ -75,7 +75,7 @@ void replica_backup_manager::on_cold_backup_clear(const backup_clear_request &re
 
 void replica_backup_manager::background_clear_backup_checkpoint(const std::string &policy_name)
 {
-    ddebug_replica("schedule to clear all checkpoint dirs of policy({}) in {} minutes",
+    ddebug_replica("schedule to clear all checkpoint dirs of policy({}) after {} minutes",
                    policy_name,
                    _replica->options()->cold_backup_checkpoint_reserve_minutes);
     tasking::enqueue(
