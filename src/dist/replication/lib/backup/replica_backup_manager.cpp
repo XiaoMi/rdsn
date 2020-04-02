@@ -44,7 +44,7 @@ static bool get_policy_checkpoint_dirs(const std::string &dir,
     return true;
 }
 
-void replica_backup_manager::on_cold_backup_clear(const backup_clear_request &request)
+void replica_backup_manager::on_clear_cold_backup(const backup_clear_request &request)
 {
     _replica->_checker.only_one_thread_access();
 
@@ -60,7 +60,7 @@ void replica_backup_manager::on_cold_backup_clear(const backup_clear_request &re
                              &_replica->_tracker,
                              [this, request]() {
                                  backup_response response;
-                                 on_cold_backup_clear(request);
+                                 on_clear_cold_backup(request);
                              },
                              get_gpid().thread_hash(),
                              std::chrono::seconds(100));
@@ -122,7 +122,7 @@ void replica_backup_manager::send_clear_request_to_secondaries(const gpid &pid,
 
     for (const auto &target_address : _replica->_primary_states.membership.secondaries) {
         rpc::call_one_way_typed(
-            target_address, RPC_COLD_BACKUP_CLEAR, request, get_gpid().thread_hash());
+            target_address, RPC_CLEAR_COLD_BACKUP, request, get_gpid().thread_hash());
     }
 }
 
