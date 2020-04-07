@@ -176,25 +176,6 @@ function run_build()
 
     if [[ ${SKIP_THIRDPARTY} == "YES" ]]; then
         echo "Skip building thirdparty..."
-    else
-        # build thirdparty first
-        cd thirdparty
-        if [[ "$CLEAR_THIRDPARTY" == "YES" ]]; then
-            echo "Clear thirdparty..."
-            rm -rf src build output &>/dev/null
-            CLEAR=YES
-        fi
-        echo "Start building thirdparty..."
-        ./download-thirdparty.sh
-        exit_if_fail $?
-        if [[ "x"$BOOST_DIR != "x" ]]; then
-            ./build-thirdparty.sh -b $BOOST_DIR
-            exit_if_fail $?
-        else
-            ./build-thirdparty.sh
-            exit_if_fail $?
-        fi
-        cd ..
     fi
 
     if [ "$BUILD_TYPE" != "debug" -a "$BUILD_TYPE" != "release" ]; then
