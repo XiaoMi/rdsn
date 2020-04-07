@@ -2040,7 +2040,7 @@ void replica_stub::open_service()
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler(RPC_COLD_BACKUP, "cold_backup", &replica_stub::on_cold_backup);
     register_rpc_handler(
-        RPC_CLEAR_COLD_BACKUP, "ClearColdBackup", &replica_stub::on_clear_cold_backup);
+        RPC_CLEAR_COLD_BACKUP, "clear_cold_backup", &replica_stub::on_clear_cold_backup);
     register_rpc_handler(RPC_SPLIT_NOTIFY_CATCH_UP,
                          "child_notify_catch_up",
                          &replica_stub::on_notify_primary_split_catch_up);
