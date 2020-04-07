@@ -86,12 +86,12 @@ void replica_backup_manager::start_collect_backup_info()
 {
     if (_collect_info_timer == nullptr) {
         _collect_info_timer =
+            tasking::enqueue_timer(LPC_PER_REPLICA_COLLECT_INFO_TIMER,
+                                   &_replica->_tracker,
+                                   [this]() { collect_backup_info(); },
+                                   std::chrono::milliseconds(_replica->options()->gc_interval_ms),
+                                   get_gpid().thread_hash());
     }
-    tasking::enqueue_timer(LPC_PER_REPLICA_COLLECT_INFO_TIMER,
-                           &_replica->_tracker,
-                           [this]() { collect_backup_info(); },
-                           std::chrono::milliseconds(_replica->options()->gc_interval_ms),
-                           get_gpid().thread_hash());
 }
 
 void replica_backup_manager::collect_backup_info()
