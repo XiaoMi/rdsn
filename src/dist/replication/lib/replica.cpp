@@ -29,7 +29,7 @@
 #include "mutation_log.h"
 #include "replica_stub.h"
 #include "duplication/replica_duplicator_manager.h"
-#include "dist/replication/lib/backup/replica_backup_manager.h"
+#include "backup/replica_backup_manager.h"
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -98,8 +98,6 @@ replica::replica(
         _extra_envs.insert(
             std::make_pair(backup_restore_constant::FORCE_RESTORE, std::string("true")));
     }
-
-    _backup_mgr->start_collect_backup_info();
 }
 
 void replica::update_last_checkpoint_generate_time()

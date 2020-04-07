@@ -28,6 +28,7 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
+#include "backup/replica_backup_manager.h"
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -350,6 +351,8 @@ error_code replica::init_app_and_prepare_list(bool create_new)
                     std::chrono::seconds(_options->checkpoint_interval_seconds),
                     get_gpid().thread_hash());
             }
+
+            _backup_mgr->start_collect_backup_info();
         }
     }
 
