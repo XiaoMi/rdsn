@@ -2038,7 +2038,7 @@ void replica_stub::open_service()
         RPC_REPLICA_COPY_LAST_CHECKPOINT, "copy_checkpoint", &replica_stub::on_copy_checkpoint);
     register_rpc_handler(RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
-    register_rpc_handler(RPC_COLD_BACKUP, "ColdBackup", &replica_stub::on_cold_backup);
+    register_rpc_handler(RPC_COLD_BACKUP, "cold_backup", &replica_stub::on_cold_backup);
     register_rpc_handler(
         RPC_CLEAR_COLD_BACKUP, "ClearColdBackup", &replica_stub::on_clear_cold_backup);
     register_rpc_handler(RPC_SPLIT_NOTIFY_CATCH_UP,
