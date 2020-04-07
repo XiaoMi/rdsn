@@ -1008,15 +1008,15 @@ void replica_stub::on_cold_backup(const backup_request &request, /*out*/ backup_
     }
 }
 
-void replica_stub::on_cold_backup_clear(const backup_clear_request &request)
+void replica_stub::on_clear_cold_backup(const backup_clear_request &request)
 {
-    ddebug_f("receive cold backup clear request: backup({}.{})",
+    ddebug_f("receive clear cold backup request: backup({}.{})",
              request.pid.to_string(),
              request.policy_name.c_str());
 
     replica_ptr rep = get_replica(request.pid);
     if (rep != nullptr) {
-        rep->get_backup_manager()->on_cold_backup_clear(request);
+        rep->get_backup_manager()->on_clear_cold_backup(request);
     }
 }
 
@@ -2038,9 +2038,9 @@ void replica_stub::open_service()
         RPC_REPLICA_COPY_LAST_CHECKPOINT, "copy_checkpoint", &replica_stub::on_copy_checkpoint);
     register_rpc_handler(RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
-    register_rpc_handler(RPC_COLD_BACKUP, "ColdBackup", &replica_stub::on_cold_backup);
+    register_rpc_handler(RPC_COLD_BACKUP, "cold_backup", &replica_stub::on_cold_backup);
     register_rpc_handler(
-        RPC_COLD_BACKUP_CLEAR, "ColdBackupClear", &replica_stub::on_cold_backup_clear);
+        RPC_CLEAR_COLD_BACKUP, "clear_cold_backup", &replica_stub::on_clear_cold_backup);
     register_rpc_handler(RPC_SPLIT_NOTIFY_CATCH_UP,
                          "child_notify_catch_up",
                          &replica_stub::on_notify_primary_split_catch_up);

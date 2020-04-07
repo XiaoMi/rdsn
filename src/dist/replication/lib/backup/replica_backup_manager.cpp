@@ -2,11 +2,11 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
+#include "replica_backup_manager.h"
+
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/replication/replication_app_base.h>
-
-#include "replica_backup_manager.h"
 
 namespace dsn {
 namespace replication {
@@ -31,14 +31,14 @@ static bool get_policy_checkpoint_dirs(const std::string &dir,
     // list sub dirs
     std::vector<std::string> sub_dirs;
     if (!utils::filesystem::get_subdirectories(dir, sub_dirs, false)) {
-        derror("list sub dirs of dir %s failed", dir.c_str());
+        derror_f("list sub dirs of dir {} failed", dir.c_str());
         return false;
     }
 
     for (std::string &d : sub_dirs) {
         std::string dirname = utils::filesystem::get_file_name(d);
         if (is_policy_checkpoint(dirname, policy)) {
-            chkpt_dirs.emplace_back(std::move(dirname));
+            chkpt_dirs.push_back(std::move(dirname));
         }
     }
     return true;
@@ -53,7 +53,7 @@ replica_backup_manager::~replica_backup_manager()
     }
 }
 
-void replica_backup_manager::on_cold_backup_clear(const backup_clear_request &request)
+void replica_backup_manager::on_clear_cold_backup(const backup_clear_request &request)
 {
     _replica->_checker.only_one_thread_access();
 
@@ -61,14 +61,15 @@ void replica_backup_manager::on_cold_backup_clear(const backup_clear_request &re
     if (find != _replica->_cold_backup_contexts.end()) {
         cold_backup_context_ptr backup_context = find->second;
         if (backup_context->is_checkpointing()) {
-            ddebug("%s: delay clearing obsoleted cold backup context, cause backup_status == "
-                   "ColdBackupCheckpointing",
-                   backup_context->name);
+            ddebug_replica(
+                "{}: delay clearing obsoleted cold backup context, cause backup_status == "
+                "ColdBackupCheckpointing",
+                backup_context->name);
             tasking::enqueue(LPC_REPLICATION_COLD_BACKUP,
                              &_replica->_tracker,
                              [this, request]() {
                                  backup_response response;
-                                 on_cold_backup_clear(request);
+                                 on_clear_cold_backup(request);
                              },
                              get_gpid().thread_hash(),
                              std::chrono::seconds(100));
@@ -175,7 +176,7 @@ void replica_backup_manager::send_clear_request_to_secondaries(const gpid &pid,
 
     for (const auto &target_address : _replica->_primary_states.membership.secondaries) {
         rpc::call_one_way_typed(
-            target_address, RPC_COLD_BACKUP_CLEAR, request, get_gpid().thread_hash());
+            target_address, RPC_CLEAR_COLD_BACKUP, request, get_gpid().thread_hash());
     }
 }
 

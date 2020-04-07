@@ -15,7 +15,7 @@ public:
     replica_backup_manager(replica *r);
     ~replica_backup_manager();
 
-    void on_cold_backup_clear(const backup_clear_request &request);
+    void on_clear_cold_backup(const backup_clear_request &request);
     void start_collect_backup_info();
 
 private:
