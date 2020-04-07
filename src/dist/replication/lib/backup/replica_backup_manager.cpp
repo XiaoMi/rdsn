@@ -84,7 +84,9 @@ void replica_backup_manager::on_clear_cold_backup(const backup_clear_request &re
 
 void replica_backup_manager::start_collect_backup_info()
 {
+  if(_collect_info_timer == nullptr) {
     _collect_info_timer =
+  }
         tasking::enqueue_timer(LPC_PER_REPLICA_COLLECT_INFO_TIMER,
                                &_replica->_tracker,
                                [this]() { collect_backup_info(); },
