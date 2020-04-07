@@ -12,7 +12,7 @@ namespace replication {
 class replica_backup_manager : replica_base
 {
 public:
-    replica_backup_manager(replica *r);
+    explicit replica_backup_manager(replica *r);
     ~replica_backup_manager();
 
     void on_clear_cold_backup(const backup_clear_request &request);
