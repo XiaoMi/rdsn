@@ -49,7 +49,7 @@ replica_backup_manager::replica_backup_manager(replica *r) : replica_base(r), _r
 replica_backup_manager::~replica_backup_manager()
 {
     if (_collect_info_timer != nullptr) {
-        _collect_info_timer->cancel(false);
+        _collect_info_timer->cancel(true);
     }
 }
 
