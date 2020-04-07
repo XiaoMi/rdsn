@@ -703,6 +703,5 @@ void replica::set_backup_context_pause()
 }
 
 void replica::clear_cold_backup_state() { _cold_backup_contexts.clear(); }
-
 }
 } // namespace
