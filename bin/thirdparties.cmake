@@ -145,6 +145,7 @@ ExternalProject_Add(fds
         COMMAND rm -rf ${TP_OUTPUT}/include/fds
         COMMAND cp -r include fds-include
         COMMAND mv fds-include ${TP_OUTPUT}/include/fds # install fds headers into a stand-alone directory
+        UPDATE_COMMAND "" # do not update
         DEPENDS googletest poco
         BUILD_IN_SOURCE 1
         )
