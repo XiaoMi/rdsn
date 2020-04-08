@@ -2480,6 +2480,7 @@ static int64_t get_tcmalloc_numeric_property(const char *prop)
 
 void replica_stub::gc_tcmalloc_memory()
 {
+    int64_t tcmalloc_released_bytes = 0;
     if (_release_tcmalloc_memory) {
         int64_t total_allocated_bytes =
             get_tcmalloc_numeric_property("generic.current_allocated_bytes");
@@ -2492,7 +2493,7 @@ void replica_stub::gc_tcmalloc_memory()
             total_allocated_bytes * _mem_release_max_reserved_mem_percentage / 100.0;
         if (reserved_bytes > max_reserved_bytes) {
             int64_t release_bytes = reserved_bytes - max_reserved_bytes;
-            _counter_tcmalloc_release_memory_size->set(release_bytes);
+            tcmalloc_released_bytes = release_bytes;
             ddebug_f("Memory release started, almost {} bytes will be released", release_bytes);
             while (release_bytes > 0) {
                 // tcmalloc releasing memory will lock page heap, release 1MB at a time to avoid
@@ -2503,6 +2504,7 @@ void replica_stub::gc_tcmalloc_memory()
             }
         }
     }
+    _counter_tcmalloc_release_memory_size->set(tcmalloc_released_bytes);
 }
 #endif
 
