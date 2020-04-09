@@ -69,8 +69,6 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _query_compact_command(nullptr),
       _query_app_envs_command(nullptr),
       _useless_dir_reserve_seconds_command(nullptr),
-      _release_tcmalloc_memory_command(nullptr),
-      _max_reserved_memory_percentage_command(nullptr),
       _deny_client(false),
       _verbose_client_log(false),
       _verbose_commit_log(false),
@@ -81,6 +79,10 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _learn_app_concurrent_count(0),
       _fs_manager(false)
 {
+#ifdef DSN_ENABLE_GPERF
+    _release_tcmalloc_memory_command = nullptr;
+    _max_reserved_memory_percentage_command = nullptr;
+#endif
     _replica_state_subscriber = subscriber;
     _is_long_subscriber = is_long_subscriber;
     _failure_detector = nullptr;
@@ -2340,8 +2342,10 @@ void replica_stub::close()
     _query_compact_command = nullptr;
     _query_app_envs_command = nullptr;
     _useless_dir_reserve_seconds_command = nullptr;
+#ifdef DSN_ENABLE_GPERF
     _release_tcmalloc_memory_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
+#endif
 
     if (_config_sync_timer_task != nullptr) {
         _config_sync_timer_task->cancel(true);
@@ -2481,27 +2485,30 @@ static int64_t get_tcmalloc_numeric_property(const char *prop)
 void replica_stub::gc_tcmalloc_memory()
 {
     int64_t tcmalloc_released_bytes = 0;
-    if (_release_tcmalloc_memory) {
-        int64_t total_allocated_bytes =
-            get_tcmalloc_numeric_property("generic.current_allocated_bytes");
-        int64_t reserved_bytes = get_tcmalloc_numeric_property("tcmalloc.pageheap_free_bytes");
-        if (total_allocated_bytes == -1 || reserved_bytes == -1) {
-            return;
-        }
+    if (!_release_tcmalloc_memory) {
+        _counter_tcmalloc_release_memory_size->set(tcmalloc_released_bytes);
+        return;
+    }
 
-        int64_t max_reserved_bytes =
-            total_allocated_bytes * _mem_release_max_reserved_mem_percentage / 100.0;
-        if (reserved_bytes > max_reserved_bytes) {
-            int64_t release_bytes = reserved_bytes - max_reserved_bytes;
-            tcmalloc_released_bytes = release_bytes;
-            ddebug_f("Memory release started, almost {} bytes will be released", release_bytes);
-            while (release_bytes > 0) {
-                // tcmalloc releasing memory will lock page heap, release 1MB at a time to avoid
-                // locking
-                // page heap for long time
-                ::MallocExtension::instance()->ReleaseToSystem(1024 * 1024);
-                release_bytes -= 1024 * 1024;
-            }
+    int64_t total_allocated_bytes =
+        get_tcmalloc_numeric_property("generic.current_allocated_bytes");
+    int64_t reserved_bytes = get_tcmalloc_numeric_property("tcmalloc.pageheap_free_bytes");
+    if (total_allocated_bytes == -1 || reserved_bytes == -1) {
+        return;
+    }
+
+    int64_t max_reserved_bytes =
+        total_allocated_bytes * _mem_release_max_reserved_mem_percentage / 100.0;
+    if (reserved_bytes > max_reserved_bytes) {
+        int64_t release_bytes = reserved_bytes - max_reserved_bytes;
+        tcmalloc_released_bytes = release_bytes;
+        ddebug_f("Memory release started, almost {} bytes will be released", release_bytes);
+        while (release_bytes > 0) {
+            // tcmalloc releasing memory will lock page heap, release 1MB at a time to avoid
+            // locking
+            // page heap for long time
+            ::MallocExtension::instance()->ReleaseToSystem(1024 * 1024);
+            release_bytes -= 1024 * 1024;
         }
     }
     _counter_tcmalloc_release_memory_size->set(tcmalloc_released_bytes);

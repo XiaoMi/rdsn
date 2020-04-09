@@ -328,8 +328,10 @@ private:
     dsn_handle_t _query_compact_command;
     dsn_handle_t _query_app_envs_command;
     dsn_handle_t _useless_dir_reserve_seconds_command;
+#ifdef DSN_ENABLE_GPERF
     dsn_handle_t _release_tcmalloc_memory_command;
     dsn_handle_t _max_reserved_memory_percentage_command;
+#endif
 
     bool _deny_client;
     bool _verbose_client_log;
