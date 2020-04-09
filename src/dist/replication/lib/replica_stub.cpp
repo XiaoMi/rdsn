@@ -2504,8 +2504,7 @@ void replica_stub::gc_tcmalloc_memory()
         tcmalloc_released_bytes = release_bytes;
         ddebug_f("Memory release started, almost {} bytes will be released", release_bytes);
         while (release_bytes > 0) {
-            // tcmalloc releasing memory will lock page heap, release 1MB at a time to avoid
-            // locking
+            // tcmalloc releasing memory will lock page heap, release 1MB at a time to avoid locking
             // page heap for long time
             ::MallocExtension::instance()->ReleaseToSystem(1024 * 1024);
             release_bytes -= 1024 * 1024;
