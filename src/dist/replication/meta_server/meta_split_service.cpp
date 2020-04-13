@@ -145,8 +145,9 @@ void meta_split_service::register_child_on_meta(register_child_rpc rpc)
 
     dsn::gpid parent_gpid = request.parent_config.pid;
     dsn::gpid child_gpid = request.child_config.pid;
-    partition_configuration parent_config = app->partitions[parent_gpid.get_partition_index()];
-    partition_configuration child_config = app->partitions[child_gpid.get_partition_index()];
+    const partition_configuration &parent_config =
+        app->partitions[parent_gpid.get_partition_index()];
+    const partition_configuration &child_config = app->partitions[child_gpid.get_partition_index()];
     config_context &parent_context = app->helpers->contexts[parent_gpid.get_partition_index()];
 
     if (request.parent_config.ballot < parent_config.ballot) {
@@ -184,7 +185,7 @@ dsn::task_ptr meta_split_service::add_child_on_remote_storage(register_child_rpc
                                                               bool create_new)
 {
     const auto &request = rpc.request();
-    std::string partition_path = _state->get_partition_path(request.child_config.pid);
+    const std::string &partition_path = _state->get_partition_path(request.child_config.pid);
     blob value = dsn::json::json_forwarder<partition_configuration>::encode(request.child_config);
     if (create_new) {
         return _meta_svc->get_remote_storage()->create_node(

@@ -691,7 +691,7 @@ void replica::on_register_child_on_meta_reply(
     _checker.only_one_thread_access();
 
     // primary parent is under reconfiguration, whose status should be PS_INACTIVE
-    if (partition_status::PS_INACTIVE != status() || _stub->is_connected() == false) {
+    if (partition_status::PS_INACTIVE != status() || !_stub->is_connected()) {
         dwarn_replica("status wrong or stub is not connected, status = {}",
                       enum_to_string(status()));
         _primary_states.register_child_task = nullptr;
@@ -699,8 +699,8 @@ void replica::on_register_child_on_meta_reply(
         return;
     }
 
-    if (ec != ERR_OK || (ec == ERR_OK && response.err != ERR_OK)) {
-        dsn::error_code err = ec == ERR_OK ? response.err : ec;
+    dsn::error_code err = ec == ERR_OK ? response.err : ec;
+    if (err != ERR_OK) {
         dwarn_replica(
             "register child({}) failed, error = {}, request child ballot = {}, local ballot = {}",
             request.child_config.pid,
@@ -725,24 +725,7 @@ void replica::on_register_child_on_meta_reply(
         }
     }
 
-    // meta_server error
-    if (response.parent_config.pid != get_gpid() || response.child_config.pid != _child_gpid) {
-        dwarn_replica("response parent gpid ({}) VS local gpid ({}), response child ({}) VS local "
-                      "child ({}), something wrong with meta, retry register",
-                      response.parent_config.pid,
-                      get_gpid(),
-                      response.child_config.pid,
-                      _child_gpid);
-        _primary_states.register_child_task =
-            tasking::enqueue(LPC_DELAY_UPDATE_CONFIG,
-                             tracker(),
-                             std::bind(&replica::parent_send_register_request, this, request),
-                             get_gpid().thread_hash(),
-                             std::chrono::seconds(1));
-        return;
-    }
-
-    if (ec == ERR_OK && response.err == ERR_OK) {
+    if (err == ERR_OK) {
         ddebug_replica("register child({}) succeed, response parent ballot = {}, local ballot = "
                        "{}, local status = {}",
                        response.child_config.pid,
@@ -764,9 +747,10 @@ void replica::on_register_child_on_meta_reply(
         // TODO(heyuchen): TBD - update parent group partition_count
     }
 
+    // parent register child succeed or child partition has already resgitered
+    // in both situation, we should reset resgiter child task and child_gpid
     _primary_states.register_child_task = nullptr;
     _child_gpid.set_app_id(0);
-
     if (response.parent_config.ballot >= get_ballot()) {
         ddebug_replica("response ballot = {}, local ballot = {}, should update configuration",
                        response.parent_config.ballot,
