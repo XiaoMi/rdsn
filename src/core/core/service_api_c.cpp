@@ -154,17 +154,6 @@ DSN_API void dsn_rpc_forward(dsn::message_ex *request, dsn::rpc_address addr)
 
 //------------------------------------------------------------------------------
 //
-// env
-//
-//------------------------------------------------------------------------------
-DSN_API uint64_t dsn_now_ns()
-{
-    // return ::dsn::task::get_current_env()->now_ns();
-    return ::dsn::service_engine::instance().env()->now_ns();
-}
-
-//------------------------------------------------------------------------------
-//
 // system
 //
 //------------------------------------------------------------------------------
@@ -287,7 +276,7 @@ tool_app *get_current_tool() { return dsn_all.tool.get(); }
 } // namespace tools
 } // namespace dsn
 
-extern void dsn_log_init();
+extern void dsn_log_init(const std::string &logging_factory_name, const std::string &dir_log);
 extern void dsn_core_init();
 
 inline void dsn_global_init()
@@ -397,11 +386,11 @@ bool run(const char *config_file,
     ::MallocExtension::instance()->SetMemoryReleaseRate(tcmalloc_release_rate);
 #endif
 
+    // init logging
+    dsn_log_init(spec.logging_factory_name, spec.dir_log);
+
     // prepare minimum necessary
     ::dsn::service_engine::instance().init_before_toollets(spec);
-
-    // init logging
-    dsn_log_init();
 
     ddebug("process(%ld) start: %" PRIu64 ", date: %s",
            getpid(),

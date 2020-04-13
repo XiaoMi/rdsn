@@ -63,6 +63,8 @@ class replication_app_base;
 class replica_stub;
 class replication_checker;
 class replica_duplicator_manager;
+class replica_backup_manager;
+
 namespace test {
 class test_checker;
 }
@@ -174,7 +176,12 @@ public:
     // Duplication
     //
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
-    bool is_duplicating() const { return _app_info.duplicating; }
+    bool is_duplicating() const { return _duplicating; }
+
+    //
+    // Backup
+    //
+    replica_backup_manager *get_backup_manager() const { return _backup_mgr.get(); }
 
     void update_last_checkpoint_generate_time();
 
@@ -310,7 +317,6 @@ private:
 
     /////////////////////////////////////////////////////////////////
     // cold backup
-    void clear_backup_checkpoint(const std::string &policy_name);
     void generate_backup_checkpoint(cold_backup_context_ptr backup_context);
     void trigger_async_checkpoint_for_backup(cold_backup_context_ptr backup_context);
     void wait_async_checkpoint_for_backup(cold_backup_context_ptr backup_context);
@@ -320,8 +326,6 @@ private:
     void set_backup_context_cancel();
     void set_backup_context_pause();
     void clear_cold_backup_state();
-
-    void collect_backup_info();
 
     /////////////////////////////////////////////////////////////////
     // replica restore from backup
@@ -372,15 +376,30 @@ private:
                             uint64_t total_file_size,
                             decree last_committed_decree);
 
-    error_code child_replay_private_log(std::vector<std::string> plog_files,
+    // TODO(heyuchen): total_file_size is used for split perf-counter in further pull request
+    // Applies mutation logs that were learned from the parent of this child.
+    // This stage follows after that child applies the checkpoint of parent, and begins to apply the
+    // mutations.
+    // \param last_committed_decree: parent's last_committed_decree when the checkpoint was
+    // generated.
+    error_code child_apply_private_logs(std::vector<std::string> plog_files,
+                                        std::vector<mutation_ptr> mutation_list,
                                         uint64_t total_file_size,
                                         decree last_committed_decree);
 
-    error_code child_learn_mutations(std::vector<mutation_ptr> mutation_list,
-                                     decree last_committed_decree);
-
     // child catch up parent states while executing async learn task
     void child_catch_up_states();
+
+    // child send notification to primary parent when it finish async learn
+    void child_notify_catch_up();
+
+    // primary parent handle child catch_up request
+    void parent_handle_child_catch_up(const notify_catch_up_request &request,
+                                      notify_cacth_up_response &response);
+
+    // primary parent check if sync_point has been committed
+    // sync_point is the first decree after parent send write request to child synchronously
+    void parent_check_sync_point_commit(decree sync_point);
 
     // return true if parent status is valid
     bool parent_check_states();
@@ -405,6 +424,8 @@ private:
     friend class replica_duplicator_manager;
     friend class load_mutation;
     friend class replica_split_test;
+    friend class replica_test;
+    friend class replica_backup_manager;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -454,7 +475,6 @@ private:
     partition_split_context _split_states;
 
     // timer task that running in replication-thread
-    dsn::task_ptr _collect_info_timer;
     std::atomic<uint64_t> _cold_backup_running_count;
     std::atomic<uint64_t> _cold_backup_max_duration_time_ms;
     std::atomic<uint64_t> _cold_backup_max_upload_file_size;
@@ -479,6 +499,10 @@ private:
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
+    bool _duplicating{false};
+
+    // backup
+    std::unique_ptr<replica_backup_manager> _backup_mgr;
 
     // partition split
     // _child_gpid = gpid({app_id},{pidx}+{old_partition_count}) for parent partition
@@ -487,12 +511,17 @@ private:
     // ballot when starting partition split and split will stop if ballot changed
     // _child_init_ballot = 0 if partition not in partition split
     ballot _child_init_ballot{0};
+    // in normal cases, _partition_version = partition_count-1
+    // when replica reject client read write request, partition_version = -1
+    std::atomic<int32_t> _partition_version;
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
     perf_counter_wrapper _counter_recent_write_throttling_delay_count;
     perf_counter_wrapper _counter_recent_write_throttling_reject_count;
     std::vector<perf_counter *> _counters_table_level_latency;
+    perf_counter_wrapper _counter_dup_disabled_non_idempotent_write_count;
+    perf_counter_wrapper _counter_backup_request_qps;
 
     dsn::task_tracker _tracker;
     // the thread access checker

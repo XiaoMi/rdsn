@@ -38,6 +38,7 @@
 #include "mutation_log.h"
 #include "mutation.h"
 #include "duplication/duplication_sync_timer.h"
+#include "dist/replication/lib/backup/replica_backup_manager.h"
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
@@ -68,16 +69,20 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _query_compact_command(nullptr),
       _query_app_envs_command(nullptr),
       _useless_dir_reserve_seconds_command(nullptr),
-      _max_reserved_memory_percentage_command(nullptr),
       _deny_client(false),
       _verbose_client_log(false),
       _verbose_commit_log(false),
       _gc_disk_error_replica_interval_seconds(3600),
       _gc_disk_garbage_replica_interval_seconds(3600),
+      _release_tcmalloc_memory(false),
       _mem_release_max_reserved_mem_percentage(10),
       _learn_app_concurrent_count(0),
       _fs_manager(false)
 {
+#ifdef DSN_ENABLE_GPERF
+    _release_tcmalloc_memory_command = nullptr;
+    _max_reserved_memory_percentage_command = nullptr;
+#endif
     _replica_state_subscriber = subscriber;
     _is_long_subscriber = is_long_subscriber;
     _failure_detector = nullptr;
@@ -85,6 +90,13 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
     _log = nullptr;
     _primary_address_str[0] = '\0';
     install_perf_counters();
+
+    _max_allowed_write_size = dsn_config_get_value_uint64("replication",
+                                                          "max_allowed_write_size",
+                                                          1 << 20,
+                                                          "write operation exceed this "
+                                                          "threshold will be logged and reject, "
+                                                          "default is 1MB, 0 means no check");
 }
 
 replica_stub::~replica_stub(void) { close(); }
@@ -219,6 +231,25 @@ void replica_stub::install_perf_counters()
         COUNTER_TYPE_VOLATILE_NUMBER,
         "trigger emergency checkpoint count in the recent period");
 
+    // <- Duplication Metrics ->
+
+    _counter_dup_confirmed_rate.init_app_counter("eon.replica_stub",
+                                                 "dup.confirmed_rate",
+                                                 COUNTER_TYPE_RATE,
+                                                 "increasing rate of confirmed mutations");
+    _counter_dup_pending_mutations_count.init_app_counter(
+        "eon.replica_stub",
+        "dup.pending_mutations_count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "number of mutations pending for duplication");
+    _counter_dup_time_lag.init_app_counter(
+        "eon.replica_stub",
+        "dup.time_lag(ms)",
+        COUNTER_TYPE_NUMBER_PERCENTILES,
+        "time (in ms) lag between master and slave in the duplication");
+
+    // <- Cold Backup Metrics ->
+
     _counter_cold_backup_running_count.init_app_counter("eon.replica_stub",
                                                         "cold.backup.running.count",
                                                         COUNTER_TYPE_NUMBER,
@@ -290,6 +321,19 @@ void replica_stub::install_perf_counters()
                                                       "recent.write.busy.count",
                                                       COUNTER_TYPE_VOLATILE_NUMBER,
                                                       "write busy count in the recent period");
+
+    _counter_recent_write_size_exceed_threshold_count.init_app_counter(
+        "eon.replica_stub",
+        "recent_write_size_exceed_threshold_count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "write size exceed threshold count in the recent period");
+
+#ifdef DSN_ENABLE_GPERF
+    _counter_tcmalloc_release_memory_size.init_app_counter("eon.replica_stub",
+                                                           "tcmalloc.release.memory.size",
+                                                           COUNTER_TYPE_NUMBER,
+                                                           "current tcmalloc release memory size");
+#endif
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
@@ -319,6 +363,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     _verbose_commit_log = _options.verbose_commit_log_on_start;
     _gc_disk_error_replica_interval_seconds = _options.gc_disk_error_replica_interval_seconds;
     _gc_disk_garbage_replica_interval_seconds = _options.gc_disk_garbage_replica_interval_seconds;
+    _release_tcmalloc_memory = _options.mem_release_enabled;
     _mem_release_max_reserved_mem_percentage = _options.mem_release_max_reserved_mem_percentage;
 
     // clear dirs if need
@@ -640,18 +685,16 @@ void replica_stub::initialize_start()
     }
 
 #ifdef DSN_ENABLE_GPERF
-    if (_options.mem_release_enabled) {
-        _mem_release_timer_task = tasking::enqueue_timer(
-            LPC_MEM_RELEASE,
-            &_tracker,
-            std::bind(&replica_stub::gc_tcmalloc_memory, this),
-            std::chrono::milliseconds(_options.mem_release_check_interval_ms),
-            0,
-            std::chrono::milliseconds(_options.mem_release_check_interval_ms));
-    }
+    _mem_release_timer_task =
+        tasking::enqueue_timer(LPC_MEM_RELEASE,
+                               &_tracker,
+                               std::bind(&replica_stub::gc_tcmalloc_memory, this),
+                               std::chrono::milliseconds(_options.mem_release_check_interval_ms),
+                               0,
+                               std::chrono::milliseconds(_options.mem_release_check_interval_ms));
 #endif
 
-    if (!_options.duplication_disabled) {
+    if (_options.duplication_enabled) {
         _duplication_sync_timer = dsn::make_unique<duplication_sync_timer>(this);
         _duplication_sync_timer->start();
     }
@@ -857,6 +900,59 @@ void replica_stub::on_query_replica_info(const query_replica_info_request &req,
     resp.err = ERR_OK;
 }
 
+// ThreadPool: THREAD_POOL_DEFAULT
+void replica_stub::on_query_disk_info(const query_disk_info_request &req,
+                                      /*out*/ query_disk_info_response &resp)
+{
+    int app_id = 0;
+    if (!req.app_name.empty()) {
+        zauto_read_lock l(_replicas_lock);
+        if (!(app_id = get_app_id_from_replicas(req.app_name))) {
+            resp.err = ERR_OBJECT_NOT_FOUND;
+            return;
+        }
+    }
+
+    for (const auto &dir_node : _fs_manager._dir_nodes) {
+        disk_info info;
+        // app_name empty means query all app replica_count
+        if (req.app_name.empty()) {
+            for (const auto &holding_primary_replicas : dir_node->holding_primary_replicas) {
+                info.holding_primary_replica_counts[holding_primary_replicas.first] =
+                    static_cast<int>(holding_primary_replicas.second.size());
+            }
+
+            for (const auto &holding_secondary_replicas : dir_node->holding_secondary_replicas) {
+                info.holding_secondary_replica_counts[holding_secondary_replicas.first] =
+                    static_cast<int>(holding_secondary_replicas.second.size());
+            }
+        } else {
+            const auto &primary_iter = dir_node->holding_primary_replicas.find(app_id);
+            if (primary_iter != dir_node->holding_primary_replicas.end()) {
+                info.holding_primary_replica_counts[app_id] =
+                    static_cast<int>(primary_iter->second.size());
+            }
+
+            const auto &secondary_iter = dir_node->holding_secondary_replicas.find(app_id);
+            if (secondary_iter != dir_node->holding_secondary_replicas.end()) {
+                info.holding_secondary_replica_counts[app_id] =
+                    static_cast<int>(secondary_iter->second.size());
+            }
+        }
+        info.tag = dir_node->tag;
+        info.full_dir = dir_node->full_dir;
+        info.disk_capacity_mb = dir_node->disk_capacity_mb;
+        info.disk_available_mb = dir_node->disk_available_mb;
+
+        resp.disk_infos.emplace_back(info);
+    }
+
+    resp.total_capacity_mb = _fs_manager._total_capacity_mb;
+    resp.total_available_mb = _fs_manager._total_available_mb;
+
+    resp.err = ERR_OK;
+}
+
 void replica_stub::on_query_app_info(const query_app_info_request &req,
                                      query_app_info_response &resp)
 {
@@ -919,6 +1015,18 @@ void replica_stub::on_cold_backup(const backup_request &request, /*out*/ backup_
                request.policy.policy_name.c_str(),
                request.backup_id);
         response.err = ERR_OBJECT_NOT_FOUND;
+    }
+}
+
+void replica_stub::on_clear_cold_backup(const backup_clear_request &request)
+{
+    ddebug_f("receive clear cold backup request: backup({}.{})",
+             request.pid.to_string(),
+             request.policy_name.c_str());
+
+    replica_ptr rep = get_replica(request.pid);
+    if (rep != nullptr) {
+        rep->get_backup_manager()->on_clear_cold_backup(request);
     }
 }
 
@@ -1680,6 +1788,7 @@ void replica_stub::on_disk_stat()
     _counter_replicas_garbage_replica_dir_count->set(garbage_replica_dir_count);
 
     _fs_manager.update_disk_stat();
+    update_disk_holding_replicas();
 
     ddebug("finish to update disk stat, time_used_ns = %" PRIu64, dsn_now_ns() - start);
 }
@@ -1937,9 +2046,14 @@ void replica_stub::open_service()
         RPC_QUERY_REPLICA_INFO, "query_replica_info", &replica_stub::on_query_replica_info);
     register_rpc_handler(
         RPC_REPLICA_COPY_LAST_CHECKPOINT, "copy_checkpoint", &replica_stub::on_copy_checkpoint);
-
+    register_rpc_handler(RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
-    register_rpc_handler(RPC_COLD_BACKUP, "ColdBackup", &replica_stub::on_cold_backup);
+    register_rpc_handler(RPC_COLD_BACKUP, "cold_backup", &replica_stub::on_cold_backup);
+    register_rpc_handler(
+        RPC_CLEAR_COLD_BACKUP, "clear_cold_backup", &replica_stub::on_clear_cold_backup);
+    register_rpc_handler(RPC_SPLIT_NOTIFY_CATCH_UP,
+                         "child_notify_catch_up",
+                         &replica_stub::on_notify_primary_split_catch_up);
 
     _kill_partition_command = ::dsn::command_manager::instance().register_app_command(
         {"kill_partition"},
@@ -2054,6 +2168,15 @@ void replica_stub::open_service()
         });
 
 #ifdef DSN_ENABLE_GPERF
+    _release_tcmalloc_memory_command = ::dsn::command_manager::instance().register_app_command(
+        {"release-tcmalloc-memory"},
+        "release-tcmalloc-memory <true|false>",
+        "release-tcmalloc-memory - control if try to release tcmalloc memory",
+        [this](const std::vector<std::string> &args) {
+            return remote_command_set_bool_flag(
+                _release_tcmalloc_memory, "release-tcmalloc-memory", args);
+        });
+
     _max_reserved_memory_percentage_command = dsn::command_manager::instance().register_app_command(
         {"mem-release-max-reserved-percentage"},
         "mem-release-max-reserved-percentage [num | DEFAULT]",
@@ -2073,7 +2196,7 @@ void replica_stub::open_service()
                 return result;
             }
             int32_t percentage = 0;
-            if (!dsn::buf2int32(args[0], percentage) || percentage <= 0 || percentage >= 100) {
+            if (!dsn::buf2int32(args[0], percentage) || percentage <= 0 || percentage > 100) {
                 result = std::string("ERR: invalid arguments");
             } else {
                 _mem_release_max_reserved_mem_percentage = percentage;
@@ -2207,6 +2330,7 @@ void replica_stub::close()
     dsn::command_manager::instance().deregister_command(_query_app_envs_command);
     dsn::command_manager::instance().deregister_command(_useless_dir_reserve_seconds_command);
 #ifdef DSN_ENABLE_GPERF
+    dsn::command_manager::instance().deregister_command(_release_tcmalloc_memory_command);
     dsn::command_manager::instance().deregister_command(_max_reserved_memory_percentage_command);
 #endif
 
@@ -2218,7 +2342,10 @@ void replica_stub::close()
     _query_compact_command = nullptr;
     _query_app_envs_command = nullptr;
     _useless_dir_reserve_seconds_command = nullptr;
+#ifdef DSN_ENABLE_GPERF
+    _release_tcmalloc_memory_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
+#endif
 
     if (_config_sync_timer_task != nullptr) {
         _config_sync_timer_task->cancel(true);
@@ -2357,6 +2484,12 @@ static int64_t get_tcmalloc_numeric_property(const char *prop)
 
 void replica_stub::gc_tcmalloc_memory()
 {
+    int64_t tcmalloc_released_bytes = 0;
+    if (!_release_tcmalloc_memory) {
+        _counter_tcmalloc_release_memory_size->set(tcmalloc_released_bytes);
+        return;
+    }
+
     int64_t total_allocated_bytes =
         get_tcmalloc_numeric_property("generic.current_allocated_bytes");
     int64_t reserved_bytes = get_tcmalloc_numeric_property("tcmalloc.pageheap_free_bytes");
@@ -2368,6 +2501,7 @@ void replica_stub::gc_tcmalloc_memory()
         total_allocated_bytes * _mem_release_max_reserved_mem_percentage / 100.0;
     if (reserved_bytes > max_reserved_bytes) {
         int64_t release_bytes = reserved_bytes - max_reserved_bytes;
+        tcmalloc_released_bytes = release_bytes;
         ddebug_f("Memory release started, almost {} bytes will be released", release_bytes);
         while (release_bytes > 0) {
             // tcmalloc releasing memory will lock page heap, release 1MB at a time to avoid locking
@@ -2376,6 +2510,7 @@ void replica_stub::gc_tcmalloc_memory()
             release_bytes -= 1024 * 1024;
         }
     }
+    _counter_tcmalloc_release_memory_size->set(tcmalloc_released_bytes);
 }
 #endif
 
@@ -2445,38 +2580,61 @@ replica_ptr replica_stub::create_child_replica_if_not_found(gpid child_pid,
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica_stub::split_replica_exec(gpid pid,
-                                      local_execution handler,
-                                      local_execution error_handler,
-                                      gpid error_handler_gpid)
+void replica_stub::split_replica_error_handler(gpid pid, local_execution handler)
 {
-    // app_id = 0 means child replica is invalid
-    replica_ptr replica = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
-    replica_ptr error_handler_replica =
-        error_handler_gpid.get_app_id() == 0 ? nullptr : get_replica(error_handler_gpid);
-
-    if (replica && handler) {
-        handler(replica);
-    } else if (error_handler_replica && error_handler) {
-        ddebug_f("replica({}) is invalid, replica({}) will execute its handler)",
-                 pid,
-                 error_handler_gpid);
-        error_handler(error_handler_replica);
-    } else {
-        dwarn_f(
-            "both replica({}) and error handler replica({}) are invalid", pid, error_handler_gpid);
-    }
+    split_replica_exec(LPC_PARTITION_SPLIT_ERROR, pid, handler);
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica_stub::split_replica_error_handler(gpid pid, local_execution handler)
+dsn::error_code
+replica_stub::split_replica_exec(dsn::task_code code, gpid pid, local_execution handler)
 {
-    // app_id = 0 means child replica is invalid
+    FAIL_POINT_INJECT_F("replica_stub_split_replica_exec", [](dsn::string_view) { return ERR_OK; });
     replica_ptr replica = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
     if (replica && handler) {
-        handler(replica);
+        tasking::enqueue(code,
+                         replica.get()->tracker(),
+                         [this, handler, replica]() { handler(replica); },
+                         pid.thread_hash());
+        return ERR_OK;
+    }
+    dwarn_f("replica({}) is invalid", pid);
+    return ERR_OBJECT_NOT_FOUND;
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_stub::on_notify_primary_split_catch_up(const notify_catch_up_request &request,
+                                                    notify_cacth_up_response &response)
+{
+    replica_ptr replica = get_replica(request.parent_gpid);
+    if (replica != nullptr) {
+        replica->parent_handle_child_catch_up(request, response);
     } else {
-        dwarn_f("replica({}) is invalid", pid);
+        response.err = ERR_OBJECT_NOT_FOUND;
+    }
+}
+
+void replica_stub::update_disk_holding_replicas()
+{
+    for (const auto &dir_node : _fs_manager._dir_nodes) {
+        // clear the holding_primary_replicas/holding_secondary_replicas and re-calculate it from
+        // holding_replicas
+        dir_node->holding_primary_replicas.clear();
+        dir_node->holding_secondary_replicas.clear();
+        for (const auto &holding_replicas : dir_node->holding_replicas) {
+            const std::set<dsn::gpid> &pids = holding_replicas.second;
+            for (const auto &pid : pids) {
+                replica_ptr replica = get_replica(pid);
+                if (replica == nullptr) {
+                    continue;
+                }
+                if (replica->status() == partition_status::PS_PRIMARY) {
+                    dir_node->holding_primary_replicas[holding_replicas.first].emplace(pid);
+                } else if (replica->status() == partition_status::PS_SECONDARY) {
+                    dir_node->holding_secondary_replicas[holding_replicas.first].emplace(pid);
+                }
+            }
+        }
     }
 }
 

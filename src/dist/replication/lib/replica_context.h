@@ -102,6 +102,22 @@ public:
     dsn::task_ptr checkpoint_task;
 
     uint64_t last_prepare_ts_ms;
+
+    // Used for partition split
+    // child addresses who has been caught up with its parent
+    std::unordered_set<dsn::rpc_address> caught_up_children;
+
+    // Used for partition split
+    // whether parent's write request should be sent to child synchronously
+    // if {sync_send_write_request} = true
+    // - parent should recevie prepare ack from child synchronously during 2pc
+    // if {sync_send_write_request} = false and replica is during partition split
+    // - parent should copy mutations to child asynchronously, child is during async-learn
+    // whether a replica is during partition split is determined by a variety named `_child_gpid` of
+    // replica class
+    // if app_id of `_child_gpid` is greater than zero, it means replica is during partition split,
+    // otherwise, not during partition split
+    bool sync_send_write_request{false};
 };
 
 class secondary_context
@@ -385,7 +401,7 @@ public:
     bool is_ready_for_check() const { return _status.load() == ColdBackupChecking; }
 
     // check if it is ready for checkpointing.
-    bool is_ready_for_checkpoint() const { return _status.load() == ColdBackupCheckpointing; }
+    bool is_checkpointing() const { return _status.load() == ColdBackupCheckpointing; }
 
     // check if it is ready for uploading.
     bool is_ready_for_upload() const { return _status.load() == ColdBackupUploading; }
@@ -522,13 +538,15 @@ typedef dsn::ref_ptr<cold_backup_context> cold_backup_context_ptr;
 class partition_split_context
 {
 public:
-    partition_split_context() : is_prepare_list_copied(false) {}
     bool cleanup(bool force);
     bool is_cleaned() const;
 
 public:
     gpid parent_gpid;
-    bool is_prepare_list_copied;
+    // whether child has copied parent prepare list
+    bool is_prepare_list_copied{false};
+    // whether child has catched up with parent during async-learn
+    bool is_caught_up{false};
 
     // child replica async learn parent states
     dsn::task_ptr async_learn_task;

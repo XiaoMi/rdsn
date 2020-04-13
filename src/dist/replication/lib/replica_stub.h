@@ -95,9 +95,12 @@ public:
                          /*out*/ query_replica_decree_response &resp);
     void on_query_replica_info(const query_replica_info_request &req,
                                /*out*/ query_replica_info_response &resp);
+    void on_query_disk_info(const query_disk_info_request &req,
+                            /*out*/ query_disk_info_response &resp);
     void on_query_app_info(const query_app_info_request &req,
                            /*out*/ query_app_info_response &resp);
     void on_cold_backup(const backup_request &request, /*out*/ backup_response &response);
+    void on_clear_cold_backup(const backup_clear_request &request);
 
     //
     //    messages from peers (primary or secondary)
@@ -113,6 +116,13 @@ public:
     void on_remove(const replica_configuration &request);
     void on_group_check(const group_check_request &request, /*out*/ group_check_response &response);
     void on_copy_checkpoint(const replica_configuration &request, /*out*/ learn_response &response);
+
+    //
+    //    functions while executing partition split
+    //
+    // on primary, child notify itself has been caught up parent
+    void on_notify_primary_split_catch_up(const notify_catch_up_request &request,
+                                          notify_cacth_up_response &response);
 
     //
     //    local messages
@@ -179,18 +189,12 @@ public:
     typedef std::function<void(::dsn::replication::replica *rep)> local_execution;
 
     // This function is used for partition split, caller(replica)
-    // - case1. parent want child execute <handler>, child will execute <handler> if child is
-    // valid(<pid>.app_id>0) and existed, otherwise parent will execute <error_handler>
-    // - case2. child want parent execute <handler>, parent will execute <handler> if parent
-    // exist, otherwise child will execute <error_handler>
-    void split_replica_exec(gpid pid,
-                            local_execution handler,
-                            local_execution error_handler,
-                            gpid error_handler_gpid);
+    // parent/child may want child/parent to execute function during partition split
+    // if replica `pid` exists, will execute function `handler` and return ERR_OK, otherwise return
+    // ERR_OBJECT_NOT_FOUND
+    dsn::error_code split_replica_exec(dsn::task_code code, gpid pid, local_execution handler);
 
-    // This function is used for partition split error handler, caller(replica)
-    // if partition split meet error, parent/child may want child/parent execute error handler
-    // if replica <pid> valid and exist, execute <handler>, otherwise return
+    // This function is used for partition split error handler
     void split_replica_error_handler(gpid pid, local_execution handler);
 
 private:
@@ -245,6 +249,18 @@ private:
                          dsn::message_ex *request,
                          partition_status::type status,
                          error_code error);
+    void update_disk_holding_replicas();
+
+    int get_app_id_from_replicas(std::string app_name)
+    {
+        for (const auto &replica : _replicas) {
+            const app_info &info = *(replica.second)->get_app_info();
+            if (info.app_name == app_name) {
+                return info.app_id;
+            }
+        }
+        return 0;
+    }
 
 #ifdef DSN_ENABLE_GPERF
     // Try to release tcmalloc memory back to operating system
@@ -258,14 +274,16 @@ private:
     friend class ::dsn::replication::potential_secondary_context;
     friend class ::dsn::replication::cold_backup_context;
 
-    friend class load_from_private_log;
-    friend class ship_mutation;
     friend class replica_duplicator;
+    friend class replica_http_service;
 
     friend class mock_replica_stub;
     friend class duplication_sync_timer;
     friend class duplication_sync_timer_test;
     friend class replica_duplicator_manager_test;
+    friend class duplication_test_base;
+    friend class replica_test;
+    friend class replica_disk_test;
 
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>
@@ -310,13 +328,17 @@ private:
     dsn_handle_t _query_compact_command;
     dsn_handle_t _query_app_envs_command;
     dsn_handle_t _useless_dir_reserve_seconds_command;
+#ifdef DSN_ENABLE_GPERF
+    dsn_handle_t _release_tcmalloc_memory_command;
     dsn_handle_t _max_reserved_memory_percentage_command;
+#endif
 
     bool _deny_client;
     bool _verbose_client_log;
     bool _verbose_commit_log;
     int32_t _gc_disk_error_replica_interval_seconds;
     int32_t _gc_disk_garbage_replica_interval_seconds;
+    bool _release_tcmalloc_memory;
     int32_t _mem_release_max_reserved_mem_percentage;
 
     // we limit LT_APP max concurrent count, because nfs service implementation is
@@ -335,6 +357,9 @@ private:
 
     // cli service
     std::unique_ptr<dsn::cli_service> _cli_service;
+
+    // write body size exceed this threshold will be logged and reject, 0 means no check
+    uint64_t _max_allowed_write_size;
 
     // performance counters
     perf_counter_wrapper _counter_replicas_count;
@@ -368,6 +393,13 @@ private:
     perf_counter_wrapper _counter_shared_log_recent_write_size;
     perf_counter_wrapper _counter_recent_trigger_emergency_checkpoint_count;
 
+    // <- Duplication Metrics ->
+    // TODO(wutao1): calculate the counters independently for each remote cluster
+    //               if we need to duplicate to multiple clusters someday.
+    perf_counter_wrapper _counter_dup_confirmed_rate;
+    perf_counter_wrapper _counter_dup_pending_mutations_count;
+    perf_counter_wrapper _counter_dup_time_lag;
+
     perf_counter_wrapper _counter_cold_backup_running_count;
     perf_counter_wrapper _counter_cold_backup_recent_start_count;
     perf_counter_wrapper _counter_cold_backup_recent_succ_count;
@@ -385,8 +417,12 @@ private:
     perf_counter_wrapper _counter_recent_read_busy_count;
     perf_counter_wrapper _counter_recent_write_busy_count;
 
+    perf_counter_wrapper _counter_recent_write_size_exceed_threshold_count;
+
+#ifdef DSN_ENABLE_GPERF
+    perf_counter_wrapper _counter_tcmalloc_release_memory_size;
+#endif
     dsn::task_tracker _tracker;
 };
-//------------ inline impl ----------------------
-}
-} // namespace
+} // namespace replication
+} // namespace dsn

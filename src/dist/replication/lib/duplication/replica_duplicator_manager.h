@@ -54,6 +54,20 @@ public:
     /// \see replica_check.cpp
     void update_confirmed_decree_if_secondary(decree confirmed);
 
+    /// Sums up the number of pending mutations for all duplications
+    /// on this replica, for metric "dup.pending_mutations_count".
+    int64_t get_pending_mutations_count() const;
+
+    struct dup_state
+    {
+        dupid_t dupid{0};
+        bool duplicating{false};
+        decree last_decree{invalid_decree};
+        decree confirmed_decree{invalid_decree};
+        duplication_fail_mode::type fail_mode{duplication_fail_mode::FAIL_SLOW};
+    };
+    std::vector<dup_state> get_dup_states() const;
+
 private:
     void sync_duplication(const duplication_entry &ent);
 
