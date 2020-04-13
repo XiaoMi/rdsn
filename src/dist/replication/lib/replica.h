@@ -63,6 +63,8 @@ class replication_app_base;
 class replica_stub;
 class replication_checker;
 class replica_duplicator_manager;
+class replica_backup_manager;
+
 namespace test {
 class test_checker;
 }
@@ -175,6 +177,11 @@ public:
     //
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
     bool is_duplicating() const { return _duplicating; }
+
+    //
+    // Backup
+    //
+    replica_backup_manager *get_backup_manager() const { return _backup_mgr.get(); }
 
     void update_last_checkpoint_generate_time();
 
@@ -310,8 +317,6 @@ private:
 
     /////////////////////////////////////////////////////////////////
     // cold backup
-    void clear_backup_checkpoint(const std::string &policy_name);
-    void background_clear_backup_checkpoint(const std::string &policy_name);
     void generate_backup_checkpoint(cold_backup_context_ptr backup_context);
     void trigger_async_checkpoint_for_backup(cold_backup_context_ptr backup_context);
     void wait_async_checkpoint_for_backup(cold_backup_context_ptr backup_context);
@@ -321,8 +326,6 @@ private:
     void set_backup_context_cancel();
     void set_backup_context_pause();
     void clear_cold_backup_state();
-
-    void collect_backup_info();
 
     /////////////////////////////////////////////////////////////////
     // replica restore from backup
@@ -422,6 +425,7 @@ private:
     friend class load_mutation;
     friend class replica_split_test;
     friend class replica_test;
+    friend class replica_backup_manager;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -471,7 +475,6 @@ private:
     partition_split_context _split_states;
 
     // timer task that running in replication-thread
-    dsn::task_ptr _collect_info_timer;
     std::atomic<uint64_t> _cold_backup_running_count;
     std::atomic<uint64_t> _cold_backup_max_duration_time_ms;
     std::atomic<uint64_t> _cold_backup_max_upload_file_size;
@@ -497,6 +500,9 @@ private:
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
     bool _duplicating{false};
+
+    // backup
+    std::unique_ptr<replica_backup_manager> _backup_mgr;
 
     // partition split
     // _child_gpid = gpid({app_id},{pidx}+{old_partition_count}) for parent partition

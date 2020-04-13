@@ -38,6 +38,7 @@
 #include "mutation_log.h"
 #include "mutation.h"
 #include "duplication/duplication_sync_timer.h"
+#include "dist/replication/lib/backup/replica_backup_manager.h"
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
@@ -68,16 +69,20 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _query_compact_command(nullptr),
       _query_app_envs_command(nullptr),
       _useless_dir_reserve_seconds_command(nullptr),
-      _max_reserved_memory_percentage_command(nullptr),
       _deny_client(false),
       _verbose_client_log(false),
       _verbose_commit_log(false),
       _gc_disk_error_replica_interval_seconds(3600),
       _gc_disk_garbage_replica_interval_seconds(3600),
+      _release_tcmalloc_memory(false),
       _mem_release_max_reserved_mem_percentage(10),
       _learn_app_concurrent_count(0),
       _fs_manager(false)
 {
+#ifdef DSN_ENABLE_GPERF
+    _release_tcmalloc_memory_command = nullptr;
+    _max_reserved_memory_percentage_command = nullptr;
+#endif
     _replica_state_subscriber = subscriber;
     _is_long_subscriber = is_long_subscriber;
     _failure_detector = nullptr;
@@ -322,6 +327,13 @@ void replica_stub::install_perf_counters()
         "recent_write_size_exceed_threshold_count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "write size exceed threshold count in the recent period");
+
+#ifdef DSN_ENABLE_GPERF
+    _counter_tcmalloc_release_memory_size.init_app_counter("eon.replica_stub",
+                                                           "tcmalloc.release.memory.size",
+                                                           COUNTER_TYPE_NUMBER,
+                                                           "current tcmalloc release memory size");
+#endif
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
@@ -351,6 +363,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     _verbose_commit_log = _options.verbose_commit_log_on_start;
     _gc_disk_error_replica_interval_seconds = _options.gc_disk_error_replica_interval_seconds;
     _gc_disk_garbage_replica_interval_seconds = _options.gc_disk_garbage_replica_interval_seconds;
+    _release_tcmalloc_memory = _options.mem_release_enabled;
     _mem_release_max_reserved_mem_percentage = _options.mem_release_max_reserved_mem_percentage;
 
     // clear dirs if need
@@ -672,15 +685,13 @@ void replica_stub::initialize_start()
     }
 
 #ifdef DSN_ENABLE_GPERF
-    if (_options.mem_release_enabled) {
-        _mem_release_timer_task = tasking::enqueue_timer(
-            LPC_MEM_RELEASE,
-            &_tracker,
-            std::bind(&replica_stub::gc_tcmalloc_memory, this),
-            std::chrono::milliseconds(_options.mem_release_check_interval_ms),
-            0,
-            std::chrono::milliseconds(_options.mem_release_check_interval_ms));
-    }
+    _mem_release_timer_task =
+        tasking::enqueue_timer(LPC_MEM_RELEASE,
+                               &_tracker,
+                               std::bind(&replica_stub::gc_tcmalloc_memory, this),
+                               std::chrono::milliseconds(_options.mem_release_check_interval_ms),
+                               0,
+                               std::chrono::milliseconds(_options.mem_release_check_interval_ms));
 #endif
 
     if (_options.duplication_enabled) {
@@ -1004,6 +1015,18 @@ void replica_stub::on_cold_backup(const backup_request &request, /*out*/ backup_
                request.policy.policy_name.c_str(),
                request.backup_id);
         response.err = ERR_OBJECT_NOT_FOUND;
+    }
+}
+
+void replica_stub::on_clear_cold_backup(const backup_clear_request &request)
+{
+    ddebug_f("receive clear cold backup request: backup({}.{})",
+             request.pid.to_string(),
+             request.policy_name.c_str());
+
+    replica_ptr rep = get_replica(request.pid);
+    if (rep != nullptr) {
+        rep->get_backup_manager()->on_clear_cold_backup(request);
     }
 }
 
@@ -2025,7 +2048,9 @@ void replica_stub::open_service()
         RPC_REPLICA_COPY_LAST_CHECKPOINT, "copy_checkpoint", &replica_stub::on_copy_checkpoint);
     register_rpc_handler(RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
-    register_rpc_handler(RPC_COLD_BACKUP, "ColdBackup", &replica_stub::on_cold_backup);
+    register_rpc_handler(RPC_COLD_BACKUP, "cold_backup", &replica_stub::on_cold_backup);
+    register_rpc_handler(
+        RPC_CLEAR_COLD_BACKUP, "clear_cold_backup", &replica_stub::on_clear_cold_backup);
     register_rpc_handler(RPC_SPLIT_NOTIFY_CATCH_UP,
                          "child_notify_catch_up",
                          &replica_stub::on_notify_primary_split_catch_up);
@@ -2143,6 +2168,15 @@ void replica_stub::open_service()
         });
 
 #ifdef DSN_ENABLE_GPERF
+    _release_tcmalloc_memory_command = ::dsn::command_manager::instance().register_app_command(
+        {"release-tcmalloc-memory"},
+        "release-tcmalloc-memory <true|false>",
+        "release-tcmalloc-memory - control if try to release tcmalloc memory",
+        [this](const std::vector<std::string> &args) {
+            return remote_command_set_bool_flag(
+                _release_tcmalloc_memory, "release-tcmalloc-memory", args);
+        });
+
     _max_reserved_memory_percentage_command = dsn::command_manager::instance().register_app_command(
         {"mem-release-max-reserved-percentage"},
         "mem-release-max-reserved-percentage [num | DEFAULT]",
@@ -2162,7 +2196,7 @@ void replica_stub::open_service()
                 return result;
             }
             int32_t percentage = 0;
-            if (!dsn::buf2int32(args[0], percentage) || percentage <= 0 || percentage >= 100) {
+            if (!dsn::buf2int32(args[0], percentage) || percentage <= 0 || percentage > 100) {
                 result = std::string("ERR: invalid arguments");
             } else {
                 _mem_release_max_reserved_mem_percentage = percentage;
@@ -2296,6 +2330,7 @@ void replica_stub::close()
     dsn::command_manager::instance().deregister_command(_query_app_envs_command);
     dsn::command_manager::instance().deregister_command(_useless_dir_reserve_seconds_command);
 #ifdef DSN_ENABLE_GPERF
+    dsn::command_manager::instance().deregister_command(_release_tcmalloc_memory_command);
     dsn::command_manager::instance().deregister_command(_max_reserved_memory_percentage_command);
 #endif
 
@@ -2307,7 +2342,10 @@ void replica_stub::close()
     _query_compact_command = nullptr;
     _query_app_envs_command = nullptr;
     _useless_dir_reserve_seconds_command = nullptr;
+#ifdef DSN_ENABLE_GPERF
+    _release_tcmalloc_memory_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
+#endif
 
     if (_config_sync_timer_task != nullptr) {
         _config_sync_timer_task->cancel(true);
@@ -2446,6 +2484,12 @@ static int64_t get_tcmalloc_numeric_property(const char *prop)
 
 void replica_stub::gc_tcmalloc_memory()
 {
+    int64_t tcmalloc_released_bytes = 0;
+    if (!_release_tcmalloc_memory) {
+        _counter_tcmalloc_release_memory_size->set(tcmalloc_released_bytes);
+        return;
+    }
+
     int64_t total_allocated_bytes =
         get_tcmalloc_numeric_property("generic.current_allocated_bytes");
     int64_t reserved_bytes = get_tcmalloc_numeric_property("tcmalloc.pageheap_free_bytes");
@@ -2457,6 +2501,7 @@ void replica_stub::gc_tcmalloc_memory()
         total_allocated_bytes * _mem_release_max_reserved_mem_percentage / 100.0;
     if (reserved_bytes > max_reserved_bytes) {
         int64_t release_bytes = reserved_bytes - max_reserved_bytes;
+        tcmalloc_released_bytes = release_bytes;
         ddebug_f("Memory release started, almost {} bytes will be released", release_bytes);
         while (release_bytes > 0) {
             // tcmalloc releasing memory will lock page heap, release 1MB at a time to avoid locking
@@ -2465,6 +2510,7 @@ void replica_stub::gc_tcmalloc_memory()
             release_bytes -= 1024 * 1024;
         }
     }
+    _counter_tcmalloc_release_memory_size->set(tcmalloc_released_bytes);
 }
 #endif
 
