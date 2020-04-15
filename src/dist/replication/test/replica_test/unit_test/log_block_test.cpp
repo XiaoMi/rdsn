@@ -104,5 +104,54 @@ TEST_F(log_appender_test, log_block_full)
     ASSERT_EQ(sz, appender.size());
 }
 
+TEST_F(log_appender_test, read_log_block)
+{
+    log_appender appender(10);
+    for (int i = 0; i < 1024; i++) { // more than DEFAULT_MAX_BLOCK_BYTES
+        appender.append_mutation(create_test_mutation(1 + i, std::string(1024, 'a')), nullptr);
+    }
+    ASSERT_EQ(appender.all_blocks().size(), 2);
+
+    // merge into an continuous buffer, which may contains multiple blocks
+    std::string buffer;
+    for (const auto &block : appender.all_blocks()) {
+        for (const blob &bb : block.data()) {
+            buffer += bb.to_string();
+        }
+    }
+    ASSERT_EQ(buffer.size(), appender.size());
+
+    // read from buffer
+    auto bb = blob::create_from_bytes(std::move(buffer));
+    binary_reader reader(bb);
+    int block_idx = 0;
+    int mutation_idx = 0;
+    while (!reader.is_eof()) {
+        blob tmp_bb;
+
+        ASSERT_GT(appender.all_blocks().size(), block_idx);
+        ASSERT_GE(reader.get_remaining_size(), sizeof(log_block_header));
+        reader.read(tmp_bb, sizeof(log_block_header));
+
+        const auto &expected_block = appender.all_blocks()[block_idx];
+        size_t blk_len = expected_block.size() - sizeof(log_block_header);
+        ASSERT_GE(reader.get_remaining_size(), blk_len);
+        blob blk_bb;
+        reader.read(blk_bb, blk_len);
+        binary_reader blk_reader(blk_bb); // reads the log block
+        while (!blk_reader.is_eof()) {
+            size_t read_len = blk_len - blk_reader.get_remaining_size();
+            mutation_ptr mu = mutation::read_from(blk_reader, nullptr);
+            ASSERT_EQ(mu->data.header.log_offset,
+                      read_len + expected_block.start_offset() + sizeof(log_block_header));
+            mutation_idx++;
+        }
+
+        block_idx++;
+    }
+    ASSERT_EQ(block_idx, appender.all_blocks().size());
+    ASSERT_EQ(mutation_idx, 1024);
+}
+
 } // namespace replication
 } // namespace dsn
