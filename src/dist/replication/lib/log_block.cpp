@@ -27,7 +27,7 @@ void log_appender::append_mutation(const mutation_ptr &mu, const aio_task_ptr &c
         _callbacks.push_back(cb);
     }
     log_block *blk = &_blocks.back();
-    mu->data.header.log_offset = blk->start_offset() + size();
+    mu->data.header.log_offset = start_offset() + size();
     mu->write_to([blk](const blob &bb) { blk->add(bb); });
     if (blk->size() > DEFAULT_MAX_BLOCK_BYTES) {
         _full_blocks_size += blk->size();
