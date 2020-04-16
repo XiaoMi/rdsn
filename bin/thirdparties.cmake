@@ -203,6 +203,7 @@ ExternalProject_Add(s2geometry
         URL ${OSS_URL_PREFIX}/s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba.zip
         https://github.com/google/s2geometry/archive/0239455c1e260d6d2c843649385b4fb9f5b28dba.zip
         URL_MD5 bfa5f1c08f535a72fb2c92ec16332c64
+        PATCH_COMMAND patch -p1 < ${TP_DIR}/fix_s2_for_pegasus.patch
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT} -DGTEST_ROOT=${googletest_SRC}/googletest
         DEPENDS googletest
         )
