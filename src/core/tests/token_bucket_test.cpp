@@ -62,55 +62,6 @@ static std::vector<std::pair<double, double>> rate_to_consume_size = {
 
 INSTANTIATE_TEST_CASE_P(token_bucket, token_bucket_test, ::testing::ValuesIn(rate_to_consume_size));
 
-void do_token_bucket_test(double max_qps, double consume_size)
-{
-    const double ten_millisecond_burst = max_qps * 0.010;
-    // Select a burst size of 10 milliseconds at the max rate or the consume size
-    // if 10 ms at max_qps is too small.
-    const double burst_size = std::max(consume_size, ten_millisecond_burst);
-    token_bucket bucket(max_qps, burst_size, 0);
-    double token_counter = 0;
-    double current_time = 0;
-    // Simulate time advancing 10 seconds
-    for (; current_time <= 10.0; current_time += 0.001) {
-        EXPECT_FALSE(bucket.consume(burst_size + 1, current_time));
-        while (bucket.consume(consume_size, current_time)) {
-            token_counter += consume_size;
-        }
-        // Tokens consumed should exceed some lower bound based on max_qps.
-        // Note: The token bucket implementation is not precise, so the lower bound
-        // is somewhat fudged. The upper bound is accurate however.
-        EXPECT_LE(max_qps * current_time * 0.9 - 1, token_counter);
-        // Tokens consumed should not exceed some upper bound based on max_qps.
-        EXPECT_GE(max_qps * current_time + 1e-6, token_counter);
-    }
-}
-
-TEST(token_bucket, sanity)
-{
-    do_token_bucket_test(100, 1);
-    do_token_bucket_test(1000, 1);
-    do_token_bucket_test(10000, 1);
-    // Consume more than one at a time.
-    do_token_bucket_test(10000, 5);
-}
-
-TEST(token_bucket, reverse_time2)
-{
-    const double rate = 1000;
-    token_bucket bucket(rate, rate * 0.01 + 1e-6);
-    size_t count = 0;
-    while (bucket.consume(1, 0.1)) {
-        count += 1;
-    }
-    EXPECT_EQ(10, count);
-    // Going backwards in time has no affect on the toke count (this protects
-    // against different threads providing out of order timestamps).
-    double tokens_before = bucket.available();
-    EXPECT_FALSE(bucket.consume(1, 0.09999999));
-    EXPECT_EQ(tokens_before, bucket.available());
-}
-
 TEST(token_bucket, drain_on_fail)
 {
     dynamic_token_bucket bucket;
