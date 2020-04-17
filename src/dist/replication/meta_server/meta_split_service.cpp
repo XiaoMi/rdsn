@@ -175,7 +175,7 @@ void meta_split_service::register_child_on_meta(register_child_rpc rpc)
         return;
     }
 
-    ddebug_f("parent({}) will resgiter child({})", parent_gpid, child_gpid);
+    ddebug_f("parent({}) will register child({})", parent_gpid, child_gpid);
     parent_context.stage = config_status::pending_remote_sync;
     parent_context.msg = rpc.dsn_request();
     parent_context.pending_sync_task = add_child_on_remote_storage(rpc, true);

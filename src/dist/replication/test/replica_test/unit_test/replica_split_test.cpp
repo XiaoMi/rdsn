@@ -181,6 +181,8 @@ public:
 
     bool is_parent_not_in_split() { return (_parent->_child_gpid.get_app_id() == 0); }
 
+    int32_t get_partition_version(mock_replica_ptr rep) { return rep->_partition_version.load(); }
+
     void test_on_add_child()
     {
         _parent->on_add_child(_group_check_req);
@@ -237,6 +239,12 @@ public:
         _parent->parent_handle_child_catch_up(_catch_up_req, resp);
         _parent->tracker()->wait_outstanding_tasks();
         return resp.err;
+    }
+
+    void test_register_child_on_meta()
+    {
+        _parent->register_child_on_meta(_init_ballot);
+        _parent->tracker()->wait_outstanding_tasks();
     }
 
     void test_on_register_child_rely(partition_status::type status, dsn::error_code resp_err)
@@ -479,6 +487,17 @@ TEST_F(replica_split_test, handle_catch_up_with_all_caught_up)
 
     ASSERT_EQ(err, ERR_OK);
     ASSERT_TRUE(get_sync_send_write_request());
+}
+
+TEST_F(replica_split_test, register_child_test)
+{
+    fail::setup();
+    fail::cfg("replica_parent_send_register_request", "return()");
+    test_register_child_on_meta();
+    fail::teardown();
+
+    ASSERT_EQ(_parent->status(), partition_status::PS_INACTIVE);
+    ASSERT_EQ(get_partition_version(_parent), -1);
 }
 
 TEST_F(replica_split_test, register_child_reply_with_wrong_status)

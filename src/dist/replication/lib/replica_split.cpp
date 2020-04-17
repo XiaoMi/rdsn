@@ -625,14 +625,6 @@ void replica::register_child_on_meta(ballot b) // on primary parent
         return;
     }
 
-    if (b != get_ballot()) {
-        dwarn_replica(
-            "failed to register child because ballot changed, ballot = {}, local ballot = {}",
-            b,
-            get_ballot());
-        return;
-    }
-
     partition_configuration child_config = _primary_states.membership;
     child_config.ballot++;
     child_config.last_committed_decree = 0;
@@ -658,10 +650,9 @@ void replica::register_child_on_meta(ballot b) // on primary parent
 void replica::parent_send_register_request(
     const register_child_request &request) // on primary parent
 {
-    dassert_replica(status() == partition_status::PS_INACTIVE,
-                    "current status should be inactive, wrong status = {}",
-                    enum_to_string(status()));
+    FAIL_POINT_INJECT_F("replica_parent_send_register_request", [](dsn::string_view) {});
 
+    dcheck_eq_replica(status(), partition_status::PS_INACTIVE);
     ddebug_replica(
         "send register child({}) request to meta_server, current ballot = {}, child ballot = {}",
         request.child_config.pid,
@@ -733,11 +724,7 @@ void replica::on_register_child_on_meta_reply(
                        get_ballot(),
                        enum_to_string(status()));
 
-        dassert_f(_app_info.partition_count * 2 == response.app.partition_count,
-                  "local partition count is {}, remote partition count is {}",
-                  _app_info.partition_count,
-                  response.app.partition_count);
-
+        dcheck_eq_replica(_app_info.partition_count * 2, response.app.partition_count);
         _stub->split_replica_exec(LPC_PARTITION_SPLIT,
                                   response.child_config.pid,
                                   std::bind(&replica::child_partition_active,
