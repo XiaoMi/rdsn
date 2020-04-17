@@ -324,10 +324,10 @@ void pprof_http_service::symbol_handler(const http_request &req, http_response &
 void pprof_http_service::heap_handler(const http_request &req, http_response &resp)
 {
     const std::string SECOND = "seconds";
-    const int kPprofDefaultSampleSecs = 30;
+    const int defaultSecond = 10;
 
-    // get seconds from query params, default value is `kPprofDefaultSampleSecs`
-    int seconds = kPprofDefaultSampleSecs;
+    // get seconds from query params, default value is `defaultSecond`
+    int seconds = defaultSecond;
     const auto iter = req.query_args.find(SECOND);
     if (iter != req.query_args.end()) {
         const auto seconds_str = iter->second;
@@ -336,10 +336,10 @@ void pprof_http_service::heap_handler(const http_request &req, http_response &re
         }
     }
 
-    std::stringstream tmp_prof_file_name;
-    tmp_prof_file_name << "heap_profile." << getpid() << "." << dsn_now_ns();
+    std::stringstream profile_name_prefix;
+    profile_name_prefix << "heap_profile." << getpid() << "." << dsn_now_ns();
 
-    HeapProfilerStart(tmp_prof_file_name.str().c_str());
+    HeapProfilerStart(profile_name_prefix.str().c_str());
     sleep(seconds);
     const char *profile = GetHeapProfile();
     HeapProfilerStop();
