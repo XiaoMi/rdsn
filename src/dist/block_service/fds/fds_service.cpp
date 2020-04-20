@@ -102,7 +102,7 @@ const std::string fds_service::FILE_MD5_KEY = "content-md5";
 fds_service::fds_service()
 {
     uint32_t limit_rate = (uint32_t)dsn_config_get_value_uint64(
-        "replication", "fds_limit_rate", 0, "rate limit of fds(MB)");
+        "replication", "fds_limit_rate", 20, "rate limit of fds(Mb)");
     _token_bucket.reset(new folly::TokenBucket(limit_rate * 1e6, limit_rate * 5));
 }
 
@@ -608,7 +608,6 @@ error_code fds_file_object::put_content_with_throttling(std::istream &is,
 
         is.readsome(buffer, batch);
         std::istringstream part_is(std::string(buffer, batch));
-
         error_code err = put_content(part_is, once_transfered_bytes);
         transfered_bytes += once_transfered_bytes;
         if (err != ERR_OK || once_transfered_bytes < length) {
