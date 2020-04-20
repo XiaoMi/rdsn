@@ -17,6 +17,7 @@
 #include <memory>
 #include <fstream>
 #include <string.h>
+#include <dsn/utility/defer.h>
 
 namespace dsn {
 namespace dist {
@@ -98,7 +99,13 @@ const std::string fds_service::FILE_LENGTH_CUSTOM_KEY = "x-xiaomi-meta-content-l
 const std::string fds_service::FILE_LENGTH_KEY = "content-length";
 const std::string fds_service::FILE_MD5_KEY = "content-md5";
 
-fds_service::fds_service() {}
+fds_service::fds_service()
+{
+    uint32_t limit_rate = (uint32_t)dsn_config_get_value_uint64(
+        "replication", "fds_limit_rate", 0, "rate limit of fds(MB)");
+    _token_bucket.reset(new folly::TokenBucket(limit_rate * 1e6, limit_rate * 5));
+}
+
 fds_service::~fds_service() {}
 
 /**
@@ -484,6 +491,33 @@ fds_file_object::fds_file_object(fds_service *s,
 
 fds_file_object::~fds_file_object() {}
 
+error_code fds_file_object::get_content_with_throttling(uint64_t start,
+                                                        int64_t length,
+                                                        std::ostream &os,
+                                                        uint64_t &transfered_bytes)
+{
+    const uint64_t BATCH_MAX = 1e6; // 1MB(8Mb)
+    uint64_t once_transfered_bytes = 0;
+    uint64_t pos = start;
+    while (pos < start + length) {
+        int64_t batch = std::min(BATCH_MAX, start + length - pos);
+
+        // get tokens from token bucket
+        if (_service->_token_bucket != nullptr) {
+            _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
+        }
+
+        error_code err = get_content(pos, batch, os, once_transfered_bytes);
+        transfered_bytes += once_transfered_bytes;
+        if (err != ERR_OK || once_transfered_bytes < length) {
+            return err;
+        }
+        pos += batch;
+    }
+
+    return ERR_OK;
+}
+
 dsn::error_code fds_file_object::get_content(uint64_t pos,
                                              int64_t length,
                                              /*out*/ std::ostream &os,
@@ -554,6 +588,38 @@ dsn::error_code fds_file_object::get_content(uint64_t pos,
     return err;
 }
 
+error_code fds_file_object::put_content_with_throttling(std::istream &is,
+                                                        uint64_t &transfered_bytes)
+{
+    const uint64_t BATCH_MAX = 1e6; // 1MB(8Mb)
+    uint64_t once_transfered_bytes = 0;
+    uint64_t pos = 0;
+    uint64_t length = is.gcount();
+    char *buffer = new char[BATCH_MAX];
+    auto cleanup = defer([buffer]() { delete[] buffer; });
+
+    while (pos < length) {
+        int64_t batch = std::min(BATCH_MAX, length - pos);
+
+        // get tokens from token bucket
+        if (_service->_token_bucket != nullptr) {
+            _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
+        }
+
+        is.readsome(buffer, batch);
+        std::istringstream part_is(std::string(buffer, batch));
+
+        error_code err = put_content(part_is, once_transfered_bytes);
+        transfered_bytes += once_transfered_bytes;
+        if (err != ERR_OK || once_transfered_bytes < length) {
+            return err;
+        }
+        pos += batch;
+    }
+
+    return ERR_OK;
+}
+
 dsn::error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
                                              uint64_t &transfered_bytes)
 {
@@ -621,7 +687,7 @@ dsn::task_ptr fds_file_object::write(const write_request &req,
         write_response resp;
         std::istringstream is;
         is.str(std::string(req.buffer.data(), req.buffer.length()));
-        resp.err = put_content(is, resp.written_size);
+        resp.err = put_content_with_throttling(is, resp.written_size);
 
         t->enqueue_with(resp);
         release_ref();
@@ -658,7 +724,7 @@ dsn::task_ptr fds_file_object::upload(const upload_request &req,
                    ptr);
             resp.err = dsn::ERR_FILE_OPERATION_FAILED;
         } else {
-            resp.err = put_content(is, resp.uploaded_size);
+            resp.err = put_content_with_throttling(is, resp.uploaded_size);
             is.close();
         }
 
@@ -691,7 +757,8 @@ dsn::task_ptr fds_file_object::read(const read_request &req,
         read_response resp;
         std::ostringstream os;
         uint64_t transferd_size;
-        resp.err = get_content(req.remote_pos, req.remote_length, os, transferd_size);
+        resp.err =
+            get_content_with_throttling(req.remote_pos, req.remote_length, os, transferd_size);
         if (os.tellp() > 0) {
             std::string *output = new std::string();
             *output = os.str();
@@ -743,7 +810,8 @@ dsn::task_ptr fds_file_object::download(const download_request &req,
     auto download_background = [this, req, handle, t]() {
         download_response resp;
         uint64_t transfered_size;
-        resp.err = get_content(req.remote_pos, req.remote_length, *handle, transfered_size);
+        resp.err = get_content_with_throttling(
+            req.remote_pos, req.remote_length, *handle, transfered_size);
         resp.downloaded_size = 0;
         if (handle->tellp() != -1)
             resp.downloaded_size = handle->tellp();

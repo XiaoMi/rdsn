@@ -2,6 +2,7 @@
 #define FDS_SERVICE_H
 
 #include <dsn/dist/block_service.h>
+#include <dsn/utility/TokenBucket.h>
 
 namespace galaxy {
 namespace fds {
@@ -64,6 +65,9 @@ public:
 private:
     std::shared_ptr<galaxy::fds::GalaxyFDSClient> _client;
     std::string _bucket_name;
+    std::unique_ptr<folly::TokenBucket> _token_bucket;
+
+    friend class fds_file_object;
 };
 
 class fds_file_object : public block_file
@@ -101,10 +105,15 @@ public:
                                    dsn::task_tracker *tracker) override;
 
 private:
+    error_code get_content_with_throttling(uint64_t start,
+                                           int64_t length,
+                                           std::ostream &os,
+                                           uint64_t &transfered_bytes);
     dsn::error_code get_content(uint64_t pos,
                                 int64_t length,
                                 /*out*/ std::ostream &os,
                                 /*out*/ uint64_t &transfered_bytes);
+    error_code put_content_with_throttling(std::istream &is, uint64_t &transfered_bytes);
     dsn::error_code put_content(/*in-out*/ std::istream &is, /*out*/ uint64_t &transfered_bytes);
     fds_service *_service;
     std::string _fds_path;
