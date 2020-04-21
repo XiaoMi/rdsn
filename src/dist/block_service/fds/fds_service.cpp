@@ -506,10 +506,10 @@ error_code fds_file_object::get_content_with_throttling(uint64_t start,
         _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
 
         error_code err = get_content(pos, batch, os, once_transfered_bytes);
-        if (err != ERR_OK) {
+        transfered_bytes += once_transfered_bytes;
+        if (err != ERR_OK || once_transfered_bytes < batch) {
             return err;
         }
-        transfered_bytes += once_transfered_bytes;
         pos += batch;
     }
 
@@ -597,15 +597,18 @@ error_code fds_file_object::put_content_with_throttling(std::istream &is,
 
     while (!is.eof()) {
         int batch = is.readsome(buffer, BATCH_MAX);
+        if (0 == batch) {
+            break;
+        }
         // get tokens from token bucket
         _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
 
         std::istringstream batch_is(std::string(buffer, batch));
         error_code err = put_content(batch_is, once_transfered_bytes);
-        if (err != ERR_OK) {
+        transfered_bytes += once_transfered_bytes;
+        if (err != ERR_OK || once_transfered_bytes < batch) {
             return err;
         }
-        transfered_bytes += once_transfered_bytes;
     }
 
     return ERR_OK;
