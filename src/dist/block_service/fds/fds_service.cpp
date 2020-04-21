@@ -103,7 +103,7 @@ fds_service::fds_service()
 {
     uint32_t limit_rate = (uint32_t)dsn_config_get_value_uint64(
         "replication", "fds_limit_rate", 20, "rate limit of fds(Mb)");
-    _token_bucket.reset(new folly::TokenBucket(limit_rate, 5 * limit_rate));
+    _token_bucket.reset(new folly::TokenBucket(limit_rate * 1e6, 5 * limit_rate *1e6));
 }
 
 fds_service::~fds_service() {}
@@ -496,7 +496,7 @@ error_code fds_file_object::get_content_with_throttling(uint64_t start,
                                                         std::ostream &os,
                                                         uint64_t &transfered_bytes)
 {
-    const uint64_t BATCH_MAX = 1e6; // 1MB(8Mb)
+    const uint64_t BATCH_MAX = std::min(1e6, _service->_token_bucket->burst() / 8);
     uint64_t once_transfered_bytes = 0;
     transfered_bytes = 0;
     uint64_t pos = start;
@@ -589,7 +589,7 @@ dsn::error_code fds_file_object::get_content(uint64_t pos,
 error_code fds_file_object::put_content_with_throttling(std::istream &is,
                                                         uint64_t &transfered_bytes)
 {
-    const uint64_t BATCH_MAX = 1e6; // 1MB(8Mb)
+    const uint64_t BATCH_MAX = std::min(1e6, _service->_token_bucket->burst() / 8);
     uint64_t once_transfered_bytes = 0;
     transfered_bytes = 0;
     char *buffer = new char[BATCH_MAX];
