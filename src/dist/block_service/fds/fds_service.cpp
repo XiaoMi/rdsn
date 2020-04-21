@@ -595,7 +595,7 @@ error_code fds_file_object::put_content_with_throttling(std::istream &is,
     char *buffer = new char[BATCH_MAX];
     auto cleanup = defer([buffer]() { delete[] buffer; });
 
-    while (!is.eof()) {
+    while (is.good() && !is.eof()) {
         int batch = is.readsome(buffer, BATCH_MAX);
         if (0 == batch) {
             break;
