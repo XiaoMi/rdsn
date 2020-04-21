@@ -103,7 +103,7 @@ fds_service::fds_service()
 {
     uint32_t limit_rate = (uint32_t)dsn_config_get_value_uint64(
         "replication", "fds_limit_rate", 20, "rate limit of fds(Mb)");
-    _token_bucket.reset(new folly::TokenBucket(limit_rate * 1e6, 5 * limit_rate * 1e6));
+    _token_bucket.reset(new folly::TokenBucket(limit_rate, 5 * limit_rate));
 }
 
 fds_service::~fds_service() {}
