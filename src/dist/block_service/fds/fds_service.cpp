@@ -498,20 +498,18 @@ error_code fds_file_object::get_content_with_throttling(uint64_t start,
 {
     const uint64_t BATCH_MAX = 1e6; // 1MB(8Mb)
     uint64_t once_transfered_bytes = 0;
+    transfered_bytes = 0;
     uint64_t pos = start;
     while (pos < start + length) {
         int64_t batch = std::min(BATCH_MAX, start + length - pos);
-
         // get tokens from token bucket
-        if (_service->_token_bucket != nullptr) {
-            _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
-        }
+        _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
 
         error_code err = get_content(pos, batch, os, once_transfered_bytes);
-        transfered_bytes += once_transfered_bytes;
-        if (err != ERR_OK || once_transfered_bytes < length) {
+        if (err != ERR_OK) {
             return err;
         }
+        transfered_bytes += once_transfered_bytes;
         pos += batch;
     }
 
@@ -593,27 +591,21 @@ error_code fds_file_object::put_content_with_throttling(std::istream &is,
 {
     const uint64_t BATCH_MAX = 1e6; // 1MB(8Mb)
     uint64_t once_transfered_bytes = 0;
-    uint64_t pos = 0;
-    uint64_t length = is.gcount();
+    transfered_bytes = 0;
     char *buffer = new char[BATCH_MAX];
     auto cleanup = defer([buffer]() { delete[] buffer; });
 
-    while (pos < length) {
-        int64_t batch = std::min(BATCH_MAX, length - pos);
-
+    while (!is.eof()) {
+        int batch = is.readsome(buffer, BATCH_MAX);
         // get tokens from token bucket
-        if (_service->_token_bucket != nullptr) {
-            _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
-        }
+        _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
 
-        is.readsome(buffer, batch);
-        std::istringstream part_is(std::string(buffer, batch));
-        error_code err = put_content(part_is, once_transfered_bytes);
-        transfered_bytes += once_transfered_bytes;
-        if (err != ERR_OK || once_transfered_bytes < length) {
+        std::istringstream batch_is(std::string(buffer, batch));
+        error_code err = put_content(batch_is, once_transfered_bytes);
+        if (err != ERR_OK) {
             return err;
         }
-        pos += batch;
+        transfered_bytes += once_transfered_bytes;
     }
 
     return ERR_OK;
