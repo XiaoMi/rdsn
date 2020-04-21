@@ -596,7 +596,7 @@ dsn::error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
     galaxy::fds::GalaxyFDSClient *c = _service->get_client();
 
     // get tokens from token bucket
-    _service->_token_bucket->consumeWithBorrowAndWait(to_transfer_bytes);
+    _service->_token_bucket->consumeWithBorrowAndWait(to_transfer_bytes * 8);
 
     try {
         c->putObject(_service->get_bucket_name(), _fds_path, is, galaxy::fds::FDSObjectMetadata());
