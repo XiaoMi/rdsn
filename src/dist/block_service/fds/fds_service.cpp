@@ -18,6 +18,7 @@
 #include <fstream>
 #include <string.h>
 #include <dsn/utility/defer.h>
+#include <dsn/utility/filesystem.h>
 
 namespace dsn {
 namespace dist {
@@ -101,9 +102,11 @@ const std::string fds_service::FILE_MD5_KEY = "content-md5";
 
 fds_service::fds_service()
 {
-    uint32_t limit_rate = (uint32_t)dsn_config_get_value_uint64(
-        "replication", "fds_limit_rate", 20, "rate limit of fds(Mb)");
-    _token_bucket.reset(new folly::TokenBucket(limit_rate * 1e6, 5 * limit_rate *1e6));
+    uint64_t rate_limit = (uint32_t)dsn_config_get_value_uint64(
+        "replication", "fds_limit_rate", 100, "rate limit of fds(Mb)");
+    // burst size must be greater than 64MB * 8
+    uint64_t burst_size = std::max(3 * rate_limit * 1e6, 64e6 * 8);
+    _token_bucket.reset(new folly::TokenBucket(rate_limit * 1e6, burst_size));
 }
 
 fds_service::~fds_service() {}
@@ -491,12 +494,12 @@ fds_file_object::fds_file_object(fds_service *s,
 
 fds_file_object::~fds_file_object() {}
 
-error_code fds_file_object::get_content_with_throttling(uint64_t start,
-                                                        int64_t length,
-                                                        std::ostream &os,
-                                                        uint64_t &transfered_bytes)
+error_code fds_file_object::get_content_in_batches(uint64_t start,
+                                                   int64_t length,
+                                                   std::ostream &os,
+                                                   uint64_t &transfered_bytes)
 {
-    const uint64_t BATCH_MAX = std::min(1e6, _service->_token_bucket->burst() / 8);
+    const uint64_t BATCH_MAX = 1e6;
     uint64_t once_transfered_bytes = 0;
     transfered_bytes = 0;
     uint64_t pos = start;
@@ -582,44 +585,19 @@ dsn::error_code fds_file_object::get_content(uint64_t pos,
             return err;
         }
     }
-
-    return err;
-}
-
-error_code fds_file_object::put_content_with_throttling(std::istream &is,
-                                                        uint64_t &transfered_bytes)
-{
-    const uint64_t BATCH_MAX = std::min(1e6, _service->_token_bucket->burst() / 8);
-    uint64_t once_transfered_bytes = 0;
-    transfered_bytes = 0;
-    char *buffer = new char[BATCH_MAX];
-    auto cleanup = defer([buffer]() { delete[] buffer; });
-
-    while (is.good() && !is.eof()) {
-        int batch = is.readsome(buffer, BATCH_MAX);
-        if (0 == batch) {
-            break;
-        }
-        // get tokens from token bucket
-        _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
-
-        std::istringstream batch_is(std::string(buffer, batch));
-        error_code err = put_content(batch_is, once_transfered_bytes);
-        transfered_bytes += once_transfered_bytes;
-        if (err != ERR_OK || once_transfered_bytes < batch) {
-            return err;
-        }
-    }
-
-    return ERR_OK;
 }
 
 dsn::error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
+                                             int64_t to_transfer_bytes,
                                              uint64_t &transfered_bytes)
 {
     dsn::error_code err = dsn::ERR_OK;
     transfered_bytes = 0;
     galaxy::fds::GalaxyFDSClient *c = _service->get_client();
+
+    // get tokens from token bucket
+    _service->_token_bucket->consumeWithBorrowAndWait(to_transfer_bytes);
+
     try {
         c->putObject(_service->get_bucket_name(), _fds_path, is, galaxy::fds::FDSObjectMetadata());
     } catch (const galaxy::fds::GalaxyFDSClientException &ex) {
@@ -681,7 +659,7 @@ dsn::task_ptr fds_file_object::write(const write_request &req,
         write_response resp;
         std::istringstream is;
         is.str(std::string(req.buffer.data(), req.buffer.length()));
-        resp.err = put_content_with_throttling(is, resp.written_size);
+        resp.err = put_content(is, req.buffer.length(), resp.written_size);
 
         t->enqueue_with(resp);
         release_ref();
@@ -703,6 +681,10 @@ dsn::task_ptr fds_file_object::upload(const upload_request &req,
     add_ref();
     auto upload_background = [this, req, t]() {
         const std::string &local_file = req.input_local_name;
+        // get file size
+        int64_t file_sz = 0;
+        dsn::utils::filesystem::file_size(local_file, file_sz);
+
         upload_response resp;
         // TODO: we can cache the whole file in buffer, then upload the buffer rather than the
         // ifstream, because if ifstream read file beyond 60s, fds-server will reset the session,
@@ -718,7 +700,7 @@ dsn::task_ptr fds_file_object::upload(const upload_request &req,
                    ptr);
             resp.err = dsn::ERR_FILE_OPERATION_FAILED;
         } else {
-            resp.err = put_content_with_throttling(is, resp.uploaded_size);
+            resp.err = put_content(is, file_sz, resp.uploaded_size);
             is.close();
         }
 
@@ -751,8 +733,7 @@ dsn::task_ptr fds_file_object::read(const read_request &req,
         read_response resp;
         std::ostringstream os;
         uint64_t transferd_size;
-        resp.err =
-            get_content_with_throttling(req.remote_pos, req.remote_length, os, transferd_size);
+        resp.err = get_content_in_batches(req.remote_pos, req.remote_length, os, transferd_size);
         if (os.tellp() > 0) {
             std::string *output = new std::string();
             *output = os.str();
@@ -804,8 +785,8 @@ dsn::task_ptr fds_file_object::download(const download_request &req,
     auto download_background = [this, req, handle, t]() {
         download_response resp;
         uint64_t transfered_size;
-        resp.err = get_content_with_throttling(
-            req.remote_pos, req.remote_length, *handle, transfered_size);
+        resp.err =
+            get_content_in_batches(req.remote_pos, req.remote_length, *handle, transfered_size);
         resp.downloaded_size = 0;
         if (handle->tellp() != -1)
             resp.downloaded_size = handle->tellp();

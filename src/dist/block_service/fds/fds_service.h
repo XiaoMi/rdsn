@@ -105,16 +105,17 @@ public:
                                    dsn::task_tracker *tracker) override;
 
 private:
-    error_code get_content_with_throttling(uint64_t start,
-                                           int64_t length,
-                                           std::ostream &os,
-                                           uint64_t &transfered_bytes);
+    error_code get_content_in_batches(uint64_t start,
+                                      int64_t length,
+                                      std::ostream &os,
+                                      uint64_t &transfered_bytes);
     dsn::error_code get_content(uint64_t pos,
                                 int64_t length,
                                 /*out*/ std::ostream &os,
                                 /*out*/ uint64_t &transfered_bytes);
-    error_code put_content_with_throttling(std::istream &is, uint64_t &transfered_bytes);
-    dsn::error_code put_content(/*in-out*/ std::istream &is, /*out*/ uint64_t &transfered_bytes);
+    dsn::error_code put_content(/*in-out*/ std::istream &is,
+                                /*int*/ int64_t to_transfer_bytes,
+                                /*out*/ uint64_t &transfered_bytes);
     fds_service *_service;
     std::string _fds_path;
     std::string _md5sum;
