@@ -515,7 +515,7 @@ error_code fds_file_object::get_file_meta()
         return ERR_OK;
     } catch (const galaxy::fds::GalaxyFDSClientException &ex) {
         if (ex.code() == Poco::Net::HTTPResponse::HTTP_NOT_FOUND) {
-            return ERR_HANDLER_NOT_FOUND;
+            return ERR_OBJECT_NOT_FOUND;
         } else {
             derror("fds getObjectMetadata failed: parameter(%s), code(%d), msg(%s)",
                    _name.c_str(),
