@@ -501,13 +501,11 @@ error_code fds_file_object::get_file_meta()
     galaxy::fds::GalaxyFDSClient *c = _service->get_client();
     try {
         auto meta = c->getObjectMetadata(_service->get_bucket_name(), _fds_path)->metadata();
-        // get file size
         auto iter = meta.find(fds_service::FILE_LENGTH_CUSTOM_KEY);
         if (iter != meta.end()) {
             _size = atoll(iter->second.c_str());
         }
 
-        // get md5
         iter = meta.find(fds_service::FILE_MD5_KEY);
         if (iter != meta.end()) {
             _md5sum = iter->second;
