@@ -509,7 +509,7 @@ error_code fds_file_object::get_file_meta()
 
         // get md5
         iter = meta.find(fds_service::FILE_MD5_KEY);
-        if (iter == meta.end()) {
+        if (iter != meta.end()) {
             _md5sum = iter->second;
         }
 
@@ -579,7 +579,7 @@ error_code fds_file_object::get_content(uint64_t pos,
     transfered_bytes = 0;
     while (true) {
         // if we have download enough or we have reach the end
-        if ((int64_t)transfered_bytes >= length || transfered_bytes + pos >= _size) {
+        if (transfered_bytes >= length || transfered_bytes + pos >= _size) {
             return ERR_OK;
         }
 
