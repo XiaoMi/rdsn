@@ -532,7 +532,7 @@ error_code fds_file_object::get_content_in_batches(uint64_t start,
                                                    /*out*/ uint64_t &transfered_bytes)
 {
     const uint64_t BATCH_MAX = 1e6;
-    error_code err;
+    error_code err = ERR_OK;
     transfered_bytes = 0;
 
     // get file meta if it is not synced
@@ -572,7 +572,7 @@ error_code fds_file_object::get_content(uint64_t pos,
                                         /*out*/ std::ostream &os,
                                         /*out*/ uint64_t &transfered_bytes)
 {
-    error_code err;
+    error_code err = ERR_OK;
     transfered_bytes = 0;
     while (true) {
         // if we have download enough or we have reach the end
