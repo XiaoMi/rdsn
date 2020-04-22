@@ -103,7 +103,7 @@ fds_service::fds_service()
 {
     uint32_t rate_limit = (uint32_t)dsn_config_get_value_uint64(
         "replication", "fds_limit_rate", 20, "rate limit of fds(Mb/s)");
-    /// For send operation, we can't send a file in batches. Because putContent interface of fds
+    /// For put operation, we can't send a file in batches. Because putContent interface of fds
     /// will overwrite what was sent before for the same file. So we must send a file as a whole.
     /// If file size > burst size, the file will be rejected by the token bucket.
     /// And sst maximum file size is about 64MB, so burst size must be greater than 64MB.
