@@ -226,9 +226,9 @@ public:
    * Thread-safe.
      */
     boost::optional<double> consumeWithBorrowNonBlocking(double toConsume,
-                                                  double rate,
-                                                  double burstSize,
-                                                  double nowInSeconds = defaultClockNow())
+                                                         double rate,
+                                                         double burstSize,
+                                                         double nowInSeconds = defaultClockNow())
     {
         assert(rate > 0);
         assert(burstSize > 0);
@@ -457,7 +457,7 @@ public:
    * be compatible with the bucket configuration.
      */
     boost::optional<double> consumeWithBorrowNonBlocking(double toConsume,
-                                                  double nowInSeconds = defaultClockNow())
+                                                         double nowInSeconds = defaultClockNow())
     {
         return tokenBucket_.consumeWithBorrowNonBlocking(
             toConsume, rate_, burstSize_, nowInSeconds);
