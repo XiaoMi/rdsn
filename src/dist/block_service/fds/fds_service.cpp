@@ -543,7 +543,9 @@ error_code fds_file_object::get_content(uint64_t pos,
     }
 
     // get tokens from token bucket
-    _service->_token_bucket->consumeWithBorrowAndWait(_size * 8);
+    if (!_service->_token_bucket->consumeWithBorrowAndWait(_size * 8)) {
+        return ERR_BUSY;
+    }
 
     while (true) {
         // if we have download enough or we have reach the end
