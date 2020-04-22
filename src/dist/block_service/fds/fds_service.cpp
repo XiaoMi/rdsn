@@ -494,46 +494,62 @@ fds_file_object::fds_file_object(fds_service *s,
 
 fds_file_object::~fds_file_object() {}
 
-error_code fds_file_object::get_content_in_batches(uint64_t start,
-                                                   int64_t length,
-                                                   std::ostream &os,
-                                                   uint64_t &transfered_bytes)
+error_code fds_file_object::get_file_meta()
 {
-    const uint64_t BATCH_MAX = 1e6;
-    uint64_t once_transfered_bytes = 0;
-    transfered_bytes = 0;
-    uint64_t pos = start;
-    while (pos < start + length) {
-        int64_t batch = std::min(BATCH_MAX, start + length - pos);
-        // get tokens from token bucket
-        _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
-
-        error_code err = get_content(pos, batch, os, once_transfered_bytes);
-        transfered_bytes += once_transfered_bytes;
-        if (err != ERR_OK || once_transfered_bytes < batch) {
-            return err;
+    galaxy::fds::GalaxyFDSClient *c = _service->get_client();
+    try {
+        auto meta = c->getObjectMetadata(_service->get_bucket_name(), _fds_path)->metadata();
+        // get file size
+        auto iter = meta.find(fds_service::FILE_LENGTH_CUSTOM_KEY);
+        if (iter != meta.end()) {
+            _size = atoll(iter->second.c_str());
         }
-        pos += batch;
-    }
 
-    return ERR_OK;
+        // get md5
+        iter = meta.find(fds_service::FILE_MD5_KEY);
+        if (iter == meta.end()) {
+            _md5sum = iter->second;
+        }
+
+        _has_meta_synced = true;
+        return ERR_OK;
+    } catch (const galaxy::fds::GalaxyFDSClientException &ex) {
+        if (ex.code() == Poco::Net::HTTPResponse::HTTP_NOT_FOUND) {
+            return ERR_HANDLER_NOT_FOUND;
+        } else {
+            derror("fds getObjectMetadata failed: parameter(%s), code(%d), msg(%s)",
+                   _name.c_str(),
+                   ex.code(),
+                   ex.what());
+            return ERR_FS_INTERNAL;
+        }
+    }
 }
 
-dsn::error_code fds_file_object::get_content(uint64_t pos,
-                                             int64_t length,
-                                             /*out*/ std::ostream &os,
-                                             /*out*/ uint64_t &transfered_bytes)
+error_code fds_file_object::get_content(uint64_t pos,
+                                        int64_t length,
+                                        /*out*/ std::ostream &os,
+                                        /*out*/ uint64_t &transfered_bytes)
 {
-    dsn::error_code err;
+    error_code err;
     transfered_bytes = 0;
 
+    // get file meta if it is not synced
+    if (!_has_meta_synced) {
+        err = get_file_meta();
+        if (ERR_OK != err) {
+            return err;
+        }
+    }
+
+    // get tokens from token bucket
+    _service->_token_bucket->consumeWithBorrowAndWait(_size * 8);
+
     while (true) {
-        if (_has_meta_synced) {
-            // if we have download enough or we have reach the end
-            if ((length != -1 && (int64_t)transfered_bytes >= length) ||
-                transfered_bytes + pos >= _size) {
-                return dsn::ERR_OK;
-            }
+        // if we have download enough or we have reach the end
+        if ((length != -1 && (int64_t)transfered_bytes >= length) ||
+            transfered_bytes + pos >= _size) {
+            return ERR_OK;
         }
 
         try {
@@ -547,51 +563,36 @@ dsn::error_code fds_file_object::get_content(uint64_t pos,
                                    pos + transfered_bytes,
                                    length - transfered_bytes);
             dinfo("get object from fds succeed, remote_file(%s)", _fds_path.c_str());
-            if (!_has_meta_synced) {
-                const std::map<std::string, std::string> &meta = obj->objectMetadata().metadata();
-                auto iter = meta.find(fds_service::FILE_MD5_KEY);
-                if (iter != meta.end()) {
-                    _md5sum = iter->second;
-                    iter = meta.find(fds_service::FILE_LENGTH_KEY);
-                    dassert(iter != meta.end(),
-                            "%s: can't get %s in getObject %s",
-                            _name.c_str(),
-                            fds_service::FILE_LENGTH_KEY.c_str(),
-                            _fds_path.c_str());
-                    _size = atoll(iter->second.c_str());
-                    _has_meta_synced = true;
-                }
-            }
             std::istream &is = obj->objectContent();
             transfered_bytes += utils::copy_stream(is, os, PIECE_SIZE);
-            err = dsn::ERR_OK;
+            err = ERR_OK;
         } catch (const galaxy::fds::GalaxyFDSClientException &ex) {
             derror("fds getObject error: remote_file(%s), code(%d), msg(%s)",
                    file_name().c_str(),
                    ex.code(),
                    ex.what());
-            if (!_has_meta_synced && ex.code() == Poco::Net::HTTPResponse::HTTP_NOT_FOUND) {
+            if (ex.code() == Poco::Net::HTTPResponse::HTTP_NOT_FOUND) {
                 _has_meta_synced = true;
                 _md5sum = "";
                 _size = 0;
-                err = dsn::ERR_OBJECT_NOT_FOUND;
+                err = ERR_OBJECT_NOT_FOUND;
             } else {
-                err = dsn::ERR_FS_INTERNAL;
+                err = ERR_FS_INTERNAL;
             }
         }
         FDS_EXCEPTION_HANDLE(err, "getObject", file_name().c_str())
 
-        if (err != dsn::ERR_OK) {
+        if (err != ERR_OK) {
             return err;
         }
     }
 }
 
-dsn::error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
-                                             int64_t to_transfer_bytes,
-                                             uint64_t &transfered_bytes)
+error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
+                                        int64_t to_transfer_bytes,
+                                        uint64_t &transfered_bytes)
 {
-    dsn::error_code err = dsn::ERR_OK;
+    error_code err = ERR_OK;
     transfered_bytes = 0;
     galaxy::fds::GalaxyFDSClient *c = _service->get_client();
 
@@ -609,7 +610,7 @@ dsn::error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
     }
     FDS_EXCEPTION_HANDLE(err, "putObject", file_name().c_str())
 
-    if (err != dsn::ERR_OK) {
+    if (err != ERR_OK) {
         return err;
     }
 
@@ -733,7 +734,7 @@ dsn::task_ptr fds_file_object::read(const read_request &req,
         read_response resp;
         std::ostringstream os;
         uint64_t transferd_size;
-        resp.err = get_content_in_batches(req.remote_pos, req.remote_length, os, transferd_size);
+        resp.err = get_content(req.remote_pos, req.remote_length, os, transferd_size);
         if (os.tellp() > 0) {
             std::string *output = new std::string();
             *output = os.str();
@@ -785,8 +786,7 @@ dsn::task_ptr fds_file_object::download(const download_request &req,
     auto download_background = [this, req, handle, t]() {
         download_response resp;
         uint64_t transfered_size;
-        resp.err =
-            get_content_in_batches(req.remote_pos, req.remote_length, *handle, transfered_size);
+        resp.err = get_content(req.remote_pos, req.remote_length, *handle, transfered_size);
         resp.downloaded_size = 0;
         if (handle->tellp() != -1)
             resp.downloaded_size = handle->tellp();
