@@ -559,7 +559,6 @@ error_code fds_file_object::get_content_in_batches(uint64_t start,
         err = get_content(pos, batch, os, once_transfered_bytes);
         transfered_bytes += once_transfered_bytes;
         if (err != ERR_OK || once_transfered_bytes < batch) {
-            ddebug("once_transfered_bytes = %ld, batch = %ld", once_transfered_bytes, batch);
             return err;
         }
         pos += batch;
