@@ -97,7 +97,6 @@ DEFINE_THREAD_POOL_CODE(THREAD_POOL_FDS_SERVICE)
 DEFINE_TASK_CODE(LPC_FDS_CALL, TASK_PRIORITY_COMMON, THREAD_POOL_FDS_SERVICE)
 
 const std::string fds_service::FILE_LENGTH_CUSTOM_KEY = "x-xiaomi-meta-content-length";
-const std::string fds_service::FILE_LENGTH_KEY = "content-length";
 const std::string fds_service::FILE_MD5_KEY = "content-md5";
 
 fds_service::fds_service()
