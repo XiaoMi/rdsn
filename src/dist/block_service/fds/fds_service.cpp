@@ -543,7 +543,13 @@ error_code fds_file_object::get_content(uint64_t pos,
     }
 
     // get tokens from token bucket
-    if (!_service->_token_bucket->consumeWithBorrowAndWait(_size * 8)) {
+    uint32_t consume_token;
+    if (-1 == length) {
+        consume_token = _size * 8;
+    } else {
+        consume_token = length * 8;
+    }
+    if (!_service->_token_bucket->consumeWithBorrowAndWait(consume_token)) {
         return ERR_BUSY;
     }
 
