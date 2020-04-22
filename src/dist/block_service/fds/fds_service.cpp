@@ -103,10 +103,8 @@ const std::string fds_service::FILE_MD5_KEY = "content-md5";
 fds_service::fds_service()
 {
     uint64_t rate_limit = (uint32_t)dsn_config_get_value_uint64(
-        "replication", "fds_limit_rate", 100, "rate limit of fds(Mb)");
-    // burst size must be greater than 64MB * 8
-    uint64_t burst_size = std::max(3 * rate_limit * 1e6, 64e6 * 8);
-    _token_bucket.reset(new folly::TokenBucket(rate_limit * 1e6, burst_size));
+        "replication", "fds_limit_rate", 200, "rate limit of fds(Mb/s)");
+    _token_bucket.reset(new folly::TokenBucket(rate_limit * 1e6, 3 * rate_limit * 1e6));
 }
 
 fds_service::~fds_service() {}
