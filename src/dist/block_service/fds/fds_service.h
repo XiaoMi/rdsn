@@ -105,8 +105,12 @@ public:
                                    dsn::task_tracker *tracker) override;
 
 private:
+    error_code get_content_in_batches(uint64_t start,
+                                      int64_t length,
+                                      /*out*/ std::ostream &os,
+                                      /*out*/ uint64_t &transfered_bytes);
     error_code get_content(uint64_t pos,
-                           int64_t length,
+                           uint64_t length,
                            /*out*/ std::ostream &os,
                            /*out*/ uint64_t &transfered_bytes);
     error_code put_content(/*in-out*/ std::istream &is,

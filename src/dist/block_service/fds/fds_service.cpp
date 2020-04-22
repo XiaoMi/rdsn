@@ -526,11 +526,12 @@ error_code fds_file_object::get_file_meta()
     }
 }
 
-error_code fds_file_object::get_content(uint64_t pos,
-                                        int64_t length,
-                                        /*out*/ std::ostream &os,
-                                        /*out*/ uint64_t &transfered_bytes)
+error_code fds_file_object::get_content_in_batches(uint64_t start,
+                                                   int64_t length,
+                                                   /*out*/ std::ostream &os,
+                                                   /*out*/ uint64_t &transfered_bytes)
 {
+    const uint64_t BATCH_MAX = 1e6;
     error_code err;
     transfered_bytes = 0;
 
@@ -542,34 +543,51 @@ error_code fds_file_object::get_content(uint64_t pos,
         }
     }
 
-    // get tokens from token bucket
-    uint32_t consume_token;
+    // if length = -1, it means we should transfer the whole file
+    uint64_t to_transfer_bytes = length;
     if (-1 == length) {
-        consume_token = _size * 8;
-    } else {
-        consume_token = length * 8;
-    }
-    if (!_service->_token_bucket->consumeWithBorrowAndWait(consume_token)) {
-        return ERR_BUSY;
+        to_transfer_bytes = _size;
     }
 
+    uint64_t pos = start;
+    uint64_t once_transfered_bytes = 0;
+    while (pos < start + to_transfer_bytes) {
+        uint64_t batch = std::min(BATCH_MAX, start + to_transfer_bytes - pos);
+        // get tokens from token bucket
+        _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
+
+        err = get_content(pos, batch, os, once_transfered_bytes);
+        transfered_bytes += once_transfered_bytes;
+        if (err != ERR_OK || once_transfered_bytes < batch) {
+            ddebug("once_transfered_bytes = %ld, batch = %ld", once_transfered_bytes, batch);
+            return err;
+        }
+        pos += batch;
+    }
+
+    return ERR_OK;
+}
+
+error_code fds_file_object::get_content(uint64_t pos,
+                                        uint64_t length,
+                                        /*out*/ std::ostream &os,
+                                        /*out*/ uint64_t &transfered_bytes)
+{
+    error_code err;
+    transfered_bytes = 0;
     while (true) {
         // if we have download enough or we have reach the end
-        if ((length != -1 && (int64_t)transfered_bytes >= length) ||
-            transfered_bytes + pos >= _size) {
+        if ((int64_t)transfered_bytes >= length || transfered_bytes + pos >= _size) {
             return ERR_OK;
         }
 
         try {
             galaxy::fds::GalaxyFDSClient *c = _service->get_client();
             std::shared_ptr<galaxy::fds::FDSObject> obj;
-            if (length == -1)
-                obj = c->getObject(_service->get_bucket_name(), _fds_path, pos + transfered_bytes);
-            else
-                obj = c->getObject(_service->get_bucket_name(),
-                                   _fds_path,
-                                   pos + transfered_bytes,
-                                   length - transfered_bytes);
+            obj = c->getObject(_service->get_bucket_name(),
+                               _fds_path,
+                               pos + transfered_bytes,
+                               length - transfered_bytes);
             dinfo("get object from fds succeed, remote_file(%s)", _fds_path.c_str());
             std::istream &is = obj->objectContent();
             transfered_bytes += utils::copy_stream(is, os, PIECE_SIZE);
@@ -742,7 +760,7 @@ dsn::task_ptr fds_file_object::read(const read_request &req,
         read_response resp;
         std::ostringstream os;
         uint64_t transferd_size;
-        resp.err = get_content(req.remote_pos, req.remote_length, os, transferd_size);
+        resp.err = get_content_in_batches(req.remote_pos, req.remote_length, os, transferd_size);
         if (os.tellp() > 0) {
             std::string *output = new std::string();
             *output = os.str();
@@ -794,7 +812,8 @@ dsn::task_ptr fds_file_object::download(const download_request &req,
     auto download_background = [this, req, handle, t]() {
         download_response resp;
         uint64_t transfered_size;
-        resp.err = get_content(req.remote_pos, req.remote_length, *handle, transfered_size);
+        resp.err =
+            get_content_in_batches(req.remote_pos, req.remote_length, *handle, transfered_size);
         resp.downloaded_size = 0;
         if (handle->tellp() != -1)
             resp.downloaded_size = handle->tellp();
