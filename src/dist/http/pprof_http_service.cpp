@@ -320,20 +320,18 @@ void pprof_http_service::symbol_handler(const http_request &req, http_response &
 //                          //
 // == ip:port/pprof/heap == //
 //                          //
-
+// TODO(hyc): add lock to aviod this function called concurently
 void pprof_http_service::heap_handler(const http_request &req, http_response &resp)
 {
     const std::string SECOND = "seconds";
-    const int defaultSecond = 10;
+    const uint32_t kDefaultSecond = 10;
 
-    // get seconds from query params, default value is `defaultSecond`
-    int seconds = defaultSecond;
+    // get seconds from query params, default value is `kDefaultSecond`
+    uint32_t seconds = kDefaultSecond;
     const auto iter = req.query_args.find(SECOND);
     if (iter != req.query_args.end()) {
         const auto seconds_str = iter->second;
-        if (!seconds_str.empty()) {
-            seconds = std::atoi(seconds_str.c_str());
-        }
+        dsn::internal::buf2unsigned(seconds_str, seconds);
     }
 
     std::stringstream profile_name_prefix;
