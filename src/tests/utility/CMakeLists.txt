@@ -13,8 +13,7 @@ set(MY_PROJ_LIBS
     gtest
 )
 
-set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)
-
 # Extra files that will be installed
+set(MY_BINPLACES "")
 
 dsn_add_test()
