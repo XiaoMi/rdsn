@@ -203,7 +203,6 @@ private:
     friend class replication_checker;
     friend class test::test_checker;
     friend class meta_service_test_app;
-    friend class bulk_load_service_test;
 
     replication_options _opts;
     meta_options _meta_opts;
