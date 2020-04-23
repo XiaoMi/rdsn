@@ -58,7 +58,8 @@ void bulk_load_service::create_bulk_load_root_dir(error_code &err, task_tracker 
         &tracker);
 }
 
-void bulk_load_service::sync_apps_bulk_load_from_remote_stroage(error_code &err, task_tracker &tracker)
+void bulk_load_service::sync_apps_bulk_load_from_remote_stroage(error_code &err,
+                                                                task_tracker &tracker)
 {
     // TODO(heyuchen): TBD
 }

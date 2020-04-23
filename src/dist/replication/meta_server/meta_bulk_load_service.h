@@ -50,7 +50,7 @@ public:
 
     void initialize_bulk_load_service();
 
-private:   
+private:
     void create_bulk_load_root_dir(error_code &err, task_tracker &tracker);
 
     ///
