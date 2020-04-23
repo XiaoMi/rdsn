@@ -50,16 +50,13 @@ public:
 
     void initialize_bulk_load_service();
 
-    // client -> meta server to start bulk load
-    void on_start_bulk_load(start_bulk_load_rpc rpc);
+private:   
+    void create_bulk_load_root_dir(error_code &err, task_tracker &tracker);
 
-private:
     ///
     /// sync bulk load states from remote storage
     /// called when service initialized or meta server leader switch
     ///
-    void create_bulk_load_root_dir(error_code &err, task_tracker &tracker);
-
     void sync_apps_bulk_load_from_remote_stroage(error_code &err, task_tracker &tracker);
 
     ///
@@ -67,40 +64,6 @@ private:
     /// called when service initialized or meta server leader switch
     ///
     void try_to_continue_bulk_load();
-
-    ///
-    /// helper functions
-    ///
-    inline std::string get_bulk_load_info_path(const std::string &app_name,
-                                               const std::string &cluster_name) const
-    {
-        std::ostringstream oss;
-        oss << _meta_svc->get_options().bulk_load_root << "/" << cluster_name << "/" << app_name
-            << "/" << bulk_load_constant::BULK_LOAD_INFO;
-        return oss.str();
-    }
-
-    inline std::string get_app_bulk_load_path(int32_t app_id) const
-    {
-        std::stringstream oss;
-        oss << _bulk_load_root << "/" << app_id;
-        return oss.str();
-    }
-
-    inline std::string get_partition_bulk_load_path(const std::string &app_bulk_load_path,
-                                                    int partition_id) const
-    {
-        std::stringstream oss;
-        oss << app_bulk_load_path << "/" << partition_id;
-        return oss.str();
-    }
-
-    inline std::string get_partition_bulk_load_path(const gpid &pid) const
-    {
-        std::stringstream oss;
-        oss << get_app_bulk_load_path(pid.get_app_id()) << "/" << pid.get_partition_index();
-        return oss.str();
-    }
 
 private:
     friend class bulk_load_service_test;

@@ -384,8 +384,6 @@ void meta_service::register_rpc_handlers()
         RPC_CM_DDD_DIAGNOSE, "ddd_diagnose", &meta_service::ddd_diagnose);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_APP_PARTITION_SPLIT, "app_partition_split", &meta_service::on_app_partition_split);
-    register_rpc_handler_with_rpc_holder(
-        RPC_CM_START_BULK_LOAD, "start_bulk_load", &meta_service::on_start_bulk_load);
 }
 
 int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address)
@@ -934,22 +932,6 @@ void meta_service::on_app_partition_split(app_partition_split_rpc rpc)
                      tracker(),
                      [this, rpc]() { _split_svc->app_partition_split(std::move(rpc)); },
                      server_state::sStateHash);
-}
-
-void meta_service::on_start_bulk_load(start_bulk_load_rpc rpc)
-{
-    auto &response = rpc.response();
-    RPC_CHECK_STATUS(rpc.dsn_request(), response);
-
-    if (!_bulk_load_svc) {
-        derror("meta doesn't support bulk load");
-        response.err = ERR_SERVICE_NOT_ACTIVE;
-    } else {
-        tasking::enqueue(LPC_META_STATE_NORMAL,
-                         tracker(),
-                         [this, rpc]() { _bulk_load_svc->on_start_bulk_load(std::move(rpc)); },
-                         server_state::sStateHash);
-    }
 }
 
 } // namespace replication

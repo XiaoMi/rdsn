@@ -3,7 +3,6 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/utility/fail_point.h>
 
 #include "meta_bulk_load_service.h"
 
@@ -28,12 +27,6 @@ void bulk_load_service::initialize_bulk_load_service()
     if (err == ERR_OK) {
         try_to_continue_bulk_load();
     }
-}
-
-// ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::on_start_bulk_load(start_bulk_load_rpc rpc)
-{
-    // TODO(heyuchen): TBD
 }
 
 // ThreadPool: THREAD_POOL_META_STATE

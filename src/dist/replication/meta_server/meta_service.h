@@ -186,9 +186,6 @@ private:
     // split
     void on_app_partition_split(app_partition_split_rpc rpc);
 
-    // bulk load
-    void on_start_bulk_load(start_bulk_load_rpc rpc);
-
     // common routines
     // ret:
     //   1. the meta is leader
