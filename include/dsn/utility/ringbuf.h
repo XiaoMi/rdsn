@@ -87,9 +87,7 @@ public:
 
     bool empty() const
     {
-        if (_size != 0)
-            return false;
-        return true;
+        return _size == 0;
     }
 
     int size() const { return _size; }
