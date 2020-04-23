@@ -44,6 +44,7 @@
 #include "server_load_balancer.h"
 #include "duplication/meta_duplication_service.h"
 #include "meta_split_service.h"
+#include "meta_bulk_load_service.h"
 
 namespace dsn {
 namespace replication {
@@ -239,6 +240,13 @@ void meta_service::start_service()
                          nullptr,
                          std::bind(&backup_service::start, _backup_handler.get()));
     }
+
+    if (_bulk_load_svc) {
+        ddebug("start bulk load service");
+        tasking::enqueue(LPC_META_STATE_NORMAL, nullptr, [this]() {
+            _bulk_load_svc->initialize_bulk_load_service();
+        });
+    }
 }
 
 // the start function is executed in threadpool default
@@ -300,6 +308,9 @@ error_code meta_service::start()
             _opts.cold_backup_root,
             [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
     }
+
+    _bulk_load_svc = make_unique<bulk_load_service>(
+        this, meta_options::concat_path_unix_style(_cluster_root, "bulk_load"));
 
     // initialize the server_state
     _state->initialize(this, meta_options::concat_path_unix_style(_cluster_root, "apps"));
@@ -373,6 +384,8 @@ void meta_service::register_rpc_handlers()
         RPC_CM_DDD_DIAGNOSE, "ddd_diagnose", &meta_service::ddd_diagnose);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_APP_PARTITION_SPLIT, "app_partition_split", &meta_service::on_app_partition_split);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_START_BULK_LOAD, "start_bulk_load", &meta_service::on_start_bulk_load);
 }
 
 int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address)
@@ -921,6 +934,22 @@ void meta_service::on_app_partition_split(app_partition_split_rpc rpc)
                      tracker(),
                      [this, rpc]() { _split_svc->app_partition_split(std::move(rpc)); },
                      server_state::sStateHash);
+}
+
+void meta_service::on_start_bulk_load(start_bulk_load_rpc rpc)
+{
+    auto &response = rpc.response();
+    RPC_CHECK_STATUS(rpc.dsn_request(), response);
+
+    if (!_bulk_load_svc) {
+        derror("meta doesn't support bulk load");
+        response.err = ERR_SERVICE_NOT_ACTIVE;
+    } else {
+        tasking::enqueue(LPC_META_STATE_NORMAL,
+                         tracker(),
+                         [this, rpc]() { _bulk_load_svc->on_start_bulk_load(std::move(rpc)); },
+                         server_state::sStateHash);
+    }
 }
 
 } // namespace replication
