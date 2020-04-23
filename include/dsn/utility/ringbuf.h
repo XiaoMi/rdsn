@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <dsn/c/api_utilities.h>
+
 /*
 Example：
 
@@ -66,6 +68,7 @@ public:
 
     void pop()
     {
+        dassert(!empty(), "this ringbuf is empty now");
         _head++;
         _size--;
         if (_head >= MaxElements) {
@@ -76,6 +79,7 @@ public:
 
     Type back() const
     {
+        dassert(!empty(), "this ringbuf is empty now");
         int index = _tail - 1;
         if (index < 0) {
             index += MaxElements;
@@ -83,12 +87,13 @@ public:
         return _buf[index];
     }
 
-    Type front() const { return _buf[_head]; }
-
-    bool empty() const
+    Type front() const
     {
-        return _size == 0;
+        dassert(!empty(), "this ringbuf is empty now");
+        return _buf[_head];
     }
+
+    bool empty() const { return _size == 0; }
 
     int size() const { return _size; }
 
