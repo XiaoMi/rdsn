@@ -16,15 +16,5 @@ set(MY_PROJ_LIBS
 set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)
 
 # Extra files that will be installed
-set(MY_BINPLACES
-    "${CMAKE_CURRENT_SOURCE_DIR}/run.sh"
-    "${CMAKE_CURRENT_SOURCE_DIR}/restart_zookeeper.sh"
-    "${CMAKE_CURRENT_SOURCE_DIR}/clear.sh"
-    "${CMAKE_CURRENT_SOURCE_DIR}/clear.cmd"
-    "${CMAKE_CURRENT_SOURCE_DIR}/config-test.ini"
-    "${CMAKE_CURRENT_SOURCE_DIR}/config-whitelist-test.ini"
-    "${CMAKE_CURRENT_SOURCE_DIR}/config-whitelist-test-failed.ini"
-    "${CMAKE_CURRENT_SOURCE_DIR}/gtest.filter"
-)
 
 dsn_add_test()
