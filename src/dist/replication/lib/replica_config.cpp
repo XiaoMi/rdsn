@@ -362,6 +362,13 @@ void replica::update_configuration_on_meta_server(config_type::type type,
                                                   ::dsn::rpc_address node,
                                                   partition_configuration &newConfig)
 {
+    // type should never be `CT_REGISTER_CHILD`
+    // if this happens, it means serious mistake happened during partition split
+    // assert here to stop split and avoid splitting wrong
+    if (type == config_type::CT_REGISTER_CHILD) {
+        dassert(false, "invalid config_type, type = %s", enum_to_string(type));
+    }
+
     newConfig.last_committed_decree = last_committed_decree();
 
     if (type == config_type::CT_PRIMARY_FORCE_UPDATE_BALLOT) {
@@ -370,8 +377,6 @@ void replica::update_configuration_on_meta_server(config_type::type type,
                 "");
         dassert(
             newConfig.primary == node, "%s VS %s", newConfig.primary.to_string(), node.to_string());
-    } else if (type == config_type::CT_REGISTER_CHILD) {
-        dassert(false, "invalid config_type, type = %s", enum_to_string(type));
     } else if (type != config_type::CT_ASSIGN_PRIMARY &&
                type != config_type::CT_UPGRADE_TO_PRIMARY) {
         dassert(status() == partition_status::PS_PRIMARY,
