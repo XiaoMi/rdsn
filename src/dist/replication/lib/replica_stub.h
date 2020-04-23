@@ -100,6 +100,7 @@ public:
     void on_query_app_info(const query_app_info_request &req,
                            /*out*/ query_app_info_response &resp);
     void on_cold_backup(const backup_request &request, /*out*/ backup_response &response);
+    void on_clear_cold_backup(const backup_clear_request &request);
 
     //
     //    messages from peers (primary or secondary)
@@ -327,13 +328,17 @@ private:
     dsn_handle_t _query_compact_command;
     dsn_handle_t _query_app_envs_command;
     dsn_handle_t _useless_dir_reserve_seconds_command;
+#ifdef DSN_ENABLE_GPERF
+    dsn_handle_t _release_tcmalloc_memory_command;
     dsn_handle_t _max_reserved_memory_percentage_command;
+#endif
 
     bool _deny_client;
     bool _verbose_client_log;
     bool _verbose_commit_log;
     int32_t _gc_disk_error_replica_interval_seconds;
     int32_t _gc_disk_garbage_replica_interval_seconds;
+    bool _release_tcmalloc_memory;
     int32_t _mem_release_max_reserved_mem_percentage;
 
     // we limit LT_APP max concurrent count, because nfs service implementation is
@@ -414,6 +419,9 @@ private:
 
     perf_counter_wrapper _counter_recent_write_size_exceed_threshold_count;
 
+#ifdef DSN_ENABLE_GPERF
+    perf_counter_wrapper _counter_tcmalloc_release_memory_size;
+#endif
     dsn::task_tracker _tracker;
 };
 } // namespace replication

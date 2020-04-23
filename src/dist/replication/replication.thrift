@@ -508,8 +508,6 @@ struct configuration_restore_request
     8:bool              skip_bad_partition;
 }
 
-// if backup_id == 0, means clear all backup resources (including backup contexts and
-// checkpoint dirs) of this policy.
 struct backup_request
 {
     1:dsn.gpid              pid;
@@ -526,6 +524,13 @@ struct backup_response
     4:string            policy_name;
     5:i64               backup_id;
     6:i64               checkpoint_total_size;
+}
+
+// clear all backup resources (including backup contexts and checkpoint dirs) of this policy.
+struct backup_clear_request
+{
+    1:dsn.gpid          pid;
+    2:string            policy_name;
 }
 
 struct configuration_modify_backup_policy_request
@@ -659,6 +664,22 @@ enum duplication_status
     DS_REMOVED,
 }
 
+// How duplication reacts on permanent failure.
+enum duplication_fail_mode
+{
+    // The default mode. If some permanent failure occurred that makes duplication
+    // blocked, it will retry forever until external interference.
+    FAIL_SLOW = 0,
+
+    // Skip the writes that failed to duplicate, which means minor data loss on the remote cluster.
+    // This will certainly achieve better stability of the system.
+    FAIL_SKIP,
+
+    // Stop immediately after it ensures itself unable to duplicate.
+    // WARN: this mode kills the server process, replicas on the server will all be effected.
+    FAIL_FAST
+}
+
 // This request is sent from client to meta.
 struct duplication_add_request
 {
@@ -686,6 +707,7 @@ struct duplication_modify_request
     1:string                    app_name;
     2:i32                       dupid;
     3:optional duplication_status status;
+    4:optional duplication_fail_mode fail_mode;
 }
 
 struct duplication_modify_response
@@ -709,8 +731,7 @@ struct duplication_entry
     // partition_index => confirmed decree
     5:optional map<i32, i64> progress;
 
-    // partition_index => approximate number of mutations that are not confirmed yet
-    6:optional map<i32, i64> not_confirmed;
+    7:optional duplication_fail_mode fail_mode;
 }
 
 // This request is sent from client to meta.
