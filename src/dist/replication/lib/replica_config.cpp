@@ -366,7 +366,7 @@ void replica::update_configuration_on_meta_server(config_type::type type,
     // if this happens, it means serious mistake happened during partition split
     // assert here to stop split and avoid splitting wrong
     if (type == config_type::CT_REGISTER_CHILD) {
-        dassert(false, "invalid config_type, type = %s", enum_to_string(type));
+        dassert_replica(false, "invalid config_type, type = {}", enum_to_string(type));
     }
 
     newConfig.last_committed_decree = last_committed_decree();
