@@ -25,6 +25,7 @@
 
 #include "pprof_http_service.h"
 
+#include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/defer.h>
 #include <dsn/utility/timer.h>
@@ -320,9 +321,15 @@ void pprof_http_service::symbol_handler(const http_request &req, http_response &
 //                          //
 // == ip:port/pprof/heap == //
 //                          //
-// TODO(hyc): add lock to aviod this function called concurently
 void pprof_http_service::heap_handler(const http_request &req, http_response &resp)
 {
+    if (_in_pprof_action.load()) {
+        dwarn_f("node is already exectuting pprof action, please wait and retry");
+        resp.status_code = http_status_code::internal_server_error;
+        return;
+    }
+    _in_pprof_action.store(true);
+
     const std::string SECOND = "seconds";
     const uint32_t kDefaultSecond = 10;
 
@@ -345,6 +352,8 @@ void pprof_http_service::heap_handler(const http_request &req, http_response &re
     resp.status_code = http_status_code::ok;
     resp.body = profile;
     delete profile;
+
+    _in_pprof_action.store(false);
 }
 
 //                             //
@@ -411,9 +420,18 @@ void pprof_http_service::cmdline_handler(const http_request &req, http_response 
 
 void pprof_http_service::growth_handler(const http_request &req, http_response &resp)
 {
+    if (_in_pprof_action.load()) {
+        dwarn_f("node is already exectuting pprof action, please wait and retry");
+        resp.status_code = http_status_code::internal_server_error;
+        return;
+    }
+    _in_pprof_action.store(true);
+
     MallocExtension *malloc_ext = MallocExtension::instance();
     ddebug("received requests for growth profile");
     malloc_ext->GetHeapGrowthStacks(&resp.body);
+
+    _in_pprof_action.store(false);
 }
 
 //                             //
@@ -445,6 +463,13 @@ static bool get_cpu_profile(std::string &result, useconds_t seconds)
 
 void pprof_http_service::profile_handler(const http_request &req, http_response &resp)
 {
+    if (_in_pprof_action.load()) {
+        dwarn_f("node is already exectuting pprof action, please wait and retry");
+        resp.status_code = http_status_code::internal_server_error;
+        return;
+    }
+    _in_pprof_action.store(true);
+
     useconds_t seconds = 60000000;
 
     const char *req_url = req.full_url.to_string().data();
@@ -467,6 +492,8 @@ void pprof_http_service::profile_handler(const http_request &req, http_response 
     resp.status_code = http_status_code::ok;
 
     get_cpu_profile(resp.body, seconds);
+
+    _in_pprof_action.store(false);
 }
 
 } // namespace dsn
