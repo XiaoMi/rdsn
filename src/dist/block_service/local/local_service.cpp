@@ -412,7 +412,8 @@ dsn::task_ptr local_file_object::read(const read_request &req,
                 }
 
                 dinfo("read file(%s), size = %ld", file_name().c_str(), total_sz);
-                std::shared_ptr<char> buf = std::shared_ptr<char>(new char[total_sz + 1], std::default_delete<char[]>());
+                std::shared_ptr<char> buf =
+                    std::shared_ptr<char>(new char[total_sz + 1], std::default_delete<char[]>());
                 std::ifstream fin(file_name(), std::ifstream::in);
                 if (!fin.is_open()) {
                     resp.err = ERR_FS_INTERNAL;
