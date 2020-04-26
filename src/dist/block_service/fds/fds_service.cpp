@@ -253,6 +253,7 @@ dsn::task_ptr fds_service::list_dir(const ls_request &req,
     return t;
 }
 
+// TODO(zhaoliwei) refactor these code, because there have same code in get_file_meta()
 dsn::task_ptr fds_service::create_file(const create_file_request &req,
                                        dsn::task_code code,
                                        const create_file_callback &cb,
