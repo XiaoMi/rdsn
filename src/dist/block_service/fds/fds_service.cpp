@@ -107,8 +107,9 @@ fds_service::fds_service()
     /// will overwrite what was sent before for the same file. So we must send a file as a whole.
     /// If file size > burst size, the file will be rejected by the token bucket.
     /// And sst maximum file size is about 64MB, so burst size must be greater than 64MB.
-    uint32_t burst_size = std::max(3 * rate_limit * 1e6, 70e6 * 8);
-    _token_bucket.reset(new folly::TokenBucket(rate_limit * 1e6, burst_size));
+    const int BYTE_TO_BIT = 8;
+    uint32_t burst_size = std::max(3 * rate_limit * 1e6 / BYTE_TO_BIT, 70e6);
+    _token_bucket.reset(new folly::TokenBucket(rate_limit * 1e6 / BYTE_TO_BIT, burst_size));
 }
 
 fds_service::~fds_service() {}
@@ -503,10 +504,10 @@ error_code fds_file_object::get_file_meta()
         auto meta = c->getObjectMetadata(_service->get_bucket_name(), _fds_path)->metadata();
         auto iter = meta.find(fds_service::FILE_LENGTH_CUSTOM_KEY);
         if (iter != meta.end()) {
-            bool valid = buf2int64(iter->second, _size) if (!valid)
-            {
-                derror(...);
-                return ...;
+            bool valid = dsn::buf2uint64(iter->second, _size);
+            if (!valid || _size < 0) {
+                derror("Error to get file size");
+                return ERR_FS_INTERNAL;
             }
         }
 
@@ -558,14 +559,14 @@ error_code fds_file_object::get_content_in_batches(uint64_t start,
     while (pos < start + to_transfer_bytes) {
         uint64_t batch_len = std::min(BATCH_MAX, start + to_transfer_bytes - pos);
         // get tokens from token bucket
-        _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
+        _service->_token_bucket->consumeWithBorrowAndWait(batch_len);
 
-        err = get_content(pos, batch, os, once_transfered_bytes);
+        err = get_content(pos, batch_len, os, once_transfered_bytes);
         transfered_bytes += once_transfered_bytes;
-        if (err != ERR_OK || once_transfered_bytes < batch) {
+        if (err != ERR_OK || once_transfered_bytes < batch_len) {
             return err;
         }
-        pos += batch;
+        pos += batch_len;
     }
 
     return ERR_OK;
@@ -626,7 +627,7 @@ error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
     galaxy::fds::GalaxyFDSClient *c = _service->get_client();
 
     // get tokens from token bucket
-    _service->_token_bucket->consumeWithBorrowAndWait(to_transfer_bytes * 8);
+    _service->_token_bucket->consumeWithBorrowAndWait(to_transfer_bytes);
 
     try {
         c->putObject(_service->get_bucket_name(), _fds_path, is, galaxy::fds::FDSObjectMetadata());
