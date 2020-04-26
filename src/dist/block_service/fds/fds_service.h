@@ -71,7 +71,8 @@ public:
 private:
     std::shared_ptr<galaxy::fds::GalaxyFDSClient> _client;
     std::string _bucket_name;
-    std::unique_ptr<folly::TokenBucket> _token_bucket;
+    std::unique_ptr<folly::TokenBucket> _read_token_bucket;
+    std::unique_ptr<folly::TokenBucket> _write_token_bucket;
 
     friend class fds_file_object;
 };

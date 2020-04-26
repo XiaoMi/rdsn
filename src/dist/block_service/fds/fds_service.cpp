@@ -102,15 +102,23 @@ const std::string fds_service::FILE_MD5_KEY = "content-md5";
 
 fds_service::fds_service()
 {
-    uint32_t rate_limit = (uint32_t)dsn_config_get_value_uint64(
-        "replication", "fds_limit_rate", 20, "rate limit of fds(Mb/s)");
-    /// For put operation, we can't send a file in batches. Because putContent interface of fds
+    const int BYTE_TO_BIT = 8;
+
+    uint32_t write_rate_limit = (uint32_t)dsn_config_get_value_uint64(
+        "replication", "fds_write_limit_rate", 20, "rate limit of fds(Mb/s)");
+    /// For write operation, we can't send a file in batches. Because putContent interface of fds
     /// will overwrite what was sent before for the same file. So we must send a file as a whole.
     /// If file size > burst size, the file will be rejected by the token bucket.
     /// And sst maximum file size is about 64MB, so burst size must be greater than 64MB.
-    const int BYTE_TO_BIT = 8;
-    uint32_t burst_size = std::max(3 * rate_limit * 1e6 / BYTE_TO_BIT, 70e6);
-    _token_bucket.reset(new folly::TokenBucket(rate_limit * 1e6 / BYTE_TO_BIT, burst_size));
+    uint32_t burst_size = std::max(3 * write_rate_limit * 1e6 / BYTE_TO_BIT, 70e6);
+    _write_token_bucket.reset(
+        new folly::TokenBucket(write_rate_limit * 1e6 / BYTE_TO_BIT, burst_size));
+
+    uint32_t read_rate_limit = (uint32_t)dsn_config_get_value_uint64(
+        "replication", "fds_read_limit_rate", 20, "rate limit of fds(Mb/s)");
+    burst_size = 3 * write_rate_limit * 1e6 / BYTE_TO_BIT;
+    _read_token_bucket.reset(
+        new folly::TokenBucket(read_rate_limit * 1e6 / BYTE_TO_BIT, burst_size));
 }
 
 fds_service::~fds_service() {}
@@ -558,7 +566,7 @@ error_code fds_file_object::get_content_in_batches(uint64_t start,
     while (pos < start + to_transfer_bytes) {
         uint64_t batch_len = std::min(BATCH_MAX, start + to_transfer_bytes - pos);
         // get tokens from token bucket
-        _service->_token_bucket->consumeWithBorrowAndWait(batch_len);
+        _service->_read_token_bucket->consumeWithBorrowAndWait(batch_len);
 
         err = get_content(pos, batch_len, os, once_transfered_bytes);
         transfered_bytes += once_transfered_bytes;
@@ -626,7 +634,7 @@ error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
     galaxy::fds::GalaxyFDSClient *c = _service->get_client();
 
     // get tokens from token bucket
-    _service->_token_bucket->consumeWithBorrowAndWait(to_transfer_bytes);
+    _service->_write_token_bucket->consumeWithBorrowAndWait(to_transfer_bytes);
 
     try {
         c->putObject(_service->get_bucket_name(), _fds_path, is, galaxy::fds::FDSObjectMetadata());
