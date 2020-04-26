@@ -323,12 +323,12 @@ void pprof_http_service::symbol_handler(const http_request &req, http_response &
 //                          //
 void pprof_http_service::heap_handler(const http_request &req, http_response &resp)
 {
-    if (_in_pprof_action.load()) {
+    bool in_pprof = false;
+    if (!_in_pprof_action.compare_exchange_strong(in_pprof, true)) {
         dwarn_f("node is already exectuting pprof action, please wait and retry");
         resp.status_code = http_status_code::internal_server_error;
         return;
     }
-    _in_pprof_action.store(true);
 
     const std::string SECOND = "seconds";
     const uint32_t kDefaultSecond = 10;
@@ -420,12 +420,12 @@ void pprof_http_service::cmdline_handler(const http_request &req, http_response 
 
 void pprof_http_service::growth_handler(const http_request &req, http_response &resp)
 {
-    if (_in_pprof_action.load()) {
+    bool in_pprof = false;
+    if (!_in_pprof_action.compare_exchange_strong(in_pprof, true)) {
         dwarn_f("node is already exectuting pprof action, please wait and retry");
         resp.status_code = http_status_code::internal_server_error;
         return;
     }
-    _in_pprof_action.store(true);
 
     MallocExtension *malloc_ext = MallocExtension::instance();
     ddebug("received requests for growth profile");
@@ -463,12 +463,12 @@ static bool get_cpu_profile(std::string &result, useconds_t seconds)
 
 void pprof_http_service::profile_handler(const http_request &req, http_response &resp)
 {
-    if (_in_pprof_action.load()) {
+    bool in_pprof = false;
+    if (!_in_pprof_action.compare_exchange_strong(in_pprof, true)) {
         dwarn_f("node is already exectuting pprof action, please wait and retry");
         resp.status_code = http_status_code::internal_server_error;
         return;
     }
-    _in_pprof_action.store(true);
 
     useconds_t seconds = 60000000;
 
