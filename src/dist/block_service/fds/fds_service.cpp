@@ -551,10 +551,7 @@ error_code fds_file_object::get_content_in_batches(uint64_t start,
     }
 
     // if length = -1, it means we should transfer the whole file
-    uint64_t to_transfer_bytes = length;
-    if (-1 == length) {
-        to_transfer_bytes = _size;
-    }
+    uint64_t to_transfer_bytes = (length == -1 ? _size : length);
 
     uint64_t pos = start;
     uint64_t once_transfered_bytes = 0;
