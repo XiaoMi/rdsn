@@ -536,6 +536,7 @@ error_code fds_file_object::get_content_in_batches(uint64_t start,
                                                    /*out*/ std::ostream &os,
                                                    /*out*/ uint64_t &transfered_bytes)
 {
+    // the max batch size is 1MB
     const uint64_t BATCH_MAX = 1e6;
     error_code err = ERR_OK;
     transfered_bytes = 0;
