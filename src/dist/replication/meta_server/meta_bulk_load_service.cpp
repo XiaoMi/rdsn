@@ -47,7 +47,7 @@ void bulk_load_service::create_bulk_load_root_dir(error_code &err, task_tracker 
                     nullptr,
                     std::bind(&bulk_load_service::create_bulk_load_root_dir, this, err, tracker),
                     0,
-                    std::chrono::milliseconds(1000));
+                    std::chrono::seconds(1));
             } else {
                 err = ec;
                 dfatal_f(
