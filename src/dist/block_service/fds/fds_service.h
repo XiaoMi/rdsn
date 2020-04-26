@@ -2,7 +2,9 @@
 #define FDS_SERVICE_H
 
 #include <dsn/dist/block_service.h>
-#include <dsn/utility/TokenBucket.h>
+namespace folly {
+class TokenBucket;
+} // namespace folly
 
 namespace galaxy {
 namespace fds {
