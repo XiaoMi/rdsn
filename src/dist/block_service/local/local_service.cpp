@@ -420,6 +420,7 @@ dsn::task_ptr local_file_object::read(const read_request &req,
                 } else {
                     fin.seekg(static_cast<int64_t>(req.remote_pos), fin.beg);
                     fin.read((char *)buf.c_str(), total_sz);
+                    buf[fin.gcount()] = '\0';
                     resp.buffer = blob::create_from_bytes(std::move(buf));
                 }
                 fin.close();
