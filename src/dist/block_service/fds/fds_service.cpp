@@ -19,6 +19,7 @@
 #include <string.h>
 #include <dsn/utility/defer.h>
 #include <dsn/utility/filesystem.h>
+#include <dsn/utility/TokenBucket.h>
 
 namespace dsn {
 namespace dist {

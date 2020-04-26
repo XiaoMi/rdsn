@@ -2,7 +2,13 @@
 #define FDS_SERVICE_H
 
 #include <dsn/dist/block_service.h>
-#include <dsn/utility/TokenBucket.h>
+
+namespace folly {
+template <typename Clock>
+class BasicTokenBucket;
+
+using TokenBucket = BasicTokenBucket<std::chrono::steady_clock>;
+}
 
 namespace galaxy {
 namespace fds {
