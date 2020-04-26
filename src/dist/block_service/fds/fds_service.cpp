@@ -503,7 +503,11 @@ error_code fds_file_object::get_file_meta()
         auto meta = c->getObjectMetadata(_service->get_bucket_name(), _fds_path)->metadata();
         auto iter = meta.find(fds_service::FILE_LENGTH_CUSTOM_KEY);
         if (iter != meta.end()) {
-            _size = atoll(iter->second.c_str());
+            bool valid = buf2int64(iter->second, _size)
+            if(!valid) {
+              derror(...);
+              return ...;
+            }
         }
 
         iter = meta.find(fds_service::FILE_MD5_KEY);
