@@ -113,99 +113,99 @@ MAKE_EVENT_CODE(LPC_META_STATE_NORMAL, TASK_PRIORITY_COMMON)
 
 // THREAD_POOL_REPLICATION
 #define CURRENT_THREAD_POOL THREAD_POOL_REPLICATION
-    MAKE_EVENT_CODE(LPC_REPLICATION_INIT_LOAD, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(
-        RPC_REPLICATION_WRITE_EMPTY,
-        TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_PER_REPLICA_CHECKPOINT_TIMER,
-                                              TASK_PRIORITY_COMMON)
-        MAKE_EVENT_CODE(LPC_PER_REPLICA_COLLECT_INFO_TIMER, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(
-            LPC_WRITE_THROTTLING_DELAY,
-            TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_GROUP_CHECK,
-                                                  TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_CM_DISCONNECTED_SCATTER,
-                                                                                        TASK_PRIORITY_HIGH)
-            MAKE_EVENT_CODE(LPC_QUERY_NODE_CONFIGURATION_SCATTER, TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(
-                LPC_QUERY_NODE_CONFIGURATION_SCATTER2,
-                TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(LPC_DELAY_UPDATE_CONFIG,
-                                                    TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(LPC_DELAY_LEARN,
-                                                                                        TASK_PRIORITY_HIGH)
-                MAKE_EVENT_CODE(LPC_LEARN_REMOTE_DELTA_FILES_COMPLETED, TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(
-                    LPC_CHECKPOINT_REPLICA_COMPLETED,
-                    TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(LPC_SIM_UPDATE_PARTITION_CONFIGURATION_REPLY,
-                                                        TASK_PRIORITY_COMMON) MAKE_EVENT_CODE_AIO(LPC_WRITE_REPLICATION_LOG,
-                                                                                                  TASK_PRIORITY_HIGH)
-                    MAKE_EVENT_CODE(LPC_REPLICATION_ERROR, TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_AIO(
-                        LPC_LERARN_REMOTE_DISK_STATE,
-                        TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(RPC_CONFIG_PROPOSAL,
-                                                                TASK_PRIORITY_HIGH)
-                        MAKE_EVENT_CODE_RPC(RPC_QUERY_PN_DECREE, TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(
-                            RPC_QUERY_REPLICA_INFO,
-                            TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(RPC_PREPARE, TASK_PRIORITY_HIGH)
-                            MAKE_EVENT_CODE(LPC_DELAY_PREPARE, TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(
-                                RPC_GROUP_CHECK,
-                                TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(RPC_QUERY_APP_INFO,
-                                                                        TASK_PRIORITY_COMMON)
-                                MAKE_EVENT_CODE_RPC(RPC_LEARN, TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(
-                                    RPC_LEARN_COMPLETION_NOTIFY,
-                                    TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(RPC_LEARN_ADD_LEARNER,
-                                                                            TASK_PRIORITY_HIGH)
-                                    MAKE_EVENT_CODE_RPC(RPC_REMOVE_REPLICA, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE_RPC(
-                                        RPC_REPLICA_COPY_LAST_CHECKPOINT,
-                                        TASK_PRIORITY_COMMON) MAKE_EVENT_CODE_AIO(LPC_REPLICA_COPY_LAST_CHECKPOINT_DONE,
-                                                                                  TASK_PRIORITY_COMMON)
-                                        MAKE_EVENT_CODE_RPC(RPC_COLD_BACKUP, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE_RPC(
-                                            RPC_CLEAR_COLD_BACKUP,
-                                            TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_REPLICATION_COLD_BACKUP,
-                                                                                  TASK_PRIORITY_COMMON)
-                                            MAKE_EVENT_CODE(LPC_EXEC_COMMAND_ON_REPLICA, TASK_PRIORITY_LOW) MAKE_EVENT_CODE(
-                                                LPC_PARTITION_SPLIT,
-                                                TASK_PRIORITY_LOW) MAKE_EVENT_CODE(LPC_PARTITION_SPLIT_ERROR,
-                                                                                   TASK_PRIORITY_COMMON)
-                                                MAKE_EVENT_CODE_RPC(
-                                                    RPC_SPLIT_NOTIFY_CATCH_UP,
-                                                    TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_REPLICATION_LOW,
-                                                                                          TASK_PRIORITY_LOW)
-                                                    MAKE_EVENT_CODE(
-                                                        LPC_REPLICATION_COMMON,
-                                                        TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_REPLICATION_HIGH,
-                                                                                              TASK_PRIORITY_HIGH)
+MAKE_EVENT_CODE(LPC_REPLICATION_INIT_LOAD, TASK_PRIORITY_COMMON)
+MAKE_EVENT_CODE(RPC_REPLICATION_WRITE_EMPTY, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(
+    LPC_PER_REPLICA_CHECKPOINT_TIMER,
+    TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_PER_REPLICA_COLLECT_INFO_TIMER,
+                                          TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_WRITE_THROTTLING_DELAY,
+                                                                                TASK_PRIORITY_COMMON)
+    MAKE_EVENT_CODE(LPC_GROUP_CHECK, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(
+        LPC_CM_DISCONNECTED_SCATTER,
+        TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(LPC_QUERY_NODE_CONFIGURATION_SCATTER,
+                                            TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(LPC_QUERY_NODE_CONFIGURATION_SCATTER2,
+                                                                                TASK_PRIORITY_HIGH)
+        MAKE_EVENT_CODE(LPC_DELAY_UPDATE_CONFIG, TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(
+            LPC_DELAY_LEARN,
+            TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(LPC_LEARN_REMOTE_DELTA_FILES_COMPLETED,
+                                                TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(LPC_CHECKPOINT_REPLICA_COMPLETED,
+                                                                                    TASK_PRIORITY_HIGH)
+            MAKE_EVENT_CODE(LPC_SIM_UPDATE_PARTITION_CONFIGURATION_REPLY, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE_AIO(
+                LPC_WRITE_REPLICATION_LOG,
+                TASK_PRIORITY_HIGH) MAKE_EVENT_CODE(LPC_REPLICATION_ERROR,
+                                                    TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_AIO(LPC_LERARN_REMOTE_DISK_STATE,
+                                                                                            TASK_PRIORITY_HIGH)
+                MAKE_EVENT_CODE_RPC(RPC_CONFIG_PROPOSAL, TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(
+                    RPC_QUERY_PN_DECREE,
+                    TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(RPC_QUERY_REPLICA_INFO,
+                                                            TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(RPC_PREPARE,
+                                                                                                    TASK_PRIORITY_HIGH)
+                    MAKE_EVENT_CODE(LPC_DELAY_PREPARE, TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(
+                        RPC_GROUP_CHECK,
+                        TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(RPC_QUERY_APP_INFO,
+                                                                TASK_PRIORITY_COMMON)
+                        MAKE_EVENT_CODE_RPC(RPC_LEARN, TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(
+                            RPC_LEARN_COMPLETION_NOTIFY,
+                            TASK_PRIORITY_HIGH) MAKE_EVENT_CODE_RPC(RPC_LEARN_ADD_LEARNER,
+                                                                    TASK_PRIORITY_HIGH)
+                            MAKE_EVENT_CODE_RPC(RPC_REMOVE_REPLICA, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE_RPC(
+                                RPC_REPLICA_COPY_LAST_CHECKPOINT,
+                                TASK_PRIORITY_COMMON) MAKE_EVENT_CODE_AIO(LPC_REPLICA_COPY_LAST_CHECKPOINT_DONE,
+                                                                          TASK_PRIORITY_COMMON)
+                                MAKE_EVENT_CODE_RPC(RPC_COLD_BACKUP, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE_RPC(
+                                    RPC_CLEAR_COLD_BACKUP,
+                                    TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_REPLICATION_COLD_BACKUP,
+                                                                          TASK_PRIORITY_COMMON)
+                                    MAKE_EVENT_CODE(LPC_EXEC_COMMAND_ON_REPLICA, TASK_PRIORITY_LOW) MAKE_EVENT_CODE(
+                                        LPC_PARTITION_SPLIT,
+                                        TASK_PRIORITY_LOW) MAKE_EVENT_CODE(LPC_PARTITION_SPLIT_ERROR,
+                                                                           TASK_PRIORITY_COMMON)
+                                        MAKE_EVENT_CODE_RPC(
+                                            RPC_SPLIT_NOTIFY_CATCH_UP,
+                                            TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_REPLICATION_LOW,
+                                                                                  TASK_PRIORITY_LOW)
+                                            MAKE_EVENT_CODE(
+                                                LPC_REPLICATION_COMMON,
+                                                TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_REPLICATION_HIGH,
+                                                                                      TASK_PRIORITY_HIGH)
 #undef CURRENT_THREAD_POOL
 
 // THREAD_POOL_LOCAL_APP
 #define CURRENT_THREAD_POOL THREAD_POOL_LOCAL_APP
-                                                        MAKE_EVENT_CODE(LPC_WRITE,
-                                                                        TASK_PRIORITY_COMMON)
+                                                MAKE_EVENT_CODE(LPC_WRITE, TASK_PRIORITY_COMMON)
 #undef CURRENT_THREAD_POOL
 
 // THREAD_POOL_REPLICATION_LONG
 #define CURRENT_THREAD_POOL THREAD_POOL_REPLICATION_LONG
-                                                            MAKE_EVENT_CODE(LPC_LEARN_REMOTE_DELTA_FILES, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE_AIO(
-                                                                LPC_REPLICATION_COPY_REMOTE_FILES,
-                                                                TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_GARBAGE_COLLECT_LOGS_AND_REPLICAS,
-                                                                                                      TASK_PRIORITY_COMMON)
-                                                                MAKE_EVENT_CODE(LPC_OPEN_REPLICA, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(
-                                                                    LPC_CLOSE_REPLICA,
+                                                    MAKE_EVENT_CODE(LPC_LEARN_REMOTE_DELTA_FILES, TASK_PRIORITY_COMMON) MAKE_EVENT_CODE_AIO(
+                                                        LPC_REPLICATION_COPY_REMOTE_FILES,
+                                                        TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_GARBAGE_COLLECT_LOGS_AND_REPLICAS,
+                                                                                              TASK_PRIORITY_COMMON)
+                                                        MAKE_EVENT_CODE(
+                                                            LPC_OPEN_REPLICA,
+                                                            TASK_PRIORITY_COMMON) MAKE_EVENT_CODE(LPC_CLOSE_REPLICA,
+                                                                                                  TASK_PRIORITY_COMMON)
+                                                            MAKE_EVENT_CODE(
+                                                                LPC_CHECKPOINT_REPLICA,
+                                                                TASK_PRIORITY_COMMON)
+                                                                MAKE_EVENT_CODE(
+                                                                    LPC_CATCHUP_WITH_PRIVATE_LOGS,
                                                                     TASK_PRIORITY_COMMON)
                                                                     MAKE_EVENT_CODE(
-                                                                        LPC_CHECKPOINT_REPLICA,
+                                                                        LPC_DISK_STAT,
                                                                         TASK_PRIORITY_COMMON)
                                                                         MAKE_EVENT_CODE(
-                                                                            LPC_CATCHUP_WITH_PRIVATE_LOGS,
+                                                                            LPC_BACKGROUND_COLD_BACKUP,
                                                                             TASK_PRIORITY_COMMON)
                                                                             MAKE_EVENT_CODE(
-                                                                                LPC_DISK_STAT,
+                                                                                LPC_PARTITION_SPLIT_ASYNC_LEARN,
                                                                                 TASK_PRIORITY_COMMON)
                                                                                 MAKE_EVENT_CODE(
-                                                                                    LPC_BACKGROUND_COLD_BACKUP,
-                                                                                    TASK_PRIORITY_COMMON)
+                                                                                    LPC_REPLICATION_LONG_LOW,
+                                                                                    TASK_PRIORITY_LOW)
                                                                                     MAKE_EVENT_CODE(
-                                                                                        LPC_PARTITION_SPLIT_ASYNC_LEARN,
+                                                                                        LPC_REPLICATION_LONG_COMMON,
                                                                                         TASK_PRIORITY_COMMON)
                                                                                         MAKE_EVENT_CODE(
-                                                                                            LPC_REPLICATION_LONG_LOW,
-                                                                                            TASK_PRIORITY_LOW)
-                                                                                            MAKE_EVENT_CODE(
-                                                                                                LPC_REPLICATION_LONG_COMMON,
-                                                                                                TASK_PRIORITY_COMMON)
-                                                                                                MAKE_EVENT_CODE(
-                                                                                                    LPC_REPLICATION_LONG_HIGH,
-                                                                                                    TASK_PRIORITY_HIGH)
+                                                                                            LPC_REPLICATION_LONG_HIGH,
+                                                                                            TASK_PRIORITY_HIGH)
 #undef CURRENT_THREAD_POOL
