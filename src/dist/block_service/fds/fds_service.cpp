@@ -556,7 +556,7 @@ error_code fds_file_object::get_content_in_batches(uint64_t start,
     uint64_t pos = start;
     uint64_t once_transfered_bytes = 0;
     while (pos < start + to_transfer_bytes) {
-        uint64_t batch = std::min(BATCH_MAX, start + to_transfer_bytes - pos);
+        uint64_t batch_len = std::min(BATCH_MAX, start + to_transfer_bytes - pos);
         // get tokens from token bucket
         _service->_token_bucket->consumeWithBorrowAndWait(batch * 8);
 
