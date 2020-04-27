@@ -174,7 +174,7 @@ private:
 
     // duplication
     void on_add_duplication(duplication_add_rpc rpc);
-    void on_change_duplication_status(duplication_status_change_rpc rpc);
+    void on_modify_duplication(duplication_modify_rpc rpc);
     void on_query_duplication_info(duplication_query_rpc rpc);
     void on_duplication_sync(duplication_sync_rpc rpc);
     void register_duplication_rpc_handlers();
@@ -183,6 +183,7 @@ private:
 
     // split
     void on_app_partition_split(app_partition_split_rpc rpc);
+    void on_register_child_on_meta(register_child_rpc rpc);
 
     // common routines
     // ret:

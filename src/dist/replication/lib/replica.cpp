@@ -29,6 +29,7 @@
 #include "mutation_log.h"
 #include "replica_stub.h"
 #include "duplication/replica_duplicator_manager.h"
+#include "backup/replica_backup_manager.h"
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -56,7 +57,9 @@ replica::replica(
       _cur_download_size(0),
       _restore_progress(0),
       _restore_status(ERR_OK),
-      _duplication_mgr(new replica_duplicator_manager(this))
+      _duplication_mgr(new replica_duplicator_manager(this)),
+      _duplicating(app.duplicating),
+      _backup_mgr(new replica_backup_manager(this))
 {
     dassert(_app_info.app_type != "", "");
     dassert(stub != nullptr, "");
@@ -65,6 +68,7 @@ replica::replica(
     _options = &stub->options();
     init_state();
     _config.pid = gpid;
+    _partition_version = app.partition_count - 1;
 
     std::string counter_str = fmt::format("private.log.size(MB)@{}", gpid);
     _counter_private_log_size.init_app_counter(
@@ -78,8 +82,16 @@ replica::replica(
     _counter_recent_write_throttling_reject_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
+    counter_str = fmt::format("dup.disabled_non_idempotent_write_count@{}", _app_info.app_name);
+    _counter_dup_disabled_non_idempotent_write_count.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
+
     // init table level latency perf counters
     init_table_level_latency_counters();
+
+    counter_str = fmt::format("backup_request_qps@{}", _app_info.app_name);
+    _counter_backup_request_qps.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_RATE, counter_str.c_str());
 
     if (need_restore) {
         // add an extra env for restore
@@ -165,6 +177,8 @@ void replica::on_client_read(dsn::message_ex *request)
             response_client_read(request, ERR_INVALID_STATE);
             return;
         }
+    } else {
+        _counter_backup_request_qps->increment();
     }
 
     uint64_t start_time_ns = dsn_now_ns();
@@ -354,11 +368,6 @@ void replica::close()
         _checkpoint_timer = nullptr;
     }
 
-    if (_collect_info_timer != nullptr) {
-        _collect_info_timer->cancel(true);
-        _collect_info_timer = nullptr;
-    }
-
     if (_app != nullptr) {
         _app->cancel_background_work(true);
     }
@@ -402,6 +411,8 @@ void replica::close()
     // duplication_impl may have ongoing tasks.
     // release it before release replica.
     _duplication_mgr.reset();
+
+    _backup_mgr.reset();
 
     ddebug("%s: replica closed, time_used = %" PRIu64 "ms", name(), dsn_now_ms() - start_time);
 }

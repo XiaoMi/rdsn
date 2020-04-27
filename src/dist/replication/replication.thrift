@@ -195,7 +195,8 @@ enum config_type
     CT_REMOVE,
     CT_ADD_SECONDARY_FOR_LB,
     CT_PRIMARY_FORCE_UPDATE_BALLOT,
-    CT_DROP_PARTITION
+    CT_DROP_PARTITION,
+    CT_REGISTER_CHILD
 }
 
 enum node_status
@@ -436,6 +437,35 @@ struct query_replica_info_response
     2:list<replica_info>  replicas;
 }
 
+struct disk_info
+{
+    // TODO(jiashuo1): figure out what the "tag" means and decide if it's necessary
+    1:string tag;
+    2:string full_dir;
+    3:i64 disk_capacity_mb;
+    4:i64 disk_available_mb;
+    // map<i32,i32> means map<app_id, replica_counts>
+    5:map<i32,i32> holding_primary_replica_counts;
+    6:map<i32,i32> holding_secondary_replica_counts;
+}
+
+// This request is sent from client to replica_server.
+struct query_disk_info_request
+{
+    1:dsn.rpc_address node;
+    2:string          app_name;
+}
+
+// This response is recieved replica_server.
+struct query_disk_info_response
+{
+    // app not existed will return "ERR_OBJECT_NOT_FOUND", otherwise "ERR_OK"
+    1:dsn.error_code err;
+    2:i64 total_capacity_mb;
+    3:i64 total_available_mb;
+    4:list<disk_info> disk_infos;
+}
+
 struct query_app_info_request
 {
     1:dsn.rpc_address meta_server;
@@ -479,8 +509,6 @@ struct configuration_restore_request
     8:bool              skip_bad_partition;
 }
 
-// if backup_id == 0, means clear all backup resources (including backup contexts and
-// checkpoint dirs) of this policy.
 struct backup_request
 {
     1:dsn.gpid              pid;
@@ -497,6 +525,13 @@ struct backup_response
     4:string            policy_name;
     5:i64               backup_id;
     6:i64               checkpoint_total_size;
+}
+
+// clear all backup resources (including backup contexts and checkpoint dirs) of this policy.
+struct backup_clear_request
+{
+    1:dsn.gpid          pid;
+    2:string            policy_name;
 }
 
 struct configuration_modify_backup_policy_request
@@ -630,6 +665,22 @@ enum duplication_status
     DS_REMOVED,
 }
 
+// How duplication reacts on permanent failure.
+enum duplication_fail_mode
+{
+    // The default mode. If some permanent failure occurred that makes duplication
+    // blocked, it will retry forever until external interference.
+    FAIL_SLOW = 0,
+
+    // Skip the writes that failed to duplicate, which means minor data loss on the remote cluster.
+    // This will certainly achieve better stability of the system.
+    FAIL_SKIP,
+
+    // Stop immediately after it ensures itself unable to duplicate.
+    // WARN: this mode kills the server process, replicas on the server will all be effected.
+    FAIL_FAST
+}
+
 // This request is sent from client to meta.
 struct duplication_add_request
 {
@@ -648,17 +699,19 @@ struct duplication_add_response
     1:dsn.error_code   err;
     2:i32              appid;
     3:i32              dupid;
+    4:optional string  hint;
 }
 
 // This request is sent from client to meta.
-struct duplication_status_change_request
+struct duplication_modify_request
 {
     1:string                    app_name;
     2:i32                       dupid;
-    3:duplication_status        status;
+    3:optional duplication_status status;
+    4:optional duplication_fail_mode fail_mode;
 }
 
-struct duplication_status_change_response
+struct duplication_modify_response
 {
     // Possible errors:
     // - ERR_APP_NOT_EXIST: app is not found
@@ -677,7 +730,9 @@ struct duplication_entry
     4:i64                  create_ts;
 
     // partition_index => confirmed decree
-    5:map<i32, i64>        progress;
+    5:optional map<i32, i64> progress;
+
+    7:optional duplication_fail_mode fail_mode;
 }
 
 // This request is sent from client to meta.
@@ -781,6 +836,23 @@ struct app_partition_split_response
     3:i32                    partition_count;
 }
 
+// child to primary parent, notifying that itself has caught up with parent
+struct notify_catch_up_request
+{
+    1:dsn.gpid          parent_gpid;
+    2:dsn.gpid          child_gpid;
+    3:i64               child_ballot;
+    4:dsn.rpc_address   child_address;
+}
+
+struct notify_cacth_up_response
+{
+    // Possible errors:
+    // - ERR_OBJECT_NOT_FOUND: replica can not be found
+    // - ERR_INVALID_STATE: replica is not primary or ballot not match or child_gpid not match
+    1:dsn.error_code    err;
+}
+
 // parent primary send to group replicas to update partition count
 struct update_group_partition_count_request
 {
@@ -788,6 +860,7 @@ struct update_group_partition_count_request
     2:i32               new_partition_count;
     3:dsn.gpid          pid;
     4:i64               ballot;
+    5:bool              update_child_group;
 }
 
 struct update_group_partition_count_response
@@ -795,7 +868,29 @@ struct update_group_partition_count_response
     // Possible errors:
     // - ERR_OBJECT_NOT_FOUND: replica can not be found
     // - ERR_VERSION_OUTDATED: request is out-dated
+    // - ERR_FILE_OPERATION_FAILED: update app_info failed
     1:dsn.error_code    err;
+}
+
+// primary parent -> meta server, register child on meta_server
+struct register_child_request
+{
+    1:dsn.layer2.app_info                   app;
+    2:dsn.layer2.partition_configuration    parent_config;
+    3:dsn.layer2.partition_configuration    child_config;
+    4:dsn.rpc_address                       primary_address;
+}
+
+struct register_child_response
+{
+    // Possible errors:
+    // - ERR_INVALID_VERSION: request is out-dated
+    // - ERR_CHILD_REGISTERED: child has been registered
+    // - ERR_IO_PENDING: meta is executing another remote sync task
+    1:dsn.error_code                        err;
+    2:dsn.layer2.app_info                   app;
+    3:dsn.layer2.partition_configuration    parent_config;
+    4:dsn.layer2.partition_configuration    child_config;
 }
 
 /*

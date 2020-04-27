@@ -53,21 +53,22 @@ void meta_duplication_service::query_duplication_info(const duplication_query_re
             response.appid = app->app_id;
             for (auto &dup_id_to_info : app->duplications) {
                 const duplication_info_s_ptr &dup = dup_id_to_info.second;
-                dup->append_if_valid_for_query(response.entry_list);
+                dup->append_if_valid_for_query(*app, response.entry_list);
             }
         }
     }
 }
 
 // ThreadPool(WRITE): THREAD_POOL_META_STATE
-void meta_duplication_service::change_duplication_status(duplication_status_change_rpc rpc)
+void meta_duplication_service::modify_duplication(duplication_modify_rpc rpc)
 {
     const auto &request = rpc.request();
     auto &response = rpc.response();
 
-    ddebug_f("change status of duplication({}) to {} for app({})",
+    ddebug_f("modify duplication({}) to [status={},fail_mode={}] for app({})",
              request.dupid,
-             duplication_status_to_string(request.status),
+             request.__isset.status ? duplication_status_to_string(request.status) : "nil",
+             request.__isset.fail_mode ? duplication_fail_mode_to_string(request.fail_mode) : "nil",
              request.app_name);
 
     dupid_t dupid = request.dupid;
@@ -78,13 +79,16 @@ void meta_duplication_service::change_duplication_status(duplication_status_chan
         return;
     }
 
-    duplication_info_s_ptr dup = app->duplications[dupid];
-    if (dup == nullptr) {
+    auto it = app->duplications.find(dupid);
+    if (it == app->duplications.end()) {
         response.err = ERR_OBJECT_NOT_FOUND;
         return;
     }
 
-    response.err = dup->alter_status(request.status);
+    duplication_info_s_ptr dup = it->second;
+    auto to_status = request.__isset.status ? request.status : dup->status();
+    auto to_fail_mode = request.__isset.fail_mode ? request.fail_mode : dup->fail_mode();
+    response.err = dup->alter_status(to_status, to_fail_mode);
     if (response.err != ERR_OK) {
         return;
     }
@@ -93,13 +97,13 @@ void meta_duplication_service::change_duplication_status(duplication_status_chan
     }
 
     // validation passed
-    do_change_duplication_status(app, dup, rpc);
+    do_modify_duplication(app, dup, rpc);
 }
 
 // ThreadPool(WRITE): THREAD_POOL_META_STATE
-void meta_duplication_service::do_change_duplication_status(std::shared_ptr<app_state> &app,
-                                                            duplication_info_s_ptr &dup,
-                                                            duplication_status_change_rpc &rpc)
+void meta_duplication_service::do_modify_duplication(std::shared_ptr<app_state> &app,
+                                                     duplication_info_s_ptr &dup,
+                                                     duplication_modify_rpc &rpc)
 {
     // store the duplication in requested status.
     blob value = dup->to_json_blob();
@@ -133,17 +137,17 @@ void meta_duplication_service::add_duplication(duplication_add_rpc rpc)
     response.err = ERR_OK;
 
     if (request.remote_cluster_name == get_current_cluster_name()) {
-        dwarn("illegal operation: adding duplication to itself");
         response.err = ERR_INVALID_PARAMETERS;
+        response.__set_hint("illegal operation: adding duplication to itself");
         return;
     }
 
     auto remote_cluster_id = get_duplication_cluster_id(request.remote_cluster_name);
     if (!remote_cluster_id.is_ok()) {
-        dwarn_f("get_duplication_cluster_id({}) failed, error: {}",
-                request.remote_cluster_name,
-                remote_cluster_id.get_error());
         response.err = ERR_INVALID_PARAMETERS;
+        response.__set_hint(fmt::format("get_duplication_cluster_id({}) failed, error: {}",
+                                        request.remote_cluster_name,
+                                        remote_cluster_id.get_error()));
         return;
     }
 
