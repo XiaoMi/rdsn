@@ -43,6 +43,41 @@ struct bulk_load_info
     DEFINE_JSON_SERIALIZATION(app_id, app_name, partition_count)
 };
 
+///
+/// Bulk load process:
+/// when client sent `start_bulk_load_rpc` to meta server to start bulk load,
+/// meta server create bulk load structures on remote storage, and send `RPC_BULK_LOAD` rpc to
+/// each primary replica periodically until bulk load succeed or failed. whole process below:
+///
+///           start bulk load
+///                  |
+///                  v
+///          is_bulk_loading = true
+///                  |
+///                  v
+///     create bulk load info on remote storage
+///                  |
+///         Err      v
+///     ---------Downloading <---------|
+///     |            |                 |
+///     |            v         Err     |
+///     |        Downloaded  --------->|
+///     |            |                 |
+///     | IngestErr  v         Err     |
+///     |<------- Ingesting  --------->|
+///     |            |                 |
+///     v            v         Err     |
+///   Failed       Succeed   --------->|
+///     |            |
+///     v            v
+///    remove bulk load info on remote storage
+///                  |
+///                  v
+///         is_bulk_loading = false
+///                  |
+///                  v
+///            bulk load end
+
 class bulk_load_service
 {
 public:
