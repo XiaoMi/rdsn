@@ -1257,7 +1257,6 @@ int mutation_log::garbage_collection(gpid gpid,
                      _private_gpid,
                      files.begin()->second->path(),
                      log->index(),
-
                      valid_start_offset,
                      log->end_offset());
             break;
