@@ -519,23 +519,20 @@ error_code fds_file_object::get_file_meta()
 
         // get file length
         auto iter = meta.find(fds_service::FILE_LENGTH_CUSTOM_KEY);
-        dassert(iter != meta.end(),
-                "can't find %s in object(%s)'s metadata",
-                fds_service::FILE_LENGTH_CUSTOM_KEY.c_str(),
-                _fds_path.c_str());
+        dassert_f(iter != meta.end(),
+                  "can't find {} in object({})'s metadata",
+                  fds_service::FILE_LENGTH_CUSTOM_KEY.c_str(),
+                  _fds_path.c_str());
         bool valid = dsn::buf2uint64(iter->second, _size);
-        dassert(valid && _size >= 0, "error to get file size");
+        dassert_f(valid && _size >= 0, "error to get file size");
 
         // get md5 key
         iter = meta.find(fds_service::FILE_MD5_KEY);
-        dassert(iter != meta.end(),
-                "can't find %s in object(%s)'s metadata",
-                fds_service::FILE_MD5_KEY.c_str(),
-                _fds_path.c_str());
-
-        if (iter != meta.end()) {
-            _md5sum = iter->second;
-        }
+        dassert_f(iter != meta.end(),
+                  "can't find {} in object({})'s metadata",
+                  fds_service::FILE_MD5_KEY.c_str(),
+                  _fds_path.c_str());
+        _md5sum = iter->second;
 
         _has_meta_synced = true;
         return ERR_OK;
@@ -543,10 +540,10 @@ error_code fds_file_object::get_file_meta()
         if (ex.code() == Poco::Net::HTTPResponse::HTTP_NOT_FOUND) {
             return ERR_OBJECT_NOT_FOUND;
         } else {
-            derror("fds getObjectMetadata failed: parameter(%s), code(%d), msg(%s)",
-                   _name.c_str(),
-                   ex.code(),
-                   ex.what());
+            derror_f("fds getObjectMetadata failed: parameter({}), code({}), msg({})",
+                     _name.c_str(),
+                     ex.code(),
+                     ex.what());
             return ERR_FS_INTERNAL;
         }
     }
