@@ -77,6 +77,8 @@ private:
 class flag_registry : public utils::singleton<flag_registry>
 {
 public:
+    flag_registry() = default;
+
     void add_flag(const char *name, flag_data flag) { _flags.emplace(name, flag); }
 
     void add_validator(const char *name, validator_fn &validator)
@@ -96,9 +98,6 @@ public:
             flag.load();
         }
     }
-
-private:
-    flag_registry() = default;
 
 private:
     std::map<std::string, flag_data> _flags;
