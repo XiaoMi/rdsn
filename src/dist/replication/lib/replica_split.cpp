@@ -757,17 +757,17 @@ void replica::child_partition_active(const partition_configuration &config) // o
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica::update_group_partition_count(int new_partition_count,
+void replica::update_group_partition_count(int32_t new_partition_count,
                                            bool is_update_child) // on primary parent
 {
     FAIL_POINT_INJECT_F("replica_update_group_partition_count", [](dsn::string_view) {});
 
     if (is_update_child && (_child_gpid.get_app_id() == 0 || _child_init_ballot != get_ballot())) {
-        dwarn_replica(
-            "receive out-date request, _child_gpid({}), _child_init_ballot = {}, local ballot = {}",
-            _child_gpid.to_string(),
-            _child_init_ballot,
-            get_ballot());
+        dwarn_replica("can not update group partition count because current state is out-dated, "
+                      "_child_gpid({}), _child_init_ballot = {}, local ballot = {}",
+                      _child_gpid,
+                      _child_init_ballot,
+                      get_ballot());
         _stub->split_replica_error_handler(
             _child_gpid,
             std::bind(&replica::child_handle_split_error,
@@ -784,7 +784,7 @@ void replica::update_group_partition_count(int new_partition_count,
         not_replied_addresses.insert(iter->first);
     }
 
-    ddebug_replica("update {} group partition count, new partition count = {}, ",
+    ddebug_replica("start to update {} group partition count, new partition count = {}, ",
                    is_update_child ? "child" : "parent",
                    new_partition_count);
 
@@ -799,7 +799,6 @@ void replica::update_group_partition_count(int new_partition_count,
         request->update_child_group = is_update_child;
 
         update_group_partition_count_rpc rpc(std::move(request), RPC_SPLIT_UPDATE_PARTITION_COUNT);
-        // TODO(heyuchen): should wait for 1 seconds?
         rpc.call(iter.first,
                  tracker(),
                  [this, rpc, not_replied_addresses](error_code ec) mutable {
@@ -847,6 +846,8 @@ void replica::on_update_group_partition_count(
 
     // update _app_info and partition_version
     auto info = _app_info;
+    // if app has not been splitted before, init_partition_count = -1
+    // we should set init_partition_count to old_partition_count
     if (info.init_partition_count < 1) {
         info.init_partition_count = info.partition_count;
     }
@@ -866,6 +867,7 @@ void replica::on_update_group_partition_count(
     _app->set_partition_version(_app_info.partition_count - 1);
     _partition_version.store(_app_info.partition_count - 1);
 
+    // for parent replica, partition split finish
     if (!request.update_child_group) {
         parent_cleanup_split_context();
     }
@@ -924,10 +926,11 @@ void replica::on_update_group_partition_count_reply(
                       request.target_address.to_string(),
                       error.to_string());
         if (request.update_child_group) {
-            _stub->split_replica_error_handler(_child_gpid,
-                                               std::bind(&replica::child_handle_split_error,
-                                                         std::placeholders::_1,
-                                                         "on_update_group_partition_count_reply"));
+            _stub->split_replica_error_handler(
+                _child_gpid,
+                std::bind(&replica::child_handle_split_error,
+                          std::placeholders::_1,
+                          "on_update_group_partition_count_reply error"));
             parent_cleanup_split_context();
         }
         return;
@@ -962,9 +965,8 @@ void replica::child_handle_split_error(const std::string &error_msg) // on child
 {
     if (status() != partition_status::PS_ERROR) {
         dwarn_replica("partition split failed because {}", error_msg);
-        // TODO(heyuchen):
-        // convert child partition_status from PS_PARTITION_SPLIT to PS_ERROR in further pull
-        // request
+        // TODO(heyuchen): convert child partition_status from PS_PARTITION_SPLIT to PS_ERROR in
+        // further pull request
     }
 }
 

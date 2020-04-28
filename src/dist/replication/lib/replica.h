@@ -415,7 +415,7 @@ private:
     // primary parent send update partition count request to replicas in the group
     // - {is_update_child} = true:  update child group partition count
     // - {is_update_child} = false: update parent group partition count
-    void update_group_partition_count(int new_partition_count, bool is_update_child);
+    void update_group_partition_count(int32_t new_partition_count, bool is_update_child);
 
     // all replicas update partition_count in memory and disk
     void on_update_group_partition_count(const update_group_partition_count_request &request,
