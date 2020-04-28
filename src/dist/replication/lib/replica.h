@@ -428,9 +428,6 @@ private:
         const update_group_partition_count_response &response,
         std::unordered_set<dsn::rpc_address> &not_replied_addresses);
 
-    void parent_send_update_group_partition_count_request(
-        const update_group_partition_count_request &request);
-
     // return true if parent status is valid
     bool parent_check_states();
 

@@ -123,6 +123,7 @@ public:
     // on primary, child notify itself has been caught up parent
     void on_notify_primary_split_catch_up(const notify_catch_up_request &request,
                                           notify_cacth_up_response &response);
+
     // on all replica, update new partition count
     void on_update_group_partition_count(const update_group_partition_count_request &request,
                                          update_group_partition_count_response &response);
@@ -401,7 +402,6 @@ private:
     //               if we need to duplicate to multiple clusters someday.
     perf_counter_wrapper _counter_dup_confirmed_rate;
     perf_counter_wrapper _counter_dup_pending_mutations_count;
-    perf_counter_wrapper _counter_dup_time_lag;
 
     perf_counter_wrapper _counter_cold_backup_running_count;
     perf_counter_wrapper _counter_cold_backup_recent_start_count;
