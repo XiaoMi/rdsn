@@ -657,6 +657,7 @@ error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
                  "token bucket",
                  to_transfer_bytes,
                  _service->_write_token_bucket->burst());
+        return ERR_INJECTED;
     }
 
     try {
