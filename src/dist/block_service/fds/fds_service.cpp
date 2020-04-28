@@ -512,16 +512,23 @@ error_code fds_file_object::get_file_meta()
     galaxy::fds::GalaxyFDSClient *c = _service->get_client();
     try {
         auto meta = c->getObjectMetadata(_service->get_bucket_name(), _fds_path)->metadata();
-        auto iter = meta.find(fds_service::FILE_LENGTH_CUSTOM_KEY);
-        if (iter != meta.end()) {
-            bool valid = dsn::buf2uint64(iter->second, _size);
-            if (!valid || _size < 0) {
-                derror("Error to get file size");
-                return ERR_FS_INTERNAL;
-            }
-        }
 
+        // get file length
+        auto iter = meta.find(fds_service::FILE_LENGTH_CUSTOM_KEY);
+        dassert(iter != meta.end(),
+                "can't find %s in object(%s)'s metadata",
+                fds_service::FILE_LENGTH_CUSTOM_KEY.c_str(),
+                _fds_path.c_str());
+        bool valid = dsn::buf2uint64(iter->second, _size);
+        dassert(valid && _size >= 0, "error to get file size");
+
+        // get md5 key
         iter = meta.find(fds_service::FILE_MD5_KEY);
+        dassert(iter != meta.end(),
+                "can't find %s in object(%s)'s metadata",
+                fds_service::FILE_MD5_KEY.c_str(),
+                _fds_path.c_str());
+
         if (iter != meta.end()) {
             _md5sum = iter->second;
         }
@@ -837,6 +844,6 @@ dsn::task_ptr fds_file_object::download(const download_request &req,
     dsn::tasking::enqueue(LPC_FDS_CALL, nullptr, download_background);
     return t;
 }
-}
-}
-}
+} // namespace block_service
+} // namespace dist
+} // namespace dsn
