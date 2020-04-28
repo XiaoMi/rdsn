@@ -113,7 +113,7 @@ fds_service::fds_service()
     /// For write operation, we can't send a file in batches. Because putContent interface of fds
     /// will overwrite what was sent before for the same file. So we must send a file as a whole.
     /// If file size > burst size, the file will be rejected by the token bucket.
-    ///  Here we set burst_size = sst_file_size + 3MB, a litter greater than sst_file_size
+    ///  Here we set burst_size = sst_file_size + 3MB, a litte greater than sst_file_size
     uint32_t burst_size = std::max(3 * write_rate_limit * 1e6 / BYTE_TO_BIT, sst_file_size + 3e6);
     _write_token_bucket.reset(
         new folly::TokenBucket(write_rate_limit * 1e6 / BYTE_TO_BIT, burst_size));
