@@ -104,13 +104,17 @@ fds_service::fds_service()
 {
     const int BYTE_TO_BIT = 8;
 
+    uint64_t sst_file_size = dsn_config_get_value_uint64("pegasus.server",
+                                                         "rocksdb_target_file_size_base",
+                                                         64 * 1024 * 1024,
+                                                         "rocksdb options.target_file_size_base");
     uint32_t write_rate_limit = (uint32_t)dsn_config_get_value_uint64(
         "replication", "fds_write_limit_rate", 20, "rate limit of fds(Mb/s)");
     /// For write operation, we can't send a file in batches. Because putContent interface of fds
     /// will overwrite what was sent before for the same file. So we must send a file as a whole.
     /// If file size > burst size, the file will be rejected by the token bucket.
-    /// And sst maximum file size is about 64MB, so burst size must be greater than 64MB.
-    uint32_t burst_size = std::max(3 * write_rate_limit * 1e6 / BYTE_TO_BIT, 70e6);
+    ///  Here we set burst_size = sst_file_size + 3MB, a litter greater than sst_file_size
+    uint32_t burst_size = std::max(3 * write_rate_limit * 1e6 / BYTE_TO_BIT, sst_file_size + 3e6);
     _write_token_bucket.reset(
         new folly::TokenBucket(write_rate_limit * 1e6 / BYTE_TO_BIT, burst_size));
 
