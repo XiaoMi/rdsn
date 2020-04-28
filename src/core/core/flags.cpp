@@ -96,7 +96,7 @@ public:
             flag.load();
         }
     }
-    
+
 private:
     flag_registry() = default;
 
