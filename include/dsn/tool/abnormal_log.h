@@ -6,7 +6,7 @@ namespace replication {
 class abnormal_log
 {
 public:
-    virtual void print_abnormal_write(const dsn::message_ex **requests) = 0;
+    virtual void print_abnormal_write(dsn::message_ex *request) = 0;
 };
 }
 }
