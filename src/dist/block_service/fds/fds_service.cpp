@@ -534,7 +534,7 @@ error_code fds_file_object::get_file_meta()
                   fds_service::FILE_LENGTH_CUSTOM_KEY.c_str(),
                   _fds_path.c_str());
         bool valid = dsn::buf2uint64(iter->second, _size);
-        dassert_f(valid && _size >= 0, "error to get file size");
+        dassert_f(valid, "error to get file size");
 
         // get md5 key
         iter = meta.find(fds_service::FILE_MD5_KEY);
