@@ -20,6 +20,7 @@
 #include <dsn/utility/defer.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/TokenBucket.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace dist {
