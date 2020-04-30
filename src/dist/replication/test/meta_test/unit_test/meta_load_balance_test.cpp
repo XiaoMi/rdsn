@@ -98,7 +98,7 @@ public:
     void set_filter(const filter &f) { _filter = f; }
     virtual void reply_message(dsn::message_ex *request, dsn::message_ex *response) override
     {
-        destroy_message(request);
+        destroy_message(response);
     }
 
     virtual void send_message(const dsn::rpc_address &target, dsn::message_ex *request) override
