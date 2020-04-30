@@ -243,7 +243,7 @@ void meta_service::start_service()
 
     if (_bulk_load_svc) {
         ddebug("start bulk load service");
-        tasking::enqueue(LPC_META_STATE_NORMAL, nullptr, [this]() {
+        tasking::enqueue(LPC_META_STATE_NORMAL, tracker(), [this]() {
             _bulk_load_svc->initialize_bulk_load_service();
         });
     }

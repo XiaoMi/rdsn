@@ -109,7 +109,7 @@ private:
     zrwlock_nr &app_lock() const { return _state->_lock; }
     zrwlock_nr _lock; // bulk load states lock
 
-    std::string _bulk_load_root; // <cluster_root>/bulk_load
+    const std::string _bulk_load_root; // <cluster_root>/bulk_load
 
     /// bulk load states
     std::unordered_set<int32_t> _bulk_load_app_id;
