@@ -28,6 +28,7 @@
 
 #include <dsn/tool-api/gpid.h>
 #include <dsn/utility/string_view.h>
+#include <dsn/tool/abnormal_log.h>
 
 namespace dsn {
 namespace replication {
@@ -36,7 +37,7 @@ namespace replication {
 struct replica_base
 {
     replica_base(gpid id, string_view name, string_view app_name)
-        : _gpid(id), _name(name), _app_name(app_name)
+        : _gpid(id), _name(name), _app_name(app_name), _abnormal_log(nullptr)
     {
     }
 
@@ -50,6 +51,8 @@ struct replica_base
     const char *replica_name() const { return _name.c_str(); }
 
     const char *app_name() const { return _app_name.c_str(); }
+
+    std::unique_ptr<abnormal_log> _abnormal_log;
 
 private:
     const gpid _gpid;
