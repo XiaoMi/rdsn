@@ -105,7 +105,7 @@ fds_service::fds_service()
 {
     const int BYTE_TO_BIT = 8;
 
-    /// In normarl scenario, the sst file size of level 0 is write_buffer_size * [0.75, 1.25]
+    /// In normal scenario, the sst file size of level 0 is write_buffer_size * [0.75, 1.25]
     /// And in BULK_LOAD scenario, it is 4 * write_buffer_size * [0.75, 1.25].
     /// In rdsn, we can't get the scenario, so if we take BULK_LOAD scenario into consideration,
     /// we must set max_sst_file_size to 4 * write_buffer_size * [0.75, 1.25], which is too big.
@@ -662,7 +662,7 @@ error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
                  "token bucket",
                  to_transfer_bytes,
                  _service->_write_token_bucket->burst());
-        return ERR_INJECTED;
+        return ERR_BUSY;
     }
 
     try {
