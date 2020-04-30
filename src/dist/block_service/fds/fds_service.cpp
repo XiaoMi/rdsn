@@ -105,7 +105,11 @@ fds_service::fds_service()
 {
     const int BYTE_TO_BIT = 8;
 
-    // get max sst file size in normal scenario
+    /// In normarl scenario, the sst file size of level 0 is write_buffer_size * [0.75, 1.25]
+    /// And in BULK_LOAD scenario, it is 4 * write_buffer_size * [0.75, 1.25].
+    /// In rdsn, we can't get the scenario, so if we take BULK_LOAD scenario into consideration,
+    /// we must set max_sst_file_size to 4 * write_buffer_size * [0.75, 1.25], which is too big.
+    /// So in this implementation, we don't take BULK_LOAD scenario into consideration.
     uint64_t target_file_size =
         dsn_config_get_value_uint64("pegasus.server",
                                     "rocksdb_target_file_size_base",
