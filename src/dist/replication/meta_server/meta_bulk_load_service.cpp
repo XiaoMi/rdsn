@@ -103,7 +103,7 @@ error_code bulk_load_service::check_bulk_load_request_params(const std::string &
     }
 
     // sync get bulk_load_info file_handler
-    std::string remote_path = get_bulk_load_info_path(app_name, cluster_name);
+    const std::string remote_path = get_bulk_load_info_path(app_name, cluster_name);
     dsn::dist::block_service::create_file_request cf_req;
     cf_req.file_name = remote_path;
     cf_req.ignore_metadata = true;
@@ -118,7 +118,6 @@ error_code bulk_load_service::check_bulk_load_request_params(const std::string &
                 file_handler = resp.file_handle;
             })
         ->wait();
-
     if (err != ERR_OK || file_handler == nullptr) {
         derror_f(
             "failed to get file({}) handler on remote provider({})", remote_path, file_provider);

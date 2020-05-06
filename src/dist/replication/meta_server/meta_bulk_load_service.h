@@ -138,6 +138,8 @@ private:
     ///
     /// helper functions
     ///
+    // get bulk_load_info path on file provider
+    // <bulk_load_provider_root>/<cluster_name>/<app_name>/bulk_load_info
     inline std::string get_bulk_load_info_path(const std::string &app_name,
                                                const std::string &cluster_name) const
     {
@@ -147,6 +149,8 @@ private:
         return oss.str();
     }
 
+    // get app_bulk_load_info path on remote stroage
+    // <_bulk_load_root>/<app_id>
     inline std::string get_app_bulk_load_path(int32_t app_id) const
     {
         std::stringstream oss;
@@ -154,6 +158,8 @@ private:
         return oss.str();
     }
 
+    // get partition_bulk_load_info path on remote stroage
+    // <_bulk_load_root>/<app_id>/<partition_id>
     inline std::string get_partition_bulk_load_path(const std::string &app_bulk_load_path,
                                                     int partition_id) const
     {
