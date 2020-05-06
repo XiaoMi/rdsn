@@ -116,7 +116,7 @@ public:
     int32_t max_concurrent_uploading_file_count;
     int32_t cold_backup_checkpoint_reserve_minutes;
 
-    std::string bulk_load_root;
+    std::string bulk_load_provider_root;
 
 public:
     replication_options();
@@ -126,6 +126,8 @@ public:
 private:
     void sanity_check();
 };
+
+typedef rpc_holder<register_child_request, register_child_response> register_child_rpc;
 
 extern const char *partition_status_to_string(partition_status::type status);
 

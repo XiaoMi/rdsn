@@ -185,6 +185,7 @@ private:
 
     // split
     void on_app_partition_split(app_partition_split_rpc rpc);
+    void on_register_child_on_meta(register_child_rpc rpc);
 
     // bulk load
     void on_start_bulk_load(start_bulk_load_rpc rpc);

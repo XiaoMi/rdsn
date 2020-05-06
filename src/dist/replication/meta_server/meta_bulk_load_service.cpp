@@ -272,10 +272,10 @@ void bulk_load_service::create_bulk_load_root_dir(error_code &err, task_tracker 
                 dwarn_f("create bulk load root({}) failed, retry later", _bulk_load_root);
                 tasking::enqueue(
                     LPC_META_STATE_NORMAL,
-                    nullptr,
+                    _meta_svc->tracker(),
                     std::bind(&bulk_load_service::create_bulk_load_root_dir, this, err, tracker),
                     0,
-                    std::chrono::milliseconds(1000));
+                    std::chrono::seconds(1));
             } else {
                 err = ec;
                 dfatal_f(
@@ -286,7 +286,8 @@ void bulk_load_service::create_bulk_load_root_dir(error_code &err, task_tracker 
         &tracker);
 }
 
-void bulk_load_service::sync_apps_bulk_load_from_remote_stroage(error_code &err, task_tracker &tracker)
+void bulk_load_service::sync_apps_bulk_load_from_remote_stroage(error_code &err,
+                                                                task_tracker &tracker)
 {
     // TODO(heyuchen): TBD
 }

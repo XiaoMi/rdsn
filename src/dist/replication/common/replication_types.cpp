@@ -75,7 +75,8 @@ int _kconfig_typeValues[] = {config_type::CT_INVALID,
                              config_type::CT_REMOVE,
                              config_type::CT_ADD_SECONDARY_FOR_LB,
                              config_type::CT_PRIMARY_FORCE_UPDATE_BALLOT,
-                             config_type::CT_DROP_PARTITION};
+                             config_type::CT_DROP_PARTITION,
+                             config_type::CT_REGISTER_CHILD};
 const char *_kconfig_typeNames[] = {"CT_INVALID",
                                     "CT_ASSIGN_PRIMARY",
                                     "CT_UPGRADE_TO_PRIMARY",
@@ -86,9 +87,10 @@ const char *_kconfig_typeNames[] = {"CT_INVALID",
                                     "CT_REMOVE",
                                     "CT_ADD_SECONDARY_FOR_LB",
                                     "CT_PRIMARY_FORCE_UPDATE_BALLOT",
-                                    "CT_DROP_PARTITION"};
+                                    "CT_DROP_PARTITION",
+                                    "CT_REGISTER_CHILD"};
 const std::map<int, const char *> _config_type_VALUES_TO_NAMES(
-    ::apache::thrift::TEnumIterator(11, _kconfig_typeValues, _kconfig_typeNames),
+    ::apache::thrift::TEnumIterator(12, _kconfig_typeValues, _kconfig_typeNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 int _knode_statusValues[] = {
@@ -14413,6 +14415,337 @@ void notify_cacth_up_response::printTo(std::ostream &out) const
     out << ")";
 }
 
+register_child_request::~register_child_request() throw() {}
+
+void register_child_request::__set_app(const ::dsn::app_info &val) { this->app = val; }
+
+void register_child_request::__set_parent_config(const ::dsn::partition_configuration &val)
+{
+    this->parent_config = val;
+}
+
+void register_child_request::__set_child_config(const ::dsn::partition_configuration &val)
+{
+    this->child_config = val;
+}
+
+void register_child_request::__set_primary_address(const ::dsn::rpc_address &val)
+{
+    this->primary_address = val;
+}
+
+uint32_t register_child_request::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->app.read(iprot);
+                this->__isset.app = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->parent_config.read(iprot);
+                this->__isset.parent_config = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 3:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->child_config.read(iprot);
+                this->__isset.child_config = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 4:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->primary_address.read(iprot);
+                this->__isset.primary_address = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t register_child_request::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("register_child_request");
+
+    xfer += oprot->writeFieldBegin("app", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->app.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("parent_config", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += this->parent_config.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("child_config", ::apache::thrift::protocol::T_STRUCT, 3);
+    xfer += this->child_config.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("primary_address", ::apache::thrift::protocol::T_STRUCT, 4);
+    xfer += this->primary_address.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(register_child_request &a, register_child_request &b)
+{
+    using ::std::swap;
+    swap(a.app, b.app);
+    swap(a.parent_config, b.parent_config);
+    swap(a.child_config, b.child_config);
+    swap(a.primary_address, b.primary_address);
+    swap(a.__isset, b.__isset);
+}
+
+register_child_request::register_child_request(const register_child_request &other630)
+{
+    app = other630.app;
+    parent_config = other630.parent_config;
+    child_config = other630.child_config;
+    primary_address = other630.primary_address;
+    __isset = other630.__isset;
+}
+register_child_request::register_child_request(register_child_request &&other631)
+{
+    app = std::move(other631.app);
+    parent_config = std::move(other631.parent_config);
+    child_config = std::move(other631.child_config);
+    primary_address = std::move(other631.primary_address);
+    __isset = std::move(other631.__isset);
+}
+register_child_request &register_child_request::operator=(const register_child_request &other632)
+{
+    app = other632.app;
+    parent_config = other632.parent_config;
+    child_config = other632.child_config;
+    primary_address = other632.primary_address;
+    __isset = other632.__isset;
+    return *this;
+}
+register_child_request &register_child_request::operator=(register_child_request &&other633)
+{
+    app = std::move(other633.app);
+    parent_config = std::move(other633.parent_config);
+    child_config = std::move(other633.child_config);
+    primary_address = std::move(other633.primary_address);
+    __isset = std::move(other633.__isset);
+    return *this;
+}
+void register_child_request::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "register_child_request(";
+    out << "app=" << to_string(app);
+    out << ", "
+        << "parent_config=" << to_string(parent_config);
+    out << ", "
+        << "child_config=" << to_string(child_config);
+    out << ", "
+        << "primary_address=" << to_string(primary_address);
+    out << ")";
+}
+
+register_child_response::~register_child_response() throw() {}
+
+void register_child_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
+
+void register_child_response::__set_app(const ::dsn::app_info &val) { this->app = val; }
+
+void register_child_response::__set_parent_config(const ::dsn::partition_configuration &val)
+{
+    this->parent_config = val;
+}
+
+void register_child_response::__set_child_config(const ::dsn::partition_configuration &val)
+{
+    this->child_config = val;
+}
+
+uint32_t register_child_response::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->err.read(iprot);
+                this->__isset.err = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->app.read(iprot);
+                this->__isset.app = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 3:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->parent_config.read(iprot);
+                this->__isset.parent_config = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 4:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->child_config.read(iprot);
+                this->__isset.child_config = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t register_child_response::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("register_child_response");
+
+    xfer += oprot->writeFieldBegin("err", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->err.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("app", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += this->app.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("parent_config", ::apache::thrift::protocol::T_STRUCT, 3);
+    xfer += this->parent_config.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("child_config", ::apache::thrift::protocol::T_STRUCT, 4);
+    xfer += this->child_config.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(register_child_response &a, register_child_response &b)
+{
+    using ::std::swap;
+    swap(a.err, b.err);
+    swap(a.app, b.app);
+    swap(a.parent_config, b.parent_config);
+    swap(a.child_config, b.child_config);
+    swap(a.__isset, b.__isset);
+}
+
+register_child_response::register_child_response(const register_child_response &other634)
+{
+    err = other634.err;
+    app = other634.app;
+    parent_config = other634.parent_config;
+    child_config = other634.child_config;
+    __isset = other634.__isset;
+}
+register_child_response::register_child_response(register_child_response &&other635)
+{
+    err = std::move(other635.err);
+    app = std::move(other635.app);
+    parent_config = std::move(other635.parent_config);
+    child_config = std::move(other635.child_config);
+    __isset = std::move(other635.__isset);
+}
+register_child_response &register_child_response::operator=(const register_child_response &other636)
+{
+    err = other636.err;
+    app = other636.app;
+    parent_config = other636.parent_config;
+    child_config = other636.child_config;
+    __isset = other636.__isset;
+    return *this;
+}
+register_child_response &register_child_response::operator=(register_child_response &&other637)
+{
+    err = std::move(other637.err);
+    app = std::move(other637.app);
+    parent_config = std::move(other637.parent_config);
+    child_config = std::move(other637.child_config);
+    __isset = std::move(other637.__isset);
+    return *this;
+}
+void register_child_response::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "register_child_response(";
+    out << "err=" << to_string(err);
+    out << ", "
+        << "app=" << to_string(app);
+    out << ", "
+        << "parent_config=" << to_string(parent_config);
+    out << ", "
+        << "child_config=" << to_string(child_config);
+    out << ")";
+}
+
 bulk_load_metadata::~bulk_load_metadata() throw() {}
 
 void bulk_load_metadata::__set_files(const std::vector<file_meta> &val) { this->files = val; }
@@ -14442,13 +14775,13 @@ uint32_t bulk_load_metadata::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->files.clear();
-                    uint32_t _size630;
-                    ::apache::thrift::protocol::TType _etype633;
-                    xfer += iprot->readListBegin(_etype633, _size630);
-                    this->files.resize(_size630);
-                    uint32_t _i634;
-                    for (_i634 = 0; _i634 < _size630; ++_i634) {
-                        xfer += this->files[_i634].read(iprot);
+                    uint32_t _size638;
+                    ::apache::thrift::protocol::TType _etype641;
+                    xfer += iprot->readListBegin(_etype641, _size638);
+                    this->files.resize(_size638);
+                    uint32_t _i642;
+                    for (_i642 = 0; _i642 < _size638; ++_i642) {
+                        xfer += this->files[_i642].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -14487,9 +14820,9 @@ uint32_t bulk_load_metadata::write(::apache::thrift::protocol::TProtocol *oprot)
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->files.size()));
-        std::vector<file_meta>::const_iterator _iter635;
-        for (_iter635 = this->files.begin(); _iter635 != this->files.end(); ++_iter635) {
-            xfer += (*_iter635).write(oprot);
+        std::vector<file_meta>::const_iterator _iter643;
+        for (_iter643 = this->files.begin(); _iter643 != this->files.end(); ++_iter643) {
+            xfer += (*_iter643).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -14512,30 +14845,30 @@ void swap(bulk_load_metadata &a, bulk_load_metadata &b)
     swap(a.__isset, b.__isset);
 }
 
-bulk_load_metadata::bulk_load_metadata(const bulk_load_metadata &other636)
+bulk_load_metadata::bulk_load_metadata(const bulk_load_metadata &other644)
 {
-    files = other636.files;
-    file_total_size = other636.file_total_size;
-    __isset = other636.__isset;
+    files = other644.files;
+    file_total_size = other644.file_total_size;
+    __isset = other644.__isset;
 }
-bulk_load_metadata::bulk_load_metadata(bulk_load_metadata &&other637)
+bulk_load_metadata::bulk_load_metadata(bulk_load_metadata &&other645)
 {
-    files = std::move(other637.files);
-    file_total_size = std::move(other637.file_total_size);
-    __isset = std::move(other637.__isset);
+    files = std::move(other645.files);
+    file_total_size = std::move(other645.file_total_size);
+    __isset = std::move(other645.__isset);
 }
-bulk_load_metadata &bulk_load_metadata::operator=(const bulk_load_metadata &other638)
+bulk_load_metadata &bulk_load_metadata::operator=(const bulk_load_metadata &other646)
 {
-    files = other638.files;
-    file_total_size = other638.file_total_size;
-    __isset = other638.__isset;
+    files = other646.files;
+    file_total_size = other646.file_total_size;
+    __isset = other646.__isset;
     return *this;
 }
-bulk_load_metadata &bulk_load_metadata::operator=(bulk_load_metadata &&other639)
+bulk_load_metadata &bulk_load_metadata::operator=(bulk_load_metadata &&other647)
 {
-    files = std::move(other639.files);
-    file_total_size = std::move(other639.file_total_size);
-    __isset = std::move(other639.__isset);
+    files = std::move(other647.files);
+    file_total_size = std::move(other647.file_total_size);
+    __isset = std::move(other647.__isset);
     return *this;
 }
 void bulk_load_metadata::printTo(std::ostream &out) const
@@ -14649,34 +14982,34 @@ void swap(start_bulk_load_request &a, start_bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-start_bulk_load_request::start_bulk_load_request(const start_bulk_load_request &other640)
+start_bulk_load_request::start_bulk_load_request(const start_bulk_load_request &other648)
 {
-    app_name = other640.app_name;
-    cluster_name = other640.cluster_name;
-    file_provider_type = other640.file_provider_type;
-    __isset = other640.__isset;
+    app_name = other648.app_name;
+    cluster_name = other648.cluster_name;
+    file_provider_type = other648.file_provider_type;
+    __isset = other648.__isset;
 }
-start_bulk_load_request::start_bulk_load_request(start_bulk_load_request &&other641)
+start_bulk_load_request::start_bulk_load_request(start_bulk_load_request &&other649)
 {
-    app_name = std::move(other641.app_name);
-    cluster_name = std::move(other641.cluster_name);
-    file_provider_type = std::move(other641.file_provider_type);
-    __isset = std::move(other641.__isset);
+    app_name = std::move(other649.app_name);
+    cluster_name = std::move(other649.cluster_name);
+    file_provider_type = std::move(other649.file_provider_type);
+    __isset = std::move(other649.__isset);
 }
-start_bulk_load_request &start_bulk_load_request::operator=(const start_bulk_load_request &other642)
+start_bulk_load_request &start_bulk_load_request::operator=(const start_bulk_load_request &other650)
 {
-    app_name = other642.app_name;
-    cluster_name = other642.cluster_name;
-    file_provider_type = other642.file_provider_type;
-    __isset = other642.__isset;
+    app_name = other650.app_name;
+    cluster_name = other650.cluster_name;
+    file_provider_type = other650.file_provider_type;
+    __isset = other650.__isset;
     return *this;
 }
-start_bulk_load_request &start_bulk_load_request::operator=(start_bulk_load_request &&other643)
+start_bulk_load_request &start_bulk_load_request::operator=(start_bulk_load_request &&other651)
 {
-    app_name = std::move(other643.app_name);
-    cluster_name = std::move(other643.cluster_name);
-    file_provider_type = std::move(other643.file_provider_type);
-    __isset = std::move(other643.__isset);
+    app_name = std::move(other651.app_name);
+    cluster_name = std::move(other651.cluster_name);
+    file_provider_type = std::move(other651.file_provider_type);
+    __isset = std::move(other651.__isset);
     return *this;
 }
 void start_bulk_load_request::printTo(std::ostream &out) const
@@ -14771,31 +15104,31 @@ void swap(start_bulk_load_response &a, start_bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-start_bulk_load_response::start_bulk_load_response(const start_bulk_load_response &other644)
+start_bulk_load_response::start_bulk_load_response(const start_bulk_load_response &other652)
 {
-    err = other644.err;
-    hint_msg = other644.hint_msg;
-    __isset = other644.__isset;
+    err = other652.err;
+    hint_msg = other652.hint_msg;
+    __isset = other652.__isset;
 }
-start_bulk_load_response::start_bulk_load_response(start_bulk_load_response &&other645)
+start_bulk_load_response::start_bulk_load_response(start_bulk_load_response &&other653)
 {
-    err = std::move(other645.err);
-    hint_msg = std::move(other645.hint_msg);
-    __isset = std::move(other645.__isset);
+    err = std::move(other653.err);
+    hint_msg = std::move(other653.hint_msg);
+    __isset = std::move(other653.__isset);
 }
 start_bulk_load_response &start_bulk_load_response::
-operator=(const start_bulk_load_response &other646)
+operator=(const start_bulk_load_response &other654)
 {
-    err = other646.err;
-    hint_msg = other646.hint_msg;
-    __isset = other646.__isset;
+    err = other654.err;
+    hint_msg = other654.hint_msg;
+    __isset = other654.__isset;
     return *this;
 }
-start_bulk_load_response &start_bulk_load_response::operator=(start_bulk_load_response &&other647)
+start_bulk_load_response &start_bulk_load_response::operator=(start_bulk_load_response &&other655)
 {
-    err = std::move(other647.err);
-    hint_msg = std::move(other647.hint_msg);
-    __isset = std::move(other647.__isset);
+    err = std::move(other655.err);
+    hint_msg = std::move(other655.hint_msg);
+    __isset = std::move(other655.__isset);
     return *this;
 }
 void start_bulk_load_response::printTo(std::ostream &out) const

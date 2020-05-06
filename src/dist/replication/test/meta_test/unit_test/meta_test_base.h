@@ -32,9 +32,9 @@ public:
         _ms->_split_svc = make_unique<meta_split_service>(_ms.get());
         ASSERT_TRUE(_ms->_split_svc);
         _ms->_bulk_load_svc = make_unique<bulk_load_service>(
-                    _ms.get(), meta_options::concat_path_unix_style(_ms->_cluster_root, "bulk_load"));
-                ASSERT_TRUE(_ms->_bulk_load_svc);
-                _ms->_bulk_load_svc->initialize_bulk_load_service();
+            _ms.get(), meta_options::concat_path_unix_style(_ms->_cluster_root, "bulk_load"));
+        ASSERT_TRUE(_ms->_bulk_load_svc);
+        _ms->_bulk_load_svc->initialize_bulk_load_service();
 
         _ss = _ms->_state;
         _ss->initialize(_ms.get(), _ms->_cluster_root + "/apps");
@@ -123,6 +123,11 @@ public:
         _ss->set_app_envs(rpc);
         _ss->wait_all_task();
         return rpc.response();
+    }
+
+    void mock_node_state(const rpc_address &addr, const node_state &node)
+    {
+        _ss->_nodes[addr] = node;
     }
 
     std::shared_ptr<app_state> find_app(const std::string &name) { return _ss->get_app(name); }

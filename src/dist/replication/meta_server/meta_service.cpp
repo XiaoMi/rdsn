@@ -243,7 +243,7 @@ void meta_service::start_service()
 
     if (_bulk_load_svc) {
         ddebug("start bulk load service");
-        tasking::enqueue(LPC_META_STATE_NORMAL, nullptr, [this]() {
+        tasking::enqueue(LPC_META_STATE_NORMAL, tracker(), [this]() {
             _bulk_load_svc->initialize_bulk_load_service();
         });
     }
@@ -384,6 +384,9 @@ void meta_service::register_rpc_handlers()
         RPC_CM_DDD_DIAGNOSE, "ddd_diagnose", &meta_service::ddd_diagnose);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_APP_PARTITION_SPLIT, "app_partition_split", &meta_service::on_app_partition_split);
+    register_rpc_handler_with_rpc_holder(RPC_CM_REGISTER_CHILD_REPLICA,
+                                         "register_child_on_meta",
+                                         &meta_service::on_register_child_on_meta);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_START_BULK_LOAD, "start_bulk_load", &meta_service::on_start_bulk_load);
 }
@@ -933,6 +936,16 @@ void meta_service::on_app_partition_split(app_partition_split_rpc rpc)
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
                      [this, rpc]() { _split_svc->app_partition_split(std::move(rpc)); },
+                     server_state::sStateHash);
+}
+
+void meta_service::on_register_child_on_meta(register_child_rpc rpc)
+{
+    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     tracker(),
+                     [this, rpc]() { _split_svc->register_child_on_meta(std::move(rpc)); },
                      server_state::sStateHash);
 }
 

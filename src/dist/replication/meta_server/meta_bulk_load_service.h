@@ -43,6 +43,41 @@ struct bulk_load_info
     DEFINE_JSON_SERIALIZATION(app_id, app_name, partition_count)
 };
 
+///
+/// Bulk load process:
+/// when client sent `start_bulk_load_rpc` to meta server to start bulk load,
+/// meta server create bulk load structures on remote storage, and send `RPC_BULK_LOAD` rpc to
+/// each primary replica periodically until bulk load succeed or failed. whole process below:
+///
+///           start bulk load
+///                  |
+///                  v
+///          is_bulk_loading = true
+///                  |
+///                  v
+///     create bulk load info on remote storage
+///                  |
+///         Err      v
+///     ---------Downloading <---------|
+///     |            |                 |
+///     |            v         Err     |
+///     |        Downloaded  --------->|
+///     |            |                 |
+///     | IngestErr  v         Err     |
+///     |<------- Ingesting  --------->|
+///     |            |                 |
+///     v            v         Err     |
+///   Failed       Succeed   --------->|
+///     |            |
+///     v            v
+///    remove bulk load info on remote storage
+///                  |
+///                  v
+///         is_bulk_loading = false
+///                  |
+///                  v
+///            bulk load end
+
 class bulk_load_service
 {
 public:
@@ -54,41 +89,6 @@ public:
     void on_start_bulk_load(start_bulk_load_rpc rpc);
 
 private:
-    ///
-    /// Bulk load process:
-    /// when client sent `start_bulk_load_rpc` to meta server to start bulk load,
-    /// meta server create bulk load structures on remote storage, and send `RPC_BULK_LOAD` rpc to
-    /// each primary replica periodically until bulk load succeed or failed. whole process below:
-    ///
-    ///           start bulk load
-    ///                  |
-    ///                  v
-    ///          is_bulk_loading = true
-    ///                  |
-    ///                  v
-    ///     create bulk load info on remote storage
-    ///                  |
-    ///         Err      v
-    ///     ---------Downloading <---------|
-    ///     |            |                 |
-    ///     |            v         Err     |
-    ///     |        Downloaded  --------->|
-    ///     |            |                 |
-    ///     | IngestErr  v         Err     |
-    ///     |<------- Ingesting  --------->|
-    ///     |            |                 |
-    ///     v            v         Err     |
-    ///   Failed       Succeed   --------->|
-    ///     |            |
-    ///     v            v
-    ///    remove bulk load info on remote storage
-    ///                  |
-    ///                  v
-    ///         is_bulk_loading = false
-    ///                  |
-    ///                  v
-    ///            bulk load end
-
     // Called by `on_start_bulk_load`, check request params
     // - ERR_OK: pass params check
     // - ERR_INVALID_PARAMETERS: wrong file_provider type
@@ -142,7 +142,7 @@ private:
                                                const std::string &cluster_name) const
     {
         std::ostringstream oss;
-        oss << _meta_svc->get_options().bulk_load_root << "/" << cluster_name << "/" << app_name
+        oss << _meta_svc->get_options().bulk_load_provider_root << "/" << cluster_name << "/" << app_name
             << "/" << bulk_load_constant::BULK_LOAD_INFO;
         return oss.str();
     }
@@ -178,7 +178,7 @@ private:
     zrwlock_nr &app_lock() const { return _state->_lock; }
     zrwlock_nr _lock; // bulk load states lock
 
-    std::string _bulk_load_root; // <cluster_root>/bulk_load
+    const std::string _bulk_load_root; // <cluster_root>/bulk_load
 
     /// bulk load states
     std::unordered_set<int32_t> _bulk_load_app_id;
