@@ -142,8 +142,8 @@ private:
                                                const std::string &cluster_name) const
     {
         std::ostringstream oss;
-        oss << _meta_svc->get_options().bulk_load_provider_root << "/" << cluster_name << "/" << app_name
-            << "/" << bulk_load_constant::BULK_LOAD_INFO;
+        oss << _meta_svc->get_options().bulk_load_provider_root << "/" << cluster_name << "/"
+            << app_name << "/" << bulk_load_constant::BULK_LOAD_INFO;
         return oss.str();
     }
 
