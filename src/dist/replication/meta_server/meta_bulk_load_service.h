@@ -94,7 +94,7 @@ private:
     // - ERR_INVALID_PARAMETERS: wrong file_provider type
     // - ERR_FILE_OPERATION_FAILED: file_provider error
     // - ERR_OBJECT_NOT_FOUND: bulk_load_info not exist, may wrong cluster_name or app_name
-    // - ERR_INCOMPLETE_DATA: bulk_load_info is damaged on file_provider
+    // - ERR_CORRUPTION: bulk_load_info is damaged on file_provider
     // - ERR_INCONSISTENT_STATE: app_id or partition_count inconsistent
     error_code check_bulk_load_request_params(const std::string &app_name,
                                               const std::string &cluster_name,

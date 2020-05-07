@@ -145,7 +145,7 @@ error_code bulk_load_service::check_bulk_load_request_params(const std::string &
     if (!::dsn::json::json_forwarder<bulk_load_info>::decode(r_resp.buffer, bl_info)) {
         derror_f("file({}) is damaged on remote file provider({})", remote_path, file_provider);
         hint_msg = "bulk_load_info damaged";
-        return ERR_INCOMPLETE_DATA;
+        return ERR_CORRUPTION;
     }
 
     if (bl_info.app_id != app_id || bl_info.partition_count != partition_count) {
