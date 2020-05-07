@@ -777,11 +777,10 @@ void replica::update_group_partition_count(int32_t new_partition_count,
         return;
     }
 
-    // _primary_states.statuses is a map structure: rpc address -> partition_status
     std::unordered_set<dsn::rpc_address> not_replied_addresses;
-    for (auto iter = _primary_states.statuses.begin(); iter != _primary_states.statuses.end();
-         ++iter) {
-        not_replied_addresses.insert(iter->first);
+    // _primary_states.statuses is a map structure: rpc address -> partition_status
+    for (const auto &kv : _primary_states.statuses) {
+        not_replied_addresses.insert(kv.first);
     }
 
     ddebug_replica("start to update {} group partition count, new partition count = {}, ",
@@ -846,7 +845,7 @@ void replica::on_update_group_partition_count(
 
     // update _app_info and partition_version
     auto info = _app_info;
-    // if app has not been splitted before, init_partition_count = -1
+    // if app has not been split before, init_partition_count = -1
     // we should set init_partition_count to old_partition_count
     if (info.init_partition_count < 1) {
         info.init_partition_count = info.partition_count;
