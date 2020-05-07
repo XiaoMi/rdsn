@@ -128,13 +128,13 @@ fds_service::fds_service()
     /// If file size > burst size, the file will be rejected by the token bucket.
     ///  Here we set burst_size = max_sst_file_size + 3MB, a litte greater than max_sst_file_size
     uint32_t burst_size =
-        std::max(3 * write_rate_limit * 1e6 / BYTE_TO_BIT, max_sst_file_size + 3e6);
+        std::max(2 * write_rate_limit * 1e6 / BYTE_TO_BIT, max_sst_file_size + 3e6);
     _write_token_bucket.reset(
         new folly::TokenBucket(write_rate_limit * 1e6 / BYTE_TO_BIT, burst_size));
 
     uint32_t read_rate_limit = (uint32_t)dsn_config_get_value_uint64(
         "replication", "fds_read_limit_rate", 20, "rate limit of fds(Mb/s)");
-    burst_size = 3 * read_rate_limit * 1e6 / BYTE_TO_BIT;
+    burst_size = 2 * read_rate_limit * 1e6 / BYTE_TO_BIT;
     _read_token_bucket.reset(
         new folly::TokenBucket(read_rate_limit * 1e6 / BYTE_TO_BIT, burst_size));
 }
