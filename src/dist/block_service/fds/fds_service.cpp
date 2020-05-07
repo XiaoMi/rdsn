@@ -134,7 +134,7 @@ fds_service::fds_service()
 
     uint32_t read_rate_limit = (uint32_t)dsn_config_get_value_uint64(
         "replication", "fds_read_limit_rate", 20, "rate limit of fds(Mb/s)");
-    burst_size = 3 * write_rate_limit * 1e6 / BYTE_TO_BIT;
+    burst_size = 3 * read_rate_limit * 1e6 / BYTE_TO_BIT;
     _read_token_bucket.reset(
         new folly::TokenBucket(read_rate_limit * 1e6 / BYTE_TO_BIT, burst_size));
 }
