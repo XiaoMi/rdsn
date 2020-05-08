@@ -37,14 +37,6 @@ class bulk_load_service_test : public meta_test_base
 public:
     bulk_load_service_test() {}
 
-    void SetUp() override
-    {
-        meta_test_base::SetUp();
-        _app_root = _ss->_apps_root;
-    }
-
-    void TearDown() override { meta_test_base::TearDown(); }
-
     /// bulk load functions
 
     start_bulk_load_response start_bulk_load(const std::string &app_name)
@@ -81,8 +73,6 @@ public:
     std::string CLUSTER = "cluster";
     std::string PROVIDER = "local_service";
     int64_t BALLOT = 4;
-
-    std::string _app_root;
 };
 
 /// start bulk load unit tests
