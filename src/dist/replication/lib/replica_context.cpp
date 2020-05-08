@@ -94,6 +94,14 @@ void primary_context::cleanup(bool clean_pending_mutations)
     // clean up register child task
     CLEANUP_TASK_ALWAYS(register_child_task)
 
+    // cleanup group bulk load
+    for (auto it = group_bulk_load_pending_replies.begin();
+         it != group_bulk_load_pending_replies.end();
+         ++it) {
+        CLEANUP_TASK_ALWAYS(it->second)
+    }
+    group_bulk_load_pending_replies.clear();
+
     membership.ballot = 0;
 
     caught_up_children.clear();
@@ -105,7 +113,7 @@ bool primary_context::is_cleaned()
 {
     return nullptr == group_check_task && nullptr == reconfiguration_task &&
            nullptr == checkpoint_task && group_check_pending_replies.empty() &&
-           nullptr == register_child_task;
+           nullptr == register_child_task && group_bulk_load_pending_replies.empty();
 }
 
 void primary_context::do_cleanup_pending_mutations(bool clean_pending_mutations)

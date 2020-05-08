@@ -122,6 +122,13 @@ public:
     // Used for partition split
     // primary parent register child on meta_server task
     dsn::task_ptr register_child_task;
+
+    // Used for bulk load
+    // calls broadcast_group_bulk_load()
+    // created in replica::on_bulk_load()
+    // cancelled in cleanup() when status changed from PRIMARY to others
+    // group bulk_load response tasks of RPC_GROUP_BULK_LOAD for each secondary replica
+    node_tasks group_bulk_load_pending_replies;
 };
 
 class secondary_context
@@ -546,6 +553,17 @@ public:
 
     // child replica async learn parent states
     dsn::task_ptr async_learn_task;
+};
+
+class bulk_load_context
+{
+public:
+    // TODO(heyuchen): add public functions
+private:
+    friend class ::dsn::replication::replica;
+    friend class replica_bulk_load_test;
+
+    bulk_load_status::type _status{bulk_load_status::BLS_INVALID};
 };
 
 //---------------inline impl----------------------------------------------------------------

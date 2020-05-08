@@ -898,10 +898,86 @@ enum bulk_load_status
     BLS_CANCELED
 }
 
+enum ingestion_status
+{
+    IS_INVALID,
+    IS_RUNNING,
+    IS_SUCCEED,
+    IS_FAILED
+}
+
 struct bulk_load_metadata
 {
     1:list<file_meta>   files;
     2:i64               file_total_size;
+}
+
+struct partition_bulk_load_state
+{
+    1:optional i32              download_progress = 0;
+    2:optional dsn.error_code   download_status;
+    3:optional ingestion_status ingest_status = ingestion_status.IS_INVALID;
+    4:optional bool             is_cleanuped = false;
+    5:optional bool             is_paused = false;
+}
+
+struct bulk_load_request
+{
+    1:dsn.gpid          pid;
+    2:string            app_name;
+    3:dsn.rpc_address   primary_addr;
+    4:string            remote_provider_name;
+    5:string            cluster_name;
+    6:i64               ballot;
+    7:bulk_load_status  meta_bulk_load_status;
+    8:bool              query_bulk_load_metadata;
+}
+
+struct bulk_load_response
+{
+    // Possible error:
+    // - ERR_OBJECT_NOT_FOUND: replica not found
+    // - ERR_INVALID_STATE: replica has invalid state
+    // - ERR_BUSY: node has enough replica executing bulk load downloading
+    // - ERR_FILE_OPERATION_FAILED: local file system error during bulk load downloading
+    // - ERR_FS_INTERNAL: remote file provider error during bulk load downloading
+    // - ERR_CORRUPTION: metadata corruption during bulk load downloading
+    1:dsn.error_code                                    err;
+    2:dsn.gpid                                          pid;
+    3:string                                            app_name;
+    4:bulk_load_status                                  primary_bulk_load_status;
+    5:map<dsn.rpc_address, partition_bulk_load_state>   group_bulk_load_state;
+    6:optional bulk_load_metadata                       metadata;
+    7:optional i32                                      total_download_progress;
+    8:optional bool                                     is_group_ingestion_finished;
+    9:optional bool                                     is_group_bulk_load_context_cleaned;
+    10:optional bool                                    is_group_bulk_load_paused;
+}
+
+struct group_bulk_load_request
+{
+    1:string                        app_name;
+    2:dsn.rpc_address               target_address;
+    3:replica_configuration         config;
+    4:string                        provider_name;
+    5:string                        cluster_name;
+    6:bulk_load_status              meta_bulk_load_status;
+}
+
+struct group_bulk_load_response
+{
+    // Possible error:
+    // - ERR_OBJECT_NOT_FOUND: replica not found
+    // - ERR_VERSION_OUTDATED: request out-dated
+    // - ERR_INVALID_STATE: replica has invalid state
+    // - ERR_BUSY: node has enough replica executing bulk load downloading
+    // - ERR_FILE_OPERATION_FAILED: local file system error during bulk load downloading
+    // - ERR_FS_INTERNAL: remote file provider error during bulk load downloading
+    // - ERR_CORRUPTION: metadata corruption during bulk load downloading
+    1:dsn.error_code            err;
+    2:dsn.rpc_address           target_address;
+    3:bulk_load_status          status;
+    4:partition_bulk_load_state bulk_load_state;
 }
 
 /*
