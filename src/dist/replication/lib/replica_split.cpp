@@ -490,32 +490,33 @@ void replica::child_notify_catch_up() // on child partition
                    _config.primary.to_string(),
                    get_ballot());
 
-    notify_catch_up_rpc rpc(std::move(request), RPC_SPLIT_NOTIFY_CATCH_UP);
-    rpc.call(_config.primary,
-             tracker(),
-             [this, rpc](error_code ec) mutable {
-                 auto response = rpc.response();
-                 if (ec == ERR_TIMEOUT) {
-                     dwarn_replica("notify primary catch up timeout, please wait and retry");
-                     tasking::enqueue(LPC_PARTITION_SPLIT,
-                                      tracker(),
-                                      std::bind(&replica::child_notify_catch_up, this),
-                                      get_gpid().thread_hash(),
-                                      std::chrono::seconds(1));
-                     return;
-                 }
-                 if (ec != ERR_OK || response.err != ERR_OK) {
-                     error_code err = (ec == ERR_OK) ? response.err : ec;
-                     dwarn_replica("failed to notify primary catch up, error={}", err.to_string());
-                     _stub->split_replica_error_handler(
-                         _split_states.parent_gpid,
-                         std::bind(&replica::parent_cleanup_split_context, std::placeholders::_1));
-                     child_handle_split_error("notify_primary_split_catch_up");
-                     return;
-                 }
-                 ddebug_replica("notify primary catch up succeed");
-             },
-             _split_states.parent_gpid.thread_hash());
+    notify_catch_up_rpc rpc(std::move(request),
+                            RPC_SPLIT_NOTIFY_CATCH_UP,
+                            0_ms,
+                            0,
+                            _split_states.parent_gpid.thread_hash());
+    rpc.call(_config.primary, tracker(), [this, rpc](error_code ec) mutable {
+        auto response = rpc.response();
+        if (ec == ERR_TIMEOUT) {
+            dwarn_replica("notify primary catch up timeout, please wait and retry");
+            tasking::enqueue(LPC_PARTITION_SPLIT,
+                             tracker(),
+                             std::bind(&replica::child_notify_catch_up, this),
+                             get_gpid().thread_hash(),
+                             std::chrono::seconds(1));
+            return;
+        }
+        if (ec != ERR_OK || response.err != ERR_OK) {
+            error_code err = (ec == ERR_OK) ? response.err : ec;
+            dwarn_replica("failed to notify primary catch up, error={}", err.to_string());
+            _stub->split_replica_error_handler(
+                _split_states.parent_gpid,
+                std::bind(&replica::parent_cleanup_split_context, std::placeholders::_1));
+            child_handle_split_error("notify_primary_split_catch_up");
+            return;
+        }
+        ddebug_replica("notify primary catch up succeed");
+    });
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
@@ -787,24 +788,23 @@ void replica::update_group_partition_count(int32_t new_partition_count,
                    is_update_child ? "child" : "parent",
                    new_partition_count);
 
-    gpid pid = is_update_child ? _child_gpid : get_gpid();
     for (auto &iter : _primary_states.statuses) {
-        std::unique_ptr<update_group_partition_count_request> request =
-            make_unique<update_group_partition_count_request>();
+        auto request = make_unique<update_group_partition_count_request>();
         request->new_partition_count = new_partition_count;
         request->target_address = iter.first;
-        request->pid = pid;
+        request->pid = is_update_child ? _child_gpid : get_gpid();
         request->ballot = get_ballot();
         request->update_child_group = is_update_child;
 
-        update_group_partition_count_rpc rpc(std::move(request), RPC_SPLIT_UPDATE_PARTITION_COUNT);
-        rpc.call(iter.first,
-                 tracker(),
-                 [this, rpc, not_replied_addresses](error_code ec) mutable {
-                     on_update_group_partition_count_reply(
-                         ec, rpc.request(), rpc.response(), not_replied_addresses);
-                 },
-                 get_gpid().thread_hash());
+        update_group_partition_count_rpc rpc(std::move(request),
+                                             RPC_SPLIT_UPDATE_PARTITION_COUNT,
+                                             0_ms,
+                                             0,
+                                             get_gpid().thread_hash());
+        rpc.call(iter.first, tracker(), [this, rpc, not_replied_addresses](error_code ec) mutable {
+            on_update_group_partition_count_reply(
+                ec, rpc.request(), rpc.response(), not_replied_addresses);
+        });
     }
 }
 
@@ -901,18 +901,19 @@ void replica::on_update_group_partition_count_reply(
         tasking::enqueue(LPC_PARTITION_SPLIT,
                          tracker(),
                          [this, request, not_replied_addresses]() mutable {
-                             std::unique_ptr<update_group_partition_count_request> req =
-                                 make_unique<update_group_partition_count_request>(request);
+                             auto req = make_unique<update_group_partition_count_request>(request);
                              update_group_partition_count_rpc rpc(std::move(req),
-                                                                  RPC_SPLIT_UPDATE_PARTITION_COUNT);
+                                                                  RPC_SPLIT_UPDATE_PARTITION_COUNT,
+                                                                  0_ms,
+                                                                  0,
+                                                                  get_gpid().thread_hash());
                              rpc.call(
                                  req->target_address,
                                  tracker(),
                                  [this, rpc, not_replied_addresses](error_code ec) mutable {
                                      on_update_group_partition_count_reply(
                                          ec, rpc.request(), rpc.response(), not_replied_addresses);
-                                 },
-                                 get_gpid().thread_hash());
+                                 });
                          },
                          get_gpid().thread_hash(),
                          std::chrono::seconds(1));
