@@ -90,7 +90,7 @@ public:
                task_code code,
                std::chrono::milliseconds timeout = 0_ms,
                uint64_t partition_hash = 0,
-               uint64_t thread_hash = 0)
+               int thread_hash = 0)
         : _i(new internal(req, code, timeout, partition_hash, thread_hash))
     {
     }
@@ -253,7 +253,7 @@ private:
                  task_code code,
                  std::chrono::milliseconds timeout,
                  uint64_t partition_hash,
-                 uint64_t thread_hash)
+                 int thread_hash)
             : thrift_request(std::move(req)), auto_reply(false)
         {
             dassert(thrift_request != nullptr, "req should not be null");
