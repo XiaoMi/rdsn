@@ -156,7 +156,7 @@ error_code bulk_load_service::check_bulk_load_request_params(const std::string &
                  bl_info.app_id,
                  partition_count,
                  bl_info.partition_count);
-        hint_msg = "app_id or partition_count inconsistent";
+        hint_msg = "app_id or partition_count is inconsistent";
         return ERR_INCONSISTENT_STATE;
     }
 
