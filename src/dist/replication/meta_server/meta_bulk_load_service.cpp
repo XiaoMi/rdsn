@@ -250,6 +250,7 @@ void bulk_load_service::create_partition_bulk_load_dir(const std::string &app_na
         });
 }
 
+// ThreadPool: THREAD_POOL_META_STATE
 void bulk_load_service::partition_bulk_load(const std::string &app_name, const gpid &pid)
 {
     FAIL_POINT_INJECT_F("meta_bulk_load_partition_bulk_load", [](dsn::string_view) {});
@@ -281,7 +282,7 @@ void bulk_load_service::partition_bulk_load(const std::string &app_name, const g
     }
 
     zauto_read_lock l(_lock);
-    app_bulk_load_info ainfo = _app_bulk_load_info[pid.get_app_id()];
+    const app_bulk_load_info &ainfo = _app_bulk_load_info[pid.get_app_id()];
     auto req = make_unique<bulk_load_request>();
     req->pid = pid;
     req->app_name = app_name;
@@ -292,7 +293,7 @@ void bulk_load_service::partition_bulk_load(const std::string &app_name, const g
     req->ballot = b;
     req->query_bulk_load_metadata = is_partition_metadata_not_updated_unlock(pid);
 
-    ddebug_f("send bulk load request to replica server({}), app({}), partition({}), partition "
+    ddebug_f("send bulk load request to node({}), app({}), partition({}), partition "
              "status = {}, remote provider = {}, cluster_name = {}",
              primary_addr.to_string(),
              app_name,

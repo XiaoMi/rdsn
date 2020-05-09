@@ -58,14 +58,20 @@ void replica::on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_r
         return;
     }
 
-    broadcast_group_bulk_load(request);
-
     report_bulk_load_states_to_meta(
         request.meta_bulk_load_status, request.query_bulk_load_metadata, response);
+    if (response.err != ERR_OK) {
+        return;
+    }
+
+    broadcast_group_bulk_load(request);
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica::broadcast_group_bulk_load(const bulk_load_request &meta_req) {}
+void replica::broadcast_group_bulk_load(const bulk_load_request &meta_req)
+{
+    // TODO(heyuchen): TBD
+}
 
 // ThreadPool: THREAD_POOL_REPLICATION
 dsn::error_code replica::do_bulk_load(const std::string &app_name,
