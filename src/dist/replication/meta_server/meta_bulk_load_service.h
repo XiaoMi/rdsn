@@ -107,6 +107,13 @@ private:
 
     void partition_bulk_load(const std::string &app_name, const gpid &pid);
 
+    void on_partition_bulk_load_reply(error_code err,
+                                      const bulk_load_request &request,
+                                      const bulk_load_response &response);
+
+    // app not existed or not available during bulk load
+    void handle_app_unavailable(int32_t app_id, const std::string &app_name);
+
     ///
     /// update bulk load states to remote storage functions
     ///
@@ -173,6 +180,25 @@ private:
         std::stringstream oss;
         oss << get_app_bulk_load_path(pid.get_app_id()) << "/" << pid.get_partition_index();
         return oss.str();
+    }
+
+    inline bool is_partition_metadata_not_updated_unlock(gpid pid)
+    {
+        if (_partition_bulk_load_info.find(pid) != _partition_bulk_load_info.end()) {
+            bulk_load_metadata metadata = _partition_bulk_load_info[pid].metadata;
+            return (metadata.files.size() == 0 && metadata.file_total_size == 0);
+        } else {
+            return false;
+        }
+    }
+
+    inline bulk_load_status::type get_partition_bulk_load_status_unlock(gpid pid)
+    {
+        if (_partition_bulk_load_info.find(pid) != _partition_bulk_load_info.end()) {
+            return _partition_bulk_load_info[pid].status;
+        } else {
+            return bulk_load_status::BLS_INVALID;
+        }
     }
 
 private:
