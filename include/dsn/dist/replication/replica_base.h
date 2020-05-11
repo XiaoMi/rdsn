@@ -28,7 +28,6 @@
 
 #include <dsn/tool-api/gpid.h>
 #include <dsn/utility/string_view.h>
-#include <dsn/tool/abnormal_log.h>
 
 namespace dsn {
 namespace replication {
