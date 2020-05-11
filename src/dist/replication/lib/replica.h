@@ -537,8 +537,6 @@ private:
     dsn::task_tracker _tracker;
     // the thread access checker
     dsn::thread_access_checker _checker;
-
-    std::unique_ptr<abnormal_log> _abnormal_log;
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
 } // namespace replication
