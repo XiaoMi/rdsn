@@ -553,7 +553,7 @@ class bulk_load_context
 public:
     // TODO(heyuchen): add public functions
 private:
-    friend class ::dsn::replication::replica;
+    friend class replica;
     friend class replica_bulk_load_test;
 
     bulk_load_status::type _status{bulk_load_status::BLS_INVALID};

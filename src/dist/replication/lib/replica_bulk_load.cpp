@@ -2,15 +2,16 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
+#include "replica.h"
+#include "replica_stub.h"
+
 #include <fstream>
+
 #include <dsn/dist/block_service.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
-#include <dsn/utility/filesystem.h>
 #include <dsn/utility/fail_point.h>
-
-#include "replica.h"
-#include "replica_stub.h"
+#include <dsn/utility/filesystem.h>
 
 namespace dsn {
 namespace replication {
@@ -48,10 +49,10 @@ void replica::on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_r
         enum_to_string(request.meta_bulk_load_status),
         enum_to_string(get_bulk_load_status()));
 
-    dsn::error_code ec = do_bulk_load(request.app_name,
-                                      request.meta_bulk_load_status,
-                                      request.cluster_name,
-                                      request.remote_provider_name);
+    error_code ec = do_bulk_load(request.app_name,
+                                 request.meta_bulk_load_status,
+                                 request.cluster_name,
+                                 request.remote_provider_name);
     if (ec != ERR_OK) {
         response.err = ec;
         response.primary_bulk_load_status = get_bulk_load_status();
@@ -74,10 +75,10 @@ void replica::broadcast_group_bulk_load(const bulk_load_request &meta_req)
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-dsn::error_code replica::do_bulk_load(const std::string &app_name,
-                                      bulk_load_status::type meta_status,
-                                      const std::string &cluster_name,
-                                      const std::string &provider_name)
+error_code replica::do_bulk_load(const std::string &app_name,
+                                 bulk_load_status::type meta_status,
+                                 const std::string &cluster_name,
+                                 const std::string &provider_name)
 {
     // TODO(heyuchen): TBD
     return ERR_OK;
