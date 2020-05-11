@@ -625,6 +625,14 @@ struct configuration_query_restore_response
     3:list<i32>             restore_progress;
 }
 
+// Used for cold backup and bulk load
+struct file_meta
+{
+    1:string    name;
+    2:i64       size;
+    3:string    md5;
+}
+
 enum app_env_operation
 {
     APP_ENV_OP_INVALID,
@@ -872,6 +880,52 @@ struct register_child_response
     2:dsn.layer2.app_info                   app;
     3:dsn.layer2.partition_configuration    parent_config;
     4:dsn.layer2.partition_configuration    child_config;
+}
+
+/////////////////// bulk-load-related structs ////////////////////
+
+// app partition bulk load status
+enum bulk_load_status
+{
+    BLS_INVALID,
+    BLS_DOWNLOADING,
+    BLS_DOWNLOADED,
+    BLS_INGESTING,
+    BLS_SUCCEED,
+    BLS_FAILED,
+    BLS_PAUSING,
+    BLS_PAUSED,
+    BLS_CANCELED
+}
+
+struct bulk_load_metadata
+{
+    1:list<file_meta>   files;
+    2:i64               file_total_size;
+}
+
+// client -> meta, start bulk load
+struct start_bulk_load_request
+{
+    1:string        app_name;
+    2:string        cluster_name;
+    3:string        file_provider_type;
+}
+
+struct start_bulk_load_response
+{
+    // Possible error:
+    // - ERR_OK: start bulk load succeed
+    // - ERR_APP_NOT_EXIST: app not exist
+    // - ERR_APP_DROPPED: app has been dropped
+    // - ERR_BUSY: app is already executing bulk load
+    // - ERR_INVALID_PARAMETERS: wrong file_provider type
+    // - ERR_FILE_OPERATION_FAILED: remote file_provider error
+    // - ERR_OBJECT_NOT_FOUND: bulk_load_info not exist on file_provider
+    // - ERR_CORRUPTION: bulk_load_info is damaged on file_provider
+    // - ERR_INCONSISTENT_STATE: app_id or partition_count inconsistent
+    1:dsn.error_code    err;
+    2:string            hint_msg;
 }
 
 /*

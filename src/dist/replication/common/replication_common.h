@@ -35,6 +35,8 @@ namespace replication {
 typedef std::unordered_map<::dsn::rpc_address, partition_status::type> node_statuses;
 typedef std::unordered_map<::dsn::rpc_address, dsn::task_ptr> node_tasks;
 
+typedef rpc_holder<start_bulk_load_request, start_bulk_load_response> start_bulk_load_rpc;
+
 class replication_options
 {
 public:
@@ -114,6 +116,8 @@ public:
     int32_t max_concurrent_uploading_file_count;
     int32_t cold_backup_checkpoint_reserve_minutes;
 
+    std::string bulk_load_provider_root;
+
 public:
     replication_options();
     void initialize();
@@ -149,6 +153,13 @@ public:
     static const std::string APP_ID;
     static const std::string BACKUP_ID;
     static const std::string SKIP_BAD_PARTITION;
+};
+
+class bulk_load_constant
+{
+public:
+    static const std::string BULK_LOAD_INFO;
+    // TODO(heyuchen): add more constant in further pr
 };
 
 namespace cold_backup {

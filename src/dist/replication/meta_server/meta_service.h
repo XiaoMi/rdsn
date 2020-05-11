@@ -57,6 +57,7 @@ class server_load_balancer;
 class replication_checker;
 class meta_duplication_service;
 class meta_split_service;
+class bulk_load_service;
 namespace test {
 class test_checker;
 }
@@ -96,6 +97,7 @@ public:
         }
         return level;
     }
+    void set_function_level(meta_function_level::type level) { _function_level.store(level); }
 
     template <typename TResponse>
     void reply_data(dsn::message_ex *request, const TResponse &data)
@@ -185,6 +187,9 @@ private:
     void on_app_partition_split(app_partition_split_rpc rpc);
     void on_register_child_on_meta(register_child_rpc rpc);
 
+    // bulk load
+    void on_start_bulk_load(start_bulk_load_rpc rpc);
+
     // common routines
     // ret:
     //   1. the meta is leader
@@ -199,6 +204,7 @@ private:
     friend class replication_checker;
     friend class test::test_checker;
     friend class meta_service_test_app;
+    friend class bulk_load_service_test;
 
     replication_options _opts;
     meta_options _meta_opts;
@@ -223,6 +229,8 @@ private:
     std::unique_ptr<meta_duplication_service> _dup_svc;
 
     std::unique_ptr<meta_split_service> _split_svc;
+
+    std::unique_ptr<bulk_load_service> _bulk_load_svc;
 
     // handle all the block filesystems for current meta service
     // (in other words, current service node)
