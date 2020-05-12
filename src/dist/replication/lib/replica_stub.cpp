@@ -2641,7 +2641,7 @@ void replica_stub::on_bulk_load(const bulk_load_request &request, bulk_load_resp
     if (rep != nullptr) {
         rep->on_bulk_load(request, response);
     } else {
-        derror_f("replica({}) is not existed", request.pid.to_string());
+        derror_f("replica({}) is not existed", request.pid);
         response.err = ERR_OBJECT_NOT_FOUND;
     }
 }

@@ -184,18 +184,19 @@ private:
 
     inline bool is_partition_metadata_not_updated_unlock(gpid pid)
     {
-        if (_partition_bulk_load_info.find(pid) != _partition_bulk_load_info.end()) {
-            bulk_load_metadata metadata = _partition_bulk_load_info[pid].metadata;
-            return (metadata.files.size() == 0 && metadata.file_total_size == 0);
-        } else {
+        auto iter = _partition_bulk_load_info.find(pid);
+        if (iter == _partition_bulk_load_info.end()) {
             return false;
         }
+        bulk_load_metadata metadata = iter->second.metadata;
+        return (metadata.files.size() == 0 && metadata.file_total_size == 0);
     }
 
     inline bulk_load_status::type get_partition_bulk_load_status_unlock(gpid pid)
     {
-        if (_partition_bulk_load_info.find(pid) != _partition_bulk_load_info.end()) {
-            return _partition_bulk_load_info[pid].status;
+        auto iter = _partition_bulk_load_info.find(pid);
+        if (iter != _partition_bulk_load_info.end()) {
+            return iter->second.status;
         } else {
             return bulk_load_status::BLS_INVALID;
         }
