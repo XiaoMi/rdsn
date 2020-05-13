@@ -445,7 +445,7 @@ dsn::error_code replica::restore_checkpoint()
 
     if (err == dsn::ERR_OK) {
         err = download_checkpoint(restore_req, remote_chkpt_dir, restore_dir);
-        if (err != ERR_OK && _restore_status == ERR_CORRUPTION) {
+        if (_restore_status == ERR_CORRUPTION) {
             if (skip_bad_partition) {
                 err = skip_restore_partition(restore_dir);
             } else {
