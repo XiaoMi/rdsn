@@ -105,10 +105,9 @@ void replica::broadcast_group_bulk_load(const bulk_load_request &meta_req)
 
         group_bulk_load_rpc rpc(
             std::move(request), RPC_GROUP_BULK_LOAD, 0_ms, 0, get_gpid().thread_hash());
-        dsn::task_ptr callback_task =
-            rpc.call(addr, tracker(), [this, rpc](error_code err) mutable {
-                on_group_bulk_load_reply(err, rpc.request(), rpc.response());
-            });
+        auto callback_task = rpc.call(addr, tracker(), [this, rpc](error_code err) mutable {
+            on_group_bulk_load_reply(err, rpc.request(), rpc.response());
+        });
         _primary_states.group_bulk_load_pending_replies[addr] = callback_task;
     }
 }
