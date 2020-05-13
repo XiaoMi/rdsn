@@ -6883,12 +6883,8 @@ inline std::ostream &operator<<(std::ostream &out, const group_bulk_load_request
 
 typedef struct _group_bulk_load_response__isset
 {
-    _group_bulk_load_response__isset()
-        : err(false), target_address(false), status(false), bulk_load_state(false)
-    {
-    }
+    _group_bulk_load_response__isset() : err(false), status(false), bulk_load_state(false) {}
     bool err : 1;
-    bool target_address : 1;
     bool status : 1;
     bool bulk_load_state : 1;
 } _group_bulk_load_response__isset;
@@ -6904,15 +6900,12 @@ public:
 
     virtual ~group_bulk_load_response() throw();
     ::dsn::error_code err;
-    ::dsn::rpc_address target_address;
     bulk_load_status::type status;
     partition_bulk_load_state bulk_load_state;
 
     _group_bulk_load_response__isset __isset;
 
     void __set_err(const ::dsn::error_code &val);
-
-    void __set_target_address(const ::dsn::rpc_address &val);
 
     void __set_status(const bulk_load_status::type val);
 
@@ -6921,8 +6914,6 @@ public:
     bool operator==(const group_bulk_load_response &rhs) const
     {
         if (!(err == rhs.err))
-            return false;
-        if (!(target_address == rhs.target_address))
             return false;
         if (!(status == rhs.status))
             return false;

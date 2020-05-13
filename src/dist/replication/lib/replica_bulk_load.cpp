@@ -146,16 +146,16 @@ void replica::on_group_bulk_load(const group_bulk_load_request &request,
     }
 
     ddebug_replica("receive group_bulk_load request, primary address = {}, ballot = {}, "
-                   "meta_bulk_load_status = {}, local bulk_load_status = {}",
+                   "meta bulk_load_status = {}, local bulk_load_status = {}",
                    request.config.primary.to_string(),
                    request.config.ballot,
                    enum_to_string(request.meta_bulk_load_status),
                    enum_to_string(get_bulk_load_status()));
 
-    dsn::error_code ec = do_bulk_load(request.app_name,
-                                      request.meta_bulk_load_status,
-                                      request.cluster_name,
-                                      request.provider_name);
+    error_code ec = do_bulk_load(request.app_name,
+                                 request.meta_bulk_load_status,
+                                 request.cluster_name,
+                                 request.provider_name);
     if (ec != ERR_OK) {
         response.err = ec;
         response.status = get_bulk_load_status();

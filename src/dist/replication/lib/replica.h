@@ -434,10 +434,10 @@ private:
                                   const group_bulk_load_request &req,
                                   const group_bulk_load_response &resp);
 
-    dsn::error_code do_bulk_load(const std::string &app_name,
-                                 bulk_load_status::type meta_status,
-                                 const std::string &cluster_name,
-                                 const std::string &provider_name);
+    error_code do_bulk_load(const std::string &app_name,
+                            bulk_load_status::type meta_status,
+                            const std::string &cluster_name,
+                            const std::string &provider_name);
 
     void report_bulk_load_states_to_meta(bulk_load_status::type remote_status,
                                          bool report_metadata,

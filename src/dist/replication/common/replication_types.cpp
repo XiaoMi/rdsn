@@ -16197,11 +16197,6 @@ group_bulk_load_response::~group_bulk_load_response() throw() {}
 
 void group_bulk_load_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
 
-void group_bulk_load_response::__set_target_address(const ::dsn::rpc_address &val)
-{
-    this->target_address = val;
-}
-
 void group_bulk_load_response::__set_status(const bulk_load_status::type val)
 {
     this->status = val;
@@ -16240,14 +16235,6 @@ uint32_t group_bulk_load_response::read(::apache::thrift::protocol::TProtocol *i
             }
             break;
         case 2:
-            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
-                xfer += this->target_address.read(iprot);
-                this->__isset.target_address = true;
-            } else {
-                xfer += iprot->skip(ftype);
-            }
-            break;
-        case 3:
             if (ftype == ::apache::thrift::protocol::T_I32) {
                 int32_t ecast684;
                 xfer += iprot->readI32(ecast684);
@@ -16257,7 +16244,7 @@ uint32_t group_bulk_load_response::read(::apache::thrift::protocol::TProtocol *i
                 xfer += iprot->skip(ftype);
             }
             break;
-        case 4:
+        case 3:
             if (ftype == ::apache::thrift::protocol::T_STRUCT) {
                 xfer += this->bulk_load_state.read(iprot);
                 this->__isset.bulk_load_state = true;
@@ -16287,15 +16274,11 @@ uint32_t group_bulk_load_response::write(::apache::thrift::protocol::TProtocol *
     xfer += this->err.write(oprot);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("target_address", ::apache::thrift::protocol::T_STRUCT, 2);
-    xfer += this->target_address.write(oprot);
-    xfer += oprot->writeFieldEnd();
-
-    xfer += oprot->writeFieldBegin("status", ::apache::thrift::protocol::T_I32, 3);
+    xfer += oprot->writeFieldBegin("status", ::apache::thrift::protocol::T_I32, 2);
     xfer += oprot->writeI32((int32_t)this->status);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("bulk_load_state", ::apache::thrift::protocol::T_STRUCT, 4);
+    xfer += oprot->writeFieldBegin("bulk_load_state", ::apache::thrift::protocol::T_STRUCT, 3);
     xfer += this->bulk_load_state.write(oprot);
     xfer += oprot->writeFieldEnd();
 
@@ -16308,7 +16291,6 @@ void swap(group_bulk_load_response &a, group_bulk_load_response &b)
 {
     using ::std::swap;
     swap(a.err, b.err);
-    swap(a.target_address, b.target_address);
     swap(a.status, b.status);
     swap(a.bulk_load_state, b.bulk_load_state);
     swap(a.__isset, b.__isset);
@@ -16317,7 +16299,6 @@ void swap(group_bulk_load_response &a, group_bulk_load_response &b)
 group_bulk_load_response::group_bulk_load_response(const group_bulk_load_response &other685)
 {
     err = other685.err;
-    target_address = other685.target_address;
     status = other685.status;
     bulk_load_state = other685.bulk_load_state;
     __isset = other685.__isset;
@@ -16325,7 +16306,6 @@ group_bulk_load_response::group_bulk_load_response(const group_bulk_load_respons
 group_bulk_load_response::group_bulk_load_response(group_bulk_load_response &&other686)
 {
     err = std::move(other686.err);
-    target_address = std::move(other686.target_address);
     status = std::move(other686.status);
     bulk_load_state = std::move(other686.bulk_load_state);
     __isset = std::move(other686.__isset);
@@ -16334,7 +16314,6 @@ group_bulk_load_response &group_bulk_load_response::
 operator=(const group_bulk_load_response &other687)
 {
     err = other687.err;
-    target_address = other687.target_address;
     status = other687.status;
     bulk_load_state = other687.bulk_load_state;
     __isset = other687.__isset;
@@ -16343,7 +16322,6 @@ operator=(const group_bulk_load_response &other687)
 group_bulk_load_response &group_bulk_load_response::operator=(group_bulk_load_response &&other688)
 {
     err = std::move(other688.err);
-    target_address = std::move(other688.target_address);
     status = std::move(other688.status);
     bulk_load_state = std::move(other688.bulk_load_state);
     __isset = std::move(other688.__isset);
@@ -16354,8 +16332,6 @@ void group_bulk_load_response::printTo(std::ostream &out) const
     using ::apache::thrift::to_string;
     out << "group_bulk_load_response(";
     out << "err=" << to_string(err);
-    out << ", "
-        << "target_address=" << to_string(target_address);
     out << ", "
         << "status=" << to_string(status);
     out << ", "
