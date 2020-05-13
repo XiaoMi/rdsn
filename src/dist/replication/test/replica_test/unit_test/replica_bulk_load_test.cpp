@@ -2,26 +2,21 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include <dsn/utility/fail_point.h>
-#include <fstream>
-#include <gtest/gtest.h>
+#include "replica_test_base.h"
 
-#include "mock_utils.h"
+#include <fstream>
+
+#include <dsn/utility/fail_point.h>
+#include <gtest/gtest.h>
 
 namespace dsn {
 namespace replication {
 
-class replica_bulk_load_test : public testing::Test
+class replica_bulk_load_test : public replica_test_base
 {
-    void SetUp()
-    {
-        _stub = make_unique<mock_replica_stub>();
-        _replica = create_mock_replica(_stub.get());
-    }
-
-    void TearDown() {}
-
 public:
+    replica_bulk_load_test() { _replica = create_mock_replica(stub.get()); }
+
     /// bulk load functions
 
     error_code test_on_bulk_load()
@@ -77,7 +72,6 @@ public:
     }
 
 public:
-    std::unique_ptr<mock_replica_stub> _stub;
     std::unique_ptr<mock_replica> _replica;
     bulk_load_request _req;
 

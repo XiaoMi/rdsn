@@ -2,21 +2,23 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
+#include "replica.h"
+#include "replica_stub.h"
+
 #include <fstream>
+
 #include <dsn/dist/block_service.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
-#include <dsn/utility/filesystem.h>
 #include <dsn/utility/fail_point.h>
-
-#include "replica.h"
-#include "replica_stub.h"
+#include <dsn/utility/filesystem.h>
 
 namespace dsn {
 namespace replication {
 
 typedef rpc_holder<group_bulk_load_request, group_bulk_load_response> group_bulk_load_rpc;
 
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica::on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_response &response)
 {
     _checker.only_one_thread_access();
@@ -49,20 +51,23 @@ void replica::on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_r
         enum_to_string(request.meta_bulk_load_status),
         enum_to_string(get_bulk_load_status()));
 
-    dsn::error_code ec = do_bulk_load(request.app_name,
-                                      request.meta_bulk_load_status,
-                                      request.cluster_name,
-                                      request.remote_provider_name);
+    error_code ec = do_bulk_load(request.app_name,
+                                 request.meta_bulk_load_status,
+                                 request.cluster_name,
+                                 request.remote_provider_name);
     if (ec != ERR_OK) {
         response.err = ec;
         response.primary_bulk_load_status = get_bulk_load_status();
         return;
     }
 
-    broadcast_group_bulk_load(request);
-
     report_bulk_load_states_to_meta(
         request.meta_bulk_load_status, request.query_bulk_load_metadata, response);
+    if (response.err != ERR_OK) {
+        return;
+    }
+
+    broadcast_group_bulk_load(request);
 }
 
 void replica::broadcast_group_bulk_load(const bulk_load_request &meta_req)
@@ -182,15 +187,17 @@ void replica::on_group_bulk_load_reply(error_code err,
     // otherwise, set secondary bulk_load_states from resp
 }
 
-dsn::error_code replica::do_bulk_load(const std::string &app_name,
-                                      bulk_load_status::type meta_status,
-                                      const std::string &cluster_name,
-                                      const std::string &provider_name)
+// ThreadPool: THREAD_POOL_REPLICATION
+error_code replica::do_bulk_load(const std::string &app_name,
+                                 bulk_load_status::type meta_status,
+                                 const std::string &cluster_name,
+                                 const std::string &provider_name)
 {
     // TODO(heyuchen): TBD
     return ERR_OK;
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica::report_bulk_load_states_to_meta(bulk_load_status::type remote_status,
                                               bool report_metadata,
                                               /*out*/ bulk_load_response &response)

@@ -182,20 +182,21 @@ private:
         return oss.str();
     }
 
-    inline bool is_partition_metadata_not_updated_unlock(gpid pid)
+    inline bool is_partition_metadata_not_updated_unlock(gpid pid) const
     {
-        if (_partition_bulk_load_info.find(pid) != _partition_bulk_load_info.end()) {
-            bulk_load_metadata metadata = _partition_bulk_load_info[pid].metadata;
-            return (metadata.files.size() == 0 && metadata.file_total_size == 0);
-        } else {
+        const auto &iter = _partition_bulk_load_info.find(pid);
+        if (iter == _partition_bulk_load_info.end()) {
             return false;
         }
+        const auto &metadata = iter->second.metadata;
+        return (metadata.files.size() == 0 && metadata.file_total_size == 0);
     }
 
-    inline bulk_load_status::type get_partition_bulk_load_status_unlock(gpid pid)
+    inline bulk_load_status::type get_partition_bulk_load_status_unlock(gpid pid) const
     {
-        if (_partition_bulk_load_info.find(pid) != _partition_bulk_load_info.end()) {
-            return _partition_bulk_load_info[pid].status;
+        const auto &iter = _partition_bulk_load_info.find(pid);
+        if (iter != _partition_bulk_load_info.end()) {
+            return iter->second.status;
         } else {
             return bulk_load_status::BLS_INVALID;
         }
