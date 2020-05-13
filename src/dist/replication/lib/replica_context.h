@@ -124,9 +124,6 @@ public:
     dsn::task_ptr register_child_task;
 
     // Used for bulk load
-    // calls broadcast_group_bulk_load()
-    // created in replica::on_bulk_load()
-    // cancelled in cleanup() when status changed from PRIMARY to others
     // group bulk_load response tasks of RPC_GROUP_BULK_LOAD for each secondary replica
     node_tasks group_bulk_load_pending_replies;
 };
