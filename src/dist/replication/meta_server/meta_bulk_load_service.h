@@ -182,19 +182,19 @@ private:
         return oss.str();
     }
 
-    inline bool is_partition_metadata_not_updated_unlock(gpid pid)
+    inline bool is_partition_metadata_not_updated_unlock(gpid pid) const
     {
-        auto iter = _partition_bulk_load_info.find(pid);
+        const auto &iter = _partition_bulk_load_info.find(pid);
         if (iter == _partition_bulk_load_info.end()) {
             return false;
         }
-        bulk_load_metadata metadata = iter->second.metadata;
+        const auto &metadata = iter->second.metadata;
         return (metadata.files.size() == 0 && metadata.file_total_size == 0);
     }
 
-    inline bulk_load_status::type get_partition_bulk_load_status_unlock(gpid pid)
+    inline bulk_load_status::type get_partition_bulk_load_status_unlock(gpid pid) const
     {
-        auto iter = _partition_bulk_load_info.find(pid);
+        const auto &iter = _partition_bulk_load_info.find(pid);
         if (iter != _partition_bulk_load_info.end()) {
             return iter->second.status;
         } else {
