@@ -36,7 +36,6 @@
 #include <sstream>
 #include <memory>
 #include <dsn/utility/fail_point.h>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
@@ -582,6 +581,5 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
                             _info.init_offset_in_private_log,
                             r->last_durable_decree());
 }
-
 } // namespace replication
 } // namespace dsn
