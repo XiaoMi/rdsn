@@ -95,7 +95,7 @@ void primary_context::cleanup(bool clean_pending_mutations)
     CLEANUP_TASK_ALWAYS(register_child_task)
 
     // cleanup group bulk load
-    for (const auto &kv : group_bulk_load_pending_replies) {
+    for (auto &kv : group_bulk_load_pending_replies) {
         CLEANUP_TASK_ALWAYS(kv.second);
     }
     group_bulk_load_pending_replies.clear();
