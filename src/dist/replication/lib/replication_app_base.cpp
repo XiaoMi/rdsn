@@ -583,15 +583,5 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
                             r->last_durable_decree());
 }
 
-void replication_app_base::dwarn_write_request(dsn::message_ex *request,
-                                               uint64_t max_allowed_write_size)
-{
-    dwarn_replica("client from {} write request body size exceed threshold, request_body_size "
-                  "= {}, max_allowed_write_size = {}, it will be rejected!",
-                  request->header->from_address.to_string(),
-                  request->body_size(),
-                  max_allowed_write_size);
-}
-
 } // namespace replication
 } // namespace dsn

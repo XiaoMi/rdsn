@@ -235,8 +235,8 @@ public:
     // Thread-safe.
     virtual void set_partition_version(int32_t partition_version){};
 
-    // log for the large write size request
-    virtual void dwarn_write_request(dsn::message_ex *request, uint64_t max_allowed_write_size);
+    // restore the write request some info to string, it overload
+    virtual std::string restore_write_request(dsn::message_ex *request){};
 
 public:
     //
