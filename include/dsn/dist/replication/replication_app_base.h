@@ -236,7 +236,7 @@ public:
     virtual void set_partition_version(int32_t partition_version){};
 
     // restore the write request some info to string, it overload
-    virtual std::string restore_write_request(dsn::message_ex *request){};
+    virtual std::string restore_write_request(dsn::message_ex *request);
 
 public:
     //
