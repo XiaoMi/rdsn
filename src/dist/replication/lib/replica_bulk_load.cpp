@@ -78,7 +78,7 @@ void replica::broadcast_group_bulk_load(const bulk_load_request &meta_req)
         return;
     }
 
-    if (_primary_states.group_bulk_load_pending_replies.size() > 0) {
+    if (!_primary_states.group_bulk_load_pending_replies.empty()) {
         dwarn_replica("{} group bulk_load replies are still pending, cancel it firstly",
                       static_cast<int>(_primary_states.group_bulk_load_pending_replies.size()));
         for (const auto &kv : _primary_states.group_bulk_load_pending_replies) {
@@ -123,7 +123,7 @@ void replica::on_group_bulk_load(const group_bulk_load_request &request,
     if (request.config.ballot < get_ballot()) {
         response.err = ERR_VERSION_OUTDATED;
         dwarn_replica(
-            "receive outdated group_bulk_load request, request ballot({}) VS loca ballot({})",
+            "receive outdated group_bulk_load request, request ballot({}) VS local ballot({})",
             request.config.ballot,
             get_ballot());
         return;
@@ -131,7 +131,7 @@ void replica::on_group_bulk_load(const group_bulk_load_request &request,
     if (request.config.ballot > get_ballot()) {
         response.err = ERR_INVALID_STATE;
         dwarn_replica("receive group_bulk_load request, local ballot is outdated, request "
-                      "ballot({}) VS loca ballot({})",
+                      "ballot({}) VS local ballot({})",
                       request.config.ballot,
                       get_ballot());
         return;
