@@ -110,6 +110,8 @@ replication_options::replication_options()
     max_concurrent_uploading_file_count = 10;
 
     cold_backup_checkpoint_reserve_minutes = 10;
+
+    max_concurrent_bulk_load_downloading_count = 5;
 }
 
 replication_options::~replication_options() {}
@@ -518,6 +520,11 @@ void replication_options::initialize()
                                                           "bulk_load_provider_root",
                                                           "bulk_load_provider_root",
                                                           "bulk load root on remote file provider");
+    max_concurrent_bulk_load_downloading_count =
+        (int32_t)dsn_config_get_value_uint64("replication",
+                                             "max_concurrent_bulk_load_downloading_count",
+                                             max_concurrent_bulk_load_downloading_count,
+                                             "concurrent bulk load downloading replica count");
 
     replica_helper::load_meta_servers(meta_servers);
 
@@ -634,7 +641,10 @@ const std::string replica_envs::ROCKSDB_CHECKPOINT_RESERVE_TIME_SECONDS(
 const std::string replica_envs::ROCKSDB_ITERATION_THRESHOLD_TIME_MS(
     "replica.rocksdb_iteration_threshold_time_ms");
 const std::string replica_envs::BUSINESS_INFO("business.info");
+
 const std::string bulk_load_constant::BULK_LOAD_INFO("bulk_load_info");
+const std::string bulk_load_constant::BULK_LOAD_METADATA("bulk_load_metadata");
+const std::string bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR(".bulk_load");
 
 namespace cold_backup {
 std::string get_policy_path(const std::string &root, const std::string &policy_name)
