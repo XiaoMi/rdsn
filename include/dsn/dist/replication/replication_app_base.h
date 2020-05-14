@@ -235,8 +235,8 @@ public:
     // Thread-safe.
     virtual void set_partition_version(int32_t partition_version){};
 
-    // restore the write request some info to string, it overload
-    virtual std::string restore_write_request(dsn::message_ex *request);
+    // restore the write request some info to string, it may need overload
+    virtual std::string restore_write_request(dsn::message_ex *request) { return "write request"; };
 
 public:
     //
