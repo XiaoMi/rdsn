@@ -33,12 +33,12 @@ namespace file {
 
 /*extern*/ disk_file *open(const char *file_name, int flag, int pmode)
 {
-    return task::get_current_disk()->open(file_name, flag, pmode);
+    return disk_engine::instance().open(file_name, flag, pmode);
 }
 
-/*extern*/ error_code close(disk_file *file) { return task::get_current_disk()->close(file); }
+/*extern*/ error_code close(disk_file *file) { return disk_engine::instance().close(file); }
 
-/*extern*/ error_code flush(disk_file *file) { return task::get_current_disk()->flush(file); }
+/*extern*/ error_code flush(disk_file *file) { return disk_engine::instance().flush(file); }
 
 /*extern*/ aio_task_ptr read(disk_file *file,
                              char *buffer,
@@ -56,7 +56,7 @@ namespace file {
     cb->get_aio_context()->file_offset = offset;
     cb->get_aio_context()->type = AIO_Read;
 
-    task::get_current_disk()->read(cb);
+    disk_engine::instance().read(cb);
     return cb;
 }
 
@@ -76,7 +76,7 @@ namespace file {
     cb->get_aio_context()->file_offset = offset;
     cb->get_aio_context()->type = AIO_Write;
 
-    task::get_current_disk()->write(cb);
+    disk_engine::instance().write(cb);
     return cb;
 }
 
@@ -100,7 +100,7 @@ namespace file {
         }
     }
 
-    task::get_current_disk()->write(cb);
+    disk_engine::instance().write(cb);
     return cb;
 }
 

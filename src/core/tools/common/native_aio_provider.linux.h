@@ -51,8 +51,6 @@ public:
     virtual void aio(aio_task *aio) override;
     virtual aio_context *prepare_aio_context(aio_task *tsk) override;
 
-    virtual void start() override;
-
     class linux_disk_aio_context : public aio_context
     {
     public:
@@ -73,6 +71,7 @@ protected:
     error_code aio_internal(aio_task *aio, bool async, /*out*/ uint32_t *pbytes = nullptr);
     void complete_aio(struct iocb *io, int bytes, int err);
     void get_event();
+
 
 private:
     io_context_t _ctx;

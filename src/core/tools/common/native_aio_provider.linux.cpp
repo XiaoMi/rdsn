@@ -40,6 +40,9 @@ native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk,
     memset(&_ctx, 0, sizeof(_ctx));
     auto ret = io_setup(128, &_ctx); // 128 concurrent events
     dassert(ret == 0, "io_setup error, ret = %d", ret);
+
+    _is_running = true;
+    _worker = std::thread([this]() { get_event(); });
 }
 
 native_linux_aio_provider::~native_linux_aio_provider()
@@ -53,15 +56,6 @@ native_linux_aio_provider::~native_linux_aio_provider()
     dassert(ret == 0, "io_destroy error, ret = %d", ret);
 
     _worker.join();
-}
-
-void native_linux_aio_provider::start()
-{
-    _is_running = true;
-    _worker = std::thread([this]() {
-        task::set_tls_dsn_context(node(), nullptr);
-        get_event();
-    });
 }
 
 dsn_handle_t native_linux_aio_provider::open(const char *file_name, int flag, int pmode)
@@ -104,13 +98,7 @@ void native_linux_aio_provider::get_event()
 {
     struct io_event events[1];
     int ret;
-
-    task::set_tls_dsn_context(node(), nullptr);
-
-    const char *name = ::dsn::tools::get_service_node_name(node());
-    char buffer[128];
-    sprintf(buffer, "%s.aio", name);
-    task_worker::set_name(buffer);
+    task_worker::set_name("aio");
 
     while (true) {
         if (dsn_unlikely(!_is_running.load(std::memory_order_relaxed))) {

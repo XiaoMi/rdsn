@@ -72,7 +72,6 @@ public:
 public:
     DSN_API aio_provider(disk_engine *disk, aio_provider *inner_provider);
     virtual ~aio_provider() {}
-    DSN_API service_node *node() const;
 
     // return DSN_INVALID_FILE_HANDLE if failed
     // TODO(wutao1): return uint64_t instead (because we only support linux now)
@@ -88,8 +87,6 @@ public:
     virtual void aio(aio_task *aio) = 0;
 
     virtual aio_context *prepare_aio_context(aio_task *) = 0;
-
-    virtual void start() = 0;
 
 protected:
     DSN_API void

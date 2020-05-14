@@ -76,7 +76,6 @@ __thread uint16_t tls_dsn_lower32_task_id_mask = 0;
         tls_dsn.worker_index = worker ? worker->index() : -1;
         tls_dsn.current_task = nullptr;
         tls_dsn.rpc = node->rpc();
-        tls_dsn.disk = node->disk();
         tls_dsn.env = service_engine::instance().env();
     }
 
@@ -601,8 +600,7 @@ aio_task::aio_task(dsn::task_code code, aio_handler &&cb, int hash, service_node
             spec().name.c_str());
     set_error_code(ERR_IO_PENDING);
 
-    disk_engine *disk = task::get_current_disk();
-    _aio_ctx = disk->prepare_aio_context(this);
+    _aio_ctx = disk_engine::instance().prepare_aio_context(this);
 }
 
 void aio_task::collapse()

@@ -47,9 +47,6 @@ DEFINE_TASK_CODE_AIO(LPC_AIO_TEST, TASK_PRIORITY_COMMON, THREAD_POOL_TEST_SERVER
 
 TEST(core, aio)
 {
-    if (task::get_current_disk() == nullptr)
-        return;
-
     const char *buffer = "hello, world";
     int len = (int)strlen(buffer);
 
@@ -142,9 +139,6 @@ TEST(core, aio)
 
 TEST(core, aio_share)
 {
-    if (task::get_current_disk() == nullptr)
-        return;
-
     auto fp = file::open("tmp", O_WRONLY | O_CREAT | O_BINARY, 0666);
     EXPECT_TRUE(fp != nullptr);
 
@@ -159,9 +153,6 @@ TEST(core, aio_share)
 
 TEST(core, operation_failed)
 {
-    if (task::get_current_disk() == nullptr)
-        return;
-
     auto fp = file::open("tmp_test_file", O_WRONLY, 0600);
     EXPECT_TRUE(fp == nullptr);
 
@@ -213,9 +204,6 @@ struct aio_result
 };
 TEST(core, dsn_file)
 {
-    if (task::get_current_disk() == nullptr)
-        return;
-
     int64_t fin_size, fout_size;
     ASSERT_TRUE(utils::filesystem::file_size("command.txt", fin_size));
     ASSERT_LT(0, fin_size);

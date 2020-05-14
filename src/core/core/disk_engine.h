@@ -68,13 +68,11 @@ private:
     work_queue<aio_task> _read_queue;
 };
 
-class disk_engine
+class disk_engine : public utils::singleton<disk_engine>
 {
 public:
-    disk_engine(service_node *node);
+    disk_engine();
     ~disk_engine();
-
-    void start(aio_provider *provider);
 
     // asynchonous file read/write
     disk_file *open(const char *file_name, int flag, int pmode);
@@ -85,8 +83,6 @@ public:
 
     aio_context *prepare_aio_context(aio_task *tsk) { return _provider->prepare_aio_context(tsk); }
 
-    service_node *node() const { return _node; }
-
 private:
     friend class aio_provider;
     friend class batch_write_io_task;
@@ -94,9 +90,7 @@ private:
     void complete_io(aio_task *aio, error_code err, uint32_t bytes, int delay_milliseconds = 0);
 
 private:
-    volatile bool _is_running;
-    aio_provider *_provider;
-    service_node *_node;
+    std::unique_ptr<aio_provider> _provider;
 };
 
 } // namespace dsn

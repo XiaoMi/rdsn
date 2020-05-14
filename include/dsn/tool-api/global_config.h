@@ -35,6 +35,7 @@
 
 #pragma once
 
+#include <dsn/utility/flags.h>
 #include <dsn/tool-api/task_spec.h>
 #include <dsn/tool-api/threadpool_spec.h>
 #include <dsn/utility/dlib.h>
@@ -213,4 +214,5 @@ ENUM_REG(SYS_EXIT_NORMAL)
 ENUM_REG(SYS_EXIT_BREAK)
 ENUM_REG(SYS_EXIT_EXCEPTION)
 ENUM_END(sys_exit_type)
+
 } // namespace dsn
