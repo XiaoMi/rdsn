@@ -43,6 +43,7 @@
 #include <dsn/utility/rand.h>
 #include <dsn/tool/node_scoper.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/tool-api/file_io.h>
 
 #include "task_engine.h"
 #include "service_engine.h"
@@ -600,7 +601,7 @@ aio_task::aio_task(dsn::task_code code, aio_handler &&cb, int hash, service_node
             spec().name.c_str());
     set_error_code(ERR_IO_PENDING);
 
-    _aio_ctx = disk_engine::instance().prepare_aio_context(this);
+    _aio_ctx = file::prepare_aio_context(this);
 }
 
 void aio_task::collapse()

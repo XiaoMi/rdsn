@@ -570,6 +570,7 @@ public:
     {
     }
 };
+typedef dsn::ref_ptr<aio_context> aio_context_ptr;
 
 class aio_task : public task
 {
@@ -606,7 +607,7 @@ protected:
     void clear_non_trivial_on_task_end() override { _cb = nullptr; }
 
 private:
-    dsn::ref_ptr<aio_context> _aio_ctx;
+    aio_context_ptr _aio_ctx;
     size_t _transferred_size;
     aio_handler _cb;
 };

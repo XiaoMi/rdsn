@@ -33,9 +33,6 @@ namespace file {
 
 /*extern*/ disk_file *open(const char *file_name, int flag, int pmode)
 {
-    std::shared_ptr<service_node> node = service_engine::instance().get_all_nodes().begin()->second;
-    disk_engine::instance().start(node.get());
-
     return disk_engine::instance().open(file_name, flag, pmode);
 }
 
@@ -107,5 +104,9 @@ namespace file {
     return cb;
 }
 
+aio_context_ptr prepare_aio_context(aio_task *tsk)
+{
+    return disk_engine::instance().prepare_aio_context(tsk);
+}
 } // namespace file
 } // namespace dsn

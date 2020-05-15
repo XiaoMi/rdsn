@@ -74,8 +74,6 @@ public:
     disk_engine();
     ~disk_engine();
 
-    void start(service_node *node);
-
     // asynchonous file read/write
     disk_file *open(const char *file_name, int flag, int pmode);
     error_code close(disk_file *fh);
@@ -86,7 +84,6 @@ public:
     aio_context *prepare_aio_context(aio_task *tsk) { return _provider->prepare_aio_context(tsk); }
 
     service_node *node() const { return _node; }
-    void set_node(service_node *node) { _node = node; }
 
 private:
     friend class aio_provider;

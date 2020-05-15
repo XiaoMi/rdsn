@@ -137,20 +137,13 @@ disk_engine::disk_engine()
 {
     _is_running = false;
     _provider = nullptr;
-}
 
-disk_engine::~disk_engine() {}
-
-void disk_engine::start(service_node *node)
-{
-    if (_is_running)
-        return;
-    _is_running = true;
-
-    _node = node;
+    _node = service_engine::instance().get_all_nodes().begin()->second.get();
     _provider.reset(factory_store<aio_provider>::create(
         FLAGS_aio_factory_name, ::dsn::PROVIDER_TYPE_MAIN, this, nullptr));
 }
+
+disk_engine::~disk_engine() {}
 
 disk_file *disk_engine::open(const char *file_name, int flag, int pmode)
 {
@@ -338,5 +331,4 @@ void disk_engine::complete_io(aio_task *aio, error_code err, uint32_t bytes, int
         }
     }
 }
-
 } // namespace dsn
