@@ -120,7 +120,7 @@ fds_service::fds_service()
     uint64_t max_sst_file_size = std::max(target_file_size, (uint64_t)1.25 * write_buffer_size);
 
     uint32_t write_rate_limit = (uint32_t)dsn_config_get_value_uint64(
-        "replication", "fds_write_limit_rate", 50, "rate limit of fds(MB/s)");
+        "replication", "fds_write_limit_rate", 100, "rate limit of fds(MB/s)");
     /// For write operation, we can't send a file in batches. Because putContent interface of fds
     /// will overwrite what was sent before for the same file. So we must send a file as a whole.
     /// If file size > burst size, the file will be rejected by the token bucket.
