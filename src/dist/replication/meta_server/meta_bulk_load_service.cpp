@@ -316,29 +316,41 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
     const std::string &app_name = request.app_name;
     const gpid &pid = request.pid;
     const rpc_address &primary_addr = request.primary_addr;
-    int32_t interval_ms = _meta_svc->get_options().partition_bulk_load_interval_ms;
+    int32_t interval = bulk_load_constant::BULK_LOAD_REQUEST_INTERVAL;
 
     if (err != ERR_OK) {
         derror_f("app({}), partition({}) failed to recevie bulk load response, error = {}",
                  pid.get_app_id(),
                  pid,
                  err.to_string());
-        try_rollback_to_downloading(pid.get_app_id(), app_name);
-    } else if (response.err == ERR_OBJECT_NOT_FOUND || response.err == ERR_INVALID_STATE) {
+        try_rollback_to_downloading(app_name, pid);
+        try_resend_bulk_load_request(app_name, pid, interval);
+        return;
+    }
+
+    if (response.err == ERR_OBJECT_NOT_FOUND || response.err == ERR_INVALID_STATE) {
         derror_f(
             "app({}), partition({}) doesn't exist or has invalid state on node({}), error = {}",
             app_name,
             pid,
             primary_addr.to_string(),
             response.err.to_string());
-        try_rollback_to_downloading(pid.get_app_id(), app_name);
-    } else if (response.err == ERR_BUSY) {
+        try_rollback_to_downloading(app_name, pid);
+        try_resend_bulk_load_request(app_name, pid, interval);
+        return;
+    }
+
+    if (response.err == ERR_BUSY) {
         dwarn_f("node({}) has enough replicas downloading, wait to next round to send bulk load "
                 "request for app({}), partition({})",
                 primary_addr.to_string(),
                 app_name,
                 pid);
-    } else if (response.err != ERR_OK) {
+        try_resend_bulk_load_request(app_name, pid, interval);
+        return;
+    }
+
+    if (response.err != ERR_OK) {
         derror_f("app({}), partition({}) handle bulk load response failed, error = {}, primary "
                  "status = {}",
                  app_name,
@@ -346,70 +358,83 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
                  response.err.to_string(),
                  dsn::enum_to_string(response.primary_bulk_load_status));
         handle_bulk_load_failed(pid.get_app_id());
-    } else { // response.err = ERR_OK
-        ballot current_ballot;
-        {
-            zauto_read_lock l(app_lock());
-            std::shared_ptr<app_state> app = _state->get_app(pid.get_app_id());
-            if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
-                dwarn_f("app(name={}, id={}) is not existed, set bulk load failed",
-                        app_name,
-                        pid.get_app_id());
-                handle_app_unavailable(pid.get_app_id(), app_name);
-                return;
-            }
-            current_ballot = app->partitions[pid.get_partition_index()].ballot;
-        }
-        if (request.ballot < current_ballot) {
-            dwarn_f("receive out-date response, app({}), partition({}), request ballot = {}, "
-                    "current ballot= {}",
-                    app_name,
-                    pid,
-                    request.ballot,
-                    current_ballot);
-            try_rollback_to_downloading(pid.get_app_id(), app_name);
-        }
-
-        // handle bulk load states reported from primary replica
-        bulk_load_status::type app_status = get_app_bulk_load_status(response.pid.get_app_id());
-        switch (app_status) {
-        case bulk_load_status::BLS_DOWNLOADING:
-            handle_app_downloading(response, primary_addr);
-            break;
-        case bulk_load_status::BLS_DOWNLOADED:
-            handle_app_downloaded(response);
-            // when app status or partition status is ingesting, send request frequently
-            interval_ms = bulk_load_constant::BULK_LOAD_REQUEST_SHORT_INTERVAL_MS;
-            break;
-        case bulk_load_status::BLS_INGESTING:
-            handle_app_ingestion(response, primary_addr);
-            interval_ms = bulk_load_constant::BULK_LOAD_REQUEST_SHORT_INTERVAL_MS;
-            break;
-        case bulk_load_status::BLS_SUCCEED:
-        case bulk_load_status::BLS_FAILED:
-        case bulk_load_status::BLS_CANCELED:
-            handle_bulk_load_finish(response, primary_addr);
-            break;
-        case bulk_load_status::BLS_PAUSING:
-            handle_app_pausing(response, primary_addr);
-            break;
-        case bulk_load_status::BLS_PAUSED:
-            // paused not send request to replica servers
-            return;
-        default:
-            // do nothing in other status
-            break;
-        }
+        try_resend_bulk_load_request(app_name, pid, interval);
+        return;
     }
 
-    // resend bulk_load_request to primary after interval_ms if app is still in bulk load
+    // response.err = ERR_OK
+    ballot current_ballot;
+    {
+        zauto_read_lock l(app_lock());
+        std::shared_ptr<app_state> app = _state->get_app(pid.get_app_id());
+        if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
+            dwarn_f("app(name={}, id={}) is not existed, set bulk load failed",
+                    app_name,
+                    pid.get_app_id());
+            handle_app_unavailable(pid.get_app_id(), app_name);
+            return;
+        }
+        current_ballot = app->partitions[pid.get_partition_index()].ballot;
+    }
+    if (request.ballot < current_ballot) {
+        dwarn_f("receive out-date response, app({}), partition({}), request ballot = {}, "
+                "current ballot= {}",
+                app_name,
+                pid,
+                request.ballot,
+                current_ballot);
+        try_rollback_to_downloading(app_name, pid);
+        try_resend_bulk_load_request(app_name, pid, interval);
+        return;
+    }
+
+    // handle bulk load states reported from primary replica
+    bulk_load_status::type app_status = get_app_bulk_load_status(response.pid.get_app_id());
+    switch (app_status) {
+    case bulk_load_status::BLS_DOWNLOADING:
+        handle_app_downloading(response, primary_addr);
+        break;
+    case bulk_load_status::BLS_DOWNLOADED:
+        handle_app_downloaded(response);
+        // when app status is downloaded or ingesting, send request frequently
+        interval = bulk_load_constant::BULK_LOAD_REQUEST_SHORT_INTERVAL;
+        break;
+    case bulk_load_status::BLS_INGESTING:
+        handle_app_ingestion(response, primary_addr);
+        interval = bulk_load_constant::BULK_LOAD_REQUEST_SHORT_INTERVAL;
+        break;
+    case bulk_load_status::BLS_SUCCEED:
+    case bulk_load_status::BLS_FAILED:
+    case bulk_load_status::BLS_CANCELED:
+        handle_bulk_load_finish(response, primary_addr);
+        break;
+    case bulk_load_status::BLS_PAUSING:
+        handle_app_pausing(response, primary_addr);
+        break;
+    case bulk_load_status::BLS_PAUSED:
+        // paused not send request to replica servers
+        return;
+    default:
+        // do nothing in other status
+        break;
+    }
+
+    try_resend_bulk_load_request(app_name, pid, interval);
+}
+
+// ThreadPool: THREAD_POOL_META_STATE
+void bulk_load_service::try_resend_bulk_load_request(const std::string &app_name,
+                                                     const gpid &pid,
+                                                     const int32_t interval)
+{
+    FAIL_POINT_INJECT_F("meta_bulk_load_resend_request", [](dsn::string_view) {});
     zauto_read_lock l(_lock);
     if (is_app_bulk_loading_unlock(pid.get_app_id())) {
         tasking::enqueue(LPC_META_STATE_NORMAL,
                          _meta_svc->tracker(),
                          std::bind(&bulk_load_service::partition_bulk_load, this, app_name, pid),
                          0,
-                         std::chrono::milliseconds(interval_ms));
+                         std::chrono::seconds(interval));
     }
 }
 
@@ -453,7 +478,7 @@ void bulk_load_service::handle_app_pausing(const bulk_load_response &response,
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::try_rollback_to_downloading(int32_t app_id, const std::string &app_name)
+void bulk_load_service::try_rollback_to_downloading(const std::string &app_name, const gpid &pid)
 {
     // TODO(heyuchen): TBD
     // replica meets error during bulk load, rollback to downloading to retry bulk load

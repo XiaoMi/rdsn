@@ -118,7 +118,6 @@ public:
     int32_t cold_backup_checkpoint_reserve_minutes;
 
     std::string bulk_load_provider_root;
-    int32_t partition_bulk_load_interval_ms;
 
 public:
     replication_options();
@@ -161,7 +160,8 @@ class bulk_load_constant
 {
 public:
     static const std::string BULK_LOAD_INFO;
-    static const int32_t BULK_LOAD_REQUEST_SHORT_INTERVAL_MS;
+    static const int32_t BULK_LOAD_REQUEST_INTERVAL;
+    static const int32_t BULK_LOAD_REQUEST_SHORT_INTERVAL;
     // TODO(heyuchen): add more constant in further pr
 };
 
