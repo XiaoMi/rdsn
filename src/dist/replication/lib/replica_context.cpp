@@ -46,30 +46,6 @@
 namespace dsn {
 namespace replication {
 
-#define CLEANUP_TASK(task_, force)                                                                 \
-    {                                                                                              \
-        task_ptr t = task_;                                                                        \
-        if (t != nullptr) {                                                                        \
-            bool finished;                                                                         \
-            t->cancel(force, &finished);                                                           \
-            if (!finished && !dsn_task_is_running_inside(task_.get()))                             \
-                return false;                                                                      \
-            task_ = nullptr;                                                                       \
-        }                                                                                          \
-    }
-
-#define CLEANUP_TASK_ALWAYS(task_)                                                                 \
-    {                                                                                              \
-        task_ptr t = task_;                                                                        \
-        if (t != nullptr) {                                                                        \
-            bool finished;                                                                         \
-            t->cancel(false, &finished);                                                           \
-            dassert(finished || dsn_task_is_running_inside(task_.get()),                           \
-                    "task must be finished at this point");                                        \
-            task_ = nullptr;                                                                       \
-        }                                                                                          \
-    }
-
 void primary_context::cleanup(bool clean_pending_mutations)
 {
     do_cleanup_pending_mutations(clean_pending_mutations);
