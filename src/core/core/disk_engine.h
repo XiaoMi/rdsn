@@ -74,6 +74,8 @@ public:
     disk_engine();
     ~disk_engine();
 
+    void start(service_node *node);
+
     // asynchonous file read/write
     disk_file *open(const char *file_name, int flag, int pmode);
     error_code close(disk_file *fh);
@@ -83,6 +85,9 @@ public:
 
     aio_context *prepare_aio_context(aio_task *tsk) { return _provider->prepare_aio_context(tsk); }
 
+    service_node *node() const { return _node; }
+    void set_node(service_node *node) { _node = node; }
+
 private:
     friend class aio_provider;
     friend class batch_write_io_task;
@@ -90,7 +95,9 @@ private:
     void complete_io(aio_task *aio, error_code err, uint32_t bytes, int delay_milliseconds = 0);
 
 private:
+    volatile bool _is_running;
     std::unique_ptr<aio_provider> _provider;
+    service_node *_node;
 };
 
 } // namespace dsn

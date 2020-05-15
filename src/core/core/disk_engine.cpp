@@ -135,11 +135,22 @@ aio_task *disk_file::on_write_completed(aio_task *wk, void *ctx, error_code err,
 //----------------- disk_engine ------------------------
 disk_engine::disk_engine()
 {
-    _provider.reset(factory_store<aio_provider>::create(
-        FLAGS_aio_factory_name, ::dsn::PROVIDER_TYPE_MAIN, this, nullptr));
+    _is_running = false;
+    _provider = nullptr;
 }
 
 disk_engine::~disk_engine() {}
+
+void disk_engine::start(service_node *node)
+{
+    if (_is_running)
+        return;
+    _is_running = true;
+
+    _node = node;
+    _provider.reset(factory_store<aio_provider>::create(
+        FLAGS_aio_factory_name, ::dsn::PROVIDER_TYPE_MAIN, this, nullptr));
+}
 
 disk_file *disk_engine::open(const char *file_name, int flag, int pmode)
 {
@@ -175,6 +186,11 @@ error_code disk_engine::flush(disk_file *fh)
 
 void disk_engine::read(aio_task *aio)
 {
+    if (!_is_running) {
+        aio->enqueue(ERR_SERVICE_NOT_FOUND, 0);
+        return;
+    }
+
     if (!aio->spec().on_aio_call.execute(task::get_current_task(), aio, true)) {
         aio->enqueue(ERR_FILE_OPERATION_FAILED, 0);
         return;

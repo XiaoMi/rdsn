@@ -25,6 +25,7 @@
  */
 
 #include "native_aio_provider.linux.h"
+#include "core/core/disk_engine.h"
 
 #include <fcntl.h>
 #include <cstdlib>
@@ -36,13 +37,15 @@ native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk,
                                                      aio_provider *inner_provider)
     : aio_provider(disk, inner_provider)
 {
-
     memset(&_ctx, 0, sizeof(_ctx));
     auto ret = io_setup(128, &_ctx); // 128 concurrent events
     dassert(ret == 0, "io_setup error, ret = %d", ret);
 
     _is_running = true;
-    _worker = std::thread([this]() { get_event(); });
+    _worker = std::thread([this, disk]() {
+        task::set_tls_dsn_context(disk->node(), nullptr);
+        get_event();
+    });
 }
 
 native_linux_aio_provider::~native_linux_aio_provider()
