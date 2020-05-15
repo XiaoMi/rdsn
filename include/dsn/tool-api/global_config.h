@@ -215,4 +215,5 @@ ENUM_REG(SYS_EXIT_BREAK)
 ENUM_REG(SYS_EXIT_EXCEPTION)
 ENUM_END(sys_exit_type)
 
+extern const char *FLAGS_aio_factory_name;
 } // namespace dsn

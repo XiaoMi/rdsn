@@ -40,12 +40,9 @@ namespace tools {
 
 void nativerun::install(service_spec &spec)
 {
-    /**
-    extern const char *FLAGS_aio_factory_name;
     if (!strcmp(FLAGS_aio_factory_name, "")) {
         FLAGS_aio_factory_name = "dsn::tools::native_aio_provider";
     }
-     */
 
     if (spec.env_factory_name == "")
         spec.env_factory_name = ("dsn::env_provider");

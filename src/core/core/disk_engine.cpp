@@ -132,9 +132,6 @@ aio_task *disk_file::on_write_completed(aio_task *wk, void *ctx, error_code err,
     return ret;
 }
 
-
-DSN_DEFINE_string("core", aio_factory_name, "", "asynchonous file system provider");
-
 //----------------- disk_engine ------------------------
 disk_engine::disk_engine()
 {
