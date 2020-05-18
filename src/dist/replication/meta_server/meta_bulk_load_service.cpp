@@ -320,7 +320,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
 
     if (err != ERR_OK) {
         derror_f("app({}), partition({}) failed to recevie bulk load response, error = {}",
-                 pid.get_app_id(),
+                 app_name,
                  pid,
                  err.to_string());
         try_rollback_to_downloading(app_name, pid);
