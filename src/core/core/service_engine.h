@@ -49,13 +49,11 @@ namespace dsn {
 
 class task_engine;
 class rpc_engine;
-class disk_engine;
 class env_provider;
 class nfs_node;
 class task_queue;
 class task_worker_pool;
 class timer_service;
-class aio_provider;
 
 //
 //
