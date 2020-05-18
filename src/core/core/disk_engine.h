@@ -92,7 +92,6 @@ private:
     void complete_io(aio_task *aio, error_code err, uint32_t bytes, int delay_milliseconds = 0);
 
 private:
-    volatile bool _is_running;
     std::unique_ptr<aio_provider> _provider;
     service_node *_node;
 };
