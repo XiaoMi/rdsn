@@ -428,6 +428,11 @@ private:
     // replica bulk load
     void on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_response &response);
     void broadcast_group_bulk_load(const bulk_load_request &meta_req);
+    void on_group_bulk_load(const group_bulk_load_request &request,
+                            /*out*/ group_bulk_load_response &response);
+    void on_group_bulk_load_reply(error_code err,
+                                  const group_bulk_load_request &req,
+                                  const group_bulk_load_response &resp);
 
     error_code do_bulk_load(const std::string &app_name,
                             bulk_load_status::type meta_status,
@@ -435,12 +440,14 @@ private:
                             const std::string &provider_name);
 
     // replica start or restart download sst files from remote provider
-    // \return ERR_BUSY if node has already had enought replica executing downloading
+    // \return ERR_BUSY if node has already had enough replica executing downloading
     // \return download errors by function `download_sst_files`
     error_code bulk_load_start_download(const std::string &app_name,
                                         const std::string &cluster_name,
                                         const std::string &provider_name);
 
+    // download metadata and sst files from remote provider
+    // metadata and sst files will be downloaded in {_dir}/.bulk_load directory
     // \return ERR_FILE_OPERATION_FAILED: create local bulk load dir failed
     // \return download metadata file error, see function `do_download`
     // \return parse metadata file error, see function `parse_bulk_load_metadata`
@@ -448,10 +455,10 @@ private:
                                   const std::string &cluster_name,
                                   const std::string &provider_name);
 
-    // download file from remote file system
-    // download_err = ERR_FILE_OPERATION_FAILED: local file system errors
+    // download files from remote file system
+    // download_err = ERR_FILE_OPERATION_FAILED: local file system error
     // download_err = ERR_FS_INTERNAL: remote file system error
-    // download_err = ERR_CORRUPTION: file not exist or damaged or not pass verify
+    // download_err = ERR_CORRUPTION: file not exist or damaged
     // if download file succeed, download_err = ERR_OK and set download_file_size
     void do_download(const std::string &remote_dir,
                      const std::string &local_dir,
@@ -473,6 +480,8 @@ private:
     void report_bulk_load_states_to_meta(bulk_load_status::type remote_status,
                                          bool report_metadata,
                                          /*out*/ bulk_load_response &response);
+    void report_bulk_load_states_to_primary(bulk_load_status::type remote_status,
+                                            /*out*/ group_bulk_load_response &response);
 
     ///
     /// bulk load path on remote file provider:
@@ -490,10 +499,12 @@ private:
             << pidx;
         return oss.str();
     }
+
     inline bulk_load_status::type get_bulk_load_status() const
     {
         return _bulk_load_context._status;
     }
+
     inline void set_bulk_load_status(bulk_load_status::type status)
     {
         _bulk_load_context._status = status;

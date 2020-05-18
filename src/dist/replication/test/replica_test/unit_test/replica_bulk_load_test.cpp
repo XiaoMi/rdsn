@@ -32,6 +32,14 @@ public:
         return resp.err;
     }
 
+    error_code test_on_group_bulk_load(bulk_load_status::type status, ballot b)
+    {
+        create_group_bulk_load_request(status, b);
+        group_bulk_load_response resp;
+        _replica->on_group_bulk_load(_group_req, resp);
+        return resp.err;
+    }
+
     error_code test_start_downloading()
     {
         return _replica->bulk_load_start_download(APP_NAME, CLUSTER, PROVIDER);
@@ -57,6 +65,15 @@ public:
             downloading_count = 0;
         }
         create_bulk_load_request(status, BALLOT, downloading_count);
+    }
+
+    void create_group_bulk_load_request(bulk_load_status::type status, ballot b)
+    {
+        _group_req.app_name = APP_NAME;
+        _group_req.meta_bulk_load_status = status;
+        _group_req.config.status = partition_status::PS_SECONDARY;
+        _group_req.config.ballot = b;
+        _group_req.target_address = SECONDARY;
     }
 
     void mock_replica_config(partition_status::type status)
@@ -91,6 +108,7 @@ public:
 public:
     std::unique_ptr<mock_replica> _replica;
     bulk_load_request _req;
+    group_bulk_load_request _group_req;
 
     std::string APP_NAME = "replica";
     std::string CLUSTER = "cluster";
@@ -117,12 +135,40 @@ TEST_F(replica_bulk_load_test, on_bulk_load_ballot_change)
     ASSERT_EQ(test_on_bulk_load(), ERR_INVALID_STATE);
 }
 
+// on_group_bulk_load unit tests
+TEST_F(replica_bulk_load_test, on_group_bulk_load_test)
+{
+    struct test_struct
+    {
+        partition_status::type pstatus;
+        bulk_load_status::type bstatus;
+        ballot b;
+        error_code expected_err;
+    } tests[] = {
+        {partition_status::PS_SECONDARY,
+         bulk_load_status::BLS_DOWNLOADING,
+         BALLOT - 1,
+         ERR_VERSION_OUTDATED},
+        {partition_status::PS_SECONDARY,
+         bulk_load_status::BLS_DOWNLOADED,
+         BALLOT + 1,
+         ERR_INVALID_STATE},
+        {partition_status::PS_INACTIVE, bulk_load_status::BLS_INGESTING, BALLOT, ERR_INVALID_STATE},
+    };
+
+    for (auto test : tests) {
+        mock_replica_config(test.pstatus);
+        ASSERT_EQ(test_on_group_bulk_load(test.bstatus, test.b), test.expected_err);
+    }
+}
+
 // start_downloading unit tests
 TEST_F(replica_bulk_load_test, start_downloading_test)
 {
     // Test cases:
     // - stub concurrent downloading count excceed
-    // - downloading error
+    // - TODO(heyuchen): add 'downloading error' after implemtation do_download
+    // - /*{false, 1, ERR_CORRUPTION, bulk_load_status::BLS_DOWNLOADING, 1},*/
     // - downloading succeed
     struct test_struct
     {
@@ -136,8 +182,6 @@ TEST_F(replica_bulk_load_test, start_downloading_test)
                ERR_BUSY,
                bulk_load_status::BLS_INVALID,
                MAX_DOWNLOADING_COUNT},
-              // TODO(heyuchen): add this test after implemtation do_download
-              /*{false, 1, ERR_CORRUPTION, bulk_load_status::BLS_DOWNLOADING, 1},*/
               {true, 1, ERR_OK, bulk_load_status::BLS_DOWNLOADING, 2}};
 
     for (auto test : tests) {
