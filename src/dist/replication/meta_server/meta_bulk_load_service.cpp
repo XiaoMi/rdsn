@@ -341,7 +341,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
     }
 
     if (response.err == ERR_BUSY) {
-        dwarn_f("node({}) has enough replicas downloading, wait to next round to send bulk load "
+        dwarn_f("node({}) has enough replicas downloading, wait for next round to send bulk load "
                 "request for app({}), partition({})",
                 primary_addr.to_string(),
                 app_name,
