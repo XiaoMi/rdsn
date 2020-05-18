@@ -34,7 +34,7 @@
  */
 
 #include <dsn/tool-api/aio_provider.h>
-#include "disk_engine.h"
+#include "core/aio/disk_engine.h"
 
 namespace dsn {
 

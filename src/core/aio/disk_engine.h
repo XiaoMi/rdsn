@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "service_engine.h"
+#include "core/core/service_engine.h"
 
 #include <dsn/utility/synchronize.h>
 #include <dsn/tool-api/aio_provider.h>

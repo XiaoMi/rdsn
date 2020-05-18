@@ -36,7 +36,7 @@
 #pragma once
 
 #include <dsn/tool_api.h>
-#include "core/tools/common/native_aio_provider.linux.h"
+#include "core/aio/native_aio_provider.linux.h"
 
 namespace dsn {
 namespace tools {
