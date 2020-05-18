@@ -52,7 +52,7 @@ using TokenBucket = folly::BasicTokenBucket<std::chrono::steady_clock>;
 struct nfs_opts
 {
     uint32_t nfs_copy_block_bytes;
-    uint32_t max_copy_megabytes_rate;
+    uint32_t max_copy_rate_megabytes;
     int max_concurrent_remote_copy_requests;
     int max_concurrent_local_writes;
     int max_buffered_local_writes;
