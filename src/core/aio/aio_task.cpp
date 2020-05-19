@@ -3,7 +3,6 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include "core/core/task_engine.h"
-#include <dsn/tool-api/task.h>
 #include <dsn/tool-api/file_io.h>
 #include <dsn/utility/error_code.h>
 
