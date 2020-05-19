@@ -26,6 +26,7 @@
 
 #include "disk_engine.h"
 #include "sim_aio_provider.h"
+#include "core/core/service_engine.h"
 
 using namespace dsn::utils;
 
