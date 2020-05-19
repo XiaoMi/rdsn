@@ -24,19 +24,26 @@
  * THE SOFTWARE.
  */
 
-#pragma once
-
-#include <dsn/tool_api.h>
-#include "native_aio_provider.linux.h"
+#include "sim_aio_provider.h"
 
 namespace dsn {
 
-class sim_aio_provider : public native_linux_aio_provider
-{
-public:
-    sim_aio_provider(disk_engine *disk, aio_provider *inner_provider);
-    ~sim_aio_provider(void);
+DEFINE_TASK_CODE(LPC_NATIVE_AIO_REDIRECT, TASK_PRIORITY_HIGH, THREAD_POOL_DEFAULT)
 
-    virtual void aio(aio_task *aio) override;
-};
-} // namespace dsn
+sim_aio_provider::sim_aio_provider(disk_engine *disk, aio_provider *inner_provider)
+    : native_linux_aio_provider(disk, inner_provider)
+{
+}
+
+sim_aio_provider::~sim_aio_provider(void) {}
+
+void sim_aio_provider::aio(aio_task *aio)
+{
+    error_code err;
+    uint32_t bytes;
+
+    err = aio_internal(aio, false, &bytes);
+    complete_io(aio, err, bytes, 0);
+}
+
+} // end dsn

@@ -25,7 +25,7 @@
  */
 
 #include "disk_engine.h"
-#include "diske.sim.h"
+#include "sim_aio_provider.h"
 #include <dsn/utility/flags.h>
 
 using namespace dsn::utils;
