@@ -148,32 +148,38 @@ public:
     bool is_sync_to_child() { return _is_sync_to_child; }
 
     //
-    std::unique_ptr<dsn::tool::lantency_tracer> tracer;
+    std::unique_ptr<dsn::tool::lantency_tracer> tracer = nullptr;
 
     //
     void report_tracer()
     {
         std::string header("tracer log");
-        for (dsn::message_ex *req : client_requests) {
-            std::string log = fmt::format("\nTRACER:mutation_id={}, request_id={}, start_time={}",
-                                          tid(),
-                                          req->header->id,
-                                          req->tracer->get_start_time());
+        for (const auto &req : client_requests) {
+            if (req != nullptr) {
+                ddebug_f("This is nullptr request!");
+                continue;
+            }
+            std::string log =
+                fmt::format("\nTRACER:start_name={}, mutation_id={}, request_id={}, start_time={}",
+                            req->tracer->get_start_name(),
+                            tid(),
+                            req->header->id,
+                            req->tracer->get_start_time());
             for (const auto &iter : req->tracer->get_points()) {
-                log = fmt::format("{}\tTRACER:{}={}", log, iter.first, iter.second);
+                log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
             }
 
             for (const auto &iter : tracer->get_points()) {
-                log = fmt::format("{}\tTRACER:{}={}", log, iter.first, iter.second);
+                log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
             }
 
             log = fmt::format("{}\nTRACER:mutation_id={}, request_id={}, end_time={}",
                               log,
                               tid(),
                               req->header->id,
-                              req->tracer->get_end_time());
+                              tracer->get_end_time());
 
-            dinfo_f("{}{}", header, log);
+            ddebug_f("{}{}", header, log);
         }
     }
 

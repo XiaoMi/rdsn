@@ -235,6 +235,11 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
     replica_configuration rconfig;
     _primary_states.get_replica_config(status, rconfig, learn_signature);
 
+    if (mu->tracer == nullptr) {
+        mu->tracer =
+            make_unique<dsn::tool::lantency_tracer>(mu->tid(), "replica::send_prepare_message");
+    }
+
     mu->tracer->add_point("replica::send_prepare_message", dsn_now_ns());
 
     {
@@ -497,6 +502,10 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
     partition_status::type target_status = pr.second;
 
     // todo(jiashuo) join target_status=>enum_to_string(target_status)
+    if (request->tracer == nullptr) {
+        request->tracer = make_unique<dsn::tool::lantency_tracer>(request->header->id,
+                                                                  "replica::on_prepare_reply");
+    }
     mu->tracer->add_point(
         fmt::format("replica::on_prepare_reply::{}", enum_to_string(target_status)), dsn_now_ns());
 

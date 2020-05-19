@@ -470,7 +470,9 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
             (int)mu->client_requests.size());
     dassert(mu->data.updates.size() > 0, "");
 
-    mu->tracer->add_point("replication_app_base::apply_mutation", dsn_now_ns());
+    if (mu->tracer != nullptr) {
+        mu->tracer->add_point("replication_app_base::apply_mutation", dsn_now_ns());
+    }
 
     int request_count = static_cast<int>(mu->client_requests.size());
     dsn::message_ex **batched_requests =
