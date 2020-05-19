@@ -156,7 +156,6 @@ public:
         std::string header("tracer log");
         for (dsn::message_ex *req : client_requests) {
             std::string log = fmt::format("\nTRACER:mutation_id={}, request_id={}, start_time={}",
-                                          header,
                                           tid,
                                           req->header->id,
                                           req->tracer->get_start_time());
