@@ -35,7 +35,7 @@
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool_api.h>
 #include <dsn/tool/node_scoper.h>
-//#include <dsn/tool/lantency_tracer.h>
+#include <dsn/tool/lantency_tracer.h>
 
 using namespace dsn::utils;
 

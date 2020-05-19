@@ -31,7 +31,7 @@
 #include "dist/http/server_info_http_services.h"
 #include "replica_stub.h"
 #include "replica_http_service.h"
-//#include <dsn/tool/lantency_tracer.h>
+#include <dsn/tool/lantency_tracer.h>
 
 namespace dsn {
 namespace replication {
