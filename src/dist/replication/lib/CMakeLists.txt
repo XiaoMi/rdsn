@@ -33,6 +33,7 @@ set(MY_PROJ_LIBS
     dsn_cli
     dsn_http
     dsn_runtime
+    dsn_aio
     )
 
 set(MY_BOOST_LIBS Boost::regex)
