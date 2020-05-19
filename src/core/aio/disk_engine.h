@@ -26,10 +26,10 @@
 
 #pragma once
 
+#include "aio_provider.h"
 #include "core/core/service_engine.h"
 
 #include <dsn/utility/synchronize.h>
-#include <core/aio/aio_provider.h>
 #include <dsn/utility/work_queue.h>
 
 namespace dsn {

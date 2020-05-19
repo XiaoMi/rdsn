@@ -26,7 +26,6 @@
 
 #pragma once
 
-#include <dsn/tool_api.h>
 #include "native_linux_aio_provider.h"
 
 namespace dsn {

@@ -25,10 +25,13 @@
  */
 
 #include "native_linux_aio_provider.h"
-#include "core/aio/disk_engine.h"
+#include "disk_engine.h"
 
-#include <fcntl.h>
+#include <queue>
 #include <cstdlib>
+#include <fcntl.h>    /* O_RDWR */
+#include <string.h>   /* memset() */
+#include <inttypes.h> /* uint64_t */
 
 namespace dsn {
 
