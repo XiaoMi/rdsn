@@ -136,8 +136,10 @@ aio_task *disk_file::on_write_completed(aio_task *wk, void *ctx, error_code err,
 disk_engine::disk_engine()
 {
     _node = service_engine::instance().get_all_nodes().begin()->second.get();
+    /**
     _provider.reset(factory_store<aio_provider>::create(
         FLAGS_aio_factory_name, ::dsn::PROVIDER_TYPE_MAIN, this, nullptr));
+        */
 }
 
 disk_engine::~disk_engine() {}

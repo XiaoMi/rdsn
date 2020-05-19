@@ -10,6 +10,5 @@ add_library(dsn_runtime STATIC
         $<TARGET_OBJECTS:dsn.tools.common>
         $<TARGET_OBJECTS:dsn.tools.hpc>
         $<TARGET_OBJECTS:dsn.tools.simulator>
-        $<TARGET_OBJECTS:dsn.aio>
         )
 install(TARGETS dsn_runtime DESTINATION "lib")
