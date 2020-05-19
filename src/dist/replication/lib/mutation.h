@@ -155,8 +155,8 @@ public:
     {
         std::string header("tracer log");
         for (dsn::message_ex *req : client_requests) {
-            std::string log = fmt::format("TRACER:mutation_id={}, request_id={}, start_time={}",
-                                          tid,
+            std::string log = fmt::format("\nTRACER:mutation_id={}, request_id={}, start_time={}",
+                                          tid(),
                                           req->header->id,
                                           req->tracer->get_start_time());
             for (const auto &iter : req->tracer->get_points()) {
@@ -169,7 +169,7 @@ public:
 
             log = fmt::format("{}\nTRACER:mutation_id={}, request_id={}, end_time={}",
                               log,
-                              tid,
+                              tid(),
                               req->header->id,
                               req->tracer->get_end_time());
 
