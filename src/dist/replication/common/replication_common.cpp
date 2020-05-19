@@ -25,12 +25,21 @@
  */
 
 #include "replication_common.h"
-#include <dsn/utility/filesystem.h>
+
 #include <fstream>
+
 #include <dsn/dist/replication/replica_envs.h>
+#include <dsn/utility/flags.h>
+#include <dsn/utility/filesystem.h>
 
 namespace dsn {
 namespace replication {
+
+DSN_DEFINE_int32("nfs", max_copy_rate_megabytes, 500, "max rate of copying from remote node(MB/s)");
+DSN_DEFINE_int32("replication",
+                 max_concurrent_bulk_load_downloading_count,
+                 5,
+                 "concurrent bulk load downloading replica count");
 
 /*extern*/ const char *partition_status_to_string(partition_status::type status)
 {
@@ -520,11 +529,8 @@ void replication_options::initialize()
                                                           "bulk_load_provider_root",
                                                           "bulk_load_provider_root",
                                                           "bulk load root on remote file provider");
-    max_concurrent_bulk_load_downloading_count =
-        (int32_t)dsn_config_get_value_uint64("replication",
-                                             "max_concurrent_bulk_load_downloading_count",
-                                             max_concurrent_bulk_load_downloading_count,
-                                             "concurrent bulk load downloading replica count");
+
+    max_concurrent_bulk_load_downloading_count = FLAGS_max_concurrent_bulk_load_downloading_count;
 
     replica_helper::load_meta_servers(meta_servers);
 

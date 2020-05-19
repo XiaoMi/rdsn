@@ -2216,18 +2216,20 @@ void replica_stub::open_service()
                 if (args.empty()) {
                     result = "max_concurrent_bulk_load_downloading_count=" +
                              std::to_string(_max_concurrent_bulk_load_downloading_count);
+                    return result;
+                }
+
+                if (args[0] == "DEFAULT") {
+                    _max_concurrent_bulk_load_downloading_count =
+                        _options.max_concurrent_bulk_load_downloading_count;
+                    return result;
+                }
+
+                int32_t count = 0;
+                if (!dsn::buf2int32(args[0], count) || count <= 0) {
+                    result = std::string("ERR: invalid arguments");
                 } else {
-                    if (args[0] == "DEFAULT") {
-                        _max_concurrent_bulk_load_downloading_count =
-                            _options.max_concurrent_bulk_load_downloading_count;
-                    } else {
-                        int32_t count = 0;
-                        if (!dsn::buf2int32(args[0], count) || count <= 0) {
-                            result = std::string("ERR: invalid arguments");
-                        } else {
-                            _max_concurrent_bulk_load_downloading_count = count;
-                        }
-                    }
+                    _max_concurrent_bulk_load_downloading_count = count;
                 }
                 return result;
             });

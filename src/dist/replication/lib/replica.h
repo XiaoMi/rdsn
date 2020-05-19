@@ -456,16 +456,15 @@ private:
                                   const std::string &provider_name);
 
     // download files from remote file system
-    // download_err = ERR_FILE_OPERATION_FAILED: local file system error
-    // download_err = ERR_FS_INTERNAL: remote file system error
-    // download_err = ERR_CORRUPTION: file not exist or damaged
+    // \return  ERR_FILE_OPERATION_FAILED: local file system error
+    // \return  ERR_FS_INTERNAL: remote file system error
+    // \return  ERR_CORRUPTION: file not exist or damaged
     // if download file succeed, download_err = ERR_OK and set download_file_size
-    void do_download(const std::string &remote_dir,
-                     const std::string &local_dir,
-                     const std::string &file_name,
-                     dist::block_service::block_filesystem *fs,
-                     /*out*/ error_code &download_err,
-                     /*out*/ uint64_t &download_file_size);
+    error_code do_download(const std::string &remote_dir,
+                           const std::string &local_dir,
+                           const std::string &file_name,
+                           dist::block_service::block_filesystem *fs,
+                           /*out*/ uint64_t &download_file_size);
 
     // \return ERR_FILE_OPERATION_FAILED: file not exist, get size failed, open file failed
     // \return ERR_CORRUPTION: parse failed

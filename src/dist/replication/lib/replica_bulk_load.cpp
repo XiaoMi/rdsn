@@ -214,7 +214,10 @@ error_code replica::bulk_load_start_download(const std::string &app_name,
     clear_bulk_load_states();
 
     set_bulk_load_status(bulk_load_status::BLS_DOWNLOADING);
-    _stub->_bulk_load_downloading_count.fetch_add(1);
+    ++_stub->_bulk_load_downloading_count;
+    ddebug_replica("node[{}] has {} replica executing downloading",
+                   _stub->_primary_address_str,
+                   _stub->_bulk_load_downloading_count.load());
     // TODO(heyuchen): add perf-counter
 
     // start download
@@ -235,12 +238,12 @@ error_code replica::download_sst_files(const std::string &app_name,
                         [](string_view) -> error_code { return ERR_OK; });
 
     // create local bulk load dir
-    const std::string local_dir =
-        utils::filesystem::path_combine(_dir, bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR);
     if (!utils::filesystem::directory_exists(_dir)) {
         derror_replica("_dir({}) is not existed", _dir);
         return ERR_FILE_OPERATION_FAILED;
     }
+    const std::string local_dir =
+        utils::filesystem::path_combine(_dir, bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR);
     if (!utils::filesystem::directory_exists(local_dir) &&
         !utils::filesystem::create_directory(local_dir)) {
         derror_replica("create bulk_load_dir({}) failed", local_dir);
@@ -253,9 +256,9 @@ error_code replica::download_sst_files(const std::string &app_name,
         _stub->_block_service_manager.get_block_filesystem(provider_name);
 
     // download metadata file synchronously
-    error_code err = ERR_OK;
     uint64_t file_size = 0;
-    do_download(remote_dir, local_dir, bulk_load_constant::BULK_LOAD_METADATA, fs, err, file_size);
+    error_code err =
+        do_download(remote_dir, local_dir, bulk_load_constant::BULK_LOAD_METADATA, fs, file_size);
     if (err != ERR_OK) {
         derror_replica("download bulk load metadata file failed, error = {}", err.to_string());
         return err;
@@ -274,9 +277,8 @@ error_code replica::download_sst_files(const std::string &app_name,
     for (const auto &f_meta : _bulk_load_context._metadata.files) {
         auto bulk_load_download_task = tasking::enqueue(
             LPC_BACKGROUND_BULK_LOAD, &_tracker, [this, remote_dir, local_dir, f_meta, fs]() {
-                error_code ec = ERR_OK;
                 uint64_t f_size = 0;
-                do_download(remote_dir, local_dir, f_meta.name, fs, ec, f_size);
+                error_code ec = do_download(remote_dir, local_dir, f_meta.name, fs, f_size);
                 if (ec == ERR_OK && !verify_sst_files(f_meta, local_dir)) {
                     ec = ERR_CORRUPTION;
                 }
@@ -298,16 +300,16 @@ error_code replica::download_sst_files(const std::string &app_name,
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION, THREAD_POOL_REPLICATION_LONG
-void replica::do_download(const std::string &remote_dir,
-                          const std::string &local_dir,
-                          const std::string &file_name,
-                          dist::block_service::block_filesystem *fs,
-                          /*out*/ error_code &download_err,
-                          /*out*/ uint64_t &download_file_size)
+error_code replica::do_download(const std::string &remote_dir,
+                                const std::string &local_dir,
+                                const std::string &file_name,
+                                dist::block_service::block_filesystem *fs,
+                                /*out*/ uint64_t &download_file_size)
 {
     // TODO(heyuchen): TBD
     // download files from remote provider
     // this function can also be used in restore
+    return ERR_OK;
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
@@ -337,9 +339,10 @@ void replica::update_bulk_load_download_progress(uint64_t file_size, const std::
 // ThreadPool: THREAD_POOL_REPLICATION, THREAD_POOL_REPLICATION_LONG
 void replica::try_decrease_bulk_load_download_count()
 {
-    if (_stub->_bulk_load_downloading_count.load() > 0) {
-        _stub->_bulk_load_downloading_count.fetch_sub(1);
-    }
+    --_stub->_bulk_load_downloading_count;
+    ddebug_replica("node[{}] has {} replica executing downloading",
+                   _stub->_primary_address_str,
+                   _stub->_bulk_load_downloading_count.load());
 }
 
 void replica::clear_bulk_load_states()
