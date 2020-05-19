@@ -35,7 +35,6 @@
 namespace dsn {
 namespace replication {
 
-DSN_DEFINE_int32("nfs", max_copy_rate_megabytes, 500, "max rate of copying from remote node(MB/s)");
 DSN_DEFINE_int32("replication",
                  max_concurrent_bulk_load_downloading_count,
                  5,
@@ -119,8 +118,6 @@ replication_options::replication_options()
     max_concurrent_uploading_file_count = 10;
 
     cold_backup_checkpoint_reserve_minutes = 10;
-
-    max_concurrent_bulk_load_downloading_count = 5;
 }
 
 replication_options::~replication_options() {}
