@@ -40,6 +40,7 @@
 #include <atomic>
 #include <dsn/utility/link.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/tool/lantency_tracer.h>
 
 #ifndef __linux__
 #pragma warning(disable : 4201)
@@ -173,7 +174,7 @@ public:
                               req->header->id,
                               req->tracer->get_end_time());
 
-            dinfo_replica("{}{}", header, log);
+            dinfo_f("{}{}", header, log);
         }
     }
 
