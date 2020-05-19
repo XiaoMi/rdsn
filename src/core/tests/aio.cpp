@@ -33,7 +33,6 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-#include <dsn/tool-api/aio_provider.h>
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/service_api_cpp.h>
