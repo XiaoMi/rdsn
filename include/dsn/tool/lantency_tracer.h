@@ -1,7 +1,6 @@
 #include <string>
 #include <map>
 #include <dsn/service_api_c.h>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace tool {
