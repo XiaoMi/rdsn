@@ -67,7 +67,6 @@ protected:
     void complete_aio(struct iocb *io, int bytes, int err);
     void get_event();
 
-
 private:
     io_context_t _ctx;
     std::atomic<bool> _is_running{false};
