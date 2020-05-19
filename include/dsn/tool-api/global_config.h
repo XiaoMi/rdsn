@@ -35,7 +35,6 @@
 
 #pragma once
 
-#include <dsn/utility/flags.h>
 #include <dsn/tool-api/task_spec.h>
 #include <dsn/tool-api/threadpool_spec.h>
 #include <dsn/utility/dlib.h>
