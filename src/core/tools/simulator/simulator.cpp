@@ -36,7 +36,7 @@
 #include <dsn/tool/simulator.h>
 #include "scheduler.h"
 
-#include "diske.sim.h"
+#include "core/aio/diske.sim.h"
 #include "env.sim.h"
 #include "task_engine.sim.h"
 #include "sim_clock.h"

@@ -31,7 +31,6 @@
 #include <cstdlib>
 
 namespace dsn {
-namespace tools {
 
 native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk,
                                                      aio_provider *inner_provider)
@@ -224,5 +223,4 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
     }
 }
 
-} // namespace tools
 } // namespace dsn

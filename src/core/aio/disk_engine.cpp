@@ -25,6 +25,7 @@
  */
 
 #include "disk_engine.h"
+#include "diske.sim.h"
 #include <dsn/utility/flags.h>
 
 using namespace dsn::utils;
@@ -136,10 +137,12 @@ aio_task *disk_file::on_write_completed(aio_task *wk, void *ctx, error_code err,
 disk_engine::disk_engine()
 {
     _node = service_engine::instance().get_all_nodes().begin()->second.get();
-    /**
-    _provider.reset(factory_store<aio_provider>::create(
-        FLAGS_aio_factory_name, ::dsn::PROVIDER_TYPE_MAIN, this, nullptr));
-        */
+
+    // use native_linux_aio_provider in default
+    _provider.reset(new native_linux_aio_provider(this, nullptr));
+    if (!strcmp(FLAGS_aio_factory_name, "dsn::tools::sim_aio_provider")) {
+        _provider.reset(new sim_aio_provider(this, nullptr));
+    }
 }
 
 disk_engine::~disk_engine() {}

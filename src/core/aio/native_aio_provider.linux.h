@@ -37,7 +37,6 @@
 #include <inttypes.h> /* uint64_t */
 
 namespace dsn {
-namespace tools {
 
 class native_linux_aio_provider : public aio_provider
 {
@@ -79,5 +78,4 @@ private:
     std::thread _worker;
 };
 
-} // namespace tools
 } // namespace dsn
