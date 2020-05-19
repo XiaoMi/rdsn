@@ -26,8 +26,8 @@
 
 #pragma once
 
-#include <dsn/tool_api.h>
-#include <dsn/utility/synchronize.h>
+#include "aio_provider.h"
+
 #include <queue>
 #include <stdio.h>       /* for perror() */
 #include <sys/syscall.h> /* for __NR_* definitions */
@@ -35,6 +35,9 @@
 #include <fcntl.h>    /* O_RDWR */
 #include <string.h>   /* memset() */
 #include <inttypes.h> /* uint64_t */
+
+#include <dsn/tool_api.h>
+#include <dsn/utility/synchronize.h>
 
 namespace dsn {
 
