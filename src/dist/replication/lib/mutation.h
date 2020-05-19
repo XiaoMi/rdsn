@@ -39,6 +39,7 @@
 #include <list>
 #include <atomic>
 #include <dsn/utility/link.h>
+#include <dsn/dist/fmt_logging.h>
 
 #ifndef __linux__
 #pragma warning(disable : 4201)
@@ -115,7 +116,6 @@ public:
     void wait_log_task() const;
     uint64_t prepare_ts_ms() const { return _prepare_ts_ms; }
     void set_prepare_ts() { _prepare_ts_ms = dsn_now_ms(); }
-    void add_tracer_point() { trace_lantency = dsn_now_ms() - _prepare_ts_ms; }
 
     // >= 1 MB
     bool is_full() const { return _appro_data_bytes >= 1024 * 1024; }
