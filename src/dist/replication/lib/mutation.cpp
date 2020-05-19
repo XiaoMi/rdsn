@@ -339,7 +339,7 @@ mutation_queue::mutation_queue(gpid gpid,
 mutation_ptr mutation_queue::add_work(task_code code, dsn::message_ex *request, replica *r)
 {
     task_spec *spec = task_spec::get(code);
-
+    request->tracer->add_point("mutation_queue::add_work", dsn_now_ns());
     // if not allow write batch, switch work queue
     if (_pending_mutation && !spec->rpc_request_is_write_allow_batch) {
         _pending_mutation->add_ref(); // released when unlink

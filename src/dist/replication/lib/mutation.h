@@ -115,6 +115,7 @@ public:
     void wait_log_task() const;
     uint64_t prepare_ts_ms() const { return _prepare_ts_ms; }
     void set_prepare_ts() { _prepare_ts_ms = dsn_now_ms(); }
+    void add_tracer_point() { trace_lantency = dsn_now_ms() - _prepare_ts_ms; }
 
     // >= 1 MB
     bool is_full() const { return _appro_data_bytes >= 1024 * 1024; }
@@ -144,6 +145,37 @@ public:
 
     void set_is_sync_to_child(bool sync_to_child) { _is_sync_to_child = sync_to_child; }
     bool is_sync_to_child() { return _is_sync_to_child; }
+
+    //
+    std::unique_ptr<dsn::tool::lantency_tracer> tracer;
+
+    //
+    void report_tracer()
+    {
+        std::string header("tracer log");
+        for (dsn::message_ex *req : client_requests) {
+            std::string log = fmt::format("\nTRACER:mutation_id={}, request_id={}, start_time={}",
+                                          header,
+                                          tid,
+                                          req->header->id,
+                                          req->tracer->get_start_time());
+            for (const auto &iter : req->tracer->get_points()) {
+                log = fmt::format("{}\tTRACER:{}={}", log, iter.first, iter.second);
+            }
+
+            for (const auto &iter : tracer->get_points()) {
+                log = fmt::format("{}\tRACER:{}={}", log, iter.first, iter.second);
+            }
+
+            log = fmt::format("{}\nTRACER:mutation_id={}, request_id={}, end_time={}",
+                              log,
+                              tid,
+                              req->header->id,
+                              req->tracer->get_end_time());
+
+            dinfo_replica("{}{}", header, log);
+        }
+    }
 
 private:
     union

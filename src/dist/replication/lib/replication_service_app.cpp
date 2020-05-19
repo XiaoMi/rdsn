@@ -31,6 +31,7 @@
 #include "dist/http/server_info_http_services.h"
 #include "replica_stub.h"
 #include "replica_http_service.h"
+#include <dsn/tool/lantency_tracer.h>
 
 namespace dsn {
 namespace replication {
@@ -87,6 +88,7 @@ void replication_service_app::on_intercepted_request(dsn::gpid gpid,
                                                      bool is_write,
                                                      dsn::message_ex *msg)
 {
+    msg->tracer->add_point("on_intercepted_request", dsn_now_ns());
     if (is_write) {
         _stub->on_client_write(gpid, msg);
     } else {

@@ -45,6 +45,9 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
+    // todo(jiashuo) dump write request need be re-overload
+    request->tracer->set_type(_app->dump_write_request(request));
+
     if (dsn_unlikely(_stub->_max_allowed_write_size &&
                      request->body_size() > _stub->_max_allowed_write_size)) {
         std::string request_info = _app->dump_write_request(request);
@@ -102,6 +105,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
             "invalid partition_status, status = %s",
             enum_to_string(status()));
 
+    mu->tracer = make_unique<dsn::tool::lantency_tracer>(mu->tid, "replica::init_prepare");
     error_code err = ERR_OK;
     uint8_t count = 0;
     mu->data.header.last_committed_decree = last_committed_decree();
@@ -230,6 +234,8 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
         RPC_PREPARE, timeout_milliseconds, get_gpid().thread_hash());
     replica_configuration rconfig;
     _primary_states.get_replica_config(status, rconfig, learn_signature);
+
+    mu->tracer->add_point("replica::send_prepare_message", dsn_now_ns());
 
     {
         rpc_write_stream writer(msg);
@@ -489,6 +495,10 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
 
     mutation_ptr mu = pr.first;
     partition_status::type target_status = pr.second;
+
+    // todo(jiashuo) join target_status=>enum_to_string(target_status)
+    mu->tracer->add_point(
+        fmt::format("replica::on_prepare_reply::{}", enum_to_string(target_status)), dsn_now_ns());
 
     // skip callback for old mutations
     if (partition_status::PS_PRIMARY != status() || mu->data.header.ballot < get_ballot() ||
