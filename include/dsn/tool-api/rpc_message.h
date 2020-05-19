@@ -50,6 +50,7 @@
 #include <map>
 #include <dsn/service_api_c.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/tool/lantency_tracer.h>
 
 namespace dsn {
 class rpc_session;
@@ -127,28 +128,6 @@ typedef struct message_header
     ~message_header() = default;
 } message_header;
 
-struct lantency_tracer
-{
-public:
-    lantency_tracer(int id, const std::string &name, bool report_now = true)
-        : _id(id), _start_time(dsn_now_ms()), _last_time(_start_time){};
-
-    void add_point(const std::string &name, long current_time)
-    {
-        _points.emplace(name, current_time - _last_time);
-        _last_time = current_time;
-    }
-
-    //(todo jiashuo1) async report to server (db(maybe pegasus is ok) or falcon or kibana)
-    void report(){};
-
-private:
-    int _id;
-    long _start_time;
-    long _last_time;
-    std::map<std::string, long> _points;
-};
-
 class message_ex : public ref_counter,
                    public extensible_object<message_ex, 4>,
                    public transient_object
@@ -175,7 +154,7 @@ public:
     dlink dl;
 
     // lantency tracer
-    std::unique_ptr<lantency_tracer> tracer;
+    std::unique_ptr<dsn::tool::lantency_tracer> tracer;
 
 public:
     // message_ex(blob bb, bool parse_hdr = true); // read
