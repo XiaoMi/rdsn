@@ -155,7 +155,7 @@ public:
     {
         std::string header("tracer log");
         for (const auto &req : client_requests) {
-            if (req != nullptr) {
+            if (req == nullptr) {
                 ddebug_f("This is nullptr request!");
                 continue;
             }
