@@ -25,13 +25,9 @@
  */
 
 #include "native_linux_aio_provider.h"
-#include "disk_engine.h"
 
-#include <queue>
+#include <fcntl.h>
 #include <cstdlib>
-#include <fcntl.h>    /* O_RDWR */
-#include <string.h>   /* memset() */
-#include <inttypes.h> /* uint64_t */
 
 namespace dsn {
 
@@ -45,7 +41,7 @@ native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk,
 
     _is_running = true;
     _worker = std::thread([this, disk]() {
-        task::set_tls_dsn_context(disk->node(), nullptr);
+        task::set_tls_dsn_context(node(), nullptr);
         get_event();
     });
 }
@@ -103,7 +99,13 @@ void native_linux_aio_provider::get_event()
 {
     struct io_event events[1];
     int ret;
-    task_worker::set_name("aio");
+
+    task::set_tls_dsn_context(node(), nullptr);
+
+    const char *name = ::dsn::tools::get_service_node_name(node());
+    char buffer[128];
+    sprintf(buffer, "%s.aio", name);
+    task_worker::set_name(buffer);
 
     while (true) {
         if (dsn_unlikely(!_is_running.load(std::memory_order_relaxed))) {
