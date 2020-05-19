@@ -250,6 +250,8 @@ public:
     static rpc_engine *get_current_rpc();
     static disk_engine *get_current_disk();
     static env_provider *get_current_env();
+    // code is in dsn/dist/replication/replication.codes.h
+    static std::vector<task_worker *> &get_info(int code);
 
     static void set_tls_dsn_context(
         service_node *node, // cannot be null
