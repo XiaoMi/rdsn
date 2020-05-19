@@ -105,7 +105,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
             "invalid partition_status, status = %s",
             enum_to_string(status()));
 
-    mu->tracer = make_unique<dsn::tool::lantency_tracer>(mu->tid, "replica::init_prepare");
+    mu->tracer = make_unique<dsn::tool::lantency_tracer>(mu->tid(), "replica::init_prepare");
     error_code err = ERR_OK;
     uint8_t count = 0;
     mu->data.header.last_committed_decree = last_committed_decree();
