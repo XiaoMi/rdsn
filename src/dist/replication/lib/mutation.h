@@ -39,6 +39,8 @@
 #include <list>
 #include <atomic>
 #include <dsn/utility/link.h>
+#include <dsn/dist/fmt_logging.h>
+#include <dsn/tool/latency_tracer.h>
 
 #ifndef __linux__
 #pragma warning(disable : 4201)
@@ -121,10 +123,13 @@ public:
     int appro_data_bytes() const { return _appro_data_bytes; }
 
     // read & write mutation data
-    //
-    // "mutation_update.code" should be marshalled as string for cross-process compatiblity,
-    // because:
-    //   - the private log may be transfered to other node with different program
+    // thread_local std::unique_ptr<dsn::tool::latency_tracer> tracer = nullptr;
+    // "mutation_update.code" should be marshalled as  thread_local
+    // std::unique_ptr<dsn::tool::latency_tracer> tracer = nullptr;string for cross-process
+    // compatiblity,
+    // because: thread_local std::unique_ptr<dsn::tool::latency_tracer> tracer = nullptr;
+    //   - the private log may be transfered to other  thread_local
+    //   std::unique_ptr<dsn::tool::latency_tracer> tracer = nullptr;node with different program
     //   - the private/shared log may be replayed by different program when server restart
     void write_to(const std::function<void(const blob &)> &inserter) const;
     void write_to(binary_writer &writer, dsn::message_ex *to) const;
@@ -144,6 +149,67 @@ public:
 
     void set_is_sync_to_child(bool sync_to_child) { _is_sync_to_child = sync_to_child; }
     bool is_sync_to_child() { return _is_sync_to_child; }
+
+    // latency tracer for write mutation reuqest
+    std::unique_ptr<dsn::tool::latency_tracer> tracer;
+
+    void report_if_exceed_threshold(uint64_t time_threshold, bool is_primary = true)
+    {
+        if (time_threshold <= 0) {
+            return;
+        }
+
+        for (const auto &req : client_requests) {
+            int64_t start_time = 0;
+            int64_t secondary_prepare_ack_time_used = 0;
+            int64_t total_time_used = 0;
+            int64_t request_id = 0;
+            std::string log;
+            if (req != nullptr) {
+                start_time = req->tracer->start_time;
+                total_time_used = tracer->end_time - start_time;
+                if (total_time_used < time_threshold) {
+                    continue;
+                }
+
+                request_id = req->tracer->id;
+                for (const auto &iter : req->tracer->points) {
+                    log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
+                }
+            } else {
+                if (!is_primary) {
+                    secondary_prepare_ack_time_used =
+                        tracer->secondary_prepare_ack_time - tracer->start_time;
+                    if (secondary_prepare_ack_time_used < time_threshold) {
+                        continue;
+                    }
+                }
+                start_time = tracer->start_time;
+                total_time_used = tracer->end_time - start_time;
+                if (total_time_used < time_threshold) {
+                    continue;
+                }
+            }
+            for (const auto &iter : tracer->points) {
+                log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
+            }
+
+            log = fmt::format(
+                "{}\nTRACER:mutation_id={}, request_id={}, start_time={}, end_time={}, "
+                "total_time_used={}, primary_receive_prepare_ack_time_used={}, "
+                "secondary_prepare_ack_time_used={}",
+                log,
+                request_id,
+                tid(),
+                start_time,
+                tracer->end_time,
+                total_time_used,
+                is_primary ? tracer->get_primary_receive_prepare_ack_time_used() : "none",
+                is_primary ? "none" : std::to_string(secondary_prepare_ack_time_used));
+
+            ddebug_f("TRACE:write request latency tracer log:{}", log);
+        }
+    }
 
 private:
     union

@@ -698,6 +698,12 @@ void replica_configuration::__set_learner_signature(const int64_t val)
     this->learner_signature = val;
 }
 
+void replica_configuration::__set_pop_all(const bool val)
+{
+    this->pop_all = val;
+    __isset.pop_all = true;
+}
+
 uint32_t replica_configuration::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -759,6 +765,14 @@ uint32_t replica_configuration::read(::apache::thrift::protocol::TProtocol *ipro
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 6:
+            if (ftype == ::apache::thrift::protocol::T_BOOL) {
+                xfer += iprot->readBool(this->pop_all);
+                this->__isset.pop_all = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -797,6 +811,11 @@ uint32_t replica_configuration::write(::apache::thrift::protocol::TProtocol *opr
     xfer += oprot->writeI64(this->learner_signature);
     xfer += oprot->writeFieldEnd();
 
+    if (this->__isset.pop_all) {
+        xfer += oprot->writeFieldBegin("pop_all", ::apache::thrift::protocol::T_BOOL, 6);
+        xfer += oprot->writeBool(this->pop_all);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -810,6 +829,7 @@ void swap(replica_configuration &a, replica_configuration &b)
     swap(a.primary, b.primary);
     swap(a.status, b.status);
     swap(a.learner_signature, b.learner_signature);
+    swap(a.pop_all, b.pop_all);
     swap(a.__isset, b.__isset);
 }
 
@@ -820,6 +840,7 @@ replica_configuration::replica_configuration(const replica_configuration &other1
     primary = other19.primary;
     status = other19.status;
     learner_signature = other19.learner_signature;
+    pop_all = other19.pop_all;
     __isset = other19.__isset;
 }
 replica_configuration::replica_configuration(replica_configuration &&other20)
@@ -829,6 +850,7 @@ replica_configuration::replica_configuration(replica_configuration &&other20)
     primary = std::move(other20.primary);
     status = std::move(other20.status);
     learner_signature = std::move(other20.learner_signature);
+    pop_all = std::move(other20.pop_all);
     __isset = std::move(other20.__isset);
 }
 replica_configuration &replica_configuration::operator=(const replica_configuration &other21)
@@ -838,6 +860,7 @@ replica_configuration &replica_configuration::operator=(const replica_configurat
     primary = other21.primary;
     status = other21.status;
     learner_signature = other21.learner_signature;
+    pop_all = other21.pop_all;
     __isset = other21.__isset;
     return *this;
 }
@@ -848,6 +871,7 @@ replica_configuration &replica_configuration::operator=(replica_configuration &&
     primary = std::move(other22.primary);
     status = std::move(other22.status);
     learner_signature = std::move(other22.learner_signature);
+    pop_all = std::move(other22.pop_all);
     __isset = std::move(other22.__isset);
     return *this;
 }
@@ -864,6 +888,9 @@ void replica_configuration::printTo(std::ostream &out) const
         << "status=" << to_string(status);
     out << ", "
         << "learner_signature=" << to_string(learner_signature);
+    out << ", "
+        << "pop_all=";
+    (__isset.pop_all ? (out << to_string(pop_all)) : (out << "<null>"));
     out << ")";
 }
 
@@ -15170,10 +15197,10 @@ void partition_bulk_load_state::__set_ingest_status(const ingestion_status::type
     __isset.ingest_status = true;
 }
 
-void partition_bulk_load_state::__set_is_cleanuped(const bool val)
+void partition_bulk_load_state::__set_is_cleaned_up(const bool val)
 {
-    this->is_cleanuped = val;
-    __isset.is_cleanuped = true;
+    this->is_cleaned_up = val;
+    __isset.is_cleaned_up = true;
 }
 
 void partition_bulk_load_state::__set_is_paused(const bool val)
@@ -15229,8 +15256,8 @@ uint32_t partition_bulk_load_state::read(::apache::thrift::protocol::TProtocol *
             break;
         case 4:
             if (ftype == ::apache::thrift::protocol::T_BOOL) {
-                xfer += iprot->readBool(this->is_cleanuped);
-                this->__isset.is_cleanuped = true;
+                xfer += iprot->readBool(this->is_cleaned_up);
+                this->__isset.is_cleaned_up = true;
             } else {
                 xfer += iprot->skip(ftype);
             }
@@ -15276,9 +15303,9 @@ uint32_t partition_bulk_load_state::write(::apache::thrift::protocol::TProtocol 
         xfer += oprot->writeI32((int32_t)this->ingest_status);
         xfer += oprot->writeFieldEnd();
     }
-    if (this->__isset.is_cleanuped) {
-        xfer += oprot->writeFieldBegin("is_cleanuped", ::apache::thrift::protocol::T_BOOL, 4);
-        xfer += oprot->writeBool(this->is_cleanuped);
+    if (this->__isset.is_cleaned_up) {
+        xfer += oprot->writeFieldBegin("is_cleaned_up", ::apache::thrift::protocol::T_BOOL, 4);
+        xfer += oprot->writeBool(this->is_cleaned_up);
         xfer += oprot->writeFieldEnd();
     }
     if (this->__isset.is_paused) {
@@ -15297,7 +15324,7 @@ void swap(partition_bulk_load_state &a, partition_bulk_load_state &b)
     swap(a.download_progress, b.download_progress);
     swap(a.download_status, b.download_status);
     swap(a.ingest_status, b.ingest_status);
-    swap(a.is_cleanuped, b.is_cleanuped);
+    swap(a.is_cleaned_up, b.is_cleaned_up);
     swap(a.is_paused, b.is_paused);
     swap(a.__isset, b.__isset);
 }
@@ -15307,7 +15334,7 @@ partition_bulk_load_state::partition_bulk_load_state(const partition_bulk_load_s
     download_progress = other657.download_progress;
     download_status = other657.download_status;
     ingest_status = other657.ingest_status;
-    is_cleanuped = other657.is_cleanuped;
+    is_cleaned_up = other657.is_cleaned_up;
     is_paused = other657.is_paused;
     __isset = other657.__isset;
 }
@@ -15316,7 +15343,7 @@ partition_bulk_load_state::partition_bulk_load_state(partition_bulk_load_state &
     download_progress = std::move(other658.download_progress);
     download_status = std::move(other658.download_status);
     ingest_status = std::move(other658.ingest_status);
-    is_cleanuped = std::move(other658.is_cleanuped);
+    is_cleaned_up = std::move(other658.is_cleaned_up);
     is_paused = std::move(other658.is_paused);
     __isset = std::move(other658.__isset);
 }
@@ -15326,7 +15353,7 @@ operator=(const partition_bulk_load_state &other659)
     download_progress = other659.download_progress;
     download_status = other659.download_status;
     ingest_status = other659.ingest_status;
-    is_cleanuped = other659.is_cleanuped;
+    is_cleaned_up = other659.is_cleaned_up;
     is_paused = other659.is_paused;
     __isset = other659.__isset;
     return *this;
@@ -15337,7 +15364,7 @@ operator=(partition_bulk_load_state &&other660)
     download_progress = std::move(other660.download_progress);
     download_status = std::move(other660.download_status);
     ingest_status = std::move(other660.ingest_status);
-    is_cleanuped = std::move(other660.is_cleanuped);
+    is_cleaned_up = std::move(other660.is_cleaned_up);
     is_paused = std::move(other660.is_paused);
     __isset = std::move(other660.__isset);
     return *this;
@@ -15355,8 +15382,8 @@ void partition_bulk_load_state::printTo(std::ostream &out) const
         << "ingest_status=";
     (__isset.ingest_status ? (out << to_string(ingest_status)) : (out << "<null>"));
     out << ", "
-        << "is_cleanuped=";
-    (__isset.is_cleanuped ? (out << to_string(is_cleanuped)) : (out << "<null>"));
+        << "is_cleaned_up=";
+    (__isset.is_cleaned_up ? (out << to_string(is_cleaned_up)) : (out << "<null>"));
     out << ", "
         << "is_paused=";
     (__isset.is_paused ? (out << to_string(is_paused)) : (out << "<null>"));
@@ -15657,10 +15684,10 @@ void bulk_load_response::__set_is_group_ingestion_finished(const bool val)
     __isset.is_group_ingestion_finished = true;
 }
 
-void bulk_load_response::__set_is_group_bulk_load_context_cleaned(const bool val)
+void bulk_load_response::__set_is_group_bulk_load_context_cleaned_up(const bool val)
 {
-    this->is_group_bulk_load_context_cleaned = val;
-    __isset.is_group_bulk_load_context_cleaned = true;
+    this->is_group_bulk_load_context_cleaned_up = val;
+    __isset.is_group_bulk_load_context_cleaned_up = true;
 }
 
 void bulk_load_response::__set_is_group_bulk_load_paused(const bool val)
@@ -15770,8 +15797,8 @@ uint32_t bulk_load_response::read(::apache::thrift::protocol::TProtocol *iprot)
             break;
         case 9:
             if (ftype == ::apache::thrift::protocol::T_BOOL) {
-                xfer += iprot->readBool(this->is_group_bulk_load_context_cleaned);
-                this->__isset.is_group_bulk_load_context_cleaned = true;
+                xfer += iprot->readBool(this->is_group_bulk_load_context_cleaned_up);
+                this->__isset.is_group_bulk_load_context_cleaned_up = true;
             } else {
                 xfer += iprot->skip(ftype);
             }
@@ -15852,10 +15879,10 @@ uint32_t bulk_load_response::write(::apache::thrift::protocol::TProtocol *oprot)
         xfer += oprot->writeBool(this->is_group_ingestion_finished);
         xfer += oprot->writeFieldEnd();
     }
-    if (this->__isset.is_group_bulk_load_context_cleaned) {
+    if (this->__isset.is_group_bulk_load_context_cleaned_up) {
         xfer += oprot->writeFieldBegin(
-            "is_group_bulk_load_context_cleaned", ::apache::thrift::protocol::T_BOOL, 9);
-        xfer += oprot->writeBool(this->is_group_bulk_load_context_cleaned);
+            "is_group_bulk_load_context_cleaned_up", ::apache::thrift::protocol::T_BOOL, 9);
+        xfer += oprot->writeBool(this->is_group_bulk_load_context_cleaned_up);
         xfer += oprot->writeFieldEnd();
     }
     if (this->__isset.is_group_bulk_load_paused) {
@@ -15880,7 +15907,7 @@ void swap(bulk_load_response &a, bulk_load_response &b)
     swap(a.metadata, b.metadata);
     swap(a.total_download_progress, b.total_download_progress);
     swap(a.is_group_ingestion_finished, b.is_group_ingestion_finished);
-    swap(a.is_group_bulk_load_context_cleaned, b.is_group_bulk_load_context_cleaned);
+    swap(a.is_group_bulk_load_context_cleaned_up, b.is_group_bulk_load_context_cleaned_up);
     swap(a.is_group_bulk_load_paused, b.is_group_bulk_load_paused);
     swap(a.__isset, b.__isset);
 }
@@ -15895,7 +15922,7 @@ bulk_load_response::bulk_load_response(const bulk_load_response &other675)
     metadata = other675.metadata;
     total_download_progress = other675.total_download_progress;
     is_group_ingestion_finished = other675.is_group_ingestion_finished;
-    is_group_bulk_load_context_cleaned = other675.is_group_bulk_load_context_cleaned;
+    is_group_bulk_load_context_cleaned_up = other675.is_group_bulk_load_context_cleaned_up;
     is_group_bulk_load_paused = other675.is_group_bulk_load_paused;
     __isset = other675.__isset;
 }
@@ -15909,7 +15936,8 @@ bulk_load_response::bulk_load_response(bulk_load_response &&other676)
     metadata = std::move(other676.metadata);
     total_download_progress = std::move(other676.total_download_progress);
     is_group_ingestion_finished = std::move(other676.is_group_ingestion_finished);
-    is_group_bulk_load_context_cleaned = std::move(other676.is_group_bulk_load_context_cleaned);
+    is_group_bulk_load_context_cleaned_up =
+        std::move(other676.is_group_bulk_load_context_cleaned_up);
     is_group_bulk_load_paused = std::move(other676.is_group_bulk_load_paused);
     __isset = std::move(other676.__isset);
 }
@@ -15923,7 +15951,7 @@ bulk_load_response &bulk_load_response::operator=(const bulk_load_response &othe
     metadata = other677.metadata;
     total_download_progress = other677.total_download_progress;
     is_group_ingestion_finished = other677.is_group_ingestion_finished;
-    is_group_bulk_load_context_cleaned = other677.is_group_bulk_load_context_cleaned;
+    is_group_bulk_load_context_cleaned_up = other677.is_group_bulk_load_context_cleaned_up;
     is_group_bulk_load_paused = other677.is_group_bulk_load_paused;
     __isset = other677.__isset;
     return *this;
@@ -15938,7 +15966,8 @@ bulk_load_response &bulk_load_response::operator=(bulk_load_response &&other678)
     metadata = std::move(other678.metadata);
     total_download_progress = std::move(other678.total_download_progress);
     is_group_ingestion_finished = std::move(other678.is_group_ingestion_finished);
-    is_group_bulk_load_context_cleaned = std::move(other678.is_group_bulk_load_context_cleaned);
+    is_group_bulk_load_context_cleaned_up =
+        std::move(other678.is_group_bulk_load_context_cleaned_up);
     is_group_bulk_load_paused = std::move(other678.is_group_bulk_load_paused);
     __isset = std::move(other678.__isset);
     return *this;
@@ -15968,9 +15997,9 @@ void bulk_load_response::printTo(std::ostream &out) const
     (__isset.is_group_ingestion_finished ? (out << to_string(is_group_ingestion_finished))
                                          : (out << "<null>"));
     out << ", "
-        << "is_group_bulk_load_context_cleaned=";
-    (__isset.is_group_bulk_load_context_cleaned
-         ? (out << to_string(is_group_bulk_load_context_cleaned))
+        << "is_group_bulk_load_context_cleaned_up=";
+    (__isset.is_group_bulk_load_context_cleaned_up
+         ? (out << to_string(is_group_bulk_load_context_cleaned_up))
          : (out << "<null>"));
     out << ", "
         << "is_group_bulk_load_paused=";
@@ -16336,6 +16365,238 @@ void group_bulk_load_response::printTo(std::ostream &out) const
         << "status=" << to_string(status);
     out << ", "
         << "bulk_load_state=" << to_string(bulk_load_state);
+    out << ")";
+}
+
+ingestion_request::~ingestion_request() throw() {}
+
+void ingestion_request::__set_app_name(const std::string &val) { this->app_name = val; }
+
+void ingestion_request::__set_metadata(const bulk_load_metadata &val) { this->metadata = val; }
+
+uint32_t ingestion_request::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->app_name);
+                this->__isset.app_name = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->metadata.read(iprot);
+                this->__isset.metadata = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t ingestion_request::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("ingestion_request");
+
+    xfer += oprot->writeFieldBegin("app_name", ::apache::thrift::protocol::T_STRING, 1);
+    xfer += oprot->writeString(this->app_name);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("metadata", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += this->metadata.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(ingestion_request &a, ingestion_request &b)
+{
+    using ::std::swap;
+    swap(a.app_name, b.app_name);
+    swap(a.metadata, b.metadata);
+    swap(a.__isset, b.__isset);
+}
+
+ingestion_request::ingestion_request(const ingestion_request &other689)
+{
+    app_name = other689.app_name;
+    metadata = other689.metadata;
+    __isset = other689.__isset;
+}
+ingestion_request::ingestion_request(ingestion_request &&other690)
+{
+    app_name = std::move(other690.app_name);
+    metadata = std::move(other690.metadata);
+    __isset = std::move(other690.__isset);
+}
+ingestion_request &ingestion_request::operator=(const ingestion_request &other691)
+{
+    app_name = other691.app_name;
+    metadata = other691.metadata;
+    __isset = other691.__isset;
+    return *this;
+}
+ingestion_request &ingestion_request::operator=(ingestion_request &&other692)
+{
+    app_name = std::move(other692.app_name);
+    metadata = std::move(other692.metadata);
+    __isset = std::move(other692.__isset);
+    return *this;
+}
+void ingestion_request::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "ingestion_request(";
+    out << "app_name=" << to_string(app_name);
+    out << ", "
+        << "metadata=" << to_string(metadata);
+    out << ")";
+}
+
+ingestion_response::~ingestion_response() throw() {}
+
+void ingestion_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
+
+void ingestion_response::__set_rocksdb_error(const int32_t val) { this->rocksdb_error = val; }
+
+uint32_t ingestion_response::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->err.read(iprot);
+                this->__isset.err = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                xfer += iprot->readI32(this->rocksdb_error);
+                this->__isset.rocksdb_error = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t ingestion_response::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("ingestion_response");
+
+    xfer += oprot->writeFieldBegin("err", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->err.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("rocksdb_error", ::apache::thrift::protocol::T_I32, 2);
+    xfer += oprot->writeI32(this->rocksdb_error);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(ingestion_response &a, ingestion_response &b)
+{
+    using ::std::swap;
+    swap(a.err, b.err);
+    swap(a.rocksdb_error, b.rocksdb_error);
+    swap(a.__isset, b.__isset);
+}
+
+ingestion_response::ingestion_response(const ingestion_response &other693)
+{
+    err = other693.err;
+    rocksdb_error = other693.rocksdb_error;
+    __isset = other693.__isset;
+}
+ingestion_response::ingestion_response(ingestion_response &&other694)
+{
+    err = std::move(other694.err);
+    rocksdb_error = std::move(other694.rocksdb_error);
+    __isset = std::move(other694.__isset);
+}
+ingestion_response &ingestion_response::operator=(const ingestion_response &other695)
+{
+    err = other695.err;
+    rocksdb_error = other695.rocksdb_error;
+    __isset = other695.__isset;
+    return *this;
+}
+ingestion_response &ingestion_response::operator=(ingestion_response &&other696)
+{
+    err = std::move(other696.err);
+    rocksdb_error = std::move(other696.rocksdb_error);
+    __isset = std::move(other696.__isset);
+    return *this;
+}
+void ingestion_response::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "ingestion_response(";
+    out << "err=" << to_string(err);
+    out << ", "
+        << "rocksdb_error=" << to_string(rocksdb_error);
     out << ")";
 }
 }

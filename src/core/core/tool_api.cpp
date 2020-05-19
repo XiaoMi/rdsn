@@ -37,7 +37,7 @@
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/singleton_store.h>
 #include "service_engine.h"
-#include "message_parser_manager.h"
+#include "core/rpc/message_parser_manager.h"
 
 namespace dsn {
 
@@ -147,13 +147,6 @@ bool register_component_provider(const char *name,
 bool register_component_provider(const char *name, network::factory f, ::dsn::provider_type type)
 {
     return dsn::utils::factory_store<network>::register_factory(name, f, type);
-}
-
-bool register_component_provider(const char *name,
-                                 aio_provider::factory f,
-                                 ::dsn::provider_type type)
-{
-    return dsn::utils::factory_store<aio_provider>::register_factory(name, f, type);
 }
 
 bool register_component_provider(const char *name,

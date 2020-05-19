@@ -37,15 +37,26 @@
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/dist/failure_detector_multimaster.h>
 #include <dsn/dist/nfs_node.h>
-#include <dsn/dist/cli/cli.server.h>
 
 #include "dist/replication/common/replication_common.h"
 #include "dist/replication/common/fs_manager.h"
-#include "dist/replication/common/block_service_manager.h"
+#include "dist/block_service/block_service_manager.h"
 #include "replica.h"
 
 namespace dsn {
 namespace replication {
+
+typedef rpc_holder<group_check_response, learn_notify_response> learn_completion_notification_rpc;
+typedef rpc_holder<group_check_request, group_check_response> group_check_rpc;
+typedef rpc_holder<query_replica_decree_request, query_replica_decree_response>
+    query_replica_decree_rpc;
+typedef rpc_holder<query_replica_info_request, query_replica_info_response> query_replica_info_rpc;
+typedef rpc_holder<replica_configuration, learn_response> copy_checkpoint_rpc;
+typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
+typedef rpc_holder<query_app_info_request, query_app_info_response> query_app_info_rpc;
+typedef rpc_holder<backup_request, backup_response> backup_rpc;
+typedef rpc_holder<notify_catch_up_request, notify_cacth_up_response> notify_catch_up_rpc;
+typedef rpc_holder<group_bulk_load_request, group_bulk_load_response> group_bulk_load_rpc;
 
 class mutation_log;
 class replication_checker;
@@ -63,6 +74,7 @@ class replica_stub;
 typedef dsn::ref_ptr<replica_stub> replica_stub_ptr;
 
 class duplication_sync_timer;
+class replica_bulk_loader;
 class replica_stub : public serverlet<replica_stub>, public ref_counter
 {
 public:
@@ -91,17 +103,13 @@ public:
     //    messages from meta server
     //
     void on_config_proposal(const configuration_update_request &proposal);
-    void on_query_decree(const query_replica_decree_request &req,
-                         /*out*/ query_replica_decree_response &resp);
-    void on_query_replica_info(const query_replica_info_request &req,
-                               /*out*/ query_replica_info_response &resp);
-    void on_query_disk_info(const query_disk_info_request &req,
-                            /*out*/ query_disk_info_response &resp);
-    void on_query_app_info(const query_app_info_request &req,
-                           /*out*/ query_app_info_response &resp);
-    void on_cold_backup(const backup_request &request, /*out*/ backup_response &response);
+    void on_query_decree(query_replica_decree_rpc rpc);
+    void on_query_replica_info(query_replica_info_rpc rpc);
+    void on_query_disk_info(query_disk_info_rpc rpc);
+    void on_query_app_info(query_app_info_rpc rpc);
+    void on_cold_backup(backup_rpc rpc);
     void on_clear_cold_backup(const backup_clear_request &request);
-    void on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_response &response);
+    void on_bulk_load(bulk_load_rpc rpc);
 
     //
     //    messages from peers (primary or secondary)
@@ -112,21 +120,18 @@ public:
     //
     void on_prepare(dsn::message_ex *request);
     void on_learn(dsn::message_ex *msg);
-    void on_learn_completion_notification(const group_check_response &report,
-                                          /*out*/ learn_notify_response &response);
+    void on_learn_completion_notification(learn_completion_notification_rpc rpc);
     void on_add_learner(const group_check_request &request);
     void on_remove(const replica_configuration &request);
-    void on_group_check(const group_check_request &request, /*out*/ group_check_response &response);
-    void on_copy_checkpoint(const replica_configuration &request, /*out*/ learn_response &response);
-    void on_group_bulk_load(const group_bulk_load_request &request,
-                            /*out*/ group_bulk_load_response &response);
+    void on_group_check(group_check_rpc rpc);
+    void on_copy_checkpoint(copy_checkpoint_rpc rpc);
+    void on_group_bulk_load(group_bulk_load_rpc rpc);
 
     //
     //    functions while executing partition split
     //
     // on primary, child notify itself has been caught up parent
-    void on_notify_primary_split_catch_up(const notify_catch_up_request &request,
-                                          notify_cacth_up_response &response);
+    void on_notify_primary_split_catch_up(notify_catch_up_rpc rpc);
 
     //
     //    local messages
@@ -280,6 +285,7 @@ private:
 
     friend class replica_duplicator;
     friend class replica_http_service;
+    friend class replica_bulk_loader;
 
     friend class mock_replica_stub;
     friend class duplication_sync_timer;
@@ -336,6 +342,7 @@ private:
     dsn_handle_t _release_tcmalloc_memory_command;
     dsn_handle_t _max_reserved_memory_percentage_command;
 #endif
+    dsn_handle_t _max_concurrent_bulk_load_downloading_count_command;
 
     bool _deny_client;
     bool _verbose_client_log;
@@ -344,6 +351,7 @@ private:
     int32_t _gc_disk_garbage_replica_interval_seconds;
     bool _release_tcmalloc_memory;
     int32_t _mem_release_max_reserved_mem_percentage;
+    int32_t _max_concurrent_bulk_load_downloading_count;
 
     // we limit LT_APP max concurrent count, because nfs service implementation is
     // too simple, it do not support priority.
@@ -354,16 +362,21 @@ private:
 
     // handle all the block filesystems for current replica stub
     // (in other words, current service node)
-    block_service_manager _block_service_manager;
+    dist::block_service::block_service_manager _block_service_manager;
 
     // nfs_node
     std::unique_ptr<dsn::nfs_node> _nfs;
 
-    // cli service
-    std::unique_ptr<dsn::cli_service> _cli_service;
-
     // write body size exceed this threshold will be logged and reject, 0 means no check
     uint64_t _max_allowed_write_size;
+
+    // replica count exectuting bulk load downloading concurrently
+    std::atomic_int _bulk_load_downloading_count;
+
+    // if the threshold > 0 and the request latency excced it, the latency trace record will be
+    // logged
+    int64_t _abnormal_read_trace_latency_threshold;
+    int64_t _abnormal_write_trace_latency_threshold;
 
     // performance counters
     perf_counter_wrapper _counter_replicas_count;
@@ -392,6 +405,8 @@ private:
     perf_counter_wrapper _counter_replicas_recent_replica_remove_dir_count;
     perf_counter_wrapper _counter_replicas_error_replica_dir_count;
     perf_counter_wrapper _counter_replicas_garbage_replica_dir_count;
+
+    perf_counter_wrapper _counter_replicas_recent_group_check_fail_count;
 
     perf_counter_wrapper _counter_shared_log_size;
     perf_counter_wrapper _counter_shared_log_recent_write_size;

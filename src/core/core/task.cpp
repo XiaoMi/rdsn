@@ -36,7 +36,6 @@
 
 #include <dsn/service_api_c.h>
 #include <dsn/tool-api/task.h>
-#include <dsn/tool-api/env_provider.h>
 #include <dsn/tool-api/zlocks.h>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/synchronize.h>
@@ -46,9 +45,7 @@
 
 #include "task_engine.h"
 #include "service_engine.h"
-#include "service_engine.h"
-#include "disk_engine.h"
-#include "rpc_engine.h"
+#include "core/rpc/rpc_engine.h"
 
 namespace dsn {
 __thread struct __tls_dsn__ tls_dsn;
@@ -76,7 +73,6 @@ __thread uint16_t tls_dsn_lower32_task_id_mask = 0;
         tls_dsn.worker_index = worker ? worker->index() : -1;
         tls_dsn.current_task = nullptr;
         tls_dsn.rpc = node->rpc();
-        tls_dsn.disk = node->disk();
         tls_dsn.env = service_engine::instance().env();
     }
 
@@ -439,6 +435,11 @@ void task::enqueue(task_worker_pool *pool)
     pool->enqueue(this);
 }
 
+const std::vector<task_worker *> &get_threadpool_threads_info(threadpool_code code)
+{
+    return dsn::task::get_current_node2()->computation()->get_pool(code)->workers();
+}
+
 timer_task::timer_task(
     task_code code, const task_handler &cb, int interval_milliseconds, int hash, service_node *node)
     : task(code, hash, node), _interval_milliseconds(interval_milliseconds), _cb(cb)
@@ -481,156 +482,6 @@ void timer_task::exec()
                 enum_to_string(state()));
         set_delay(_interval_milliseconds);
     }
-}
-
-rpc_request_task::rpc_request_task(message_ex *request, rpc_request_handler &&h, service_node *node)
-    : task(request->rpc_code(), request->header->client.thread_hash, node),
-      _request(request),
-      _handler(std::move(h)),
-      _enqueue_ts_ns(0)
-{
-    dbg_dassert(
-        TASK_TYPE_RPC_REQUEST == spec().type,
-        "%s is not a RPC_REQUEST task, please use DEFINE_TASK_CODE_RPC to define the task code",
-        spec().name.c_str());
-    _request->add_ref(); // released in dctor
-}
-
-rpc_request_task::~rpc_request_task()
-{
-    _request->release_ref(); // added in ctor
-}
-
-void rpc_request_task::enqueue()
-{
-    if (spec().rpc_request_dropped_before_execution_when_timeout) {
-        _enqueue_ts_ns = dsn_now_ns();
-    }
-    task::enqueue(node()->computation()->get_pool(spec().pool_code));
-}
-
-rpc_response_task::rpc_response_task(message_ex *request,
-                                     const rpc_response_handler &cb,
-                                     int hash,
-                                     service_node *node)
-    : rpc_response_task(request, rpc_response_handler(cb), hash, node)
-{
-}
-
-rpc_response_task::rpc_response_task(message_ex *request,
-                                     rpc_response_handler &&cb,
-                                     int hash,
-                                     service_node *node)
-    : task(task_spec::get(request->local_rpc_code)->rpc_paired_code,
-           hash == 0 ? request->header->client.thread_hash : hash,
-           node),
-      _cb(std::move(cb))
-{
-    _is_null = (_cb == nullptr);
-
-    set_error_code(ERR_IO_PENDING);
-
-    dbg_dassert(TASK_TYPE_RPC_RESPONSE == spec().type,
-                "%s is not of RPC_RESPONSE type, please use DEFINE_TASK_CODE_RPC to define the "
-                "request task code",
-                spec().name.c_str());
-
-    _request = request;
-    _response = nullptr;
-
-    _caller_pool = get_current_worker() ? get_current_worker()->pool() : nullptr;
-
-    _request->add_ref(); // released in dctor
-}
-
-rpc_response_task::~rpc_response_task()
-{
-    _request->release_ref(); // added in ctor
-
-    if (_response != nullptr)
-        _response->release_ref(); // added in enqueue
-}
-
-bool rpc_response_task::enqueue(error_code err, message_ex *reply)
-{
-    set_error_code(err);
-
-    if (_response != nullptr)
-        _response->release_ref(); // added in previous enqueue
-
-    _response = reply;
-
-    if (nullptr != reply) {
-        reply->add_ref(); // released in dctor
-    }
-
-    bool ret = true;
-    if (!spec().on_rpc_response_enqueue.execute(this, true)) {
-        set_error_code(ERR_NETWORK_FAILURE);
-        ret = false;
-    }
-
-    rpc_response_task::enqueue();
-    return ret;
-}
-
-void rpc_response_task::enqueue()
-{
-    if (_caller_pool)
-        task::enqueue(_caller_pool);
-
-    // possible when it is called in non-rDSN threads
-    else {
-        auto pool = node()->computation()->get_pool(spec().pool_code);
-        task::enqueue(pool);
-    }
-}
-
-aio_task::aio_task(dsn::task_code code, const aio_handler &cb, int hash, service_node *node)
-    : aio_task(code, aio_handler(cb), hash, node)
-{
-}
-
-aio_task::aio_task(dsn::task_code code, aio_handler &&cb, int hash, service_node *node)
-    : task(code, hash, node), _cb(std::move(cb))
-{
-    _is_null = (_cb == nullptr);
-
-    dassert(TASK_TYPE_AIO == spec().type,
-            "%s is not of AIO type, please use DEFINE_TASK_CODE_AIO to define the task code",
-            spec().name.c_str());
-    set_error_code(ERR_IO_PENDING);
-
-    disk_engine *disk = task::get_current_disk();
-    _aio_ctx = disk->prepare_aio_context(this);
-}
-
-void aio_task::collapse()
-{
-    if (!_unmerged_write_buffers.empty()) {
-        std::shared_ptr<char> buffer(dsn::utils::make_shared_array<char>(_aio_ctx->buffer_size));
-        char *dest = buffer.get();
-        for (const dsn_file_buffer_t &b : _unmerged_write_buffers) {
-            ::memcpy(dest, b.buffer, b.size);
-            dest += b.size;
-        }
-        dassert(dest - buffer.get() == _aio_ctx->buffer_size,
-                "%u VS %u",
-                dest - buffer.get(),
-                _aio_ctx->buffer_size);
-        _aio_ctx->buffer = buffer.get();
-        _merged_write_buffer_holder.assign(std::move(buffer), 0, _aio_ctx->buffer_size);
-    }
-}
-
-void aio_task::enqueue(error_code err, size_t transferred_size)
-{
-    set_error_code(err);
-    _transferred_size = transferred_size;
-
-    spec().on_aio_enqueue.execute(this);
-
-    task::enqueue(node()->computation()->get_pool(spec().pool_code));
 }
 
 } // namespace dsn

@@ -26,8 +26,7 @@
 
 #include "service_engine.h"
 #include "task_engine.h"
-#include "disk_engine.h"
-#include "rpc_engine.h"
+#include "core/rpc/rpc_engine.h"
 
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/smart_pointers.h>
@@ -35,6 +34,7 @@
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool_api.h>
 #include <dsn/tool/node_scoper.h>
+#include <dsn/tool/latency_tracer.h>
 
 using namespace dsn::utils;
 
@@ -56,31 +56,15 @@ bool service_node::rpc_unregister_handler(dsn::task_code rpc_code)
 
 error_code service_node::init_io_engine()
 {
-    auto &spec = service_engine::instance().spec();
-    error_code err = ERR_OK;
-
-    // init disk engine
-    _node_io.disk = make_unique<disk_engine>(this);
-    aio_provider *aio = factory_store<aio_provider>::create(
-        spec.aio_factory_name.c_str(), ::dsn::PROVIDER_TYPE_MAIN, _node_io.disk.get(), nullptr);
-    _node_io.aio.reset(aio);
-
     // init rpc engine
     _node_io.rpc = make_unique<rpc_engine>(this);
-
-    return err;
+    return ERR_OK;
 }
 
 error_code service_node::start_io_engine_in_main()
 {
-    error_code err = ERR_OK;
-
-    // start disk engine
-    _node_io.disk->start(_node_io.aio.get());
-
     // start rpc engine
-    err = _node_io.rpc->start(_app_spec);
-    return err;
+    return _node_io.rpc->start(_app_spec);
 }
 
 dsn::error_code service_node::start_app()
@@ -176,6 +160,7 @@ void service_node::get_queue_info(
 
 rpc_request_task *service_node::generate_intercepted_request_task(message_ex *req)
 {
+    req->tracer = make_unique<dsn::tool::latency_tracer>(req->header->id, "client_request");
     bool is_write = task_spec::get(req->local_rpc_code)->rpc_request_is_write_operation;
     rpc_request_task *t = new rpc_request_task(req,
                                                std::bind(&service_app::on_intercepted_request,

@@ -41,7 +41,7 @@
 #include "replica_stub.h"
 #include "mutation.h"
 #include "mutation_log.h"
-#include "../common/block_service_manager.h"
+#include "dist/block_service/block_service_manager.h"
 
 namespace dsn {
 namespace replication {
@@ -81,6 +81,8 @@ void primary_context::cleanup(bool clean_pending_mutations)
     caught_up_children.clear();
 
     sync_send_write_request = false;
+
+    cleanup_bulk_load_states();
 }
 
 bool primary_context::is_cleaned()
@@ -150,6 +152,13 @@ bool primary_context::check_exist(::dsn::rpc_address node, partition_status::typ
         dassert(false, "invalid partition_status, status = %s", enum_to_string(st));
         return false;
     }
+}
+
+void primary_context::cleanup_bulk_load_states()
+{
+    secondary_bulk_load_states.erase(secondary_bulk_load_states.begin(),
+                                     secondary_bulk_load_states.end());
+    ingestion_is_empty_prepare_sent = false;
 }
 
 bool secondary_context::cleanup(bool force)

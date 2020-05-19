@@ -64,6 +64,7 @@ class replica_stub;
 class replication_checker;
 class replica_duplicator_manager;
 class replica_backup_manager;
+class replica_bulk_loader;
 
 namespace test {
 class test_checker;
@@ -186,6 +187,11 @@ public:
     void update_last_checkpoint_generate_time();
 
     //
+    // Bulk load
+    //
+    replica_bulk_loader *get_bulk_loader() const { return _bulk_loader.get(); }
+
+    //
     // Statistics
     //
     void update_commit_qps(int count);
@@ -214,11 +220,15 @@ private:
 
     /////////////////////////////////////////////////////////////////
     // 2pc
-    void init_prepare(mutation_ptr &mu, bool reconciliation);
+    // `pop_all_committed_mutations = true` will be used for ingestion empty write
+    // See more about it in `replica_bulk_loader.cpp`
+    void
+    init_prepare(mutation_ptr &mu, bool reconciliation, bool pop_all_committed_mutations = false);
     void send_prepare_message(::dsn::rpc_address addr,
                               partition_status::type status,
                               const mutation_ptr &mu,
                               int timeout_milliseconds,
+                              bool pop_all_committed_mutations = false,
                               int64_t learn_signature = invalid_signature);
     void on_append_log_completed(mutation_ptr &mu, error_code err, size_t size);
     void on_prepare_reply(std::pair<mutation_ptr, partition_status::type> pr,
@@ -330,15 +340,19 @@ private:
     /////////////////////////////////////////////////////////////////
     // replica restore from backup
     bool read_cold_backup_metadata(const std::string &file, cold_backup_metadata &backup_metadata);
-    bool verify_checkpoint(const cold_backup_metadata &backup_metadata,
-                           const std::string &chkpt_dir);
     // checkpoint on cold backup media maybe contain useless file,
     // we should abandon these file base cold_backup_metadata
     bool remove_useless_file_under_chkpt(const std::string &chkpt_dir,
                                          const cold_backup_metadata &metadata);
-    dsn::error_code download_checkpoint(const configuration_restore_request &req,
-                                        const std::string &remote_chkpt_dir,
-                                        const std::string &local_chkpt_dir);
+    void clear_restore_useless_files(const std::string &local_chkpt_dir,
+                                     const cold_backup_metadata &metadata);
+    error_code get_backup_metadata(dist::block_service::block_filesystem *fs,
+                                   const std::string &remote_chkpt_dir,
+                                   const std::string &local_chkpt_dir,
+                                   cold_backup_metadata &backup_metadata);
+    error_code download_checkpoint(const configuration_restore_request &req,
+                                   const std::string &remote_chkpt_dir,
+                                   const std::string &local_chkpt_dir);
     dsn::error_code find_valid_checkpoint(const configuration_restore_request &req,
                                           /*out*/ std::string &remote_chkpt_dir);
     dsn::error_code restore_checkpoint();
@@ -348,7 +362,7 @@ private:
 
     void report_restore_status_to_meta();
 
-    void update_restore_progress();
+    void update_restore_progress(uint64_t f_size);
 
     std::string query_compact_state() const;
 
@@ -424,30 +438,6 @@ private:
 
     void init_table_level_latency_counters();
 
-    /////////////////////////////////////////////////////////////////
-    // replica bulk load
-    void on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_response &response);
-    void broadcast_group_bulk_load(const bulk_load_request &meta_req);
-    void on_group_bulk_load(const group_bulk_load_request &request,
-                            /*out*/ group_bulk_load_response &response);
-    void on_group_bulk_load_reply(error_code err,
-                                  const group_bulk_load_request &req,
-                                  const group_bulk_load_response &resp);
-
-    error_code do_bulk_load(const std::string &app_name,
-                            bulk_load_status::type meta_status,
-                            const std::string &cluster_name,
-                            const std::string &provider_name);
-
-    void report_bulk_load_states_to_meta(bulk_load_status::type remote_status,
-                                         bool report_metadata,
-                                         /*out*/ bulk_load_response &response);
-
-    void report_bulk_load_states_to_primary(bulk_load_status::type remote_status,
-                                            /*out*/ group_bulk_load_response &response);
-
-    bulk_load_status::type get_bulk_load_status() { return _bulk_load_context._status; }
-
 private:
     friend class ::dsn::replication::replication_checker;
     friend class ::dsn::replication::test::test_checker;
@@ -461,7 +451,7 @@ private:
     friend class replica_split_test;
     friend class replica_test;
     friend class replica_backup_manager;
-    friend class replica_bulk_load_test;
+    friend class replica_bulk_loader;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -509,7 +499,6 @@ private:
     // policy_name --> cold_backup_context
     std::map<std::string, cold_backup_context_ptr> _cold_backup_contexts;
     partition_split_context _split_states;
-    bulk_load_context _bulk_load_context;
 
     // timer task that running in replication-thread
     std::atomic<uint64_t> _cold_backup_running_count;
@@ -551,6 +540,9 @@ private:
     // in normal cases, _partition_version = partition_count-1
     // when replica reject client read write request, partition_version = -1
     std::atomic<int32_t> _partition_version;
+
+    // bulk load
+    std::unique_ptr<replica_bulk_loader> _bulk_loader;
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;

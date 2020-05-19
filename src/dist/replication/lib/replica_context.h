@@ -97,6 +97,8 @@ public:
 
     void do_cleanup_pending_mutations(bool clean_pending_mutations = true);
 
+    void cleanup_bulk_load_states();
+
 public:
     // membership mgr, including learners
     partition_configuration membership;
@@ -150,6 +152,11 @@ public:
     // Used for bulk load
     // group bulk_load response tasks of RPC_GROUP_BULK_LOAD for each secondary replica
     node_tasks group_bulk_load_pending_replies;
+    // bulk_load_state of secondary replicas
+    std::unordered_map<rpc_address, partition_bulk_load_state> secondary_bulk_load_states;
+    // if primary send an empty prepare after ingestion succeed to gurantee secondary commit its
+    // ingestion request
+    bool ingestion_is_empty_prepare_sent{false};
 };
 
 class secondary_context
@@ -574,17 +581,6 @@ public:
 
     // child replica async learn parent states
     dsn::task_ptr async_learn_task;
-};
-
-class bulk_load_context
-{
-public:
-    // TODO(heyuchen): add public functions
-private:
-    friend class replica;
-    friend class replica_bulk_load_test;
-
-    bulk_load_status::type _status{bulk_load_status::BLS_INVALID};
 };
 
 //---------------inline impl----------------------------------------------------------------

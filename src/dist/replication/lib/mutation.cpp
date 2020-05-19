@@ -52,6 +52,7 @@ mutation::mutation()
     _appro_data_bytes = sizeof(mutation_header);
     _create_ts_ns = dsn_now_ns();
     _tid = ++s_tid;
+    tracer = make_unique<dsn::tool::latency_tracer>(_tid, "mutation_request");
 }
 
 mutation_ptr mutation::copy_no_reply(const mutation_ptr &old_mu)
@@ -339,7 +340,9 @@ mutation_queue::mutation_queue(gpid gpid,
 mutation_ptr mutation_queue::add_work(task_code code, dsn::message_ex *request, replica *r)
 {
     task_spec *spec = task_spec::get(code);
-
+    if (request->tracer != nullptr) {
+        request->tracer->add_point("mutation_queue::add_work", dsn_now_ns());
+    }
     // if not allow write batch, switch work queue
     if (_pending_mutation && !spec->rpc_request_is_write_allow_batch) {
         _pending_mutation->add_ref(); // released when unlink
