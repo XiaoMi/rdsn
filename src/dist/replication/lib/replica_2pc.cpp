@@ -499,7 +499,7 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
     mutation_ptr mu = pr.first;
     partition_status::type target_status = pr.second;
 
-    if (request->tracer != nullptr) {
+    if (mu->tracer != nullptr) {
         uint64_t now = dsn_now_ns();
         mu->tracer->add_point(
             fmt::format("ts={}, replica::on_prepare_reply::{}", now, enum_to_string(target_status)),
