@@ -76,7 +76,7 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
         mu->tracer = make_unique<dsn::tool::lantency_tracer>(mu->tid(), "prepare_list::prepare");
     }
 
-    mu->tracer->add_point("prepare_list::prepare", dsn_now_ns());
+    mu->tracer->add_point(fmt::format("ts:{}, prepare_list::prepare", dsn_now_ns), dsn_now_ns());
 
     error_code err;
     switch (status) {

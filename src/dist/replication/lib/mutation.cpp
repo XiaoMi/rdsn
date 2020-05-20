@@ -343,7 +343,8 @@ mutation_ptr mutation_queue::add_work(task_code code, dsn::message_ex *request, 
         request->tracer = make_unique<dsn::tool::lantency_tracer>(request->header->id,
                                                                   "mutation_queue::add_work");
     }
-    request->tracer->add_point("mutation_queue::add_work", dsn_now_ns());
+    request->tracer->add_point(fmt::format("ts:{}, mutation_queue::add_work", dsn_now_ns()),
+                               dsn_now_ns());
     // if not allow write batch, switch work queue
     if (_pending_mutation && !spec->rpc_request_is_write_allow_batch) {
         _pending_mutation->add_ref(); // released when unlink

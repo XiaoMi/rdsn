@@ -226,7 +226,8 @@ void replica::execute_mutation(mutation_ptr &mu)
         mu->tracer =
             make_unique<dsn::tool::lantency_tracer>(mu->tid(), "replica::execute_mutation");
     }
-    mu->tracer->add_point("replica::execute_mutation", dsn_now_ns());
+    mu->tracer->add_point(fmt::format("ts:{}, replica::execute_mutation", dsn_now_ns()),
+                          dsn_now_ns());
 
     error_code err = ERR_OK;
     decree d = mu->data.header.decree;
@@ -323,7 +324,8 @@ void replica::execute_mutation(mutation_ptr &mu)
             mu->tracer =
                 make_unique<dsn::tool::lantency_tracer>(mu->tid(), "rocksdb::flush_to_disk");
         }
-        mu->tracer->add_point("rocksdb::flush_to_disk", dsn_now_ns());
+        mu->tracer->add_point(fmt::format("ts:{}, rocksdb::flush_to_disk", dsn_now_ns),
+                              dsn_now_ns());
         mu->tracer->set_end_time(now_ns);
         mu->report_tracer();
         for (auto update : mu->data.updates) {

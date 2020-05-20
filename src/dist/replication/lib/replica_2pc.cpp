@@ -240,7 +240,8 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
             make_unique<dsn::tool::lantency_tracer>(mu->tid(), "replica::send_prepare_message");
     }
 
-    mu->tracer->add_point("replica::send_prepare_message", dsn_now_ns());
+    mu->tracer->add_point(fmt::format("ts:{}, replica::send_prepare_message", dsn_now_ns()),
+                          dsn_now_ns());
 
     {
         rpc_write_stream writer(msg);
@@ -506,8 +507,10 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
         request->tracer = make_unique<dsn::tool::lantency_tracer>(request->header->id,
                                                                   "replica::on_prepare_reply");
     }
-    mu->tracer->add_point(
-        fmt::format("replica::on_prepare_reply::{}", enum_to_string(target_status)), dsn_now_ns());
+    mu->tracer->add_point(fmt::format("ts:{}, replica::on_prepare_reply::{}",
+                                      dsn_now_ns(),
+                                      enum_to_string(target_status)),
+                          dsn_now_ns());
 
     // skip callback for old mutations
     if (partition_status::PS_PRIMARY != status() || mu->data.header.ballot < get_ballot() ||
