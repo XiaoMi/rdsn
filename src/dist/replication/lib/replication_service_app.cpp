@@ -88,13 +88,12 @@ void replication_service_app::on_intercepted_request(dsn::gpid gpid,
                                                      bool is_write,
                                                      dsn::message_ex *msg)
 {
-    if (msg->tracer == nullptr) {
-        msg->tracer = make_unique<dsn::tool::lantency_tracer>(
-            msg->header->id, "replication_service_app::on_intercepted_request");
+    if (msg->tracer != nullptr) {
+        uint64_t now = dsn_now_ns();
+        msg->tracer->add_point(
+            fmt::format("ts={}, replication_service_app::on_intercepted_request", now), now);
     }
-    msg->tracer->add_point(
-        fmt::format("ts:{}, replication_service_app::on_intercepted_request", dsn_now_ns()),
-        dsn_now_ns());
+
     if (is_write) {
         _stub->on_client_write(gpid, msg);
     } else {

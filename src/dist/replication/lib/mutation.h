@@ -166,18 +166,19 @@ public:
                             req->header->id,
                             req->tracer->get_start_time());
             for (const auto &iter : req->tracer->get_points()) {
-                log = fmt::format("{}\n\tTRACER(request):{}={}", log, iter.first, iter.second);
+                log = fmt::format("{}\n\tTRACER(request): {}={}", log, iter.first, iter.second);
             }
 
             for (const auto &iter : tracer->get_points()) {
                 log = fmt::format("{}\n\tTRACER(mutation):{}={}", log, iter.first, iter.second);
             }
 
-            log = fmt::format("{}\nTRACER:mutation_id={}, request_id={}, end_time={}",
+            log = fmt::format("{}\nTRACER:mutation_id={}, request_id={}, end_time={}, timeused={}",
                               log,
                               tid(),
                               req->header->id,
-                              tracer->get_end_time());
+                              tracer->get_end_time(),
+                              tracer->get_end_time() - req->tracer->get_start_time());
 
             ddebug_f("{}{}", header, log);
         }

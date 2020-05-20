@@ -235,13 +235,10 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
     replica_configuration rconfig;
     _primary_states.get_replica_config(status, rconfig, learn_signature);
 
-    if (mu->tracer == nullptr) {
-        mu->tracer =
-            make_unique<dsn::tool::lantency_tracer>(mu->tid(), "replica::send_prepare_message");
+    if (mu->tracer != nullptr) {
+        uint64_t now = dsn_now_ns();
+        mu->tracer->add_point(fmt::format("ts={}, replica::send_prepare_message", now), now);
     }
-
-    mu->tracer->add_point(fmt::format("ts:{}, replica::send_prepare_message", dsn_now_ns()),
-                          dsn_now_ns());
 
     {
         rpc_write_stream writer(msg);
@@ -502,15 +499,12 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
     mutation_ptr mu = pr.first;
     partition_status::type target_status = pr.second;
 
-    // todo(jiashuo) join target_status=>enum_to_string(target_status)
-    if (request->tracer == nullptr) {
-        request->tracer = make_unique<dsn::tool::lantency_tracer>(request->header->id,
-                                                                  "replica::on_prepare_reply");
+    if (request->tracer != nullptr) {
+        uint64_t now = dsn_now_ns();
+        mu->tracer->add_point(
+            fmt::format("ts={}, replica::on_prepare_reply::{}", now, enum_to_string(target_status)),
+            now);
     }
-    mu->tracer->add_point(fmt::format("ts:{}, replica::on_prepare_reply::{}",
-                                      dsn_now_ns(),
-                                      enum_to_string(target_status)),
-                          dsn_now_ns());
 
     // skip callback for old mutations
     if (partition_status::PS_PRIMARY != status() || mu->data.header.ballot < get_ballot() ||

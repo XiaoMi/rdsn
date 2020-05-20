@@ -222,12 +222,10 @@ void replica::execute_mutation(mutation_ptr &mu)
           mu->name(),
           static_cast<int>(mu->client_requests.size()));
 
-    if (mu->tracer == nullptr) {
-        mu->tracer =
-            make_unique<dsn::tool::lantency_tracer>(mu->tid(), "replica::execute_mutation");
+    if (mu->tracer != nullptr) {
+        uint64_t now = dsn_now_ns();
+        mu->tracer->add_point(fmt::format("ts={}, replica::execute_mutation", now), now);
     }
-    mu->tracer->add_point(fmt::format("ts:{}, replica::execute_mutation", dsn_now_ns()),
-                          dsn_now_ns());
 
     error_code err = ERR_OK;
     decree d = mu->data.header.decree;
@@ -320,12 +318,11 @@ void replica::execute_mutation(mutation_ptr &mu)
     if (partition_status::PS_PRIMARY == status()) {
         uint64_t now_ns = dsn_now_ns();
 
-        if (mu->tracer == nullptr) {
-            mu->tracer =
-                make_unique<dsn::tool::lantency_tracer>(mu->tid(), "rocksdb::flush_to_disk");
+        if (mu->tracer != nullptr) {
+            uint64_t now = dsn_now_ns();
+            mu->tracer->add_point(fmt::format("ts={}, rocksdb::flush_to_disk", now), now);
         }
-        mu->tracer->add_point(fmt::format("ts:{}, rocksdb::flush_to_disk", dsn_now_ns()),
-                              dsn_now_ns());
+
         mu->tracer->set_end_time(now_ns);
         mu->report_tracer();
         for (auto update : mu->data.updates) {

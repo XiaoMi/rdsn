@@ -72,11 +72,10 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
     decree d = mu->data.header.decree;
     dcheck_gt_replica(d, last_committed_decree());
 
-    if (mu->tracer == nullptr) {
-        mu->tracer = make_unique<dsn::tool::lantency_tracer>(mu->tid(), "prepare_list::prepare");
+    if (mu->tracer != nullptr) {
+        uint64_t now = dsn_now_ns();
+        mu->tracer->add_point(fmt::format("ts={}, prepare_list::prepare", now), now);
     }
-
-    mu->tracer->add_point(fmt::format("ts:{}, prepare_list::prepare", dsn_now_ns()), dsn_now_ns());
 
     error_code err;
     switch (status) {
