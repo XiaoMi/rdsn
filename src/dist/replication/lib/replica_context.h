@@ -578,21 +578,21 @@ public:
     dsn::task_ptr async_learn_task;
 };
 
-class bulk_load_context
-{
-public:
-    // TODO(heyuchen): add public functions
-private:
-    friend class replica;
-    friend class replica_bulk_load_test;
+// class bulk_load_context
+//{
+// public:
+//    // TODO(heyuchen): add public functions
+// private:
+//    friend class replica;
+//    friend class replica_bulk_load_test;
 
-    bulk_load_status::type _status{bulk_load_status::BLS_INVALID};
-    bulk_load_metadata _metadata;
+//    bulk_load_status::type _status{bulk_load_status::BLS_INVALID};
+//    bulk_load_metadata _metadata;
 
-    std::atomic<error_code> _download_status{ERR_OK};
-    // file_name -> downloading task
-    std::map<std::string, task_ptr> _download_task;
-};
+//    std::atomic<error_code> _download_status{ERR_OK};
+//    // file_name -> downloading task
+//    std::map<std::string, task_ptr> _download_task;
+//};
 
 //---------------inline impl----------------------------------------------------------------
 

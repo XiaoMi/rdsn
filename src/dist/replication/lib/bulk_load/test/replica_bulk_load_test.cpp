@@ -2,7 +2,8 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include "replica_test_base.h"
+#include "dist/replication/lib/bulk_load/replica_bulk_load.h"
+#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
 
 #include <fstream>
 
@@ -18,6 +19,7 @@ public:
     replica_bulk_load_test()
     {
         _replica = create_mock_replica(stub.get());
+        _bulk_load = make_unique<replica_bulk_load>(_replica.get());
         fail::setup();
     }
 
@@ -28,7 +30,7 @@ public:
     error_code test_on_bulk_load()
     {
         bulk_load_response resp;
-        _replica->on_bulk_load(_req, resp);
+        _bulk_load->on_bulk_load(_req, resp);
         return resp.err;
     }
 
@@ -36,13 +38,13 @@ public:
     {
         create_group_bulk_load_request(status, b);
         group_bulk_load_response resp;
-        _replica->on_group_bulk_load(_group_req, resp);
+        _bulk_load->on_group_bulk_load(_group_req, resp);
         return resp.err;
     }
 
     error_code test_start_downloading()
     {
-        return _replica->bulk_load_start_download(APP_NAME, CLUSTER, PROVIDER);
+        return _bulk_load->bulk_load_start_download(APP_NAME, CLUSTER, PROVIDER);
     }
 
     /// mock structure functions
@@ -83,30 +85,28 @@ public:
         rconfig.pid = PID;
         rconfig.primary = PRIMARY;
         rconfig.status = status;
-        _replica->_config = rconfig;
+        _replica->set_replica_config(rconfig);
     }
 
     void mock_primary_states()
     {
         mock_replica_config(partition_status::PS_PRIMARY);
-        partition_configuration config;
+        primary_context p_context = _replica->get_primary_context();
+        partition_configuration &config = p_context.membership;
         config.max_replica_count = 3;
         config.pid = PID;
         config.ballot = BALLOT;
         config.primary = PRIMARY;
         config.secondaries.emplace_back(SECONDARY);
         config.secondaries.emplace_back(SECONDARY2);
-        _replica->_primary_states.membership = config;
     }
 
     // helper functions
-    bulk_load_status::type get_bulk_load_status() const
-    {
-        return _replica->_bulk_load_context._status;
-    }
+    bulk_load_status::type get_bulk_load_status() const { return _bulk_load->_status; }
 
 public:
     std::unique_ptr<mock_replica> _replica;
+    std::unique_ptr<replica_bulk_load> _bulk_load;
     bulk_load_request _req;
     group_bulk_load_request _group_req;
 
