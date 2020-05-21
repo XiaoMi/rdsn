@@ -139,6 +139,8 @@ public:
     void prepare_list_commit_hard(decree d) { _prepare_list->commit(d, COMMIT_TO_DECREE_HARD); }
     decree get_app_last_committed_decree() { return _app->last_committed_decree(); }
     void set_app_last_committed_decree(decree d) { _app->_last_committed_decree = d; }
+    primary_context get_primary_context() { return _primary_states; }
+    void set_primary_context(primary_context context) { _primary_states = context; }
 
 private:
     decree _max_gced_decree{invalid_decree - 1};
@@ -236,6 +238,12 @@ public:
     }
 
     void set_log(mutation_log_ptr log) { _log = log; }
+
+    int32_t get_bulk_load_downloading_count() const { return _bulk_load_downloading_count.load(); }
+    void set_bulk_load_downloading_count(int32_t count)
+    {
+        _bulk_load_downloading_count.store(count);
+    }
 };
 
 class mock_log_file : public log_file
