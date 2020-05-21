@@ -81,7 +81,7 @@ public:
     service_node *node() const { return _node; }
 
 private:
-    // the object of disk_engine must be created in `singleton::instance`
+    // the object of disk_engine must be created by `singleton::instance`
     disk_engine();
     ~disk_engine();
 
