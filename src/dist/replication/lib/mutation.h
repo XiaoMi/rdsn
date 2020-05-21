@@ -178,7 +178,7 @@ public:
                 }
             } else {
                 log = fmt::format("\nTRACER:name={}, mutation_id={}, "
-                                  "start_time={}, request_info=[{}]",
+                                  "start_time={}, request_type=[{}]",
                                   tracer->get_name(),
                                   tid(),
                                   tracer->get_start_time(),
