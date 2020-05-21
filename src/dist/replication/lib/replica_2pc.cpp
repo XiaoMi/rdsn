@@ -395,7 +395,7 @@ void replica::on_prepare(dsn::message_ex *request)
         } else {
             // not logged, combine duplicate request to old mutation
             int64_t now = dsn_now_ns();
-            mu->tracer->add_point("replica::on_prepare", now);
+            mu->tracer->add_point("replica::add_prepare_request", now);
             mu2->add_prepare_request(request);
         }
         return;
