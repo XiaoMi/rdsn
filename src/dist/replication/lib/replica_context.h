@@ -97,6 +97,8 @@ public:
 
     void do_cleanup_pending_mutations(bool clean_pending_mutations = true);
 
+    void cleanup_bulk_load_states();
+
 public:
     // membership mgr, including learners
     partition_configuration membership;
@@ -574,17 +576,6 @@ public:
 
     // child replica async learn parent states
     dsn::task_ptr async_learn_task;
-};
-
-class bulk_load_context
-{
-public:
-    // TODO(heyuchen): add public functions
-private:
-    friend class replica;
-    friend class replica_bulk_load_test;
-
-    bulk_load_status::type _status{bulk_load_status::BLS_INVALID};
 };
 
 //---------------inline impl----------------------------------------------------------------
