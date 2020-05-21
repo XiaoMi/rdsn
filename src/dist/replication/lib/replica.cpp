@@ -323,7 +323,7 @@ void replica::execute_mutation(mutation_ptr &mu)
             mu->tracer->add_point("rocksdb::flush_to_disk", now);
         }
         mu->tracer->set_end_time(now_ns);
-        mu->report_tracer();
+        mu->report_tracer(1000);
         for (auto update : mu->data.updates) {
             // If the corresponding perf counter exist, count the duration of this operation.
             // code in update will always be legal
