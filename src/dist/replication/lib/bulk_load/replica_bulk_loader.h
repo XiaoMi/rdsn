@@ -11,11 +11,11 @@
 namespace dsn {
 namespace replication {
 
-class replica_bulk_load : replica_base
+class replica_bulk_loader : replica_base
 {
 public:
-    explicit replica_bulk_load(replica *r);
-    ~replica_bulk_load();
+    explicit replica_bulk_loader(replica *r);
+    ~replica_bulk_loader();
 
     void on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_response &response);
 
@@ -98,8 +98,7 @@ private:
     replica_stub *_stub;
 
     friend class replica;
-    // friend class replica_stub;
-    friend class replica_bulk_load_test;
+    friend class replica_bulk_loader_test;
 
     bulk_load_status::type _status{bulk_load_status::BLS_INVALID};
     bulk_load_metadata _metadata;

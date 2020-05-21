@@ -30,7 +30,7 @@
 #include "replica_stub.h"
 #include "duplication/replica_duplicator_manager.h"
 #include "backup/replica_backup_manager.h"
-#include "bulk_load/replica_bulk_load.h"
+#include "bulk_load/replica_bulk_loader.h"
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -70,7 +70,7 @@ replica::replica(
     init_state();
     _config.pid = gpid;
     _partition_version = app.partition_count - 1;
-    _bulk_load = make_unique<replica_bulk_load>(this);
+    _bulk_loader = make_unique<replica_bulk_loader>(this);
 
     std::string counter_str = fmt::format("private.log.size(MB)@{}", gpid);
     _counter_private_log_size.init_app_counter(
@@ -416,7 +416,7 @@ void replica::close()
 
     _backup_mgr.reset();
 
-    _bulk_load.reset();
+    _bulk_loader.reset();
 
     ddebug("%s: replica closed, time_used = %" PRIu64 "ms", name(), dsn_now_ms() - start_time);
 }

@@ -14,7 +14,7 @@ set(BACKUP_SRC
 )
 
 set(BULK_LOAD_SRC
-    bulk_load/replica_bulk_load.cpp)
+    bulk_load/replica_bulk_loader.cpp)
 
 # Source files under CURRENT project directory will be automatically included.
 # You can manually set MY_PROJ_SRC to include source files under other directories.

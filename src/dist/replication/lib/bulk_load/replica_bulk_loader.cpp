@@ -2,7 +2,7 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include "replica_bulk_load.h"
+#include "replica_bulk_loader.h"
 
 #include <fstream>
 
@@ -17,16 +17,16 @@ namespace replication {
 
 typedef rpc_holder<group_bulk_load_request, group_bulk_load_response> group_bulk_load_rpc;
 
-replica_bulk_load::replica_bulk_load(replica *r)
+replica_bulk_loader::replica_bulk_loader(replica *r)
     : replica_base(r), _replica(r), _stub(r->get_replica_stub())
 {
 }
 
-replica_bulk_load::~replica_bulk_load() {}
+replica_bulk_loader::~replica_bulk_loader() {}
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica_bulk_load::on_bulk_load(const bulk_load_request &request,
-                                     /*out*/ bulk_load_response &response)
+void replica_bulk_loader::on_bulk_load(const bulk_load_request &request,
+                                       /*out*/ bulk_load_response &response)
 {
     _replica->_checker.only_one_thread_access();
 
@@ -78,7 +78,7 @@ void replica_bulk_load::on_bulk_load(const bulk_load_request &request,
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica_bulk_load::broadcast_group_bulk_load(const bulk_load_request &meta_req)
+void replica_bulk_loader::broadcast_group_bulk_load(const bulk_load_request &meta_req)
 {
     if (!_replica->_primary_states.learners.empty()) {
         dwarn_replica("has learners, skip broadcast group bulk load request");
@@ -121,8 +121,8 @@ void replica_bulk_load::broadcast_group_bulk_load(const bulk_load_request &meta_
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica_bulk_load::on_group_bulk_load(const group_bulk_load_request &request,
-                                           /*out*/ group_bulk_load_response &response)
+void replica_bulk_loader::on_group_bulk_load(const group_bulk_load_request &request,
+                                             /*out*/ group_bulk_load_response &response)
 {
     _replica->_checker.only_one_thread_access();
 
@@ -172,9 +172,9 @@ void replica_bulk_load::on_group_bulk_load(const group_bulk_load_request &reques
     report_bulk_load_states_to_primary(request.meta_bulk_load_status, response);
 }
 
-void replica_bulk_load::on_group_bulk_load_reply(error_code err,
-                                                 const group_bulk_load_request &req,
-                                                 const group_bulk_load_response &resp)
+void replica_bulk_loader::on_group_bulk_load_reply(error_code err,
+                                                   const group_bulk_load_request &req,
+                                                   const group_bulk_load_response &resp)
 {
     _replica->_checker.only_one_thread_access();
 
@@ -193,19 +193,19 @@ void replica_bulk_load::on_group_bulk_load_reply(error_code err,
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-error_code replica_bulk_load::do_bulk_load(const std::string &app_name,
-                                           bulk_load_status::type meta_status,
-                                           const std::string &cluster_name,
-                                           const std::string &provider_name)
+error_code replica_bulk_loader::do_bulk_load(const std::string &app_name,
+                                             bulk_load_status::type meta_status,
+                                             const std::string &cluster_name,
+                                             const std::string &provider_name)
 {
     // TODO(heyuchen): TBD
     return ERR_OK;
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-error_code replica_bulk_load::bulk_load_start_download(const std::string &app_name,
-                                                       const std::string &cluster_name,
-                                                       const std::string &provider_name)
+error_code replica_bulk_loader::bulk_load_start_download(const std::string &app_name,
+                                                         const std::string &cluster_name,
+                                                         const std::string &provider_name)
 {
     if (_stub->_bulk_load_downloading_count.load() >=
         _stub->_max_concurrent_bulk_load_downloading_count) {
@@ -238,11 +238,11 @@ error_code replica_bulk_load::bulk_load_start_download(const std::string &app_na
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-error_code replica_bulk_load::download_sst_files(const std::string &app_name,
-                                                 const std::string &cluster_name,
-                                                 const std::string &provider_name)
+error_code replica_bulk_loader::download_sst_files(const std::string &app_name,
+                                                   const std::string &cluster_name,
+                                                   const std::string &provider_name)
 {
-    FAIL_POINT_INJECT_F("replica_bulk_load_download_sst_files",
+    FAIL_POINT_INJECT_F("replica_bulk_loader_download_sst_files",
                         [](string_view) -> error_code { return ERR_OK; });
 
     // create local bulk load dir
@@ -309,8 +309,8 @@ error_code replica_bulk_load::download_sst_files(const std::string &app_name,
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-error_code replica_bulk_load::parse_bulk_load_metadata(const std::string &fname,
-                                                       /*out*/ bulk_load_metadata &meta)
+error_code replica_bulk_loader::parse_bulk_load_metadata(const std::string &fname,
+                                                         /*out*/ bulk_load_metadata &meta)
 {
     // TODO(heyuchen): TBD
     // read file and parse file content as bulk_load_metadata
@@ -318,7 +318,7 @@ error_code replica_bulk_load::parse_bulk_load_metadata(const std::string &fname,
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION_LONG
-bool replica_bulk_load::verify_sst_files(const file_meta &f_meta, const std::string &local_dir)
+bool replica_bulk_loader::verify_sst_files(const file_meta &f_meta, const std::string &local_dir)
 {
     // TODO(heyuchen): TBD
     // compare sst file metadata calculated by file and parsed by metadata
@@ -326,15 +326,15 @@ bool replica_bulk_load::verify_sst_files(const file_meta &f_meta, const std::str
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION_LONG
-void replica_bulk_load::update_bulk_load_download_progress(uint64_t file_size,
-                                                           const std::string &file_name)
+void replica_bulk_loader::update_bulk_load_download_progress(uint64_t file_size,
+                                                             const std::string &file_name)
 {
     // TODO(heyuchen): TBD
     // update download progress after downloading sst files succeed
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION, THREAD_POOL_REPLICATION_LONG
-void replica_bulk_load::try_decrease_bulk_load_download_count()
+void replica_bulk_loader::try_decrease_bulk_load_download_count()
 {
     --_stub->_bulk_load_downloading_count;
     ddebug_replica("node[{}] has {} replica executing downloading",
@@ -342,21 +342,21 @@ void replica_bulk_load::try_decrease_bulk_load_download_count()
                    _stub->_bulk_load_downloading_count.load());
 }
 
-void replica_bulk_load::clear_bulk_load_states()
+void replica_bulk_loader::clear_bulk_load_states()
 {
     // TODO(heyuchen): TBD
     // clear replica bulk load states and cleanup bulk load context
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica_bulk_load::report_bulk_load_states_to_meta(bulk_load_status::type remote_status,
-                                                        bool report_metadata,
-                                                        /*out*/ bulk_load_response &response)
+void replica_bulk_loader::report_bulk_load_states_to_meta(bulk_load_status::type remote_status,
+                                                          bool report_metadata,
+                                                          /*out*/ bulk_load_response &response)
 {
     // TODO(heyuchen): TBD
 }
 
-void replica_bulk_load::report_bulk_load_states_to_primary(
+void replica_bulk_loader::report_bulk_load_states_to_primary(
     bulk_load_status::type remote_status,
     /*out*/ group_bulk_load_response &response)
 {
