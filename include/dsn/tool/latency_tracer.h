@@ -19,13 +19,7 @@ public:
 
     void add_point(const std::string &name, uint64_t current_time)
     {
-        _points.emplace(name, current_time - _last_time);
-        _last_time = current_time;
-    }
-
-    void add_point(const std::string &name, uint64_t current_time, uint64_t last_time)
-    {
-        _points.emplace(fmt::format("ts={}, {}", current_time, name), current_time - last_time);
+        _points.emplace(fmt::format("ts={}, {}", current_time, name), current_time - _last_time);
         _last_time = current_time;
     }
 

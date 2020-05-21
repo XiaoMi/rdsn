@@ -316,7 +316,8 @@ void replica::execute_mutation(mutation_ptr &mu)
     // update table level latency perf-counters for primary partition
     uint64_t now_ns = dsn_now_ns();
 
-    mu->tracer->add_point(fmt::format("rocksdb::flush_to_disk[{}]",  enum_to_string(status())), now_ns);
+    mu->tracer->add_point(fmt::format("rocksdb::flush_to_disk[{}]", enum_to_string(status())),
+                          now_ns);
     mu->tracer->set_end_time(now_ns);
 
     if (partition_status::PS_PRIMARY == status()) {
