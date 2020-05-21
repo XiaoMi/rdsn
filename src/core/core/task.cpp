@@ -439,7 +439,7 @@ void task::enqueue(task_worker_pool *pool)
     pool->enqueue(this);
 }
 
-const std::vector<task_worker *> &get_task_code_threads_info(threadpool_code code)
+const std::vector<task_worker *> &get_threadpool_threads_info(threadpool_code code)
 {
     return dsn::task::get_current_node2()->computation()->get_pool(code)->workers();
 }
