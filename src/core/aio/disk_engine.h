@@ -78,7 +78,6 @@ public:
     void write(aio_task *aio);
 
     aio_context *prepare_aio_context(aio_task *tsk) { return _provider->prepare_aio_context(tsk); }
-
     service_node *node() const { return _node; }
 
 private:
