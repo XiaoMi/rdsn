@@ -191,7 +191,7 @@ public:
 
             log = fmt::format(
                 "{}\nTRACER:mutation_id={}, end_time={}, "
-                "time_used=[prepare_ack={},flush_to_disk{}]",
+                "time_used=[prepare_ack={},flush_to_disk={}]",
                 log,
                 tid(),
                 tracer->get_end_time(),
