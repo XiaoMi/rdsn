@@ -70,8 +70,6 @@ private:
 class disk_engine : public utils::singleton<disk_engine>
 {
 public:
-    ~disk_engine();
-
     // asynchonous file read/write
     disk_file *open(const char *file_name, int flag, int pmode);
     error_code close(disk_file *fh);
@@ -86,6 +84,8 @@ public:
 private:
     // the object of disk_engine must be created in `singleton::instance`
     disk_engine();
+    ~disk_engine();
+
     void process_write(aio_task *wk, uint32_t sz);
     void complete_io(aio_task *aio, error_code err, uint32_t bytes, int delay_milliseconds = 0);
 
