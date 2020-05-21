@@ -330,7 +330,7 @@ void replica::execute_mutation(mutation_ptr &mu)
             }
         }
     } else {
-        mu->report_tracer(0);
+        mu->report_tracer(0, false);
     }
 }
 

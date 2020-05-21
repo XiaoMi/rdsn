@@ -151,7 +151,7 @@ public:
     std::unique_ptr<dsn::tool::latency_tracer> tracer = nullptr;
 
     //
-    void report_tracer(uint64_t time_threshold)
+    void report_tracer(uint64_t time_threshold, bool is_primary = true)
     {
         std::string header("tracer log");
 
@@ -177,7 +177,7 @@ public:
                     log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
                 }
             } else {
-                if (tracer->get_prepare_ack_time() != 0) {
+                if (!is_primary) {
                     prepare_ack_time_used =
                         tracer->get_prepare_ack_time() - tracer->get_start_time();
                     if (prepare_ack_time_used < time_threshold) {
@@ -204,8 +204,7 @@ public:
                               tid(),
                               tracer->get_end_time(),
                               total_time_used,
-                              prepare_ack_time_used == 0 ? "none"
-                                                         : std::to_string(prepare_ack_time_used));
+                              is_secondary ? std::to_string(prepare_ack_time_used) : "none");
 
             ddebug_f("{}{}", header, log);
         }
