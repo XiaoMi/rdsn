@@ -70,7 +70,6 @@ private:
 class disk_engine : public utils::singleton<disk_engine>
 {
 public:
-    disk_engine();
     ~disk_engine();
 
     // asynchonous file read/write
@@ -85,14 +84,17 @@ public:
     service_node *node() const { return _node; }
 
 private:
-    friend class aio_provider;
-    friend class batch_write_io_task;
+    // the object of disk_engine must be created in `singleton::instance`
+    disk_engine();
     void process_write(aio_task *wk, uint32_t sz);
     void complete_io(aio_task *aio, error_code err, uint32_t bytes, int delay_milliseconds = 0);
 
-private:
     std::unique_ptr<aio_provider> _provider;
     service_node *_node;
+
+    friend class aio_provider;
+    friend class batch_write_io_task;
+    friend class utils::singleton<disk_engine>;
 };
 
 } // namespace dsn
