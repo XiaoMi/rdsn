@@ -154,25 +154,36 @@ public:
     void report_tracer(uint64_t time_threshold)
     {
         std::string header("tracer log");
+
         for (const auto &req : client_requests) {
-            if (req == nullptr) {
-                ddebug_f("This is nullptr request!");
-                continue;
-            }
+            int64_t time_used =
+                req == nullptr
+                    ? tracer->get_end_time() - tracer->get_start_time() < time_threshold
+                    : tracer->get_end_time() - req->tracer->get_start_time() < time_threshold;
 
-            if (tracer->get_end_time() - req->tracer->get_start_time() < time_threshold) {
+            if (time_used < time_threshold)
                 continue;
-            }
 
-            std::string log = fmt::format("\nTRACER:start_name={}, mutation_id={}, request_id={}, "
-                                          "start_time={}, request_info=[{}]",
-                                          req->tracer->get_start_name(),
-                                          tid(),
-                                          req->header->id,
-                                          req->tracer->get_start_time(),
-                                          req->tracer->get_request_info());
-            for (const auto &iter : req->tracer->get_points()) {
-                log = fmt::format("{}\n\tTRACER(request): {}={}", log, iter.first, iter.second);
+            std::string log;
+            if (req != nullptr) {
+                log = fmt::format("\nTRACER:name={}, mutation_id={}, request_id={}, "
+                                  "start_time={}, request_info=[{}]",
+                                  req->tracer->get_name(),
+                                  tid(),
+                                  req->header->id,
+                                  req->tracer->get_start_time(),
+                                  req->tracer->get_request_type());
+
+                for (const auto &iter : req->tracer->get_points()) {
+                    log = fmt::format("{}\n\tTRACER: {}={}", log, iter.first, iter.second);
+                }
+            } else {
+                log = fmt::format("\nTRACER:name={}, mutation_id={}, "
+                                  "start_time={}, request_info=[{}]",
+                                  tracer->get_name(),
+                                  tid(),
+                                  tracer->get_start_time(),
+                                  tracer->get_request_type());
             }
 
             for (const auto &iter : tracer->get_points()) {
@@ -182,9 +193,8 @@ public:
             log = fmt::format("{}\nTRACER:mutation_id={}, request_id={}, end_time={}, timeused={}",
                               log,
                               tid(),
-                              req->header->id,
                               tracer->get_end_time(),
-                              tracer->get_end_time() - req->tracer->get_start_time());
+                              time_used);
 
             ddebug_f("{}{}", header, log);
         }

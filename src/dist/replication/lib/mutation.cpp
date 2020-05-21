@@ -52,6 +52,7 @@ mutation::mutation()
     _appro_data_bytes = sizeof(mutation_header);
     _create_ts_ns = dsn_now_ns();
     _tid = ++s_tid;
+    tracer = make_unique<dsn::tool::latency_tracer>(_tid, "mutation");
 }
 
 mutation_ptr mutation::copy_no_reply(const mutation_ptr &old_mu)

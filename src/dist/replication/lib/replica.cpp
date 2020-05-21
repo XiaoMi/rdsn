@@ -224,10 +224,7 @@ void replica::execute_mutation(mutation_ptr &mu)
           mu->name(),
           static_cast<int>(mu->client_requests.size()));
 
-    if (mu->tracer != nullptr) {
-        uint64_t now = dsn_now_ns();
-        mu->tracer->add_point("replica::execute_mutation", now);
-    }
+    mu->tracer->add_point("replica::execute_mutation", dsn_now_ns());
 
     error_code err = ERR_OK;
     decree d = mu->data.header.decree;
@@ -318,13 +315,12 @@ void replica::execute_mutation(mutation_ptr &mu)
 
     // update table level latency perf-counters for primary partition
     uint64_t now_ns = dsn_now_ns();
-    if (mu->tracer != nullptr) {
-        mu->tracer->add_point("rocksdb::flush_to_disk", now_ns);
-        mu->tracer->set_end_time(now_ns);
-        mu->report_tracer(10);
-    }
+
+    mu->tracer->add_point("rocksdb::flush_to_disk", now_ns);
+    mu->tracer->set_end_time(now_ns);
 
     if (partition_status::PS_PRIMARY == status()) {
+        mu->report_tracer(1);
         for (auto update : mu->data.updates) {
             // If the corresponding perf counter exist, count the duration of this operation.
             // code in update will always be legal
@@ -332,6 +328,8 @@ void replica::execute_mutation(mutation_ptr &mu)
                 _counters_table_level_latency[update.code]->set(now_ns - update.start_time_ns);
             }
         }
+    } else {
+        mu->report_tracer(0);
     }
 }
 

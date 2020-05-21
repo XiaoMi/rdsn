@@ -11,7 +11,11 @@ class latency_tracer
 {
 public:
     latency_tracer(int id, const std::string &name)
-        : _id(id), _name(name), _start_time(dsn_now_ns()), _last_time(_start_time){};
+        : _id(id),
+          _name(name),
+          _start_time(dsn_now_ns()),
+          _last_time(_start_time),
+          _request_type("default"){};
 
     void add_point(const std::string &name, uint64_t current_time)
     {
@@ -25,7 +29,7 @@ public:
         _last_time = current_time;
     }
 
-    void set_requet_info(std::string info) { _request_info = info; };
+    void set_requet_info(std::string type) { _request_type = type; };
 
     void set_end_time(uint64_t end_time) { _end_time = end_time; }
 
@@ -35,9 +39,9 @@ public:
 
     uint64_t get_end_time() { return _end_time; }
 
-    std::string get_start_name() { return _name; }
+    std::string get_name() { return _name; }
 
-    std::string get_request_info() { return _request_info; }
+    std::string get_request_type() { return _request_type; }
 
     std::map<std::string, uint64_t> &get_points() { return _points; }
 
@@ -50,7 +54,7 @@ private:
     uint64_t _start_time;
     uint64_t _last_time;
     uint64_t _end_time;
-    std::string _request_info;
+    std::string _request_type;
     std::map<std::string, uint64_t> _points;
 };
 }
