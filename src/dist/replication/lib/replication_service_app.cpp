@@ -90,8 +90,7 @@ void replication_service_app::on_intercepted_request(dsn::gpid gpid,
 {
     if (msg->tracer != nullptr) {
         uint64_t now = dsn_now_ns();
-        msg->tracer->add_point(
-            fmt::format("ts={}, replication_service_app::on_intercepted_request", now), now);
+        msg->tracer->add_point("replication_service_app::on_intercepted_request", now);
     }
 
     if (is_write) {

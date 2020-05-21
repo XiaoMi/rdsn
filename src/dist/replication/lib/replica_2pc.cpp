@@ -46,7 +46,7 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     }
 
     // todo(jiashuo) dump write request need be re-overload
-    request->tracer->set_type(_app->dump_write_request(request));
+    request->tracer->set_requet_info(_app->dump_write_request(request));
 
     if (dsn_unlikely(_stub->_max_allowed_write_size &&
                      request->body_size() > _stub->_max_allowed_write_size)) {
@@ -105,7 +105,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
             "invalid partition_status, status = %s",
             enum_to_string(status()));
 
-    mu->tracer = make_unique<dsn::tool::lantency_tracer>(mu->tid(), "replica::init_prepare");
+    mu->tracer = make_unique<dsn::tool::latency_tracer>(mu->tid(), "replica::init_prepare");
     error_code err = ERR_OK;
     uint8_t count = 0;
     mu->data.header.last_committed_decree = last_committed_decree();
@@ -237,7 +237,8 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
 
     if (mu->tracer != nullptr) {
         uint64_t now = dsn_now_ns();
-        mu->tracer->add_point(fmt::format("ts={}, replica::send_prepare_message", now), now);
+        mu->tracer->add_point(fmt::format("replica::send_prepare_message[{}]", addr.to_string()),
+                              now);
     }
 
     {
@@ -290,6 +291,11 @@ void replica::on_prepare(dsn::message_ex *request)
         unmarshall(reader, rconfig, DSF_THRIFT_BINARY);
         mu = mutation::read_from(reader, request);
     }
+
+    mu->tracer = make_unique<dsn::tool::latency_tracer>(mu->tid(), "replica::on_prepare");
+
+    int64_t now = dsn_now_ns();
+    mu->tracer->add_point("replica::on_prepare", now);
 
     decree decree = mu->data.header.decree;
 
@@ -388,6 +394,8 @@ void replica::on_prepare(dsn::message_ex *request)
             ack_prepare_message(ERR_OK, mu);
         } else {
             // not logged, combine duplicate request to old mutation
+            int64_t now = dsn_now_ns();
+            mu->tracer->add_point("replica::on_prepare", now);
             mu2->add_prepare_request(request);
         }
         return;
@@ -501,9 +509,10 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
 
     if (mu->tracer != nullptr) {
         uint64_t now = dsn_now_ns();
-        mu->tracer->add_point(
-            fmt::format("ts={}, replica::on_prepare_reply::{}", now, enum_to_string(target_status)),
-            now);
+        mu->tracer->add_point(fmt::format("replica::on_prepare_reply::{}[{}]",
+                                          enum_to_string(target_status),
+                                          request->to_address.to_string()),
+                              now);
     }
 
     // skip callback for old mutations
@@ -657,6 +666,11 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
 
 void replica::ack_prepare_message(error_code err, mutation_ptr &mu)
 {
+    if (mu->tracer != nullptr) {
+        int64_t now = dsn_now_ns();
+        mu->tracer->add_point("replica::ack_prepare_message", now);
+    }
+
     prepare_ack resp;
     resp.pid = get_gpid();
     resp.err = err;

@@ -341,7 +341,7 @@ mutation_ptr mutation_queue::add_work(task_code code, dsn::message_ex *request, 
     task_spec *spec = task_spec::get(code);
     if (request->tracer != nullptr) {
         uint64_t now = dsn_now_ns();
-        request->tracer->add_point(fmt::format("ts={}, mutation_queue::add_work", now), now);
+        request->tracer->add_point("mutation_queue::add_work", now);
     }
     // if not allow write batch, switch work queue
     if (_pending_mutation && !spec->rpc_request_is_write_allow_batch) {

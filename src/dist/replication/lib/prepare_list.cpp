@@ -74,7 +74,7 @@ error_code prepare_list::prepare(mutation_ptr &mu, partition_status::type status
 
     if (mu->tracer != nullptr) {
         uint64_t now = dsn_now_ns();
-        mu->tracer->add_point(fmt::format("ts={}, prepare_list::prepare", now), now);
+        mu->tracer->add_point("prepare_list::prepare", now);
     }
 
     error_code err;

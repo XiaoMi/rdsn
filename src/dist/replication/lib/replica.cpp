@@ -224,7 +224,7 @@ void replica::execute_mutation(mutation_ptr &mu)
 
     if (mu->tracer != nullptr) {
         uint64_t now = dsn_now_ns();
-        mu->tracer->add_point(fmt::format("ts={}, replica::execute_mutation", now), now);
+        mu->tracer->add_point("replica::execute_mutation", now);
     }
 
     error_code err = ERR_OK;
@@ -320,9 +320,8 @@ void replica::execute_mutation(mutation_ptr &mu)
 
         if (mu->tracer != nullptr) {
             uint64_t now = dsn_now_ns();
-            mu->tracer->add_point(fmt::format("ts={}, rocksdb::flush_to_disk", now), now);
+            mu->tracer->add_point("rocksdb::flush_to_disk", now);
         }
-
         mu->tracer->set_end_time(now_ns);
         mu->report_tracer();
         for (auto update : mu->data.updates) {

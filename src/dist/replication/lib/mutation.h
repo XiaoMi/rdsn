@@ -148,10 +148,10 @@ public:
     bool is_sync_to_child() { return _is_sync_to_child; }
 
     //
-    std::unique_ptr<dsn::tool::lantency_tracer> tracer = nullptr;
+    std::unique_ptr<dsn::tool::latency_tracer> tracer = nullptr;
 
     //
-    void report_tracer()
+    void report_tracer(uint64_t time_threshold)
     {
         std::string header("tracer log");
         for (const auto &req : client_requests) {
@@ -159,12 +159,18 @@ public:
                 ddebug_f("This is nullptr request!");
                 continue;
             }
-            std::string log =
-                fmt::format("\nTRACER:start_name={}, mutation_id={}, request_id={}, start_time={}",
-                            req->tracer->get_start_name(),
-                            tid(),
-                            req->header->id,
-                            req->tracer->get_start_time());
+
+            if (tracer->get_end_time() - req->tracer->get_start_time() < time_threshold) {
+                continue;
+            }
+
+            std::string log = fmt::format("\nTRACER:start_name={}, mutation_id={}, request_id={}, "
+                                          "start_time={}, request_info=[{}]",
+                                          req->tracer->get_request_info(),
+                                          req->tracer->get_start_name(),
+                                          tid(),
+                                          req->header->id,
+                                          req->tracer->get_start_time());
             for (const auto &iter : req->tracer->get_points()) {
                 log = fmt::format("{}\n\tTRACER(request): {}={}", log, iter.first, iter.second);
             }
