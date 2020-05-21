@@ -204,7 +204,7 @@ public:
                               tid(),
                               tracer->get_end_time(),
                               total_time_used,
-                              is_secondary ? std::to_string(prepare_ack_time_used) : "none");
+                              is_primary ? "none" : std::to_string(prepare_ack_time_used));
 
             ddebug_f("{}{}", header, log);
         }
