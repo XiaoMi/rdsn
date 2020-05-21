@@ -64,7 +64,7 @@ void simulator::install(service_spec &spec)
 
     scheduler::instance();
 
-    if (!strcmp(FLAGS_aio_factory_name, "")) {
+    if (0 == strlen(FLAGS_aio_factory_name)) {
         FLAGS_aio_factory_name = "dsn::tools::sim_aio_provider";
     }
 
