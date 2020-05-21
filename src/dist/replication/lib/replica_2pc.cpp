@@ -46,7 +46,7 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     }
 
     // todo(jiashuo) dump write request need be re-overload
-    request->tracer->set_requet_info(_app->dump_write_request(request));
+    request->tracer->set_requet_info("write");
 
     if (dsn_unlikely(_stub->_max_allowed_write_size &&
                      request->body_size() > _stub->_max_allowed_write_size)) {
