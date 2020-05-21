@@ -189,11 +189,16 @@ public:
                 log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
             }
 
-            log = fmt::format("{}\nTRACER:mutation_id={}, end_time={}, time_used={}",
-                              log,
-                              tid(),
-                              tracer->get_end_time(),
-                              time_used);
+            log = fmt::format(
+                "{}\nTRACER:mutation_id={}, end_time={}, "
+                "time_used=[prepare_ack={},flush_to_disk{}]",
+                log,
+                tid(),
+                tracer->get_end_time(),
+                tracer->get_prepare_ack_time() == 0
+                    ? "none"
+                    : std::to_string(tracer->get_prepare_ack_time() - tracer->get_start_time()),
+                time_used);
 
             ddebug_f("{}{}", header, log);
         }

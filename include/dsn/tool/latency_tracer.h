@@ -23,9 +23,11 @@ public:
         _last_time = current_time;
     }
 
-    void set_requet_info(std::string type) { _request_type = type; };
+    void set_requet_type(std::string type) { _request_type = type; };
 
     void set_end_time(uint64_t end_time) { _end_time = end_time; }
+
+    void set_prepare_ack_time(uint64_t ack_time) { _prepare_ack_time = ack_time; }
 
     uint64_t get_last_time() { return _last_time; }
 
@@ -37,6 +39,8 @@ public:
 
     std::string get_request_type() { return _request_type; }
 
+    uint64_t get_prepare_ack_time() { return _prepare_ack_time; }
+
     std::map<std::string, uint64_t> &get_points() { return _points; }
 
     //(todo jiashuo1) async report to server (db(maybe pegasus is ok) or falcon or kibana)
@@ -47,6 +51,7 @@ private:
     std::string _name;
     uint64_t _start_time;
     uint64_t _last_time;
+    uint64_t _prepare_ack_time;
     uint64_t _end_time;
     std::string _request_type;
     std::map<std::string, uint64_t> _points;

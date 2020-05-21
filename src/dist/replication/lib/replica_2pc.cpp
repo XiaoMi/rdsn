@@ -433,6 +433,8 @@ void replica::on_append_log_completed(mutation_ptr &mu, error_code err, size_t s
 {
     _checker.only_one_thread_access();
 
+    mu->tracer->add_point("replica::on_append_log_completed", dsn_now_ns());
+
     dinfo("%s: append shared log completed for mutation %s, size = %u, err = %s",
           name(),
           mu->name(),
@@ -669,6 +671,8 @@ void replica::ack_prepare_message(error_code err, mutation_ptr &mu)
     for (auto &request : prepare_requests) {
         reply(request, resp);
     }
+
+    mu->tracer->set_prepare_ack_time(dsn_now_ns());
 
     if (err == ERR_OK) {
         dinfo("%s: mutation %s ack_prepare_message, err = %s", name(), mu->name(), err.to_string());
