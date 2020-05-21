@@ -27,6 +27,7 @@
 #include "sim_aio_provider.h"
 
 namespace dsn {
+namespace aio {
 
 DEFINE_TASK_CODE(LPC_NATIVE_AIO_REDIRECT, TASK_PRIORITY_HIGH, THREAD_POOL_DEFAULT)
 
@@ -46,4 +47,5 @@ void sim_aio_provider::aio(aio_task *aio)
     complete_io(aio, err, bytes, 0);
 }
 
-} // end dsn
+} // namespace aio
+} // namespace dsn

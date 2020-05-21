@@ -29,6 +29,7 @@
 #include "native_linux_aio_provider.h"
 
 namespace dsn {
+namespace aio {
 
 class sim_aio_provider : public native_linux_aio_provider
 {
@@ -38,4 +39,6 @@ public:
 
     virtual void aio(aio_task *aio) override;
 };
+
+} // namespace aio
 } // namespace dsn

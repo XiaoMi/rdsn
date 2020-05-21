@@ -140,7 +140,7 @@ disk_engine::disk_engine()
 
     // use native_linux_aio_provider in default
     if (!strcmp(FLAGS_aio_factory_name, "dsn::tools::sim_aio_provider")) {
-        _provider.reset(new sim_aio_provider(this, nullptr));
+        _provider.reset(new aio::sim_aio_provider(this, nullptr));
     } else {
         _provider.reset(new native_linux_aio_provider(this, nullptr));
     }
