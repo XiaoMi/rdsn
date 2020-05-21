@@ -167,7 +167,7 @@ public:
             std::string log;
             if (req != nullptr) {
                 log = fmt::format("\nTRACER:name={}, mutation_id={}, request_id={}, "
-                                  "start_time={}, request_info=[{}]",
+                                  "start_time={}, request_type=[{}]",
                                   req->tracer->get_name(),
                                   tid(),
                                   req->header->id,
@@ -187,10 +187,10 @@ public:
             }
 
             for (const auto &iter : tracer->get_points()) {
-                log = fmt::format("{}\n\tTRACER(mutation):{}={}", log, iter.first, iter.second);
+                log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
             }
 
-            log = fmt::format("{}\nTRACER:mutation_id={}, request_id={}, end_time={}, timeused={}",
+            log = fmt::format("{}\nTRACER:mutation_id={}, end_time={}, time_used={}",
                               log,
                               tid(),
                               tracer->get_end_time(),
