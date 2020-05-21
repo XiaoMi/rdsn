@@ -156,10 +156,9 @@ public:
         std::string header("tracer log");
 
         for (const auto &req : client_requests) {
-            int64_t time_used =
-                req == nullptr
-                    ? tracer->get_end_time() - tracer->get_start_time() < time_threshold
-                    : tracer->get_end_time() - req->tracer->get_start_time() < time_threshold;
+            int64_t time_used = req == nullptr
+                                    ? tracer->get_end_time() - tracer->get_start_time()
+                                    : tracer->get_end_time() - req->tracer->get_start_time();
 
             if (time_used < time_threshold)
                 continue;
