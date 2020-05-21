@@ -50,7 +50,7 @@
 #include <map>
 #include <dsn/service_api_c.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/tool/lantency_tracer.h>
+#include <dsn/tool/latency_tracer.h>
 
 namespace dsn {
 class rpc_session;
@@ -154,7 +154,7 @@ public:
     dlink dl;
 
     // lantency tracer
-    std::unique_ptr<dsn::tool::lantency_tracer> tracer;
+    std::unique_ptr<dsn::tool::latency_tracer> tracer;
 
 public:
     // message_ex(blob bb, bool parse_hdr = true); // read

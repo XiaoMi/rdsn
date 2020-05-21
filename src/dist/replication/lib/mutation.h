@@ -40,7 +40,7 @@
 #include <atomic>
 #include <dsn/utility/link.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/tool/lantency_tracer.h>
+#include <dsn/tool/latency_tracer.h>
 
 #ifndef __linux__
 #pragma warning(disable : 4201)
