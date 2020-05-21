@@ -174,7 +174,7 @@ public:
                                   req->tracer->get_request_type());
 
                 for (const auto &iter : req->tracer->get_points()) {
-                    log = fmt::format("{}\n\tTRACER: {}={}", log, iter.first, iter.second);
+                    log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
                 }
             } else {
                 log = fmt::format("\nTRACER:name={}, mutation_id={}, "
