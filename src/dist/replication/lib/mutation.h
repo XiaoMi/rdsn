@@ -156,15 +156,15 @@ public:
         std::string header("tracer log");
 
         for (const auto &req : client_requests) {
-            int64_t time_used = req == nullptr
-                                    ? tracer->get_end_time() - tracer->get_start_time()
-                                    : tracer->get_end_time() - req->tracer->get_start_time();
-
-            if (time_used < time_threshold)
-                continue;
-
+            int64_t prepare_ack_time_used = 0;
+            int64_t total_time_used = 0;
             std::string log;
             if (req != nullptr) {
+                total_time_used = tracer->get_end_time() - req->tracer->get_start_time();
+                if (total_time_used < time_threshold) {
+                    continue;
+                }
+
                 log = fmt::format("\nTRACER:name={}, mutation_id={}, request_id={}, "
                                   "start_time={}, request_type=[{}]",
                                   req->tracer->get_name(),
@@ -177,6 +177,15 @@ public:
                     log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
                 }
             } else {
+                if (tracer->get_prepare_ack_time() != 0) {
+                    prepare_ack_time_used =
+                        tracer->get_prepare_ack_time() - tracer->get_start_time();
+                    if (prepare_ack_time_used < time_threshold) {
+                        continue;
+                    }
+                }
+
+                total_time_used = tracer->get_end_time() - tracer->get_start_time();
                 log = fmt::format("\nTRACER:name={}, mutation_id={}, "
                                   "start_time={}, request_type=[{}]",
                                   tracer->get_name(),
@@ -189,16 +198,14 @@ public:
                 log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
             }
 
-            log = fmt::format(
-                "{}\nTRACER:mutation_id={}, end_time={}, "
-                "time_used=[prepare_ack={},flush_to_disk={}]",
-                log,
-                tid(),
-                tracer->get_end_time(),
-                tracer->get_prepare_ack_time() == 0
-                    ? "none"
-                    : std::to_string(tracer->get_prepare_ack_time() - tracer->get_start_time()),
-                time_used);
+            log = fmt::format("{}\nTRACER:mutation_id={}, end_time={}, "
+                              "total_time_used={}, prepare_ack_time_used={}",
+                              log,
+                              tid(),
+                              tracer->get_end_time(),
+                              total_time_used,
+                              prepare_ack_time_used == 0 ? "none"
+                                                         : std::to_string(prepare_ack_time_used));
 
             ddebug_f("{}{}", header, log);
         }
