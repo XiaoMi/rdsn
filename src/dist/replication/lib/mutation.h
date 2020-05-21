@@ -166,11 +166,11 @@ public:
 
             std::string log = fmt::format("\nTRACER:start_name={}, mutation_id={}, request_id={}, "
                                           "start_time={}, request_info=[{}]",
-                                          req->tracer->get_request_info(),
                                           req->tracer->get_start_name(),
                                           tid(),
                                           req->header->id,
-                                          req->tracer->get_start_time());
+                                          req->tracer->get_start_time(),
+                                          req->tracer->get_request_info());
             for (const auto &iter : req->tracer->get_points()) {
                 log = fmt::format("{}\n\tTRACER(request): {}={}", log, iter.first, iter.second);
             }
