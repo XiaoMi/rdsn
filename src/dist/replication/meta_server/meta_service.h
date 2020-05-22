@@ -141,8 +141,6 @@ private:
     void unregister_ctrl_commands();
 
     // client => meta server
-    // query partition configuration
-    void on_query_configuration_by_node(configuration_query_by_node_rpc rpc);
     void on_query_configuration_by_index(configuration_query_by_index_rpc rpc);
 
     // partition server => meta server

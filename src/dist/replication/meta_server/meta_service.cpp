@@ -342,9 +342,6 @@ error_code meta_service::start()
 
 void meta_service::register_rpc_handlers()
 {
-    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_NODE_PARTITIONS,
-                                         "query_configuration_by_node",
-                                         &meta_service::on_query_configuration_by_node);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_CONFIG_SYNC, "config_sync", &meta_service::on_config_sync);
     register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
@@ -558,13 +555,6 @@ void meta_service::on_query_cluster_info(dsn::message_ex *req)
 }
 
 // client => meta server
-void meta_service::on_query_configuration_by_node(configuration_query_by_node_rpc rpc)
-{
-    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
-
-    _state->query_configuration_by_node(rpc.request(), rpc.response());
-}
-
 void meta_service::on_query_configuration_by_index(configuration_query_by_index_rpc rpc)
 {
     configuration_query_by_index_response &response = rpc.response();

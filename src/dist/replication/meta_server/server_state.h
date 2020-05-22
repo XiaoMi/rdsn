@@ -138,9 +138,6 @@ public:
         return iter->second;
     }
 
-    // query state
-    void query_configuration_by_node(const configuration_query_by_node_request &request,
-                                     /*out*/ configuration_query_by_node_response &response);
     void query_configuration_by_index(const configuration_query_by_index_request &request,
                                       /*out*/ configuration_query_by_index_response &response);
     bool query_configuration_by_gpid(const dsn::gpid id, /*out*/ partition_configuration &config);

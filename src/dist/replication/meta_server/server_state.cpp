@@ -750,31 +750,6 @@ void server_state::set_replica_migration_subscriber_for_test(
     _replica_migration_subscriber = subscriber;
 }
 
-// client => meta server
-void server_state::query_configuration_by_node(
-    const configuration_query_by_node_request &request,
-    /*out*/ configuration_query_by_node_response &response)
-{
-    zauto_read_lock l(_lock);
-    node_state *ns = get_node_state(_nodes, request.node, false);
-    if (ns == nullptr) {
-        response.err = ERR_OBJECT_NOT_FOUND;
-    } else {
-        response.err = ERR_OK;
-        response.partitions.resize(ns->partition_count());
-        int i = 0;
-        ns->for_each_partition([&, this](const gpid &pid) {
-            std::shared_ptr<app_state> app = get_app(pid.get_app_id());
-            dassert(app != nullptr, "invalid app_id, app_id = %d", pid.get_app_id());
-            response.partitions[i].info = *app;
-            response.partitions[i].host_node = request.node;
-            response.partitions[i].config = app->partitions[pid.get_partition_index()];
-            ++i;
-            return true;
-        });
-    }
-}
-
 // partition server => meta server
 // this is done in meta_state_thread_pool
 void server_state::on_config_sync(const configuration_query_by_node_request &request,
