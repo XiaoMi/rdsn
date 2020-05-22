@@ -341,9 +341,9 @@ error_code meta_service::start()
 
 void meta_service::register_rpc_handlers()
 {
-    register_rpc_handler(RPC_CM_QUERY_NODE_PARTITIONS,
-                         "query_configuration_by_node",
-                         &meta_service::on_query_configuration_by_node);
+    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_NODE_PARTITIONS,
+                                         "query_configuration_by_node",
+                                         &meta_service::on_query_configuration_by_node);
     register_rpc_handler(RPC_CM_CONFIG_SYNC, "config_sync", &meta_service::on_config_sync);
     register_rpc_handler(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
                          "query_configuration_by_index",
@@ -556,15 +556,11 @@ void meta_service::on_query_cluster_info(dsn::message_ex *req)
 }
 
 // client => meta server
-void meta_service::on_query_configuration_by_node(dsn::message_ex *msg)
+void meta_service::on_query_configuration_by_node(configuration_query_by_node_rpc rpc)
 {
-    configuration_query_by_node_response response;
-    RPC_CHECK_STATUS(msg, response);
+    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
 
-    configuration_query_by_node_request request;
-    dsn::unmarshall(msg, request);
-    _state->query_configuration_by_node(request, response);
-    reply(msg, response);
+    _state->query_configuration_by_node(rpc.request(), rpc.response());
 }
 
 void meta_service::on_query_configuration_by_index(dsn::message_ex *msg)
