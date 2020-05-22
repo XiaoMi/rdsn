@@ -596,7 +596,7 @@ void meta_service::on_query_configuration_by_index(configuration_query_by_index_
     _state->query_configuration_by_index(rpc.request(), response);
     if (ERR_OK == response.err) {
         ddebug_f("client {} queried an available app {} with appid {}",
-                 rpc.dsn_request()->header->from_address,
+                 rpc.dsn_request()->header->from_address.to_string(),
                  rpc.request().app_name,
                  response.app_id);
     }
