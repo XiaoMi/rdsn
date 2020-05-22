@@ -37,6 +37,7 @@
 #include <dsn/tool-api/command_manager.h>
 #include <algorithm> // for std::remove_if
 #include <cctype>    // for ::isspace
+#include <dsn/dist/fmt_logging.h>
 
 #include "meta_service.h"
 #include "server_state.h"
@@ -593,6 +594,12 @@ void meta_service::on_query_configuration_by_index(configuration_query_by_index_
     }
 
     _state->query_configuration_by_index(rpc.request(), response);
+    if (ERR_OK == response.err) {
+        ddebug_f("client {} queried an available app {} with appid {}",
+                 rpc.dsn_request()->header->from_address,
+                 rpc.request().app_name,
+                 response.app_id);
+    }
 }
 
 // partition sever => meta sever
