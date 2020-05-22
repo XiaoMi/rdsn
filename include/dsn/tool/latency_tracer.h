@@ -37,6 +37,8 @@ public:
 
     std::string get_name() { return _name; }
 
+    uint64_t get_id() {return _id;}
+
     std::string get_request_type() { return _request_type; }
 
     uint64_t get_prepare_ack_time() { return _prepare_ack_time; }
@@ -47,7 +49,7 @@ public:
     void report(){};
 
 private:
-    int _id;
+    uint64_t _id;
     std::string _name;
     uint64_t _start_time;
     uint64_t _last_time;
