@@ -189,6 +189,9 @@ public:
                 }
 
                 total_time_used = tracer->get_end_time() - tracer->get_start_time();
+                if (total_time_used < time_threshold) {
+                    continue;
+                }
                 log = fmt::format("\nTRACER:name={}, mutation_id={}, "
                                   "start_time={}, request_type=[{}]",
                                   tracer->get_name(),
