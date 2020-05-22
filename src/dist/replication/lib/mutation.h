@@ -153,8 +153,11 @@ public:
     //
     void report_tracer(uint64_t time_threshold, bool is_primary = true)
     {
-        std::string header("tracer log");
+        if (time_threshold = 0) {
+            return;
+        }
 
+        std::string header("tracer log");
         for (const auto &req : client_requests) {
             int64_t prepare_ack_time_used = 0;
             int64_t total_time_used = 0;

@@ -536,6 +536,13 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
               enum_to_string(target_status),
               resp.err.to_string());
     } else {
+        int64_t now = dsn_now_ns();
+        mu->tracer->add_point(fmt::format("replica::on_prepare_reply_error::{}[{}]",
+                                          enum_to_string(target_status),
+                                          request->to_address.to_string()),
+                              now);
+        mu->tracer->set_end_time(now);
+        mu->report_tracer(_stub->_abnormal_write_prepare_ack_threshold);
         derror("%s: mutation %s on_prepare_reply from %s, appro_data_bytes = %d, "
                "target_status = %s, err = %s",
                name(),

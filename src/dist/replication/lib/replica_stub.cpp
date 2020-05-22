@@ -368,6 +368,10 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     _max_concurrent_bulk_load_downloading_count =
         _options.max_concurrent_bulk_load_downloading_count;
 
+    _abnormal_read_trace_threshold = _options.abnormal_read_trace_threshold;
+    _abnormal_write_prepare_ack_threshold = _options.abnormal_write_prepare_ack_threshold;
+    _abnormal_write_primary_flush_threshold = _options.abnormal_write_primary_flush_threshold;
+
     // clear dirs if need
     if (clear) {
         if (!dsn::utils::filesystem::remove_path(_options.slog_dir)) {
@@ -2235,6 +2239,85 @@ void replica_stub::open_service()
                 }
                 return result;
             });
+
+    _abnormal_read_trace_threshold_command = dsn::command_manager::instance().register_app_command(
+        {"abnormal_read_trace_threshold"},
+        "abnormal_read_trace_threshold [num | DEFAULT]",
+        "control stub log the abnormal read trace threshold",
+        [this](const std::vector<std::string> &args) {
+            std::string result("OK");
+            if (args.empty()) {
+                result = "abnormal_read_trace_threshold=" +
+                         std::to_string(_abnormal_read_trace_threshold);
+                return result;
+            }
+
+            if (args[0] == "DEFAULT") {
+                _abnormal_read_trace_threshold = _options.abnormal_read_trace_threshold;
+                return result;
+            }
+
+            int32_t threshold = 0;
+            if (!dsn::buf2int32(args[0], threshold) || threshold < 0) {
+                return std::string("ERR: invalid arguments");
+            }
+            _abnormal_read_trace_threshold = threshold;
+            return threshold == 0 ? std::string("WARN:you will close the trace log") : result;
+        });
+
+    _abnormal_write_prepare_ack_threshold_command =
+        dsn::command_manager::instance().register_app_command(
+            {"abnormal_write_prepare_ack_threshold"},
+            "abnormal_write_prepare_ack_threshold [num | DEFAULT]",
+            "control stub log the abnormal write prepare ack trace threshold",
+            [this](const std::vector<std::string> &args) {
+                std::string result("OK");
+                if (args.empty()) {
+                    result = "abnormal_write_prepare_ack_threshold=" +
+                             std::to_string(_abnormal_write_prepare_ack_threshold);
+                    return result;
+                }
+
+                if (args[0] == "DEFAULT") {
+                    _abnormal_write_prepare_ack_threshold =
+                        _options.abnormal_write_prepare_ack_threshold;
+                    return result;
+                }
+
+                int32_t threshold = 0;
+                if (!dsn::buf2int32(args[0], threshold) || threshold < 0) {
+                    return std::string("ERR: invalid arguments");
+                }
+                _abnormal_write_prepare_ack_threshold = threshold;
+                return threshold == 0 ? std::string("WARN:you will close the trace log") : result;
+            });
+
+    _abnormal_write_primary_flush_threshold_command =
+        dsn::command_manager::instance().register_app_command(
+            {"abnormal_write_primary_flush_threshold"},
+            "abnormal_write_primary_flush_threshold [num | DEFAULT]",
+            "control stub log the abnormal write complete to flush disk trace threshold",
+            [this](const std::vector<std::string> &args) {
+                std::string result("OK");
+                if (args.empty()) {
+                    result = "abnormal_write_primary_flush_threshold=" +
+                             std::to_string(_abnormal_write_primary_flush_threshold);
+                    return result;
+                }
+
+                if (args[0] == "DEFAULT") {
+                    _abnormal_write_primary_flush_threshold =
+                        _options.abnormal_write_primary_flush_threshold;
+                    return result;
+                }
+
+                int32_t threshold = 0;
+                if (!dsn::buf2int32(args[0], threshold) || threshold < 0) {
+                    return std::string("ERR: invalid arguments");
+                }
+                _abnormal_write_primary_flush_threshold = threshold;
+                return threshold == 0 ? std::string("WARN:you will close the trace log") : result;
+            });
 }
 
 std::string
@@ -2367,6 +2450,12 @@ void replica_stub::close()
     dsn::command_manager::instance().deregister_command(
         _max_concurrent_bulk_load_downloading_count_command);
 
+    dsn::command_manager::instance().deregister_command(_abnormal_read_trace_threshold_command);
+    dsn::command_manager::instance().deregister_command(
+        _abnormal_write_prepare_ack_threshold_command);
+    dsn::command_manager::instance().deregister_command(
+        _abnormal_write_primary_flush_threshold_command);
+
     _kill_partition_command = nullptr;
     _deny_client_command = nullptr;
     _verbose_client_log_command = nullptr;
@@ -2380,6 +2469,9 @@ void replica_stub::close()
     _max_reserved_memory_percentage_command = nullptr;
 #endif
     _max_concurrent_bulk_load_downloading_count_command = nullptr;
+    _abnormal_read_trace_threshold_command = nullptr;
+    _abnormal_write_prepare_ack_threshold_command = nullptr;
+    _abnormal_write_primary_flush_threshold_command = nullptr;
 
     if (_config_sync_timer_task != nullptr) {
         _config_sync_timer_task->cancel(true);

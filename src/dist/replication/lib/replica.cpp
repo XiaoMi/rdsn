@@ -156,6 +156,10 @@ replica::~replica(void)
 
 void replica::on_client_read(dsn::message_ex *request)
 {
+
+    if (request->tracer != nullptr) {
+        request->tracer->add_point("replica::on_client_read", dsn_now_ns());
+    }
     if (status() == partition_status::PS_INACTIVE ||
         status() == partition_status::PS_POTENTIAL_SECONDARY) {
         response_client_read(request, ERR_INVALID_STATE);
@@ -186,6 +190,10 @@ void replica::on_client_read(dsn::message_ex *request)
     uint64_t start_time_ns = dsn_now_ns();
     dassert(_app != nullptr, "");
     _app->on_request(request);
+
+    if (request->tracer != nullptr) {
+        request->tracer->add_point("rocksdb::read_complete", dsn_now_ns());
+    }
 
     // If the corresponding perf counter exist, count the duration of this operation.
     // rpc code of request is already checked in message_ex::rpc_code, so it will always be legal
@@ -321,7 +329,7 @@ void replica::execute_mutation(mutation_ptr &mu)
     mu->tracer->set_end_time(now_ns);
 
     if (partition_status::PS_PRIMARY == status()) {
-        mu->report_tracer(1);
+        mu->report_tracer(_stub->_abnormal_write_primary_flush_threshold);
         for (auto update : mu->data.updates) {
             // If the corresponding perf counter exist, count the duration of this operation.
             // code in update will always be legal
@@ -330,7 +338,7 @@ void replica::execute_mutation(mutation_ptr &mu)
             }
         }
     } else {
-        mu->report_tracer(0, false);
+        mu->report_tracer(_stub->_abnormal_write_prepare_ack_threshold, false);
     }
 }
 
