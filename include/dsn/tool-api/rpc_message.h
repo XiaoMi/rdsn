@@ -156,6 +156,38 @@ public:
     // lantency tracer
     std::unique_ptr<dsn::tool::latency_tracer> tracer;
 
+    void report_tracer(uint64_t time_threshold)
+    {
+        if (tracer == nullptr || !time_threshold) {
+            return;
+        }
+
+        uint64_t total_time_used = tracer->get_end_time() - tracer->get_start_time();
+        if (total_time_used < time_threshold) {
+            return;
+        }
+        std::string header("tracer log");
+        std::string log;
+        log = fmt::format("\nTRACER:name={}, request_id={}, "
+                          "start_time={}, request_type=[{}]",
+                          tracer->get_name(),
+                          tracer->get_id(),
+                          tracer->get_start_time(),
+                          tracer->get_request_type());
+
+        for (const auto &iter : tracer->get_points()) {
+            log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
+        }
+
+        log = fmt::format("{}\nTRACER:end_time={}, "
+                          "total_time_used={}",
+                          log,
+                          tracer->get_end_time(),
+                          total_time_used);
+
+        ddebug_f("{}{}", header, log);
+    }
+
 public:
     // message_ex(blob bb, bool parse_hdr = true); // read
     DSN_API ~message_ex();
