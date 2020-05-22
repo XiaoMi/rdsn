@@ -37,7 +37,7 @@ public:
 
     std::string get_name() { return _name; }
 
-    uint64_t get_id() {return _id;}
+    uint64_t get_id() { return _id; }
 
     std::string get_request_type() { return _request_type; }
 

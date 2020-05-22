@@ -192,7 +192,9 @@ void replica::on_client_read(dsn::message_ex *request)
     _app->on_request(request);
 
     if (request->tracer != nullptr) {
-        request->tracer->add_point("rocksdb::read_complete", dsn_now_ns());
+        int64_t now = dsn_now_ns();
+        request->tracer->add_point("replica_stub::response_client", now);
+        request->tracer->set_end_time(now);
         request->report_tracer(_stub->_abnormal_read_trace_threshold);
     }
 
