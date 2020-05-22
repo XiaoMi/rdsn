@@ -193,6 +193,7 @@ void replica::on_client_read(dsn::message_ex *request)
 
     if (request->tracer != nullptr) {
         request->tracer->add_point("rocksdb::read_complete", dsn_now_ns());
+        request->report_tracer(_stub->_abnormal_read_trace_threshold);
     }
 
     // If the corresponding perf counter exist, count the duration of this operation.
