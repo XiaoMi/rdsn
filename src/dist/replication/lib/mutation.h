@@ -153,7 +153,7 @@ public:
     //
     void report_tracer(uint64_t time_threshold, bool is_primary = true)
     {
-        if (time_threshold = 0) {
+        if (!time_threshold) {
             return;
         }
 
