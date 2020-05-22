@@ -777,13 +777,9 @@ void server_state::query_configuration_by_node(
 
 // partition server => meta server
 // this is done in meta_state_thread_pool
-void server_state::on_config_sync(dsn::message_ex *msg)
+void server_state::on_config_sync(const configuration_query_by_node_request &request,
+                                  /*out*/ configuration_query_by_node_response &response)
 {
-    configuration_query_by_node_request request;
-    configuration_query_by_node_response response;
-
-    dsn::unmarshall(msg, request);
-
     bool reject_this_request = false;
     response.__isset.gc_replicas = false;
     ddebug("got config sync request from %s, stored_replicas_count(%d)",
@@ -831,14 +827,14 @@ void server_state::on_config_sync(dsn::message_ex *msg)
         if (!reject_this_request && request.__isset.stored_replicas) {
             if (ns != nullptr)
                 ns->set_replicas_collect_flag(true);
-            std::vector<replica_info> &replicas = request.stored_replicas;
+            const std::vector<replica_info> &replicas = request.stored_replicas;
             meta_function_level::type level = _meta_svc->get_function_level();
             // if the node serve the replica on the meta server, then we ignore it
             // if the dropped servers on the meta servers are enough, we need to gc it
             // there are not enough dropped servers, we need to add it to dropped
             // the app is deleted but not expired, we need to ignore it
             // if the app is deleted and expired, we need to gc it
-            for (replica_info &rep : replicas) {
+            for (const replica_info &rep : replicas) {
                 dinfo("receive stored replica from %s, pid(%d.%d)",
                       request.node.to_string(),
                       rep.pid.get_app_id(),
@@ -916,8 +912,6 @@ void server_state::on_config_sync(dsn::message_ex *msg)
            response.err.to_string(),
            (int)response.partitions.size(),
            (int)response.gc_replicas.size());
-    _meta_svc->reply_data(msg, response);
-    msg->release_ref();
 }
 
 bool server_state::query_configuration_by_gpid(dsn::gpid id,

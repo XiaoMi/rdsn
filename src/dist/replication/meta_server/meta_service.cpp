@@ -344,7 +344,8 @@ void meta_service::register_rpc_handlers()
     register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_NODE_PARTITIONS,
                                          "query_configuration_by_node",
                                          &meta_service::on_query_configuration_by_node);
-    register_rpc_handler(RPC_CM_CONFIG_SYNC, "config_sync", &meta_service::on_config_sync);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_CONFIG_SYNC, "config_sync", &meta_service::on_config_sync);
     register_rpc_handler(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
                          "query_configuration_by_index",
                          &meta_service::on_query_configuration_by_index);
@@ -601,10 +602,9 @@ void meta_service::on_query_configuration_by_index(dsn::message_ex *msg)
 // partition sever => meta sever
 // as get stale configuration is not allowed for partition server, we need to dispatch it to the
 // meta state thread pool
-void meta_service::on_config_sync(dsn::message_ex *req)
+void meta_service::on_config_sync(configuration_query_by_node_rpc rpc)
 {
-    configuration_query_by_node_response response;
-    RPC_CHECK_STATUS(req, response);
+    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
 
     {
         // this code piece should be referenced together with meta_service::set_node_state.
@@ -614,11 +614,11 @@ void meta_service::on_config_sync(dsn::message_ex *req)
         // AFTER the node dead is dispatch
         // AFTER the node dead event
         zauto_lock l(_failure_detector->_lock);
-        req->add_ref();
-        tasking::enqueue(LPC_META_STATE_HIGH,
-                         nullptr,
-                         std::bind(&server_state::on_config_sync, _state.get(), req),
-                         server_state::sStateHash);
+        tasking::enqueue(
+            LPC_META_STATE_HIGH,
+            nullptr,
+            std::bind(&server_state::on_config_sync, _state.get(), rpc.request(), rpc.response()),
+            server_state::sStateHash);
     }
 }
 

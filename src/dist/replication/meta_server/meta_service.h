@@ -144,7 +144,7 @@ private:
     void on_query_configuration_by_index(dsn::message_ex *req);
 
     // partition server => meta server
-    void on_config_sync(dsn::message_ex *req);
+    void on_config_sync(configuration_query_by_node_rpc rpc);
 
     // update configuration
     void on_propose_balancer(dsn::message_ex *req);
