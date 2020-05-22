@@ -71,6 +71,8 @@ typedef rpc_holder<app_partition_split_request, app_partition_split_response>
     app_partition_split_rpc;
 typedef rpc_holder<configuration_query_by_node_request, configuration_query_by_node_response>
     configuration_query_by_node_rpc;
+typedef rpc_holder<configuration_query_by_index_request, configuration_query_by_index_response>
+    configuration_query_by_index_rpc;
 
 class meta_service : public serverlet<meta_service>
 {
@@ -141,7 +143,7 @@ private:
     // client => meta server
     // query partition configuration
     void on_query_configuration_by_node(configuration_query_by_node_rpc rpc);
-    void on_query_configuration_by_index(dsn::message_ex *req);
+    void on_query_configuration_by_index(configuration_query_by_index_rpc rpc);
 
     // partition server => meta server
     void on_config_sync(configuration_query_by_node_rpc rpc);

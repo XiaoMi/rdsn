@@ -346,9 +346,9 @@ void meta_service::register_rpc_handlers()
                                          &meta_service::on_query_configuration_by_node);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_CONFIG_SYNC, "config_sync", &meta_service::on_config_sync);
-    register_rpc_handler(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
-                         "query_configuration_by_index",
-                         &meta_service::on_query_configuration_by_index);
+    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
+                                         "query_configuration_by_index",
+                                         &meta_service::on_query_configuration_by_index);
     register_rpc_handler(RPC_CM_UPDATE_PARTITION_CONFIGURATION,
                          "update_configuration",
                          &meta_service::on_update_configuration);
@@ -564,15 +564,15 @@ void meta_service::on_query_configuration_by_node(configuration_query_by_node_rp
     _state->query_configuration_by_node(rpc.request(), rpc.response());
 }
 
-void meta_service::on_query_configuration_by_index(dsn::message_ex *msg)
+void meta_service::on_query_configuration_by_index(configuration_query_by_index_rpc rpc)
 {
-    configuration_query_by_index_response response;
+    configuration_query_by_index_response &response = rpc.response();
 
     // here we do not use RPC_CHECK_STATUS macro, but specially handle it
     // to response forward address.
     dinfo("rpc %s called", __FUNCTION__);
     rpc_address forward_address;
-    int result = check_leader(msg, &forward_address);
+    int result = check_leader(rpc.dsn_request(), &forward_address);
     if (result == 0)
         return;
     if (result == -1 || !_started) {
@@ -589,14 +589,10 @@ void meta_service::on_query_configuration_by_index(dsn::message_ex *msg)
             response.err = ERR_SERVICE_NOT_ACTIVE;
         }
         ddebug("reject request with %s", response.err.to_string());
-        reply(msg, response);
         return;
     }
 
-    configuration_query_by_index_request request;
-    dsn::unmarshall(msg, request);
-    _state->query_configuration_by_index(request, response);
-    reply(msg, response);
+    _state->query_configuration_by_index(rpc.request(), response);
 }
 
 // partition sever => meta sever
