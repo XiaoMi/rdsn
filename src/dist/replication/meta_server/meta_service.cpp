@@ -353,7 +353,8 @@ void meta_service::register_rpc_handlers()
     register_rpc_handler(RPC_CM_CREATE_APP, "create_app", &meta_service::on_create_app);
     register_rpc_handler(RPC_CM_DROP_APP, "drop_app", &meta_service::on_drop_app);
     register_rpc_handler(RPC_CM_RECALL_APP, "recall_app", &meta_service::on_recall_app);
-    register_rpc_handler(RPC_CM_LIST_APPS, "list_apps", &meta_service::on_list_apps);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_LIST_APPS, "list_apps", &meta_service::on_list_apps);
     register_rpc_handler(RPC_CM_LIST_NODES, "list_nodes", &meta_service::on_list_nodes);
     register_rpc_handler(RPC_CM_CLUSTER_INFO, "cluster_info", &meta_service::on_query_cluster_info);
     register_rpc_handler(
@@ -467,15 +468,12 @@ void meta_service::on_recall_app(dsn::message_ex *req)
                      server_state::sStateHash);
 }
 
-void meta_service::on_list_apps(dsn::message_ex *req)
+void meta_service::on_list_apps(configuration_list_apps_rpc rpc)
 {
-    configuration_list_apps_response response;
-    RPC_CHECK_STATUS(req, response);
+    configuration_list_apps_response &response = rpc.response();
+    RPC_CHECK_STATUS(rpc.dsn_request(), response);
 
-    configuration_list_apps_request request;
-    ::dsn::unmarshall(req, request);
-    _state->list_apps(request, response);
-    reply(req, response);
+    _state->list_apps(rpc.request(), response);
 }
 
 void meta_service::on_list_nodes(dsn::message_ex *req)
