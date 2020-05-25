@@ -210,7 +210,7 @@ public:
         return rpc;
     }
 
-    // disable auto reply which is performed in the destructor
+    // disable auto reply which is performed in the destructor of _i
     void disable_auto_reply() { _i->auto_reply = false; }
 
     // Only use this function when testing.
