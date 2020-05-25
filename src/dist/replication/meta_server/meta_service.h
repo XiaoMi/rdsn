@@ -77,6 +77,8 @@ typedef rpc_holder<configuration_list_apps_request, configuration_list_apps_resp
     configuration_list_apps_rpc;
 typedef rpc_holder<configuration_list_nodes_request, configuration_list_nodes_response>
     configuration_list_nodes_rpc;
+typedef rpc_holder<configuration_cluster_info_request, configuration_cluster_info_response>
+    configuration_cluster_info_rpc;
 
 class meta_service : public serverlet<meta_service>
 {
@@ -168,7 +170,7 @@ private:
     void ddd_diagnose(ddd_diagnose_rpc rpc);
 
     // cluster info
-    void on_query_cluster_info(dsn::message_ex *req);
+    void on_query_cluster_info(configuration_cluster_info_rpc rpc);
 
     // meta control
     void on_control_meta_level(dsn::message_ex *req);

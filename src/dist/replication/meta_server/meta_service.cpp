@@ -355,8 +355,10 @@ void meta_service::register_rpc_handlers()
     register_rpc_handler(RPC_CM_RECALL_APP, "recall_app", &meta_service::on_recall_app);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_LIST_APPS, "list_apps", &meta_service::on_list_apps);
-    register_rpc_handler_with_rpc_holder(RPC_CM_LIST_NODES, "list_nodes", &meta_service::on_list_nodes);
-    register_rpc_handler(RPC_CM_CLUSTER_INFO, "cluster_info", &meta_service::on_query_cluster_info);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_LIST_NODES, "list_nodes", &meta_service::on_list_nodes);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_CLUSTER_INFO, "cluster_info", &meta_service::on_query_cluster_info);
     register_rpc_handler(
         RPC_CM_PROPOSE_BALANCER, "propose_balancer", &meta_service::on_propose_balancer);
     register_rpc_handler(
@@ -504,13 +506,10 @@ void meta_service::on_list_nodes(configuration_list_nodes_rpc rpc)
     }
 }
 
-void meta_service::on_query_cluster_info(dsn::message_ex *req)
+void meta_service::on_query_cluster_info(configuration_cluster_info_rpc rpc)
 {
-    configuration_cluster_info_response response;
-    RPC_CHECK_STATUS(req, response);
-
-    configuration_cluster_info_request request;
-    dsn::unmarshall(req, request);
+    configuration_cluster_info_response &response = rpc.response();
+    RPC_CHECK_STATUS(rpc.dsn_request(), response);
 
     std::stringstream oss;
     response.keys.push_back("meta_servers");
@@ -544,8 +543,6 @@ void meta_service::on_query_cluster_info(dsn::message_ex *req)
     response.keys.push_back("total_replica_count_stddev");
     response.values.push_back(fmt::format("{:.{}f}", total_stddev, 2));
     response.err = dsn::ERR_OK;
-
-    reply(req, response);
 }
 
 // client => meta server
