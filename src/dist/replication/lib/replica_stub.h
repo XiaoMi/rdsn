@@ -108,6 +108,7 @@ public:
     //        - prepare
     //        - commit
     //        - learn
+    //        - bulk_load
     //
     void on_prepare(dsn::message_ex *request);
     void on_learn(dsn::message_ex *msg);
@@ -117,6 +118,8 @@ public:
     void on_remove(const replica_configuration &request);
     void on_group_check(const group_check_request &request, /*out*/ group_check_response &response);
     void on_copy_checkpoint(const replica_configuration &request, /*out*/ learn_response &response);
+    void on_group_bulk_load(const group_bulk_load_request &request,
+                            /*out*/ group_bulk_load_response &response);
 
     //
     //    functions while executing partition split
@@ -333,6 +336,7 @@ private:
     dsn_handle_t _release_tcmalloc_memory_command;
     dsn_handle_t _max_reserved_memory_percentage_command;
 #endif
+    dsn_handle_t _max_concurrent_bulk_load_downloading_count_command;
 
     bool _deny_client;
     bool _verbose_client_log;
@@ -341,6 +345,7 @@ private:
     int32_t _gc_disk_garbage_replica_interval_seconds;
     bool _release_tcmalloc_memory;
     int32_t _mem_release_max_reserved_mem_percentage;
+    int32_t _max_concurrent_bulk_load_downloading_count;
 
     // we limit LT_APP max concurrent count, because nfs service implementation is
     // too simple, it do not support priority.
@@ -361,6 +366,9 @@ private:
 
     // write body size exceed this threshold will be logged and reject, 0 means no check
     uint64_t _max_allowed_write_size;
+
+    // replica count exectuting bulk load downloading concurrently
+    std::atomic_int _bulk_load_downloading_count;
 
     // performance counters
     perf_counter_wrapper _counter_replicas_count;
