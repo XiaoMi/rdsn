@@ -309,7 +309,7 @@ public:
         std::string invalid_remote = "test-invalid-remote";
         std::string ok_remote = "slave-cluster";
 
-        std::string cluster_without_address = "cluster_without_address";
+        std::string cluster_without_address = "cluster_without_address_for_test";
 
         create_app(test_app);
 
