@@ -36,7 +36,6 @@
 
 #include <dsn/service_api_c.h>
 #include <dsn/tool-api/task.h>
-#include <dsn/tool-api/env_provider.h>
 #include <dsn/tool-api/zlocks.h>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/synchronize.h>
@@ -46,8 +45,6 @@
 
 #include "task_engine.h"
 #include "service_engine.h"
-#include "service_engine.h"
-#include "disk_engine.h"
 #include "rpc_engine.h"
 
 namespace dsn {
@@ -76,7 +73,6 @@ __thread uint16_t tls_dsn_lower32_task_id_mask = 0;
         tls_dsn.worker_index = worker ? worker->index() : -1;
         tls_dsn.current_task = nullptr;
         tls_dsn.rpc = node->rpc();
-        tls_dsn.disk = node->disk();
         tls_dsn.env = service_engine::instance().env();
     }
 
@@ -439,6 +435,11 @@ void task::enqueue(task_worker_pool *pool)
     pool->enqueue(this);
 }
 
+const std::vector<task_worker *> &get_threadpool_threads_info(threadpool_code code)
+{
+    return dsn::task::get_current_node2()->computation()->get_pool(code)->workers();
+}
+
 timer_task::timer_task(
     task_code code, const task_handler &cb, int interval_milliseconds, int hash, service_node *node)
     : task(code, hash, node), _interval_milliseconds(interval_milliseconds), _cb(cb)
@@ -584,53 +585,6 @@ void rpc_response_task::enqueue()
         auto pool = node()->computation()->get_pool(spec().pool_code);
         task::enqueue(pool);
     }
-}
-
-aio_task::aio_task(dsn::task_code code, const aio_handler &cb, int hash, service_node *node)
-    : aio_task(code, aio_handler(cb), hash, node)
-{
-}
-
-aio_task::aio_task(dsn::task_code code, aio_handler &&cb, int hash, service_node *node)
-    : task(code, hash, node), _cb(std::move(cb))
-{
-    _is_null = (_cb == nullptr);
-
-    dassert(TASK_TYPE_AIO == spec().type,
-            "%s is not of AIO type, please use DEFINE_TASK_CODE_AIO to define the task code",
-            spec().name.c_str());
-    set_error_code(ERR_IO_PENDING);
-
-    disk_engine *disk = task::get_current_disk();
-    _aio_ctx = disk->prepare_aio_context(this);
-}
-
-void aio_task::collapse()
-{
-    if (!_unmerged_write_buffers.empty()) {
-        std::shared_ptr<char> buffer(dsn::utils::make_shared_array<char>(_aio_ctx->buffer_size));
-        char *dest = buffer.get();
-        for (const dsn_file_buffer_t &b : _unmerged_write_buffers) {
-            ::memcpy(dest, b.buffer, b.size);
-            dest += b.size;
-        }
-        dassert(dest - buffer.get() == _aio_ctx->buffer_size,
-                "%u VS %u",
-                dest - buffer.get(),
-                _aio_ctx->buffer_size);
-        _aio_ctx->buffer = buffer.get();
-        _merged_write_buffer_holder.assign(std::move(buffer), 0, _aio_ctx->buffer_size);
-    }
-}
-
-void aio_task::enqueue(error_code err, size_t transferred_size)
-{
-    set_error_code(err);
-    _transferred_size = transferred_size;
-
-    spec().on_aio_enqueue.execute(this);
-
-    task::enqueue(node()->computation()->get_pool(spec().pool_code));
 }
 
 } // namespace dsn

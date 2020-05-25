@@ -558,8 +558,10 @@ void meta_service::on_query_configuration_by_index(configuration_query_by_index_
     dinfo("rpc %s called", __FUNCTION__);
     rpc_address forward_address;
     int result = check_leader(rpc.dsn_request(), &forward_address);
-    if (result == 0)
+    if (result == 0) {
+        rpc.disable_auto_reply();
         return;
+    }
     if (result == -1 || !_started) {
         if (result == -1) {
             response.err = ERR_FORWARD_TO_OTHERS;
