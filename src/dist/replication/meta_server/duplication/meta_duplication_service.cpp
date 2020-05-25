@@ -154,7 +154,7 @@ void meta_duplication_service::add_duplication(duplication_add_rpc rpc)
     if (std::find(clusters.begin(), clusters.end(), request.remote_cluster_name) ==
         clusters.end()) {
         response.err = ERR_INVALID_PARAMETERS;
-        response.__set_hint("failed to find address of this cluster in config");
+        response.__set_hint("failed to find cluster address in config [pegasus.clusters]");
         return;
     }
 
