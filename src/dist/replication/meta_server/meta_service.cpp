@@ -361,7 +361,7 @@ void meta_service::register_rpc_handlers()
         RPC_CM_CLUSTER_INFO, "cluster_info", &meta_service::on_query_cluster_info);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_PROPOSE_BALANCER, "propose_balancer", &meta_service::on_propose_balancer);
-    register_rpc_handler(
+    register_rpc_handler_with_rpc_holder(
         RPC_CM_CONTROL_META, "control_meta_level", &meta_service::on_control_meta_level);
     register_rpc_handler(RPC_CM_START_RECOVERY, "start_recovery", &meta_service::on_start_recovery);
     register_rpc_handler(RPC_CM_START_RESTORE, "start_restore", &meta_service::on_start_restore);
@@ -635,17 +635,15 @@ void meta_service::on_update_configuration(dsn::message_ex *req)
                      server_state::sStateHash);
 }
 
-void meta_service::on_control_meta_level(dsn::message_ex *req)
+void meta_service::on_control_meta_level(configuration_meta_control_rpc rpc)
 {
-    configuration_meta_control_request request;
-    configuration_meta_control_response response;
-    RPC_CHECK_STATUS(req, response);
+    const configuration_meta_control_request &request = rpc.request();
+    configuration_meta_control_response &response = rpc.response();
+    RPC_CHECK_STATUS(rpc.dsn_request(), response);
 
-    dsn::unmarshall(req, request);
     response.err = ERR_OK;
     response.old_level = _function_level.load();
     if (request.level == meta_function_level::fl_invalid) {
-        reply(req, response);
         return;
     }
 
@@ -657,7 +655,6 @@ void meta_service::on_control_meta_level(dsn::message_ex *req)
     }
 
     _function_level.store(request.level);
-    reply(req, response);
 }
 
 void meta_service::on_propose_balancer(configuration_balancer_rpc rpc)

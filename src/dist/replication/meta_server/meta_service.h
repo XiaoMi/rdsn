@@ -81,6 +81,8 @@ typedef rpc_holder<configuration_cluster_info_request, configuration_cluster_inf
     configuration_cluster_info_rpc;
 typedef rpc_holder<configuration_balancer_request, configuration_balancer_response>
     configuration_balancer_rpc;
+typedef rpc_holder<configuration_meta_control_request, configuration_meta_control_response>
+    configuration_meta_control_rpc;
 
 class meta_service : public serverlet<meta_service>
 {
@@ -175,7 +177,7 @@ private:
     void on_query_cluster_info(configuration_cluster_info_rpc rpc);
 
     // meta control
-    void on_control_meta_level(dsn::message_ex *req);
+    void on_control_meta_level(configuration_meta_control_rpc rpc);
     void on_start_recovery(dsn::message_ex *req);
     void on_start_restore(dsn::message_ex *req);
     void on_add_backup_policy(dsn::message_ex *req);
