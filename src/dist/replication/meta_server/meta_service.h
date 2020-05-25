@@ -75,6 +75,8 @@ typedef rpc_holder<configuration_query_by_index_request, configuration_query_by_
     configuration_query_by_index_rpc;
 typedef rpc_holder<configuration_list_apps_request, configuration_list_apps_response>
     configuration_list_apps_rpc;
+typedef rpc_holder<configuration_list_nodes_request, configuration_list_nodes_response>
+    configuration_list_nodes_rpc;
 
 class meta_service : public serverlet<meta_service>
 {
@@ -157,7 +159,7 @@ private:
     void on_drop_app(dsn::message_ex *req);
     void on_recall_app(dsn::message_ex *req);
     void on_list_apps(configuration_list_apps_rpc rpc);
-    void on_list_nodes(dsn::message_ex *req);
+    void on_list_nodes(configuration_list_nodes_rpc rpc);
 
     // app env operations
     void update_app_env(app_env_rpc env_rpc);
