@@ -101,21 +101,19 @@ error_code replica::do_download(const std::string &remote_dir,
         if (utils::filesystem::file_exists(local_file_name)) {
             std::string current_md5;
             error_code e = utils::filesystem::md5sum(local_file_name, current_md5);
-            if (e != ERR_OK) {
-                dwarn_replica("calculate file({}) md5 failed, should remove and redownload it",
-                              local_file_name);
-                if (!utils::filesystem::remove_path(local_file_name)) {
-                    derror_replica("failed to remove file({})", local_file_name);
-                    download_err = e;
-                    return;
+            if (e != ERR_OK || current_md5 != bf->get_md5sum()) {
+                if (e != ERR_OK) {
+                    dwarn_replica("calculate file({}) md5 failed, should remove and redownload it",
+                                  local_file_name);
+                } else {
+                    dwarn_replica(
+                        "local file({}) is different from remote file({}), md5: local({}) VS "
+                        "remote({}), should remove and redownload it",
+                        local_file_name,
+                        bf->file_name(),
+                        current_md5,
+                        bf->get_md5sum());
                 }
-            } else if (current_md5 != bf->get_md5sum()) {
-                dwarn_replica("local file({}) is not same with remote file({}), md5: local({}) VS "
-                              "remote({}), should remove and redownload it",
-                              local_file_name,
-                              bf->file_name(),
-                              current_md5,
-                              bf->get_md5sum());
                 if (!utils::filesystem::remove_path(local_file_name)) {
                     derror_replica("failed to remove file({})", local_file_name);
                     download_err = e;
