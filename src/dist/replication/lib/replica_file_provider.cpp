@@ -59,12 +59,13 @@ error_code replica::do_download(const std::string &remote_dir,
             return;
         }
         if (current_md5 != bf->get_md5sum()) {
-            derror_replica("local file({}) is not same with remote file({}), download failed, md5: "
-                           "local({}) VS remote({})",
-                           local_file_name,
-                           bf->file_name(),
-                           current_md5,
-                           bf->get_md5sum());
+            derror_replica(
+                "local file({}) is different from remote file({}), download failed, md5: "
+                "local({}) VS remote({})",
+                local_file_name,
+                bf->file_name(),
+                current_md5,
+                bf->get_md5sum());
             download_err = ERR_CORRUPTION;
             return;
         }
