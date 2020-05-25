@@ -363,7 +363,8 @@ void meta_service::register_rpc_handlers()
         RPC_CM_PROPOSE_BALANCER, "propose_balancer", &meta_service::on_propose_balancer);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_CONTROL_META, "control_meta_level", &meta_service::on_control_meta_level);
-    register_rpc_handler(RPC_CM_START_RECOVERY, "start_recovery", &meta_service::on_start_recovery);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_START_RECOVERY, "start_recovery", &meta_service::on_start_recovery);
     register_rpc_handler(RPC_CM_START_RESTORE, "start_restore", &meta_service::on_start_restore);
     register_rpc_handler(
         RPC_CM_ADD_BACKUP_POLICY, "add_backup_policy", &meta_service::on_add_backup_policy);
@@ -669,13 +670,14 @@ void meta_service::on_propose_balancer(configuration_balancer_rpc rpc)
     _state->on_propose_balancer(request, response);
 }
 
-void meta_service::on_start_recovery(dsn::message_ex *req)
+void meta_service::on_start_recovery(configuration_recovery_rpc rpc)
 {
-    configuration_recovery_response response;
+    configuration_recovery_response &response = rpc.response();
     ddebug("got start recovery request, start to do recovery");
-    int result = check_leader(req, nullptr);
+    int result = check_leader(rpc.dsn_request(), nullptr);
     if (result == 0) // request has been forwarded to others
     {
+        rpc.disable_auto_reply();
         return;
     }
 
@@ -688,8 +690,7 @@ void meta_service::on_start_recovery(dsn::message_ex *req)
                    dsn_primary_address().to_string());
             response.err = ERR_SERVICE_ALREADY_RUNNING;
         } else {
-            configuration_recovery_request request;
-            dsn::unmarshall(req, request);
+            const configuration_recovery_request &request = rpc.request();
             _state->on_start_recovery(request, response);
             if (response.err == dsn::ERR_OK) {
                 _recovering = false;
@@ -697,7 +698,6 @@ void meta_service::on_start_recovery(dsn::message_ex *req)
             }
         }
     }
-    reply(req, response);
 }
 
 void meta_service::on_start_restore(dsn::message_ex *req)

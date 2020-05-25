@@ -83,6 +83,8 @@ typedef rpc_holder<configuration_balancer_request, configuration_balancer_respon
     configuration_balancer_rpc;
 typedef rpc_holder<configuration_meta_control_request, configuration_meta_control_response>
     configuration_meta_control_rpc;
+typedef rpc_holder<configuration_recovery_request, configuration_recovery_response>
+    configuration_recovery_rpc;
 
 class meta_service : public serverlet<meta_service>
 {
@@ -178,7 +180,7 @@ private:
 
     // meta control
     void on_control_meta_level(configuration_meta_control_rpc rpc);
-    void on_start_recovery(dsn::message_ex *req);
+    void on_start_recovery(configuration_recovery_rpc rpc);
     void on_start_restore(dsn::message_ex *req);
     void on_add_backup_policy(dsn::message_ex *req);
     void on_query_backup_policy(query_backup_policy_rpc policy_rpc);
