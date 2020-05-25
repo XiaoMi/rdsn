@@ -359,7 +359,7 @@ void meta_service::register_rpc_handlers()
         RPC_CM_LIST_NODES, "list_nodes", &meta_service::on_list_nodes);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_CLUSTER_INFO, "cluster_info", &meta_service::on_query_cluster_info);
-    register_rpc_handler(
+    register_rpc_handler_with_rpc_holder(
         RPC_CM_PROPOSE_BALANCER, "propose_balancer", &meta_service::on_propose_balancer);
     register_rpc_handler(
         RPC_CM_CONTROL_META, "control_meta_level", &meta_service::on_control_meta_level);
@@ -660,18 +660,16 @@ void meta_service::on_control_meta_level(dsn::message_ex *req)
     reply(req, response);
 }
 
-void meta_service::on_propose_balancer(dsn::message_ex *req)
+void meta_service::on_propose_balancer(configuration_balancer_rpc rpc)
 {
-    configuration_balancer_request request;
-    configuration_balancer_response response;
-    RPC_CHECK_STATUS(req, response);
+    const configuration_balancer_request &request = rpc.request();
+    configuration_balancer_response &response = rpc.response();
+    RPC_CHECK_STATUS(rpc.dsn_request(), response);
 
-    dsn::unmarshall(req, request);
     ddebug("get proposal balancer request, gpid(%d.%d)",
            request.gpid.get_app_id(),
            request.gpid.get_partition_index());
     _state->on_propose_balancer(request, response);
-    reply(req, response);
 }
 
 void meta_service::on_start_recovery(dsn::message_ex *req)

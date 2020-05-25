@@ -79,6 +79,8 @@ typedef rpc_holder<configuration_list_nodes_request, configuration_list_nodes_re
     configuration_list_nodes_rpc;
 typedef rpc_holder<configuration_cluster_info_request, configuration_cluster_info_response>
     configuration_cluster_info_rpc;
+typedef rpc_holder<configuration_balancer_request, configuration_balancer_response>
+    configuration_balancer_rpc;
 
 class meta_service : public serverlet<meta_service>
 {
@@ -153,7 +155,7 @@ private:
     void on_config_sync(configuration_query_by_node_rpc rpc);
 
     // update configuration
-    void on_propose_balancer(dsn::message_ex *req);
+    void on_propose_balancer(configuration_balancer_rpc rpc);
     void on_update_configuration(dsn::message_ex *req);
 
     // app operations
