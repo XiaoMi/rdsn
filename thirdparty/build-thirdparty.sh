@@ -50,13 +50,24 @@ mkdir -p $TP_OUTPUT/bin
 
 # build concurrentqueue
 if [ ! -d $TP_OUTPUT/include/concurrentqueue ]; then
-    cd $TP_SRC/concurrentqueue-1.0.0-beta
+    cd $TP_SRC/concurrentqueue-1.0.1
     mkdir -p $TP_OUTPUT/include/concurrentqueue
-    cp -R blockingconcurrentqueue.h concurrentqueue.h internal/ $TP_OUTPUT/include/concurrentqueue
+    cp -R blockingconcurrentqueue.h concurrentqueue.h lightweightsemaphore.h internal/ $TP_OUTPUT/include/concurrentqueue
     cd $TP_DIR
     exit_if_fail "concurrentqueue" $?
 else
     echo "skip build concurrentqueue"
+fi
+
+# build readerwriterqueue
+if [ ! -d $TP_OUTPUT/include/readerwriterqueue ]; then
+    cd $TP_SRC/readerwriterqueue-1.0.2
+    mkdir -p $TP_OUTPUT/include/readerwriterqueue
+    cp -R atomicops.h readerwriterqueue.h $TP_OUTPUT/include/readerwriterqueue
+    cd $TP_DIR
+    exit_if_fail "readerwriterqueue" $?
+else
+    echo "skip build readerwriterqueue"
 fi
 
 # build gtest

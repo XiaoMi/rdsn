@@ -64,6 +64,7 @@ class replica_stub;
 class replication_checker;
 class replica_duplicator_manager;
 class replica_backup_manager;
+class replica_bulk_loader;
 
 namespace test {
 class test_checker;
@@ -184,6 +185,11 @@ public:
     replica_backup_manager *get_backup_manager() const { return _backup_mgr.get(); }
 
     void update_last_checkpoint_generate_time();
+
+    //
+    // Bulk load
+    //
+    replica_bulk_loader *get_bulk_loader() const { return _bulk_loader.get(); }
 
     //
     // Statistics
@@ -424,21 +430,16 @@ private:
 
     void init_table_level_latency_counters();
 
-    /////////////////////////////////////////////////////////////////
-    // replica bulk load
-    void on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_response &response);
-    void broadcast_group_bulk_load(const bulk_load_request &meta_req);
-
-    error_code do_bulk_load(const std::string &app_name,
-                            bulk_load_status::type meta_status,
-                            const std::string &cluster_name,
-                            const std::string &provider_name);
-
-    void report_bulk_load_states_to_meta(bulk_load_status::type remote_status,
-                                         bool report_metadata,
-                                         /*out*/ bulk_load_response &response);
-
-    bulk_load_status::type get_bulk_load_status() { return _bulk_load_context._status; }
+    // download files from remote file system
+    // \return  ERR_FILE_OPERATION_FAILED: local file system error
+    // \return  ERR_FS_INTERNAL: remote file system error
+    // \return  ERR_CORRUPTION: file not exist or damaged
+    // if download file succeed, download_err = ERR_OK and set download_file_size
+    error_code do_download(const std::string &remote_dir,
+                           const std::string &local_dir,
+                           const std::string &file_name,
+                           dist::block_service::block_filesystem *fs,
+                           /*out*/ uint64_t &download_file_size);
 
 private:
     friend class ::dsn::replication::replication_checker;
@@ -453,7 +454,7 @@ private:
     friend class replica_split_test;
     friend class replica_test;
     friend class replica_backup_manager;
-    friend class replica_bulk_load_test;
+    friend class replica_bulk_loader;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -501,7 +502,6 @@ private:
     // policy_name --> cold_backup_context
     std::map<std::string, cold_backup_context_ptr> _cold_backup_contexts;
     partition_split_context _split_states;
-    bulk_load_context _bulk_load_context;
 
     // timer task that running in replication-thread
     std::atomic<uint64_t> _cold_backup_running_count;
@@ -543,6 +543,9 @@ private:
     // in normal cases, _partition_version = partition_count-1
     // when replica reject client read write request, partition_version = -1
     std::atomic<int32_t> _partition_version;
+
+    // bulk load
+    std::unique_ptr<replica_bulk_loader> _bulk_loader;
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
