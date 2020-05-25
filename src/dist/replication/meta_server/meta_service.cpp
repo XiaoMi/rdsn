@@ -690,8 +690,7 @@ void meta_service::on_start_recovery(configuration_recovery_rpc rpc)
                    dsn_primary_address().to_string());
             response.err = ERR_SERVICE_ALREADY_RUNNING;
         } else {
-            const configuration_recovery_request &request = rpc.request();
-            _state->on_start_recovery(request, response);
+            _state->on_start_recovery(rpc.request(), response);
             if (response.err == dsn::ERR_OK) {
                 _recovering = false;
                 start_service();
