@@ -145,11 +145,10 @@ void meta_service_test_app::call_config_sync(
 
     auto rpc = rpc_holder<configuration_query_by_node_request,
                           configuration_query_by_node_response>::auto_reply(recvd_request);
-    dsn::tasking::enqueue(
-        LPC_META_STATE_HIGH,
-        nullptr,
-        std::bind(&server_state::on_config_sync, svc->_state.get(), rpc.request(), rpc.response()),
-        server_state::sStateHash);
+    dsn::tasking::enqueue(LPC_META_STATE_HIGH,
+                          nullptr,
+                          std::bind(&server_state::on_config_sync, svc->_state.get(), rpc),
+                          server_state::sStateHash);
 }
 
 bool meta_service_test_app::wait_state(server_state *ss, const state_validator &validator, int time)

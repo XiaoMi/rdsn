@@ -607,11 +607,10 @@ void meta_service::on_config_sync(configuration_query_by_node_rpc rpc)
         // AFTER the node dead is dispatch
         // AFTER the node dead event
         zauto_lock l(_failure_detector->_lock);
-        tasking::enqueue(
-            LPC_META_STATE_HIGH,
-            nullptr,
-            std::bind(&server_state::on_config_sync, _state.get(), rpc.request(), rpc.response()),
-            server_state::sStateHash);
+        tasking::enqueue(LPC_META_STATE_HIGH,
+                         nullptr,
+                         std::bind(&server_state::on_config_sync, _state.get(), rpc),
+                         server_state::sStateHash);
     }
 }
 
