@@ -102,24 +102,25 @@ bool replica::verify_checkpoint(const cold_backup_metadata &backup_metadata,
                              backup_metadata.files.end(),
                              [&file_name](const file_meta &f) { return f.name == file_name; });
 
-    // There is no need to verify this file if it is not included in backup_metadata
+    // There is no need to verify this file if it is not included in backup_metadata, and this file
+    // which is not included in backup_metadata will deleted by remove_useless_file_under_chkpt
     if (iter == backup_metadata.files.end()) {
         return true;
     }
 
-    std::string local_file = ::dsn::utils::filesystem::path_combine(chkpt_dir, file_name);
+    const std::string local_file = ::dsn::utils::filesystem::path_combine(chkpt_dir, file_name);
     int64_t file_sz = 0;
     std::string md5;
     if (!::dsn::utils::filesystem::file_size(local_file, file_sz)) {
-        derror("%s: get file(%s) size failed", name(), local_file.c_str());
+        derror_f("get file({}) size failed", local_file);
         return false;
     }
     if (::dsn::utils::filesystem::md5sum(local_file, md5) != ERR_OK) {
-        derror("%s: get file(%s) md5 failed", name(), local_file.c_str());
+        derror_f("get file({}) md5 failed", local_file);
         return false;
     }
     if (file_sz != iter->size || md5 != iter->md5) {
-        derror("%s: file(%s) under checkpoint is damaged", name(), local_file.c_str());
+        derror_f("file({}) under checkpoint is damaged", local_file);
         return false;
     }
     return true;
@@ -139,7 +140,7 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                                  fs,
                                  download_file_size);
     if (err != ERR_OK) {
-        std::string remote_backup_metadata_file = utils::filesystem::path_combine(
+        const std::string remote_backup_metadata_file = utils::filesystem::path_combine(
             remote_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
         derror_f("download backup_metadata failed, file({}), reason({})",
                  remote_backup_metadata_file,
@@ -188,7 +189,7 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                 } else {
                     _cur_download_size.fetch_add(f_size);
                     update_restore_progress();
-                    std::string local_file =
+                    const std::string local_file =
                         utils::filesystem::path_combine(local_chkpt_dir, f_meta.name);
                     ddebug_f("download file({}) succeed, size({}), progress({})",
                              local_file,
@@ -376,8 +377,7 @@ dsn::error_code replica::restore_checkpoint()
 
 dsn::error_code replica::skip_restore_partition(const std::string &restore_dir)
 {
-    // Attention: when skip restore partition, we should not delete restore_dir, but we must
-    // clear
+    // Attention: when skip restore partition, we should not delete restore_dir, but we must clear
     // it because we use restore_dir to tell storage engine that start an app from restore
     if (utils::filesystem::remove_path(restore_dir) &&
         utils::filesystem::create_directory(restore_dir)) {
