@@ -7,6 +7,7 @@
 #include <dsn/utility/utils.h>
 
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/dist/fmt_logging.h>
 
 #include "replica.h"
 #include "mutation_log.h"
@@ -94,177 +95,63 @@ bool replica::read_cold_backup_metadata(const std::string &file,
 
 // verify whether the checkpoint directory is damaged base on backup_metadata under the chkpt
 bool replica::verify_checkpoint(const cold_backup_metadata &backup_metadata,
-                                const std::string &chkpt_dir)
+                                const std::string &chkpt_dir,
+                                const std::string &file_name)
 {
-    for (const auto &f_meta : backup_metadata.files) {
-        std::string local_file = ::dsn::utils::filesystem::path_combine(chkpt_dir, f_meta.name);
-        int64_t file_sz = 0;
-        std::string md5;
-        if (!::dsn::utils::filesystem::file_size(local_file, file_sz)) {
-            derror("%s: get file(%s) size failed", name(), local_file.c_str());
-            return false;
-        }
-        if (::dsn::utils::filesystem::md5sum(local_file, md5) != ERR_OK) {
-            derror("%s: get file(%s) md5 failed", name(), local_file.c_str());
-            return false;
-        }
-        if (file_sz != f_meta.size || md5 != f_meta.md5) {
-            derror("%s: file(%s) under checkpoint is damaged", name(), local_file.c_str());
-            return false;
-        }
+    auto iter = std::find_if(backup_metadata.files.begin(),
+                             backup_metadata.files.end(),
+                             [&file_name](const file_meta &f) { return f.name == file_name; });
+
+    // There is no need to verify this file if it is not included in backup_metadata
+    if (iter == backup_metadata.files.end()) {
+        return true;
     }
-    return remove_useless_file_under_chkpt(chkpt_dir, backup_metadata);
+
+    std::string local_file = ::dsn::utils::filesystem::path_combine(chkpt_dir, file_name);
+    int64_t file_sz = 0;
+    std::string md5;
+    if (!::dsn::utils::filesystem::file_size(local_file, file_sz)) {
+        derror("%s: get file(%s) size failed", name(), local_file.c_str());
+        return false;
+    }
+    if (::dsn::utils::filesystem::md5sum(local_file, md5) != ERR_OK) {
+        derror("%s: get file(%s) md5 failed", name(), local_file.c_str());
+        return false;
+    }
+    if (file_sz != iter->size || md5 != iter->md5) {
+        derror("%s: file(%s) under checkpoint is damaged", name(), local_file.c_str());
+        return false;
+    }
+    return true;
 }
 
-dsn::error_code replica::download_checkpoint(const configuration_restore_request &req,
-                                             const std::string &remote_chkpt_dir,
-                                             const std::string &local_chkpt_dir)
+error_code replica::download_checkpoint(const configuration_restore_request &req,
+                                        const std::string &remote_chkpt_dir,
+                                        const std::string &local_chkpt_dir)
 {
     block_filesystem *fs =
         _stub->_block_service_manager.get_block_filesystem(req.backup_provider_name);
 
-    dsn::error_code err = dsn::ERR_OK;
-    dsn::task_tracker tracker;
-
-    auto download_file_callback_func = [this, &err](
-        const download_response &d_resp, block_file_ptr f, const std::string &local_file) {
-        if (d_resp.err != dsn::ERR_OK) {
-            if (d_resp.err == ERR_OBJECT_NOT_FOUND) {
-                derror("%s: partition-data on cold backup media is damaged", name());
-                _restore_status = ERR_CORRUPTION;
-            }
-            err = d_resp.err;
-        } else {
-            // TODO: find a better way to replace dassert
-            dassert(d_resp.downloaded_size == f->get_size(),
-                    "%s: size not match when download file(%s), total(%lld) vs downloaded(%lld)",
-                    name(),
-                    f->file_name().c_str(),
-                    f->get_size(),
-                    d_resp.downloaded_size);
-            std::string current_md5;
-            dsn::error_code e = utils::filesystem::md5sum(local_file, current_md5);
-            if (e != dsn::ERR_OK) {
-                derror("%s: calc md5sum(%s) failed", name(), local_file.c_str());
-                err = e;
-            } else if (current_md5 != f->get_md5sum()) {
-                ddebug(
-                    "%s: local file(%s) not same with remote file(%s), download failed, %s VS %s",
-                    name(),
-                    local_file.c_str(),
-                    f->file_name().c_str(),
-                    current_md5.c_str(),
-                    f->get_md5sum().c_str());
-                err = ERR_FILE_OPERATION_FAILED;
-            } else {
-                _cur_download_size.fetch_add(f->get_size());
-                update_restore_progress();
-                ddebug("%s: download file(%s) succeed, size(%" PRId64 "), progress(%d)",
-                       name(),
-                       local_file.c_str(),
-                       d_resp.downloaded_size,
-                       _restore_progress.load());
-                report_restore_status_to_meta();
-            }
-        }
-    };
-
-    auto create_file_callback_func = [this,
-                                      &err,
-                                      &local_chkpt_dir,
-                                      &tracker,
-                                      &download_file_callback_func](
-        const create_file_response &cr, const std::string &remote_file) {
-        if (cr.err != dsn::ERR_OK) {
-            derror("%s: create file(%s) failed with err(%s)",
-                   name(),
-                   remote_file.c_str(),
-                   cr.err.to_string());
-            err = cr.err;
-        } else {
-            block_file *f = cr.file_handle.get();
-            // dassert(!f->get_md5sum().empty(), "can't get md5 for (%s)",
-            // f->file_name().c_str());
-            if (f->get_md5sum().empty()) {
-                derror("%s: file(%s) doesn't on cold backup media", name(), f->file_name().c_str());
-                // partition-data is damaged
-                _restore_status = ERR_CORRUPTION;
-                err = ERR_CORRUPTION;
-                return;
-            }
-            std::string local_file = utils::filesystem::path_combine(local_chkpt_dir, remote_file);
-            bool download_file = false;
-            if (!utils::filesystem::file_exists(local_file)) {
-                ddebug("%s: local file(%s) not exist, download it from remote file(%s)",
-                       name(),
-                       local_file.c_str(),
-                       f->file_name().c_str());
-                download_file = true;
-            } else {
-                std::string current_md5;
-                dsn::error_code e = utils::filesystem::md5sum(local_file, current_md5);
-                if (e != dsn::ERR_OK) {
-                    derror("%s: calc md5sum(%s) failed", name(), local_file.c_str());
-                    // here we just retry and download it
-                    if (!utils::filesystem::remove_path(local_file)) {
-                        err = e;
-                        return;
-                    }
-                    download_file = true;
-                } else if (current_md5 != f->get_md5sum()) {
-                    ddebug("%s: local file(%s) not same with remote file(%s), redownload, "
-                           "%s VS %s",
-                           name(),
-                           local_file.c_str(),
-                           f->file_name().c_str(),
-                           current_md5.c_str(),
-                           f->get_md5sum().c_str());
-                    download_file = true;
-                } else {
-                    ddebug("%s: local file(%s) has been downloaded, just ignore",
-                           name(),
-                           local_file.c_str());
-                }
-            }
-
-            if (download_file) {
-                f->download(download_request{local_file, 0, -1},
-                            TASK_CODE_EXEC_INLINED,
-                            std::bind(download_file_callback_func,
-                                      std::placeholders::_1,
-                                      cr.file_handle,
-                                      local_file),
-                            &tracker);
-            }
-        }
-    };
-
-    // first get the total size of checkpoint through download backup_metadata
-    std::string remote_backup_metadata_file =
-        utils::filesystem::path_combine(remote_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
-
-    fs->create_file(create_file_request{remote_backup_metadata_file, false},
-                    TASK_CODE_EXEC_INLINED,
-                    std::bind(create_file_callback_func,
-                              std::placeholders::_1,
-                              cold_backup_constant::BACKUP_METADATA),
-                    &tracker);
-    tracker.wait_outstanding_tasks();
-
+    uint64_t download_file_size = 0;
+    error_code err = do_download(remote_chkpt_dir,
+                                 local_chkpt_dir,
+                                 cold_backup_constant::BACKUP_METADATA,
+                                 fs,
+                                 download_file_size);
     if (err != ERR_OK) {
-        derror("%s: download backup_metadata failed, file(%s), reason(%s)",
-               name(),
-               remote_backup_metadata_file.c_str(),
-               err.to_string());
+        std::string remote_backup_metadata_file = utils::filesystem::path_combine(
+            remote_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
+        derror_f("download backup_metadata failed, file({}), reason({})",
+                 remote_backup_metadata_file,
+                 err);
         return err;
     }
+
     cold_backup_metadata backup_metadata;
     std::string local_backup_metada_file =
         utils::filesystem::path_combine(local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
     if (!read_cold_backup_metadata(local_backup_metada_file, backup_metadata)) {
-        derror("%s: recover cold_backup_metadata from file(%s) failed",
-               name(),
-               local_backup_metada_file.c_str());
+        derror_f("recover cold_backup_metadata from file({}) failed", local_backup_metada_file);
         return ERR_FILE_OPERATION_FAILED;
     }
 
@@ -272,40 +159,60 @@ dsn::error_code replica::download_checkpoint(const configuration_restore_request
     // after downloading backup_metadata succeed, _cur_download_size will incr by the size of
     // backup_metadata, so will reset it
     _cur_download_size.store(0);
-    ddebug("%s: recover cold_backup_metadata from file(%s) succeed, total checkpoint size(%" PRId64
-           "), file count(%d)",
-           name(),
-           local_backup_metada_file.c_str(),
-           _chkpt_total_size,
-           backup_metadata.files.size());
+    ddebug_f("recover cold_backup_metadata from file({}) succeed, total checkpoint size({}), file "
+             "count({})",
+             local_backup_metada_file,
+             _chkpt_total_size,
+             backup_metadata.files.size());
 
+    dsn::task_tracker tracker;
     for (const auto &f_meta : backup_metadata.files) {
-        std::string remote_file = utils::filesystem::path_combine(remote_chkpt_dir, f_meta.name);
-        fs->create_file(create_file_request{remote_file, false},
-                        TASK_CODE_EXEC_INLINED,
-                        std::bind(create_file_callback_func, std::placeholders::_1, f_meta.name),
-                        &tracker);
+        tasking::enqueue(
+            LPC_REPLICATION_LONG_COMMON,
+            &tracker,
+            [this, &err, backup_metadata, remote_chkpt_dir, local_chkpt_dir, f_meta, fs]() {
+                uint64_t f_size = 0;
+                err = do_download(remote_chkpt_dir, local_chkpt_dir, f_meta.name, fs, f_size);
+                if (err != dsn::ERR_OK) {
+                    if (err == ERR_OBJECT_NOT_FOUND) {
+                        derror_f("partition-data on cold backup media is damaged");
+                        _restore_status = ERR_CORRUPTION;
+                    }
+                    return;
+                }
+
+                if (!verify_checkpoint(backup_metadata, local_chkpt_dir, f_meta.name)) {
+                    derror_f("checkpoint is damaged, chkpt = {}", local_chkpt_dir);
+                    err = ERR_CORRUPTION;
+                    _restore_status = ERR_CORRUPTION;
+                } else {
+                    _cur_download_size.fetch_add(f_size);
+                    update_restore_progress();
+                    std::string local_file =
+                        utils::filesystem::path_combine(local_chkpt_dir, f_meta.name);
+                    ddebug_f("download file({}) succeed, size({}), progress({})",
+                             local_file,
+                             f_size,
+                             _restore_progress.load());
+                    report_restore_status_to_meta();
+                }
+            });
     }
     tracker.wait_outstanding_tasks();
 
     if (err == ERR_OK) {
-        if (!verify_checkpoint(backup_metadata, local_chkpt_dir)) {
-            derror("%s: checkpoint is damaged, chkpt = %s", name(), local_chkpt_dir.c_str());
-            // if checkpoint is damaged, using corruption to represent it
-            err = ERR_CORRUPTION;
-            _restore_status = ERR_CORRUPTION;
+        if (!remove_useless_file_under_chkpt(local_chkpt_dir, backup_metadata)) {
+            dwarn_f("remove useless file failed, chkpt = {}", local_chkpt_dir);
         } else {
-            ddebug("%s: checkpoint is valid, chkpt = %s", name(), local_chkpt_dir.c_str());
-            // checkpoint is valid, we should delete the backup_metadata under checkpoint
-            std::string metadata_file = ::dsn::utils::filesystem::path_combine(
-                local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
-            if (!::dsn::utils::filesystem::remove_path(metadata_file)) {
-                dwarn(
-                    "%s: remove backup_metadata failed, file = %s", name(), metadata_file.c_str());
-            } else {
-                ddebug(
-                    "%s: remove backup_metadata succeed, file = %s", name(), metadata_file.c_str());
-            }
+            ddebug_f("remove useless file succeed, chkpt = {}", local_chkpt_dir);
+        }
+
+        std::string metadata_file = ::dsn::utils::filesystem::path_combine(
+            local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
+        if (!::dsn::utils::filesystem::remove_path(metadata_file)) {
+            dwarn_f("remove backup_metadata failed, file = {}", metadata_file);
+        } else {
+            ddebug_f("remove backup_metadata succeed, file = {}", metadata_file);
         }
     }
     return err;
@@ -469,7 +376,8 @@ dsn::error_code replica::restore_checkpoint()
 
 dsn::error_code replica::skip_restore_partition(const std::string &restore_dir)
 {
-    // Attention: when skip restore partition, we should not delete restore_dir, but we must clear
+    // Attention: when skip restore partition, we should not delete restore_dir, but we must
+    // clear
     // it because we use restore_dir to tell storage engine that start an app from restore
     if (utils::filesystem::remove_path(restore_dir) &&
         utils::filesystem::create_directory(restore_dir)) {
