@@ -108,14 +108,14 @@ bool replica::verify_checkpoint(const cold_backup_metadata &backup_metadata,
         return true;
     }
 
-    const std::string local_file = ::dsn::utils::filesystem::path_combine(chkpt_dir, file_name);
+    const std::string local_file = utils::filesystem::path_combine(chkpt_dir, file_name);
     int64_t file_sz = 0;
     std::string md5;
-    if (!::dsn::utils::filesystem::file_size(local_file, file_sz)) {
+    if (!utils::filesystem::file_size(local_file, file_sz)) {
         derror_f("get file({}) size failed", local_file);
         return false;
     }
-    if (::dsn::utils::filesystem::md5sum(local_file, md5) != ERR_OK) {
+    if (utils::filesystem::md5sum(local_file, md5) != ERR_OK) {
         derror_f("get file({}) md5 failed", local_file);
         return false;
     }
@@ -166,7 +166,7 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
              _chkpt_total_size,
              backup_metadata.files.size());
 
-    dsn::task_tracker tracker;
+    task_tracker tracker;
     for (const auto &f_meta : backup_metadata.files) {
         tasking::enqueue(
             LPC_REPLICATION_LONG_COMMON,
@@ -174,7 +174,7 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
             [this, &err, backup_metadata, remote_chkpt_dir, local_chkpt_dir, f_meta, fs]() {
                 uint64_t f_size = 0;
                 err = do_download(remote_chkpt_dir, local_chkpt_dir, f_meta.name, fs, f_size);
-                if (err != dsn::ERR_OK) {
+                if (err != ERR_OK) {
                     if (err == ERR_OBJECT_NOT_FOUND) {
                         derror_f("partition-data on cold backup media is damaged");
                         _restore_status = ERR_CORRUPTION;
@@ -208,9 +208,9 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
             ddebug_f("remove useless file succeed, chkpt = {}", local_chkpt_dir);
         }
 
-        std::string metadata_file = ::dsn::utils::filesystem::path_combine(
-            local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
-        if (!::dsn::utils::filesystem::remove_path(metadata_file)) {
+        std::string metadata_file =
+            utils::filesystem::path_combine(local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
+        if (!utils::filesystem::remove_path(metadata_file)) {
             dwarn_f("remove backup_metadata failed, file = {}", metadata_file);
         } else {
             ddebug_f("remove backup_metadata succeed, file = {}", metadata_file);

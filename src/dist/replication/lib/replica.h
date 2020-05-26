@@ -343,9 +343,9 @@ private:
     // we should abandon these file base cold_backup_metadata
     bool remove_useless_file_under_chkpt(const std::string &chkpt_dir,
                                          const cold_backup_metadata &metadata);
-    dsn::error_code download_checkpoint(const configuration_restore_request &req,
-                                        const std::string &remote_chkpt_dir,
-                                        const std::string &local_chkpt_dir);
+    error_code download_checkpoint(const configuration_restore_request &req,
+                                   const std::string &remote_chkpt_dir,
+                                   const std::string &local_chkpt_dir);
     dsn::error_code find_valid_checkpoint(const configuration_restore_request &req,
                                           /*out*/ std::string &remote_chkpt_dir);
     dsn::error_code restore_checkpoint();
