@@ -162,11 +162,6 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
 
                 // update progress if download file succeed
                 update_restore_progress(f_size);
-                ddebug_replica("download file({}) succeed, size({}), progress({})",
-                               utils::filesystem::path_combine(local_chkpt_dir, f_meta.name),
-                               f_size,
-                               _restore_progress.load());
-
                 // report current status to meta server
                 report_restore_status_to_meta();
             });
@@ -474,15 +469,20 @@ void replica::report_restore_status_to_meta()
 
 void replica::update_restore_progress(uint64_t f_size)
 {
-    // have not be initialized
     if (_chkpt_total_size <= 0) {
+        derror_replica("cold_backup_metadata has invalid file_total_size({})", _chkpt_total_size);
         return;
     }
 
     _cur_download_size.fetch_add(f_size);
     auto total_size = static_cast<double>(_chkpt_total_size);
     auto cur_download_size = static_cast<double>(_cur_download_size.load());
-    _restore_progress.store(static_cast<int32_t>((cur_download_size / total_size) * 1000));
+    auto cur_porgress = static_cast<int32_t>((cur_download_size / total_size) * 1000);
+    _restore_progress.store(cur_porgress);
+    ddebug_replica("total_size = {}, cur_downloaded_size = {}, progress = {}",
+                   total_size,
+                   cur_download_size,
+                   cur_porgress);
 }
 }
 }
