@@ -112,15 +112,15 @@ bool replica::verify_checkpoint(const cold_backup_metadata &backup_metadata,
     int64_t file_sz = 0;
     std::string md5;
     if (!utils::filesystem::file_size(local_file, file_sz)) {
-        derror_f("get file({}) size failed", local_file);
+        derror_replica("get file({}) size failed", local_file);
         return false;
     }
     if (utils::filesystem::md5sum(local_file, md5) != ERR_OK) {
-        derror_f("get file({}) md5 failed", local_file);
+        derror_replica("get file({}) md5 failed", local_file);
         return false;
     }
     if (file_sz != iter->size || md5 != iter->md5) {
-        derror_f("file({}) under checkpoint is damaged", local_file);
+        derror_replica("file({}) under checkpoint is damaged", local_file);
         return false;
     }
     return true;
@@ -130,46 +130,16 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                                         const std::string &remote_chkpt_dir,
                                         const std::string &local_chkpt_dir)
 {
-    block_filesystem *fs =
-        _stub->_block_service_manager.get_block_filesystem(req.backup_provider_name);
-
-    // download metadata file
-    uint64_t download_file_size = 0;
-    error_code err = do_download(remote_chkpt_dir,
-                                 local_chkpt_dir,
-                                 cold_backup_constant::BACKUP_METADATA,
-                                 fs,
-                                 download_file_size);
+    // download metadata file and parse it into cold_backup_meta
+    cold_backup_metadata backup_metadata;
+    error_code err = get_backup_metadata(req, remote_chkpt_dir, local_chkpt_dir, backup_metadata);
     if (err != ERR_OK) {
-        derror_replica("download backup_metadata failed, file({}), reason({})",
-                       utils::filesystem::path_combine(remote_chkpt_dir,
-                                                       cold_backup_constant::BACKUP_METADATA),
-                       err);
         return err;
     }
 
-    // parse cold_backup_meta from metadata file
-    cold_backup_metadata backup_metadata;
-    std::string local_backup_metada_file =
-        utils::filesystem::path_combine(local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
-    if (!read_cold_backup_metadata(local_backup_metada_file, backup_metadata)) {
-        derror_replica("recover cold_backup_metadata from file({}) failed",
-                       local_backup_metada_file);
-        return ERR_FILE_OPERATION_FAILED;
-    }
-
-    _chkpt_total_size = backup_metadata.checkpoint_total_size;
-    // after downloading backup_metadata succeed, _cur_download_size will incr by the size of
-    // backup_metadata, so will reset it
-    _cur_download_size.store(0);
-    ddebug_replica(
-        "recover cold_backup_metadata from file({}) succeed, total checkpoint size({}), file "
-        "count({})",
-        local_backup_metada_file,
-        _chkpt_total_size,
-        backup_metadata.files.size());
-
     // download checkpoint files
+    block_filesystem *fs =
+        _stub->_block_service_manager.get_block_filesystem(req.backup_provider_name);
     task_tracker tracker;
     for (const auto &f_meta : backup_metadata.files) {
         tasking::enqueue(
@@ -210,6 +180,48 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
     }
 
     return err;
+}
+
+error_code replica::get_backup_metadata(const configuration_restore_request &req,
+                                        const std::string &remote_chkpt_dir,
+                                        const std::string &local_chkpt_dir,
+                                        cold_backup_metadata &backup_metadata)
+{
+    block_filesystem *fs =
+        _stub->_block_service_manager.get_block_filesystem(req.backup_provider_name);
+
+    // download metadata file
+    uint64_t download_file_size = 0;
+    error_code err = do_download(remote_chkpt_dir,
+                                 local_chkpt_dir,
+                                 cold_backup_constant::BACKUP_METADATA,
+                                 fs,
+                                 download_file_size);
+    if (err != ERR_OK) {
+        derror_replica("download backup_metadata failed, file({}), reason({})",
+                       utils::filesystem::path_combine(remote_chkpt_dir,
+                                                       cold_backup_constant::BACKUP_METADATA),
+                       err);
+        return err;
+    }
+
+    // parse cold_backup_meta from metadata file
+    std::string local_backup_metada_file =
+        utils::filesystem::path_combine(local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
+    if (!read_cold_backup_metadata(local_backup_metada_file, backup_metadata)) {
+        derror_replica("recover cold_backup_metadata from file({}) failed",
+                       local_backup_metada_file);
+        return ERR_FILE_OPERATION_FAILED;
+    }
+
+    _chkpt_total_size = backup_metadata.checkpoint_total_size;
+    ddebug_replica(
+        "recover cold_backup_metadata from file({}) succeed, total checkpoint size({}), file "
+        "count({})",
+        local_backup_metada_file,
+        _chkpt_total_size,
+        backup_metadata.files.size());
+    return ERR_OK;
 }
 
 void replica::clear_restore_useless_files(const std::string &local_chkpt_dir,
