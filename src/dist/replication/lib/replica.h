@@ -355,7 +355,7 @@ private:
 
     void report_restore_status_to_meta();
 
-    void update_restore_progress();
+    void update_restore_progress(uint64_t f_size);
 
     std::string query_compact_state() const;
 
