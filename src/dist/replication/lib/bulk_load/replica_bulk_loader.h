@@ -53,8 +53,9 @@ private:
     // \return ERR_CORRUPTION: parse failed
     error_code parse_bulk_load_metadata(const std::string &fname);
 
-    // compare sst file metadata calculated by file and parsed by metadata
-    bool verify_sst_files(const file_meta &f_meta, const std::string &local_dir);
+    // TODO(heyuchen): move this function into block service manager, also used by restore
+    // compare file metadata calculated by file and parsed by metadata
+    bool verify_file(const file_meta &f_meta, const std::string &local_dir);
 
     // update download progress after downloading sst files succeed
     void update_bulk_load_download_progress(uint64_t file_size, const std::string &file_name);

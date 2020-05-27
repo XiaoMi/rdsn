@@ -52,13 +52,13 @@ public:
         return _bulk_loader->parse_bulk_load_metadata(file_path);
     }
 
-    bool test_verify_sst_files(int64_t size, const std::string &md5)
+    bool test_verify_file(int64_t size, const std::string &md5)
     {
         file_meta f_meta;
         f_meta.name = FILE_NAME;
         f_meta.size = size;
         f_meta.md5 = md5;
-        return _bulk_loader->verify_sst_files(f_meta, LOCAL_DIR);
+        return _bulk_loader->verify_file(f_meta, LOCAL_DIR);
     }
 
     /// mock structure functions
@@ -310,12 +310,13 @@ TEST_F(replica_bulk_loader_test, bulk_load_metadata_parse_succeed)
     utils::filesystem::remove_path(LOCAL_DIR);
 }
 
-// verify_sst_files unit tests
+// TODO(heyuchen): move tests into block service
+// verify_file unit tests
 TEST_F(replica_bulk_loader_test, verify_file_failed)
 {
     utils::filesystem::create_directory(LOCAL_DIR);
     create_local_file(FILE_NAME);
-    ASSERT_FALSE(test_verify_sst_files(_file_meta.size, "wrong_md5"));
+    ASSERT_FALSE(test_verify_file(_file_meta.size, "wrong_md5"));
     utils::filesystem::remove_path(LOCAL_DIR);
 }
 
@@ -323,7 +324,7 @@ TEST_F(replica_bulk_loader_test, verify_file_succeed)
 {
     utils::filesystem::create_directory(LOCAL_DIR);
     create_local_file(FILE_NAME);
-    ASSERT_TRUE(test_verify_sst_files(_file_meta.size, _file_meta.md5));
+    ASSERT_TRUE(test_verify_file(_file_meta.size, _file_meta.md5));
     utils::filesystem::remove_path(LOCAL_DIR);
 }
 

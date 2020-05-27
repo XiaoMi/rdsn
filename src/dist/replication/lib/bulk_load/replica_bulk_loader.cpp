@@ -4,8 +4,6 @@
 
 #include "replica_bulk_loader.h"
 
-// #include <fstream>
-
 #include <dsn/dist/block_service.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -288,7 +286,7 @@ error_code replica_bulk_loader::download_sst_files(const std::string &app_name,
                 uint64_t f_size = 0;
                 error_code ec =
                     _replica->do_download(remote_dir, local_dir, f_meta.name, fs, f_size);
-                if (ec == ERR_OK && !verify_sst_files(f_meta, local_dir)) {
+                if (ec == ERR_OK && !verify_file(f_meta, local_dir)) {
                     ec = ERR_CORRUPTION;
                 }
                 if (ec != ERR_OK) {
@@ -334,9 +332,9 @@ error_code replica_bulk_loader::parse_bulk_load_metadata(const std::string &fnam
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION_LONG
-bool replica_bulk_loader::verify_sst_files(const file_meta &f_meta, const std::string &local_dir)
+bool replica_bulk_loader::verify_file(const file_meta &f_meta, const std::string &local_dir)
 {
-    std::string local_file = utils::filesystem::path_combine(local_dir, f_meta.name);
+    const std::string local_file = utils::filesystem::path_combine(local_dir, f_meta.name);
     int64_t f_size = 0;
     std::string md5;
     if (!utils::filesystem::file_size(local_file, f_size)) {
