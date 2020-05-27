@@ -156,7 +156,7 @@ public:
     void clear_app_envs(const app_env_rpc &env_rpc);
 
     // update configuration
-    void on_config_sync(configuration_query_by_node_rpc rpc);
+    void on_config_sync(configuration_sync_rpc rpc);
     void on_update_configuration(std::shared_ptr<configuration_update_request> &request,
                                  dsn::message_ex *msg);
 

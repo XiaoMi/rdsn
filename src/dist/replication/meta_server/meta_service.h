@@ -70,7 +70,7 @@ typedef rpc_holder<ddd_diagnose_request, ddd_diagnose_response> ddd_diagnose_rpc
 typedef rpc_holder<app_partition_split_request, app_partition_split_response>
     app_partition_split_rpc;
 typedef rpc_holder<configuration_query_by_node_request, configuration_query_by_node_response>
-    configuration_query_by_node_rpc;
+    configuration_sync_rpc;
 typedef rpc_holder<configuration_query_by_index_request, configuration_query_by_index_response>
     configuration_query_by_index_rpc;
 typedef rpc_holder<configuration_list_apps_request, configuration_list_apps_response>
@@ -161,7 +161,7 @@ private:
     void on_query_configuration_by_index(configuration_query_by_index_rpc rpc);
 
     // partition server => meta server
-    void on_config_sync(configuration_query_by_node_rpc rpc);
+    void on_config_sync(configuration_sync_rpc rpc);
 
     // update configuration
     void on_propose_balancer(configuration_balancer_rpc rpc);

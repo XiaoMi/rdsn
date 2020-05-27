@@ -752,7 +752,7 @@ void server_state::set_replica_migration_subscriber_for_test(
 
 // partition server => meta server
 // this is done in meta_state_thread_pool
-void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
+void server_state::on_config_sync(configuration_sync_rpc rpc)
 {
     configuration_query_by_node_response &response = rpc.response();
     const configuration_query_by_node_request &request = rpc.request();
