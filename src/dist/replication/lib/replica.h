@@ -339,6 +339,10 @@ private:
     bool verify_checkpoint(const cold_backup_metadata &backup_metadata,
                            const std::string &chkpt_dir,
                            const std::string &file_name);
+    // checkpoint on cold backup media maybe contain useless file,
+    // we should abandon these file base cold_backup_metadata
+    bool remove_useless_file_under_chkpt(const std::string &chkpt_dir,
+                                         const cold_backup_metadata &metadata);
     error_code download_checkpoint(const configuration_restore_request &req,
                                    const std::string &remote_chkpt_dir,
                                    const std::string &local_chkpt_dir);
@@ -351,10 +355,6 @@ private:
                                    cold_backup_metadata &backup_metadata);
     void clear_restore_useless_files(const std::string &local_chkpt_dir,
                                      const cold_backup_metadata &metadata);
-    // checkpoint on cold backup media maybe contain useless file,
-    // we should abandon these file base cold_backup_metadata
-    bool remove_useless_file_under_chkpt(const std::string &chkpt_dir,
-                                         const cold_backup_metadata &metadata);
 
     dsn::error_code skip_restore_partition(const std::string &restore_dir);
     void tell_meta_to_restore_rollback();
