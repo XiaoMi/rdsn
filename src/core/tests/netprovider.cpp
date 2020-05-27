@@ -42,7 +42,6 @@
 
 #include <dsn/tool-api/task.h>
 #include <dsn/tool-api/task_spec.h>
-#include <dsn/utility/defer.h>
 
 #include "core/tools/common/asio_net_provider.h"
 #include "core/tools/common/network.sim.h"
