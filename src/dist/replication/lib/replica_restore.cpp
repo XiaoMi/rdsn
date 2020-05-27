@@ -204,7 +204,7 @@ error_code replica::get_backup_metadata(block_filesystem *fs,
     }
 
     // parse cold_backup_meta from metadata file
-    std::string local_backup_metada_file =
+    const std::string local_backup_metada_file =
         utils::filesystem::path_combine(local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
     if (!read_cold_backup_metadata(local_backup_metada_file, backup_metadata)) {
         derror_replica("recover cold_backup_metadata from file({}) failed",
@@ -231,7 +231,7 @@ void replica::clear_restore_useless_files(const std::string &local_chkpt_dir,
         ddebug_replica("remove useless file succeed, chkpt = {}", local_chkpt_dir);
     }
 
-    std::string metadata_file =
+    const std::string metadata_file =
         utils::filesystem::path_combine(local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
     if (!utils::filesystem::remove_path(metadata_file)) {
         dwarn_replica("remove backup_metadata failed, file = {}", metadata_file);
