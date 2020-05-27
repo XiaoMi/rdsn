@@ -397,7 +397,7 @@ void replica_bulk_loader::try_decrease_bulk_load_download_count()
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica_bulk_loader::bulk_load_check_download_finish()
+void replica_bulk_loader::check_download_finish()
 {
     if (_download_progress.load() == bulk_load_constant::PROGRESS_FINISHED &&
         _status == bulk_load_status::BLS_DOWNLOADING) {
