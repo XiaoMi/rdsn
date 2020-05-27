@@ -202,11 +202,13 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
     }
     tracker.wait_outstanding_tasks();
 
-    // clear useless files for restore
-    // if err != ERR_OK, the entire directory of this replica will be deleted later
+    // clear useless files for restore.
+    // if err != ERR_OK, the entire directory of this replica will be deleted later.
+    // so there is no need to clear restore here if err != ERR_OK.
     if (ERR_OK == err) {
         clear_restore_useless_files(local_chkpt_dir, backup_metadata);
     }
+
     return err;
 }
 
@@ -462,6 +464,11 @@ void replica::report_restore_status_to_meta()
 
 void replica::update_restore_progress(uint64_t f_size)
 {
+    // have not be initialized
+    if (_chkpt_total_size <= 0) {
+        return;
+    }
+
     _cur_download_size.fetch_add(f_size);
     auto total_size = static_cast<double>(_chkpt_total_size);
     auto cur_download_size = static_cast<double>(_cur_download_size.load());
