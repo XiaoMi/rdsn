@@ -160,7 +160,7 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                     return;
                 }
 
-                // download file succeed, update progress
+                // update progress if download file succeed
                 update_restore_progress(f_size);
                 ddebug_replica("download file({}) succeed, size({}), progress({})",
                                utils::filesystem::path_combine(local_chkpt_dir, f_meta.name),
