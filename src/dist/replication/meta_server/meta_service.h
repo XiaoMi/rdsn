@@ -88,6 +88,8 @@ typedef rpc_holder<configuration_recovery_request, configuration_recovery_respon
 typedef rpc_holder<configuration_report_restore_status_request,
                    configuration_report_restore_status_response>
     configuration_report_restore_status_rpc;
+typedef rpc_holder<configuration_query_restore_request, configuration_query_restore_response>
+    configuration_query_restore_rpc;
 
 class meta_service : public serverlet<meta_service>
 {
@@ -189,7 +191,7 @@ private:
     void on_query_backup_policy(query_backup_policy_rpc policy_rpc);
     void on_modify_backup_policy(configuration_modify_backup_policy_rpc rpc);
     void on_report_restore_status(configuration_report_restore_status_rpc rpc);
-    void on_query_restore_status(dsn::message_ex *req);
+    void on_query_restore_status(configuration_query_restore_rpc rpc);
 
     // duplication
     void on_add_duplication(duplication_add_rpc rpc);

@@ -171,7 +171,7 @@ public:
                            configuration_recovery_response &response);
     void on_recv_restore_report(configuration_report_restore_status_rpc rpc);
 
-    void on_query_restore_status(dsn::message_ex *msg);
+    void on_query_restore_status(configuration_query_restore_rpc rpc);
 
     // return true if no need to do any actions
     bool check_all_partitions();

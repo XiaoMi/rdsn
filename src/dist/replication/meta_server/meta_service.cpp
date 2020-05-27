@@ -376,10 +376,9 @@ void meta_service::register_rpc_handlers()
     register_rpc_handler_with_rpc_holder(RPC_CM_REPORT_RESTORE_STATUS,
                                          "report_restore_status",
                                          &meta_service::on_report_restore_status);
-    register_rpc_handler(RPC_CM_QUERY_RESTORE_STATUS,
-                         "query_restore_status",
-                         &meta_service::on_query_restore_status);
-
+    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_RESTORE_STATUS,
+                                         "query_restore_status",
+                                         &meta_service::on_query_restore_status);
     register_duplication_rpc_handlers();
     register_rpc_handler_with_rpc_holder(
         RPC_CM_UPDATE_APP_ENV, "update_app_env(set/del/clear)", &meta_service::update_app_env);
@@ -768,15 +767,14 @@ void meta_service::on_report_restore_status(configuration_report_restore_status_
                      std::bind(&server_state::on_recv_restore_report, _state.get(), rpc));
 }
 
-void meta_service::on_query_restore_status(dsn::message_ex *req)
+void meta_service::on_query_restore_status(configuration_query_restore_rpc rpc)
 {
-    configuration_query_restore_response response;
-    RPC_CHECK_STATUS(req, response);
+    configuration_query_restore_response &response = rpc.response();
+    RPC_CHECK_STATUS(rpc.dsn_request(), response);
 
-    req->add_ref();
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      nullptr,
-                     std::bind(&server_state::on_query_restore_status, _state.get(), req));
+                     std::bind(&server_state::on_query_restore_status, _state.get(), rpc));
 }
 
 void meta_service::on_add_duplication(duplication_add_rpc rpc)
