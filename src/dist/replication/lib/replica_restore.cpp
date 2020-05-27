@@ -130,16 +130,17 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                                         const std::string &remote_chkpt_dir,
                                         const std::string &local_chkpt_dir)
 {
+    block_filesystem *fs =
+        _stub->_block_service_manager.get_block_filesystem(req.backup_provider_name);
+
     // download metadata file and parse it into cold_backup_meta
     cold_backup_metadata backup_metadata;
-    error_code err = get_backup_metadata(req, remote_chkpt_dir, local_chkpt_dir, backup_metadata);
+    error_code err = get_backup_metadata(fs, remote_chkpt_dir, local_chkpt_dir, backup_metadata);
     if (err != ERR_OK) {
         return err;
     }
 
     // download checkpoint files
-    block_filesystem *fs =
-        _stub->_block_service_manager.get_block_filesystem(req.backup_provider_name);
     task_tracker tracker;
     for (const auto &f_meta : backup_metadata.files) {
         tasking::enqueue(
@@ -182,14 +183,11 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
     return err;
 }
 
-error_code replica::get_backup_metadata(const configuration_restore_request &req,
+error_code replica::get_backup_metadata(block_filesystem *fs,
                                         const std::string &remote_chkpt_dir,
                                         const std::string &local_chkpt_dir,
                                         cold_backup_metadata &backup_metadata)
 {
-    block_filesystem *fs =
-        _stub->_block_service_manager.get_block_filesystem(req.backup_provider_name);
-
     // download metadata file
     uint64_t download_file_size = 0;
     error_code err = do_download(remote_chkpt_dir,

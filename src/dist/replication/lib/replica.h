@@ -348,7 +348,7 @@ private:
     dsn::error_code find_valid_checkpoint(const configuration_restore_request &req,
                                           /*out*/ std::string &remote_chkpt_dir);
     dsn::error_code restore_checkpoint();
-    error_code get_backup_metadata(const configuration_restore_request &req,
+    error_code get_backup_metadata(dist::block_service::block_filesystem *fs,
                                    const std::string &remote_chkpt_dir,
                                    const std::string &local_chkpt_dir,
                                    cold_backup_metadata &backup_metadata);
