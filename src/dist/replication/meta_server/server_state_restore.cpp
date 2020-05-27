@@ -177,17 +177,14 @@ void server_state::restore_app(dsn::message_ex *msg)
         });
 }
 
-void server_state::on_recv_restore_report(dsn::message_ex *msg)
+void server_state::on_recv_restore_report(configuration_report_restore_status_rpc rpc)
 {
     zauto_write_lock l(_lock);
 
-    configuration_report_restore_status_request request;
-    ::dsn::unmarshall(msg, request);
-    configuration_report_restore_status_response response;
-    response.err = ERR_OK;
+    const configuration_report_restore_status_request &request = rpc.request();
+    configuration_report_restore_status_response &response = rpc.response();
 
     std::shared_ptr<app_state> app = get_app(request.pid.get_app_id());
-
     if (app == nullptr) {
         response.err = ERR_OBJECT_NOT_FOUND;
     } else {
@@ -210,8 +207,6 @@ void server_state::on_recv_restore_report(dsn::message_ex *msg)
                request.restore_status.to_string(),
                request.progress);
     }
-    _meta_svc->reply_data(msg, response);
-    msg->release_ref();
 }
 
 void server_state::on_query_restore_status(dsn::message_ex *msg)

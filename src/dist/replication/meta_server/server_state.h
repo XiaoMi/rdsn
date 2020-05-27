@@ -169,7 +169,7 @@ public:
                              configuration_balancer_response &response);
     void on_start_recovery(const configuration_recovery_request &request,
                            configuration_recovery_response &response);
-    void on_recv_restore_report(dsn::message_ex *msg);
+    void on_recv_restore_report(configuration_report_restore_status_rpc rpc);
 
     void on_query_restore_status(dsn::message_ex *msg);
 
