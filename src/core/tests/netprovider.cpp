@@ -42,6 +42,7 @@
 
 #include <dsn/tool-api/task.h>
 #include <dsn/tool-api/task_spec.h>
+#include <dsn/utility/defer.h>
 
 #include "core/tools/common/asio_net_provider.h"
 #include "core/tools/common/network.sim.h"
@@ -148,6 +149,7 @@ TEST(tools_common, asio_net_provider)
 
     asio_network_provider *asio_network =
         new asio_network_provider(task::get_current_rpc(), nullptr);
+    auto cleanup = dsn::defer([=]() { delete asio_network; });
 
     error_code start_result;
     start_result = asio_network->start(RPC_CHANNEL_TCP, TEST_PORT, true);
@@ -162,6 +164,7 @@ TEST(tools_common, asio_net_provider)
 
     asio_network_provider *asio_network2 =
         new asio_network_provider(task::get_current_rpc(), nullptr);
+    auto cleanup2 = dsn::defer([=]() { delete asio_network2; });
     start_result = asio_network2->start(RPC_CHANNEL_TCP, TEST_PORT, true);
     ASSERT_TRUE(start_result == ERR_OK);
 
@@ -194,6 +197,7 @@ TEST(tools_common, asio_udp_provider)
         RPC_TEST_NETPROVIDER, "rpc.test.netprovider", rpc_server_response));
 
     auto client = new asio_udp_provider(task::get_current_rpc(), nullptr);
+    auto cleanup = dsn::defer([=]() { delete client; });
 
     error_code start_result;
     start_result = client->start(RPC_CHANNEL_UDP, 0, true);
@@ -236,6 +240,7 @@ TEST(tools_common, sim_net_provider)
         RPC_TEST_NETPROVIDER, "rpc.test.netprovider", rpc_server_response));
 
     sim_network_provider *sim_net = new sim_network_provider(task::get_current_rpc(), nullptr);
+    auto cleanup = dsn::defer([=]() { delete sim_net; });
 
     error_code ans;
     ans = sim_net->start(RPC_CHANNEL_TCP, TEST_PORT, false);
@@ -266,6 +271,7 @@ TEST(tools_common, asio_network_provider_connection_threshold)
 
     asio_network_provider_test *asio_network =
         new asio_network_provider_test(task::get_current_rpc(), nullptr);
+    auto cleanup = dsn::defer([=]() { delete asio_network; });
 
     error_code start_result;
     start_result = asio_network->start(RPC_CHANNEL_TCP, TEST_PORT, false);
