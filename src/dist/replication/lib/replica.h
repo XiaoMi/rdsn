@@ -58,6 +58,7 @@
 
 namespace dsn {
 namespace replication {
+
 class replication_app_base;
 class replica_stub;
 class replication_checker;
