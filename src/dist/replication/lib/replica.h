@@ -349,6 +349,8 @@ private:
     dsn::error_code find_valid_checkpoint(const configuration_restore_request &req,
                                           /*out*/ std::string &remote_chkpt_dir);
     dsn::error_code restore_checkpoint();
+    void clear_restore_useless_files(const std::string &local_chkpt_dir,
+                                     const cold_backup_metadata &metadata);
 
     dsn::error_code skip_restore_partition(const std::string &restore_dir);
     void tell_meta_to_restore_rollback();

@@ -133,6 +133,7 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
     block_filesystem *fs =
         _stub->_block_service_manager.get_block_filesystem(req.backup_provider_name);
 
+    // download metadata file
     uint64_t download_file_size = 0;
     error_code err = do_download(remote_chkpt_dir,
                                  local_chkpt_dir,
@@ -147,6 +148,7 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
         return err;
     }
 
+    // parse cold_backup_meta from metadata file
     cold_backup_metadata backup_metadata;
     std::string local_backup_metada_file =
         utils::filesystem::path_combine(local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
@@ -167,6 +169,7 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
         _chkpt_total_size,
         backup_metadata.files.size());
 
+    // download checkpoint files
     task_tracker tracker;
     for (const auto &f_meta : backup_metadata.files) {
         tasking::enqueue(
@@ -193,13 +196,24 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                                f_size,
                                _restore_progress.load());
 
-                // report new status to meta
+                // report current status to meta server
                 report_restore_status_to_meta();
             });
     }
     tracker.wait_outstanding_tasks();
 
-    if (!remove_useless_file_under_chkpt(local_chkpt_dir, backup_metadata)) {
+    // clear useless files for restore
+    // if err != ERR_OK, the entire directory of this replica will be deleted later
+    if (ERR_OK == err) {
+        clear_restore_useless_files(local_chkpt_dir, backup_metadata);
+    }
+    return err;
+}
+
+void replica::clear_restore_useless_files(const std::string &local_chkpt_dir,
+                                          const cold_backup_metadata &metadata)
+{
+    if (!remove_useless_file_under_chkpt(local_chkpt_dir, metadata)) {
         dwarn_replica("remove useless file failed, chkpt = {}", local_chkpt_dir);
     } else {
         ddebug_replica("remove useless file succeed, chkpt = {}", local_chkpt_dir);
@@ -212,7 +226,6 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
     } else {
         ddebug_replica("remove backup_metadata succeed, file = {}", metadata_file);
     }
-    return err;
 }
 
 dsn::error_code replica::find_valid_checkpoint(const configuration_restore_request &req,
@@ -449,11 +462,6 @@ void replica::report_restore_status_to_meta()
 
 void replica::update_restore_progress(uint64_t f_size)
 {
-    if (_chkpt_total_size <= 0) {
-        // have not be initialized, just return 0
-        return;
-    }
-
     _cur_download_size.fetch_add(f_size);
     auto total_size = static_cast<double>(_chkpt_total_size);
     auto cur_download_size = static_cast<double>(_cur_download_size.load());
