@@ -184,7 +184,7 @@ private:
     void on_start_restore(dsn::message_ex *req);
     void on_add_backup_policy(dsn::message_ex *req);
     void on_query_backup_policy(query_backup_policy_rpc policy_rpc);
-    void on_modify_backup_policy(dsn::message_ex *req);
+    void on_modify_backup_policy(configuration_modify_backup_policy_rpc rpc);
     void on_report_restore_status(dsn::message_ex *req);
     void on_query_restore_status(dsn::message_ex *req);
 
