@@ -60,7 +60,7 @@ private:
     void update_bulk_load_download_progress(uint64_t file_size, const std::string &file_name);
 
     void try_decrease_bulk_load_download_count();
-    void bulk_load_check_download_finish();
+    void check_download_finish();
 
     void cleanup_download_task();
     void clear_bulk_load_states();

@@ -4,7 +4,7 @@
 
 #include "replica_bulk_loader.h"
 
-#include <fstream>
+// #include <fstream>
 
 #include <dsn/dist/block_service.h>
 #include <dsn/dist/fmt_logging.h>
@@ -311,34 +311,14 @@ error_code replica_bulk_loader::download_sst_files(const std::string &app_name,
 // ThreadPool: THREAD_POOL_REPLICATION
 error_code replica_bulk_loader::parse_bulk_load_metadata(const std::string &fname)
 {
-    if (!utils::filesystem::file_exists(fname)) {
-        derror_replica("file({}) doesn't exist", fname);
-        return ERR_FILE_OPERATION_FAILED;
+    std::string buf;
+    error_code ec = utils::filesystem::read_file(fname, buf);
+    if (ec != ERR_OK) {
+        derror_replica("read file {} failed, error = {}", fname, ec.to_string());
+        return ec;
     }
 
-    int64_t file_sz = 0;
-    if (!utils::filesystem::file_size(fname, file_sz)) {
-        derror_replica("get file({}) size failed", fname);
-        return ERR_FILE_OPERATION_FAILED;
-    }
-
-    std::shared_ptr<char> buf = utils::make_shared_array<char>(file_sz + 1);
-    std::ifstream fin(fname, std::ifstream::in);
-    if (!fin.is_open()) {
-        derror_replica("open file({}) failed", fname);
-        return ERR_FILE_OPERATION_FAILED;
-    }
-    fin.read(buf.get(), file_sz);
-    dassert_replica(file_sz == fin.gcount(),
-                    "read file({}) failed, file_size = {} but read size = {}",
-                    fname,
-                    file_sz,
-                    fin.gcount());
-    fin.close();
-    buf.get()[fin.gcount()] = '\0';
-
-    blob bb;
-    bb.assign(std::move(buf), 0, file_sz);
+    blob bb = blob::create_from_bytes(std::move(buf));
     if (!json::json_forwarder<bulk_load_metadata>::decode(bb, _metadata)) {
         derror_replica("file({}) is damaged", fname);
         return ERR_CORRUPTION;
@@ -403,7 +383,7 @@ void replica_bulk_loader::update_bulk_load_download_progress(uint64_t file_size,
 
     tasking::enqueue(LPC_REPLICATION_COMMON,
                      tracker(),
-                     std::bind(&replica_bulk_loader::bulk_load_check_download_finish, this),
+                     std::bind(&replica_bulk_loader::check_download_finish, this),
                      get_gpid().thread_hash());
 }
 

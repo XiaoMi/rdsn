@@ -33,6 +33,8 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
+#include <fstream>
+
 #include <dsn/c/api_utilities.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/utils.h>
@@ -763,6 +765,36 @@ std::pair<error_code, bool> is_directory_empty(const std::string &dirname)
     }
     return res;
 }
+
+error_code read_file(const std::string &fname, std::string &buf)
+{
+    if (!file_exists(fname)) {
+        derror("file(%s) doesn't exist", fname.c_str());
+        return ERR_FILE_OPERATION_FAILED;
+    }
+
+    int64_t file_sz = 0;
+    if (!utils::filesystem::file_size(fname, file_sz)) {
+        derror("get file(%s) size failed", fname.c_str());
+        return ERR_FILE_OPERATION_FAILED;
+    }
+
+    buf.resize(file_sz);
+    std::ifstream fin(fname, std::ifstream::in);
+    if (!fin.is_open()) {
+        derror("open file(%s) failed", fname.c_str());
+        return ERR_FILE_OPERATION_FAILED;
+    }
+    fin.read(&buf[0], file_sz);
+    dassert(file_sz == fin.gcount(),
+            "read file(%s) failed, file_size =  %" PRIx64 " but read size = %" PRIx64,
+            fname.c_str(),
+            file_sz,
+            fin.gcount());
+    fin.close();
+    return ERR_OK;
+}
+
 } // namespace filesystem
 } // namespace utils
 } // namespace dsn
