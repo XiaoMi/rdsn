@@ -312,7 +312,7 @@ error_code replica_bulk_loader::parse_bulk_load_metadata(const std::string &fnam
     std::string buf;
     error_code ec = utils::filesystem::read_file(fname, buf);
     if (ec != ERR_OK) {
-        derror_replica("read file {} failed, error = {}", fname, ec.to_string());
+        derror_replica("read file {} failed, error = {}", fname, ec);
         return ec;
     }
 
@@ -336,11 +336,11 @@ bool replica_bulk_loader::verify_file(const file_meta &f_meta, const std::string
 {
     const std::string local_file = utils::filesystem::path_combine(local_dir, f_meta.name);
     int64_t f_size = 0;
-    std::string md5;
     if (!utils::filesystem::file_size(local_file, f_size)) {
         derror_replica("verify file({}) failed, becaused failed to get file size", local_file);
         return false;
     }
+    std::string md5;
     if (utils::filesystem::md5sum(local_file, md5) != ERR_OK) {
         derror_replica("verify file({}) failed, becaused failed to get file md5", local_file);
         return false;
