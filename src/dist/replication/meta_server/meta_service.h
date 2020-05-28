@@ -46,7 +46,7 @@
 #include "dist/replication/meta_server/meta_options.h"
 #include "dist/replication/meta_server/meta_backup_service.h"
 #include "dist/replication/meta_server/meta_state_service_utils.h"
-#include "dist/replication/common/block_service_manager.h"
+#include "dist/block_service/block_service_manager.h"
 
 namespace dsn {
 namespace replication {
@@ -89,7 +89,10 @@ public:
 
     server_state *get_server_state() { return _state.get(); }
     server_load_balancer *get_balancer() { return _balancer.get(); }
-    block_service_manager &get_block_service_manager() { return _block_service_manager; }
+    dist::block_service::block_service_manager &get_block_service_manager()
+    {
+        return _block_service_manager;
+    }
 
     meta_function_level::type get_function_level()
     {
@@ -236,7 +239,7 @@ private:
 
     // handle all the block filesystems for current meta service
     // (in other words, current service node)
-    block_service_manager _block_service_manager;
+    dist::block_service::block_service_manager _block_service_manager;
 
     // handle the command line service
     std::unique_ptr<dsn::cli_service> _cli_service;
