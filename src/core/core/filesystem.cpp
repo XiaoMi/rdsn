@@ -775,7 +775,7 @@ error_code read_file(const std::string &fname, std::string &buf)
     }
 
     int64_t file_sz = 0;
-    if (!utils::filesystem::file_size(fname, file_sz)) {
+    if (!file_size(fname, file_sz)) {
         derror_f("get file({}) size failed", fname);
         return ERR_FILE_OPERATION_FAILED;
     }
