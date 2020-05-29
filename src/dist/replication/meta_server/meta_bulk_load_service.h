@@ -151,6 +151,36 @@ private:
                                         int32_t partition_count,
                                         start_bulk_load_rpc rpc);
 
+    // Called by `handle_app_downloading`
+    // update partition bulk load metadata reported by replica server on remote storage
+    void update_partition_metadata_on_remote_stroage(const std::string &app_name,
+                                                     const gpid &pid,
+                                                     const bulk_load_metadata &metadata);
+
+    // update partition bulk load status on remote storage
+    // if should_send_request = true, will send bulk load request after update local partition
+    // status, this parameter will be true when restarting bulk load, status will turn from paused
+    // to downloading
+    void update_partition_status_on_remote_stroage(const std::string &app_name,
+                                                   const gpid &pid,
+                                                   bulk_load_status::type new_status,
+                                                   bool should_send_request = false);
+
+    void update_partition_status_on_remote_stroage_rely(const std::string &app_name,
+                                                        const gpid &pid,
+                                                        bulk_load_status::type new_status,
+                                                        bool should_send_request);
+
+    // update app bulk load status on remote storage
+    void update_app_status_on_remote_storage_unlock(int32_t app_id,
+                                                    bulk_load_status::type new_status,
+                                                    bool should_send_request = false);
+
+    void update_app_status_on_remote_storage_reply(const app_bulk_load_info &ainfo,
+                                                   bulk_load_status::type old_status,
+                                                   bulk_load_status::type new_status,
+                                                   bool should_send_request);
+
     ///
     /// sync bulk load states from remote storage
     /// called when service initialized or meta server leader switch
@@ -203,6 +233,12 @@ private:
         std::stringstream oss;
         oss << get_app_bulk_load_path(pid.get_app_id()) << "/" << pid.get_partition_index();
         return oss.str();
+    }
+
+    inline bool is_partition_metadata_not_updated(gpid pid)
+    {
+        zauto_read_lock l(_lock);
+        return is_partition_metadata_not_updated_unlock(pid);
     }
 
     inline bool is_partition_metadata_not_updated_unlock(gpid pid) const
@@ -266,6 +302,10 @@ private:
 
     std::unordered_map<gpid, partition_bulk_load_info> _partition_bulk_load_info;
     std::unordered_map<gpid, bool> _partitions_pending_sync_flag;
+
+    std::unordered_map<gpid, int32_t> _partitions_total_download_progress;
+    std::unordered_map<gpid, std::map<rpc_address, partition_bulk_load_state>>
+        _partitions_bulk_load_state;
 };
 
 } // namespace replication
