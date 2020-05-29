@@ -431,7 +431,7 @@ void replica_bulk_loader::report_bulk_load_states_to_meta(bulk_load_status::type
         return;
     }
 
-    if (report_metadata && _metadata.files.size() > 0) {
+    if (report_metadata && !_metadata.files.empty()) {
         response.__set_metadata(_metadata);
     }
 
@@ -459,25 +459,28 @@ void replica_bulk_loader::report_group_download_progress(/*out*/ bulk_load_respo
         return;
     }
 
-    partition_bulk_load_state p_state;
-    p_state.__set_download_progress(_download_progress.load());
-    p_state.__set_download_status(_download_status.load());
-    response.group_bulk_load_state[_replica->_primary_states.membership.primary] = p_state;
+    partition_bulk_load_state primary_state;
+    primary_state.__set_download_progress(_download_progress.load());
+    primary_state.__set_download_status(_download_status.load());
+    response.group_bulk_load_state[_replica->_primary_states.membership.primary] = primary_state;
     ddebug_replica("primary = {}, download progress = {}%, status = {}",
                    _replica->_primary_states.membership.primary.to_string(),
-                   p_state.download_progress,
-                   p_state.download_status);
+                   primary_state.download_progress,
+                   primary_state.download_status);
 
-    int32_t total_progress = p_state.download_progress;
+    int32_t total_progress = primary_state.download_progress;
     for (const auto &target_address : _replica->_primary_states.membership.secondaries) {
-        const auto &s_state = _replica->_primary_states.secondary_bulk_load_states[target_address];
-        int32_t s_progress = s_state.__isset.download_progress ? s_state.download_progress : 0;
-        error_code s_status = s_state.__isset.download_status ? s_state.download_status : ERR_OK;
+        const auto &secondary_state =
+            _replica->_primary_states.secondary_bulk_load_states[target_address];
+        int32_t s_progress =
+            secondary_state.__isset.download_progress ? secondary_state.download_progress : 0;
+        error_code s_status =
+            secondary_state.__isset.download_status ? secondary_state.download_status : ERR_OK;
         ddebug_replica("secondary = {}, download progress = {}%, status={}",
                        target_address.to_string(),
                        s_progress,
                        s_status);
-        response.group_bulk_load_state[target_address] = s_state;
+        response.group_bulk_load_state[target_address] = secondary_state;
         total_progress += s_progress;
     }
 
