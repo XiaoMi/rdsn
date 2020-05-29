@@ -850,9 +850,11 @@ void replica_stub::on_config_proposal(const configuration_update_request &propos
     }
 }
 
-void replica_stub::on_query_decree(const query_replica_decree_request &req,
-                                   /*out*/ query_replica_decree_response &resp)
+void replica_stub::on_query_decree(query_replica_decree_rpc rpc)
 {
+    const query_replica_decree_request &req = rpc.request();
+    query_replica_decree_response &resp = rpc.response();
+
     replica_ptr rep = get_replica(req.pid);
     if (rep != nullptr) {
         resp.err = ERR_OK;
@@ -1047,9 +1049,10 @@ void replica_stub::on_prepare(dsn::message_ex *request)
     }
 }
 
-void replica_stub::on_group_check(const group_check_request &request,
-                                  /*out*/ group_check_response &response)
+void replica_stub::on_group_check(group_check_rpc rpc)
 {
+    const group_check_request &request = rpc.request();
+    group_check_response &response = rpc.response();
     if (!is_connected()) {
         dwarn("%s@%s: received group check: not connected, ignore",
               request.config.pid.to_string(),
@@ -2042,8 +2045,10 @@ void replica_stub::open_service()
                          &replica_stub::on_learn_completion_notification);
     register_rpc_handler(RPC_LEARN_ADD_LEARNER, "LearnAdd", &replica_stub::on_add_learner);
     register_rpc_handler(RPC_REMOVE_REPLICA, "remove", &replica_stub::on_remove);
-    register_rpc_handler(RPC_GROUP_CHECK, "GroupCheck", &replica_stub::on_group_check);
-    register_rpc_handler(RPC_QUERY_PN_DECREE, "query_decree", &replica_stub::on_query_decree);
+    register_rpc_handler_with_rpc_holder(
+        RPC_GROUP_CHECK, "GroupCheck", &replica_stub::on_group_check);
+    register_rpc_handler_with_rpc_holder(
+        RPC_QUERY_PN_DECREE, "query_decree", &replica_stub::on_query_decree);
     register_rpc_handler(
         RPC_QUERY_REPLICA_INFO, "query_replica_info", &replica_stub::on_query_replica_info);
     register_rpc_handler(
