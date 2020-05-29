@@ -871,9 +871,9 @@ void replica_stub::on_query_decree(query_replica_decree_rpc rpc)
     }
 }
 
-void replica_stub::on_query_replica_info(const query_replica_info_request &req,
-                                         /*out*/ query_replica_info_response &resp)
+void replica_stub::on_query_replica_info(query_replica_info_rpc rpc)
 {
+    query_replica_info_response &resp = rpc.response();
     std::set<gpid> visited_replicas;
     {
         zauto_read_lock l(_replicas_lock);
@@ -2037,7 +2037,6 @@ void replica_stub::handle_log_failure(error_code err)
 void replica_stub::open_service()
 {
     register_rpc_handler(RPC_CONFIG_PROPOSAL, "ProposeConfig", &replica_stub::on_config_proposal);
-
     register_rpc_handler(RPC_PREPARE, "prepare", &replica_stub::on_prepare);
     register_rpc_handler(RPC_LEARN, "Learn", &replica_stub::on_learn);
     register_rpc_handler(RPC_LEARN_COMPLETION_NOTIFY,
@@ -2049,7 +2048,7 @@ void replica_stub::open_service()
         RPC_GROUP_CHECK, "GroupCheck", &replica_stub::on_group_check);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_PN_DECREE, "query_decree", &replica_stub::on_query_decree);
-    register_rpc_handler(
+    register_rpc_handler_with_rpc_holder(
         RPC_QUERY_REPLICA_INFO, "query_replica_info", &replica_stub::on_query_replica_info);
     register_rpc_handler(
         RPC_REPLICA_COPY_LAST_CHECKPOINT, "copy_checkpoint", &replica_stub::on_copy_checkpoint);
