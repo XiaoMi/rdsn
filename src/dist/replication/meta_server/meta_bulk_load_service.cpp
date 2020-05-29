@@ -505,7 +505,7 @@ void bulk_load_service::handle_app_downloading(const bulk_load_response &respons
     if (total_progress >= bulk_load_constant::PROGRESS_FINISHED) {
         ddebug_f(
             "app({}) partirion({}) download all files from remote provider succeed", app_name, pid);
-        update_partition_status_on_remote_stroage(app_name, pid, bulk_load_status::BLS_DOWNLOADED);
+        update_partition_status_on_remote_storage(app_name, pid, bulk_load_status::BLS_DOWNLOADED);
     }
 }
 
@@ -584,7 +584,7 @@ void bulk_load_service::update_partition_metadata_on_remote_stroage(
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::update_partition_status_on_remote_stroage(const std::string &app_name,
+void bulk_load_service::update_partition_status_on_remote_storage(const std::string &app_name,
                                                                   const gpid &pid,
                                                                   bulk_load_status::type new_status,
                                                                   bool should_send_request)
@@ -618,7 +618,7 @@ void bulk_load_service::update_partition_status_on_remote_stroage(const std::str
     _meta_svc->get_meta_storage()->set_data(
         get_partition_bulk_load_path(pid),
         std::move(value),
-        std::bind(&bulk_load_service::update_partition_status_on_remote_stroage_rely,
+        std::bind(&bulk_load_service::update_partition_status_on_remote_storage_rely,
                   this,
                   app_name,
                   pid,
@@ -626,7 +626,7 @@ void bulk_load_service::update_partition_status_on_remote_stroage(const std::str
                   should_send_request));
 }
 
-void bulk_load_service::update_partition_status_on_remote_stroage_rely(
+void bulk_load_service::update_partition_status_on_remote_storage_rely(
     const std::string &app_name,
     const gpid &pid,
     bulk_load_status::type new_status,

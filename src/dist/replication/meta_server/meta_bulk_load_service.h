@@ -161,12 +161,12 @@ private:
     // if should_send_request = true, will send bulk load request after update local partition
     // status, this parameter will be true when restarting bulk load, status will turn from paused
     // to downloading
-    void update_partition_status_on_remote_stroage(const std::string &app_name,
+    void update_partition_status_on_remote_storage(const std::string &app_name,
                                                    const gpid &pid,
                                                    bulk_load_status::type new_status,
                                                    bool should_send_request = false);
 
-    void update_partition_status_on_remote_stroage_rely(const std::string &app_name,
+    void update_partition_status_on_remote_storage_rely(const std::string &app_name,
                                                         const gpid &pid,
                                                         bulk_load_status::type new_status,
                                                         bool should_send_request);
