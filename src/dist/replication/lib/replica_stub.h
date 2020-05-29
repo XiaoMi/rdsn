@@ -47,6 +47,10 @@
 namespace dsn {
 namespace replication {
 
+typedef rpc_holder<group_check_request, group_check_response> group_check_rpc;
+typedef rpc_holder<query_replica_decree_request, query_replica_decree_response>
+    query_replica_decree_rpc;
+
 class mutation_log;
 class replication_checker;
 namespace test {
@@ -92,8 +96,7 @@ public:
     //    messages from meta server
     //
     void on_config_proposal(const configuration_update_request &proposal);
-    void on_query_decree(const query_replica_decree_request &req,
-                         /*out*/ query_replica_decree_response &resp);
+    void on_query_decree(query_replica_decree_rpc rpc);
     void on_query_replica_info(const query_replica_info_request &req,
                                /*out*/ query_replica_info_response &resp);
     void on_query_disk_info(const query_disk_info_request &req,
@@ -117,7 +120,7 @@ public:
                                           /*out*/ learn_notify_response &response);
     void on_add_learner(const group_check_request &request);
     void on_remove(const replica_configuration &request);
-    void on_group_check(const group_check_request &request, /*out*/ group_check_response &response);
+    void on_group_check(group_check_rpc rpc);
     void on_copy_checkpoint(const replica_configuration &request, /*out*/ learn_response &response);
     void on_group_bulk_load(const group_bulk_load_request &request,
                             /*out*/ group_bulk_load_response &response);
