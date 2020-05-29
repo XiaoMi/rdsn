@@ -905,9 +905,10 @@ void replica_stub::on_query_replica_info(query_replica_info_rpc rpc)
 }
 
 // ThreadPool: THREAD_POOL_DEFAULT
-void replica_stub::on_query_disk_info(const query_disk_info_request &req,
-                                      /*out*/ query_disk_info_response &resp)
+void replica_stub::on_query_disk_info(query_disk_info_rpc rpc)
 {
+    const query_disk_info_request &req = rpc.request();
+    query_disk_info_response &resp = rpc.response();
     int app_id = 0;
     if (!req.app_name.empty()) {
         zauto_read_lock l(_replicas_lock);
@@ -1114,9 +1115,10 @@ void replica_stub::on_copy_checkpoint(copy_checkpoint_rpc rpc)
     }
 }
 
-void replica_stub::on_learn_completion_notification(const group_check_response &report,
-                                                    /*out*/ learn_notify_response &response)
+void replica_stub::on_learn_completion_notification(learn_completion_notification_rpc rpc)
 {
+    const group_check_response &report = rpc.request();
+    learn_notify_response &response = rpc.response();
     response.pid = report.pid;
     response.signature = report.learner_signature;
     replica_ptr rep = get_replica(report.pid);
@@ -2041,9 +2043,9 @@ void replica_stub::open_service()
     register_rpc_handler(RPC_CONFIG_PROPOSAL, "ProposeConfig", &replica_stub::on_config_proposal);
     register_rpc_handler(RPC_PREPARE, "prepare", &replica_stub::on_prepare);
     register_rpc_handler(RPC_LEARN, "Learn", &replica_stub::on_learn);
-    register_rpc_handler(RPC_LEARN_COMPLETION_NOTIFY,
-                         "LearnNotify",
-                         &replica_stub::on_learn_completion_notification);
+    register_rpc_handler_with_rpc_holder(RPC_LEARN_COMPLETION_NOTIFY,
+                                         "LearnNotify",
+                                         &replica_stub::on_learn_completion_notification);
     register_rpc_handler(RPC_LEARN_ADD_LEARNER, "LearnAdd", &replica_stub::on_add_learner);
     register_rpc_handler(RPC_REMOVE_REPLICA, "remove", &replica_stub::on_remove);
     register_rpc_handler_with_rpc_holder(
@@ -2054,7 +2056,8 @@ void replica_stub::open_service()
         RPC_QUERY_REPLICA_INFO, "query_replica_info", &replica_stub::on_query_replica_info);
     register_rpc_handler_with_rpc_holder(
         RPC_REPLICA_COPY_LAST_CHECKPOINT, "copy_checkpoint", &replica_stub::on_copy_checkpoint);
-    register_rpc_handler(RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
+    register_rpc_handler_with_rpc_holder(
+        RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler(RPC_COLD_BACKUP, "cold_backup", &replica_stub::on_cold_backup);
     register_rpc_handler(
