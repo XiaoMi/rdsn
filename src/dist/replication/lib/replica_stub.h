@@ -46,11 +46,13 @@
 namespace dsn {
 namespace replication {
 
+typedef rpc_holder<group_check_response, learn_notify_response> learn_completion_notification_rpc;
 typedef rpc_holder<group_check_request, group_check_response> group_check_rpc;
 typedef rpc_holder<query_replica_decree_request, query_replica_decree_response>
     query_replica_decree_rpc;
 typedef rpc_holder<query_replica_info_request, query_replica_info_response> query_replica_info_rpc;
 typedef rpc_holder<replica_configuration, learn_response> copy_checkpoint_rpc;
+typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
 
 class mutation_log;
 class replication_checker;
@@ -99,8 +101,7 @@ public:
     void on_config_proposal(const configuration_update_request &proposal);
     void on_query_decree(query_replica_decree_rpc rpc);
     void on_query_replica_info(query_replica_info_rpc rpc);
-    void on_query_disk_info(const query_disk_info_request &req,
-                            /*out*/ query_disk_info_response &resp);
+    void on_query_disk_info(query_disk_info_rpc rpc);
     void on_query_app_info(const query_app_info_request &req,
                            /*out*/ query_app_info_response &resp);
     void on_cold_backup(const backup_request &request, /*out*/ backup_response &response);
@@ -116,8 +117,7 @@ public:
     //
     void on_prepare(dsn::message_ex *request);
     void on_learn(dsn::message_ex *msg);
-    void on_learn_completion_notification(const group_check_response &report,
-                                          /*out*/ learn_notify_response &response);
+    void on_learn_completion_notification(learn_completion_notification_rpc rpc);
     void on_add_learner(const group_check_request &request);
     void on_remove(const replica_configuration &request);
     void on_group_check(group_check_rpc rpc);
