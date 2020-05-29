@@ -49,6 +49,7 @@ namespace replication {
 typedef rpc_holder<group_check_request, group_check_response> group_check_rpc;
 typedef rpc_holder<query_replica_decree_request, query_replica_decree_response>
     query_replica_decree_rpc;
+typedef rpc_holder<query_replica_info_request, query_replica_info_response> query_replica_info_rpc;
 
 class mutation_log;
 class replication_checker;
@@ -96,8 +97,7 @@ public:
     //
     void on_config_proposal(const configuration_update_request &proposal);
     void on_query_decree(query_replica_decree_rpc rpc);
-    void on_query_replica_info(const query_replica_info_request &req,
-                               /*out*/ query_replica_info_response &resp);
+    void on_query_replica_info(query_replica_info_rpc rpc);
     void on_query_disk_info(const query_disk_info_request &req,
                             /*out*/ query_disk_info_response &resp);
     void on_query_app_info(const query_app_info_request &req,
