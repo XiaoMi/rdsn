@@ -308,6 +308,15 @@ check_and_download "${S2GEOMETRY_PKG}" \
     "bfa5f1c08f535a72fb2c92ec16332c64" \
     "${S2GEOMETRY_NAME}"
 
+# rocksdb
+# from: https://github.com/google/s2geometry/archive/0239455c1e260d6d2c843649385b4fb9f5b28dba.zip
+ROCKSDB_NAME=pegasus-rocksdb-6.6.4
+ROCKSDB_PKG=${ROCKSDB_NAME}.tar.gz
+check_and_download "${ROCKSDB_PKG}" \
+    "${OSS_URL_PREFIX}/${ROCKSDB_PKG}" \
+    "0143c998170332c2cd993f7e55f3c2c5" \
+    "${ROCKSDB_NAME}"
+
 ret_code=$?
 if [ $ret_code -eq 2 ]; then
     exit 2
