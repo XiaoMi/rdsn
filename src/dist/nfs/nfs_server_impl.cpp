@@ -153,13 +153,12 @@ void nfs_service_impl::internal_read_callback(error_code err, size_t sz, callbac
 }
 
 // RPC_NFS_NEW_NFS_GET_FILE_SIZE
-void nfs_service_impl::on_get_file_size(
-    const ::dsn::service::get_file_size_request &request,
-    ::dsn::rpc_replier<::dsn::service::get_file_size_response> &reply)
+void nfs_service_impl::on_get_file_size(get_file_size_rpc rpc)
 {
     // dinfo(">>> on call RPC_NFS_GET_FILE_SIZE end, exec RPC_NFS_GET_FILE_SIZE");
 
-    get_file_size_response resp;
+    const get_file_size_request &request = rpc.request();
+    get_file_size_response &resp = rpc.response();
     error_code err = ERR_OK;
     std::vector<std::string> file_list;
     std::string folder = request.source_dir;
@@ -217,7 +216,6 @@ void nfs_service_impl::on_get_file_size(
     }
 
     resp.error = err;
-    reply(resp);
 }
 
 void nfs_service_impl::close_file() // release out-of-date file handle

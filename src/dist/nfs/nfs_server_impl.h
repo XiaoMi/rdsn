@@ -53,8 +53,7 @@ protected:
     // RPC_NFS_V2_NFS_COPY
     virtual void on_copy(nfs_copy_rpc rpc);
     // RPC_NFS_V2_NFS_GET_FILE_SIZE
-    virtual void on_get_file_size(const get_file_size_request &request,
-                                  ::dsn::rpc_replier<get_file_size_response> &reply);
+    virtual void on_get_file_size(get_file_size_rpc rpc);
 
 private:
     struct callback_para
