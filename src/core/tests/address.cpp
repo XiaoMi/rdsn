@@ -52,7 +52,9 @@ static inline uint32_t host_ipv4(uint8_t sec1, uint8_t sec2, uint8_t sec3, uint8
 TEST(core, rpc_address_ipv4_from_host)
 {
     // localhost --> 127.0.0.1
-    ASSERT_EQ(host_ipv4(127, 0, 0, 1), rpc_address::ipv4_from_host("localhost"));
+    // on some systems "localhost" could be "127.0.1.1" (debian)
+    ASSERT_TRUE(host_ipv4(127, 0, 0, 1) == rpc_address::ipv4_from_host("localhost") ||
+                host_ipv4(127, 0, 1, 1) == rpc_address::ipv4_from_host("localhost"));
 
     // 127.0.0.1 --> 127.0.0.1
     ASSERT_EQ(host_ipv4(127, 0, 0, 1), rpc_address::ipv4_from_host("127.0.0.1"));
