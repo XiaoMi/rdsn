@@ -117,7 +117,8 @@ TEST(core, dsn_address_build)
         ASSERT_EQ(host_ipv4(127, 0, 0, 1), addr.ip());
         ASSERT_EQ(8080, addr.port());
 
-        ASSERT_EQ(addr, dsn::rpc_address("localhost", 8080));
+        ASSERT_TRUE(dsn::rpc_address("127.0.0.1", 8080) == dsn::rpc_address("localhost", 8080) ||
+                    dsn::rpc_address("127.0.1.1", 8080) == dsn::rpc_address("localhost", 8080));
         ASSERT_EQ(addr, dsn::rpc_address("127.0.0.1", 8080));
         ASSERT_EQ(addr, dsn::rpc_address(host_ipv4(127, 0, 0, 1), 8080));
     }
