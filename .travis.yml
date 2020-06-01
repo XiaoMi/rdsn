@@ -18,12 +18,7 @@ addons:
             - clang-format-3.9
 
 before_install:
-    - wget https://github.com/XiaoMi/pegasus-common/releases/download/deps/build-depends.tar.gz
-    - tar xfz build-depends.tar.gz
-    - rm -f build-depends.tar.gz
-    - cd packages
-    - ls | xargs sudo dpkg -i --force-depends
-    - cd ..
+    - sudo apt-get -y install libboost-all-dev libaio-dev
 
 before_script:
     - cd thirdparty
