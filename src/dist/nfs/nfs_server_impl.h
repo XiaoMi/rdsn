@@ -51,7 +51,7 @@ public:
 
 protected:
     // RPC_NFS_V2_NFS_COPY
-    virtual void on_copy(const copy_request &request, ::dsn::rpc_replier<copy_response> &reply);
+    virtual void on_copy(nfs_copy_rpc rpc);
     // RPC_NFS_V2_NFS_GET_FILE_SIZE
     virtual void on_get_file_size(const get_file_size_request &request,
                                   ::dsn::rpc_replier<get_file_size_response> &reply);
@@ -65,12 +65,9 @@ private:
         blob bb;
         uint64_t offset;
         uint32_t size;
-        rpc_replier<copy_response> replier;
+        nfs_copy_rpc rpc;
 
-        callback_para(rpc_replier<copy_response> &&r)
-            : hfile(nullptr), offset(0), size(0), replier(std::move(r))
-        {
-        }
+        callback_para(nfs_copy_rpc r) : hfile(nullptr), offset(0), size(0), rpc(std::move(r)) {}
         callback_para(callback_para &&r)
             : hfile(r.hfile),
               file_path(std::move(r.file_path)),
@@ -78,7 +75,7 @@ private:
               bb(std::move(r.bb)),
               offset(r.offset),
               size(r.size),
-              replier(std::move(r.replier))
+              rpc(std::move(r.rpc))
         {
             r.hfile = nullptr;
             r.offset = 0;

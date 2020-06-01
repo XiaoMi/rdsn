@@ -32,6 +32,8 @@
 
 namespace dsn {
 namespace service {
+typedef rpc_holder<copy_request, copy_response> nfs_copy_rpc;
+
 class nfs_service : public ::dsn::serverlet<nfs_service>
 {
 public:
@@ -41,11 +43,9 @@ public:
 protected:
     // all service handlers to be implemented further
     // RPC_NFS_NFS_COPY
-    virtual void on_copy(const copy_request &request, ::dsn::rpc_replier<copy_response> &reply)
+    virtual void on_copy(nfs_copy_rpc rpc)
     {
         std::cout << "... exec RPC_NFS_NFS_COPY ... (not implemented) " << std::endl;
-        copy_response resp;
-        reply(resp);
     }
     // RPC_NFS_NFS_GET_FILE_SIZE
     virtual void on_get_file_size(const get_file_size_request &request,
@@ -59,7 +59,7 @@ protected:
 public:
     void open_service()
     {
-        this->register_async_rpc_handler(RPC_NFS_COPY, "copy", &nfs_service::on_copy);
+        this->register_rpc_handler_with_rpc_holder(RPC_NFS_COPY, "copy", &nfs_service::on_copy);
         this->register_async_rpc_handler(
             RPC_NFS_GET_FILE_SIZE, "get_file_size", &nfs_service::on_get_file_size);
     }

@@ -62,10 +62,11 @@ nfs_service_impl::nfs_service_impl(nfs_opts &opts)
         "nfs server copy fail count count in the recent period");
 }
 
-void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
-                               ::dsn::rpc_replier<::dsn::service::copy_response> &reply)
+void nfs_service_impl::on_copy(nfs_copy_rpc rpc)
 {
     // dinfo(">>> on call RPC_COPY end, exec RPC_NFS_COPY");
+    const copy_request &request = rpc.request();
+    copy_response &resp = rpc.response();
 
     std::string file_path =
         dsn::utils::filesystem::path_combine(request.source_dir, request.file_name);
@@ -101,13 +102,11 @@ void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
 
     if (hfile == 0) {
         derror("{nfs_service} open file %s failed", file_path.c_str());
-        ::dsn::service::copy_response resp;
         resp.error = ERR_OBJECT_NOT_FOUND;
-        reply(resp);
         return;
     }
 
-    std::shared_ptr<callback_para> cp = std::make_shared<callback_para>(std::move(reply));
+    std::shared_ptr<callback_para> cp = std::make_shared<callback_para>(std::move(rpc));
     cp->bb = blob(dsn::utils::make_shared_array<char>(request.size), request.size);
     cp->dst_dir = std::move(request.dst_dir);
     cp->file_path = std::move(file_path);
@@ -146,13 +145,11 @@ void nfs_service_impl::internal_read_callback(error_code err, size_t sz, callbac
         _recent_copy_data_size->add(sz);
     }
 
-    ::dsn::service::copy_response resp;
+    ::dsn::service::copy_response &resp = cp.rpc.response();
     resp.error = err;
     resp.file_content = std::move(cp.bb);
     resp.offset = cp.offset;
     resp.size = cp.size;
-
-    cp.replier(resp);
 }
 
 // RPC_NFS_NEW_NFS_GET_FILE_SIZE
