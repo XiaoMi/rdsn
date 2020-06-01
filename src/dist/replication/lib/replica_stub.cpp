@@ -958,9 +958,11 @@ void replica_stub::on_query_disk_info(query_disk_info_rpc rpc)
     resp.err = ERR_OK;
 }
 
-void replica_stub::on_query_app_info(const query_app_info_request &req,
-                                     query_app_info_response &resp)
+void replica_stub::on_query_app_info(query_app_info_rpc rpc)
 {
+    const query_app_info_request &req = rpc.request();
+    query_app_info_response &resp = rpc.response();
+
     ddebug("got query app info request from (%s)", req.meta_server.to_string());
     resp.err = dsn::ERR_OK;
     std::set<app_id> visited_apps;
@@ -2058,7 +2060,8 @@ void replica_stub::open_service()
         RPC_REPLICA_COPY_LAST_CHECKPOINT, "copy_checkpoint", &replica_stub::on_copy_checkpoint);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
-    register_rpc_handler(RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
+    register_rpc_handler_with_rpc_holder(
+        RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler(RPC_COLD_BACKUP, "cold_backup", &replica_stub::on_cold_backup);
     register_rpc_handler(
         RPC_CLEAR_COLD_BACKUP, "clear_cold_backup", &replica_stub::on_clear_cold_backup);
