@@ -56,6 +56,7 @@ typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk
 typedef rpc_holder<query_app_info_request, query_app_info_response> query_app_info_rpc;
 typedef rpc_holder<backup_request, backup_response> backup_rpc;
 typedef rpc_holder<notify_catch_up_request, notify_cacth_up_response> notify_catch_up_rpc;
+typedef rpc_holder<bulk_load_request, bulk_load_response> bulk_load_rpc;
 
 class mutation_log;
 class replication_checker;
@@ -108,7 +109,7 @@ public:
     void on_query_app_info(query_app_info_rpc rpc);
     void on_cold_backup(backup_rpc rpc);
     void on_clear_cold_backup(const backup_clear_request &request);
-    void on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_response &response);
+    void on_bulk_load(bulk_load_rpc rpc);
 
     //
     //    messages from peers (primary or secondary)
