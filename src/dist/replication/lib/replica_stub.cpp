@@ -993,8 +993,11 @@ void replica_stub::on_query_app_info(query_app_info_rpc rpc)
     }
 }
 
-void replica_stub::on_cold_backup(const backup_request &request, /*out*/ backup_response &response)
+void replica_stub::on_cold_backup(backup_rpc rpc)
 {
+    const backup_request &request = rpc.request();
+    backup_response &response = rpc.response();
+
     ddebug("received cold backup request: backup{%s.%s.%" PRId64 "}",
            request.pid.to_string(),
            request.policy.policy_name.c_str(),
@@ -2062,7 +2065,8 @@ void replica_stub::open_service()
         RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
-    register_rpc_handler(RPC_COLD_BACKUP, "cold_backup", &replica_stub::on_cold_backup);
+    register_rpc_handler_with_rpc_holder(
+        RPC_COLD_BACKUP, "cold_backup", &replica_stub::on_cold_backup);
     register_rpc_handler(
         RPC_CLEAR_COLD_BACKUP, "clear_cold_backup", &replica_stub::on_clear_cold_backup);
     register_rpc_handler(RPC_SPLIT_NOTIFY_CATCH_UP,
