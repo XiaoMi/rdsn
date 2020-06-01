@@ -57,7 +57,7 @@ typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk
 typedef rpc_holder<query_app_info_request, query_app_info_response> query_app_info_rpc;
 typedef rpc_holder<backup_request, backup_response> backup_rpc;
 typedef rpc_holder<notify_catch_up_request, notify_cacth_up_response> notify_catch_up_rpc;
-
+typedef rpc_holder<group_bulk_load_request, group_bulk_load_response> group_bulk_load_rpc;
 
 class mutation_log;
 class replication_checker;
@@ -126,8 +126,7 @@ public:
     void on_remove(const replica_configuration &request);
     void on_group_check(group_check_rpc rpc);
     void on_copy_checkpoint(copy_checkpoint_rpc rpc);
-    void on_group_bulk_load(const group_bulk_load_request &request,
-                            /*out*/ group_bulk_load_response &response);
+    void on_group_bulk_load(group_bulk_load_rpc rpc);
 
     //
     //    functions while executing partition split
