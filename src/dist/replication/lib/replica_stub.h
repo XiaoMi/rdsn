@@ -54,6 +54,7 @@ typedef rpc_holder<query_replica_decree_request, query_replica_decree_response>
 typedef rpc_holder<query_replica_info_request, query_replica_info_response> query_replica_info_rpc;
 typedef rpc_holder<replica_configuration, learn_response> copy_checkpoint_rpc;
 typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
+typedef rpc_holder<query_app_info_request, query_app_info_response> query_app_info_rpc;
 
 class mutation_log;
 class replication_checker;
@@ -103,8 +104,7 @@ public:
     void on_query_decree(query_replica_decree_rpc rpc);
     void on_query_replica_info(query_replica_info_rpc rpc);
     void on_query_disk_info(query_disk_info_rpc rpc);
-    void on_query_app_info(const query_app_info_request &req,
-                           /*out*/ query_app_info_response &resp);
+    void on_query_app_info(query_app_info_rpc rpc);
     void on_cold_backup(const backup_request &request, /*out*/ backup_response &response);
     void on_clear_cold_backup(const backup_clear_request &request);
     void on_bulk_load(const bulk_load_request &request, /*out*/ bulk_load_response &response);
