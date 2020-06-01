@@ -55,6 +55,7 @@ typedef rpc_holder<replica_configuration, learn_response> copy_checkpoint_rpc;
 typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
 typedef rpc_holder<query_app_info_request, query_app_info_response> query_app_info_rpc;
 typedef rpc_holder<backup_request, backup_response> backup_rpc;
+typedef rpc_holder<notify_catch_up_request, notify_cacth_up_response> notify_catch_up_rpc;
 
 class mutation_log;
 class replication_checker;
@@ -130,8 +131,7 @@ public:
     //    functions while executing partition split
     //
     // on primary, child notify itself has been caught up parent
-    void on_notify_primary_split_catch_up(const notify_catch_up_request &request,
-                                          notify_cacth_up_response &response);
+    void on_notify_primary_split_catch_up(notify_catch_up_rpc rpc);
 
     //
     //    local messages
