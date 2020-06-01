@@ -166,10 +166,10 @@ private:
                                                    bulk_load_status::type new_status,
                                                    bool should_send_request = false);
 
-    void update_partition_status_on_remote_storage_rely(const std::string &app_name,
-                                                        const gpid &pid,
-                                                        bulk_load_status::type new_status,
-                                                        bool should_send_request);
+    void update_partition_status_on_remote_storage_reply(const std::string &app_name,
+                                                         const gpid &pid,
+                                                         bulk_load_status::type new_status,
+                                                         bool should_send_request);
 
     // update app bulk load status on remote storage
     void update_app_status_on_remote_storage_unlock(int32_t app_id,
@@ -303,7 +303,9 @@ private:
     std::unordered_map<gpid, partition_bulk_load_info> _partition_bulk_load_info;
     std::unordered_map<gpid, bool> _partitions_pending_sync_flag;
 
+    // partition_index -> group total download progress
     std::unordered_map<gpid, int32_t> _partitions_total_download_progress;
+    // partition_index -> group bulk load states(node address -> state)
     std::unordered_map<gpid, std::map<rpc_address, partition_bulk_load_state>>
         _partitions_bulk_load_state;
 };

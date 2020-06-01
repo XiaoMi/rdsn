@@ -592,9 +592,6 @@ void bulk_load_service::update_partition_status_on_remote_storage(const std::str
     zauto_read_lock l(_lock);
     partition_bulk_load_info pinfo = _partition_bulk_load_info[pid];
 
-    // in normal cases, there is no need to update status if old status and new status are same,
-    // however, downloading is an exception, if bulk load meet recoverable errors during
-    // downloading, partition status will turn downloading to downloading
     if (pinfo.status == new_status && new_status != bulk_load_status::BLS_DOWNLOADING) {
         dinfo_f("app({}) partition({}) old status:{} VS new status:{}, ignore it",
                 app_name,
@@ -618,7 +615,7 @@ void bulk_load_service::update_partition_status_on_remote_storage(const std::str
     _meta_svc->get_meta_storage()->set_data(
         get_partition_bulk_load_path(pid),
         std::move(value),
-        std::bind(&bulk_load_service::update_partition_status_on_remote_storage_rely,
+        std::bind(&bulk_load_service::update_partition_status_on_remote_storage_reply,
                   this,
                   app_name,
                   pid,
@@ -626,7 +623,8 @@ void bulk_load_service::update_partition_status_on_remote_storage(const std::str
                   should_send_request));
 }
 
-void bulk_load_service::update_partition_status_on_remote_storage_rely(
+// ThreadPool: THREAD_POOL_META_STATE
+void bulk_load_service::update_partition_status_on_remote_storage_reply(
     const std::string &app_name,
     const gpid &pid,
     bulk_load_status::type new_status,
@@ -706,6 +704,7 @@ void bulk_load_service::update_app_status_on_remote_storage_unlock(
                   should_send_request));
 }
 
+// ThreadPool: THREAD_POOL_META_STATE
 void bulk_load_service::update_app_status_on_remote_storage_reply(const app_bulk_load_info &ainfo,
                                                                   bulk_load_status::type old_status,
                                                                   bulk_load_status::type new_status,
