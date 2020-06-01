@@ -23,7 +23,7 @@ before_script:
 
 script:
     - export LD_LIBRARY_PATH=`pwd`/thirdparty/output/lib/:$LD_LIBRARY_PATH
-    - ./run.sh test --skip_thirdparty --check --disable_gperf --test_module dsn.tests
+    - ./run.sh test --skip_thirdparty --check --disable_gperf
 
 after_script:
     - ./run.sh stop_zk
