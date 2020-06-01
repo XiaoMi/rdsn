@@ -9,8 +9,6 @@ compiler:
 cache:
     - ccache
     - apt
-    - directories:
-          - /home/travis/build/XiaoMi/rdsn/thirdparty/output
 
 addons:
     apt:
