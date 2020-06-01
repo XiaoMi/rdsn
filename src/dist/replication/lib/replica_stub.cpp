@@ -2073,7 +2073,8 @@ void replica_stub::open_service()
                                          "child_notify_catch_up",
                                          &replica_stub::on_notify_primary_split_catch_up);
     register_rpc_handler_with_rpc_holder(RPC_BULK_LOAD, "bulk_load", &replica_stub::on_bulk_load);
-    register_rpc_handler(RPC_GROUP_BULK_LOAD, "group_bulk_load", &replica_stub::on_group_bulk_load);
+    register_rpc_handler_with_rpc_holder(
+        RPC_GROUP_BULK_LOAD, "group_bulk_load", &replica_stub::on_group_bulk_load);
 
     _kill_partition_command = ::dsn::command_manager::instance().register_app_command(
         {"kill_partition"},
@@ -2704,9 +2705,11 @@ void replica_stub::on_bulk_load(bulk_load_rpc rpc)
     }
 }
 
-void replica_stub::on_group_bulk_load(const group_bulk_load_request &request,
-                                      /*out*/ group_bulk_load_response &response)
+void replica_stub::on_group_bulk_load(group_bulk_load_rpc rpc)
 {
+    const group_bulk_load_request &request = rpc.request();
+    group_bulk_load_response &response = rpc.response();
+
     ddebug_f("[{}@{}]: received group bulk load request, primary = {}, ballot = {}, "
              "meta_bulk_load_status = {}",
              request.config.pid,
