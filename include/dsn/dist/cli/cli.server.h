@@ -31,6 +31,8 @@
 #include <dsn/dist/cli/cli_types.h>
 
 namespace dsn {
+typedef rpc_holder<command, std::string> cli_call_rpc;
+
 class cli_service : public ::dsn::serverlet<cli_service>
 {
 public:
@@ -43,17 +45,15 @@ public:
 protected:
     // all service handlers to be implemented further
     // RPC_CLI_CLI_CALL
-    virtual void on_call(const command &request, ::dsn::rpc_replier<std::string> &reply)
+    virtual void on_call(cli_call_rpc rpc)
     {
         std::cout << "... exec RPC_CLI_CLI_CALL ... (not implemented) " << std::endl;
-        std::string resp;
-        reply(resp);
     }
 
 public:
     void open_service()
     {
-        this->register_async_rpc_handler(RPC_CLI_CLI_CALL, "call", &cli_service::on_call);
+        this->register_rpc_handler_with_rpc_holder(RPC_CLI_CLI_CALL, "call", &cli_service::on_call);
     }
     void close_service() { this->unregister_rpc_handler(RPC_CLI_CLI_CALL); }
 };

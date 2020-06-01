@@ -6,11 +6,11 @@ namespace dsn {
 class cli_service_impl : public cli_service
 {
 public:
-    void on_call(const command &request, ::dsn::rpc_replier<std::string> &reply) override
+    void on_call(cli_call_rpc rpc) override
     {
-        std::string output;
-        dsn::command_manager::instance().run_command(request.cmd, request.arguments, output);
-        reply(output);
+        const auto &request = rpc.request();
+        dsn::command_manager::instance().run_command(
+            request.cmd, request.arguments, rpc.response());
     }
 };
 
