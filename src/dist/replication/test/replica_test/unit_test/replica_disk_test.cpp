@@ -98,7 +98,8 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
 
     // get received request and query disk info
     dsn::message_ex *recvd_request = fake_request->copy(true, true);
-    auto rpc = rpc_holder<query_disk_info_request, query_disk_info_response>::auto_reply(recvd_request);
+    auto rpc =
+        rpc_holder<query_disk_info_request, query_disk_info_response>::auto_reply(recvd_request);
     stub->on_query_disk_info(rpc);
 
     query_disk_info_response &disk_info_response = rpc.response();
@@ -133,7 +134,8 @@ TEST_F(replica_disk_test, on_query_disk_info_app_not_existed)
 
     // get received request and query disk info
     dsn::message_ex *recvd_request = fake_request->copy(true, true);
-    auto rpc = rpc_holder<query_disk_info_request, query_disk_info_response>::auto_reply(recvd_request);
+    auto rpc =
+        rpc_holder<query_disk_info_request, query_disk_info_response>::auto_reply(recvd_request);
     query_disk_info_request &request = const_cast<query_disk_info_request &>(rpc.request());
     request.app_name = "not_existed_app";
     stub->on_query_disk_info(rpc);
@@ -151,7 +153,8 @@ TEST_F(replica_disk_test, on_query_disk_info_one_app)
 
     // get received request and query disk info
     dsn::message_ex *recvd_request = fake_request->copy(true, true);
-    auto rpc = rpc_holder<query_disk_info_request, query_disk_info_response>::auto_reply(recvd_request);
+    auto rpc =
+        rpc_holder<query_disk_info_request, query_disk_info_response>::auto_reply(recvd_request);
     query_disk_info_request &request = const_cast<query_disk_info_request &>(rpc.request());
     request.app_name = app_info_1.app_name;
     stub->on_query_disk_info(rpc);
