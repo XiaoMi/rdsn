@@ -93,7 +93,7 @@ public:
 
     bulk_load_status::type get_app_bulk_load_status(int32_t app_id)
     {
-        return bulk_svc().get_app_bulk_load_status_unlock(app_id);
+        return bulk_svc().get_app_bulk_load_status_unlocked(app_id);
     }
 
 public:
