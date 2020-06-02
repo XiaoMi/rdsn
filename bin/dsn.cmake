@@ -297,9 +297,9 @@ function(dsn_setup_thirdparty_libs)
 
     # rocksdb
     list(APPEND CMAKE_MODULE_PATH "${DSN_PROJECT_DIR}/thirdparty/src/pegasus-rocksdb-6.6.4-base/cmake/modules")
-    find_package(snappy REQUIRED)
-    find_package(zstd REQUIRED)
-    find_package(lz4 REQUIRED)
+    find_package(snappy)
+    find_package(zstd)
+    find_package(lz4)
     find_package(RocksDB REQUIRED)
 
     link_directories(${DSN_THIRDPARTY_ROOT}/lib)
