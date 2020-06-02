@@ -430,17 +430,6 @@ private:
 
     void init_table_level_latency_counters();
 
-    // download files from remote file system
-    // \return  ERR_FILE_OPERATION_FAILED: local file system error
-    // \return  ERR_FS_INTERNAL: remote file system error
-    // \return  ERR_CORRUPTION: file not exist or damaged
-    // if download file succeed, download_err = ERR_OK and set download_file_size
-    error_code do_download(const std::string &remote_dir,
-                           const std::string &local_dir,
-                           const std::string &file_name,
-                           dist::block_service::block_filesystem *fs,
-                           /*out*/ uint64_t &download_file_size);
-
 private:
     friend class ::dsn::replication::replication_checker;
     friend class ::dsn::replication::test::test_checker;
@@ -455,6 +444,7 @@ private:
     friend class replica_test;
     friend class replica_backup_manager;
     friend class replica_bulk_loader;
+    friend class replica_file_provider_test;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
