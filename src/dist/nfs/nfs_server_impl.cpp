@@ -66,7 +66,6 @@ void nfs_service_impl::on_copy(nfs_copy_rpc rpc)
 {
     // dinfo(">>> on call RPC_COPY end, exec RPC_NFS_COPY");
     const copy_request &request = rpc.request();
-    copy_response &resp = rpc.response();
 
     std::string file_path =
         dsn::utils::filesystem::path_combine(request.source_dir, request.file_name);
@@ -102,7 +101,7 @@ void nfs_service_impl::on_copy(nfs_copy_rpc rpc)
 
     if (hfile == 0) {
         derror("{nfs_service} open file %s failed", file_path.c_str());
-        resp.error = ERR_OBJECT_NOT_FOUND;
+        rpc.response().error = ERR_OBJECT_NOT_FOUND;
         return;
     }
 
