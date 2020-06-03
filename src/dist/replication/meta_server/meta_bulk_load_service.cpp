@@ -712,11 +712,12 @@ void bulk_load_service::update_app_status_on_remote_storage_reply(const app_bulk
         _app_bulk_load_info[app_id] = ainfo;
         _apps_pending_sync_flag[app_id] = false;
         _apps_in_progress_count[app_id] = partition_count;
-        ddebug_f("update app({}) status from {} to {}",
-                 ainfo.app_name,
-                 dsn::enum_to_string(old_status),
-                 dsn::enum_to_string(new_status));
     }
+
+    ddebug_f("update app({}) status from {} to {}",
+             ainfo.app_name,
+             dsn::enum_to_string(old_status),
+             dsn::enum_to_string(new_status));
 
     if (new_status == bulk_load_status::BLS_INGESTING) {
         for (int i = 0; i < partition_count; ++i) {

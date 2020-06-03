@@ -177,7 +177,7 @@ public:
                                                        uint64_t partition_hash = 0);
     // Used for bulk load ingestion
     // meta send bulk load ingestion request to primary, primary will consider it as a special write
-    // request, in other word, create a request which will be considered sent from user client
+    // request, in other words, create a request which will be considered as sent from user client
     DSN_API static message_ex *
     create_client_request(dsn::task_code rpc_code, dsn::gpid pid, int timeout_milliseconds = 0);
 
