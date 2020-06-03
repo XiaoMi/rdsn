@@ -37,11 +37,10 @@
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/dist/failure_detector_multimaster.h>
 #include <dsn/dist/nfs_node.h>
-#include <dsn/dist/cli/cli.server.h>
 
 #include "dist/replication/common/replication_common.h"
 #include "dist/replication/common/fs_manager.h"
-#include "dist/replication/common/block_service_manager.h"
+#include "dist/block_service/block_service_manager.h"
 #include "replica.h"
 
 namespace dsn {
@@ -358,13 +357,10 @@ private:
 
     // handle all the block filesystems for current replica stub
     // (in other words, current service node)
-    block_service_manager _block_service_manager;
+    dist::block_service::block_service_manager _block_service_manager;
 
     // nfs_node
     std::unique_ptr<dsn::nfs_node> _nfs;
-
-    // cli service
-    std::unique_ptr<dsn::cli_service> _cli_service;
 
     // write body size exceed this threshold will be logged and reject, 0 means no check
     uint64_t _max_allowed_write_size;
