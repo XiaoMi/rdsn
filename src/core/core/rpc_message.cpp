@@ -380,17 +380,6 @@ message_ex *message_ex::create_response()
     return msg;
 }
 
-message_ex *
-message_ex::create_client_request(task_code rpc_code, gpid pid, int timeout_milliseconds)
-{
-    int thread_hash = pid.thread_hash();
-    uint64_t partition_hash = static_cast<uint64_t>(pid.get_partition_index());
-    message_ex *msg = create_request(rpc_code, timeout_milliseconds, thread_hash, partition_hash);
-    auto &hdr = *msg->header;
-    hdr.gpid = pid;
-    return msg;
-}
-
 void message_ex::prepare_buffer_header()
 {
     void *ptr;

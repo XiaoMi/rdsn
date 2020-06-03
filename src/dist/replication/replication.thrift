@@ -945,6 +945,7 @@ struct partition_bulk_load_state
     5:optional bool             is_paused = false;
 }
 
+// meta server -> replica server
 struct bulk_load_request
 {
     1:dsn.gpid          pid;
@@ -978,6 +979,7 @@ struct bulk_load_response
     10:optional bool                                    is_group_bulk_load_paused;
 }
 
+// primary -> secondary
 struct group_bulk_load_request
 {
     1:string                        app_name;
@@ -1003,6 +1005,7 @@ struct group_bulk_load_response
     3:partition_bulk_load_state bulk_load_state;
 }
 
+// meta server -> replica server
 struct ingestion_request
 {
     1:string                app_name;
@@ -1011,7 +1014,9 @@ struct ingestion_request
 
 struct ingestion_response
 {
+    // Possible errors are same as write request errors, such as ERR_OBJECT_NOT_FOUND, ERR_INVALID_STATE
     1:dsn.error_code    err;
+    // rocksdb ingestion error code
     2:i32               rocksdb_error;
 }
 

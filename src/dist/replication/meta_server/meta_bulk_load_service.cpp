@@ -776,8 +776,14 @@ void bulk_load_service::partition_ingestion(const std::string &app_name, const g
         zauto_read_lock l(_lock);
         req.metadata = _partition_bulk_load_info[pid].metadata;
     }
-    message_ex *msg =
-        dsn::message_ex::create_client_request(dsn::apps::RPC_RRDB_RRDB_BULK_LOAD, pid);
+
+    // create a client request, whose gpid field in header should be pid
+    message_ex *msg = message_ex::create_request(dsn::apps::RPC_RRDB_RRDB_BULK_LOAD,
+                                                 0,
+                                                 pid.thread_hash(),
+                                                 static_cast<uint64_t>(pid.get_partition_index()));
+    auto &hdr = *msg->header;
+    hdr.gpid = pid;
     dsn::marshall(msg, req);
     dsn::rpc_response_task_ptr rpc_callback = rpc::create_rpc_response_task(
         msg,
