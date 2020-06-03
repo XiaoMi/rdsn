@@ -93,39 +93,6 @@ bool replica::read_cold_backup_metadata(const std::string &file,
     return true;
 }
 
-// verify whether the checkpoint directory is damaged base on backup_metadata under the chkpt
-bool replica::verify_checkpoint(const cold_backup_metadata &backup_metadata,
-                                const std::string &chkpt_dir,
-                                const std::string &file_name)
-{
-    auto iter = std::find_if(backup_metadata.files.begin(),
-                             backup_metadata.files.end(),
-                             [&file_name](const file_meta &f) { return f.name == file_name; });
-
-    // There is no need to verify this file if it is not included in backup_metadata, and this file
-    // which is not included in backup_metadata will deleted by remove_useless_file_under_chkpt
-    if (iter == backup_metadata.files.end()) {
-        return true;
-    }
-
-    const std::string local_file = utils::filesystem::path_combine(chkpt_dir, file_name);
-    int64_t file_sz = 0;
-    std::string md5;
-    if (!utils::filesystem::file_size(local_file, file_sz)) {
-        derror_replica("get file({}) size failed", local_file);
-        return false;
-    }
-    if (utils::filesystem::md5sum(local_file, md5) != ERR_OK) {
-        derror_replica("get file({}) md5 failed", local_file);
-        return false;
-    }
-    if (file_sz != iter->size || md5 != iter->md5) {
-        derror_replica("file({}) under checkpoint is damaged", local_file);
-        return false;
-    }
-    return true;
-}
-
 error_code replica::download_checkpoint(const configuration_restore_request &req,
                                         const std::string &remote_chkpt_dir,
                                         const std::string &local_chkpt_dir)
@@ -146,11 +113,12 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
         tasking::enqueue(
             LPC_REPLICATION_LONG_COMMON,
             &tracker,
-            [this, &err, backup_metadata, remote_chkpt_dir, local_chkpt_dir, f_meta, fs]() {
+            [this, &err, remote_chkpt_dir, local_chkpt_dir, f_meta, fs]() {
                 uint64_t f_size = 0;
-                err = do_download(remote_chkpt_dir, local_chkpt_dir, f_meta.name, fs, f_size);
+                err = _stub->_block_service_manager.download_file(
+                    remote_chkpt_dir, local_chkpt_dir, f_meta.name, fs, f_size);
                 if (err == ERR_OK &&
-                    !verify_checkpoint(backup_metadata, local_chkpt_dir, f_meta.name)) {
+                    !_stub->_block_service_manager.verify_file(f_meta, local_chkpt_dir)) {
                     err = ERR_CORRUPTION;
                 }
 
@@ -185,11 +153,12 @@ error_code replica::get_backup_metadata(block_filesystem *fs,
 {
     // download metadata file
     uint64_t download_file_size = 0;
-    error_code err = do_download(remote_chkpt_dir,
-                                 local_chkpt_dir,
-                                 cold_backup_constant::BACKUP_METADATA,
-                                 fs,
-                                 download_file_size);
+    error_code err =
+        _stub->_block_service_manager.download_file(remote_chkpt_dir,
+                                                    local_chkpt_dir,
+                                                    cold_backup_constant::BACKUP_METADATA,
+                                                    fs,
+                                                    download_file_size);
     if (err != ERR_OK) {
         derror_replica("download backup_metadata failed, file({}), reason({})",
                        utils::filesystem::path_combine(remote_chkpt_dir,
