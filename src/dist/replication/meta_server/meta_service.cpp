@@ -588,7 +588,7 @@ void meta_service::on_query_configuration_by_index(configuration_query_by_index_
 // partition sever => meta sever
 // as get stale configuration is not allowed for partition server, we need to dispatch it to the
 // meta state thread pool
-void meta_service::on_config_sync(configuration_sync_rpc rpc)
+void meta_service::on_config_sync(configuration_query_by_node_rpc rpc)
 {
     RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
 
