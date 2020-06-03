@@ -1003,6 +1003,18 @@ struct group_bulk_load_response
     3:partition_bulk_load_state bulk_load_state;
 }
 
+struct ingestion_request
+{
+    1:string                app_name;
+    2:bulk_load_metadata    metadata;
+}
+
+struct ingestion_response
+{
+    1:dsn.error_code    err;
+    2:i32               rocksdb_error;
+}
+
 /*
 service replica_s
 {
