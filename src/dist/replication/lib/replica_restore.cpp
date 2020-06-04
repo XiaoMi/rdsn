@@ -137,13 +137,13 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
     tracker.wait_outstanding_tasks();
 
     // clear useless files for restore.
-    // if err != ERR_OK, the entire directory of this replica will be deleted later.
-    // so there is no need to clear restore here if err != ERR_OK.
-    if (ERR_OK == err) {
+    // if _restore_status != ERR_OK, the entire directory of this replica will be deleted later.
+    // so there is no need to clear restore here if _restore_status != ERR_OK.
+    if (ERR_OK == _restore_status) {
         clear_restore_useless_files(local_chkpt_dir, backup_metadata);
     }
 
-    return err;
+    return _restore_status;
 }
 
 error_code replica::get_backup_metadata(block_filesystem *fs,
@@ -338,7 +338,7 @@ dsn::error_code replica::restore_checkpoint()
 
     if (err == dsn::ERR_OK) {
         err = download_checkpoint(restore_req, remote_chkpt_dir, restore_dir);
-        if (_restore_status == ERR_CORRUPTION) {
+        if (err == ERR_CORRUPTION) {
             if (skip_bad_partition) {
                 err = skip_restore_partition(restore_dir);
             } else {
