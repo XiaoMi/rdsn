@@ -78,20 +78,6 @@ DSN_DEFINE_int32("nfs",
                  "rpc timeout in milliseconds for nfs copy, "
                  "0 means use default timeout of rpc engine");
 
-// void nfsFLAGS_:init()
-// {
-//     nfs_copy_block_bytes = FLAGS_nfs_copy_block_bytes;
-//     max_concurrent_remote_copy_requests = FLAGS_max_concurrent_remote_copy_requests;
-//     max_concurrent_local_writes = FLAGS_max_concurrent_local_writes;
-//     max_buffered_local_writes = FLAGS_max_buffered_local_writes;
-//     high_priority_speed_rate = FLAGS_high_priority_speed_rate;
-//     file_close_expire_time_ms = FLAGS_file_close_expire_time_ms;
-//     file_close_timer_interval_ms_on_server = FLAGS_file_close_timer_interval_ms_on_server;
-//     max_file_copy_request_count_per_file = FLAGS_max_file_copy_request_count_per_file;
-//     max_retry_count_per_copy_request = FLAGS_max_retry_count_per_copy_request;
-//     rpc_timeout_ms = FLAGS_rpc_timeout_ms;
-// }
-
 nfs_client_impl::nfs_client_impl()
     : _concurrent_copy_request_count(0),
       _concurrent_local_write_count(0),
