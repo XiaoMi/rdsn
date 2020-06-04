@@ -74,6 +74,25 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
+    if (_is_bulk_load_ingestion) {
+        // reject write requests during ingestion
+        response_client_write(request, ERR_BUSY);
+        return;
+    }
+
+    if (request->rpc_code() == dsn::apps::RPC_RRDB_RRDB_BULK_LOAD) {
+        ddebug_replica("receive bulk load ingestion request");
+
+        // bulk load ingestion request requires that all secondaries should be alive
+        if (static_cast<int>(_primary_states.membership.secondaries.size()) + 1 <
+            _primary_states.membership.max_replica_count) {
+            response_client_write(request, ERR_NOT_ENOUGH_MEMBER);
+            return;
+        }
+        _is_bulk_load_ingestion = true;
+        // TODO(heyuchen): set _bulk_load_ingestion_start_time_ms for perf-counter
+    }
+
     if (static_cast<int>(_primary_states.membership.secondaries.size()) + 1 <
         _options->mutation_2pc_min_replica_count) {
         response_client_write(request, ERR_NOT_ENOUGH_MEMBER);
@@ -104,6 +123,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
 
     error_code err = ERR_OK;
     uint8_t count = 0;
+    const auto request_count = mu->client_requests.size();
     mu->data.header.last_committed_decree = last_committed_decree();
 
     dsn_log_level_t level = LOG_LEVEL_INFORMATION;
@@ -127,6 +147,22 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
     // check bounded staleness
     if (mu->data.header.decree > last_committed_decree() + _options->staleness_for_commit) {
         err = ERR_CAPACITY_EXCEEDED;
+        goto ErrOut;
+    }
+
+    // stop prepare bulk load ingestion if there are secondaries unalive
+    for (auto i = 0; i < request_count; ++i) {
+        const mutation_update &update = mu->data.updates[i];
+        if (update.code == dsn::apps::RPC_RRDB_RRDB_BULK_LOAD) {
+            ddebug_replica("try to prepare bulk load mutation({})", mu->name());
+            if (static_cast<int>(_primary_states.membership.secondaries.size()) + 1 <
+                _primary_states.membership.max_replica_count) {
+                err = ERR_NOT_ENOUGH_MEMBER;
+                break;
+            }
+        }
+    }
+    if (err != ERR_OK) {
         goto ErrOut;
     }
 
