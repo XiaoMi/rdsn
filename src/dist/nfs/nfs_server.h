@@ -26,12 +26,18 @@
 
 #pragma once
 #include <iostream>
+#include <cstdint>
 #include <dsn/cpp/serverlet.h>
+#include <dsn/utility/flags.h>
 #include "nfs_code_definition.h"
 #include "nfs_types.h"
 
 namespace dsn {
 namespace service {
+
+DSN_DECLARE_int32(file_close_timer_interval_ms_on_server);
+DSN_DECLARE_int32(file_close_expire_time_ms);
+
 class nfs_service : public ::dsn::serverlet<nfs_service>
 {
 public:
@@ -70,5 +76,5 @@ public:
         this->unregister_rpc_handler(RPC_NFS_GET_FILE_SIZE);
     }
 };
-}
-}
+} // namespace service
+} // namespace dsn
