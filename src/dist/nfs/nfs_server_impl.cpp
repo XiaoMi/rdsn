@@ -42,6 +42,9 @@
 namespace dsn {
 namespace service {
 
+DSN_DECLARE_int32(file_close_timer_interval_ms_on_server);
+DSN_DECLARE_int32(file_close_expire_time_ms);
+
 nfs_service_impl::nfs_service_impl() : ::dsn::serverlet<nfs_service_impl>("nfs")
 {
     _file_close_timer = ::dsn::tasking::enqueue_timer(

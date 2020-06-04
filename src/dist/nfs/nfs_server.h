@@ -34,9 +34,6 @@
 namespace dsn {
 namespace service {
 
-DSN_DECLARE_int32(file_close_timer_interval_ms_on_server);
-DSN_DECLARE_int32(file_close_expire_time_ms);
-
 class nfs_service : public ::dsn::serverlet<nfs_service>
 {
 public:
