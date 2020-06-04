@@ -26,7 +26,6 @@
 
 #pragma once
 #include <iostream>
-#include <cstdint>
 #include <dsn/cpp/serverlet.h>
 #include <dsn/utility/flags.h>
 #include "nfs_code_definition.h"
