@@ -111,7 +111,7 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
     task_tracker tracker;
     for (const auto &f_meta : backup_metadata.files) {
         tasking::enqueue(
-            LPC_REPLICATION_LONG_COMMON,
+            TASK_CODE_EXEC_INLINED,
             &tracker,
             [this, &err, remote_chkpt_dir, local_chkpt_dir, f_meta, fs]() {
                 uint64_t f_size = 0;
