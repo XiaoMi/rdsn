@@ -117,8 +117,10 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                 uint64_t f_size = 0;
                 error_code download_err = _stub->_block_service_manager.download_file(
                     remote_chkpt_dir, local_chkpt_dir, f_meta.name, fs, f_size);
+                const std::string file_name =
+                    utils::filesystem::path_combine(local_chkpt_dir, f_meta.name);
                 if (download_err == ERR_OK &&
-                    !_stub->_block_service_manager.verify_file(f_meta, local_chkpt_dir)) {
+                    !utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
                     download_err = ERR_CORRUPTION;
                 }
 
