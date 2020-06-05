@@ -102,9 +102,9 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
 
     // download metadata file and parse it into cold_backup_meta
     cold_backup_metadata backup_metadata;
-    error_code err = get_backup_metadata(fs, remote_chkpt_dir, local_chkpt_dir, backup_metadata);
-    if (err != ERR_OK) {
-        return err;
+    error_code ec = get_backup_metadata(fs, remote_chkpt_dir, local_chkpt_dir, backup_metadata);
+    if (ec != ERR_OK) {
+        return ec;
     }
 
     // download checkpoint files
@@ -113,9 +113,9 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
         tasking::enqueue(
             TASK_CODE_EXEC_INLINED,
             &tracker,
-            [this, &err, remote_chkpt_dir, local_chkpt_dir, f_meta, fs]() {
+            [this, remote_chkpt_dir, local_chkpt_dir, f_meta, fs]() {
                 uint64_t f_size = 0;
-                err = _stub->_block_service_manager.download_file(
+                error_code err = _stub->_block_service_manager.download_file(
                     remote_chkpt_dir, local_chkpt_dir, f_meta.name, fs, f_size);
                 if (err == ERR_OK &&
                     !_stub->_block_service_manager.verify_file(f_meta, local_chkpt_dir)) {
@@ -123,9 +123,14 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                 }
 
                 if (err != ERR_OK) {
-                    _restore_status = err;
                     derror_replica("failed to download file({}), error = {}", f_meta.name, err);
-                    return;
+
+                    // we shouldn't change resp_err if it is ERR_CORRUPTION now, otherwise resp_err
+                    // will be overridden by other errors, which have lower error level in restore
+                    if (_restore_status != ERR_CORRUPTION) {
+                        _restore_status = err;
+                        return;
+                    }
                 }
 
                 // update progress if download file succeed
@@ -332,27 +337,21 @@ dsn::error_code replica::restore_checkpoint()
         return dsn::ERR_FILE_OPERATION_FAILED;
     }
 
-    // then find a valid checkpoint dir to copy
+    // then find a valid checkpoint dir and download it
     std::string remote_chkpt_dir;
-    dsn::error_code err = find_valid_checkpoint(restore_req, remote_chkpt_dir);
-
-    if (err == dsn::ERR_OK) {
+    error_code err = find_valid_checkpoint(restore_req, remote_chkpt_dir);
+    if (err == ERR_OK) {
         err = download_checkpoint(restore_req, remote_chkpt_dir, restore_dir);
-        if (err == ERR_CORRUPTION) {
-            if (skip_bad_partition) {
-                err = skip_restore_partition(restore_dir);
-            } else {
-                tell_meta_to_restore_rollback();
-                return ERR_CORRUPTION;
-            }
-        }
-    } else if (err == ERR_OBJECT_NOT_FOUND) { // find valid checkpoint failed
+    }
+
+    _restore_status = err;
+    if (err == ERR_OBJECT_NOT_FOUND || err == ERR_CORRUPTION) {
         if (skip_bad_partition) {
+            _restore_status = ERR_IGNORE_BAD_DATA;
             err = skip_restore_partition(restore_dir);
         } else {
-            // current_checkpoint doesn't exist, we think partition is damaged
-            tell_meta_to_restore_rollback();
             _restore_status = ERR_CORRUPTION;
+            tell_meta_to_restore_rollback();
             return ERR_CORRUPTION;
         }
     }
