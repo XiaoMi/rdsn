@@ -76,7 +76,8 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
 
     if (_is_bulk_load_ingestion) {
         // reject write requests during ingestion
-        response_client_write(request, ERR_BUSY);
+        // TODO(heyuchen): add perf-counter here
+        response_client_write(request, ERR_OPERATION_DISABLED);
         return;
     }
 
