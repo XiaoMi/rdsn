@@ -102,9 +102,9 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
 
     // download metadata file and parse it into cold_backup_meta
     cold_backup_metadata backup_metadata;
-    error_code ec = get_backup_metadata(fs, remote_chkpt_dir, local_chkpt_dir, backup_metadata);
-    if (ec != ERR_OK) {
-        return ec;
+    error_code err = get_backup_metadata(fs, remote_chkpt_dir, local_chkpt_dir, backup_metadata);
+    if (err != ERR_OK) {
+        return err;
     }
 
     // download checkpoint files
@@ -113,22 +113,22 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
         tasking::enqueue(
             TASK_CODE_EXEC_INLINED,
             &tracker,
-            [this, remote_chkpt_dir, local_chkpt_dir, f_meta, fs]() {
+            [this, &err, remote_chkpt_dir, local_chkpt_dir, f_meta, fs]() {
                 uint64_t f_size = 0;
-                error_code err = _stub->_block_service_manager.download_file(
+                error_code download_err = _stub->_block_service_manager.download_file(
                     remote_chkpt_dir, local_chkpt_dir, f_meta.name, fs, f_size);
-                if (err == ERR_OK &&
+                if (download_err == ERR_OK &&
                     !_stub->_block_service_manager.verify_file(f_meta, local_chkpt_dir)) {
-                    err = ERR_CORRUPTION;
+                    download_err = ERR_CORRUPTION;
                 }
 
-                if (err != ERR_OK) {
-                    derror_replica("failed to download file({}), error = {}", f_meta.name, err);
-
-                    // we shouldn't change resp_err if it is ERR_CORRUPTION now, otherwise resp_err
-                    // will be overridden by other errors, which have lower error level in restore
-                    if (_restore_status != ERR_CORRUPTION) {
-                        _restore_status = err;
+                if (download_err != ERR_OK) {
+                    derror_replica(
+                        "failed to download file({}), error = {}", f_meta.name, download_err);
+                    // we shouldn't change err if it is ERR_CORRUPTION now,
+                    // otherwise it will be overridden by other errors
+                    if (err != ERR_CORRUPTION) {
+                        err = download_err;
                         return;
                     }
                 }
@@ -142,13 +142,13 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
     tracker.wait_outstanding_tasks();
 
     // clear useless files for restore.
-    // if _restore_status != ERR_OK, the entire directory of this replica will be deleted later.
-    // so there is no need to clear restore here if _restore_status != ERR_OK.
-    if (ERR_OK == _restore_status) {
+    // if err != ERR_OK, the entire directory of this replica will be deleted later.
+    // so in this situation, there is no need to clear restore.
+    if (ERR_OK == err) {
         clear_restore_useless_files(local_chkpt_dir, backup_metadata);
     }
 
-    return _restore_status;
+    return err;
 }
 
 error_code replica::get_backup_metadata(block_filesystem *fs,
@@ -322,19 +322,20 @@ dsn::error_code replica::restore_checkpoint()
         skip_bad_partition = true;
     }
 
-    // then create a local restore dir
+    // then create a local restore dir if it doesn't exist
+    if (!utils::filesystem::directory_exists(_dir) && !utils::filesystem::create_directory(_dir)) {
+        derror("create dir %s failed", _dir.c_str());
+        return ERR_FILE_OPERATION_FAILED;
+    }
+
+    // we don't remove the old restore.policy_name.backup_id
     std::ostringstream os;
     os << _dir << "/restore." << restore_req.policy_name << "." << restore_req.time_stamp;
     std::string restore_dir = os.str();
-    if (!utils::filesystem::directory_exists(_dir) && !utils::filesystem::create_directory(_dir)) {
-        derror("create dir %s failed", _dir.c_str());
-        return dsn::ERR_FILE_OPERATION_FAILED;
-    }
-    // we don't remove the old restore.policy_name.backup_id
     if (!utils::filesystem::directory_exists(restore_dir) &&
         !utils::filesystem::create_directory(restore_dir)) {
         derror("create dir %s failed", restore_dir.c_str());
-        return dsn::ERR_FILE_OPERATION_FAILED;
+        return ERR_FILE_OPERATION_FAILED;
     }
 
     // then find a valid checkpoint dir and download it
@@ -344,7 +345,6 @@ dsn::error_code replica::restore_checkpoint()
         err = download_checkpoint(restore_req, remote_chkpt_dir, restore_dir);
     }
 
-    _restore_status = err;
     if (err == ERR_OBJECT_NOT_FOUND || err == ERR_CORRUPTION) {
         if (skip_bad_partition) {
             _restore_status = ERR_IGNORE_BAD_DATA;
