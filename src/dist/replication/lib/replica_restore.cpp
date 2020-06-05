@@ -125,8 +125,8 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                 if (download_err != ERR_OK) {
                     derror_replica(
                         "failed to download file({}), error = {}", f_meta.name, download_err);
-                    // we shouldn't change err if it is ERR_CORRUPTION now,
-                    // otherwise it will be overridden by other errors
+                    // ERR_CORRUPTION means we should rollback restore, so we can't change err if it
+                    // is ERR_CORRUPTION now, otherwise it will be overridden by other errors
                     if (err != ERR_CORRUPTION) {
                         err = download_err;
                         return;
