@@ -13,8 +13,6 @@
 namespace dsn {
 namespace replication {
 
-typedef rpc_holder<group_bulk_load_request, group_bulk_load_response> group_bulk_load_rpc;
-
 replica_bulk_loader::replica_bulk_loader(replica *r)
     : replica_base(r), _replica(r), _stub(r->get_replica_stub())
 {
@@ -286,7 +284,10 @@ error_code replica_bulk_loader::download_sst_files(const std::string &app_name,
                 uint64_t f_size = 0;
                 error_code ec = _stub->_block_service_manager.download_file(
                     remote_dir, local_dir, f_meta.name, fs, f_size);
-                if (ec == ERR_OK && !_stub->_block_service_manager.verify_file(f_meta, local_dir)) {
+                const std::string &file_name =
+                    utils::filesystem::path_combine(local_dir, f_meta.name);
+                if (ec == ERR_OK &&
+                    !utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
                     ec = ERR_CORRUPTION;
                 }
                 if (ec != ERR_OK) {
