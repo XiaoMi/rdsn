@@ -276,7 +276,7 @@ protected:
     std::string _dir_data;      // ${replica_dir}/data
     std::string _dir_learn;     // ${replica_dir}/learn
     std::string _dir_backup;    // ${replica_dir}/backup
-    std::string _dir_bulk_load; // ${replica_dir}/.bulk_load
+    std::string _dir_bulk_load; // ${replica_dir}/bulk_load
     replica *_replica;
     std::atomic<int64_t> _last_committed_decree;
     replica_init_info _info;
