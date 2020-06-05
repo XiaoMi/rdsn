@@ -117,7 +117,7 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                 uint64_t f_size = 0;
                 error_code download_err = _stub->_block_service_manager.download_file(
                     remote_chkpt_dir, local_chkpt_dir, f_meta.name, fs, f_size);
-                const std::string &file_name =
+                const std::string file_name =
                     utils::filesystem::path_combine(local_chkpt_dir, f_meta.name);
                 if (download_err == ERR_OK &&
                     !utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
@@ -175,7 +175,7 @@ error_code replica::get_backup_metadata(block_filesystem *fs,
     }
 
     // parse cold_backup_meta from metadata file
-    const std::string &local_backup_metada_file =
+    const std::string local_backup_metada_file =
         utils::filesystem::path_combine(local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
     if (!read_cold_backup_metadata(local_backup_metada_file, backup_metadata)) {
         derror_replica("recover cold_backup_metadata from file({}) failed",
@@ -202,7 +202,7 @@ void replica::clear_restore_useless_files(const std::string &local_chkpt_dir,
         ddebug_replica("remove useless file succeed, chkpt = {}", local_chkpt_dir);
     }
 
-    const std::string &metadata_file =
+    const std::string metadata_file =
         utils::filesystem::path_combine(local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
     if (!utils::filesystem::remove_path(metadata_file)) {
         dwarn_replica("remove backup_metadata failed, file = {}", metadata_file);
