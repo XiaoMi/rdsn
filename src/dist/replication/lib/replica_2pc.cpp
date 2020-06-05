@@ -153,13 +153,14 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
     // stop prepare bulk load ingestion if there are secondaries unalive
     for (auto i = 0; i < request_count; ++i) {
         const mutation_update &update = mu->data.updates[i];
-        if (update.code == dsn::apps::RPC_RRDB_RRDB_BULK_LOAD) {
-            ddebug_replica("try to prepare bulk load mutation({})", mu->name());
-            if (static_cast<int>(_primary_states.membership.secondaries.size()) + 1 <
-                _primary_states.membership.max_replica_count) {
-                err = ERR_NOT_ENOUGH_MEMBER;
-                break;
-            }
+        if (update.code != dsn::apps::RPC_RRDB_RRDB_BULK_LOAD) {
+            break;
+        }
+        ddebug_replica("try to prepare bulk load mutation({})", mu->name());
+        if (static_cast<int>(_primary_states.membership.secondaries.size()) + 1 <
+            _primary_states.membership.max_replica_count) {
+            err = ERR_NOT_ENOUGH_MEMBER;
+            break;
         }
     }
     if (err != ERR_OK) {
