@@ -368,7 +368,6 @@ dsn::error_code replica::skip_restore_partition(const std::string &restore_dir)
     if (utils::filesystem::remove_path(restore_dir) &&
         utils::filesystem::create_directory(restore_dir)) {
         ddebug("%s: clear restore_dir(%s) succeed", name(), restore_dir.c_str());
-        _restore_status = ERR_IGNORE_BAD_DATA;
         _restore_progress.store(cold_backup_constant::PROGRESS_FINISHED);
         return ERR_OK;
     } else {
