@@ -6,6 +6,7 @@
 #include "fds/fds_service.h"
 #include "local/local_service.h"
 
+#include <dsn/utility/flags.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>
@@ -48,26 +49,25 @@ block_filesystem *block_service_manager::get_block_filesystem(const std::string 
         if (iter != _fs_map.end())
             return iter->second.get();
 
-        const char *provider_type = dsn_config_get_value_string(
-            (std::string("block_service.") + provider).c_str(), "type", "", "block service type");
-
+        DSN_DEFINE_string((std::string("block_service.") + provider).c_str(),
+                          provider_type,
+                          "",
+                          "block service type");
         block_filesystem *fs =
-            utils::factory_store<block_filesystem>::create(provider_type, PROVIDER_TYPE_MAIN);
+            utils::factory_store<block_filesystem>::create(FLAGS_provider_type, PROVIDER_TYPE_MAIN);
         if (fs == nullptr) {
             derror("acquire block filesystem failed, provider = %s, provider_type = %s",
                    provider.c_str(),
-                   provider_type);
+                   FLAGS_provider_type);
             return nullptr;
         }
 
-        const char *arguments =
-            dsn_config_get_value_string((std::string("block_service.") + provider).c_str(),
-                                        "args",
-                                        "",
-                                        "args for block_service");
-
+        DSN_DEFINE_string((std::string("block_service.") + provider).c_str(),
+                          arguments,
+                          "",
+                          "args for block_service");
         std::vector<std::string> args;
-        utils::split_args(arguments, args);
+        utils::split_args(FLAGS_arguments, args);
         dsn::error_code err = fs->initialize(args);
 
         if (dsn::ERR_OK == err) {
