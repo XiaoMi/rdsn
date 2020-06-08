@@ -212,7 +212,7 @@ void replica::on_group_check_reply(error_code err,
             err = resp->err;
         }
         handle_remote_failure(req->config.status, req->node, err, "group check");
-        // only if status == PS_SECONDARY, should we increase group check fail count
+        // only if status == PS_SECONDARY should we increase group check fail count,
         // because other status have no significant effect
         if (partition_status::PS_SECONDARY == req->config.status) {
             _stub->_counter_replicas_recent_group_check_fail_count->increment();
