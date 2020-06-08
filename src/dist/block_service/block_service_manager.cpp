@@ -6,7 +6,6 @@
 #include "fds/fds_service.h"
 #include "local/local_service.h"
 
-#include <dsn/utility/flags.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>
@@ -49,25 +48,26 @@ block_filesystem *block_service_manager::get_block_filesystem(const std::string 
         if (iter != _fs_map.end())
             return iter->second.get();
 
-        DSN_DEFINE_string((std::string("block_service.") + provider).c_str(),
-                          provider_type,
-                          "",
-                          "block service type");
+        const char *provider_type = dsn_config_get_value_string(
+            (std::string("block_service.") + provider).c_str(), "type", "", "block service type");
+
         block_filesystem *fs =
-            utils::factory_store<block_filesystem>::create(FLAGS_provider_type, PROVIDER_TYPE_MAIN);
+            utils::factory_store<block_filesystem>::create(provider_type, PROVIDER_TYPE_MAIN);
         if (fs == nullptr) {
             derror("acquire block filesystem failed, provider = %s, provider_type = %s",
                    provider.c_str(),
-                   FLAGS_provider_type);
+                   provider_type);
             return nullptr;
         }
 
-        DSN_DEFINE_string((std::string("block_service.") + provider).c_str(),
-                          arguments,
-                          "",
-                          "args for block_service");
+        const char *arguments =
+            dsn_config_get_value_string((std::string("block_service.") + provider).c_str(),
+                                        "args",
+                                        "",
+                                        "args for block_service");
+
         std::vector<std::string> args;
-        utils::split_args(FLAGS_arguments, args);
+        utils::split_args(arguments, args);
         dsn::error_code err = fs->initialize(args);
 
         if (dsn::ERR_OK == err) {
@@ -95,7 +95,9 @@ error_code block_service_manager::download_file(const std::string &remote_dir,
     task_tracker tracker;
 
     auto download_file_callback_func = [this, &download_err, &download_file_size](
-        const download_response &resp, block_file_ptr bf, const std::string &local_file_name) {
+                                           const download_response &resp,
+                                           block_file_ptr bf,
+                                           const std::string &local_file_name) {
         if (resp.err != ERR_OK) {
             // during bulk load process, ERR_OBJECT_NOT_FOUND will be considered as a recoverable
             // error, however, if file damaged on remote file provider, bulk load should stop,
