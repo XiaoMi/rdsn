@@ -604,30 +604,13 @@ void meta_service::on_query_cluster_info(configuration_cluster_info_rpc rpc)
 void meta_service::on_query_configuration_by_index(configuration_query_by_index_rpc rpc)
 {
     configuration_query_by_index_response &response = rpc.response();
-
-    // here we do not use RPC_CHECK_STATUS macro, but specially handle it
-    // to response forward address.
-    dinfo("rpc %s called", __FUNCTION__);
     rpc_address forward_address;
-    int result = check_leader(rpc.dsn_request(), &forward_address);
-    if (result == 0) {
-        rpc.disable_auto_reply();
-        return;
-    }
-    if (result == -1 || !_started) {
-        if (result == -1) {
-            response.err = ERR_FORWARD_TO_OTHERS;
-            if (!forward_address.is_invalid()) {
-                partition_configuration config;
-                config.primary = forward_address;
-                response.partitions.push_back(std::move(config));
-            }
-        } else if (_recovering) {
-            response.err = ERR_UNDER_RECOVERY;
-        } else {
-            response.err = ERR_SERVICE_NOT_ACTIVE;
+    if (!check_status(rpc, &forward_address)) {
+        if (!forward_address.is_invalid()) {
+            partition_configuration config;
+            config.primary = forward_address;
+            response.partitions.push_back(std::move(config));
         }
-        ddebug("reject request with %s", response.err.to_string());
         return;
     }
 
@@ -733,28 +716,15 @@ void meta_service::on_start_recovery(configuration_recovery_rpc rpc)
 {
     configuration_recovery_response &response = rpc.response();
     ddebug("got start recovery request, start to do recovery");
-    int result = check_leader(rpc.dsn_request(), nullptr);
-    if (result == 0) // request has been forwarded to others
-    {
-        rpc.disable_auto_reply();
+    if (!check_status(rpc)) {
         return;
     }
 
-    if (result == -1) {
-        response.err = ERR_FORWARD_TO_OTHERS;
-    } else {
-        zauto_write_lock l(_meta_lock);
-        if (_started.load()) {
-            ddebug("service(%s) is already started, ignore the recovery request",
-                   dsn_primary_address().to_string());
-            response.err = ERR_SERVICE_ALREADY_RUNNING;
-        } else {
-            _state->on_start_recovery(rpc.request(), response);
-            if (response.err == dsn::ERR_OK) {
-                _recovering = false;
-                start_service();
-            }
-        }
+    zauto_write_lock l(_meta_lock);
+    _state->on_start_recovery(rpc.request(), response);
+    if (response.err == dsn::ERR_OK) {
+        _recovering = false;
+        start_service();
     }
 }
 
