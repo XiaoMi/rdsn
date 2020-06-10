@@ -458,6 +458,10 @@ int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_a
     return 1;
 }
 
+/**
+ * If your rpc interface uses rpc_holder, please don't use RPC_CHECK_STATUS.
+ * Because it will cause the response to be sent repeatedly
+ */
 #define RPC_CHECK_STATUS(dsn_msg, response_struct)                                                 \
     dinfo("rpc %s called", __FUNCTION__);                                                          \
     int result = check_leader(dsn_msg, nullptr);                                                   \
