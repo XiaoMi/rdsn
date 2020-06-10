@@ -217,14 +217,13 @@ private:
     //   0. meta isn't leader, and rpc-msg can forward to others
     //  -1. meta isn't leader, and rpc-msg can't forward to others
     // if return -1 and `forward_address' != nullptr, then return leader by `forward_address'.
-    int check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address);
-    error_code remote_storage_initialize();
-    bool check_freeze() const;
-
     template <typename TRpcHolder>
     int check_leader(TRpcHolder rpc, /*out*/ rpc_address *forward_address);
     template <typename TRpcHolder>
     bool check_status(TRpcHolder rpc, /*out*/ rpc_address *forward_address = nullptr);
+    int check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address);
+    error_code remote_storage_initialize();
+    bool check_freeze() const;
 
 private:
     friend class replication_checker;
