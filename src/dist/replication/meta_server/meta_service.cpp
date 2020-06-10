@@ -121,12 +121,13 @@ bool meta_service::check_status(TRpcHolder rpc)
     if (result == 0)
         return false;
     if (result == -1 || !_started) {
-        if (result == -1)
+        if (result == -1) {
             rpc.response().err = ERR_FORWARD_TO_OTHERS;
-        else if (_recovering)
+        } else if (_recovering) {
             rpc.response().err = ERR_UNDER_RECOVERY;
-        else
+        } else {
             rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
+        }
         ddebug("reject request with %s", rpc.response().err.to_string());
         return false;
     }
