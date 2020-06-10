@@ -200,6 +200,8 @@ public:
         return t;
     }
 
+    void forward(rpc_address addr) { _i->forward(addr); }
+
     // Returns an rpc_holder that will reply the request after its lifetime ends.
     // By default rpc_holder never replies.
     // SEE: serverlet<T>::register_rpc_handler_with_rpc_holder
@@ -280,6 +282,12 @@ private:
             message_ex *dsn_response = dsn_request->create_response();
             marshall(dsn_response, thrift_response);
             dsn_rpc_reply(dsn_response);
+        }
+
+        void forward(rpc_address addr)
+        {
+            auto_reply = false;
+            dsn_rpc_forward(dsn_request, addr);
         }
 
         ~internal()

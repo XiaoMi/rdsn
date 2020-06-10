@@ -221,6 +221,11 @@ private:
     error_code remote_storage_initialize();
     bool check_freeze() const;
 
+    template <typename TRpcHolder>
+    int check_leader(TRpcHolder rpc);
+    template <typename TRpcHolder>
+    bool check_status(TRpcHolder rpc);
+
 private:
     friend class replication_checker;
     friend class test::test_checker;
