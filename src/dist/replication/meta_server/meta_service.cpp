@@ -94,11 +94,13 @@ bool meta_service::check_freeze() const
 }
 
 template <typename TRpcHolder>
-int meta_service::check_leader(TRpcHolder rpc)
+int meta_service::check_leader(TRpcHolder rpc, rpc_address *forward_address)
 {
     dsn::rpc_address leader;
     if (!_failure_detector->get_leader(&leader)) {
         if (!rpc.dsn_request()->header->context.u.is_forward_supported) {
+            if (forward_address != nullptr)
+                *forward_address = leader;
             return -1;
         }
 
@@ -107,6 +109,8 @@ int meta_service::check_leader(TRpcHolder rpc)
             rpc.forward(leader);
             return 0;
         } else {
+            if (forward_address != nullptr)
+                forward_address->set_invalid();
             return -1;
         }
     }
@@ -114,10 +118,10 @@ int meta_service::check_leader(TRpcHolder rpc)
 }
 
 template <typename TRpcHolder>
-bool meta_service::check_status(TRpcHolder rpc)
+bool meta_service::check_status(TRpcHolder rpc, rpc_address *forward_address)
 {
     dinfo("rpc %s called", __FUNCTION__);
-    int result = check_leader(rpc);
+    int result = check_leader(rpc, forward_address);
     if (result == 0)
         return false;
     if (result == -1 || !_started) {

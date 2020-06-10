@@ -222,9 +222,9 @@ private:
     bool check_freeze() const;
 
     template <typename TRpcHolder>
-    int check_leader(TRpcHolder rpc);
+    int check_leader(TRpcHolder rpc, /*out*/ rpc_address *forward_address);
     template <typename TRpcHolder>
-    bool check_status(TRpcHolder rpc);
+    bool check_status(TRpcHolder rpc, /*out*/ rpc_address *forward_address = nullptr);
 
 private:
     friend class replication_checker;
