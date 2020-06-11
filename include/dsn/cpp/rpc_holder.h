@@ -232,7 +232,8 @@ public:
     // Only use this function when testing.
     // Remember to call it after test finishes, or it may effect the results of other tests.
     // This function is not thread-safe.
-    static void clear_mocking_env() {
+    static void clear_mocking_env()
+    {
         _mail_box.reset(nullptr);
         _forward_mail_box.reset(nullptr);
     }
@@ -370,7 +371,8 @@ task_ptr call(rpc_address server,
 template <typename TRequest, typename TResponse>
 typename rpc_holder<TRequest, TResponse>::mail_box_u_ptr rpc_holder<TRequest, TResponse>::_mail_box;
 template <typename TRequest, typename TResponse>
-typename rpc_holder<TRequest, TResponse>::mail_box_u_ptr rpc_holder<TRequest, TResponse>::_forward_mail_box;
+typename rpc_holder<TRequest, TResponse>::mail_box_u_ptr
+    rpc_holder<TRequest, TResponse>::_forward_mail_box;
 
 template <typename TRpcHolder>
 struct rpc_mock_wrapper
