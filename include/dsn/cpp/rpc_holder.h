@@ -300,7 +300,10 @@ private:
         {
             auto_reply = false;
             if (dsn_unlikely(_forward_mail_box != nullptr)) {
-                _forward_mail_box->emplace_back(this);
+                rpc_holder<TRequest, TResponse> rpc(std::move(thrift_request),
+                                                    dsn_request->rpc_code());
+                rpc.response() = std::move(thrift_response);
+                _forward_mail_box->emplace_back(std::move(rpc));
                 return;
             }
 
