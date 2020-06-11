@@ -200,7 +200,16 @@ public:
         return t;
     }
 
-    void forward(rpc_address addr) { _i->forward(addr); }
+    void forward(rpc_address addr)
+    {
+        _i->auto_reply = false;
+        if (dsn_unlikely(_forward_mail_box != nullptr)) {
+            _forward_mail_box->emplace_back(*this);
+            return;
+        }
+
+        dsn_rpc_forward(dsn_request(), addr);
+    }
 
     // Returns an rpc_holder that will reply the request after its lifetime ends.
     // By default rpc_holder never replies.
@@ -294,20 +303,6 @@ private:
             message_ex *dsn_response = dsn_request->create_response();
             marshall(dsn_response, thrift_response);
             dsn_rpc_reply(dsn_response);
-        }
-
-        void forward(rpc_address addr)
-        {
-            auto_reply = false;
-            if (dsn_unlikely(_forward_mail_box != nullptr)) {
-                rpc_holder<TRequest, TResponse> rpc(std::move(thrift_request),
-                                                    dsn_request->rpc_code());
-                rpc.response() = std::move(thrift_response);
-                _forward_mail_box->emplace_back(std::move(rpc));
-                return;
-            }
-
-            dsn_rpc_forward(dsn_request, addr);
         }
 
         ~internal()
