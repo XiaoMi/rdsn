@@ -829,7 +829,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
 
     for (const auto &kv : apps) {
         const std::shared_ptr<app_state> &app = kv.second;
-        if (in_ignored_app(kv.first)) {
+        if (in_ignored_apps(kv.first)) {
             ddebug_f("stop to do primary balance for the ignored app[{}]", app->get_logname());
             continue;
         }
@@ -875,7 +875,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     // another app's primary balancer if not seperated.
     for (const auto &kv : apps) {
         const std::shared_ptr<app_state> &app = kv.second;
-        if (in_ignored_app(kv.first)) {
+        if (in_ignored_apps(kv.first)) {
             ddebug_f("stop to do secondary balance for the ignored app[{}]", app->get_logname());
             continue;
         }
@@ -1009,7 +1009,7 @@ greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::st
     return "set ok";
 }
 
-bool greedy_load_balancer::in_ignored_app(dsn::replication::app_id app_id)
+bool greedy_load_balancer::in_ignored_apps(dsn::replication::app_id app_id)
 {
     dsn::zauto_read_lock l(_balancer_ignored_apps_lock);
     return _balancer_ignored_apps.count(app_id) != 0;
