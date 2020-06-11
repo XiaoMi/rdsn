@@ -998,7 +998,7 @@ greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::st
     }
 
     std::set<dsn::replication::app_id> app_list;
-    for (const std::string &app_id : app_ids) {
+    for (const std::string &app_id_str : app_ids) {
         dsn::replication::app_id app;
         if (!dsn::buf2int32(app_id, app)) {
             return invalid_arguments;
