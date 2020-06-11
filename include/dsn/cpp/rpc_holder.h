@@ -284,10 +284,7 @@ private:
         void reply()
         {
             if (dsn_unlikely(_mail_box != nullptr)) {
-                rpc_holder<TRequest, TResponse> rpc(std::move(thrift_request),
-                                                    dsn_request->rpc_code());
-                rpc.response() = std::move(thrift_response);
-                _mail_box->emplace_back(std::move(rpc));
+                _mail_box->emplace_back(*this);
                 return;
             }
 
