@@ -155,7 +155,7 @@ private:
 
     std::string set_balancer_ignored_app_id_list(const std::vector<std::string> &args);
 
-    bool in_ignored_apps(dsn::replication::app_id app_id);
+    bool in_ignored_apps(app_id app_id);
 };
 } // namespace replication
 } // namespace dsn

@@ -997,10 +997,10 @@ greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::st
         return invalid_arguments;
     }
 
-    std::set<dsn::replication::app_id> app_list;
+    std::set<app_id> app_list;
     for (const std::string &app_id_str : app_ids) {
-        dsn::replication::app_id app;
-        if (!dsn::buf2int32(app_id, app)) {
+        app_id app;
+        if (!dsn::buf2int32(app_id_str, app)) {
             return invalid_arguments;
         }
         app_list.insert(app);
@@ -1009,7 +1009,7 @@ greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::st
     return "set ok";
 }
 
-bool greedy_load_balancer::in_ignored_apps(dsn::replication::app_id app_id)
+bool greedy_load_balancer::in_ignored_apps(app_id app_id)
 {
     dsn::zauto_read_lock l(_balancer_ignored_apps_lock);
     return _balancer_ignored_apps.find(app_id) != _balancer_ignored_apps.end();
