@@ -178,8 +178,7 @@ error_code replica::get_backup_metadata(block_filesystem *fs,
     const std::string local_backup_metada_file =
         utils::filesystem::path_combine(local_chkpt_dir, cold_backup_constant::BACKUP_METADATA);
     if (!read_cold_backup_metadata(local_backup_metada_file, backup_metadata)) {
-        derror_replica("read cold_backup_metadata from file({}) failed",
-                       local_backup_metada_file);
+        derror_replica("read cold_backup_metadata from file({}) failed", local_backup_metada_file);
         return ERR_FILE_OPERATION_FAILED;
     }
 
