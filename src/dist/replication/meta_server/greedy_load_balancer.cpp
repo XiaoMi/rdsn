@@ -830,8 +830,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     for (const auto &kv : apps) {
         const std::shared_ptr<app_state> &app = kv.second;
         if (in_ignored_app(kv.first)) {
-            ddebug_f(
-                "stop to primary balance the ignored app[{}({})]", app->get_logname(), kv.first);
+            ddebug_f("stop to do primary balance for the ignored app[{}]", app->get_logname());
             continue;
         }
         if (app->status != app_status::AS_AVAILABLE)
@@ -877,8 +876,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     for (const auto &kv : apps) {
         const std::shared_ptr<app_state> &app = kv.second;
         if (in_ignored_app(kv.first)) {
-            ddebug(
-                "stop to secondary balance the ignored app[{}({})]", app->get_logname(), kv.first);
+            ddebug_f("stop to do secondary balance for the ignored app[{}]", app->get_logname());
             continue;
         }
 
@@ -977,8 +975,10 @@ greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::st
         oss << "ignored_app_id_list: ";
         std::copy(_balancer_ignored_apps.begin(),
                   _balancer_ignored_apps.end(),
-                  std::ostream_iterator<dsn::replication::app_id>(oss, "\n"));
-        return oss.str();
+                  std::ostream_iterator<dsn::replication::app_id>(oss, ","));
+        std::string app_ids = oss.str();
+        app_ids.replace(app_ids.size() - 1, 1, "\n");
+        return app_ids;
     }
 
     if (args.size() != 1) {
