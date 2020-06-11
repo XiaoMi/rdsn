@@ -92,6 +92,11 @@ private:
     bool _only_primary_balancer;
     bool _only_move_primary;
 
+    // set the app which won't re-balance
+    std::set<dsn::replication::app_id> _balancer_ignored_apps;
+    dsn::zrwlock_nr _balancer_ignored_apps_lock;
+
+    dsn_handle_t _ctrl_balancer_ignored_apps;
     dsn_handle_t _ctrl_balancer_in_turn;
     dsn_handle_t _ctrl_only_primary_balancer;
     dsn_handle_t _ctrl_only_move_primary;
@@ -147,6 +152,10 @@ private:
                               const balance_type &type,
                               const rpc_address &from,
                               const rpc_address &to);
+
+    std::string set_balancer_ignored_app_id_list(const std::vector<std::string> &args);
+
+    bool in_ignored_app(dsn::replication::app_id app_id);
 };
 } // namespace replication
 } // namespace dsn

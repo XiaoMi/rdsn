@@ -119,6 +119,14 @@ void greedy_load_balancer::register_ctrl_commands()
         "lb.get_balance_operation_count [total | move_pri | copy_pri | copy_sec | detail]",
         "get balance operation count",
         [this](const std::vector<std::string> &args) { return get_balance_operation_count(args); });
+
+    _ctrl_balancer_ignored_apps = dsn::command_manager::instance().register_app_command(
+        {"lb.ignored_app_list"},
+        "lb.ignored_app_list [app_id1,app_id2..]",
+        "set balance ignored_app_list",
+        [this](const std::vector<std::string> &args) {
+            return set_balancer_ignored_app_id_list(args);
+        });
 }
 
 void greedy_load_balancer::unregister_ctrl_commands()
@@ -127,6 +135,7 @@ void greedy_load_balancer::unregister_ctrl_commands()
     UNREGISTER_VALID_HANDLER(_ctrl_only_primary_balancer);
     UNREGISTER_VALID_HANDLER(_ctrl_only_move_primary);
     UNREGISTER_VALID_HANDLER(_get_balance_operation_count);
+    UNREGISTER_VALID_HANDLER(_ctrl_balancer_ignored_apps);
 
     simple_load_balancer::unregister_ctrl_commands();
 }
@@ -818,6 +827,10 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     }
 
     for (const auto &kv : apps) {
+        if (in_ignored_app(kv.first)) {
+            ddebug_f("stop to primary balance the ignored app[{}({})]", app->get_logname(), app_id);
+            continue;
+        }
         const std::shared_ptr<app_state> &app = kv.second;
         if (app->status != app_status::AS_AVAILABLE)
             continue;
@@ -860,6 +873,12 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     // 2. in one-by-one mode, a secondary balance decision for an app may be prior than
     // another app's primary balancer if not seperated.
     for (const auto &kv : apps) {
+        if (in_ignored_app(kv.first)) {
+            ddebug_f(
+                "stop to secondary balance the ignored app[{}({})]", app->get_logname(), app_id);
+            continue;
+        }
+
         const std::shared_ptr<app_state> &app = kv.second;
         if (app->status != app_status::AS_AVAILABLE)
             continue;
@@ -945,5 +964,54 @@ void greedy_load_balancer::report(const dsn::replication::migration_list &list,
         _recent_balance_copy_secondary_count->add(counters[COPY_SEC_COUNT]);
     }
 }
+
+std::string
+greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::string> &args)
+{
+    std::string invalid_arguments("invalid arguments");
+    std::stringstream oss;
+    if (args.empty()) {
+        dsn::zauto_read_lock l(_balancer_ignored_apps_lock);
+        oss << "ignored_app_id_list: ";
+        std::copy(_balancer_ignored_apps.begin(),
+                  _balancer_ignored_apps.end(),
+                  std::ostream_iterator<std::string>(oss, "\n"));
+        return oss.str();
+    }
+
+    if (args.size() != 1) {
+        return invalid_arguments;
+    }
+
+    dsn::zauto_write_lock l(_balancer_ignored_apps_lock);
+    if (args[0] == "clear") {
+        _balancer_ignored_apps.clear();
+        return "clear ok";
+    }
+
+    std::vector<std::string> app_ids;
+    dsn::utils::split_args(args[0].c_str(), app_ids, ',');
+    if (args.size() == 0) {
+        return invalid_arguments;
+    }
+
+    std::set<dsn::replication::app_id> app_list;
+    for (const std::string &app_id : app_ids) {
+        dsn::replication::app_id app;
+        if (!dsn::buf2int32(app_id, app)) {
+            return invalid_arguments;
+        }
+        app_list.insert(app);
+    }
+    _balancer_ignored_apps = std::move(app_list);
+    return "set ok";
+}
+
+bool greedy_load_balancer::in_ignored_app(dsn::replication::app_id app_id)
+{
+    dsn::zauto_read_lock l(_balancer_ignored_apps_lock);
+    return _balancer_ignored_apps.count(app_id) != 0;
+}
+
 } // namespace replication
 } // namespace dsn
