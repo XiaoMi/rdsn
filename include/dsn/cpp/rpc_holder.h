@@ -300,7 +300,7 @@ private:
         {
             auto_reply = false;
             if (dsn_unlikely(_forward_mail_box != nullptr)) {
-                _forward_mail_box->emplace_back(this);
+                _forward_mail_box->emplace_back(*this);
                 return;
             }
 
