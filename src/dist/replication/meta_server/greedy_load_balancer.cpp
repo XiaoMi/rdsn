@@ -975,7 +975,7 @@ greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::st
         oss << "ignored_app_id_list: ";
         std::copy(_balancer_ignored_apps.begin(),
                   _balancer_ignored_apps.end(),
-                  std::ostream_iterator<dsn::replication::app_id>(oss, ","));
+                  std::ostream_iterator<app_id>(oss, ","));
         std::string app_ids = oss.str();
         app_ids.erase(app_ids.size() - 1);
         return app_ids;
