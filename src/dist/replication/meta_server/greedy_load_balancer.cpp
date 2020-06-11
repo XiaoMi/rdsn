@@ -29,6 +29,7 @@
 #include <queue>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/utility/math.h>
+#include <dsn/dist/fmt_logging.h>
 #include "greedy_load_balancer.h"
 #include "meta_data.h"
 
