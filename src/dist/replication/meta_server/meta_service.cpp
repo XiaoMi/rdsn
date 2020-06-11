@@ -120,7 +120,6 @@ int meta_service::check_leader(TRpcHolder rpc, rpc_address *forward_address)
 template <typename TRpcHolder>
 bool meta_service::check_status(TRpcHolder rpc, rpc_address *forward_address)
 {
-    dinfo("rpc %s called", __FUNCTION__);
     int result = check_leader(rpc, forward_address);
     if (result == 0)
         return false;
