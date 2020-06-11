@@ -1012,7 +1012,7 @@ greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::st
 bool greedy_load_balancer::in_ignored_apps(dsn::replication::app_id app_id)
 {
     dsn::zauto_read_lock l(_balancer_ignored_apps_lock);
-    return _balancer_ignored_apps.count(app_id) != 0;
+    return _balancer_ignored_apps.find(app_id) != _balancer_ignored_apps.end();
 }
 
 } // namespace replication
