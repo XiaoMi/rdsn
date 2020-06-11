@@ -968,7 +968,7 @@ void greedy_load_balancer::report(const dsn::replication::migration_list &list,
 std::string
 greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::string> &args)
 {
-    std::string invalid_arguments("invalid arguments");
+    static const std::string invalid_arguments("invalid arguments");
     std::stringstream oss;
     if (args.empty()) {
         dsn::zauto_read_lock l(_balancer_ignored_apps_lock);
