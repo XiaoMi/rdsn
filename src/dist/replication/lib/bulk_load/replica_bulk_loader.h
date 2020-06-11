@@ -34,8 +34,9 @@ private:
                             const std::string &provider_name);
 
     // compare meta bulk load status and local bulk load status
-    // \return ERR_INVALID_STATE if it is invalid for replica whose local status is `local_status`
-    // while meta status is `meta_status`
+    // \return ERR_INVALID_STATE if local status is invalid
+    // for example, if meta status is ingestion, replica local status can only be downloaded or
+    // ingestion, if local status is other status, will return ERR_INVALID_STATE
     error_code validate_bulk_load_status(bulk_load_status::type meta_status,
                                          bulk_load_status::type local_status);
 
