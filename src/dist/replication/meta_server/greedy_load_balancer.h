@@ -92,7 +92,7 @@ private:
     bool _only_primary_balancer;
     bool _only_move_primary;
 
-    // set the app which won't re-balance
+    // the app set which won't be re-balanced
     std::set<dsn::replication::app_id> _balancer_ignored_apps;
     dsn::zrwlock_nr _balancer_ignored_apps_lock;
 
