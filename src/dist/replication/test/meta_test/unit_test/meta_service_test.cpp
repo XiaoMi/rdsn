@@ -49,10 +49,14 @@ public:
         fail::setup();
         fail::cfg("meta_server_failure_detector_get_leader", "return(true#1.2.3.4:10086)");
 
-        rpc_address leader;
-        auto rpc = create_fake_rpc();
-        auto res = _ms->check_status(rpc, &leader);
-        ASSERT_EQ(true, res);
+        RPC_MOCKING(app_env_rpc)
+        {
+            rpc_address leader;
+            auto rpc = create_fake_rpc();
+            auto res = _ms->check_status(rpc, &leader);
+            ASSERT_EQ(true, res);
+            ASSERT_EQ(app_env_rpc::forward_mail_box().size(), 0);
+        }
 
         fail::teardown();
     }
