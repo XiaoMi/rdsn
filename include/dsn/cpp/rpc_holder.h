@@ -204,6 +204,7 @@ public:
     {
         _i->auto_reply = false;
         if (dsn_unlikely(_forward_mail_box != nullptr)) {
+            dsn_request()->header->from_address = addr;
             _forward_mail_box->emplace_back(*this);
             return;
         }

@@ -143,5 +143,8 @@ TEST(rpc_holder, mock_rpc_forward)
 
         ASSERT_EQ(mail_box.size(), 0);
         ASSERT_EQ(forward_mail_box.size(), 10);
+        for (auto rpc : forward_mail_box) {
+            ASSERT_EQ(rpc.remote_address(), forward_addr);
+        }
     }
 }
