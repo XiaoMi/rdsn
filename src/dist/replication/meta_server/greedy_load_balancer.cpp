@@ -123,8 +123,9 @@ void greedy_load_balancer::register_ctrl_commands()
 
     _ctrl_balancer_ignored_apps = dsn::command_manager::instance().register_app_command(
         {"lb.ignored_app_list"},
-        "lb.ignored_app_list [app_id1,app_id2..]",
-        "set balance ignored_app_list",
+        "lb.ignored_app_list [app_id1,app_id2.. | CLEAR](if no argument means get current ignored "
+        "list)",
+        "get or update balance ignored_app_list",
         [this](const std::vector<std::string> &args) {
             if (args.empty()) {
                 return get_balancer_ignored_app_ids();
