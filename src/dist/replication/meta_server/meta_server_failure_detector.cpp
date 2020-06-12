@@ -93,7 +93,7 @@ bool meta_server_failure_detector::get_leader(rpc_address *leader)
             dassert_f(false, "parse {} to rpc_address failed", addr_part);
         }
 
-        // get the return value which implies whether this node is primary or not
+        // get the return value which implies whether the current node is primary or not
         bool is_leader = true;
         auto is_leader_part = str.substr(0, pos);
         if (!dsn::buf2bool(is_leader_part, is_leader)) {
