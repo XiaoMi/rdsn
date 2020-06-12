@@ -126,7 +126,10 @@ void greedy_load_balancer::register_ctrl_commands()
         "lb.ignored_app_list [app_id1,app_id2..]",
         "set balance ignored_app_list",
         [this](const std::vector<std::string> &args) {
-            return set_balancer_ignored_app_id_list(args);
+            if (args.empty()) {
+                return get_balancer_ignored_app_ids();
+            }
+            return update_balancer_ignored_app_ids(args);
         });
 }
 
@@ -966,27 +969,15 @@ void greedy_load_balancer::report(const dsn::replication::migration_list &list,
 }
 
 std::string
-greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::string> &args)
+greedy_load_balancer::update_balancer_ignored_app_ids(const std::vector<std::string> &args)
 {
     static const std::string invalid_arguments("invalid arguments");
-    std::stringstream oss;
-    if (args.empty()) {
-        dsn::zauto_read_lock l(_balancer_ignored_apps_lock);
-        oss << "ignored_app_id_list: ";
-        std::copy(_balancer_ignored_apps.begin(),
-                  _balancer_ignored_apps.end(),
-                  std::ostream_iterator<app_id>(oss, ","));
-        std::string app_ids = oss.str();
-        app_ids[app_ids.size() - 1] = '\0';
-        return app_ids;
-    }
-
+    dsn::zauto_write_lock l(_balancer_ignored_apps_lock);
     if (args.size() != 1) {
         return invalid_arguments;
     }
 
-    dsn::zauto_write_lock l(_balancer_ignored_apps_lock);
-    if (args[0] == "clear") {
+    if (args[0] == "CLEAR") {
         _balancer_ignored_apps.clear();
         return "clear ok";
     }
@@ -1006,7 +997,20 @@ greedy_load_balancer::set_balancer_ignored_app_id_list(const std::vector<std::st
         app_list.insert(app);
     }
     _balancer_ignored_apps = std::move(app_list);
-    return "set ok";
+    return "update ok";
+}
+
+std::string greedy_load_balancer::get_balancer_ignored_app_ids()
+{
+    std::stringstream oss;
+    dsn::zauto_read_lock l(_balancer_ignored_apps_lock);
+    oss << "ignored_app_id_list: ";
+    std::copy(_balancer_ignored_apps.begin(),
+              _balancer_ignored_apps.end(),
+              std::ostream_iterator<app_id>(oss, ","));
+    std::string app_ids = oss.str();
+    app_ids[app_ids.size() - 1] = '\0';
+    return app_ids;
 }
 
 bool greedy_load_balancer::in_ignored_apps(app_id app_id)

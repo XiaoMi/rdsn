@@ -153,7 +153,8 @@ private:
                               const rpc_address &from,
                               const rpc_address &to);
 
-    std::string set_balancer_ignored_app_id_list(const std::vector<std::string> &args);
+    std::string get_balancer_ignored_app_ids();
+    std::string update_balancer_ignored_app_ids(const std::vector<std::string> &args);
 
     bool in_ignored_apps(app_id app_id);
 };
