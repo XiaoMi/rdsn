@@ -33,9 +33,8 @@ public:
         /** forward to others */
         RPC_MOCKING(app_env_rpc)
         {
-            rpc_address leader;
             auto rpc = create_fake_rpc();
-            bool res = _ms->check_status(rpc, &leader);
+            bool res = _ms->check_status(rpc);
             ASSERT_EQ(false, res);
             ASSERT_EQ(app_env_rpc::forward_mail_box().size(), 1);
             ASSERT_EQ(app_env_rpc::forward_mail_box()[0].remote_address().to_std_string(),
