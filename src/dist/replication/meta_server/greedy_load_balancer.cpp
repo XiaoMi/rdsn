@@ -834,7 +834,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     for (const auto &kv : apps) {
         const std::shared_ptr<app_state> &app = kv.second;
         if (in_ignored_apps(kv.first)) {
-            ddebug_f("stop to do primary balance for the ignored app[{}]", app->get_logname());
+            ddebug_f("skip to do primary balance for the ignored app[{}]", app->get_logname());
             continue;
         }
         if (app->status != app_status::AS_AVAILABLE)
