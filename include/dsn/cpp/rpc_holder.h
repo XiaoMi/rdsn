@@ -200,7 +200,7 @@ public:
         return t;
     }
 
-    void forward(rpc_address &addr)
+    void forward(const rpc_address &addr)
     {
         _i->auto_reply = false;
         if (dsn_unlikely(_forward_mail_box != nullptr)) {
