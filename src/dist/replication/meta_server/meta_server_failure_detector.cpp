@@ -86,6 +86,7 @@ void meta_server_failure_detector::on_worker_connected(rpc_address node)
 bool meta_server_failure_detector::get_leader(rpc_address *leader)
 {
     FAIL_POINT_INJECT_F("meta_server_failure_detector_get_leader", [leader](dsn::string_view str) {
+        /// the format of str is : true#{ip}:{port} or false#{ip}:{port}
         auto pos = str.find("#");
         // get leader addr
         auto addr_part = str.substr(pos + 1, str.length() - pos - 1);
