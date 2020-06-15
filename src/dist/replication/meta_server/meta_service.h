@@ -251,6 +251,7 @@ private:
     friend class meta_load_balance_test;
     friend class meta_backup_test_base;
     friend class meta_http_service;
+    friend class meta_service_test;
     std::unique_ptr<meta_duplication_service> _dup_svc;
 
     std::unique_ptr<meta_split_service> _split_svc;
