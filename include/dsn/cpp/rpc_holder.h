@@ -303,12 +303,6 @@ private:
             dsn_rpc_reply(dsn_response);
         }
 
-        void forward(rpc_address addr)
-        {
-            auto_reply = false;
-            dsn_rpc_forward(dsn_request, addr);
-        }
-
         ~internal()
         {
             if (auto_reply) {
