@@ -716,6 +716,7 @@ void meta_service::on_start_recovery(configuration_recovery_rpc rpc)
     configuration_recovery_response &response = rpc.response();
     ddebug("got start recovery request, start to do recovery");
     int result = check_leader(rpc, nullptr);
+    // request has been forwarded to others
     if (result == 0) {
         return;
     }
