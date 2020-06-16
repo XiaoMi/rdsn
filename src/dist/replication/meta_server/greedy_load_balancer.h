@@ -158,7 +158,7 @@ private:
     std::string get_balancer_ignored_app_ids();
     std::string clear_balancer_ignored_app_ids();
 
-    bool in_ignored_apps(app_id app_id);
+    bool is_ignored_app(app_id app_id);
 };
 } // namespace replication
 } // namespace dsn
