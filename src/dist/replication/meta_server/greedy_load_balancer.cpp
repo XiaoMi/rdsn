@@ -123,24 +123,10 @@ void greedy_load_balancer::register_ctrl_commands()
 
     _ctrl_balancer_ignored_apps = dsn::command_manager::instance().register_app_command(
         {"lb.ignored_app_list"},
-        "lb.ignored_app_list [app_id1,app_id2.. | CLEAR](if no argument means get current ignored "
-        "list)",
+        "lb.ignored_app_list <get|set|clear> [app_id1,app_id2..]",
         "set, get and clear balance ignored_app_list",
         [this](const std::vector<std::string> &args) {
-            static const std::string invalid_arguments("invalid arguments");
-            if (args.empty()) {
-                return invalid_arguments;
-            }
-            if (args[0] == "SET") {
-                return set_balancer_ignored_app_ids(args);
-            }
-            if (args[0] == "GET") {
-                return get_balancer_ignored_app_ids();
-            }
-            if (args[0] == "CLEAR") {
-                return clear_balancer_ignored_app_ids();
-            }
-            return invalid_arguments;
+            return remote_command_balancer_ignored_app_ids(args);
         });
 }
 
@@ -977,6 +963,25 @@ void greedy_load_balancer::report(const dsn::replication::migration_list &list,
         _recent_balance_copy_primary_count->add(counters[COPY_PRI_COUNT]);
         _recent_balance_copy_secondary_count->add(counters[COPY_SEC_COUNT]);
     }
+}
+
+std::string
+greedy_load_balancer::remote_command_balancer_ignored_app_ids(const std::vector<std::string> &args)
+{
+    static const std::string invalid_arguments("invalid arguments");
+    if (args.empty()) {
+        return invalid_arguments;
+    }
+    if (args[0] == "set") {
+        return set_balancer_ignored_app_ids(args);
+    }
+    if (args[0] == "get") {
+        return get_balancer_ignored_app_ids();
+    }
+    if (args[0] == "clear") {
+        return clear_balancer_ignored_app_ids();
+    }
+    return invalid_arguments;
 }
 
 std::string greedy_load_balancer::set_balancer_ignored_app_ids(const std::vector<std::string> &args)
