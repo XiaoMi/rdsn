@@ -128,16 +128,16 @@ void greedy_load_balancer::register_ctrl_commands()
         "set, get and clear balance ignored_app_list",
         [this](const std::vector<std::string> &args) {
             static const std::string invalid_arguments("invalid arguments");
-            if(args.empty()){
+            if (args.empty()) {
                 return invalid_arguments;
             }
-            if(args[0] == "SET") {
+            if (args[0] == "SET") {
                 return set_balancer_ignored_app_ids(args);
             }
             if (args[0] == "GET") {
                 return get_balancer_ignored_app_ids();
             }
-            if(args[0] == "CLEAR") {
+            if (args[0] == "CLEAR") {
                 return clear_balancer_ignored_app_ids();
             }
             return invalid_arguments;
@@ -979,8 +979,7 @@ void greedy_load_balancer::report(const dsn::replication::migration_list &list,
     }
 }
 
-std::string
-greedy_load_balancer::set_balancer_ignored_app_ids(const std::vector<std::string> &args)
+std::string greedy_load_balancer::set_balancer_ignored_app_ids(const std::vector<std::string> &args)
 {
     static const std::string invalid_arguments("invalid arguments");
     dsn::zauto_write_lock l(_balancer_ignored_apps_lock);
@@ -1022,8 +1021,8 @@ std::string greedy_load_balancer::get_balancer_ignored_app_ids()
 std::string greedy_load_balancer::clear_balancer_ignored_app_ids()
 {
     dsn::zauto_write_lock l(_balancer_ignored_apps_lock);
-      _balancer_ignored_apps.clear();
-        return "clear ok";
+    _balancer_ignored_apps.clear();
+    return "clear ok";
 }
 
 bool greedy_load_balancer::in_ignored_apps(app_id app_id)
