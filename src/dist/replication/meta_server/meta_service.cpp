@@ -719,6 +719,7 @@ void meta_service::on_start_recovery(configuration_recovery_rpc rpc)
     if (result == 0) {
         return;
     }
+
     if (result == -1) {
         response.err = ERR_FORWARD_TO_OTHERS;
     } else {
