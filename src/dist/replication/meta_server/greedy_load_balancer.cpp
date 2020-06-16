@@ -994,7 +994,7 @@ std::string greedy_load_balancer::set_balancer_ignored_app_ids(const std::vector
 
     std::vector<std::string> app_ids;
     dsn::utils::split_args(args[1].c_str(), app_ids, ',');
-    if (app_ids.size() == 0) {
+    if (app_ids.empty()) {
         return invalid_arguments;
     }
 
