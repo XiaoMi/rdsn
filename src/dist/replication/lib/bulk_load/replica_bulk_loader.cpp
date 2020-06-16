@@ -565,8 +565,7 @@ void replica_bulk_loader::report_group_ingestion_status(/*out*/ bulk_load_respon
                        target_address.to_string(),
                        enum_to_string(ingest_status));
         response.group_bulk_load_state[target_address] = secondary_state;
-        is_group_ingestion_finish =
-            is_group_ingestion_finish && (ingest_status == ingestion_status::IS_SUCCEED);
+        is_group_ingestion_finish &= (ingest_status == ingestion_status::IS_SUCCEED);
     }
     response.__set_is_group_ingestion_finished(is_group_ingestion_finish);
 
