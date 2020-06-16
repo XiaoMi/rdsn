@@ -987,7 +987,6 @@ greedy_load_balancer::remote_command_balancer_ignored_app_ids(const std::vector<
 std::string greedy_load_balancer::set_balancer_ignored_app_ids(const std::vector<std::string> &args)
 {
     static const std::string invalid_arguments("invalid arguments");
-    dsn::zauto_write_lock l(_balancer_ignored_apps_lock);
     if (args.size() != 2) {
         return invalid_arguments;
     }
@@ -1006,6 +1005,8 @@ std::string greedy_load_balancer::set_balancer_ignored_app_ids(const std::vector
         }
         app_list.insert(app);
     }
+
+    dsn::zauto_write_lock l(_balancer_ignored_apps_lock);
     _balancer_ignored_apps = std::move(app_list);
     return "set ok";
 }
