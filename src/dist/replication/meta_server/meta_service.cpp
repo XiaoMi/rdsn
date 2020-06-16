@@ -721,18 +721,18 @@ void meta_service::on_start_recovery(configuration_recovery_rpc rpc)
     }
     if (result == -1) {
         response.err = ERR_FORWARD_TO_OTHERS;
-    }
-
-    zauto_write_lock l(_meta_lock);
-    if (_started.load()) {
-        ddebug("service(%s) is already started, ignore the recovery request",
-               dsn_primary_address().to_string());
-        response.err = ERR_SERVICE_ALREADY_RUNNING;
     } else {
-        _state->on_start_recovery(rpc.request(), response);
-        if (response.err == dsn::ERR_OK) {
-            _recovering = false;
-            start_service();
+        zauto_write_lock l(_meta_lock);
+        if (_started.load()) {
+            ddebug("service(%s) is already started, ignore the recovery request",
+                   dsn_primary_address().to_string());
+            response.err = ERR_SERVICE_ALREADY_RUNNING;
+        } else {
+            _state->on_start_recovery(rpc.request(), response);
+            if (response.err == dsn::ERR_OK) {
+                _recovering = false;
+                start_service();
+            }
         }
     }
 }
