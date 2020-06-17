@@ -103,7 +103,7 @@ void rpc_response_task::enqueue()
     if (_caller_pool)
         task::enqueue(_caller_pool);
 
-        // possible when it is called in non-rDSN threads
+    // possible when it is called in non-rDSN threads
     else {
         auto pool = node()->computation()->get_pool(spec().pool_code);
         task::enqueue(pool);
