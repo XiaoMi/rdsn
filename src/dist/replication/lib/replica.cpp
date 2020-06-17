@@ -194,7 +194,7 @@ void replica::on_client_read(dsn::message_ex *request)
     if (request->tracer != nullptr) {
         int64_t now = dsn_now_ns();
         request->tracer->add_point("replica_stub::response_client", now);
-        request->tracer->set_end_time(now);
+        request->tracer->end_time = now;
         request->report_tracer(_stub->_abnormal_read_trace_threshold);
     }
 
@@ -327,9 +327,9 @@ void replica::execute_mutation(mutation_ptr &mu)
     // update table level latency perf-counters for primary partition
     uint64_t now_ns = dsn_now_ns();
 
-    mu->tracer->add_point(fmt::format("rocksdb::flush_to_disk[{}]", enum_to_string(status())),
+    mu->tracer->add_point(fmt::format("rocksdb::write_to_rocksdb[{}]", enum_to_string(status())),
                           now_ns);
-    mu->tracer->set_end_time(now_ns);
+    mu->tracer->end_time = now_ns;
 
     if (partition_status::PS_PRIMARY == status()) {
         mu->report_tracer(_stub->_abnormal_write_primary_flush_threshold);

@@ -7,56 +7,47 @@
 namespace dsn {
 namespace tool {
 
-class latency_tracer
+struct latency_tracer
 {
 public:
+    uint64_t id;
+    std::string name;
+    uint64_t start_time;
+    uint64_t last_time;
+    uint64_t end_time;
+    uint64_t prepare_ack_time;
+    std::string request_type;
+    // prepare and prepare_ack need call two time, these variable can record their order
+    std::atomic<int> send_prepare_order;
+    std::atomic<int> prepare_replay_order;
+
+    std::map<std::string, uint64_t> points;
+
+public:
     latency_tracer(int id, const std::string &name)
-        : _id(id),
-          _name(name),
-          _start_time(dsn_now_ns()),
-          _last_time(_start_time),
-          _request_type("default"){};
+        : id(id),
+          name(name),
+          start_time(dsn_now_ns()),
+          last_time(start_time),
+          request_type("default"){};
 
     void add_point(const std::string &name, uint64_t current_time)
     {
-        _points.emplace(fmt::format("ts={}, {}", current_time, name), current_time - _last_time);
-        _last_time = current_time;
+        points.emplace(fmt::format("ts={}, {}", current_time, name), current_time - last_time);
+        last_time = current_time;
     }
 
-    void set_requet_type(std::string type) { _request_type = type; };
+    void add_point_for_send_prepare(const std::string &name, uint64_t current_time)
+    {
+        std::string name_with_order = fmt::format("[{}]{}", send_prepare_order++, name);
+        add_point(name_with_order, current_time);
+    }
 
-    void set_end_time(uint64_t end_time) { _end_time = end_time; }
-
-    void set_prepare_ack_time(uint64_t ack_time) { _prepare_ack_time = ack_time; }
-
-    uint64_t get_last_time() { return _last_time; }
-
-    uint64_t get_start_time() { return _start_time; }
-
-    uint64_t get_end_time() { return _end_time; }
-
-    std::string get_name() { return _name; }
-
-    uint64_t get_id() { return _id; }
-
-    std::string get_request_type() { return _request_type; }
-
-    uint64_t get_prepare_ack_time() { return _prepare_ack_time; }
-
-    std::map<std::string, uint64_t> &get_points() { return _points; }
-
-    //(todo jiashuo1) async report to server (db(maybe pegasus is ok) or falcon or kibana)
-    void report(){};
-
-private:
-    uint64_t _id;
-    std::string _name;
-    uint64_t _start_time;
-    uint64_t _last_time;
-    uint64_t _prepare_ack_time;
-    uint64_t _end_time;
-    std::string _request_type;
-    std::map<std::string, uint64_t> _points;
+    void add_point_for_prepare_replay(const std::string &name, uint64_t current_time)
+    {
+        std::string name_with_order = fmt::format("[{}]{}", prepare_replay_order++, name);
+        add_point(name_with_order, current_time);
+    }
 };
 }
 }

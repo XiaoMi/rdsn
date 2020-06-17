@@ -162,27 +162,27 @@ public:
             return;
         }
 
-        uint64_t total_time_used = tracer->get_end_time() - tracer->get_start_time();
+        uint64_t total_time_used = tracer->end_time - tracer->start_time;
         if (total_time_used < time_threshold) {
             return;
         }
-        std::string header("tracer log");
+        std::string header("read request latency tracer log");
         std::string log;
         log = fmt::format("\nTRACER:name={}, request_id={}, "
                           "start_time={}, request_type=[{}]",
-                          tracer->get_name(),
-                          tracer->get_id(),
-                          tracer->get_start_time(),
-                          tracer->get_request_type());
+                          tracer->name,
+                          tracer->id,
+                          tracer->start_time,
+                          tracer->request_type);
 
-        for (const auto &iter : tracer->get_points()) {
+        for (const auto &iter : tracer->points) {
             log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
         }
 
         log = fmt::format("{}\nTRACER:end_time={}, "
                           "total_time_used={}",
                           log,
-                          tracer->get_end_time(),
+                          tracer->end_time,
                           total_time_used);
 
         ddebug_f("{}{}", header, log);
