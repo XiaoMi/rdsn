@@ -220,11 +220,15 @@ private:
 
     /////////////////////////////////////////////////////////////////
     // 2pc
-    void init_prepare(mutation_ptr &mu, bool reconciliation);
+    // `pop_all_committed_mutations = true` will be used for ingestion empty write
+    // See more about it in `replica_bulk_loader.cpp`
+    void
+    init_prepare(mutation_ptr &mu, bool reconciliation, bool pop_all_committed_mutations = false);
     void send_prepare_message(::dsn::rpc_address addr,
                               partition_status::type status,
                               const mutation_ptr &mu,
                               int timeout_milliseconds,
+                              bool pop_all_committed_mutations = false,
                               int64_t learn_signature = invalid_signature);
     void on_append_log_completed(mutation_ptr &mu, error_code err, size_t size);
     void on_prepare_reply(std::pair<mutation_ptr, partition_status::type> pr,
@@ -336,15 +340,19 @@ private:
     /////////////////////////////////////////////////////////////////
     // replica restore from backup
     bool read_cold_backup_metadata(const std::string &file, cold_backup_metadata &backup_metadata);
-    bool verify_checkpoint(const cold_backup_metadata &backup_metadata,
-                           const std::string &chkpt_dir);
     // checkpoint on cold backup media maybe contain useless file,
     // we should abandon these file base cold_backup_metadata
     bool remove_useless_file_under_chkpt(const std::string &chkpt_dir,
                                          const cold_backup_metadata &metadata);
-    dsn::error_code download_checkpoint(const configuration_restore_request &req,
-                                        const std::string &remote_chkpt_dir,
-                                        const std::string &local_chkpt_dir);
+    void clear_restore_useless_files(const std::string &local_chkpt_dir,
+                                     const cold_backup_metadata &metadata);
+    error_code get_backup_metadata(dist::block_service::block_filesystem *fs,
+                                   const std::string &remote_chkpt_dir,
+                                   const std::string &local_chkpt_dir,
+                                   cold_backup_metadata &backup_metadata);
+    error_code download_checkpoint(const configuration_restore_request &req,
+                                   const std::string &remote_chkpt_dir,
+                                   const std::string &local_chkpt_dir);
     dsn::error_code find_valid_checkpoint(const configuration_restore_request &req,
                                           /*out*/ std::string &remote_chkpt_dir);
     dsn::error_code restore_checkpoint();
@@ -354,7 +362,7 @@ private:
 
     void report_restore_status_to_meta();
 
-    void update_restore_progress();
+    void update_restore_progress(uint64_t f_size);
 
     std::string query_compact_state() const;
 
@@ -429,17 +437,6 @@ private:
     void child_handle_async_learn_error();
 
     void init_table_level_latency_counters();
-
-    // download files from remote file system
-    // \return  ERR_FILE_OPERATION_FAILED: local file system error
-    // \return  ERR_FS_INTERNAL: remote file system error
-    // \return  ERR_CORRUPTION: file not exist or damaged
-    // if download file succeed, download_err = ERR_OK and set download_file_size
-    error_code do_download(const std::string &remote_dir,
-                           const std::string &local_dir,
-                           const std::string &file_name,
-                           dist::block_service::block_filesystem *fs,
-                           /*out*/ uint64_t &download_file_size);
 
 private:
     friend class ::dsn::replication::replication_checker;
@@ -546,6 +543,8 @@ private:
 
     // bulk load
     std::unique_ptr<replica_bulk_loader> _bulk_loader;
+    // if replica in bulk load ingestion 2pc, will reject other write requests
+    bool _is_bulk_load_ingestion{false};
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;

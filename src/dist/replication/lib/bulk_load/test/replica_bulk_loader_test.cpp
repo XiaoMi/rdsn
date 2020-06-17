@@ -44,7 +44,45 @@ public:
 
     error_code test_start_downloading()
     {
-        return _bulk_loader->bulk_load_start_download(APP_NAME, CLUSTER, PROVIDER);
+        return _bulk_loader->start_download(APP_NAME, CLUSTER, PROVIDER);
+    }
+
+    error_code test_parse_bulk_load_metadata(const std::string &file_path)
+    {
+        return _bulk_loader->parse_bulk_load_metadata(file_path);
+    }
+
+    void test_update_download_progress(uint64_t file_size)
+    {
+        _bulk_loader->update_bulk_load_download_progress(file_size, "test_file_name");
+        _bulk_loader->tracker()->wait_outstanding_tasks();
+    }
+
+    void test_start_ingestion() { _bulk_loader->start_ingestion(); }
+
+    int32_t test_report_group_download_progress(bulk_load_status::type status,
+                                                int32_t p_progress,
+                                                int32_t s1_progress,
+                                                int32_t s2_progress)
+    {
+        mock_group_progress(status, p_progress, s1_progress, s2_progress);
+        bulk_load_response response;
+        _bulk_loader->report_group_download_progress(response);
+        return response.total_download_progress;
+    }
+
+    bool test_report_group_ingestion_status(ingestion_status::type primary,
+                                            ingestion_status::type secondary1,
+                                            ingestion_status::type secondary2,
+                                            bool is_empty_prepare_sent,
+                                            bool replica_is_ingestion)
+    {
+        _replica->set_is_ingestion(replica_is_ingestion);
+        _replica->set_ingestion_status(primary);
+        mock_secondary_ingestion_states(secondary1, secondary2, is_empty_prepare_sent);
+        bulk_load_response response;
+        _bulk_loader->report_group_ingestion_status(response);
+        return response.is_group_ingestion_finished;
     }
 
     /// mock structure functions
@@ -91,14 +129,147 @@ public:
     void mock_primary_states()
     {
         mock_replica_config(partition_status::PS_PRIMARY);
-        primary_context p_context = _replica->get_primary_context();
-        partition_configuration &config = p_context.membership;
+        partition_configuration config;
         config.max_replica_count = 3;
         config.pid = PID;
         config.ballot = BALLOT;
         config.primary = PRIMARY;
         config.secondaries.emplace_back(SECONDARY);
         config.secondaries.emplace_back(SECONDARY2);
+        _replica->set_primary_partition_configuration(config);
+    }
+
+    void create_local_file(const std::string &file_name)
+    {
+        std::string whole_name = utils::filesystem::path_combine(LOCAL_DIR, file_name);
+        utils::filesystem::create_file(whole_name);
+        std::ofstream test_file;
+        test_file.open(whole_name);
+        test_file << "write some data.\n";
+        test_file.close();
+
+        _file_meta.name = whole_name;
+        utils::filesystem::md5sum(whole_name, _file_meta.md5);
+        utils::filesystem::file_size(whole_name, _file_meta.size);
+    }
+
+    error_code create_local_metadata_file()
+    {
+        create_local_file(FILE_NAME);
+        _metadata.files.emplace_back(_file_meta);
+        _metadata.file_total_size = _file_meta.size;
+
+        std::string whole_name = utils::filesystem::path_combine(LOCAL_DIR, METADATA);
+        utils::filesystem::create_file(whole_name);
+        std::ofstream os(whole_name.c_str(),
+                         (std::ofstream::out | std::ios::binary | std::ofstream::trunc));
+        if (!os.is_open()) {
+            derror("open file %s failed", whole_name.c_str());
+            return ERR_FILE_OPERATION_FAILED;
+        }
+
+        blob bb = json::json_forwarder<bulk_load_metadata>::encode(_metadata);
+        os.write((const char *)bb.data(), (std::streamsize)bb.length());
+        if (os.bad()) {
+            derror("write file %s failed", whole_name.c_str());
+            return ERR_FILE_OPERATION_FAILED;
+        }
+        os.close();
+
+        return ERR_OK;
+    }
+
+    bool validate_metadata()
+    {
+        auto target = _bulk_loader->_metadata;
+        if (target.file_total_size != _metadata.file_total_size) {
+            return false;
+        }
+        if (target.files.size() != _metadata.files.size()) {
+            return false;
+        }
+        for (int i = 0; i < target.files.size(); ++i) {
+            if (target.files[i].name != _metadata.files[i].name) {
+                return false;
+            }
+            if (target.files[i].size != _metadata.files[i].size) {
+                return false;
+            }
+            if (target.files[i].md5 != _metadata.files[i].md5) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void mock_downloading_progress(uint64_t file_total_size,
+                                   uint64_t cur_downloaded_size,
+                                   int32_t download_progress)
+    {
+        _bulk_loader->_status = bulk_load_status::type::BLS_DOWNLOADING;
+        _bulk_loader->_metadata.file_total_size = file_total_size;
+        _bulk_loader->_cur_downloaded_size = cur_downloaded_size;
+        _bulk_loader->_download_progress = download_progress;
+    }
+
+    void mock_replica_bulk_load_varieties(bulk_load_status::type status,
+                                          int32_t download_progress,
+                                          ingestion_status::type istatus,
+                                          bool is_ingestion = false)
+    {
+        _bulk_loader->_status = status;
+        _bulk_loader->_download_progress = download_progress;
+        _replica->set_is_ingestion(is_ingestion);
+        _replica->set_ingestion_status(istatus);
+    }
+
+    void mock_secondary_progress(int32_t secondary_progress1, int32_t secondary_progress2)
+    {
+        mock_primary_states();
+        partition_bulk_load_state state1, state2;
+        state1.__set_download_status(ERR_OK);
+        state1.__set_download_progress(secondary_progress1);
+        state2.__set_download_status(ERR_OK);
+        state2.__set_download_progress(secondary_progress2);
+        _replica->set_secondary_bulk_load_state(SECONDARY, state1);
+        _replica->set_secondary_bulk_load_state(SECONDARY2, state2);
+    }
+
+    void mock_group_progress(bulk_load_status::type p_status,
+                             int32_t p_progress,
+                             int32_t s1_progress,
+                             int32_t s2_progress)
+    {
+        if (p_status == bulk_load_status::BLS_INVALID) {
+            p_progress = 0;
+        } else if (p_status == bulk_load_status::BLS_DOWNLOADED) {
+            p_progress = 100;
+        }
+        mock_replica_bulk_load_varieties(p_status, p_progress, ingestion_status::IS_INVALID);
+        mock_secondary_progress(s1_progress, s2_progress);
+    }
+
+    void mock_group_progress(bulk_load_status::type p_status)
+    {
+        if (p_status == bulk_load_status::BLS_INVALID) {
+            mock_group_progress(p_status, 0, 0, 0);
+        } else if (p_status == bulk_load_status::BLS_DOWNLOADED) {
+            mock_group_progress(p_status, 100, 100, 100);
+        }
+    }
+
+    void mock_secondary_ingestion_states(ingestion_status::type status1,
+                                         ingestion_status::type status2,
+                                         bool is_empty_prepare_sent = true)
+    {
+        mock_secondary_progress(100, 100);
+        _replica->set_is_empty_prepare_sent(is_empty_prepare_sent);
+
+        partition_bulk_load_state state1, state2;
+        state1.__set_ingest_status(status1);
+        state2.__set_ingest_status(status2);
+        _replica->set_secondary_bulk_load_state(SECONDARY, state1);
+        _replica->set_secondary_bulk_load_state(SECONDARY2, state2);
     }
 
     // helper functions
@@ -107,8 +278,12 @@ public:
 public:
     std::unique_ptr<mock_replica> _replica;
     std::unique_ptr<replica_bulk_loader> _bulk_loader;
+
     bulk_load_request _req;
     group_bulk_load_request _group_req;
+
+    file_meta _file_meta;
+    bulk_load_metadata _metadata;
 
     std::string APP_NAME = "replica";
     std::string CLUSTER = "cluster";
@@ -119,6 +294,9 @@ public:
     rpc_address SECONDARY = rpc_address("127.0.0.3", 34801);
     rpc_address SECONDARY2 = rpc_address("127.0.0.4", 34801);
     int32_t MAX_DOWNLOADING_COUNT = 5;
+    std::string LOCAL_DIR = bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR;
+    std::string METADATA = bulk_load_constant::BULK_LOAD_METADATA;
+    std::string FILE_NAME = "test_sst_file";
 };
 
 // on_bulk_load unit tests
@@ -167,8 +345,7 @@ TEST_F(replica_bulk_loader_test, start_downloading_test)
 {
     // Test cases:
     // - stub concurrent downloading count excceed
-    // - TODO(heyuchen): add 'downloading error' after implemtation do_download
-    // - /*{false, 1, ERR_CORRUPTION, bulk_load_status::BLS_DOWNLOADING, 1},*/
+    // - downloading error
     // - downloading succeed
     struct test_struct
     {
@@ -182,6 +359,7 @@ TEST_F(replica_bulk_loader_test, start_downloading_test)
                ERR_BUSY,
                bulk_load_status::BLS_INVALID,
                MAX_DOWNLOADING_COUNT},
+              {false, 1, ERR_CORRUPTION, bulk_load_status::BLS_DOWNLOADING, 1},
               {true, 1, ERR_OK, bulk_load_status::BLS_DOWNLOADING, 2}};
 
     for (auto test : tests) {
@@ -193,6 +371,154 @@ TEST_F(replica_bulk_loader_test, start_downloading_test)
         ASSERT_EQ(test_start_downloading(), test.expected_err);
         ASSERT_EQ(get_bulk_load_status(), test.expected_status);
         ASSERT_EQ(stub->get_bulk_load_downloading_count(), test.expected_downloading_count);
+    }
+}
+
+// parse_bulk_load_metadata unit tests
+TEST_F(replica_bulk_loader_test, bulk_load_metadata_not_exist)
+{
+    ASSERT_EQ(test_parse_bulk_load_metadata("path_not_exist"), ERR_FILE_OPERATION_FAILED);
+}
+
+TEST_F(replica_bulk_loader_test, bulk_load_metadata_corrupt)
+{
+    // create file can not parse as bulk_load_metadata structure
+    utils::filesystem::create_directory(LOCAL_DIR);
+    create_local_file(METADATA);
+    std::string metadata_file_name = utils::filesystem::path_combine(LOCAL_DIR, METADATA);
+    error_code ec = test_parse_bulk_load_metadata(metadata_file_name);
+    ASSERT_EQ(ec, ERR_CORRUPTION);
+    utils::filesystem::remove_path(LOCAL_DIR);
+}
+
+TEST_F(replica_bulk_loader_test, bulk_load_metadata_parse_succeed)
+{
+    utils::filesystem::create_directory(LOCAL_DIR);
+    error_code ec = create_local_metadata_file();
+    ASSERT_EQ(ec, ERR_OK);
+
+    std::string metadata_file_name = utils::filesystem::path_combine(LOCAL_DIR, METADATA);
+    ec = test_parse_bulk_load_metadata(metadata_file_name);
+    ASSERT_EQ(ec, ERR_OK);
+    ASSERT_TRUE(validate_metadata());
+    utils::filesystem::remove_path(LOCAL_DIR);
+}
+
+// finish download test
+TEST_F(replica_bulk_loader_test, finish_download_test)
+{
+    mock_downloading_progress(100, 50, 50);
+    stub->set_bulk_load_downloading_count(3);
+
+    test_update_download_progress(50);
+    ASSERT_EQ(get_bulk_load_status(), bulk_load_status::BLS_DOWNLOADED);
+    ASSERT_EQ(stub->get_bulk_load_downloading_count(), 2);
+}
+
+// start ingestion test
+TEST_F(replica_bulk_loader_test, start_ingestion_test)
+{
+    mock_group_progress(bulk_load_status::BLS_DOWNLOADED);
+    test_start_ingestion();
+    ASSERT_EQ(get_bulk_load_status(), bulk_load_status::BLS_INGESTING);
+}
+
+// report_group_download_progress unit tests
+TEST_F(replica_bulk_loader_test, report_group_download_progress_test)
+{
+    struct test_struct
+    {
+        bulk_load_status::type primary_status;
+        int32_t primary_progress;
+        int32_t secondary1_progress;
+        int32_t secondary2_progress;
+        int32_t total_progress;
+    } tests[]{
+        {bulk_load_status::BLS_DOWNLOADING, 10, 10, 10, 10},
+        {bulk_load_status::BLS_DOWNLOADED, 100, 0, 0, 33},
+        {bulk_load_status::BLS_DOWNLOADED, 100, 100, 100, 100},
+    };
+
+    for (auto test : tests) {
+        ASSERT_EQ(test_report_group_download_progress(test.primary_status,
+                                                      test.primary_progress,
+                                                      test.secondary1_progress,
+                                                      test.secondary2_progress),
+                  test.total_progress);
+    }
+}
+
+// report_group_ingestion_status unit tests
+TEST_F(replica_bulk_loader_test, report_group_ingestion_status_test)
+{
+
+    struct ingestion_struct
+    {
+        ingestion_status::type primary;
+        ingestion_status::type secondary1;
+        ingestion_status::type secondary2;
+        bool is_empty_prepare_sent;
+        bool replica_is_ingestion;
+        bool is_group_ingestion_finished;
+    } tests[] = {
+        {ingestion_status::IS_INVALID,
+         ingestion_status::IS_INVALID,
+         ingestion_status::IS_INVALID,
+         false,
+         false,
+         false},
+        {ingestion_status::IS_RUNNING,
+         ingestion_status::IS_INVALID,
+         ingestion_status::IS_INVALID,
+         false,
+         false,
+         false},
+        {ingestion_status::IS_SUCCEED,
+         ingestion_status::IS_INVALID,
+         ingestion_status::IS_INVALID,
+         false,
+         false,
+         false},
+        {ingestion_status::IS_FAILED,
+         ingestion_status::IS_INVALID,
+         ingestion_status::IS_INVALID,
+         false,
+         false,
+         false},
+        {ingestion_status::IS_RUNNING,
+         ingestion_status::IS_RUNNING,
+         ingestion_status::IS_INVALID,
+         false,
+         false,
+         false},
+        {ingestion_status::IS_SUCCEED,
+         ingestion_status::IS_SUCCEED,
+         ingestion_status::IS_RUNNING,
+         true,
+         false,
+         false},
+        {ingestion_status::IS_FAILED,
+         ingestion_status::IS_FAILED,
+         ingestion_status::IS_RUNNING,
+         false,
+         false,
+         false},
+        {ingestion_status::IS_SUCCEED,
+         ingestion_status::IS_SUCCEED,
+         ingestion_status::IS_SUCCEED,
+         true,
+         true,
+         true},
+    };
+
+    for (auto test : tests) {
+        ASSERT_EQ(test_report_group_ingestion_status(test.primary,
+                                                     test.secondary1,
+                                                     test.secondary2,
+                                                     test.is_empty_prepare_sent,
+                                                     test.replica_is_ingestion),
+                  test.is_group_ingestion_finished);
+        ASSERT_FALSE(_replica->is_ingestion());
     }
 }
 

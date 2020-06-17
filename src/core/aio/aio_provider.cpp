@@ -24,16 +24,7 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
-#include <dsn/tool-api/aio_provider.h>
+#include "aio_provider.h"
 #include "disk_engine.h"
 
 namespace dsn {
@@ -50,4 +41,4 @@ void aio_provider::complete_io(aio_task *aio,
     _engine->complete_io(aio, err, bytes, delay_milliseconds);
 }
 
-} // end namespace dsn
+} // namespace dsn

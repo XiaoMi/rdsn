@@ -47,6 +47,9 @@ struct replica_configuration
     3:dsn.rpc_address     primary;
     4:partition_status    status = partition_status.PS_INVALID;
     5:i64                 learner_signature;
+    // Used for bulk load
+    // secondary will pop all committed mutations even if buffer is not full
+    6:optional bool       pop_all = false;
 }
 
 struct prepare_msg
@@ -945,6 +948,7 @@ struct partition_bulk_load_state
     5:optional bool             is_paused = false;
 }
 
+// meta server -> replica server
 struct bulk_load_request
 {
     1:dsn.gpid          pid;
@@ -978,6 +982,7 @@ struct bulk_load_response
     10:optional bool                                    is_group_bulk_load_paused;
 }
 
+// primary -> secondary
 struct group_bulk_load_request
 {
     1:string                        app_name;
@@ -1001,6 +1006,22 @@ struct group_bulk_load_response
     1:dsn.error_code            err;
     2:bulk_load_status          status;
     3:partition_bulk_load_state bulk_load_state;
+}
+
+// meta server -> replica server
+struct ingestion_request
+{
+    1:string                app_name;
+    2:bulk_load_metadata    metadata;
+}
+
+struct ingestion_response
+{
+    // Possible errors:
+    // - ERR_TRY_AGAIN: retry ingestion
+    1:dsn.error_code    err;
+    // rocksdb ingestion error code
+    2:i32               rocksdb_error;
 }
 
 /*

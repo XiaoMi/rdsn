@@ -24,34 +24,28 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
-#pragma once
-
-#include <dsn/cpp/serverlet.h>
-#include <dsn/dist/cli/cli.client.h>
+#include "sim_aio_provider.h"
 
 namespace dsn {
-namespace service {
+namespace aio {
 
-class cli : public service_app
+DEFINE_TASK_CODE(LPC_NATIVE_AIO_REDIRECT, TASK_PRIORITY_HIGH, THREAD_POOL_DEFAULT)
+
+sim_aio_provider::sim_aio_provider(disk_engine *disk, aio_provider *inner_provider)
+    : native_linux_aio_provider(disk, inner_provider)
 {
-public:
-    cli(const service_app_info *info);
-    virtual ::dsn::error_code start(const std::vector<std::string> &args);
-    virtual ::dsn::error_code stop(bool cleanup = false);
+}
 
-private:
-    cli_client _client;
-    ::dsn::rpc_address _target;
-    std::chrono::seconds _timeout;
-};
+sim_aio_provider::~sim_aio_provider(void) {}
+
+void sim_aio_provider::aio(aio_task *aio)
+{
+    error_code err;
+    uint32_t bytes;
+
+    err = aio_internal(aio, false, &bytes);
+    complete_io(aio, err, bytes, 0);
 }
-}
+
+} // namespace aio
+} // namespace dsn

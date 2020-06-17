@@ -34,9 +34,11 @@
 #include <dsn/utility/string_conv.h>
 #include <dsn/dist/meta_state_service.h>
 #include <dsn/dist/replication/duplication_common.h>
+#include <dsn/dist/remote_command.h>
 #include <dsn/tool-api/command_manager.h>
 #include <algorithm> // for std::remove_if
 #include <cctype>    // for ::isspace
+#include <dsn/dist/fmt_logging.h>
 
 #include "meta_service.h"
 #include "server_state.h"
@@ -89,6 +91,51 @@ bool meta_service::check_freeze() const
         return true;
     int total = _alive_set.size() + _dead_set.size();
     return _alive_set.size() * 100 < _node_live_percentage_threshold_for_update * total;
+}
+
+template <typename TRpcHolder>
+int meta_service::check_leader(TRpcHolder rpc, rpc_address *forward_address)
+{
+    dsn::rpc_address leader;
+    if (!_failure_detector->get_leader(&leader)) {
+        if (!rpc.dsn_request()->header->context.u.is_forward_supported) {
+            if (forward_address != nullptr)
+                *forward_address = leader;
+            return -1;
+        }
+
+        dinfo("leader address: %s", leader.to_string());
+        if (!leader.is_invalid()) {
+            rpc.forward(leader);
+            return 0;
+        } else {
+            if (forward_address != nullptr)
+                forward_address->set_invalid();
+            return -1;
+        }
+    }
+    return 1;
+}
+
+template <typename TRpcHolder>
+bool meta_service::check_status(TRpcHolder rpc, rpc_address *forward_address)
+{
+    int result = check_leader(rpc, forward_address);
+    if (result == 0)
+        return false;
+    if (result == -1 || !_started) {
+        if (result == -1) {
+            rpc.response().err = ERR_FORWARD_TO_OTHERS;
+        } else if (_recovering) {
+            rpc.response().err = ERR_UNDER_RECOVERY;
+        } else {
+            rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
+        }
+        ddebug("reject request with %s", rpc.response().err.to_string());
+        return false;
+    }
+
+    return true;
 }
 
 error_code meta_service::remote_storage_initialize()
@@ -281,10 +328,9 @@ error_code meta_service::start()
     // can tell others who is the current leader
     register_rpc_handlers();
 
-    // start cli service before acquiring leader lock,
+    // start remote command service before acquiring leader lock,
     // so that the command line call can be handled
-    _cli_service = std::move(dsn::cli_service::create_service());
-    _cli_service->open_service();
+    dist::cmd::register_remote_command_rpc();
 
     _failure_detector->acquire_leader_lock();
     dassert(_failure_detector->get_leader(nullptr), "must be primary at this point");
@@ -341,42 +387,43 @@ error_code meta_service::start()
 
 void meta_service::register_rpc_handlers()
 {
-    register_rpc_handler(RPC_CM_QUERY_NODE_PARTITIONS,
-                         "query_configuration_by_node",
-                         &meta_service::on_query_configuration_by_node);
-    register_rpc_handler(RPC_CM_CONFIG_SYNC, "config_sync", &meta_service::on_config_sync);
-    register_rpc_handler(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
-                         "query_configuration_by_index",
-                         &meta_service::on_query_configuration_by_index);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_CONFIG_SYNC, "config_sync", &meta_service::on_config_sync);
+    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
+                                         "query_configuration_by_index",
+                                         &meta_service::on_query_configuration_by_index);
     register_rpc_handler(RPC_CM_UPDATE_PARTITION_CONFIGURATION,
                          "update_configuration",
                          &meta_service::on_update_configuration);
     register_rpc_handler(RPC_CM_CREATE_APP, "create_app", &meta_service::on_create_app);
     register_rpc_handler(RPC_CM_DROP_APP, "drop_app", &meta_service::on_drop_app);
     register_rpc_handler(RPC_CM_RECALL_APP, "recall_app", &meta_service::on_recall_app);
-    register_rpc_handler(RPC_CM_LIST_APPS, "list_apps", &meta_service::on_list_apps);
-    register_rpc_handler(RPC_CM_LIST_NODES, "list_nodes", &meta_service::on_list_nodes);
-    register_rpc_handler(RPC_CM_CLUSTER_INFO, "cluster_info", &meta_service::on_query_cluster_info);
-    register_rpc_handler(
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_LIST_APPS, "list_apps", &meta_service::on_list_apps);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_LIST_NODES, "list_nodes", &meta_service::on_list_nodes);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_CLUSTER_INFO, "cluster_info", &meta_service::on_query_cluster_info);
+    register_rpc_handler_with_rpc_holder(
         RPC_CM_PROPOSE_BALANCER, "propose_balancer", &meta_service::on_propose_balancer);
-    register_rpc_handler(
+    register_rpc_handler_with_rpc_holder(
         RPC_CM_CONTROL_META, "control_meta_level", &meta_service::on_control_meta_level);
-    register_rpc_handler(RPC_CM_START_RECOVERY, "start_recovery", &meta_service::on_start_recovery);
+    register_rpc_handler_with_rpc_holder(
+        RPC_CM_START_RECOVERY, "start_recovery", &meta_service::on_start_recovery);
     register_rpc_handler(RPC_CM_START_RESTORE, "start_restore", &meta_service::on_start_restore);
     register_rpc_handler(
         RPC_CM_ADD_BACKUP_POLICY, "add_backup_policy", &meta_service::on_add_backup_policy);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_QUERY_BACKUP_POLICY, "query_backup_policy", &meta_service::on_query_backup_policy);
-    register_rpc_handler(RPC_CM_MODIFY_BACKUP_POLICY,
-                         "modify_backup_policy",
-                         &meta_service::on_modify_backup_policy);
-    register_rpc_handler(RPC_CM_REPORT_RESTORE_STATUS,
-                         "report_restore_status",
-                         &meta_service::on_report_restore_status);
-    register_rpc_handler(RPC_CM_QUERY_RESTORE_STATUS,
-                         "query_restore_status",
-                         &meta_service::on_query_restore_status);
-
+    register_rpc_handler_with_rpc_holder(RPC_CM_MODIFY_BACKUP_POLICY,
+                                         "modify_backup_policy",
+                                         &meta_service::on_modify_backup_policy);
+    register_rpc_handler_with_rpc_holder(RPC_CM_REPORT_RESTORE_STATUS,
+                                         "report_restore_status",
+                                         &meta_service::on_report_restore_status);
+    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_RESTORE_STATUS,
+                                         "query_restore_status",
+                                         &meta_service::on_query_restore_status);
     register_duplication_rpc_handlers();
     register_rpc_handler_with_rpc_holder(
         RPC_CM_UPDATE_APP_ENV, "update_app_env(set/del/clear)", &meta_service::update_app_env);
@@ -414,6 +461,10 @@ int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_a
     return 1;
 }
 
+/**
+ * If your rpc interface uses rpc_holder, please don't use RPC_CHECK_STATUS.
+ * Because it will cause the response to be sent repeatedly
+ */
 #define RPC_CHECK_STATUS(dsn_msg, response_struct)                                                 \
     dinfo("rpc %s called", __FUNCTION__);                                                          \
     int result = check_leader(dsn_msg, nullptr);                                                   \
@@ -468,25 +519,23 @@ void meta_service::on_recall_app(dsn::message_ex *req)
                      server_state::sStateHash);
 }
 
-void meta_service::on_list_apps(dsn::message_ex *req)
+void meta_service::on_list_apps(configuration_list_apps_rpc rpc)
 {
-    configuration_list_apps_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status(rpc)) {
+        return;
+    }
 
-    configuration_list_apps_request request;
-    ::dsn::unmarshall(req, request);
-    _state->list_apps(request, response);
-    reply(req, response);
+    _state->list_apps(rpc.request(), rpc.response());
 }
 
-void meta_service::on_list_nodes(dsn::message_ex *req)
+void meta_service::on_list_nodes(configuration_list_nodes_rpc rpc)
 {
-    configuration_list_nodes_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status(rpc)) {
+        return;
+    }
 
-    configuration_list_nodes_request request;
-    dsn::unmarshall(req, request);
-
+    configuration_list_nodes_response &response = rpc.response();
+    const configuration_list_nodes_request &request = rpc.request();
     {
         zauto_lock l(_failure_detector->_lock);
         dsn::replication::node_info info;
@@ -507,19 +556,16 @@ void meta_service::on_list_nodes(dsn::message_ex *req)
         }
         response.err = dsn::ERR_OK;
     }
-
-    reply(req, response);
 }
 
-void meta_service::on_query_cluster_info(dsn::message_ex *req)
+void meta_service::on_query_cluster_info(configuration_cluster_info_rpc rpc)
 {
-    configuration_cluster_info_response response;
-    RPC_CHECK_STATUS(req, response);
-
-    configuration_cluster_info_request request;
-    dsn::unmarshall(req, request);
+    if (!check_status(rpc)) {
+        return;
+    }
 
     std::stringstream oss;
+    configuration_cluster_info_response &response = rpc.response();
     response.keys.push_back("meta_servers");
     for (size_t i = 0; i < _opts.meta_servers.size(); ++i) {
         if (i != 0)
@@ -551,64 +597,39 @@ void meta_service::on_query_cluster_info(dsn::message_ex *req)
     response.keys.push_back("total_replica_count_stddev");
     response.values.push_back(fmt::format("{:.{}f}", total_stddev, 2));
     response.err = dsn::ERR_OK;
-
-    reply(req, response);
 }
 
 // client => meta server
-void meta_service::on_query_configuration_by_node(dsn::message_ex *msg)
+void meta_service::on_query_configuration_by_index(configuration_query_by_index_rpc rpc)
 {
-    configuration_query_by_node_response response;
-    RPC_CHECK_STATUS(msg, response);
-
-    configuration_query_by_node_request request;
-    dsn::unmarshall(msg, request);
-    _state->query_configuration_by_node(request, response);
-    reply(msg, response);
-}
-
-void meta_service::on_query_configuration_by_index(dsn::message_ex *msg)
-{
-    configuration_query_by_index_response response;
-
-    // here we do not use RPC_CHECK_STATUS macro, but specially handle it
-    // to response forward address.
-    dinfo("rpc %s called", __FUNCTION__);
+    configuration_query_by_index_response &response = rpc.response();
     rpc_address forward_address;
-    int result = check_leader(msg, &forward_address);
-    if (result == 0)
-        return;
-    if (result == -1 || !_started) {
-        if (result == -1) {
-            response.err = ERR_FORWARD_TO_OTHERS;
-            if (!forward_address.is_invalid()) {
-                partition_configuration config;
-                config.primary = forward_address;
-                response.partitions.push_back(std::move(config));
-            }
-        } else if (_recovering) {
-            response.err = ERR_UNDER_RECOVERY;
-        } else {
-            response.err = ERR_SERVICE_NOT_ACTIVE;
+    if (!check_status(rpc, &forward_address)) {
+        if (!forward_address.is_invalid()) {
+            partition_configuration config;
+            config.primary = forward_address;
+            response.partitions.push_back(std::move(config));
         }
-        ddebug("reject request with %s", response.err.to_string());
-        reply(msg, response);
         return;
     }
 
-    configuration_query_by_index_request request;
-    dsn::unmarshall(msg, request);
-    _state->query_configuration_by_index(request, response);
-    reply(msg, response);
+    _state->query_configuration_by_index(rpc.request(), response);
+    if (ERR_OK == response.err) {
+        ddebug_f("client {} queried an available app {} with appid {}",
+                 rpc.dsn_request()->header->from_address.to_string(),
+                 rpc.request().app_name,
+                 response.app_id);
+    }
 }
 
 // partition sever => meta sever
 // as get stale configuration is not allowed for partition server, we need to dispatch it to the
 // meta state thread pool
-void meta_service::on_config_sync(dsn::message_ex *req)
+void meta_service::on_config_sync(configuration_query_by_node_rpc rpc)
 {
-    configuration_query_by_node_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status(rpc)) {
+        return;
+    }
 
     {
         // this code piece should be referenced together with meta_service::set_node_state.
@@ -618,10 +639,9 @@ void meta_service::on_config_sync(dsn::message_ex *req)
         // AFTER the node dead is dispatch
         // AFTER the node dead event
         zauto_lock l(_failure_detector->_lock);
-        req->add_ref();
         tasking::enqueue(LPC_META_STATE_HIGH,
                          nullptr,
-                         std::bind(&server_state::on_config_sync, _state.get(), req),
+                         std::bind(&server_state::on_config_sync, _state.get(), rpc),
                          server_state::sStateHash);
     }
 }
@@ -654,17 +674,17 @@ void meta_service::on_update_configuration(dsn::message_ex *req)
                      server_state::sStateHash);
 }
 
-void meta_service::on_control_meta_level(dsn::message_ex *req)
+void meta_service::on_control_meta_level(configuration_meta_control_rpc rpc)
 {
-    configuration_meta_control_request request;
-    configuration_meta_control_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status(rpc)) {
+        return;
+    }
 
-    dsn::unmarshall(req, request);
+    const configuration_meta_control_request &request = rpc.request();
+    configuration_meta_control_response &response = rpc.response();
     response.err = ERR_OK;
     response.old_level = _function_level.load();
     if (request.level == meta_function_level::fl_invalid) {
-        reply(req, response);
         return;
     }
 
@@ -676,30 +696,28 @@ void meta_service::on_control_meta_level(dsn::message_ex *req)
     }
 
     _function_level.store(request.level);
-    reply(req, response);
 }
 
-void meta_service::on_propose_balancer(dsn::message_ex *req)
+void meta_service::on_propose_balancer(configuration_balancer_rpc rpc)
 {
-    configuration_balancer_request request;
-    configuration_balancer_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status(rpc)) {
+        return;
+    }
 
-    dsn::unmarshall(req, request);
+    const configuration_balancer_request &request = rpc.request();
     ddebug("get proposal balancer request, gpid(%d.%d)",
            request.gpid.get_app_id(),
            request.gpid.get_partition_index());
-    _state->on_propose_balancer(request, response);
-    reply(req, response);
+    _state->on_propose_balancer(request, rpc.response());
 }
 
-void meta_service::on_start_recovery(dsn::message_ex *req)
+void meta_service::on_start_recovery(configuration_recovery_rpc rpc)
 {
-    configuration_recovery_response response;
+    configuration_recovery_response &response = rpc.response();
     ddebug("got start recovery request, start to do recovery");
-    int result = check_leader(req, nullptr);
-    if (result == 0) // request has been forwarded to others
-    {
+    int result = check_leader(rpc, nullptr);
+    // request has been forwarded to others
+    if (result == 0) {
         return;
     }
 
@@ -712,16 +730,13 @@ void meta_service::on_start_recovery(dsn::message_ex *req)
                    dsn_primary_address().to_string());
             response.err = ERR_SERVICE_ALREADY_RUNNING;
         } else {
-            configuration_recovery_request request;
-            dsn::unmarshall(req, request);
-            _state->on_start_recovery(request, response);
+            _state->on_start_recovery(rpc.request(), response);
             if (response.err == dsn::ERR_OK) {
                 _recovering = false;
                 start_service();
             }
         }
     }
-    reply(req, response);
 }
 
 void meta_service::on_start_restore(dsn::message_ex *req)
@@ -753,9 +768,11 @@ void meta_service::on_add_backup_policy(dsn::message_ex *req)
 
 void meta_service::on_query_backup_policy(query_backup_policy_rpc policy_rpc)
 {
-    auto &response = policy_rpc.response();
-    RPC_CHECK_STATUS(policy_rpc.dsn_request(), response);
+    if (!check_status(policy_rpc)) {
+        return;
+    }
 
+    auto &response = policy_rpc.response();
     if (_backup_handler == nullptr) {
         derror("meta doesn't enable backup service");
         response.err = ERR_SERVICE_NOT_ACTIVE;
@@ -767,49 +784,50 @@ void meta_service::on_query_backup_policy(query_backup_policy_rpc policy_rpc)
     }
 }
 
-void meta_service::on_modify_backup_policy(dsn::message_ex *req)
+void meta_service::on_modify_backup_policy(configuration_modify_backup_policy_rpc rpc)
 {
-    configuration_modify_backup_policy_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status(rpc)) {
+        return;
+    }
 
     if (_backup_handler == nullptr) {
         derror("meta doesn't enable backup service");
-        response.err = ERR_SERVICE_NOT_ACTIVE;
-        reply(req, response);
+        rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
     } else {
-        req->add_ref();
         tasking::enqueue(
             LPC_DEFAULT_CALLBACK,
             nullptr,
-            std::bind(&backup_service::modify_backup_policy, _backup_handler.get(), req));
+            std::bind(&backup_service::modify_backup_policy, _backup_handler.get(), rpc));
     }
 }
 
-void meta_service::on_report_restore_status(dsn::message_ex *req)
+void meta_service::on_report_restore_status(configuration_report_restore_status_rpc rpc)
 {
-    configuration_report_restore_status_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status(rpc)) {
+        return;
+    }
 
-    req->add_ref();
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      nullptr,
-                     std::bind(&server_state::on_recv_restore_report, _state.get(), req));
+                     std::bind(&server_state::on_recv_restore_report, _state.get(), rpc));
 }
 
-void meta_service::on_query_restore_status(dsn::message_ex *req)
+void meta_service::on_query_restore_status(configuration_query_restore_rpc rpc)
 {
-    configuration_query_restore_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status(rpc)) {
+        return;
+    }
 
-    req->add_ref();
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      nullptr,
-                     std::bind(&server_state::on_query_restore_status, _state.get(), req));
+                     std::bind(&server_state::on_query_restore_status, _state.get(), rpc));
 }
 
 void meta_service::on_add_duplication(duplication_add_rpc rpc)
 {
-    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+    if (!check_status(rpc)) {
+        return;
+    }
 
     if (!_dup_svc) {
         rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
@@ -823,7 +841,9 @@ void meta_service::on_add_duplication(duplication_add_rpc rpc)
 
 void meta_service::on_modify_duplication(duplication_modify_rpc rpc)
 {
-    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+    if (!check_status(rpc)) {
+        return;
+    }
 
     if (!_dup_svc) {
         rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
@@ -837,7 +857,9 @@ void meta_service::on_modify_duplication(duplication_modify_rpc rpc)
 
 void meta_service::on_query_duplication_info(duplication_query_rpc rpc)
 {
-    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+    if (!check_status(rpc)) {
+        return;
+    }
 
     if (_dup_svc) {
         _dup_svc->query_duplication_info(rpc.request(), rpc.response());
@@ -848,7 +870,9 @@ void meta_service::on_query_duplication_info(duplication_query_rpc rpc)
 
 void meta_service::on_duplication_sync(duplication_sync_rpc rpc)
 {
-    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+    if (!check_status(rpc)) {
+        return;
+    }
 
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
@@ -891,9 +915,11 @@ void meta_service::initialize_duplication_service()
 
 void meta_service::update_app_env(app_env_rpc env_rpc)
 {
-    auto &response = env_rpc.response();
-    RPC_CHECK_STATUS(env_rpc.dsn_request(), response);
+    if (!check_status(env_rpc)) {
+        return;
+    }
 
+    auto &response = env_rpc.response();
     app_env_operation::type op = env_rpc.request().op;
     switch (op) {
     case app_env_operation::type::APP_ENV_OP_SET:
@@ -922,16 +948,20 @@ void meta_service::update_app_env(app_env_rpc env_rpc)
 
 void meta_service::ddd_diagnose(ddd_diagnose_rpc rpc)
 {
-    auto &response = rpc.response();
-    RPC_CHECK_STATUS(rpc.dsn_request(), response);
+    if (!check_status(rpc)) {
+        return;
+    }
 
+    auto &response = rpc.response();
     get_balancer()->get_ddd_partitions(rpc.request().pid, response.partitions);
     response.err = ERR_OK;
 }
 
 void meta_service::on_app_partition_split(app_partition_split_rpc rpc)
 {
-    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+    if (!check_status(rpc)) {
+        return;
+    }
 
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
@@ -941,7 +971,9 @@ void meta_service::on_app_partition_split(app_partition_split_rpc rpc)
 
 void meta_service::on_register_child_on_meta(register_child_rpc rpc)
 {
-    RPC_CHECK_STATUS(rpc.dsn_request(), rpc.response());
+    if (!check_status(rpc)) {
+        return;
+    }
 
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      tracker(),
@@ -951,12 +983,13 @@ void meta_service::on_register_child_on_meta(register_child_rpc rpc)
 
 void meta_service::on_start_bulk_load(start_bulk_load_rpc rpc)
 {
-    auto &response = rpc.response();
-    RPC_CHECK_STATUS(rpc.dsn_request(), response);
+    if (!check_status(rpc)) {
+        return;
+    }
 
     if (!_bulk_load_svc) {
         derror("meta doesn't support bulk load");
-        response.err = ERR_SERVICE_NOT_ACTIVE;
+        rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
     } else {
         tasking::enqueue(LPC_META_STATE_NORMAL,
                          tracker(),

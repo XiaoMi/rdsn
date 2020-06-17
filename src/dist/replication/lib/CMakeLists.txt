@@ -33,10 +33,12 @@ set(MY_PROJ_LIBS
     dsn_replication_common
     dsn.failure_detector
     dsn.failure_detector.multimaster
+    dsn.block_service
     dsn_nfs
-    dsn_cli
+    dsn_dist_cmd
     dsn_http
     dsn_runtime
+    dsn_aio
     )
 
 set(MY_BOOST_LIBS Boost::regex)

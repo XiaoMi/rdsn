@@ -129,6 +129,13 @@ error_code md5sum(const std::string &file_path, /*out*/ std::string &result);
 //          B is represent wheter the directory is empty, true means empty, otherwise false
 std::pair<error_code, bool> is_directory_empty(const std::string &dirname);
 
+error_code read_file(const std::string &fname, /*out*/ std::string &buf);
+
+// compare file metadata calculated by fname with expected md5 and file_size
+bool verify_file(const std::string &fname,
+                 const std::string &expected_md5,
+                 const int64_t &expected_fsize);
+
 } // namespace filesystem
 } // namespace utils
 } // namespace dsn

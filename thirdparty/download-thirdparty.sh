@@ -131,12 +131,12 @@ exit_if_fail $?
 
 # readwrite queue
 # from: https://codeload.github.com/cameron314/readerwriterqueue/tar.gz/v1.0.2
-CONCURRENT_QUEUE_NAME=readerwriterqueue-1.0.2
-CONCURRENT_QUEUE_PKG=${CONCURRENT_QUEUE_NAME}.tar.gz
-check_and_download "${CONCURRENT_QUEUE_PKG}"\
-    "${OSS_URL_PREFIX}/${CONCURRENT_QUEUE_PKG}"\
+READERWRITER_QUEUE_NAME=readerwriterqueue-1.0.2
+READERWRITER_QUEUE_PKG=${READERWRITER_QUEUE_NAME}.tar.gz
+check_and_download "${READERWRITER_QUEUE_PKG}"\
+    "${OSS_URL_PREFIX}/${READERWRITER_QUEUE_PKG}"\
     "9e355a2660bd2810cb1874fb7366906e"\
-    "${CONCURRENT_QUEUE_NAME}"
+    "${READERWRITER_QUEUE_NAME}"
 exit_if_fail $?
 
 # googletest
@@ -307,6 +307,15 @@ check_and_download "${S2GEOMETRY_PKG}" \
     "${OSS_URL_PREFIX}/${S2GEOMETRY_PKG}" \
     "bfa5f1c08f535a72fb2c92ec16332c64" \
     "${S2GEOMETRY_NAME}"
+
+# rocksdb
+# from: https://github.com/XiaoMi/pegasus-rocksdb/archive/v6.6.4-base.zip
+ROCKSDB_NAME=pegasus-rocksdb-6.6.4-base
+ROCKSDB_PKG=${ROCKSDB_NAME}.zip
+check_and_download "${ROCKSDB_PKG}" \
+    "${OSS_URL_PREFIX}/${ROCKSDB_PKG}" \
+    "454b17946ad66e1d70ab130bb1244edf" \
+    "${ROCKSDB_NAME}"
 
 ret_code=$?
 if [ $ret_code -eq 2 ]; then

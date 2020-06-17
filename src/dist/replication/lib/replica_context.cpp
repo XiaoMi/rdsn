@@ -41,7 +41,7 @@
 #include "replica_stub.h"
 #include "mutation.h"
 #include "mutation_log.h"
-#include "../common/block_service_manager.h"
+#include "dist/block_service/block_service_manager.h"
 
 namespace dsn {
 namespace replication {
@@ -156,9 +156,9 @@ bool primary_context::check_exist(::dsn::rpc_address node, partition_status::typ
 
 void primary_context::cleanup_bulk_load_states()
 {
-    // TODO(heyuchen): TBD
-    // primary will save bulk load states reported from secondaries, this function is to cleanup
-    // those states
+    secondary_bulk_load_states.erase(secondary_bulk_load_states.begin(),
+                                     secondary_bulk_load_states.end());
+    ingestion_is_empty_prepare_sent = false;
 }
 
 bool secondary_context::cleanup(bool force)
