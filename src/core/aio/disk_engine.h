@@ -30,6 +30,7 @@
 
 #include <dsn/utility/synchronize.h>
 #include <dsn/utility/work_queue.h>
+#include <dsn/utility/factory_store.h>
 
 namespace dsn {
 
@@ -95,5 +96,4 @@ private:
     friend class batch_write_io_task;
     friend class utils::singleton<disk_engine>;
 };
-
 } // namespace dsn

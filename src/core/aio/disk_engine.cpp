@@ -138,12 +138,9 @@ disk_engine::disk_engine()
 {
     _node = service_engine::instance().get_all_nodes().begin()->second.get();
 
-    // use native_linux_aio_provider in default
-    if (!strcmp(FLAGS_aio_factory_name, "dsn::tools::sim_aio_provider")) {
-        _provider.reset(new aio::sim_aio_provider(this, nullptr));
-    } else {
-        _provider.reset(new native_linux_aio_provider(this, nullptr));
-    }
+    aio_provider *provider = utils::factory_store<aio_provider>::create(
+        FLAGS_aio_factory_name, ::dsn::PROVIDER_TYPE_MAIN, this, nullptr);
+    _provider.reset(provider);
 }
 
 disk_engine::~disk_engine() {}
@@ -329,4 +326,13 @@ void disk_engine::complete_io(aio_task *aio, error_code err, uint32_t bytes, int
         }
     }
 }
+
+namespace tools {
+namespace internal_use_only {
+bool register_component_provider(const char *name, aio_provider::factory f, dsn::provider_type type)
+{
+    return dsn::utils::factory_store<aio_provider>::register_factory(name, f, type);
+}
+} // namespace internal_use_only
+} // namespace tools
 } // namespace dsn
