@@ -275,8 +275,8 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
     _primary_states.get_replica_config(status, rconfig, learn_signature);
     rconfig.__set_pop_all(pop_all_committed_mutations);
 
-    mu->tracer->add_point(fmt::format("replica::send_prepare_message[{}]", addr.to_string()),
-                          dsn_now_ns());
+    mu->tracer->add_point_for_send_prepare(
+        fmt::format("replica::send_prepare_message[{}]", addr.to_string()), dsn_now_ns());
 
     {
         rpc_write_stream writer(msg);
@@ -541,10 +541,10 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
     mutation_ptr mu = pr.first;
     partition_status::type target_status = pr.second;
 
-    mu->tracer->add_point(fmt::format("replica::on_prepare_reply::{}[{}]",
-                                      enum_to_string(target_status),
-                                      request->to_address.to_string()),
-                          dsn_now_ns());
+    mu->tracer->add_point_for_prepare_replay(fmt::format("replica::on_prepare_reply::{}[{}]",
+                                                         enum_to_string(target_status),
+                                                         request->to_address.to_string()),
+                                             dsn_now_ns());
 
     // skip callback for old mutations
     if (partition_status::PS_PRIMARY != status() || mu->data.header.ballot < get_ballot() ||

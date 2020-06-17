@@ -157,50 +157,49 @@ public:
             return;
         }
 
-        std::string header("tracer log");
+        std::string header("write request latency tracer log");
         for (const auto &req : client_requests) {
             int64_t prepare_ack_time_used = 0;
             int64_t total_time_used = 0;
             std::string log;
             if (req != nullptr) {
-                total_time_used = tracer->get_end_time() - req->tracer->get_start_time();
+                total_time_used = tracer->end_time - req->tracer->start_time;
                 if (total_time_used < time_threshold) {
                     continue;
                 }
 
                 log = fmt::format("\nTRACER:name={}, mutation_id={}, request_id={}, "
                                   "start_time={}, request_type=[{}]",
-                                  req->tracer->get_name(),
+                                  req->tracer->name,
                                   tid(),
                                   req->header->id,
-                                  req->tracer->get_start_time(),
-                                  req->tracer->get_request_type());
+                                  req->tracer->start_time,
+                                  req->tracer->request_type);
 
-                for (const auto &iter : req->tracer->get_points()) {
+                for (const auto &iter : req->tracer->points) {
                     log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
                 }
             } else {
                 if (!is_primary) {
-                    prepare_ack_time_used =
-                        tracer->get_prepare_ack_time() - tracer->get_start_time();
+                    prepare_ack_time_used = tracer->prepare_ack_time - tracer->start_time;
                     if (prepare_ack_time_used < time_threshold) {
                         continue;
                     }
                 }
 
-                total_time_used = tracer->get_end_time() - tracer->get_start_time();
+                total_time_used = tracer->end_time - tracer->start_time;
                 if (total_time_used < time_threshold) {
                     continue;
                 }
                 log = fmt::format("\nTRACER:name={}, mutation_id={}, "
                                   "start_time={}, request_type=[{}]",
-                                  tracer->get_name(),
+                                  tracer->name,
                                   tid(),
-                                  tracer->get_start_time(),
-                                  tracer->get_request_type());
+                                  tracer->start_time,
+                                  tracer->request_type);
             }
 
-            for (const auto &iter : tracer->get_points()) {
+            for (const auto &iter : tracer->points) {
                 log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
             }
 
@@ -208,7 +207,7 @@ public:
                               "total_time_used={}, prepare_ack_time_used={}",
                               log,
                               tid(),
-                              tracer->get_end_time(),
+                              tracer->end_time,
                               total_time_used,
                               is_primary ? "none" : std::to_string(prepare_ack_time_used));
 
