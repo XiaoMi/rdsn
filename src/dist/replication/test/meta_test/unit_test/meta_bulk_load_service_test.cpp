@@ -96,6 +96,14 @@ public:
         return bulk_svc().get_app_bulk_load_status_unlocked(app_id);
     }
 
+    void test_on_partition_ingestion_reply(ingestion_response &resp,
+                                           const gpid &pid,
+                                           error_code rpc_err = ERR_OK)
+    {
+        bulk_svc().on_partition_ingestion_reply(rpc_err, std::move(resp), APP_NAME, pid);
+        wait_all();
+    }
+
 public:
     int32_t APP_ID = 1;
     std::string APP_NAME = "bulk_load_test";
@@ -213,6 +221,20 @@ public:
         _resp.__set_metadata(metadata);
     }
 
+    void mock_response_ingestion_status(ingestion_status::type secondary_istatus)
+    {
+        create_basic_response(ERR_OK, bulk_load_status::BLS_INGESTING);
+
+        partition_bulk_load_state state, state2;
+        state.__set_ingest_status(ingestion_status::IS_SUCCEED);
+        state2.__set_ingest_status(secondary_istatus);
+
+        _resp.group_bulk_load_state[PRIMARY] = state;
+        _resp.group_bulk_load_state[SECONDARY1] = state;
+        _resp.group_bulk_load_state[SECONDARY2] = state2;
+        _resp.__set_is_group_ingestion_finished(secondary_istatus == ingestion_status::IS_SUCCEED);
+    }
+
     void test_on_partition_bulk_load_reply(int32_t in_progress_count,
                                            bulk_load_status::type status,
                                            error_code resp_err = ERR_OK)
@@ -225,6 +247,13 @@ public:
         wait_all();
     }
 
+    void mock_ingestion_context(error_code err, int32_t rocksdb_err, int32_t in_progress_count)
+    {
+        mock_meta_bulk_load_context(_app_id, in_progress_count, bulk_load_status::BLS_INGESTING);
+        _ingestion_resp.err = err;
+        _ingestion_resp.rocksdb_error = rocksdb_err;
+    }
+
 public:
     const int32_t _pidx = 0;
     const rpc_address PRIMARY = rpc_address("127.0.0.1", 10086);
@@ -235,6 +264,7 @@ public:
     int32_t _partition_count;
     bulk_load_request _req;
     bulk_load_response _resp;
+    ingestion_response _ingestion_resp;
 };
 
 /// on_partition_bulk_load_reply unit tests
@@ -273,7 +303,51 @@ TEST_F(bulk_load_process_test, downloaded_succeed)
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_DOWNLOADED);
 }
 
+TEST_F(bulk_load_process_test, start_ingesting)
+{
+    fail::cfg("meta_bulk_load_partition_ingestion", "return()");
+    mock_response_progress(ERR_OK, true);
+    test_on_partition_bulk_load_reply(1, bulk_load_status::BLS_DOWNLOADED);
+    ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_INGESTING);
+}
+
+TEST_F(bulk_load_process_test, ingestion_running)
+{
+    mock_response_ingestion_status(ingestion_status::IS_RUNNING);
+    test_on_partition_bulk_load_reply(_partition_count, bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_INGESTING);
+}
+
+// TODO(heyuchen): add ingestion_error unit tests after implement function `handle_app_failed`
+
+TEST_F(bulk_load_process_test, normal_succeed)
+{
+    mock_response_ingestion_status(ingestion_status::IS_SUCCEED);
+    test_on_partition_bulk_load_reply(1, bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_SUCCEED);
+}
+
 // TODO(heyuchen): add other unit tests for `on_partition_bulk_load_reply`
+
+/// on_partition_ingestion_reply unit tests
+// TODO(heyuchen):
+// add ingest_rpc_error unit tests after implement function `rollback_downloading`
+// add ingest_wrong unit tests after implement function `handle_app_failed`
+
+TEST_F(bulk_load_process_test, ingest_empty_write_error)
+{
+    fail::cfg("meta_bulk_load_partition_ingestion", "return()");
+    mock_ingestion_context(ERR_TRY_AGAIN, 11, _partition_count);
+    test_on_partition_ingestion_reply(_ingestion_resp, gpid(_app_id, _pidx));
+    ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_INGESTING);
+}
+
+TEST_F(bulk_load_process_test, ingest_succeed)
+{
+    mock_ingestion_context(ERR_OK, 0, 1);
+    test_on_partition_ingestion_reply(_ingestion_resp, gpid(_app_id, _pidx));
+    ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_INGESTING);
+}
 
 } // namespace replication
 } // namespace dsn

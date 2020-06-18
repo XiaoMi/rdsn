@@ -13,8 +13,6 @@
 namespace dsn {
 namespace replication {
 
-typedef rpc_holder<group_bulk_load_request, group_bulk_load_response> group_bulk_load_rpc;
-
 replica_bulk_loader::replica_bulk_loader(replica *r)
     : replica_base(r), _replica(r), _stub(r->get_replica_stub())
 {
@@ -196,14 +194,59 @@ error_code replica_bulk_loader::do_bulk_load(const std::string &app_name,
                                              const std::string &cluster_name,
                                              const std::string &provider_name)
 {
+    if (status() != partition_status::PS_PRIMARY && status() != partition_status::PS_SECONDARY) {
+        return ERR_INVALID_STATE;
+    }
+
+    bulk_load_status::type local_status = _status;
+    error_code ec = validate_bulk_load_status(meta_status, local_status);
+    if (ec != ERR_OK) {
+        derror_replica("invalid bulk load status, remote = {}, local = {}",
+                       enum_to_string(meta_status),
+                       enum_to_string(local_status));
+        return ec;
+    }
+
+    switch (meta_status) {
+    case bulk_load_status::BLS_DOWNLOADING:
+        // TODO(heyuchen): add restart downloading status check
+        if (local_status == bulk_load_status::BLS_INVALID) {
+            ec = start_download(app_name, cluster_name, provider_name);
+        }
+        break;
+    case bulk_load_status::BLS_INGESTING:
+        if (local_status == bulk_load_status::BLS_DOWNLOADED) {
+            start_ingestion();
+        } else if (local_status == bulk_load_status::BLS_INGESTING &&
+                   status() == partition_status::PS_PRIMARY) {
+            check_ingestion_finish();
+        }
+        break;
+    case bulk_load_status::BLS_SUCCEED:
+        if (local_status == bulk_load_status::BLS_INGESTING) {
+            handle_bulk_load_succeed();
+        } else if (local_status == bulk_load_status::BLS_SUCCEED) {
+            handle_bulk_load_finish(meta_status);
+        }
+        break;
+    // TODO(heyuchen): add other bulk load status
+    default:
+        break;
+    }
+    return ec;
+}
+
+error_code replica_bulk_loader::validate_bulk_load_status(bulk_load_status::type meta_status,
+                                                          bulk_load_status::type local_status)
+{
     // TODO(heyuchen): TBD
     return ERR_OK;
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-error_code replica_bulk_loader::bulk_load_start_download(const std::string &app_name,
-                                                         const std::string &cluster_name,
-                                                         const std::string &provider_name)
+error_code replica_bulk_loader::start_download(const std::string &app_name,
+                                               const std::string &cluster_name,
+                                               const std::string &provider_name)
 {
     if (_stub->_bulk_load_downloading_count.load() >=
         _stub->_max_concurrent_bulk_load_downloading_count) {
@@ -286,7 +329,10 @@ error_code replica_bulk_loader::download_sst_files(const std::string &app_name,
                 uint64_t f_size = 0;
                 error_code ec = _stub->_block_service_manager.download_file(
                     remote_dir, local_dir, f_meta.name, fs, f_size);
-                if (ec == ERR_OK && !_stub->_block_service_manager.verify_file(f_meta, local_dir)) {
+                const std::string &file_name =
+                    utils::filesystem::path_combine(local_dir, f_meta.name);
+                if (ec == ERR_OK &&
+                    !utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
                     ec = ERR_CORRUPTION;
                 }
                 if (ec != ERR_OK) {
@@ -380,6 +426,88 @@ void replica_bulk_loader::check_download_finish()
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
+void replica_bulk_loader::start_ingestion()
+{
+    _status = bulk_load_status::BLS_INGESTING;
+    // TODO(heyuchen): add perf-counter
+    if (status() == partition_status::PS_PRIMARY) {
+        _replica->_primary_states.ingestion_is_empty_prepare_sent = false;
+    }
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_bulk_loader::check_ingestion_finish()
+{
+    if (_replica->_app->get_ingestion_status() == ingestion_status::IS_SUCCEED &&
+        !_replica->_primary_states.ingestion_is_empty_prepare_sent) {
+        // send an empty prepare to gurantee secondary commit ingestion request, and set
+        // `pop_all_committed_mutations` as true
+        // ingestion is a special write request, replay this mutation can not learn data from
+        // external files, so when ingestion succeed, we should create a checkpoint
+        // if learn is evoked after ingestion, we should gurantee that learner should learn from
+        // checkpoint, to gurantee the condition above, we should pop all committed mutations in
+        // prepare list to gurantee learn type is LT_APP
+        mutation_ptr mu = _replica->new_mutation(invalid_decree);
+        mu->add_client_request(RPC_REPLICATION_WRITE_EMPTY, nullptr);
+        _replica->init_prepare(mu, false, true);
+        _replica->_primary_states.ingestion_is_empty_prepare_sent = true;
+    }
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_bulk_loader::handle_bulk_load_succeed()
+{
+    // generate checkpoint
+    _replica->init_checkpoint(true);
+
+    _replica->_app->set_ingestion_status(ingestion_status::IS_INVALID);
+    _status = bulk_load_status::BLS_SUCCEED;
+    // TODO(heyuchen): add perf-counter
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_bulk_loader::handle_bulk_load_finish(bulk_load_status::type new_status)
+{
+    if (is_cleaned_up()) {
+        ddebug_replica("bulk load states have been cleaned up");
+        return;
+    }
+
+    if (status() == partition_status::PS_PRIMARY) {
+        // TODO(heyuchen): cleanup _primary_states.secondary_bulk_load_states
+    }
+
+    ddebug_replica("bulk load finished, old_status = {}, new_status = {}",
+                   enum_to_string(_status),
+                   enum_to_string(new_status));
+
+    // remove local bulk load dir
+    std::string bulk_load_dir = utils::filesystem::path_combine(
+        _replica->_dir, bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR);
+    error_code err = remove_local_bulk_load_dir(bulk_load_dir);
+    if (err != ERR_OK) {
+        tasking::enqueue(
+            LPC_REPLICATION_COMMON,
+            &_replica->_tracker,
+            std::bind(&replica_bulk_loader::remove_local_bulk_load_dir, this, bulk_load_dir),
+            get_gpid().thread_hash());
+    }
+
+    clear_bulk_load_states();
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+error_code replica_bulk_loader::remove_local_bulk_load_dir(const std::string &bulk_load_dir)
+{
+    if (!utils::filesystem::directory_exists(bulk_load_dir) ||
+        !utils::filesystem::remove_path(bulk_load_dir)) {
+        derror_replica("remove bulk_load dir({}) failed", bulk_load_dir);
+        return ERR_FILE_OPERATION_FAILED;
+    }
+    return ERR_OK;
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica_bulk_loader::cleanup_download_task()
 {
     for (auto &kv : _download_task) {
@@ -388,10 +516,46 @@ void replica_bulk_loader::cleanup_download_task()
     _download_task.clear();
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica_bulk_loader::clear_bulk_load_states()
 {
-    // TODO(heyuchen): TBD
-    // clear replica bulk load states and cleanup bulk load context
+    if (_status == bulk_load_status::BLS_DOWNLOADING) {
+        try_decrease_bulk_load_download_count();
+    }
+
+    cleanup_download_task();
+    _metadata.files.clear();
+    _metadata.file_total_size = 0;
+    _cur_downloaded_size.store(0);
+    _download_progress.store(0);
+    _download_status.store(ERR_OK);
+
+    _replica->_is_bulk_load_ingestion = false;
+    _replica->_app->set_ingestion_status(ingestion_status::IS_INVALID);
+
+    // TODO(heyuchen): clear other states
+
+    _status = bulk_load_status::BLS_INVALID;
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+bool replica_bulk_loader::is_cleaned_up()
+{
+    if (_status != bulk_load_status::BLS_INVALID) {
+        return false;
+    }
+    // download context not cleaned up
+    if (_cur_downloaded_size.load() != 0 || _download_progress.load() != 0 ||
+        _download_status.load() != ERR_OK || _download_task.size() != 0 ||
+        _metadata.files.size() != 0 || _metadata.file_total_size != 0) {
+        return false;
+    }
+    // ingestion context not cleaned up
+    if (_replica->_is_bulk_load_ingestion ||
+        _replica->_app->get_ingestion_status() != ingestion_status::IS_INVALID) {
+        return false;
+    }
+    return true;
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
@@ -412,6 +576,12 @@ void replica_bulk_loader::report_bulk_load_states_to_meta(bulk_load_status::type
     case bulk_load_status::BLS_DOWNLOADING:
     case bulk_load_status::BLS_DOWNLOADED:
         report_group_download_progress(response);
+        break;
+    case bulk_load_status::BLS_INGESTING:
+        report_group_ingestion_status(response);
+        break;
+    case bulk_load_status::BLS_SUCCEED:
+        report_group_cleaned_up(response);
         break;
     // TODO(heyuchen): add other status
     default:
@@ -463,6 +633,86 @@ void replica_bulk_loader::report_group_download_progress(/*out*/ bulk_load_respo
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
+void replica_bulk_loader::report_group_ingestion_status(/*out*/ bulk_load_response &response)
+{
+    if (status() != partition_status::PS_PRIMARY) {
+        dwarn_replica("replica status={}, should be {}",
+                      enum_to_string(status()),
+                      enum_to_string(partition_status::PS_PRIMARY));
+        response.err = ERR_INVALID_STATE;
+        return;
+    }
+
+    partition_bulk_load_state primary_state;
+    primary_state.__set_ingest_status(_replica->_app->get_ingestion_status());
+    response.group_bulk_load_state[_replica->_primary_states.membership.primary] = primary_state;
+    ddebug_replica("primary = {}, ingestion status = {}",
+                   _replica->_primary_states.membership.primary.to_string(),
+                   enum_to_string(primary_state.ingest_status));
+
+    bool is_group_ingestion_finish =
+        (primary_state.ingest_status == ingestion_status::IS_SUCCEED) &&
+        (_replica->_primary_states.membership.secondaries.size() + 1 ==
+         _replica->_primary_states.membership.max_replica_count);
+    for (const auto &target_address : _replica->_primary_states.membership.secondaries) {
+        const auto &secondary_state =
+            _replica->_primary_states.secondary_bulk_load_states[target_address];
+        ingestion_status::type ingest_status = secondary_state.__isset.ingest_status
+                                                   ? secondary_state.ingest_status
+                                                   : ingestion_status::IS_INVALID;
+        ddebug_replica("secondary = {}, ingestion status={}",
+                       target_address.to_string(),
+                       enum_to_string(ingest_status));
+        response.group_bulk_load_state[target_address] = secondary_state;
+        is_group_ingestion_finish &= (ingest_status == ingestion_status::IS_SUCCEED);
+    }
+    response.__set_is_group_ingestion_finished(is_group_ingestion_finish);
+
+    // if group ingestion finish, recover wirte immediately
+    if (is_group_ingestion_finish) {
+        ddebug_replica("finish ingestion, recover write");
+        _replica->_is_bulk_load_ingestion = false;
+        // TODO(heyuchen): reset perf-counter
+    }
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_bulk_loader::report_group_cleaned_up(bulk_load_response &response)
+{
+    if (status() != partition_status::PS_PRIMARY) {
+        dwarn_replica("replica status={}, should be {}",
+                      enum_to_string(status()),
+                      enum_to_string(partition_status::PS_PRIMARY));
+        response.err = ERR_INVALID_STATE;
+        return;
+    }
+
+    partition_bulk_load_state primary_state;
+    primary_state.__set_is_cleaned_up(is_cleaned_up());
+    response.group_bulk_load_state[_replica->_primary_states.membership.primary] = primary_state;
+    ddebug_replica("primary = {}, bulk load states cleaned_up = {}",
+                   _replica->_primary_states.membership.primary.to_string(),
+                   primary_state.is_cleaned_up);
+
+    bool group_flag = (primary_state.is_cleaned_up) &&
+                      (_replica->_primary_states.membership.secondaries.size() + 1 ==
+                       _replica->_primary_states.membership.max_replica_count);
+    for (const auto &target_address : _replica->_primary_states.membership.secondaries) {
+        const auto &secondary_state =
+            _replica->_primary_states.secondary_bulk_load_states[target_address];
+        bool is_cleaned_up =
+            secondary_state.__isset.is_cleaned_up ? secondary_state.is_cleaned_up : false;
+        ddebug_replica("secondary = {}, bulk load states cleaned_up = {}",
+                       target_address.to_string(),
+                       is_cleaned_up);
+        response.group_bulk_load_state[target_address] = secondary_state;
+        group_flag &= is_cleaned_up;
+    }
+    ddebug_replica("group bulk load states cleaned_up = {}", group_flag);
+    response.__set_is_group_bulk_load_context_cleaned_up(group_flag);
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica_bulk_loader::report_bulk_load_states_to_primary(
     bulk_load_status::type remote_status,
     /*out*/ group_bulk_load_response &response)
@@ -479,6 +729,12 @@ void replica_bulk_loader::report_bulk_load_states_to_primary(
     case bulk_load_status::BLS_DOWNLOADED:
         bulk_load_state.__set_download_progress(_download_progress.load());
         bulk_load_state.__set_download_status(_download_status.load());
+        break;
+    case bulk_load_status::BLS_INGESTING:
+        bulk_load_state.__set_ingest_status(_replica->_app->get_ingestion_status());
+        break;
+    case bulk_load_status::BLS_SUCCEED:
+        bulk_load_state.__set_is_cleaned_up(is_cleaned_up());
         break;
     // TODO(heyuchen): add other status
     default:
