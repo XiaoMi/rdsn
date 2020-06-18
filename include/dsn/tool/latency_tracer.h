@@ -3,6 +3,7 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #pragma once
+#include <iterator>
 #include <string>
 #include <map>
 #include <dsn/service_api_c.h>
