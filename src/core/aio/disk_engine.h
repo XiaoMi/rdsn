@@ -26,8 +26,7 @@
 
 #pragma once
 
-#include "aio_provider.h"
-
+#include <dsn/tool-api/aio_provider.h>
 #include <dsn/utility/synchronize.h>
 #include <dsn/utility/work_queue.h>
 #include <dsn/utility/factory_store.h>
