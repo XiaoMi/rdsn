@@ -31,8 +31,6 @@
 
 namespace dsn {
 
-DSN_REGISTER_COMPONENT_PROVIDER(native_linux_aio_provider, "dsn::tools::native_aio_provider");
-
 native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk,
                                                      aio_provider *inner_provider)
     : aio_provider(disk, inner_provider)

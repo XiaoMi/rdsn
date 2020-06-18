@@ -172,6 +172,12 @@ bool register_component_provider(const char *name)
 }
 
 template <typename T>
+struct component_provider_registerer
+{
+    component_provider_registerer(const char *name) { register_component_provider<T>(name); }
+};
+
+template <typename T>
 bool register_component_aspect(const char *name)
 {
     return internal_use_only::register_component_provider(
@@ -217,13 +223,7 @@ bool register_message_header_parser(network_header_format fmt,
 }
 } // namespace tools
 
-template <typename T>
-struct component_provider_registerer
-{
-    component_provider_registerer(const char *name) { tools::register_component_provider<T>(name); }
-};
-
 #define DSN_REGISTER_COMPONENT_PROVIDER(type, name)                                                \
-    static component_provider_registerer<type> COMPONENT_PROVIDER_REG_##type(name)
+    static tools::component_provider_registerer<type> COMPONENT_PROVIDER_REG_##type(name)
 
 } // namespace dsn
