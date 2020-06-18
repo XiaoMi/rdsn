@@ -121,8 +121,9 @@ public:
     bool is_full() const { return _appro_data_bytes >= 1024 * 1024; }
     int appro_data_bytes() const { return _appro_data_bytes; }
 
-    // read & write mutation data "mutation_update.code" should be marshalled as string for
-    // cross-process compatiblity,
+    // read & write mutation data
+    //
+    // "mutation_update.code" should be marshalled as string for cross-process compatiblity,
     // because:
     //   - the private log may be transfered to other node with different program
     //   - the private/shared log may be replayed by different program when server restart

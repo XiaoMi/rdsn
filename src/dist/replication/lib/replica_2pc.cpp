@@ -275,9 +275,6 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
     _primary_states.get_replica_config(status, rconfig, learn_signature);
     rconfig.__set_pop_all(pop_all_committed_mutations);
 
-    mu->tracer->add_point(fmt::format("replica::send_prepare_message[{}]", addr.to_string()),
-                          dsn_now_ns());
-
     {
         rpc_write_stream writer(msg);
         marshall(writer, get_gpid(), DSF_THRIFT_BINARY);
@@ -474,6 +471,7 @@ void replica::on_prepare(dsn::message_ex *request)
 void replica::on_append_log_completed(mutation_ptr &mu, error_code err, size_t size)
 {
     _checker.only_one_thread_access();
+
     dinfo("%s: append shared log completed for mutation %s, size = %u, err = %s",
           name(),
           mu->name(),
@@ -535,12 +533,6 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
 
     mutation_ptr mu = pr.first;
     partition_status::type target_status = pr.second;
-
-    mu->tracer->add_point(fmt::format("replica::on_prepare_reply::{}[{}]",
-                                      enum_to_string(target_status),
-                                      request->to_address.to_string()),
-                          dsn_now_ns(),
-                          true);
 
     // skip callback for old mutations
     if (partition_status::PS_PRIMARY != status() || mu->data.header.ballot < get_ballot() ||
@@ -712,8 +704,6 @@ void replica::ack_prepare_message(error_code err, mutation_ptr &mu)
     for (auto &request : prepare_requests) {
         reply(request, resp);
     }
-
-    mu->tracer->secondary_prepare_ack_time = dsn_now_ns();
 
     if (err == ERR_OK) {
         dinfo("%s: mutation %s ack_prepare_message, err = %s", name(), mu->name(), err.to_string());
