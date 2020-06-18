@@ -64,6 +64,7 @@ public:
         for (const auto &iter : points) {
             trace = fmt::format("{}\n\tTRACER:{}={}", trace, iter.first, iter.second);
         }
+        return trace;
     }
 };
 } // namespace tool

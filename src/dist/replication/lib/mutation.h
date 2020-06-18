@@ -39,8 +39,6 @@
 #include <list>
 #include <atomic>
 #include <dsn/utility/link.h>
-#include <dsn/dist/fmt_logging.h>
-#include <dsn/tool/latency_tracer.h>
 
 #ifndef __linux__
 #pragma warning(disable : 4201)
@@ -146,7 +144,6 @@ public:
 
     void set_is_sync_to_child(bool sync_to_child) { _is_sync_to_child = sync_to_child; }
     bool is_sync_to_child() { return _is_sync_to_child; }
-
     // latency tracer for write mutation reuqest
     std::unique_ptr<dsn::tool::latency_tracer> tracer;
 

@@ -472,8 +472,6 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
             (int)mu->client_requests.size());
     dassert(mu->data.updates.size() > 0, "");
 
-    mu->tracer->add_point("replication_app_base::apply_mutation", dsn_now_ns());
-
     bool has_ingestion_request = false;
     int request_count = static_cast<int>(mu->client_requests.size());
     dsn::message_ex **batched_requests =
@@ -485,7 +483,6 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
     for (int i = 0; i < request_count; i++) {
         const mutation_update &update = mu->data.updates[i];
         dsn::message_ex *req = mu->client_requests[i];
-
         if (update.code != RPC_REPLICATION_WRITE_EMPTY) {
             dinfo("%s: mutation %s #%d: dispatch rpc call %s",
                   _replica->name(),

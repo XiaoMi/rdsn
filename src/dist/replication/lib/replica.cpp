@@ -156,10 +156,6 @@ replica::~replica(void)
 
 void replica::on_client_read(dsn::message_ex *request)
 {
-
-    if (request->tracer != nullptr) {
-        request->tracer->add_point("replica::on_client_read", dsn_now_ns());
-    }
     if (status() == partition_status::PS_INACTIVE ||
         status() == partition_status::PS_POTENTIAL_SECONDARY) {
         response_client_read(request, ERR_INVALID_STATE);
@@ -197,7 +193,6 @@ void replica::on_client_read(dsn::message_ex *request)
         request->tracer->end_time = now;
         request->report_trace_if_exceed_threshold(_stub->_abnormal_read_trace_latency_threshold);
     }
-
     // If the corresponding perf counter exist, count the duration of this operation.
     // rpc code of request is already checked in message_ex::rpc_code, so it will always be legal
     if (_counters_table_level_latency[request->rpc_code()] != nullptr) {
@@ -235,10 +230,9 @@ void replica::execute_mutation(mutation_ptr &mu)
           mu->name(),
           static_cast<int>(mu->client_requests.size()));
 
-    mu->tracer->add_point("replica::execute_mutation", dsn_now_ns());
-
     error_code err = ERR_OK;
     decree d = mu->data.header.decree;
+
     switch (status()) {
     case partition_status::PS_INACTIVE:
         if (_app->last_committed_decree() + 1 == d) {
@@ -325,14 +319,12 @@ void replica::execute_mutation(mutation_ptr &mu)
     }
 
     // update table level latency perf-counters for primary partition
-    uint64_t now_ns = dsn_now_ns();
-
-    mu->tracer->add_point(fmt::format("rocksdb::write_to_rocksdb[{}]", enum_to_string(status())),
-                          now_ns);
-    mu->tracer->end_time = now_ns;
-
     if (partition_status::PS_PRIMARY == status()) {
+<<<<<<< HEAD
         mu->report_trace_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold);
+=======
+        uint64_t now_ns = dsn_now_ns();
+>>>>>>> rpc_tracer
         for (auto update : mu->data.updates) {
             // If the corresponding perf counter exist, count the duration of this operation.
             // code in update will always be legal
@@ -340,8 +332,11 @@ void replica::execute_mutation(mutation_ptr &mu)
                 _counters_table_level_latency[update.code]->set(now_ns - update.start_time_ns);
             }
         }
+<<<<<<< HEAD
     } else {
         mu->report_trace_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold, false);
+=======
+>>>>>>> rpc_tracer
     }
 }
 

@@ -149,7 +149,6 @@ public:
 
     // by message queuing
     dlink dl;
-
     // lantency tracer for request
     std::unique_ptr<dsn::tool::latency_tracer> tracer;
 
