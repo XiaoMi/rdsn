@@ -153,12 +153,12 @@ public:
     // by message queuing
     dlink dl;
 
-    // lantency tracer
+    // lantency tracer for request
     std::unique_ptr<dsn::tool::latency_tracer> tracer;
 
     void report_tracer(uint64_t time_threshold)
     {
-        if (tracer == nullptr || !time_threshold) {
+        if (tracer == nullptr || time_threshold <= 0) {
             return;
         }
 
@@ -166,26 +166,20 @@ public:
         if (total_time_used < time_threshold) {
             return;
         }
-        std::string header("read request latency tracer log");
-        std::string log;
-        log = fmt::format("\nTRACER:name={}, request_id={}, "
-                          "start_time={}, request_type=[{}]",
-                          tracer->name,
-                          tracer->id,
-                          tracer->start_time,
-                          tracer->request_type);
 
+        std::string log;
         for (const auto &iter : tracer->points) {
             log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
         }
 
-        log = fmt::format("{}\nTRACER:end_time={}, "
+        log = fmt::format("{}\nTRACER:start_time={}, end_time={}, "
                           "total_time_used={}",
                           log,
+                          tracer->start_time,
                           tracer->end_time,
                           total_time_used);
 
-        ddebug_f("{}{}", header, log);
+        ddebug_f("TRACE:read request latency tracer log: {}", log);
     }
 
 public:

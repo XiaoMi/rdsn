@@ -344,10 +344,6 @@ private:
 #endif
     dsn_handle_t _max_concurrent_bulk_load_downloading_count_command;
 
-    dsn_handle_t _abnormal_read_trace_threshold_command;
-    dsn_handle_t _abnormal_write_prepare_ack_threshold_command;
-    dsn_handle_t _abnormal_write_primary_flush_threshold_command;
-
     bool _deny_client;
     bool _verbose_client_log;
     bool _verbose_commit_log;
@@ -377,10 +373,10 @@ private:
     // replica count exectuting bulk load downloading concurrently
     std::atomic_int _bulk_load_downloading_count;
 
-    //
-    int64_t _abnormal_read_trace_threshold;
-    int64_t _abnormal_write_prepare_ack_threshold;
-    int64_t _abnormal_write_primary_flush_threshold;
+    // if the threshold > 0 and the request latency excced it, the latency trace record will be
+    // logged
+    int64_t _abnormal_read_trace_latency_threshold;
+    int64_t _abnormal_write_trace_latency_threshold;
 
     // performance counters
     perf_counter_wrapper _counter_replicas_count;

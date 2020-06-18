@@ -120,10 +120,6 @@ public:
     std::string bulk_load_provider_root;
     int32_t max_concurrent_bulk_load_downloading_count;
 
-    int64_t abnormal_read_trace_threshold;
-    int64_t abnormal_write_prepare_ack_threshold;
-    int64_t abnormal_write_primary_flush_threshold;
-
 public:
     replication_options();
     void initialize();

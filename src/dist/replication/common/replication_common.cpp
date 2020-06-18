@@ -40,21 +40,6 @@ DSN_DEFINE_int32("replication",
                  5,
                  "concurrent bulk load downloading replica count");
 
-DSN_DEFINE_int64("replication",
-                 abnormal_read_trace_threshold,
-                 100000000,
-                 "trace when exceed the read latency threshold");
-
-DSN_DEFINE_int64("replication",
-                 abnormal_write_prepare_ack_threshold,
-                 1000000000,
-                 "trace when exceed the secondary prepare ack latency threshold");
-
-DSN_DEFINE_int64("replication",
-                 abnormal_write_primary_flush_threshold,
-                 500000000,
-                 "trace when exceed the primary complete to flush to disk latency threshold");
-
 /*extern*/ const char *partition_status_to_string(partition_status::type status)
 {
     auto it = _partition_status_VALUES_TO_NAMES.find(status);
@@ -543,10 +528,6 @@ void replication_options::initialize()
                                                           "bulk load root on remote file provider");
 
     max_concurrent_bulk_load_downloading_count = FLAGS_max_concurrent_bulk_load_downloading_count;
-
-    abnormal_read_trace_threshold = FLAGS_abnormal_read_trace_threshold;
-    abnormal_write_prepare_ack_threshold = FLAGS_abnormal_write_prepare_ack_threshold;
-    abnormal_write_primary_flush_threshold = FLAGS_abnormal_write_primary_flush_threshold;
 
     replica_helper::load_meta_servers(meta_servers);
 
