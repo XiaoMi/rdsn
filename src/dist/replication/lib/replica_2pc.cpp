@@ -575,14 +575,14 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
                               now);
         mu->tracer->end_time = now;
         mu->report_trace_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold);
-        r derror("%s: mutation %s on_prepare_reply from %s, appro_data_bytes = %d, "
-                 "target_status = %s, err = %s",
-                 name(),
-                 mu->name(),
-                 node.to_string(),
-                 mu->appro_data_bytes(),
-                 enum_to_string(target_status),
-                 resp.err.to_string());
+        derror("%s: mutation %s on_prepare_reply from %s, appro_data_bytes = %d, "
+               "target_status = %s, err = %s",
+               name(),
+               mu->name(),
+               node.to_string(),
+               mu->appro_data_bytes(),
+               enum_to_string(target_status),
+               resp.err.to_string());
     }
 
     if (resp.err == ERR_OK) {
