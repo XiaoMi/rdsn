@@ -143,7 +143,7 @@ disk_engine::disk_engine()
     _node = service_engine::instance().get_all_nodes().begin()->second.get();
 
     aio_provider *provider = utils::factory_store<aio_provider>::create(
-        FLAGS_aio_factory_name, ::dsn::PROVIDER_TYPE_MAIN, this, nullptr);
+        FLAGS_aio_factory_name, dsn::PROVIDER_TYPE_MAIN, this, nullptr);
     _provider.reset(provider);
 }
 
