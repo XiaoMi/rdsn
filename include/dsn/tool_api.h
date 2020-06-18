@@ -61,10 +61,10 @@ Component providers define the interface for the local components (e.g., network
 #include <dsn/tool-api/message_parser.h>
 #include <dsn/tool-api/logging_provider.h>
 #include <dsn/tool-api/timer_service.h>
+#include <dsn/tool-api/aio_provider.h>
 
 namespace dsn {
 namespace tools {
-
 /*!
 @addtogroup tool-api-providers
 @{
@@ -139,6 +139,8 @@ DSN_API bool register_component_provider(const char *name,
 DSN_API bool
 register_component_provider(const char *name, network::factory f, ::dsn::provider_type type);
 DSN_API bool
+register_component_provider(const char *name, aio_provider::factory f, ::dsn::provider_type type);
+DSN_API bool
 register_component_provider(const char *name, env_provider::factory f, ::dsn::provider_type type);
 DSN_API bool register_component_provider(const char *name,
                                          logging_provider::factory f,
@@ -167,6 +169,13 @@ bool register_component_provider(const char *name)
     return internal_use_only::register_component_provider(
         name, T::template create<T>, ::dsn::PROVIDER_TYPE_MAIN);
 }
+
+template <typename T>
+struct component_provider_registerer
+{
+    component_provider_registerer(const char *name) { register_component_provider<T>(name); }
+};
+
 template <typename T>
 bool register_component_aspect(const char *name)
 {
@@ -211,5 +220,9 @@ bool register_message_header_parser(network_header_format fmt,
     return internal_use_only::register_component_provider(
         fmt, signatures, T::template create<T>, sizeof(T));
 }
-}
-} // end namespace dsn::tools
+} // namespace tools
+
+#define DSN_REGISTER_COMPONENT_PROVIDER(type, name)                                                \
+    static tools::component_provider_registerer<type> COMPONENT_PROVIDER_REG_##type(name)
+
+} // namespace dsn
