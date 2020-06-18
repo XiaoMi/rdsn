@@ -123,13 +123,10 @@ public:
     int appro_data_bytes() const { return _appro_data_bytes; }
 
     // read & write mutation data
-    // thread_local std::unique_ptr<dsn::tool::latency_tracer> tracer = nullptr;
-    // "mutation_update.code" should be marshalled as  thread_local
-    // std::unique_ptr<dsn::tool::latency_tracer> tracer = nullptr;string for cross-process
-    // compatiblity,
-    // because: thread_local std::unique_ptr<dsn::tool::latency_tracer> tracer = nullptr;
-    //   - the private log may be transfered to other  thread_local
-    //   std::unique_ptr<dsn::tool::latency_tracer> tracer = nullptr;node with different program
+    //
+    // "mutation_update.code" should be marshalled as string for cross-process compatiblity,
+    // because:
+    //   - the private log may be transfered to other node with different program
     //   - the private/shared log may be replayed by different program when server restart
     void write_to(const std::function<void(const blob &)> &inserter) const;
     void write_to(binary_writer &writer, dsn::message_ex *to) const;
