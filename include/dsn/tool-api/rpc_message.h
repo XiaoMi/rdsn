@@ -46,9 +46,6 @@
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/tool-api/rpc_address.h>
 #include <dsn/tool-api/global_config.h>
-#include <string>
-#include <map>
-#include <dsn/service_api_c.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool/latency_tracer.h>
 
