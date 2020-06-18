@@ -320,11 +320,8 @@ void replica::execute_mutation(mutation_ptr &mu)
 
     // update table level latency perf-counters for primary partition
     if (partition_status::PS_PRIMARY == status()) {
-<<<<<<< HEAD
         mu->report_trace_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold);
-=======
         uint64_t now_ns = dsn_now_ns();
->>>>>>> rpc_tracer
         for (auto update : mu->data.updates) {
             // If the corresponding perf counter exist, count the duration of this operation.
             // code in update will always be legal
@@ -332,11 +329,8 @@ void replica::execute_mutation(mutation_ptr &mu)
                 _counters_table_level_latency[update.code]->set(now_ns - update.start_time_ns);
             }
         }
-<<<<<<< HEAD
     } else {
         mu->report_trace_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold, false);
-=======
->>>>>>> rpc_tracer
     }
 }
 
