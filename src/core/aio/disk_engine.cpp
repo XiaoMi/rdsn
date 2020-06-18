@@ -31,13 +31,12 @@
 using namespace dsn::utils;
 
 namespace dsn {
+using namespace aio;
 
 DEFINE_TASK_CODE_AIO(LPC_AIO_BATCH_WRITE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
 
 DSN_REGISTER_COMPONENT_PROVIDER(native_linux_aio_provider, "dsn::tools::native_aio_provider");
-namespace aio {
 DSN_REGISTER_COMPONENT_PROVIDER(sim_aio_provider, "dsn::tools::sim_aio_provider");
-}
 
 //----------------- disk_file ------------------------
 aio_task *disk_write_queue::unlink_next_workload(void *plength)

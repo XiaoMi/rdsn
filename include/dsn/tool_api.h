@@ -65,6 +65,7 @@ Component providers define the interface for the local components (e.g., network
 
 namespace dsn {
 namespace tools {
+
 /*!
 @addtogroup tool-api-providers
 @{

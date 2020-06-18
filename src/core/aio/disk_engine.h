@@ -95,4 +95,5 @@ private:
     friend class batch_write_io_task;
     friend class utils::singleton<disk_engine>;
 };
+
 } // namespace dsn
