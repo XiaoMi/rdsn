@@ -322,11 +322,8 @@ void replica::execute_mutation(mutation_ptr &mu)
                 _counters_table_level_latency[update.code]->set(now_ns - update.start_time_ns);
             }
         }
-    } else {
-        mu->report_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold, false);
     }
 }
-
 mutation_ptr replica::new_mutation(decree decree)
 {
     mutation_ptr mu(new mutation());

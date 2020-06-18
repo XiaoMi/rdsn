@@ -39,7 +39,6 @@
 #include <list>
 #include <atomic>
 #include <dsn/utility/link.h>
-#include <dsn/dist/fmt_logging.h>
 
 #ifndef __linux__
 #pragma warning(disable : 4201)
