@@ -167,19 +167,13 @@ public:
             return;
         }
 
-        std::string log;
-        for (const auto &iter : tracer->points) {
-            log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
-        }
-
-        log = fmt::format("{}\nTRACER:start_time={}, end_time={}, "
-                          "total_time_used={}",
-                          log,
-                          tracer->start_time,
-                          tracer->end_time,
-                          total_time_used);
-
-        ddebug_f("TRACE:read request latency tracer log: {}", log);
+        std::string log = tracer->to_string();
+        ddebug_f("TRACE:read request latency tracer log: {}\nTRACER:start_time={}, end_time={}, "
+                 "total_time_used={}",
+                 log,
+                 tracer->start_time,
+                 tracer->end_time,
+                 total_time_used);
     }
 
 public:

@@ -173,9 +173,7 @@ public:
                 }
 
                 request_id = req->tracer->id;
-                for (const auto &iter : req->tracer->points) {
-                    log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
-                }
+                log = req->tracer->to_string();
             } else {
                 if (!is_primary) {
                     secondary_prepare_ack_time_used =
@@ -190,24 +188,20 @@ public:
                     continue;
                 }
             }
-            for (const auto &iter : tracer->points) {
-                log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
-            }
 
-            log = fmt::format(
-                "{}\nTRACER:mutation_id={}, request_id={}, start_time={}, end_time={}, "
-                "total_time_used={}, primary_receive_prepare_ack_time_used={}, "
-                "secondary_prepare_ack_time_used={}",
-                log,
-                request_id,
-                tid(),
-                start_time,
-                tracer->end_time,
-                total_time_used,
-                is_primary ? tracer->get_primary_receive_prepare_ack_time_used() : "none",
-                is_primary ? "none" : std::to_string(secondary_prepare_ack_time_used));
-
-            ddebug_f("TRACE:write request latency tracer log:{}", log);
+            log = fmt::format("{}{}", log, tracer->to_string());
+            ddebug_f("TRACE:write request latency tracer log:{}\nTRACER:mutation_id={}, "
+                     "request_id={}, start_time={}, end_time={}, "
+                     "total_time_used={}, primary_receive_prepare_ack_time_used={}, "
+                     "secondary_prepare_ack_time_used={}",
+                     log,
+                     tid(),
+                     request_id,
+                     start_time,
+                     tracer->end_time,
+                     total_time_used,
+                     is_primary ? tracer->get_primary_receive_prepare_ack_time_used() : "none",
+                     is_primary ? "none" : std::to_string(secondary_prepare_ack_time_used));
         }
     }
 
