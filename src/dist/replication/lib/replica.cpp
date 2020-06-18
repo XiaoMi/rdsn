@@ -324,6 +324,7 @@ void replica::execute_mutation(mutation_ptr &mu)
         }
     }
 }
+
 mutation_ptr replica::new_mutation(decree decree)
 {
     mutation_ptr mu(new mutation());
