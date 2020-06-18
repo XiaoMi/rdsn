@@ -21,12 +21,8 @@ public:
     uint64_t last_time;
     uint64_t end_time;
     std::string request_type;
-    // only used for secondary which ack prepare request of primary
-    uint64_t secondary_prepare_ack_time;
-    // only used for primary which receive prepare ack of secondary
-    // this variable can be used for calc the 1th, 2th complete prepare time used
-    std::set<uint64_t> primary_receive_prepare_ack_time_used;
-
+    uint64_t prepare_ack_time_on_secondary;
+    std::set<uint64_t> prepare_time_used_on_primary;
     std::unordered_map<std::string, uint64_t> points;
 
 public:
@@ -41,17 +37,17 @@ public:
     add_point(const std::string &name, uint64_t current_time, bool is_receive_prepare_ack = false)
     {
         if (is_receive_prepare_ack) {
-            primary_receive_prepare_ack_time_used.emplace(current_time - start_time);
+            prepare_time_used_on_primary.emplace(current_time - start_time);
         }
         points.emplace(fmt::format("ts={}, {}", current_time, name), current_time - last_time);
         last_time = current_time;
     }
 
-    std::string get_primary_receive_prepare_ack_time_used()
+    std::string get_prepare_time_used()
     {
         std::stringstream oss;
-        std::copy(primary_receive_prepare_ack_time_used.begin(),
-                  primary_receive_prepare_ack_time_used.end(),
+        std::copy(prepare_time_used_on_primary.begin(),
+                  prepare_time_used_on_primary.end(),
                   std::ostream_iterator<uint64_t>(oss, ","));
         std::string time_used = oss.str();
         time_used[time_used.size() - 1] = '\0';
