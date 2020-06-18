@@ -627,7 +627,7 @@ void bulk_load_service::handle_bulk_load_finish(const bulk_load_response &respon
     }
 
     if (group_cleaned_up) {
-        int32_t count;
+        int32_t count = 0;
         {
             zauto_write_lock l(_lock);
             count = --_apps_in_progress_count[pid.get_app_id()];
