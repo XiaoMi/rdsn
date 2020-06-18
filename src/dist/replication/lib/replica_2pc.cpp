@@ -74,6 +74,26 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
+    if (_is_bulk_load_ingestion) {
+        // reject write requests during ingestion
+        // TODO(heyuchen): add perf-counter here
+        response_client_write(request, ERR_OPERATION_DISABLED);
+        return;
+    }
+
+    if (request->rpc_code() == dsn::apps::RPC_RRDB_RRDB_BULK_LOAD) {
+        ddebug_replica("receive bulk load ingestion request");
+
+        // bulk load ingestion request requires that all secondaries should be alive
+        if (static_cast<int>(_primary_states.membership.secondaries.size()) + 1 <
+            _primary_states.membership.max_replica_count) {
+            response_client_write(request, ERR_NOT_ENOUGH_MEMBER);
+            return;
+        }
+        _is_bulk_load_ingestion = true;
+        // TODO(heyuchen): set _bulk_load_ingestion_start_time_ms for perf-counter
+    }
+
     if (static_cast<int>(_primary_states.membership.secondaries.size()) + 1 <
         _options->mutation_2pc_min_replica_count) {
         response_client_write(request, ERR_NOT_ENOUGH_MEMBER);
@@ -96,7 +116,7 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     }
 }
 
-void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
+void replica::init_prepare(mutation_ptr &mu, bool reconciliation, bool pop_all_committed_mutations)
 {
     dassert(partition_status::PS_PRIMARY == status(),
             "invalid partition_status, status = %s",
@@ -104,6 +124,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
 
     error_code err = ERR_OK;
     uint8_t count = 0;
+    const auto request_count = mu->client_requests.size();
     mu->data.header.last_committed_decree = last_committed_decree();
 
     dsn_log_level_t level = LOG_LEVEL_INFORMATION;
@@ -130,6 +151,23 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
         goto ErrOut;
     }
 
+    // stop prepare bulk load ingestion if there are secondaries unalive
+    for (auto i = 0; i < request_count; ++i) {
+        const mutation_update &update = mu->data.updates[i];
+        if (update.code != dsn::apps::RPC_RRDB_RRDB_BULK_LOAD) {
+            break;
+        }
+        ddebug_replica("try to prepare bulk load mutation({})", mu->name());
+        if (static_cast<int>(_primary_states.membership.secondaries.size()) + 1 <
+            _primary_states.membership.max_replica_count) {
+            err = ERR_NOT_ENOUGH_MEMBER;
+            break;
+        }
+    }
+    if (err != ERR_OK) {
+        goto ErrOut;
+    }
+
     // stop prepare if there are too few replicas unless it's a reconciliation
     // for reconciliation, we should ensure every prepared mutation to be committed
     // please refer to PacificA paper
@@ -146,7 +184,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
             last_committed_decree());
 
     // local prepare
-    err = _prepare_list->prepare(mu, partition_status::PS_PRIMARY);
+    err = _prepare_list->prepare(mu, partition_status::PS_PRIMARY, pop_all_committed_mutations);
     if (err != ERR_OK) {
         goto ErrOut;
     }
@@ -157,8 +195,11 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
     for (auto it = _primary_states.membership.secondaries.begin();
          it != _primary_states.membership.secondaries.end();
          ++it) {
-        send_prepare_message(
-            *it, partition_status::PS_SECONDARY, mu, _options->prepare_timeout_ms_for_secondaries);
+        send_prepare_message(*it,
+                             partition_status::PS_SECONDARY,
+                             mu,
+                             _options->prepare_timeout_ms_for_secondaries,
+                             pop_all_committed_mutations);
     }
 
     count = 0;
@@ -169,6 +210,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation)
                                  partition_status::PS_POTENTIAL_SECONDARY,
                                  mu,
                                  _options->prepare_timeout_ms_for_potential_secondaries,
+                                 pop_all_committed_mutations,
                                  it->second.signature);
             count++;
         }
@@ -224,12 +266,14 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
                                    partition_status::type status,
                                    const mutation_ptr &mu,
                                    int timeout_milliseconds,
+                                   bool pop_all_committed_mutations,
                                    int64_t learn_signature)
 {
     dsn::message_ex *msg = dsn::message_ex::create_request(
         RPC_PREPARE, timeout_milliseconds, get_gpid().thread_hash());
     replica_configuration rconfig;
     _primary_states.get_replica_config(status, rconfig, learn_signature);
+    rconfig.__set_pop_all(pop_all_committed_mutations);
 
     {
         rpc_write_stream writer(msg);
@@ -610,8 +654,12 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
                         if (status() == partition_status::PS_PRIMARY &&
                             get_ballot() == mu->data.header.ballot &&
                             mu->get_decree() > last_committed_decree()) {
-                            send_prepare_message(
-                                node, target_status, mu, prepare_timeout_ms, learn_signature);
+                            send_prepare_message(node,
+                                                 target_status,
+                                                 mu,
+                                                 prepare_timeout_ms,
+                                                 false,
+                                                 learn_signature);
                         }
                     },
                     get_gpid().thread_hash(),

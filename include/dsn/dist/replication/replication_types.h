@@ -406,6 +406,10 @@ class group_bulk_load_request;
 
 class group_bulk_load_response;
 
+class ingestion_request;
+
+class ingestion_response;
+
 typedef struct _mutation_header__isset
 {
     _mutation_header__isset()
@@ -616,7 +620,12 @@ inline std::ostream &operator<<(std::ostream &out, const mutation_data &obj)
 typedef struct _replica_configuration__isset
 {
     _replica_configuration__isset()
-        : pid(false), ballot(false), primary(false), status(true), learner_signature(false)
+        : pid(false),
+          ballot(false),
+          primary(false),
+          status(true),
+          learner_signature(false),
+          pop_all(true)
     {
     }
     bool pid : 1;
@@ -624,6 +633,7 @@ typedef struct _replica_configuration__isset
     bool primary : 1;
     bool status : 1;
     bool learner_signature : 1;
+    bool pop_all : 1;
 } _replica_configuration__isset;
 
 class replica_configuration
@@ -633,7 +643,8 @@ public:
     replica_configuration(replica_configuration &&);
     replica_configuration &operator=(const replica_configuration &);
     replica_configuration &operator=(replica_configuration &&);
-    replica_configuration() : ballot(0), status((partition_status::type)0), learner_signature(0)
+    replica_configuration()
+        : ballot(0), status((partition_status::type)0), learner_signature(0), pop_all(false)
     {
         status = (partition_status::type)0;
     }
@@ -644,6 +655,7 @@ public:
     ::dsn::rpc_address primary;
     partition_status::type status;
     int64_t learner_signature;
+    bool pop_all;
 
     _replica_configuration__isset __isset;
 
@@ -657,6 +669,8 @@ public:
 
     void __set_learner_signature(const int64_t val);
 
+    void __set_pop_all(const bool val);
+
     bool operator==(const replica_configuration &rhs) const
     {
         if (!(pid == rhs.pid))
@@ -668,6 +682,10 @@ public:
         if (!(status == rhs.status))
             return false;
         if (!(learner_signature == rhs.learner_signature))
+            return false;
+        if (__isset.pop_all != rhs.__isset.pop_all)
+            return false;
+        else if (__isset.pop_all && !(pop_all == rhs.pop_all))
             return false;
         return true;
     }
@@ -6934,6 +6952,110 @@ public:
 void swap(group_bulk_load_response &a, group_bulk_load_response &b);
 
 inline std::ostream &operator<<(std::ostream &out, const group_bulk_load_response &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _ingestion_request__isset
+{
+    _ingestion_request__isset() : app_name(false), metadata(false) {}
+    bool app_name : 1;
+    bool metadata : 1;
+} _ingestion_request__isset;
+
+class ingestion_request
+{
+public:
+    ingestion_request(const ingestion_request &);
+    ingestion_request(ingestion_request &&);
+    ingestion_request &operator=(const ingestion_request &);
+    ingestion_request &operator=(ingestion_request &&);
+    ingestion_request() : app_name() {}
+
+    virtual ~ingestion_request() throw();
+    std::string app_name;
+    bulk_load_metadata metadata;
+
+    _ingestion_request__isset __isset;
+
+    void __set_app_name(const std::string &val);
+
+    void __set_metadata(const bulk_load_metadata &val);
+
+    bool operator==(const ingestion_request &rhs) const
+    {
+        if (!(app_name == rhs.app_name))
+            return false;
+        if (!(metadata == rhs.metadata))
+            return false;
+        return true;
+    }
+    bool operator!=(const ingestion_request &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const ingestion_request &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(ingestion_request &a, ingestion_request &b);
+
+inline std::ostream &operator<<(std::ostream &out, const ingestion_request &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _ingestion_response__isset
+{
+    _ingestion_response__isset() : err(false), rocksdb_error(false) {}
+    bool err : 1;
+    bool rocksdb_error : 1;
+} _ingestion_response__isset;
+
+class ingestion_response
+{
+public:
+    ingestion_response(const ingestion_response &);
+    ingestion_response(ingestion_response &&);
+    ingestion_response &operator=(const ingestion_response &);
+    ingestion_response &operator=(ingestion_response &&);
+    ingestion_response() : rocksdb_error(0) {}
+
+    virtual ~ingestion_response() throw();
+    ::dsn::error_code err;
+    int32_t rocksdb_error;
+
+    _ingestion_response__isset __isset;
+
+    void __set_err(const ::dsn::error_code &val);
+
+    void __set_rocksdb_error(const int32_t val);
+
+    bool operator==(const ingestion_response &rhs) const
+    {
+        if (!(err == rhs.err))
+            return false;
+        if (!(rocksdb_error == rhs.rocksdb_error))
+            return false;
+        return true;
+    }
+    bool operator!=(const ingestion_response &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const ingestion_response &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(ingestion_response &a, ingestion_response &b);
+
+inline std::ostream &operator<<(std::ostream &out, const ingestion_response &obj)
 {
     obj.printTo(out);
     return out;
