@@ -153,7 +153,7 @@ public:
     // latency tracer for write mutation reuqest
     std::unique_ptr<dsn::tool::latency_tracer> tracer;
 
-    void report_tracer(uint64_t time_threshold, bool is_primary = true)
+    void report_if_exceed_threshold(uint64_t time_threshold, bool is_primary = true)
     {
         if (time_threshold <= 0) {
             return;
