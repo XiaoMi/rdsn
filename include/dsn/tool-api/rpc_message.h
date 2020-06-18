@@ -153,7 +153,7 @@ public:
     // lantency tracer for request
     std::unique_ptr<dsn::tool::latency_tracer> tracer;
 
-    void report_if_exceed_threshold(uint64_t time_threshold)
+    void report_trace_if_exceed_threshold(uint64_t time_threshold)
     {
         if (tracer == nullptr || time_threshold <= 0) {
             return;

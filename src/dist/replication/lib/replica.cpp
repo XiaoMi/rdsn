@@ -195,7 +195,7 @@ void replica::on_client_read(dsn::message_ex *request)
         int64_t now = dsn_now_ns();
         request->tracer->add_point("replica_stub::response_client", now);
         request->tracer->end_time = now;
-        request->report_if_exceed_threshold(_stub->_abnormal_read_trace_latency_threshold);
+        request->report_trace_if_exceed_threshold(_stub->_abnormal_read_trace_latency_threshold);
     }
 
     // If the corresponding perf counter exist, count the duration of this operation.
@@ -332,7 +332,7 @@ void replica::execute_mutation(mutation_ptr &mu)
     mu->tracer->end_time = now_ns;
 
     if (partition_status::PS_PRIMARY == status()) {
-        mu->report_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold);
+        mu->report_trace_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold);
         for (auto update : mu->data.updates) {
             // If the corresponding perf counter exist, count the duration of this operation.
             // code in update will always be legal
@@ -341,7 +341,7 @@ void replica::execute_mutation(mutation_ptr &mu)
             }
         }
     } else {
-        mu->report_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold, false);
+        mu->report_trace_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold, false);
     }
 }
 
