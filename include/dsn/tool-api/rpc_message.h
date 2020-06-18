@@ -50,7 +50,6 @@
 #include <map>
 #include <dsn/service_api_c.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/tool/latency_tracer.h>
 
 namespace dsn {
 class rpc_session;
@@ -152,35 +151,6 @@ public:
 
     // by message queuing
     dlink dl;
-
-    // lantency tracer for request
-    std::unique_ptr<dsn::tool::latency_tracer> tracer;
-
-    void report_if_exceed_threshold(uint64_t time_threshold)
-    {
-        if (tracer == nullptr || time_threshold <= 0) {
-            return;
-        }
-
-        uint64_t total_time_used = tracer->end_time - tracer->start_time;
-        if (total_time_used < time_threshold) {
-            return;
-        }
-
-        std::string log;
-        for (const auto &iter : tracer->points) {
-            log = fmt::format("{}\n\tTRACER:{}={}", log, iter.first, iter.second);
-        }
-
-        log = fmt::format("{}\nTRACER:start_time={}, end_time={}, "
-                          "total_time_used={}",
-                          log,
-                          tracer->start_time,
-                          tracer->end_time,
-                          total_time_used);
-
-        ddebug_f("TRACE:read request latency tracer log: {}", log);
-    }
 
 public:
     // message_ex(blob bb, bool parse_hdr = true); // read

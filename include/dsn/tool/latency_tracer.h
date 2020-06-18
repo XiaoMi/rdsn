@@ -57,6 +57,14 @@ public:
         time_used[time_used.size() - 1] = '\0';
         return time_used;
     }
+
+    std::string to_string()
+    {
+        std::string trace;
+        for (const auto &iter : points) {
+            trace = fmt::format("{}\n\tTRACER:{}={}", trace, iter.first, iter.second);
+        }
+    }
 };
 } // namespace tool
 } // namespace dsn

@@ -329,8 +329,6 @@ void replica::on_prepare(dsn::message_ex *request)
         mu = mutation::read_from(reader, request);
     }
 
-    mu->tracer->add_point("replica::on_prepare", dsn_now_ns());
-
     decree decree = mu->data.header.decree;
 
     dinfo("%s: mutation %s on_prepare", name(), mu->name());
@@ -476,9 +474,6 @@ void replica::on_prepare(dsn::message_ex *request)
 void replica::on_append_log_completed(mutation_ptr &mu, error_code err, size_t size)
 {
     _checker.only_one_thread_access();
-
-    mu->tracer->add_point("replica::on_append_log_completed", dsn_now_ns());
-
     dinfo("%s: append shared log completed for mutation %s, size = %u, err = %s",
           name(),
           mu->name(),
@@ -581,13 +576,6 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
               enum_to_string(target_status),
               resp.err.to_string());
     } else {
-        int64_t now = dsn_now_ns();
-        mu->tracer->add_point(fmt::format("replica::on_prepare_reply_error::{}[{}]",
-                                          enum_to_string(target_status),
-                                          request->to_address.to_string()),
-                              now);
-        mu->tracer->end_time = now;
-        mu->report_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold);
         derror("%s: mutation %s on_prepare_reply from %s, appro_data_bytes = %d, "
                "target_status = %s, err = %s",
                name(),
@@ -709,8 +697,6 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
 
 void replica::ack_prepare_message(error_code err, mutation_ptr &mu)
 {
-    mu->tracer->add_point("replica::ack_prepare_message", dsn_now_ns());
-
     prepare_ack resp;
     resp.pid = get_gpid();
     resp.err = err;
