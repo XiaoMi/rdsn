@@ -46,6 +46,8 @@
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/tool-api/rpc_address.h>
 #include <dsn/tool-api/global_config.h>
+#include <dsn/dist/fmt_logging.h>
+#include <dsn/tool/latency_tracer.h>
 
 namespace dsn {
 class rpc_session;
@@ -147,6 +149,27 @@ public:
 
     // by message queuing
     dlink dl;
+
+    std::unique_ptr<dsn::tool::latency_tracer> tracer;
+
+    void report_trace_if_exceed_threshold(uint64_t time_threshold)
+    {
+        if (tracer == nullptr || time_threshold <= 0) {
+            return;
+        }
+
+        uint64_t total_time_used = tracer->end_time - tracer->start_time;
+        if (total_time_used < time_threshold) {
+            return;
+        }
+
+        ddebug_f("TRACE:read request latency tracer log: {}\nTRACER:start_time={}, end_time={}, "
+                 "total_time_used={}",
+                 tracer->to_string(),
+                 tracer->start_time,
+                 tracer->end_time,
+                 total_time_used);
+    }
 
 public:
     // message_ex(blob bb, bool parse_hdr = true); // read

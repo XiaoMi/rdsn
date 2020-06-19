@@ -372,6 +372,10 @@ private:
 
     // replica count exectuting bulk load downloading concurrently
     std::atomic_int _bulk_load_downloading_count;
+    // if the threshold > 0 and the request latency excced it, the latency trace record will be
+    // logged
+    int64_t _abnormal_read_trace_latency_threshold;
+    int64_t _abnormal_write_trace_latency_threshold;
 
     // performance counters
     perf_counter_wrapper _counter_replicas_count;

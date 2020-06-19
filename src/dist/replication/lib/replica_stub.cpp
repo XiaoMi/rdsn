@@ -55,11 +55,22 @@
 #endif
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/remote_command.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace replication {
 
 bool replica_stub::s_not_exit_on_log_failure = false;
+
+DSN_DEFINE_int64("replication",
+                 abnormal_read_trace_latency_threshold,
+                 100000000,
+                 "latency trace will be logged when exceed the read latency threshold");
+
+DSN_DEFINE_int64("replication",
+                 abnormal_write_trace_latency_threshold,
+                 100000000,
+                 "latency trace will be logged when exceed the write latency threshold");
 
 replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
                            bool is_long_subscriber /* = true*/)
@@ -374,6 +385,8 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     _mem_release_max_reserved_mem_percentage = _options.mem_release_max_reserved_mem_percentage;
     _max_concurrent_bulk_load_downloading_count =
         _options.max_concurrent_bulk_load_downloading_count;
+    _abnormal_read_trace_latency_threshold = FLAGS_abnormal_read_trace_latency_threshold;
+    _abnormal_write_trace_latency_threshold = FLAGS_abnormal_write_trace_latency_threshold;
 
     // clear dirs if need
     if (clear) {

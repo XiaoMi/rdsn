@@ -145,6 +145,51 @@ public:
     void set_is_sync_to_child(bool sync_to_child) { _is_sync_to_child = sync_to_child; }
     bool is_sync_to_child() { return _is_sync_to_child; }
 
+    std::unique_ptr<dsn::tool::latency_tracer> tracer;
+
+    void report_trace_if_exceed_threshold(uint64_t time_threshold, bool is_primary = true)
+    {
+        if (time_threshold <= 0 || tracer == nullptr) {
+            return;
+        }
+
+        // one mutation may have multi request, we need log all request trace which use same
+        // mutation trace
+        std::string mutation_trace = tracer->to_string();
+        for (const auto &req : client_requests) {
+            int64_t start_time = 0;
+            int64_t total_time_used = 0;
+            int64_t request_id = 0;
+            std::string request_trace;
+            if (req != nullptr) {
+                start_time = req->tracer->start_time;
+                total_time_used = tracer->end_time - start_time;
+                if (total_time_used < time_threshold) {
+                    continue;
+                }
+                request_id = req->tracer->id;
+                request_trace = req->tracer->to_string();
+            } else {
+                start_time = tracer->start_time;
+                total_time_used = tracer->end_time - start_time;
+                if (total_time_used < time_threshold) {
+                    continue;
+                }
+            }
+
+            const std::string trace = fmt::format("{}{}", request_trace, mutation_trace);
+            ddebug_f("TRACE:write request latency tracer log:{}\nTRACE:mutation_id={}, "
+                     "request_id={}, start_time={}, end_time={}, "
+                     "total_time_used={}",
+                     trace,
+                     tid(),
+                     request_id,
+                     start_time,
+                     tracer->end_time,
+                     total_time_used);
+        }
+    }
+
 private:
     union
     {

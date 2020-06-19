@@ -34,6 +34,7 @@
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool_api.h>
 #include <dsn/tool/node_scoper.h>
+#include <dsn/tool/latency_tracer.h>
 
 using namespace dsn::utils;
 
@@ -159,6 +160,7 @@ void service_node::get_queue_info(
 
 rpc_request_task *service_node::generate_intercepted_request_task(message_ex *req)
 {
+    req->tracer = make_unique<dsn::tool::latency_tracer>(req->header->id, "client_request");
     bool is_write = task_spec::get(req->local_rpc_code)->rpc_request_is_write_operation;
     rpc_request_task *t = new rpc_request_task(req,
                                                std::bind(&service_app::on_intercepted_request,
