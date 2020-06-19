@@ -43,7 +43,6 @@ namespace tool {
  * void end(request req){
  *      req.tracer.add_point("end", now);
  * };
- * void
  *
  *  point1     point2      point3   point3
  *    |          |           |        |
