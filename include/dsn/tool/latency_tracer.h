@@ -78,16 +78,12 @@ public:
           request_name("default"){};
 
     // this method is called for any other method which will be record the timestamp and time_used
-    //
-    // name: generally, it is the method name that call this method. but you can define the more
-    // significant name to show the events of the moment
-    //
-    // current_time: current timestamp
-    //
-    // key_point: if true, it will calc the total time_used between start time and current time.
+    // -name: generally, it is the method name that call this method. but you can define the more
+    // significant name to show the events of one moment
+    // -current_time: current timestamp
+    // -key_point: if true, it will calc the total time_used between start time and current time.
     // default is false, means only focus the time_used between current point and previous point
-    //
-    // end_point: if your trace is finised, you should record it
+    // -end_point: if your trace is finised, you should record it by setting true
     void add_point(const std::string &name,
                    uint64_t current_time,
                    bool key_point = false,
