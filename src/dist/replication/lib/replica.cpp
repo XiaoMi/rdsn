@@ -335,7 +335,7 @@ void replica::execute_mutation(mutation_ptr &mu)
             }
         }
     }
-    mu->report_trace_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold)
+    mu->report_trace_if_exceed_threshold(_stub->_abnormal_write_trace_latency_threshold);
 }
 
 mutation_ptr replica::new_mutation(decree decree)
