@@ -147,6 +147,8 @@ disk_engine::disk_engine()
         FLAGS_aio_factory_name, dsn::PROVIDER_TYPE_MAIN, this, nullptr);
     // use native_aio_provider in default
     if (nullptr == provider) {
+        ddebug(
+            "the config value of aio_factory_name is invalid, use native_aio_provider in default");
         provider = utils::factory_store<aio_provider>::create(
             native_aio_provider, dsn::PROVIDER_TYPE_MAIN, this, nullptr);
     }
