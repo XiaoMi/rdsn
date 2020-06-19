@@ -18,22 +18,36 @@ public:
     uint64_t id;
     std::string name;
     uint64_t start_time;
-    uint64_t last_time;
+    uint64_t previous_time;
     uint64_t end_time;
+    // it may be "get", "set" etc. you can set reasonable value to distinguish the requet type, it
+    // is initted "default" string
     std::string request_type;
     // record the the time used between current point and start point
-    std::unordered_map<std::string, uint64_t> key_points;
-    // record the the time used between current point and last point
     std::unordered_map<std::string, uint64_t> points;
+    // record the the time used between current point and previous point
+    std::unordered_map<std::string, uint64_t> key_points;
 
 public:
     latency_tracer(int id, const std::string &name)
         : id(id),
           name(name),
           start_time(dsn_now_ns()),
-          last_time(start_time),
+          previous_time(start_time),
           request_type("default"){};
 
+    // this method is called for any other method which will be record the ts and time used
+    //
+    // name: generally, it is the method name that call this method. but you can define the more
+    // significant name to show the events of the moment
+    //
+    // current_time: current timestamp
+    //
+    // key_point: sometime, you may need know the total time used of some key point, if pass true,
+    // the point information will be record in map "key_points". default is false, means only focus
+    // the time used between current point and previous point
+    //
+    // end_point: if your trace is finised, you should record it
     void add_point(const std::string &name,
                    uint64_t current_time,
                    bool key_point = false,
@@ -45,10 +59,12 @@ public:
         if (key_point) {
             key_points.emplace(name, current_time - start_time);
         }
-        points.emplace(fmt::format("ts={}, {}", current_time, name), current_time - last_time);
-        last_time = current_time;
+        points.emplace(fmt::format("ts={}, {}", current_time, name), current_time - previous_time);
+        previous_time = current_time;
     }
 
+    // this method will format the points record, it will show the time used from one point to
+    // next point and total time used of some key point
     std::string to_string()
     {
         std::string trace;
