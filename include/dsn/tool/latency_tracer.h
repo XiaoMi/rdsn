@@ -13,20 +13,23 @@ namespace dsn {
 namespace tool {
 
 /**
- * latency_tracer is simple tool for tracking request time consuming in different stage, which can
+ * latency_tracer is simple tool for tracking request time consuming in different stages, which can
  * help user find the latency bottleneck
  *
  * user need use it to "add_point" in one stage, which will record the name of point and the
  * time_used. when the request is finshed, you can dump the record to formated string
  *
- * especially, latency_tracer define "point" and "key_point":
- * - point: every stage means one point, it will be storge "points", the key is "point name" and
- * the value is time_used between current point and previous point
+ * especially, latency_tracer defines "point" and "key_point":
+ * - point: every stage means one point, it will be storged in map "points", the key is "point name"
+ *and
+ * the value is time_used between previous point and current point.
  * - key_point: if one point is important which you want to record the total time_used between the
- * current and start time, you can flag it "key point" and it will be storge "key_points"
+ * start time and current time, you can flag it "key point" and it will be storged in map
+ *"key_points"
  *
- * for example: one request experiences four stages, latency_tracer need be held by request and pass
- * all stage:
+ * for example: one request experiences four stages, latency_tracer need be held by request and
+ *passes
+ * all stages:
  * class request {
  *      latency_tracer tracer
  * }
@@ -51,8 +54,8 @@ namespace tool {
  *                           |
  *                           |
  *                        key_point
- * the "points" will record the time_used of start->stageA, stageA->stageB, stageB->end and
- * start->stageB, user can call to_string() to dump it.
+ * the "points" will record the time_used of start->stageA, stageA->stageB, stageB->end and the
+ * "key_points" will record the time_used of start->stageB, user can call "to_string()" to dump it.
 **/
 struct latency_tracer
 {
