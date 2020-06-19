@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <dsn/dist/fmt_logging.h>
 #include "disk_engine.h"
 #include "sim_aio_provider.h"
 #include "core/core/service_engine.h"
@@ -147,8 +148,8 @@ disk_engine::disk_engine()
         FLAGS_aio_factory_name, dsn::PROVIDER_TYPE_MAIN, this, nullptr);
     // use native_aio_provider in default
     if (nullptr == provider) {
-        ddebug(
-            "the config value of aio_factory_name is invalid, use native_aio_provider in default");
+        derror_f("The config value of aio_factory_name is invalid, use {} in default",
+                 native_aio_provider);
         provider = utils::factory_store<aio_provider>::create(
             native_aio_provider, dsn::PROVIDER_TYPE_MAIN, this, nullptr);
     }
