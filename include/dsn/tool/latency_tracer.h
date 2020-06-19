@@ -17,9 +17,7 @@ namespace tool {
  * help user find the latency bottleneck
  *
  * user need use it to "add_point" in one stage, which will record the name of point and the
- * time_used. when the request is finshed, you can dump the record to formated string which will
- *show
- * time_used information
+ * time_used. when the request is finshed, you can dump the record to formated string
  *
  * especially, latency_tracer define "point" and "key_point":
  * - point: every stage means one point, it will be storge "points", the key is "point name" and
@@ -28,7 +26,7 @@ namespace tool {
  * current and start time, you can flag it "key point" and it will be storge "key_points"
  *
  * for example: one request experiences four stages, latency_tracer need be held by request and pass
- *all stage:
+ * all stage:
  * class request {
  *      latency_tracer tracer
  * }
