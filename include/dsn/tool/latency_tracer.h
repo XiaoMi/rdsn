@@ -3,9 +3,6 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #pragma once
-#include <iterator>
-#include <string>
-#include <map>
 #include <dsn/service_api_c.h>
 #include <dsn/dist/fmt_logging.h>
 
@@ -55,7 +52,7 @@ namespace tool {
  *                           |
  *                        key_point
  * the "points" will record the time_used of start->stageA, stageA->stageB, stageB->end and the
- * "key_points" will record the time_used of start->stageB, user can call "to_string()" to dump it.
+ * "key_points" will record the time_used of start->stageB, user can call "to_string()"" to dump it.
 **/
 struct latency_tracer
 {
