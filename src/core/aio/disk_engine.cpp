@@ -35,7 +35,8 @@ using namespace aio;
 
 DEFINE_TASK_CODE_AIO(LPC_AIO_BATCH_WRITE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
 
-DSN_REGISTER_COMPONENT_PROVIDER(native_linux_aio_provider, "dsn::tools::native_aio_provider");
+const char *native_aio_provider = "dsn::tools::native_aio_provider";
+DSN_REGISTER_COMPONENT_PROVIDER(native_linux_aio_provider, native_aio_provider);
 DSN_REGISTER_COMPONENT_PROVIDER(sim_aio_provider, "dsn::tools::sim_aio_provider");
 
 //----------------- disk_file ------------------------
@@ -144,7 +145,11 @@ disk_engine::disk_engine()
 
     aio_provider *provider = utils::factory_store<aio_provider>::create(
         FLAGS_aio_factory_name, dsn::PROVIDER_TYPE_MAIN, this, nullptr);
-    dassert(provider != nullptr, "the config value of aio_factory_name is invalid");
+    // use native_aio_provider in default
+    if (nullptr == provider) {
+        provider = utils::factory_store<aio_provider>::create(
+            native_aio_provider, dsn::PROVIDER_TYPE_MAIN, this, nullptr);
+    }
     _provider.reset(provider);
 }
 
