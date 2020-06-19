@@ -144,6 +144,7 @@ disk_engine::disk_engine()
 
     aio_provider *provider = utils::factory_store<aio_provider>::create(
         FLAGS_aio_factory_name, dsn::PROVIDER_TYPE_MAIN, this, nullptr);
+    dassert(provider != nullptr, "the config value of aio_factory_name is invalid");
     _provider.reset(provider);
 }
 
