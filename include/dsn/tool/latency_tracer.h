@@ -13,7 +13,7 @@ namespace dsn {
 namespace tool {
 
 /**
- * latency_tracer is simply tool for tracking request time consuming in different stage, which can
+ * latency_tracer is simple tool for tracking request time consuming in different stage, which can
  * help user find the latency bottleneck
  *
  * user need use it to "add_point" in one stage, which will record the name of point and the
