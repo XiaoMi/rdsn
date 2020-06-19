@@ -21,8 +21,9 @@ public:
     uint64_t last_time;
     uint64_t end_time;
     std::string request_type;
-    uint64_t prepare_ack_time_on_secondary;
-    std::set<uint64_t> prepare_time_used_on_primary;
+    // record the the time used between current point and start point
+    std::unordered_map<std::string, uint64_t> key_points;
+    // record the the time used between current point and last point
     std::unordered_map<std::string, uint64_t> points;
 
 public:
@@ -33,32 +34,30 @@ public:
           last_time(start_time),
           request_type("default"){};
 
-    void
-    add_point(const std::string &name, uint64_t current_time, bool is_receive_prepare_ack = false)
+    void add_point(const std::string &name,
+                   uint64_t current_time,
+                   bool key_point = false,
+                   bool end_point = false)
     {
-        if (is_receive_prepare_ack) {
-            prepare_time_used_on_primary.emplace(current_time - start_time);
+        if (end_point) {
+            end_time = current_time;
+        }
+        if (key_point) {
+            key_points.emplace(name, current_time - start_time);
         }
         points.emplace(fmt::format("ts={}, {}", current_time, name), current_time - last_time);
         last_time = current_time;
     }
 
-    std::string get_prepare_time_used()
-    {
-        std::stringstream oss;
-        std::copy(prepare_time_used_on_primary.begin(),
-                  prepare_time_used_on_primary.end(),
-                  std::ostream_iterator<uint64_t>(oss, ","));
-        std::string time_used = oss.str();
-        time_used[time_used.size() - 1] = '\0';
-        return time_used;
-    }
-
     std::string to_string()
     {
         std::string trace;
-        for (const auto &iter : points) {
-            trace = fmt::format("{}\n\tTRACER:{}={}", trace, iter.first, iter.second);
+        for (const auto &point_iter : points) {
+            trace = fmt::format("{}\n\tTRACER:{}={}", trace, point_iter.first, point_iter.second);
+        }
+        trace = fmt::format("{}\n\tTRACER:key point time used:", trace);
+        for (const auto &key_point_iter : key_points) {
+            trace = fmt::format("{}[{}={}]", trace, key_point_iter.first, key_point_iter.second);
         }
         return trace;
     }
