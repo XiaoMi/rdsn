@@ -12,6 +12,51 @@
 namespace dsn {
 namespace tool {
 
+/**
+ * latency_tracer is simply tool for tracking request time consuming in different stage, which can
+ * help user find the latency bottleneck
+ *
+ * user need use it to "add_point" in one stage, which will record the name of point and the
+ * time_used. when the request is finshed, you can dump the record to formated string which will
+ *show
+ * time_used information
+ *
+ * especially, latency_tracer define "point" and "key_point":
+ * - point: every stage means one point, it will be storge "points", the key is "point name" and
+ * the value is time_used between current point and previous point
+ * - key_point: if one point is important which you want to record the total time_used between the
+ * current and start time, you can flag it "key point" and it will be storge "key_points"
+ *
+ * for example: one request experiences four stages, latency_tracer need be held by request and pass
+ *all stage:
+ * class request {
+ *      latency_tracer tracer
+ * }
+ * void start(request req){
+ *      req.tracer.add_point("start", now);
+ * };
+ * void stageA(request req){
+ *      req.tracer.add_point("stageA", now);
+ * };
+ * void stageB(request req){
+ *      // stageB is key_point
+ *      req.tracer.add_point("stageB", now, true);
+ * };
+ * void end(request req){
+ *      req.tracer.add_point("end", now);
+ * };
+ * void
+ *
+ *  point1     point2      point3   point3
+ *    |          |           |        |
+ *    |          |           |        |
+ *  start----->stageA----->stageB---->end
+ *                           |
+ *                           |
+ *                        key_point
+ * the "points" will record the time_used of start->stageA, stageA->stageB, stageB->end and
+ * start->stageB, user can call to_string() to dump it.
+**/
 struct latency_tracer
 {
 public:
@@ -20,12 +65,11 @@ public:
     uint64_t start_time;
     uint64_t previous_time;
     uint64_t end_time;
-    // it may be "get", "set" etc. you can set reasonable value to distinguish the requet type, it
-    // is initted "default" string
-    std::string request_type;
-    // record the the time used between current point and start point
+    // user can re-define it for showing the request type
+    std::string request_name;
+    // record the the time_used between current point and previous point
     std::unordered_map<std::string, uint64_t> points;
-    // record the the time used between current point and previous point
+    // record the the time_used between current point and start point
     std::unordered_map<std::string, uint64_t> key_points;
 
 public:
@@ -34,18 +78,17 @@ public:
           name(name),
           start_time(dsn_now_ns()),
           previous_time(start_time),
-          request_type("default"){};
+          request_name("default"){};
 
-    // this method is called for any other method which will be record the ts and time used
+    // this method is called for any other method which will be record the timestamp and time_used
     //
     // name: generally, it is the method name that call this method. but you can define the more
     // significant name to show the events of the moment
     //
     // current_time: current timestamp
     //
-    // key_point: sometime, you may need know the total time used of some key point, if pass true,
-    // the point information will be record in map "key_points". default is false, means only focus
-    // the time used between current point and previous point
+    // key_point: if true, it will calc the total time_used between start time and current time.
+    // default is false, means only focus the time_used between current point and previous point
     //
     // end_point: if your trace is finised, you should record it
     void add_point(const std::string &name,
@@ -63,15 +106,15 @@ public:
         previous_time = current_time;
     }
 
-    // this method will format the points record, it will show the time used from one point to
-    // next point and total time used of some key point
+    // this method will format the points record, it will show the time_used from one point to
+    // next point and total time_used of some key point
     std::string to_string()
     {
         std::string trace;
         for (const auto &point_iter : points) {
             trace = fmt::format("{}\n\tTRACER:{}={}", trace, point_iter.first, point_iter.second);
         }
-        trace = fmt::format("{}\n\tTRACER:key point time used:", trace);
+        trace = fmt::format("{}\n\tTRACER:key point time_used:", trace);
         for (const auto &key_point_iter : key_points) {
             trace = fmt::format("{}[{}={}]", trace, key_point_iter.first, key_point_iter.second);
         }
