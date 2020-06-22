@@ -612,6 +612,7 @@ void bulk_load_service::handle_bulk_load_finish(const bulk_load_response &respon
         }
     }
 
+    // The replicas have cleaned up their bulk load states and removed temporary sst files
     bool group_cleaned_up = response.is_group_bulk_load_context_cleaned_up;
     ddebug_f("receive bulk load response from node({}) app({}) partition({}), primary status = {}, "
              "is_group_bulk_load_context_cleaned_up = {}",
@@ -998,6 +999,16 @@ void bulk_load_service::remove_bulk_load_dir_on_remote_storage(std::shared_ptr<a
                 update_app_not_bulk_loading_on_remote_storage(std::move(app));
             }
         });
+}
+
+template <typename T>
+inline void erase_map_elem_by_id(int32_t app_id, std::unordered_map<gpid, T> &mymap)
+{
+    for (auto iter = mymap.begin(); iter != mymap.end();) {
+        if (iter->first.get_app_id() == app_id) {
+            mymap.erase(iter++);
+        }
+    }
 }
 
 // ThreadPool: THREAD_POOL_META_STATE

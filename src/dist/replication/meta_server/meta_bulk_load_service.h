@@ -43,16 +43,6 @@ struct bulk_load_info
     DEFINE_JSON_SERIALIZATION(app_id, app_name, partition_count)
 };
 
-template <typename T>
-inline void erase_map_elem_by_id(int32_t app_id, std::unordered_map<gpid, T> &mymap)
-{
-    for (auto iter = mymap.begin(); iter != mymap.end();) {
-        if (iter->first.get_app_id() == app_id) {
-            mymap.erase(iter++);
-        }
-    }
-}
-
 ///
 /// Bulk load process:
 /// when client sent `start_bulk_load_rpc` to meta server to start bulk load,
@@ -200,7 +190,7 @@ private:
                                                    bulk_load_status::type new_status,
                                                    bool should_send_request);
 
-    // callled when app is not available or dropped during bulk load, remove bulk load directory on
+    // called when app is not available or dropped during bulk load, remove bulk load directory on
     // remote storage
     void remove_bulk_load_dir_on_remote_storage(int32_t app_id, const std::string &app_name);
 
