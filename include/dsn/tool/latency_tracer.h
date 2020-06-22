@@ -10,23 +10,14 @@ namespace dsn {
 namespace tool {
 
 /**
- * latency_tracer is simple tool for tracking request time consuming in different stages, which can
- * help user find the latency bottleneck
- *
- * user need use it to "add_point" in one stage, which will record the name of point and the
- * time_used. when the request is finshed, you can dump the record to formated string
- *
- * especially, latency_tracer defines "point" and "key_point":
- * - point: every stage means one point, it will be storged in map "points", the key is "point name"
- *and
- * the value is time_used between previous point and current point.
- * - key_point: if one point is important which you want to record the total time_used between the
- * start time and current time, you can flag it "key point" and it will be storged in map
- *"key_points"
+ * latency_tracer is a simple tool for tracking request time consuming in different stages, which
+ * can help user find the latency bottleneck. user needs to use it to "add_point" in one stage,
+ *which
+ * will record the name of point and the time_used. when the request is finshed, you can dump the
+ * formated result.
  *
  * for example: one request experiences four stages, latency_tracer need be held by request and
- *passes
- * all stages:
+ * passes all stages:
  * class request {
  *      latency_tracer tracer
  * }
@@ -37,81 +28,96 @@ namespace tool {
  *      req.tracer.add_point("stageA", now);
  * };
  * void stageB(request req){
- *      // stageB is key_point
  *      req.tracer.add_point("stageB", now, true);
  * };
  * void end(request req){
  *      req.tracer.add_point("end", now);
  * };
  *
- *  point1     point2      point3   point3
- *    |          |           |        |
- *    |          |           |        |
- *  start----->stageA----->stageB---->end
- *                           |
- *                           |
- *                        key_point
- * the "points" will record the time_used of start->stageA, stageA->stageB, stageB->end and the
- * "key_points" will record the time_used of start->stageB, user can call "to_string()"" to dump it.
+ *  point1     point2     point3    point4
+ *    |         |           |         |
+ *    |         |           |         |
+ *  start---->stageA----->stageB---->end
+ *
+ * the "points" will record the all points' time_used_from_previous and time_used_from_start
 **/
+
+struct trace_point
+{
+    std::string name;
+    uint64_t ts;
+
+    trace_point(){};
+
+    trace_point(const std::string &name, uint64_t ts) : name(name), ts(ts){};
+};
 struct latency_tracer
 {
+
 public:
     uint64_t id;
-    std::string name;
+    std::string type;
+    std::string start_name;
     uint64_t start_time;
-    uint64_t previous_time;
-    uint64_t end_time;
-    // user can re-define it for showing the request type
-    std::string request_name;
-    // record the the time_used between current point and previous point
-    std::unordered_map<std::string, uint64_t> points;
-    // record the the time_used between current point and start point
-    std::unordered_map<std::string, uint64_t> key_points;
+    std::vector<trace_point> trace_points;
+    // sub_tracer can record such case:
+    // a_request-->start-->stageA -
+    //                            |-->stageB-->end
+    // b_request-->start-->stageA -
+    // a_request and b_request will share same sub_tracer from stageB
+    std::shared_ptr<latency_tracer> sub_tracer;
 
 public:
-    latency_tracer(int id, const std::string &name)
-        : id(id),
-          name(name),
-          start_time(dsn_now_ns()),
-          previous_time(start_time),
-          request_name("default"){};
-
-    // this method is called for any other method which will be record the timestamp and time_used
-    // -name: generally, it is the method name that call this method. but you can define the more
-    // significant name to show the events of one moment
-    // -current_time: current timestamp
-    // -key_point: if true, it will calc the total time_used between start time and current time.
-    // default is false, means only focus the time_used between current point and previous point
-    // -end_point: if your trace is finised, you should record it by setting true
-    void add_point(const std::string &name,
-                   uint64_t current_time,
-                   bool key_point = false,
-                   bool end_point = false)
+    latency_tracer(int id, std::string &start_name, const std::string &type)
+        : id(id), type(type), start_name(start_name), start_time(dsn_now_ns())
     {
-        if (end_point) {
-            end_time = current_time;
-        }
-        if (key_point) {
-            key_points.emplace(name, current_time - start_time);
-        }
-        points.emplace(fmt::format("ts={}, {}", current_time, name), current_time - previous_time);
-        previous_time = current_time;
+        trace_points.emplace_back(start_name, start_time);
+    };
+
+    // this method is called for any other method which will be recorded methed name and ts
+    //
+    // -name: generally, it is the name of that call this method. but you can define the more
+    // significant name to show the events of one moment
+    // -ts: current timestamp
+    void add_point(const std::string &name, uint64_t ts)
+    {
+        trace_point point(name, ts);
+        trace_points.emplace_back(point);
     }
+
+    void add_sub_tracer(std::shared_ptr<latency_tracer> tracer) { sub_tracer = tracer; }
 
     // this method will format the points record, it will show the time_used from one point to
     // next point and total time_used of some key point
-    std::string to_string()
+    std::string to_string() const
     {
         std::string trace;
-        for (const auto &point_iter : points) {
-            trace = fmt::format("{}\n\tTRACER:{}={}", trace, point_iter.first, point_iter.second);
+        trace_point previous_point = trace_points.front();
+        for (const auto &point : trace_points) {
+            trace = fmt::format("{}\n\tTRACER[{}]:from_previous={}, from_start={}, ts={}, name={}",
+                                trace,
+                                id,
+                                point.ts - previous_point.ts,
+                                point.ts - start_time,
+                                point.ts,
+                                point.name);
+            previous_point = point;
         }
-        trace = fmt::format("{}\n\tTRACER:key point time_used:", trace);
-        for (const auto &key_point_iter : key_points) {
-            trace = fmt::format("{}[{}={}]", trace, key_point_iter.first, key_point_iter.second);
+
+        if (sub_tracer == nullptr) {
+            return trace;
         }
-        return trace;
+
+        std::string trace_to_sub_trace =
+            fmt::format("\n\tTRACER[{}]:from_previous={}, from_start={}, ts={}, name={}",
+                        sub_tracer->id,
+                        sub_tracer->start_time - previous_point.ts,
+                        sub_tracer->start_time - start_time,
+                        sub_tracer->start_time,
+                        sub_tracer->start_name);
+
+        std::string sub_trace = sub_tracer->to_string();
+        return fmt::format("{}{}{}", trace, trace_to_sub_trace, sub_trace);
     }
 };
 } // namespace tool
