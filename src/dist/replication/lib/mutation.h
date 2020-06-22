@@ -161,6 +161,7 @@ public:
             int64_t total_time_used = 0;
             int64_t request_id = 0;
             std::string request_trace;
+            std::string request_to_mutation_tarce;
             if (req != nullptr) {
                 start_time = req->tracer->start_time;
                 total_time_used = tracer->end_time - start_time;
@@ -169,6 +170,9 @@ public:
                 }
                 request_id = req->tracer->id;
                 request_trace = req->tracer->to_string();
+                request_to_mutation_tarce = fmt::format("\n\tTRACE:ts={}, mutation::mutation={}",
+                                                        tracer->start_time,
+                                                        tracer->start_time - req->tracer->end_time);
             } else {
                 start_time = tracer->start_time;
                 total_time_used = tracer->end_time - start_time;
@@ -176,8 +180,8 @@ public:
                     continue;
                 }
             }
-
-            const std::string trace = fmt::format("{}{}", request_trace, mutation_trace);
+            const std::string trace =
+                fmt::format("{}{}{}", request_trace, request_to_mutation_tarce, mutation_trace);
             ddebug_f("TRACE:write request latency tracer log:{}\nTRACE:mutation_id={}, "
                      "request_id={}, start_time={}, end_time={}, "
                      "total_time_used={}",
