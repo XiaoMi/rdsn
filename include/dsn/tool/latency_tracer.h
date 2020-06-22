@@ -12,9 +12,8 @@ namespace tool {
 /**
  * latency_tracer is a simple tool for tracking request time consuming in different stages, which
  * can help user find the latency bottleneck. user needs to use it to "add_point" in one stage,
- *which
- * will record the name of point and the time_used. when the request is finshed, you can dump the
- * formated result.
+ * which will record the name of point and the time_used. when the request is finshed, you can dump
+ * the formated result.
  *
  * for example: one request experiences four stages, latency_tracer need be held by request and
  * passes all stages:
@@ -69,10 +68,7 @@ public:
 
 public:
     latency_tracer(int id, std::string &start_name, const std::string &type)
-        : id(id), type(type), start_name(start_name), start_time(dsn_now_ns())
-    {
-        add_point(start_name, start_time);
-    };
+        : id(id), type(type), start_name(start_name), start_time(dsn_now_ns()){};
 
     // this method is called for any other method which will be recorded methed name and ts
     //
@@ -90,16 +86,16 @@ public:
     std::string to_string() const
     {
         std::string trace;
-        trace_point previous_point = trace_points.front();
+        uint64_t previous_time = start_time;
         for (const auto &point : trace_points) {
             trace = fmt::format("{}\n\tTRACER[{}]:from_previous={}, from_start={}, ts={}, name={}",
                                 trace,
                                 id,
-                                point.ts - previous_point.ts,
+                                point.ts - previous_time,
                                 point.ts - start_time,
                                 point.ts,
                                 point.name);
-            previous_point = point;
+            previous_time = point.ts;
         }
 
         if (sub_tracer == nullptr) {
@@ -109,7 +105,7 @@ public:
         std::string trace_to_sub_trace =
             fmt::format("\n\tTRACER[{}]:from_previous={}, from_start={}, ts={}, name={}",
                         sub_tracer->id,
-                        sub_tracer->start_time - previous_point.ts,
+                        sub_tracer->start_time - previous_time,
                         sub_tracer->start_time - start_time,
                         sub_tracer->start_time,
                         sub_tracer->start_name);
