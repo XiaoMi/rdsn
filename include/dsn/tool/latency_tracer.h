@@ -71,7 +71,7 @@ public:
     latency_tracer(int id, std::string &start_name, const std::string &type)
         : id(id), type(type), start_name(start_name), start_time(dsn_now_ns())
     {
-        trace_points.emplace_back(start_name, start_time);
+        add_point(start_name, start_time);
     };
 
     // this method is called for any other method which will be recorded methed name and ts
@@ -85,10 +85,8 @@ public:
         trace_points.emplace_back(point);
     }
 
-    void add_sub_tracer(std::shared_ptr<latency_tracer> tracer) { sub_tracer = tracer; }
+    void set_sub_tracer(std::shared_ptr<latency_tracer> tracer) { sub_tracer = tracer; }
 
-    // this method will format the points record, it will show the time_used from one point to
-    // next point and total time_used of some key point
     std::string to_string() const
     {
         std::string trace;
