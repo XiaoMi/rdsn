@@ -604,7 +604,7 @@ void bulk_load_service::handle_bulk_load_finish(const bulk_load_response &respon
         if (_partitions_cleaned_up[pid]) {
             dwarn_f(
                 "receive bulk load response from node({}) app({}) partition({}), current partition "
-                "has already be cleaned up",
+                "has already been cleaned up",
                 primary_addr.to_string(),
                 app_name,
                 pid);
