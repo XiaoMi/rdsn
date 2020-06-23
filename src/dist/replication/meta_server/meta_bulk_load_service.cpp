@@ -575,30 +575,24 @@ void bulk_load_service::handle_bulk_load_finish(const bulk_load_response &respon
     const std::string &app_name = response.app_name;
     const gpid &pid = response.pid;
 
-    if (!response.__isset.is_group_bulk_load_context_cleaned_up) {
-        dassert_f(
-            false,
-            "receive bulk load response from node({}) app({}), partition({}), primary_status({}), "
-            "but is_group_bulk_load_context_cleaned_up is not set",
-            primary_addr.to_string(),
-            app_name,
-            pid,
-            dsn::enum_to_string(response.primary_bulk_load_status));
-        return;
-    }
+    dassert_f(
+        response.__isset.is_group_bulk_load_context_cleaned_up,
+        "receive bulk load response from node({}) app({}), partition({}), primary_status({}), "
+        "but is_group_bulk_load_context_cleaned_up is not set",
+        primary_addr.to_string(),
+        app_name,
+        pid,
+        dsn::enum_to_string(response.primary_bulk_load_status));
 
     for (const auto &kv : response.group_bulk_load_state) {
-        if (!kv.second.__isset.is_cleaned_up) {
-            dassert_f(false,
-                      "receive bulk load response from node({}) app({}), partition({}), "
-                      "primary_status({}), but node({}) is_cleaned_up is not set",
-                      primary_addr.to_string(),
-                      app_name,
-                      pid,
-                      dsn::enum_to_string(response.primary_bulk_load_status),
-                      kv.first.to_string());
-            return;
-        }
+        dassert_f(kv.second.__isset.is_cleaned_up,
+                  "receive bulk load response from node({}) app({}), partition({}), "
+                  "primary_status({}), but node({}) is_cleaned_up is not set",
+                  primary_addr.to_string(),
+                  app_name,
+                  pid,
+                  dsn::enum_to_string(response.primary_bulk_load_status),
+                  kv.first.to_string());
     }
 
     {
