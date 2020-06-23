@@ -87,6 +87,7 @@ public:
     {
         std::string trace;
         uint64_t previous_time = start_time;
+        // todo(jiashuo) format more appropriately
         for (const auto &point : trace_points) {
             trace = fmt::format("{}\n\tTRACER[{}]:from_previous={}, from_start={}, ts={}, name={}",
                                 trace,
