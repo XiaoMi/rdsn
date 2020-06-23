@@ -576,7 +576,8 @@ void bulk_load_service::handle_bulk_load_finish(const bulk_load_response &respon
     const gpid &pid = response.pid;
 
     if (!response.__isset.is_group_bulk_load_context_cleaned_up) {
-        dwarn_f(
+        dassert_f(
+            false,
             "receive bulk load response from node({}) app({}), partition({}), primary_status({}), "
             "but is_group_bulk_load_context_cleaned_up is not set",
             primary_addr.to_string(),
@@ -588,13 +589,14 @@ void bulk_load_service::handle_bulk_load_finish(const bulk_load_response &respon
 
     for (const auto &kv : response.group_bulk_load_state) {
         if (!kv.second.__isset.is_cleaned_up) {
-            dwarn_f("receive bulk load response from node({}) app({}), partition({}), "
-                    "primary_status({}), but node({}) is_cleaned_up is not set",
-                    primary_addr.to_string(),
-                    app_name,
-                    pid,
-                    dsn::enum_to_string(response.primary_bulk_load_status),
-                    kv.first.to_string());
+            dassert_f(false,
+                      "receive bulk load response from node({}) app({}), partition({}), "
+                      "primary_status({}), but node({}) is_cleaned_up is not set",
+                      primary_addr.to_string(),
+                      app_name,
+                      pid,
+                      dsn::enum_to_string(response.primary_bulk_load_status),
+                      kv.first.to_string());
             return;
         }
     }
