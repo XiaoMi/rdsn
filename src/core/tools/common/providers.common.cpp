@@ -64,6 +64,7 @@ void register_common_providers()
     register_message_header_parser<dsn_message_parser>(NET_HDR_DSN, {"RDSN"});
     register_message_header_parser<thrift_message_parser>(NET_HDR_THRIFT, {"THFT"});
     register_message_header_parser<raw_message_parser>(NET_HDR_RAW, {"_RAW"});
+
     register_component_provider<hpc_concurrent_task_queue>("dsn::tools::hpc_concurrent_task_queue");
 }
 } // namespace tools
