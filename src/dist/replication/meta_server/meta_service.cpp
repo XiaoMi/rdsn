@@ -435,6 +435,8 @@ void meta_service::register_rpc_handlers()
                                          "register_child_on_meta",
                                          &meta_service::on_register_child_on_meta);
     register_rpc_handler_with_rpc_holder(
+        RPC_CM_START_BULK_LOAD, "start_bulk_load", &meta_service::on_start_bulk_load);
+    register_rpc_handler_with_rpc_holder(
         RPC_CM_CONTROL_BULK_LOAD, "control_bulk_load", &meta_service::on_control_bulk_load);
 }
 
