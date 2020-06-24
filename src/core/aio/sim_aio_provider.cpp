@@ -31,10 +31,7 @@ namespace aio {
 
 DEFINE_TASK_CODE(LPC_NATIVE_AIO_REDIRECT, TASK_PRIORITY_HIGH, THREAD_POOL_DEFAULT)
 
-sim_aio_provider::sim_aio_provider(disk_engine *disk)
-    : native_linux_aio_provider(disk)
-{
-}
+sim_aio_provider::sim_aio_provider(disk_engine *disk) : native_linux_aio_provider(disk) {}
 
 void sim_aio_provider::submit_aio_task(aio_task *aio)
 {

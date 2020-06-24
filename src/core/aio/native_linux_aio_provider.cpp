@@ -31,8 +31,7 @@
 
 namespace dsn {
 
-native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk)
-    : aio_provider(disk)
+native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk)
 {
     memset(&_ctx, 0, sizeof(_ctx));
     auto ret = io_setup(128, &_ctx); // 128 concurrent events
