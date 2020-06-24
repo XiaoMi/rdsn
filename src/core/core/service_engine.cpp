@@ -25,7 +25,7 @@
  */
 
 #include "service_engine.h"
-#include "task_engine.h"
+#include "core/concurrent/task_engine.h"
 #include "core/rpc/rpc_engine.h"
 
 #include <dsn/utility/filesystem.h>

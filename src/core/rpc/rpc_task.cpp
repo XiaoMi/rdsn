@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include "core/core/task_engine.h"
+#include "core/concurrent/task_engine.h"
 #include <dsn/tool-api/task.h>
 
 namespace dsn {
