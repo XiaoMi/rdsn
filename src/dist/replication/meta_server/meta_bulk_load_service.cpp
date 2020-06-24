@@ -1052,7 +1052,7 @@ void bulk_load_service::update_app_not_bulk_loading_on_remote_storage(
 // ThreadPool: THREAD_POOL_META_STATE
 void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
 {
-    const std::string app_name = rpc.request().app_name;
+    const std::string &app_name = rpc.request().app_name;
     const auto &control_type = rpc.request().type;
     auto &response = rpc.response();
     response.err = ERR_OK;
@@ -1078,7 +1078,7 @@ void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
     }
 
     zauto_write_lock l(_lock);
-    bulk_load_status::type app_status = get_app_bulk_load_status_unlocked(app_id);
+    const auto &app_status = get_app_bulk_load_status_unlocked(app_id);
     switch (control_type) {
     case bulk_load_control_type::BLC_PAUSE: {
         if (app_status != bulk_load_status::BLS_DOWNLOADING) {

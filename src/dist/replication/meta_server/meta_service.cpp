@@ -989,7 +989,7 @@ void meta_service::on_start_bulk_load(start_bulk_load_rpc rpc)
         return;
     }
 
-    if (!_bulk_load_svc) {
+    if (_bulk_load_svc == nullptr) {
         derror_f("meta doesn't support bulk load");
         rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
     } else {
@@ -1006,7 +1006,7 @@ void meta_service::on_control_bulk_load(control_bulk_load_rpc rpc)
         return;
     }
 
-    if (!_bulk_load_svc) {
+    if (_bulk_load_svc == nullptr) {
         derror_f("meta doesn't support bulk load");
         rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
     } else {
