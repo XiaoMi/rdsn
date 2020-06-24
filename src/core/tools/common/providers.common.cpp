@@ -35,9 +35,9 @@
 
 #include "core/rpc/asio_net_provider.h"
 #include <dsn/tool/providers.common.h>
-#include <core/task/hpc_task_queue.h>
 #include "lockp.std.h"
 #include "core/task/simple_task_queue.h"
+#include "core/task/hpc_task_queue.h"
 #include "core/rpc/network.sim.h"
 #include "simple_logger.h"
 #include "core/rpc/dsn_message_parser.h"
