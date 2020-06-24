@@ -1003,6 +1003,8 @@ inline void erase_map_elem_by_id(int32_t app_id, std::unordered_map<gpid, T> &my
     for (auto iter = mymap.begin(); iter != mymap.end();) {
         if (iter->first.get_app_id() == app_id) {
             mymap.erase(iter++);
+        } else {
+            iter++;
         }
     }
 }
