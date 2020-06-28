@@ -150,25 +150,16 @@ public:
     // by message queuing
     dlink dl;
 
-    std::unique_ptr<dsn::tool::latency_tracer> tracer;
+    std::shared_ptr<dsn::tool::latency_tracer> tracer;
 
     void report_trace_if_exceed_threshold(uint64_t time_threshold)
     {
-        if (tracer == nullptr || time_threshold <= 0) {
+        if (tracer == nullptr || time_threshold <= 0 ||
+            tracer->get_total_time_used() < time_threshold) {
             return;
         }
 
-        uint64_t total_time_used = tracer->end_time - tracer->start_time;
-        if (total_time_used < time_threshold) {
-            return;
-        }
-
-        ddebug_f("TRACE:read request latency tracer log: {}\nTRACER:start_time={}, end_time={}, "
-                 "total_time_used={}",
-                 tracer->to_string(),
-                 tracer->start_time,
-                 tracer->end_time,
-                 total_time_used);
+        ddebug_f(tracer->to_string());
     }
 
 public:

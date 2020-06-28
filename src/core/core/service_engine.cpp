@@ -160,7 +160,8 @@ void service_node::get_queue_info(
 
 rpc_request_task *service_node::generate_intercepted_request_task(message_ex *req)
 {
-    req->tracer = make_unique<dsn::tool::latency_tracer>(req->header->id, "client_request");
+    req->tracer = std::shared_ptr<dsn::tool::latency_tracer>(new dsn::tool::latency_tracer(
+        req->header->id, "generate_intercepted_request_task", "client_request"));
     bool is_write = task_spec::get(req->local_rpc_code)->rpc_request_is_write_operation;
     rpc_request_task *t = new rpc_request_task(req,
                                                std::bind(&service_app::on_intercepted_request,

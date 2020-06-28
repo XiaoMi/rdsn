@@ -145,52 +145,21 @@ public:
     void set_is_sync_to_child(bool sync_to_child) { _is_sync_to_child = sync_to_child; }
     bool is_sync_to_child() { return _is_sync_to_child; }
 
-    std::unique_ptr<dsn::tool::latency_tracer> tracer;
+    std::shared_ptr<dsn::tool::latency_tracer> tracer;
 
-    void report_trace_if_exceed_threshold(uint64_t time_threshold, bool is_primary = true)
+    void report_trace_if_exceed_threshold(uint64_t time_threshold)
     {
         if (time_threshold <= 0 || tracer == nullptr) {
             return;
         }
 
-        // one mutation may have multi request, we need log all request trace which use same
-        // mutation trace
-        std::string mutation_trace = tracer->to_string();
-        for (const auto &req : client_requests) {
-            int64_t start_time = 0;
-            int64_t total_time_used = 0;
-            int64_t request_id = 0;
-            std::string request_trace;
-            std::string request_to_mutation_tarce;
+        for (auto const &req : client_requests) {
             if (req != nullptr) {
-                start_time = req->tracer->start_time;
-                total_time_used = tracer->end_time - start_time;
-                if (total_time_used < time_threshold) {
-                    continue;
-                }
-                request_id = req->tracer->id;
-                request_trace = req->tracer->to_string();
-                request_to_mutation_tarce = fmt::format("\n\tTRACE:ts={}, mutation::mutation={}",
-                                                        tracer->start_time,
-                                                        tracer->start_time - req->tracer->end_time);
-            } else {
-                start_time = tracer->start_time;
-                total_time_used = tracer->end_time - start_time;
-                if (total_time_used < time_threshold) {
-                    continue;
-                }
+                req->report_trace_if_exceed_threshold(time_threshold);
+            } else if (tracer->get_total_time_used() < time_threshold) {
+                ddebug_f(tracer->to_string());
+                break;
             }
-            const std::string trace =
-                fmt::format("{}{}{}", request_trace, request_to_mutation_tarce, mutation_trace);
-            ddebug_f("TRACE:write request latency tracer log:{}\nTRACE:mutation_id={}, "
-                     "request_id={}, start_time={}, end_time={}, "
-                     "total_time_used={}",
-                     trace,
-                     tid(),
-                     request_id,
-                     start_time,
-                     tracer->end_time,
-                     total_time_used);
         }
     }
 

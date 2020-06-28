@@ -52,7 +52,8 @@ mutation::mutation()
     _appro_data_bytes = sizeof(mutation_header);
     _create_ts_ns = dsn_now_ns();
     _tid = ++s_tid;
-    tracer = make_unique<dsn::tool::latency_tracer>(_tid, "mutation_request");
+    tracer = std::shared_ptr<dsn::tool::latency_tracer>(
+        new dsn::tool::latency_tracer(_tid, "mutation::mutation()", "mutation_request"));
 }
 
 mutation_ptr mutation::copy_no_reply(const mutation_ptr &old_mu)
@@ -341,7 +342,7 @@ mutation_ptr mutation_queue::add_work(task_code code, dsn::message_ex *request, 
 {
     task_spec *spec = task_spec::get(code);
     if (request->tracer != nullptr) {
-        request->tracer->add_point("mutation_queue::add_work", dsn_now_ns());
+        request->tracer->add_point("mutation_queue::add_work");
     }
     // if not allow write batch, switch work queue
     if (_pending_mutation && !spec->rpc_request_is_write_allow_batch) {
@@ -354,6 +355,7 @@ mutation_ptr mutation_queue::add_work(task_code code, dsn::message_ex *request, 
     // add to work queue
     if (!_pending_mutation) {
         _pending_mutation = r->new_mutation(invalid_decree);
+        request->tracer->set_shared_tracer(_pending_mutation->tracer);
     }
 
     dinfo("add request with trace_id = %016" PRIx64 " into mutation with mutation_tid = %" PRIu64,

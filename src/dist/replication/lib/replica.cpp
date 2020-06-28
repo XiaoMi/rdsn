@@ -157,7 +157,7 @@ replica::~replica(void)
 void replica::on_client_read(dsn::message_ex *request)
 {
     if (request->tracer != nullptr) {
-        request->tracer->add_point("replica::on_client_read", dsn_now_ns());
+        request->tracer->add_point("replica::on_client_read");
     }
     if (status() == partition_status::PS_INACTIVE ||
         status() == partition_status::PS_POTENTIAL_SECONDARY) {
@@ -192,7 +192,7 @@ void replica::on_client_read(dsn::message_ex *request)
 
     if (request->tracer != nullptr) {
         int64_t now = dsn_now_ns();
-        request->tracer->add_point("replica_stub::response_client", now, false, true);
+        request->tracer->add_point("replica_stub::response_client");
         request->report_trace_if_exceed_threshold(_stub->_abnormal_read_trace_latency_threshold);
     }
 
@@ -232,7 +232,7 @@ void replica::execute_mutation(mutation_ptr &mu)
           name(),
           mu->name(),
           static_cast<int>(mu->client_requests.size()));
-    mu->tracer->add_point("replica::execute_mutation", dsn_now_ns());
+    mu->tracer->add_point("replica::execute_mutation");
 
     error_code err = ERR_OK;
     decree d = mu->data.header.decree;
@@ -322,10 +322,7 @@ void replica::execute_mutation(mutation_ptr &mu)
 
     // update table level latency perf-counters for primary partition
     uint64_t now_ns = dsn_now_ns();
-    mu->tracer->add_point(fmt::format("rocksdb::write_to_rocksdb[{}]", enum_to_string(status())),
-                          now_ns,
-                          false,
-                          true);
+    mu->tracer->add_point(fmt::format("rocksdb::write_to_rocksdb[{}]", enum_to_string(status())));
     if (partition_status::PS_PRIMARY == status()) {
         for (auto update : mu->data.updates) {
             // If the corresponding perf counter exist, count the duration of this operation.

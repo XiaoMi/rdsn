@@ -51,7 +51,7 @@ namespace replication {
                  : nullptr;
 
     _slock.lock();
-    mu->tracer->add_point("mutation_log_shared::append", dsn_now_ns());
+    mu->tracer->add_point("mutation_log_shared::append");
     // init pending buffer
     if (nullptr == _pending_write) {
         _pending_write = std::make_shared<log_appender>(mark_new_offset(0, true).second);
