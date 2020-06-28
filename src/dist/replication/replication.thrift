@@ -1047,7 +1047,7 @@ struct control_bulk_load_response
     // - ERR_INACTIVE_STATE: app is not executing bulk load
     // - ERR_INVALID_STATE: current bulk load process can not be paused/restarted/canceled
     1:dsn.error_code    err;
-    2:string            hint_msg;
+    2:optional string   hint_msg;
 }
 
 /*

@@ -16739,7 +16739,11 @@ control_bulk_load_response::~control_bulk_load_response() throw() {}
 
 void control_bulk_load_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
 
-void control_bulk_load_response::__set_hint_msg(const std::string &val) { this->hint_msg = val; }
+void control_bulk_load_response::__set_hint_msg(const std::string &val)
+{
+    this->hint_msg = val;
+    __isset.hint_msg = true;
+}
 
 uint32_t control_bulk_load_response::read(::apache::thrift::protocol::TProtocol *iprot)
 {
@@ -16798,10 +16802,11 @@ uint32_t control_bulk_load_response::write(::apache::thrift::protocol::TProtocol
     xfer += this->err.write(oprot);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("hint_msg", ::apache::thrift::protocol::T_STRING, 2);
-    xfer += oprot->writeString(this->hint_msg);
-    xfer += oprot->writeFieldEnd();
-
+    if (this->__isset.hint_msg) {
+        xfer += oprot->writeFieldBegin("hint_msg", ::apache::thrift::protocol::T_STRING, 2);
+        xfer += oprot->writeString(this->hint_msg);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -16849,7 +16854,8 @@ void control_bulk_load_response::printTo(std::ostream &out) const
     out << "control_bulk_load_response(";
     out << "err=" << to_string(err);
     out << ", "
-        << "hint_msg=" << to_string(hint_msg);
+        << "hint_msg=";
+    (__isset.hint_msg ? (out << to_string(hint_msg)) : (out << "<null>"));
     out << ")";
 }
 }
