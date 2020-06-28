@@ -74,11 +74,9 @@ public:
     //
     // -name: generally, it is the name of that call this method. but you can define the more
     // significant name to show the events of one moment
-    // -ts: current timestamp
-    void add_point(const std::string &name, uint64_t ts)
+    void add_point(const std::string &name)
     {
-        trace_point point(name, ts);
-        trace_points.emplace_back(point);
+        trace_points.emplace_back(trace_point(name, dsn_now_ns()));
     }
 
     void set_sub_tracer(std::shared_ptr<latency_tracer> tracer) { sub_tracer = tracer; }
