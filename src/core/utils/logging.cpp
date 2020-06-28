@@ -28,7 +28,7 @@
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/logging_provider.h>
 #include <dsn/tool_api.h>
-#include "service_engine.h"
+#include "../core/service_engine.h"
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/utility/flags.h>
 #include <dsn/utility/smart_pointers.h>
