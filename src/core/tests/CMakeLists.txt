@@ -13,18 +13,9 @@ set(MY_PROJ_LIBS gtest
 set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)
 
 # Extra files that will be installed
-set(MY_BINPLACES "../utils/tests/config-bad-section.ini"
-                 "../utils/tests/config-dup-key.ini"
-                 "../utils/tests/config-dup-section.ini"
-                 "../utils/tests/config-empty.ini"
-                 "../utils/tests/config-no-key.ini"
-                 "../utils/tests/config-no-section.ini"
-                 "../utils/tests/config-null-section.ini"
-                 "../utils/tests/config-sample.ini"
-                 "${CMAKE_CURRENT_SOURCE_DIR}/config-test-corrupt-message.ini"
+set(MY_BINPLACES "${CMAKE_CURRENT_SOURCE_DIR}/config-test-corrupt-message.ini"
                  "${CMAKE_CURRENT_SOURCE_DIR}/config-test.ini"
                  "${CMAKE_CURRENT_SOURCE_DIR}/config-test-sim.ini"
-                 "../utils/tests/config-unmatch-section.ini"
                  "${CMAKE_CURRENT_SOURCE_DIR}/command.txt"
                  "${CMAKE_CURRENT_SOURCE_DIR}/run.sh"
                  "${CMAKE_CURRENT_SOURCE_DIR}/clear.sh"
