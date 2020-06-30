@@ -309,12 +309,12 @@ check_and_download "${S2GEOMETRY_PKG}" \
     "${S2GEOMETRY_NAME}"
 
 # rocksdb
-# from: https://github.com/XiaoMi/pegasus-rocksdb/archive/v6.6.4-base.zip
-ROCKSDB_NAME=pegasus-rocksdb-6.6.4-base
+# from: https://github.com/XiaoMi/pegasus-rocksdb/archive/v6.6.4-compatible.zip
+ROCKSDB_NAME=pegasus-rocksdb-6.6.4-compatible
 ROCKSDB_PKG=${ROCKSDB_NAME}.zip
 check_and_download "${ROCKSDB_PKG}" \
     "${OSS_URL_PREFIX}/${ROCKSDB_PKG}" \
-    "454b17946ad66e1d70ab130bb1244edf" \
+    "f87f15f961f2be2c9939acc3920b87ce" \
     "${ROCKSDB_NAME}"
 
 ret_code=$?
