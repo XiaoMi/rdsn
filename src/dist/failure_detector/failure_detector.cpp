@@ -60,12 +60,12 @@ void failure_detector::register_ctrl_commands()
 {
     static std::once_flag flag;
     std::call_once(flag, [&]() {
-    _get_allow_list = dsn::command_manager::instance().register_command(
-        {"fd.allow_list"},
-        "fd.allow_list",
-        "show allow list of replica",
-        [this](const std::vector<std::string> &args) { return get_allow_list(args); });
-      });
+        _get_allow_list = dsn::command_manager::instance().register_command(
+            {"fd.allow_list"},
+            "fd.allow_list",
+            "show allow list of replica",
+            [this](const std::vector<std::string> &args) { return get_allow_list(args); });
+    });
 }
 
 void failure_detector::unregister_ctrl_commands() { UNREGISTER_VALID_HANDLER(_get_allow_list); }
