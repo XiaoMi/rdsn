@@ -557,7 +557,7 @@ void nfs_client_impl::handle_completion(const user_request_ptr &req, error_code 
 
 void nfs_client_impl::register_cli_commands()
 {
-    dsn::command_manager::instance().register_app_command(
+    dsn::command_manager::instance().register_command(
         {"nfs.max_copy_rate_megabytes"},
         "nfs.max_copy_rate_megabytes [num | DEFAULT]",
         "control the max rate(MB/s) to copy file from remote node",

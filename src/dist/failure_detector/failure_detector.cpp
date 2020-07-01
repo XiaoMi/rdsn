@@ -58,7 +58,7 @@ failure_detector::failure_detector()
 
 void failure_detector::register_ctrl_commands()
 {
-    _get_allow_list = dsn::command_manager::instance().register_app_command(
+    _get_allow_list = dsn::command_manager::instance().register_command(
         {"fd.allow_list"},
         "fd.allow_list",
         "show allow list of replica",

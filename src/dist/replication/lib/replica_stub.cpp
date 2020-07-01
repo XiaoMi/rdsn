@@ -2082,8 +2082,8 @@ void replica_stub::open_service()
     register_rpc_handler_with_rpc_holder(
         RPC_GROUP_BULK_LOAD, "group_bulk_load", &replica_stub::on_group_bulk_load);
 
-    _kill_partition_command = ::dsn::command_manager::instance().register_app_command(
-        {"kill_partition"},
+    _kill_partition_command = ::dsn::command_manager::instance().register_command(
+        {"replica.kill_partition"},
         "kill_partition [app_id [partition_index]]",
         "kill_partition: kill partitions by (all, one app, one partition)",
         [this](const std::vector<std::string> &args) {
@@ -2104,32 +2104,32 @@ void replica_stub::open_service()
             return std::string(e.to_string());
         });
 
-    _deny_client_command = ::dsn::command_manager::instance().register_app_command(
-        {"deny-client"},
+    _deny_client_command = ::dsn::command_manager::instance().register_command(
+        {"replica.deny-client"},
         "deny-client <true|false>",
         "deny-client - control if deny client read & write request",
         [this](const std::vector<std::string> &args) {
             return remote_command_set_bool_flag(_deny_client, "deny-client", args);
         });
 
-    _verbose_client_log_command = ::dsn::command_manager::instance().register_app_command(
-        {"verbose-client-log"},
+    _verbose_client_log_command = ::dsn::command_manager::instance().register_command(
+        {"replica.verbose-client-log"},
         "verbose-client-log <true|false>",
         "verbose-client-log - control if print verbose error log when reply read & write request",
         [this](const std::vector<std::string> &args) {
             return remote_command_set_bool_flag(_verbose_client_log, "verbose-client-log", args);
         });
 
-    _verbose_commit_log_command = ::dsn::command_manager::instance().register_app_command(
-        {"verbose-commit-log"},
+    _verbose_commit_log_command = ::dsn::command_manager::instance().register_command(
+        {"replica.verbose-commit-log"},
         "verbose-commit-log <true|false>",
         "verbose-commit-log - control if print verbose log when commit mutation",
         [this](const std::vector<std::string> &args) {
             return remote_command_set_bool_flag(_verbose_commit_log, "verbose-commit-log", args);
         });
 
-    _trigger_chkpt_command = ::dsn::command_manager::instance().register_app_command(
-        {"trigger-checkpoint"},
+    _trigger_chkpt_command = ::dsn::command_manager::instance().register_command(
+        {"replica.trigger-checkpoint"},
         "trigger-checkpoint [id1,id2,...] (where id is 'app_id' or 'app_id.partition_id')",
         "trigger-checkpoint - trigger replicas to do checkpoint",
         [this](const std::vector<std::string> &args) {
@@ -2142,8 +2142,8 @@ void replica_stub::open_service()
             });
         });
 
-    _query_compact_command = ::dsn::command_manager::instance().register_app_command(
-        {"query-compact"},
+    _query_compact_command = ::dsn::command_manager::instance().register_command(
+        {"replica.query-compact"},
         "query-compact [id1,id2,...] (where id is 'app_id' or 'app_id.partition_id')",
         "query-compact - query full compact status on the underlying storage engine",
         [this](const std::vector<std::string> &args) {
@@ -2151,8 +2151,8 @@ void replica_stub::open_service()
                 args, true, [](const replica_ptr &rep) { return rep->query_compact_state(); });
         });
 
-    _query_app_envs_command = ::dsn::command_manager::instance().register_app_command(
-        {"query-app-envs"},
+    _query_app_envs_command = ::dsn::command_manager::instance().register_command(
+        {"replica.query-app-envs"},
         "query-app-envs [id1,id2,...] (where id is 'app_id' or 'app_id.partition_id')",
         "query-app-envs - query app envs on the underlying storage engine",
         [this](const std::vector<std::string> &args) {
@@ -2163,8 +2163,8 @@ void replica_stub::open_service()
             });
         });
 
-    _useless_dir_reserve_seconds_command = dsn::command_manager::instance().register_app_command(
-        {"useless-dir-reserve-seconds"},
+    _useless_dir_reserve_seconds_command = dsn::command_manager::instance().register_command(
+        {"replica.useless-dir-reserve-seconds"},
         "useless-dir-reserve-seconds [num | DEFAULT]",
         "control gc_disk_error_replica_interval_seconds and "
         "gc_disk_garbage_replica_interval_seconds",
@@ -2195,8 +2195,8 @@ void replica_stub::open_service()
         });
 
 #ifdef DSN_ENABLE_GPERF
-    _release_tcmalloc_memory_command = ::dsn::command_manager::instance().register_app_command(
-        {"release-tcmalloc-memory"},
+    _release_tcmalloc_memory_command = ::dsn::command_manager::instance().register_command(
+        {"replica.release-tcmalloc-memory"},
         "release-tcmalloc-memory <true|false>",
         "release-tcmalloc-memory - control if try to release tcmalloc memory",
         [this](const std::vector<std::string> &args) {
@@ -2204,8 +2204,8 @@ void replica_stub::open_service()
                 _release_tcmalloc_memory, "release-tcmalloc-memory", args);
         });
 
-    _max_reserved_memory_percentage_command = dsn::command_manager::instance().register_app_command(
-        {"mem-release-max-reserved-percentage"},
+    _max_reserved_memory_percentage_command = dsn::command_manager::instance().register_command(
+        {"replica.mem-release-max-reserved-percentage"},
         "mem-release-max-reserved-percentage [num | DEFAULT]",
         "control tcmalloc max reserved but not-used memory percentage",
         [this](const std::vector<std::string> &args) {
@@ -2232,8 +2232,8 @@ void replica_stub::open_service()
         });
 #endif
     _max_concurrent_bulk_load_downloading_count_command =
-        dsn::command_manager::instance().register_app_command(
-            {"max-concurrent-bulk-load-downloading-count"},
+        dsn::command_manager::instance().register_command(
+            {"replica.max-concurrent-bulk-load-downloading-count"},
             "max-concurrent-bulk-load-downloading-count [num | DEFAULT]",
             "control stub max_concurrent_bulk_load_downloading_count",
             [this](const std::vector<std::string> &args) {
