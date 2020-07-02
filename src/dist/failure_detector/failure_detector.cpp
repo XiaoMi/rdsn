@@ -63,7 +63,7 @@ void failure_detector::register_ctrl_commands()
         _get_allow_list = dsn::command_manager::instance().register_command(
             {"fd.allow_list"},
             "fd.allow_list",
-            "show allow list of replica",
+            "show allow list of failure detector",
             [this](const std::vector<std::string> &args) { return get_allow_list(args); });
     });
 }
