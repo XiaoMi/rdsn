@@ -44,10 +44,7 @@ const char *gpid::to_string() const
 
 namespace json {
 // json serialization for gpid, we treat it as string: "app_id.partition_id"
-void json_encode(JsonWriter &out, const dsn::gpid &pid)
-{
-    json_encode(out, pid.to_string());
-}
+void json_encode(JsonWriter &out, const dsn::gpid &pid) { json_encode(out, pid.to_string()); }
 bool json_decode(const dsn::json::JsonObject &in, dsn::gpid &pid)
 {
     std::string gpid_message;
