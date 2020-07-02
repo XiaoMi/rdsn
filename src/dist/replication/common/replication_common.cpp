@@ -31,6 +31,7 @@
 #include <dsn/dist/replication/replica_envs.h>
 #include <dsn/utility/flags.h>
 #include <dsn/utility/filesystem.h>
+#include <dsn/cpp/json_helper.h>
 
 namespace dsn {
 namespace replication {
@@ -774,4 +775,35 @@ std::string get_remote_chkpt_meta_file(const std::string &root,
 
 } // namespace cold_backup
 } // namespace replication
+namespace json {
+NON_MEMBER_JSON_SERIALIZATION(dsn::partition_configuration,
+                              pid,
+                              ballot,
+                              max_replica_count,
+                              primary,
+                              secondaries,
+                              last_drops,
+                              last_committed_decree,
+                              partition_flags)
+
+NON_MEMBER_JSON_SERIALIZATION(dsn::app_info,
+                              status,
+                              app_type,
+                              app_name,
+                              app_id,
+                              partition_count,
+                              envs,
+                              is_stateful,
+                              max_replica_count,
+                              expire_second,
+                              create_second,
+                              drop_second,
+                              duplicating,
+                              init_partition_count,
+                              is_bulk_loading)
+
+NON_MEMBER_JSON_SERIALIZATION(dsn::replication::file_meta, name, size, md5)
+
+NON_MEMBER_JSON_SERIALIZATION(dsn::replication::bulk_load_metadata, files, file_total_size)
+} // namespace json
 } // namespace dsn

@@ -214,11 +214,11 @@
     }
 
 #define NON_MEMBER_JSON_SERIALIZATION(type, ...)                                                   \
-    inline void json_encode(dsn::json::JsonWriter &output, const type &t)                          \
+    void json_encode(dsn::json::JsonWriter &output, const type &t)                                 \
     {                                                                                              \
         JSON_ENCODE_ENTRIES(output, t, __VA_ARGS__);                                               \
     }                                                                                              \
-    inline bool json_decode(const dsn::json::JsonObject &input, type &t)                           \
+    bool json_decode(const dsn::json::JsonObject &input, type &t)                                  \
     {                                                                                              \
         JSON_DECODE_ENTRIES(input, t, __VA_ARGS__);                                                \
     }
@@ -346,14 +346,14 @@ bool json_decode(const dsn::json::JsonObject &in, dsn::gpid &pid);
 void json_encode(JsonWriter &out, const dsn::rpc_address &address);
 bool json_decode(const dsn::json::JsonObject &in, dsn::rpc_address &address);
 
-inline void json_encode(JsonWriter &out, const dsn::partition_configuration &config);
-inline bool json_decode(const JsonObject &in, dsn::partition_configuration &config);
-inline void json_encode(JsonWriter &out, const dsn::app_info &info);
-inline bool json_decode(const JsonObject &in, dsn::app_info &info);
-inline void json_encode(JsonWriter &out, const dsn::replication::file_meta &f_meta);
-inline bool json_decode(const JsonObject &in, dsn::replication::file_meta &f_meta);
-inline void json_encode(JsonWriter &out, const dsn::replication::bulk_load_metadata &metadata);
-inline bool json_decode(const JsonObject &in, dsn::replication::bulk_load_metadata &metadata);
+void json_encode(JsonWriter &out, const dsn::partition_configuration &config);
+bool json_decode(const JsonObject &in, dsn::partition_configuration &config);
+void json_encode(JsonWriter &out, const dsn::app_info &info);
+bool json_decode(const JsonObject &in, dsn::app_info &info);
+void json_encode(JsonWriter &out, const dsn::replication::file_meta &f_meta);
+bool json_decode(const JsonObject &in, dsn::replication::file_meta &f_meta);
+void json_encode(JsonWriter &out, const dsn::replication::bulk_load_metadata &metadata);
+bool json_decode(const JsonObject &in, dsn::replication::bulk_load_metadata &metadata);
 
 template <typename T>
 inline void json_encode_iterable(JsonWriter &out, const T &t)
@@ -594,34 +594,5 @@ public:
     }
 };
 
-NON_MEMBER_JSON_SERIALIZATION(dsn::partition_configuration,
-                              pid,
-                              ballot,
-                              max_replica_count,
-                              primary,
-                              secondaries,
-                              last_drops,
-                              last_committed_decree,
-                              partition_flags)
-
-NON_MEMBER_JSON_SERIALIZATION(dsn::app_info,
-                              status,
-                              app_type,
-                              app_name,
-                              app_id,
-                              partition_count,
-                              envs,
-                              is_stateful,
-                              max_replica_count,
-                              expire_second,
-                              create_second,
-                              drop_second,
-                              duplicating,
-                              init_partition_count,
-                              is_bulk_loading)
-
-NON_MEMBER_JSON_SERIALIZATION(dsn::replication::file_meta, name, size, md5)
-
-NON_MEMBER_JSON_SERIALIZATION(dsn::replication::bulk_load_metadata, files, file_total_size)
 } // namespace json
 } // namespace dsn
