@@ -2082,6 +2082,11 @@ void replica_stub::open_service()
     register_rpc_handler_with_rpc_holder(
         RPC_GROUP_BULK_LOAD, "group_bulk_load", &replica_stub::on_group_bulk_load);
 
+    register_ctrl_command();
+}
+
+void replica_stub::register_ctrl_command()
+{
     /// In simple_kv test, three replica apps are created, which means that three replica_stubs are
     /// initialized in simple_kv test. If we don't use std::call_once, these command are registered
     /// for three times. And in command_manager, one same command is not allowed to be registered
