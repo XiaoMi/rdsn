@@ -110,7 +110,6 @@ nfs_client_impl::nfs_client_impl()
     dassert(max_copy_rate_bytes > FLAGS_nfs_copy_block_bytes,
             "max_copy_rate_bytes should be greater than nfs_copy_block_bytes");
     _copy_token_bucket.reset(new TokenBucket(max_copy_rate_bytes, 1.5 * max_copy_rate_bytes));
-    FLAGS_max_copy_rate_megabytes = FLAGS_max_copy_rate_megabytes;
 
     register_cli_commands();
 }
@@ -574,7 +573,6 @@ void nfs_client_impl::register_cli_commands()
                 if (args[0] == "DEFAULT") {
                     uint32_t max_copy_rate_bytes = FLAGS_max_copy_rate_megabytes << 20;
                     _copy_token_bucket->reset(max_copy_rate_bytes, 1.5 * max_copy_rate_bytes);
-                    FLAGS_max_copy_rate_megabytes = FLAGS_max_copy_rate_megabytes;
                     return result;
                 }
 
