@@ -339,31 +339,12 @@ ENUM_TYPE_SERIALIZATION(dsn::replication::bulk_load_status::type,
                         dsn::replication::bulk_load_status::BLS_INVALID)
 
 // json serialization for gpid, we treat it as string: "app_id.partition_id"
-inline void json_encode(JsonWriter &out, const dsn::gpid &pid)
-{
-    json_encode(out, pid.to_string());
-}
-inline bool json_decode(const dsn::json::JsonObject &in, dsn::gpid &pid)
-{
-    std::string gpid_message;
-    dverify(json_decode(in, gpid_message));
-    return pid.parse_from(gpid_message.c_str());
-}
+void json_encode(JsonWriter &out, const dsn::gpid &pid);
+bool json_decode(const dsn::json::JsonObject &in, dsn::gpid &pid);
 
 // json serialization for rpc address, we use the string representation of a address
-inline void json_encode(JsonWriter &out, const dsn::rpc_address &address)
-{
-    json_encode(out, address.to_string());
-}
-inline bool json_decode(const dsn::json::JsonObject &in, dsn::rpc_address &address)
-{
-    std::string rpc_address_string;
-    dverify(json_decode(in, rpc_address_string));
-    if (rpc_address_string == "invalid address") {
-        return true;
-    }
-    return address.from_string_ipv4(rpc_address_string.c_str());
-}
+void json_encode(JsonWriter &out, const dsn::rpc_address &address);
+bool json_decode(const dsn::json::JsonObject &in, dsn::rpc_address &address);
 
 inline void json_encode(JsonWriter &out, const dsn::partition_configuration &config);
 inline bool json_decode(const JsonObject &in, dsn::partition_configuration &config);

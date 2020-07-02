@@ -39,6 +39,7 @@
 #include <dsn/tool-api/rpc_address.h>
 #include <dsn/tool-api/group_address.h>
 #include <dsn/tool-api/task.h>
+#include <dsn/cpp/json_helper.h>
 
 namespace dsn {
 
@@ -216,4 +217,20 @@ const char *rpc_address::to_string() const
 
     return (const char *)p;
 }
+namespace json {
+// json serialization for rpc address, we use the string representation of a address
+void json_encode(JsonWriter &out, const dsn::rpc_address &address)
+{
+    json_encode(out, address.to_string());
+}
+bool json_decode(const dsn::json::JsonObject &in, dsn::rpc_address &address)
+{
+    std::string rpc_address_string;
+    dverify(json_decode(in, rpc_address_string));
+    if (rpc_address_string == "invalid address") {
+        return true;
+    }
+    return address.from_string_ipv4(rpc_address_string.c_str());
+}
+} // namespace json
 } // namespace dsn
