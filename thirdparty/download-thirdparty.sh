@@ -314,7 +314,7 @@ ROCKSDB_NAME=pegasus-rocksdb-6.6.4-compatible
 ROCKSDB_PKG=${ROCKSDB_NAME}.zip
 check_and_download "${ROCKSDB_PKG}" \
     "${OSS_URL_PREFIX}/${ROCKSDB_PKG}" \
-    "f87f15f961f2be2c9939acc3920b87ce" \
+    "595b21fbe681dcf126c4cccda46f1cbb" \
     "${ROCKSDB_NAME}"
 
 ret_code=$?
