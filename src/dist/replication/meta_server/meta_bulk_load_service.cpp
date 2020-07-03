@@ -1139,14 +1139,12 @@ void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
     switch (control_type) {
     case bulk_load_control_type::BLC_PAUSE: {
         if (app_status != bulk_load_status::BLS_DOWNLOADING) {
-            derror_f("pause bulk load for app({}) failed, can not pause bulk load with status({})",
-                     app_name,
-                     dsn::enum_to_string(app_status));
+            auto hint_msg = fmt::format("can not pause bulk load for app({}) with status({})",
+                                        app_name,
+                                        dsn::enum_to_string(app_status));
+            derror_f("{}", hint_msg);
             response.err = ERR_INVALID_STATE;
-            response.__set_hint_msg(
-                fmt::format("can not pause bulk load for app({}) with status({})",
-                            app_name,
-                            dsn::enum_to_string(app_status)));
+            response.__set_hint_msg(hint_msg);
             return;
         }
         ddebug_f("app({}) start to pause bulk load", app_name);
@@ -1160,15 +1158,12 @@ void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
     } break;
     case bulk_load_control_type::BLC_RESTART:
         if (app_status != bulk_load_status::BLS_PAUSED) {
-            derror_f(
-                "restart bulk load for app({}) failed, can not restart bulk load with status({})",
-                app_name,
-                dsn::enum_to_string(app_status));
+            auto hint_msg = fmt::format("can not restart bulk load for app({}) with status({})",
+                                        app_name,
+                                        dsn::enum_to_string(app_status));
+            derror_f("{}", hint_msg);
             response.err = ERR_INVALID_STATE;
-            response.__set_hint_msg(
-                fmt::format("can not restart bulk load for app({}) with status({})",
-                            app_name,
-                            dsn::enum_to_string(app_status)));
+            response.__set_hint_msg(hint_msg);
             return;
         }
         ddebug_f("app({}) restart bulk load", app_name);
