@@ -51,7 +51,6 @@ Component providers define the interface for the local components (e.g., network
 #pragma once
 
 // providers
-#include <dsn/tool-api/global_config.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/tool-api/task_queue.h>
 #include <dsn/tool-api/task_worker.h>
@@ -61,6 +60,7 @@ Component providers define the interface for the local components (e.g., network
 #include <dsn/tool-api/message_parser.h>
 #include <dsn/tool-api/logging_provider.h>
 #include <dsn/tool-api/timer_service.h>
+#include <dsn/utility/sys_exit_type.h>
 
 namespace dsn {
 namespace tools {
