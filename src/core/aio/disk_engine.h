@@ -73,7 +73,7 @@ public:
     void write(aio_task *aio);
 
     service_node *node() const { return _node; }
-    static aio_provider *provider() { return instance()._provider.get(); }
+    static aio_provider &provider() { return *instance()._provider.get(); }
 
 private:
     // the object of disk_engine must be created by `singleton::instance`

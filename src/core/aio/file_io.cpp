@@ -33,7 +33,7 @@ namespace file {
 
 /*extern*/ disk_file *open(const char *file_name, int flag, int pmode)
 {
-    dsn_handle_t nh = disk_engine::provider()->open(file_name, flag, pmode);
+    dsn_handle_t nh = disk_engine::provider().open(file_name, flag, pmode);
     if (nh != DSN_INVALID_FILE_HANDLE) {
         return new disk_file(nh);
     } else {
@@ -44,7 +44,7 @@ namespace file {
 /*extern*/ error_code close(disk_file *file)
 {
     if (nullptr != file) {
-        auto ret = disk_engine::provider()->close(file->native_handle());
+        auto ret = disk_engine::provider().close(file->native_handle());
         delete file;
         return ret;
     } else {
@@ -55,7 +55,7 @@ namespace file {
 /*extern*/ error_code flush(disk_file *file)
 {
     if (nullptr != file) {
-        return disk_engine::provider()->flush(file->native_handle());
+        return disk_engine::provider().flush(file->native_handle());
     } else {
         return ERR_INVALID_HANDLE;
     }
@@ -85,7 +85,7 @@ namespace file {
     }
     auto wk = file->read(cb);
     if (wk) {
-        disk_engine::provider()->submit_aio_task(wk);
+        disk_engine::provider().submit_aio_task(wk);
     }
     return cb;
 }
@@ -136,7 +136,7 @@ namespace file {
 
 /*extern*/ aio_context_ptr prepare_aio_context(aio_task *tsk)
 {
-    return disk_engine::provider()->prepare_aio_context(tsk);
+    return disk_engine::provider().prepare_aio_context(tsk);
 }
 } // namespace file
 } // namespace dsn
