@@ -1144,7 +1144,9 @@ void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
                      dsn::enum_to_string(app_status));
             response.err = ERR_INVALID_STATE;
             response.__set_hint_msg(
-                fmt::format("app({}) status={}", app_name, dsn::enum_to_string(app_status)));
+                fmt::format("can not pause bulk load for app({}) with status({})",
+                            app_name,
+                            dsn::enum_to_string(app_status)));
             return;
         }
         ddebug_f("app({}) start to pause bulk load", app_name);
@@ -1164,7 +1166,9 @@ void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
                 dsn::enum_to_string(app_status));
             response.err = ERR_INVALID_STATE;
             response.__set_hint_msg(
-                fmt::format("app({}) status={}", app_name, dsn::enum_to_string(app_status)));
+                fmt::format("can not restart bulk load for app({}) with status({})",
+                            app_name,
+                            dsn::enum_to_string(app_status)));
             return;
         }
         ddebug_f("app({}) restart bulk load", app_name);
