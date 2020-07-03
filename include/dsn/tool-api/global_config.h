@@ -33,8 +33,8 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-/// Attention: There are some types which are defined in dsn_runtime being used in this file, so
-/// this file is coupled with dsn_runtime. So if you want to add some variables/types here or
+/// Attention: There are some types which are defined in dsn_runtime being used in this file,
+/// so this file is coupled with dsn_runtime. If you want to add some variables/types here or
 /// include this file, please make sure whether you want to couple with dsn_runtime or not.
 
 #pragma once
