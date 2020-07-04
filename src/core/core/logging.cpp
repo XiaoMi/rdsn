@@ -50,7 +50,7 @@ static void log_on_sys_exit(::dsn::sys_exit_type)
 
 void dsn_log_init(const std::string &logging_factory_name,
                   const std::string &dir_log,
-                  std::function<std::string()> current_node_name_func)
+                  std::function<void(FILE *fp, dsn_log_level_t log_level)> print_header_func)
 {
     dsn_log_start_level =
         enum_from_string(FLAGS_logging_start_level, dsn_log_level_t::LOG_LEVEL_INVALID);
@@ -100,8 +100,8 @@ void dsn_log_init(const std::string &logging_factory_name,
 
     {
         using dsn::tools;
-        extern std::function<std::string()> node_name_func;
-        node_name_func = current_node_name_func;
+        extern std::function<std::string()> print_header;
+        node_name_func = print_header_func;
     }
 }
 
