@@ -50,7 +50,7 @@ static void log_on_sys_exit(::dsn::sys_exit_type)
 
 void dsn_log_init(const std::string &logging_factory_name,
                   const std::string &dir_log,
-                  std::function<void(FILE *fp, dsn_log_level_t log_level)> print_header_func)
+                  std::function<std::string()> dsn_log_prefixed_message_func)
 {
     dsn_log_start_level =
         enum_from_string(FLAGS_logging_start_level, dsn_log_level_t::LOG_LEVEL_INVALID);
@@ -98,7 +98,7 @@ void dsn_log_init(const std::string &logging_factory_name,
             return std::string("OK, current level is ") + enum_to_string(start_level);
         });
 
-    dsn::tools::set_printf_header_func(print_header_func);
+    dsn::tools::set_log_prefixed_message_func(dsn_log_prefixed_message_func);
 }
 
 DSN_API dsn_log_level_t dsn_log_get_start_level() { return dsn_log_start_level; }

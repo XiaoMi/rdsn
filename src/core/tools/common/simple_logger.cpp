@@ -53,16 +53,35 @@ DSN_DEFINE_validator(stderr_start_level, [](const char *level) -> bool {
     return strcmp(level, "LOG_LEVEL_INVALID") != 0;
 });
 
-std::function<void(FILE *fp, dsn_log_level_t log_level)> print_header =
-    [](FILE *fp, dsn_log_level_t log_level) {
-        int tid = ::dsn::utils::get_current_tid();
-        fprintf(fp, "unknow.io-thrd.%05d: ", tid);
-    };
+std::function<const std::string()> log_prefixed_message_func = []() {
+    int tid = ::dsn::utils::get_current_tid();
+    char res[25];
+    sprintf(res, "unknow.io-thrd.%05d: ", tid);
+    return std::string(res);
+};
 
-void set_printf_header_func(
-    std::function<void(FILE *fp, dsn_log_level_t log_level)> print_header_func)
+void set_log_prefixed_message_func(std::function<const std::string()> func)
 {
-    print_header = print_header_func;
+    log_prefixed_message_func = func;
+}
+
+static void print_header(FILE *fp, dsn_log_level_t log_level)
+{
+    static char s_level_char[] = "IDWEF";
+
+    uint64_t ts = dsn_now_ns();
+    char str[24];
+    dsn::utils::time_ms_to_string(ts / 1000000, str);
+
+    int tid = dsn::utils::get_current_tid();
+
+    fprintf(fp,
+            "%c%s (%" PRIu64 " %04x) %s",
+            s_level_char[log_level],
+            str,
+            ts,
+            tid,
+            log_prefixed_message_func().c_str());
 }
 
 screen_logger::screen_logger(bool short_header) : logging_provider("./")

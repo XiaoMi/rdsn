@@ -277,10 +277,9 @@ tool_app *get_current_tool() { return dsn_all.tool.get(); }
 } // namespace tools
 } // namespace dsn
 
-extern void
-dsn_log_init(const std::string &logging_factory_name,
-             const std::string &dir_log,
-             std::function<void(FILE *fp, dsn_log_level_t log_level)> print_header_func);
+extern void dsn_log_init(const std::string &logging_factory_name,
+                         const std::string &dir_log,
+                         std::function<std::string()> dsn_log_prefixed_message_func);
 extern void dsn_core_init();
 
 inline void dsn_global_init()
@@ -292,32 +291,22 @@ inline void dsn_global_init()
     dsn::service_engine::instance();
 }
 
-static void print_header(FILE *fp, dsn_log_level_t log_level)
+static const std::string dsn_log_prefixed_message_func()
 {
-    static char s_level_char[] = "IDWEF";
+    char res[100];
 
-    uint64_t ts = 0;
-    if (::dsn::tools::is_engine_ready())
-        ts = dsn_now_ns();
-
-    char str[24];
-    ::dsn::utils::time_ms_to_string(ts / 1000000, str);
-
-    int tid = ::dsn::utils::get_current_tid();
-
-    fprintf(fp, "%c%s (%" PRIu64 " %04x) ", s_level_char[log_level], str, ts, tid);
-
+    int tid = dsn::utils::get_current_tid();
     auto t = dsn::task::get_current_task_id();
     if (t) {
         if (nullptr != dsn::task::get_current_worker2()) {
-            fprintf(fp,
+            sprintf(res,
                     "%6s.%7s%d.%016" PRIx64 ": ",
                     dsn::task::get_current_node_name(),
                     dsn::task::get_current_worker2()->pool_spec().name.c_str(),
                     dsn::task::get_current_worker2()->index(),
                     t);
         } else {
-            fprintf(fp,
+            sprintf(res,
                     "%6s.%7s.%05d.%016" PRIx64 ": ",
                     dsn::task::get_current_node_name(),
                     "io-thrd",
@@ -326,15 +315,17 @@ static void print_header(FILE *fp, dsn_log_level_t log_level)
         }
     } else {
         if (nullptr != dsn::task::get_current_worker2()) {
-            fprintf(fp,
+            sprintf(res,
                     "%6s.%7s%u: ",
                     dsn::task::get_current_node_name(),
                     dsn::task::get_current_worker2()->pool_spec().name.c_str(),
                     dsn::task::get_current_worker2()->index());
         } else {
-            fprintf(fp, "%6s.%7s.%05d: ", dsn::task::get_current_node_name(), "io-thrd", tid);
+            sprintf(res, "%6s.%7s.%05d: ", dsn::task::get_current_node_name(), "io-thrd", tid);
         }
     }
+
+    return res;
 }
 
 bool run(const char *config_file,
@@ -436,7 +427,7 @@ bool run(const char *config_file,
 #endif
 
     // init logging
-    dsn_log_init(spec.logging_factory_name, spec.dir_log, print_header);
+    dsn_log_init(spec.logging_factory_name, spec.dir_log, dsn_log_prefixed_message_func);
 
     // prepare minimum necessary
     ::dsn::service_engine::instance().init_before_toollets(spec);

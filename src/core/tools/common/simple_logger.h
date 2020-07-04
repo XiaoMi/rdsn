@@ -33,8 +33,7 @@
 namespace dsn {
 namespace tools {
 
-void set_printf_header_func(
-    std::function<void(FILE *fp, dsn_log_level_t log_level)> print_header_func);
+void set_log_prefixed_message_func(std::function<const std::string()> func);
 
 /*
  * screen_logger provides a logger which writes to terminal.
