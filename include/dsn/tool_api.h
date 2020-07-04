@@ -60,7 +60,7 @@ Component providers define the interface for the local components (e.g., network
 #include <dsn/tool-api/message_parser.h>
 #include <dsn/tool-api/logging_provider.h>
 #include <dsn/tool-api/timer_service.h>
-#include <dsn/utility/sys_exit_type.h>
+#include <dsn/utility/sys_exit_hook.h>
 
 namespace dsn {
 namespace tools {
@@ -158,7 +158,6 @@ DSN_API toollet *get_toollet(const char *name, ::dsn::provider_type type);
 */
 DSN_API extern join_point<void> sys_init_before_app_created;
 DSN_API extern join_point<void> sys_init_after_app_created;
-DSN_API extern join_point<void, sys_exit_type> sys_exit;
 /*@}*/
 
 template <typename T>

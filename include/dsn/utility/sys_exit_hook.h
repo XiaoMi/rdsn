@@ -23,4 +23,6 @@ ENUM_REG(SYS_EXIT_BREAK)
 ENUM_REG(SYS_EXIT_EXCEPTION)
 ENUM_END(sys_exit_type)
 
+DSN_API extern join_point<void, sys_exit_type> sys_exit;
+
 } // namespace dsn
