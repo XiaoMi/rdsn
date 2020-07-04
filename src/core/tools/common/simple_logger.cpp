@@ -30,12 +30,6 @@
 #include <dsn/utility/flags.h>
 #include <dsn/utility/time_utils.h>
 
-std::function<void(FILE *fp, dsn_log_level_t log_level)> print_header =
-    [](FILE *fp, dsn_log_level_t log_level) {
-        int tid = ::dsn::utils::get_current_tid();
-        fprintf(fp, "unknow.io-thrd.%05d: ", tid);
-    };
-
 namespace dsn {
 namespace tools {
 
@@ -58,6 +52,18 @@ DSN_DEFINE_string("tools.simple_logger",
 DSN_DEFINE_validator(stderr_start_level, [](const char *level) -> bool {
     return strcmp(level, "LOG_LEVEL_INVALID") != 0;
 });
+
+std::function<void(FILE *fp, dsn_log_level_t log_level)> print_header =
+    [](FILE *fp, dsn_log_level_t log_level) {
+        int tid = ::dsn::utils::get_current_tid();
+        fprintf(fp, "unknow.io-thrd.%05d: ", tid);
+    };
+
+void set_printf_header_func(
+    std::function<void(FILE *fp, dsn_log_level_t log_level)> print_header_func)
+{
+    print_header = print_header_func;
+}
 
 screen_logger::screen_logger(bool short_header) : logging_provider("./")
 {

@@ -98,8 +98,7 @@ void dsn_log_init(const std::string &logging_factory_name,
             return std::string("OK, current level is ") + enum_to_string(start_level);
         });
 
-    extern std::function<void(FILE *fp, dsn_log_level_t log_level)> print_header;
-    print_header = print_header_func;
+    dsn::tools::set_printf_header_func(print_header_func);
 }
 
 DSN_API dsn_log_level_t dsn_log_get_start_level() { return dsn_log_start_level; }
