@@ -53,6 +53,8 @@ DSN_DEFINE_validator(stderr_start_level, [](const char *level) -> bool {
     return strcmp(level, "LOG_LEVEL_INVALID") != 0;
 });
 
+std::function<std::string()> node_name_func = []() { return "unknown"; };
+
 static void print_header(FILE *fp, dsn_log_level_t log_level)
 {
     static char s_level_char[] = "IDWEF";
@@ -73,27 +75,22 @@ static void print_header(FILE *fp, dsn_log_level_t log_level)
         if (nullptr != task::get_current_worker2()) {
             fprintf(fp,
                     "%6s.%7s%d.%016" PRIx64 ": ",
-                    task::get_current_node_name(),
+                    node_name_func(),
                     task::get_current_worker2()->pool_spec().name.c_str(),
                     task::get_current_worker2()->index(),
                     t);
         } else {
-            fprintf(fp,
-                    "%6s.%7s.%05d.%016" PRIx64 ": ",
-                    task::get_current_node_name(),
-                    "io-thrd",
-                    tid,
-                    t);
+            fprintf(fp, "%6s.%7s.%05d.%016" PRIx64 ": ", node_name_func(), "io-thrd", tid, t);
         }
     } else {
         if (nullptr != task::get_current_worker2()) {
             fprintf(fp,
                     "%6s.%7s%u: ",
-                    task::get_current_node_name(),
+                    node_name_func(),
                     task::get_current_worker2()->pool_spec().name.c_str(),
                     task::get_current_worker2()->index());
         } else {
-            fprintf(fp, "%6s.%7s.%05d: ", task::get_current_node_name(), "io-thrd", tid);
+            fprintf(fp, "%6s.%7s.%05d: ", node_name_func(), "io-thrd", tid);
         }
     }
 }

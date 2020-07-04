@@ -48,7 +48,9 @@ static void log_on_sys_exit(::dsn::sys_exit_type)
     logger->flush();
 }
 
-void dsn_log_init(const std::string &logging_factory_name, const std::string &dir_log)
+void dsn_log_init(const std::string &logging_factory_name,
+                  const std::string &dir_log,
+                  std::function<std::string()> current_node_name_func)
 {
     dsn_log_start_level =
         enum_from_string(FLAGS_logging_start_level, dsn_log_level_t::LOG_LEVEL_INVALID);
@@ -95,6 +97,12 @@ void dsn_log_init(const std::string &logging_factory_name, const std::string &di
             dsn_log_set_start_level(start_level);
             return std::string("OK, current level is ") + enum_to_string(start_level);
         });
+
+    {
+        using dsn::tools;
+        extern std::function<std::string()> node_name_func;
+        node_name_func = current_node_name_func;
+    }
 }
 
 DSN_API dsn_log_level_t dsn_log_get_start_level() { return dsn_log_start_level; }

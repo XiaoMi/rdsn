@@ -275,7 +275,9 @@ tool_app *get_current_tool() { return dsn_all.tool.get(); }
 } // namespace tools
 } // namespace dsn
 
-extern void dsn_log_init(const std::string &logging_factory_name, const std::string &dir_log);
+extern void dsn_log_init(const std::string &logging_factory_name,
+                         const std::string &dir_log,
+                         std::function<std::string()> current_node_name_func);
 extern void dsn_core_init();
 
 inline void dsn_global_init()
@@ -386,7 +388,7 @@ bool run(const char *config_file,
 #endif
 
     // init logging
-    dsn_log_init(spec.logging_factory_name, spec.dir_log);
+    dsn_log_init(spec.logging_factory_name, spec.dir_log, dsn::task::get_current_node_name);
 
     // prepare minimum necessary
     ::dsn::service_engine::instance().init_before_toollets(spec);
