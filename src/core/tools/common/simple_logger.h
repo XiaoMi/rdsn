@@ -33,8 +33,6 @@
 namespace dsn {
 namespace tools {
 
-void set_log_prefixed_message_func(std::function<const std::string()> func);
-
 /*
  * screen_logger provides a logger which writes to terminal.
  */

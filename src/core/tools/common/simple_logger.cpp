@@ -53,17 +53,12 @@ DSN_DEFINE_validator(stderr_start_level, [](const char *level) -> bool {
     return strcmp(level, "LOG_LEVEL_INVALID") != 0;
 });
 
-std::function<const std::string()> log_prefixed_message_func = []() {
-    int tid = ::dsn::utils::get_current_tid();
+std::function<std::string()> log_prefixed_message_func = []() {
+    int tid = dsn::utils::get_current_tid();
     char res[25];
     sprintf(res, "unknow.io-thrd.%05d: ", tid);
     return std::string(res);
 };
-
-void set_log_prefixed_message_func(std::function<const std::string()> func)
-{
-    log_prefixed_message_func = func;
-}
 
 static void print_header(FILE *fp, dsn_log_level_t log_level)
 {

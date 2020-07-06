@@ -39,6 +39,16 @@ DSN_DEFINE_string("core",
 
 DSN_DEFINE_bool("core", logging_flush_on_exit, true, "flush log when exit system");
 
+namespace dsn {
+namespace tools {
+void set_log_prefixed_message_func(std::function<std::string()> func)
+{
+    extern std::function<std::string()> log_prefixed_message_func;
+    log_prefixed_message_func = func;
+}
+} // namespace tools
+} // namespace dsn
+
 static void log_on_sys_exit(::dsn::sys_exit_type)
 {
     dsn::logging_provider *logger = dsn::logging_provider::instance();
