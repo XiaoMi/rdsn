@@ -233,6 +233,9 @@ error_code replica_bulk_loader::do_bulk_load(const std::string &app_name,
     case bulk_load_status::BLS_PAUSING:
         pause_bulk_load();
         break;
+    case bulk_load_status::BLS_CANCELED: {
+        handle_bulk_load_finish(bulk_load_status::BLS_CANCELED);
+    } break;
     // TODO(heyuchen): add other bulk load status
     default:
         break;
