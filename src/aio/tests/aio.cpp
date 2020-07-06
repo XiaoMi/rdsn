@@ -24,21 +24,11 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/utility/filesystem.h>
-#include <dsn/service_api_cpp.h>
 
 #include <gtest/gtest.h>
-#include "test_utils.h"
+#include "core/tests/test_utils.h"
 
 using namespace ::dsn;
 
