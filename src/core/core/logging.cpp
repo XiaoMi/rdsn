@@ -41,10 +41,11 @@ DSN_DEFINE_bool("core", logging_flush_on_exit, true, "flush log when exit system
 
 namespace dsn {
 std::function<std::string()> log_prefixed_message_func = []() {
-    static thread_local std::string prefixed_message(' ', 23);
+    static thread_local std::string prefixed_message;
 
     static thread_local std::once_flag flag;
     std::call_once(flag, [&]() {
+        prefixed_message.resize(23);
         int tid = dsn::utils::get_current_tid();
         sprintf(const_cast<char *>(prefixed_message.c_str()), "unknown.io-thrd.%05d: ", tid);
     });
