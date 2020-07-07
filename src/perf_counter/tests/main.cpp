@@ -8,6 +8,5 @@
 GTEST_API_ int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);
-    dsn_run_config("config.ini", false);
     return RUN_ALL_TESTS();
 }
