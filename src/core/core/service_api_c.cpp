@@ -291,7 +291,7 @@ inline void dsn_global_init()
     dsn::service_engine::instance();
 }
 
-static const std::string dsn_log_prefixed_message_func()
+static std::string dsn_log_prefixed_message_func()
 {
     char res[100];
 
