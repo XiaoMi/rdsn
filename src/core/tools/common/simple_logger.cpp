@@ -53,13 +53,6 @@ DSN_DEFINE_validator(stderr_start_level, [](const char *level) -> bool {
     return strcmp(level, "LOG_LEVEL_INVALID") != 0;
 });
 
-std::function<std::string()> log_prefixed_message_func = []() {
-    int tid = dsn::utils::get_current_tid();
-    char res[25];
-    sprintf(res, "unknow.io-thrd.%05d: ", tid);
-    return std::string(res);
-};
-
 static void print_header(FILE *fp, dsn_log_level_t log_level)
 {
     static char s_level_char[] = "IDWEF";
@@ -69,7 +62,6 @@ static void print_header(FILE *fp, dsn_log_level_t log_level)
     dsn::utils::time_ms_to_string(ts / 1000000, str);
 
     int tid = dsn::utils::get_current_tid();
-
     fprintf(fp,
             "%c%s (%" PRIu64 " %04x) %s",
             s_level_char[log_level],

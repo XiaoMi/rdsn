@@ -86,8 +86,6 @@ private:
     static logging_provider *create_default_instance();
 };
 
-namespace tools {
 void set_log_prefixed_message_func(std::function<std::string()> func);
-} // namespace tools
-
+extern std::function<std::string()> log_prefixed_message_func;
 } // namespace dsn
