@@ -293,20 +293,22 @@ inline void dsn_global_init()
 
 static std::string dsn_log_prefixed_message_func()
 {
-    char res[100];
+    std::string res;
+    res.resize(100);
+    char *prefixed_message = const_cast<char *>(res.c_str());
 
     int tid = dsn::utils::get_current_tid();
     auto t = dsn::task::get_current_task_id();
     if (t) {
         if (nullptr != dsn::task::get_current_worker2()) {
-            sprintf(res,
+            sprintf(prefixed_message,
                     "%6s.%7s%d.%016" PRIx64 ": ",
                     dsn::task::get_current_node_name(),
                     dsn::task::get_current_worker2()->pool_spec().name.c_str(),
                     dsn::task::get_current_worker2()->index(),
                     t);
         } else {
-            sprintf(res,
+            sprintf(prefixed_message,
                     "%6s.%7s.%05d.%016" PRIx64 ": ",
                     dsn::task::get_current_node_name(),
                     "io-thrd",
@@ -315,13 +317,17 @@ static std::string dsn_log_prefixed_message_func()
         }
     } else {
         if (nullptr != dsn::task::get_current_worker2()) {
-            sprintf(res,
+            sprintf(prefixed_message,
                     "%6s.%7s%u: ",
                     dsn::task::get_current_node_name(),
                     dsn::task::get_current_worker2()->pool_spec().name.c_str(),
                     dsn::task::get_current_worker2()->index());
         } else {
-            sprintf(res, "%6s.%7s.%05d: ", dsn::task::get_current_node_name(), "io-thrd", tid);
+            sprintf(prefixed_message,
+                    "%6s.%7s.%05d: ",
+                    dsn::task::get_current_node_name(),
+                    "io-thrd",
+                    tid);
         }
     }
 
