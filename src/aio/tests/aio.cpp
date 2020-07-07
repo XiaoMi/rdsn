@@ -28,10 +28,10 @@
 #include <dsn/utility/filesystem.h>
 
 #include <gtest/gtest.h>
-#include "core/tests/test_utils.h"
 
 using namespace ::dsn;
 
+DEFINE_THREAD_POOL_CODE(THREAD_POOL_TEST_SERVER)
 DEFINE_TASK_CODE_AIO(LPC_AIO_TEST, TASK_PRIORITY_COMMON, THREAD_POOL_TEST_SERVER);
 
 TEST(core, aio)
