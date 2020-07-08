@@ -194,12 +194,12 @@ struct aio_result
 TEST(core, dsn_file)
 {
     int64_t fin_size, fout_size;
-    ASSERT_TRUE(utils::filesystem::file_size("command.txt", fin_size));
+    ASSERT_TRUE(utils::filesystem::file_size("copy_source.txt", fin_size));
     ASSERT_LT(0, fin_size);
 
-    dsn::disk_file *fin = file::open("command.txt", O_RDONLY, 0);
+    dsn::disk_file *fin = file::open("copy_source.txt", O_RDONLY, 0);
     ASSERT_NE(nullptr, fin);
-    dsn::disk_file *fout = file::open("command.copy.txt", O_RDWR | O_CREAT | O_TRUNC, 0666);
+    dsn::disk_file *fout = file::open("copy_dest.txt", O_RDWR | O_CREAT | O_TRUNC, 0666);
     ASSERT_NE(nullptr, fout);
     char buffer[1024];
     uint64_t offset = 0;
@@ -268,6 +268,6 @@ TEST(core, dsn_file)
     ASSERT_EQ(ERR_OK, file::close(fout));
     ASSERT_EQ(ERR_OK, file::close(fin));
 
-    ASSERT_TRUE(utils::filesystem::file_size("command.copy.txt", fout_size));
+    ASSERT_TRUE(utils::filesystem::file_size("copy_dest.txt", fout_size));
     ASSERT_EQ(fin_size, fout_size);
 }
