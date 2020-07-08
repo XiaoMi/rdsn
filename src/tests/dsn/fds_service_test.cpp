@@ -6,7 +6,7 @@
 #include <memory>
 #include <fstream>
 
-#include "dist/block_service/fds/fds_service.h"
+#include "block_service/fds/fds_service.h"
 
 using namespace dsn;
 using namespace dsn::dist::block_service;
