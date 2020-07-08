@@ -14,7 +14,7 @@ set(MY_PROJ_LIBS
 set(MY_BOOST_LIBS Boost::system Boost::filesystem)
 
 set(MY_BINPLACES
-    "run.sh"
+    "${CMAKE_CURRENT_SOURCE_DIR}/run.sh"
 )
 
 dsn_add_test()
