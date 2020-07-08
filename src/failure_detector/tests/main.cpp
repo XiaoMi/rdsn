@@ -63,14 +63,6 @@ public:
         testing::InitGoogleTest(&argc, argv);
         g_test_ret = RUN_ALL_TESTS();
         g_test_count = 1;
-        /*
-                // exit without any destruction
-        # if defined(_WIN32)
-                ::ExitProcess(0);
-        # else
-                kill(getpid(), SIGKILL);
-        # endif
-        */
         return ::dsn::ERR_OK;
     }
 
@@ -83,7 +75,7 @@ GTEST_API_ int main(int argc, char **argv)
 
     // register all possible services
     dsn::service_app::register_factory<test_client>("test");
-    lock_test_init();
+    fd_test_init();
 
     // specify what services and tools will run in config file, then run
     if (argc < 2)
