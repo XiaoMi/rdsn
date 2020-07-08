@@ -750,6 +750,8 @@ bool replica::update_local_configuration(const replica_configuration &config,
             max_prepared_decree(),
             last_committed_decree());
 
+    _bulk_loader->clear_bulk_load_states_if_needed(config.status);
+
     // Notice: there has five ways that primary can change its partition_status
     //   1, primary change partition config, such as add/remove secondary
     //   2, downgrage to secondary because of load balance
@@ -773,7 +775,6 @@ bool replica::update_local_configuration(const replica_configuration &config,
             break;
         case partition_status::PS_INACTIVE:
             _primary_states.cleanup(old_ballot != config.ballot);
-            _bulk_loader->clear_bulk_load_states();
             // here we use wheather ballot changes and wheather disconnecting with meta to
             // distinguish different case above mentioned
             if (old_ballot == config.ballot && _stub->is_connected()) {
@@ -792,7 +793,6 @@ bool replica::update_local_configuration(const replica_configuration &config,
             // upload
             set_backup_context_cancel();
             clear_cold_backup_state();
-            _bulk_loader->clear_bulk_load_states();
             break;
         case partition_status::PS_POTENTIAL_SECONDARY:
             dassert(false, "invalid execution path");
@@ -803,7 +803,6 @@ bool replica::update_local_configuration(const replica_configuration &config,
         break;
     case partition_status::PS_SECONDARY:
         cleanup_preparing_mutations(false);
-        _bulk_loader->clear_bulk_load_states();
         if (config.status != partition_status::PS_SECONDARY) {
             // if primary change the ballot, secondary will update ballot from A to
             // A+1, we don't need clear cold backup context when this case
