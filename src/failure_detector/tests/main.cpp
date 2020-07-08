@@ -46,7 +46,7 @@
 int g_test_count = 0;
 int g_test_ret = 0;
 
-extern void lock_test_init();
+extern void fd_test_init();
 
 class test_client : public ::dsn::service_app
 {
