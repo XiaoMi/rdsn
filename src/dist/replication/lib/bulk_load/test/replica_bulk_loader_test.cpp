@@ -519,13 +519,13 @@ TEST_F(replica_bulk_loader_test, bulk_load_finish_test)
     // Test cases
     // - bulk load succeed
     // - double bulk load finish
-    //  TODO(heyuchen): add following cases
-    //  istatus, is_ingestion, create_dir will be used in further tests
-    // - failed during downloading
-    // - failed during ingestion
     // - cancel during downloaded
     // - cancel during ingestion
     // - cancel during succeed
+    // - failed during downloading
+    // - failed during ingestion
+    // Tip: bulk load dir will be removed if bulk load finished, so we should create dir before some
+    // cases
     struct test_struct
     {
         bulk_load_status::type local_status;
@@ -545,7 +545,37 @@ TEST_F(replica_bulk_loader_test, bulk_load_finish_test)
                ingestion_status::IS_INVALID,
                false,
                bulk_load_status::BLS_SUCCEED,
-               false}};
+               false},
+              {bulk_load_status::BLS_DOWNLOADED,
+               100,
+               ingestion_status::IS_INVALID,
+               false,
+               bulk_load_status::BLS_CANCELED,
+               true},
+              {bulk_load_status::BLS_INGESTING,
+               100,
+               ingestion_status::type::IS_RUNNING,
+               true,
+               bulk_load_status::BLS_CANCELED,
+               true},
+              {bulk_load_status::BLS_SUCCEED,
+               100,
+               ingestion_status::IS_INVALID,
+               false,
+               bulk_load_status::BLS_CANCELED,
+               true},
+              {bulk_load_status::BLS_DOWNLOADING,
+               10,
+               ingestion_status::IS_INVALID,
+               false,
+               bulk_load_status::BLS_FAILED,
+               true},
+              {bulk_load_status::BLS_INGESTING,
+               100,
+               ingestion_status::type::IS_FAILED,
+               false,
+               bulk_load_status::BLS_FAILED,
+               true}};
 
     for (auto test : tests) {
         if (test.create_dir) {

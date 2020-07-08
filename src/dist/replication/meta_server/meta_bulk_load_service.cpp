@@ -575,24 +575,27 @@ void bulk_load_service::handle_bulk_load_finish(const bulk_load_response &respon
     const std::string &app_name = response.app_name;
     const gpid &pid = response.pid;
 
-    dassert_f(
-        response.__isset.is_group_bulk_load_context_cleaned_up,
-        "receive bulk load response from node({}) app({}), partition({}), primary_status({}), "
-        "but is_group_bulk_load_context_cleaned_up is not set",
-        primary_addr.to_string(),
-        app_name,
-        pid,
-        dsn::enum_to_string(response.primary_bulk_load_status));
+    if (!response.__isset.is_group_bulk_load_context_cleaned_up) {
+        dwarn_f("receive bulk load response from node({}) app({}) partition({}), "
+                "primary_status({}), but is_group_bulk_load_context_cleaned_up is not set",
+                primary_addr.to_string(),
+                app_name,
+                pid,
+                dsn::enum_to_string(response.primary_bulk_load_status));
+        return;
+    }
 
     for (const auto &kv : response.group_bulk_load_state) {
-        dassert_f(kv.second.__isset.is_cleaned_up,
-                  "receive bulk load response from node({}) app({}), partition({}), "
-                  "primary_status({}), but node({}) is_cleaned_up is not set",
-                  primary_addr.to_string(),
-                  app_name,
-                  pid,
-                  dsn::enum_to_string(response.primary_bulk_load_status),
-                  kv.first.to_string());
+        if (!kv.second.__isset.is_cleaned_up) {
+            dwarn_f("receive bulk load response from node({}) app({}), partition({}), "
+                    "primary_status({}), but node({}) is_cleaned_up is not set",
+                    primary_addr.to_string(),
+                    app_name,
+                    pid,
+                    dsn::enum_to_string(response.primary_bulk_load_status),
+                    kv.first.to_string());
+            return;
+        }
     }
 
     {
@@ -709,15 +712,21 @@ void bulk_load_service::try_rollback_to_downloading(const std::string &app_name,
 // ThreadPool: THREAD_POOL_META_STATE
 void bulk_load_service::handle_bulk_load_failed(int32_t app_id)
 {
-    // TODO(heyuchen): TBD
-    // replica meets serious error during bulk load, such as file on remote storage is damaged
-    // should stop bulk load process, set bulk load failed
+    zauto_write_lock l(_lock);
+    if (!_apps_cleaning_up[app_id]) {
+        _apps_cleaning_up[app_id] = true;
+        update_app_status_on_remote_storage_unlocked(app_id, bulk_load_status::BLS_FAILED);
+    }
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
 void bulk_load_service::handle_app_unavailable(int32_t app_id, const std::string &app_name)
 {
-    // TODO(heyuchen): TBD
+    zauto_write_lock l(_lock);
+    if (is_app_bulk_loading_unlocked(app_id) && !_apps_cleaning_up[app_id]) {
+        _apps_cleaning_up[app_id] = true;
+        remove_bulk_load_dir_on_remote_storage(app_id, app_name);
+    }
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
@@ -796,7 +805,6 @@ void bulk_load_service::update_partition_status_on_remote_storage_reply(
                  dsn::enum_to_string(old_status),
                  dsn::enum_to_string(new_status));
 
-        // TODO(heyuchen): add other status
         switch (new_status) {
         case bulk_load_status::BLS_DOWNLOADED:
         case bulk_load_status::BLS_INGESTING:
@@ -819,6 +827,7 @@ void bulk_load_service::update_partition_status_on_remote_storage_reply(
             }
             break;
         default:
+            // do nothing in other status
             break;
         }
     }
@@ -909,9 +918,10 @@ void bulk_load_service::update_app_status_on_remote_storage_reply(const app_bulk
         }
     }
 
-    // TODO(heyuchen): add other status
     if (new_status == bulk_load_status::BLS_PAUSING ||
-        new_status == bulk_load_status::BLS_DOWNLOADING) {
+        new_status == bulk_load_status::BLS_DOWNLOADING ||
+        new_status == bulk_load_status::BLS_CANCELED ||
+        new_status == bulk_load_status::BLS_FAILED) {
         for (int i = 0; i < ainfo.partition_count; ++i) {
             update_partition_status_on_remote_storage(
                 ainfo.app_name, gpid(app_id, i), new_status, should_send_request);
@@ -1084,7 +1094,7 @@ void bulk_load_service::reset_local_bulk_load_states(int32_t app_id, const std::
     erase_map_elem_by_id(app_id, _partition_bulk_load_info);
     erase_map_elem_by_id(app_id, _partitions_total_download_progress);
     erase_map_elem_by_id(app_id, _partitions_cleaned_up);
-    // TODO(heyuchen): add other varieties
+    _apps_cleaning_up.erase(app_id);
     _bulk_load_app_id.erase(app_id);
     ddebug_f("reset local app({}) bulk load context", app_name);
 }
@@ -1175,9 +1185,28 @@ void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
                                    bulk_load_status::BLS_DOWNLOADING,
                                    true));
     case bulk_load_control_type::BLC_CANCEL:
-    // TODO(heyuchen): TBD
+        if (app_status != bulk_load_status::BLS_DOWNLOADING &&
+            app_status != bulk_load_status::BLS_PAUSED) {
+            auto hint_msg = fmt::format("can not cancel bulk load for app({}) with status({})",
+                                        app_name,
+                                        dsn::enum_to_string(app_status));
+            derror_f("{}", hint_msg);
+            response.err = ERR_INVALID_STATE;
+            response.__set_hint_msg(hint_msg);
+            return;
+        }
     case bulk_load_control_type::BLC_FORCE_CANCEL:
-    // TODO(heyuchen): TBD
+        ddebug_f("app({}) start to {} cancel bulk load, original status = {}",
+                 app_name,
+                 control_type == bulk_load_control_type::BLC_FORCE_CANCEL ? "force" : "",
+                 dsn::enum_to_string(app_status));
+        tasking::enqueue(LPC_META_STATE_NORMAL,
+                         _meta_svc->tracker(),
+                         std::bind(&bulk_load_service::update_app_status_on_remote_storage_unlocked,
+                                   this,
+                                   app_id,
+                                   bulk_load_status::BLS_CANCELED,
+                                   app_status == bulk_load_status::BLS_PAUSED));
     default:
         break;
     }
