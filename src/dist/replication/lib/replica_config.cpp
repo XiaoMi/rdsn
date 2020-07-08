@@ -38,6 +38,7 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
+#include "bulk_load/replica_bulk_loader.h"
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/fail_point.h>
@@ -772,6 +773,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
             break;
         case partition_status::PS_INACTIVE:
             _primary_states.cleanup(old_ballot != config.ballot);
+            _bulk_loader->clear_bulk_load_states();
             // here we use wheather ballot changes and wheather disconnecting with meta to
             // distinguish different case above mentioned
             if (old_ballot == config.ballot && _stub->is_connected()) {
@@ -790,6 +792,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
             // upload
             set_backup_context_cancel();
             clear_cold_backup_state();
+            _bulk_loader->clear_bulk_load_states();
             break;
         case partition_status::PS_POTENTIAL_SECONDARY:
             dassert(false, "invalid execution path");
@@ -800,6 +803,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
         break;
     case partition_status::PS_SECONDARY:
         cleanup_preparing_mutations(false);
+        _bulk_loader->clear_bulk_load_states();
         if (config.status != partition_status::PS_SECONDARY) {
             // if primary change the ballot, secondary will update ballot from A to
             // A+1, we don't need clear cold backup context when this case
