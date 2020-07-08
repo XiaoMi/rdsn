@@ -29,7 +29,7 @@
 #include <dsn/utility/time_utils.h>
 
 #include "dist/replication/meta_server/server_load_balancer.h"
-#include "dist/replication/meta_server/meta_server_failure_detector.h"
+#include "failure_detector/meta_server_failure_detector.h"
 #include "dist/replication/meta_server/meta_http_service.h"
 #include "dist/replication/meta_server/duplication/meta_duplication_service.h"
 #include "dist/replication/test/meta_test/misc/misc.h"

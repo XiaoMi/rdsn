@@ -43,7 +43,7 @@
 #include "dist/replication/lib/mutation_log.h"
 
 #include "dist/replication/meta_server/meta_service.h"
-#include "dist/replication/meta_server/meta_server_failure_detector.h"
+#include "failure_detector/meta_server_failure_detector.h"
 #include "dist/replication/meta_server/server_state.h"
 
 namespace dsn {

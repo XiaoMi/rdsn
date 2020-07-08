@@ -14,7 +14,7 @@
 #include <dsn/utility/time_utils.h>
 
 #include "meta_http_service.h"
-#include "meta_server_failure_detector.h"
+#include "failure_detector/meta_server_failure_detector.h"
 #include "server_load_balancer.h"
 #include "server_state.h"
 #include "duplication/meta_duplication_service.h"

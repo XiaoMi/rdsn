@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 #include "dist/replication/meta_server/server_load_balancer.h"
-#include "dist/replication/meta_server/meta_server_failure_detector.h"
+#include "failure_detector/meta_server_failure_detector.h"
 #include "dist/replication/meta_server/meta_split_service.h"
 #include "dist/replication/meta_server/meta_bulk_load_service.h"
 #include "dist/replication/test/meta_test/misc/misc.h"
