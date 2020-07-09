@@ -223,7 +223,7 @@ error_code replica_bulk_loader::do_bulk_load(const std::string &app_name,
     }
 
     bulk_load_status::type local_status = _status;
-    error_code ec = validate_bulk_load_status(meta_status, local_status);
+    error_code ec = validate_status(meta_status, local_status);
     if (ec != ERR_OK) {
         derror_replica("invalid bulk load status, remote = {}, local = {}",
                        enum_to_string(meta_status),
@@ -271,8 +271,9 @@ error_code replica_bulk_loader::do_bulk_load(const std::string &app_name,
     return ec;
 }
 
-error_code replica_bulk_loader::validate_bulk_load_status(bulk_load_status::type meta_status,
-                                                          bulk_load_status::type local_status)
+/*static*/ error_code
+replica_bulk_loader::validate_status(const bulk_load_status::type meta_status,
+                                     const bulk_load_status::type local_status)
 {
     error_code err = ERR_OK;
     switch (meta_status) {

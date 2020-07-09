@@ -153,9 +153,10 @@ public:
         _bulk_loader->on_group_bulk_load_reply(rpc_error, _group_req, resp);
     }
 
-    bool validate_status(bulk_load_status::type meta_status, bulk_load_status::type local_status)
+    bool validate_status(const bulk_load_status::type meta_status,
+                         const bulk_load_status::type local_status)
     {
-        return _bulk_loader->validate_bulk_load_status(meta_status, local_status) == ERR_OK;
+        return replica_bulk_loader::validate_status(meta_status, local_status) == ERR_OK;
     }
 
     /// mock structure functions
@@ -846,8 +847,8 @@ TEST_F(replica_bulk_loader_test, on_group_bulk_load_reply_rpc_error)
     ASSERT_TRUE(is_secondary_bulk_load_state_reset());
 }
 
-// validate_bulk_load_status unit test
-TEST_F(replica_bulk_loader_test, validate_bulk_load_status_test)
+// validate_status unit test
+TEST_F(replica_bulk_loader_test, validate_status_test)
 {
     struct validate_struct
     {
