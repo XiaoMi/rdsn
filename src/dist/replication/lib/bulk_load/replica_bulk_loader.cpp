@@ -274,8 +274,53 @@ error_code replica_bulk_loader::do_bulk_load(const std::string &app_name,
 error_code replica_bulk_loader::validate_bulk_load_status(bulk_load_status::type meta_status,
                                                           bulk_load_status::type local_status)
 {
-    // TODO(heyuchen): TBD
-    return ERR_OK;
+    error_code err = ERR_OK;
+    switch (meta_status) {
+    case bulk_load_status::BLS_DOWNLOADING:
+        if (local_status == bulk_load_status::BLS_FAILED ||
+            local_status == bulk_load_status::BLS_PAUSING ||
+            local_status == bulk_load_status::BLS_CANCELED) {
+            err = ERR_INVALID_STATE;
+        }
+        break;
+    case bulk_load_status::BLS_DOWNLOADED:
+        if (local_status != bulk_load_status::BLS_DOWNLOADED) {
+            err = ERR_INVALID_STATE;
+        }
+        break;
+    case bulk_load_status::BLS_INGESTING:
+        if (local_status != bulk_load_status::BLS_DOWNLOADED &&
+            local_status != bulk_load_status::BLS_INGESTING) {
+            err = ERR_INVALID_STATE;
+        }
+        break;
+    case bulk_load_status::BLS_SUCCEED:
+        if (local_status != bulk_load_status::BLS_INGESTING &&
+            local_status != bulk_load_status::BLS_SUCCEED &&
+            local_status != bulk_load_status::BLS_INVALID) {
+            err = ERR_INVALID_STATE;
+        }
+        break;
+    case bulk_load_status::BLS_PAUSING:
+        if (local_status != bulk_load_status::BLS_INVALID &&
+            local_status != bulk_load_status::BLS_DOWNLOADING &&
+            local_status != bulk_load_status::BLS_DOWNLOADED &&
+            local_status != bulk_load_status::BLS_PAUSING &&
+            local_status != bulk_load_status::BLS_PAUSED) {
+            err = ERR_INVALID_STATE;
+        }
+        break;
+    case bulk_load_status::BLS_PAUSED:
+        err = ERR_INVALID_STATE;
+        break;
+    case bulk_load_status::BLS_INVALID:
+    case bulk_load_status::BLS_CANCELED:
+    case bulk_load_status::BLS_FAILED:
+        break;
+    default:
+        break;
+    }
+    return err;
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
