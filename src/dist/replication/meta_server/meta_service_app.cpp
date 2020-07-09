@@ -34,7 +34,7 @@
 
 #include "dist/http/server_info_http_services.h"
 #include "zookeeper/distributed_lock_service_zookeeper.h"
-#include "zookeeper/meta_state_service_zookeeper.h"
+#include "meta_state_service_zookeeper.h"
 
 #include "server_load_balancer.h"
 #include "greedy_load_balancer.h"
