@@ -313,11 +313,8 @@ error_code replica_bulk_loader::validate_bulk_load_status(bulk_load_status::type
     case bulk_load_status::BLS_PAUSED:
         err = ERR_INVALID_STATE;
         break;
-    case bulk_load_status::BLS_INVALID:
-    case bulk_load_status::BLS_CANCELED:
-    case bulk_load_status::BLS_FAILED:
-        break;
     default:
+        // no limit in other status
         break;
     }
     return err;
