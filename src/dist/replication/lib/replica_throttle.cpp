@@ -28,18 +28,19 @@ bool replica::throttle_request(throttling_controller &controller,
         if (type == throttling_controller::DELAY) {
             tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
                              &_tracker,
-                             [this, req = message_ptr(request)]() { on_client_write(req, true); },
+                             [ this, req = message_ptr(request) ]() { on_client_write(req, true); },
                              get_gpid().thread_hash(),
                              std::chrono::milliseconds(delay_ms));
             _counter_recent_write_throttling_delay_count->increment();
         } else { // type == throttling_controller::REJECT
             if (delay_ms > 0) {
-                tasking::enqueue(
-                    LPC_WRITE_THROTTLING_DELAY,
-                    &_tracker,
-                    [this, req = message_ptr(request)]() { response_client_write(req, ERR_BUSY); },
-                    get_gpid().thread_hash(),
-                    std::chrono::milliseconds(delay_ms));
+                tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
+                                 &_tracker,
+                                 [ this, req = message_ptr(request) ]() {
+                                     response_client_write(req, ERR_BUSY);
+                                 },
+                                 get_gpid().thread_hash(),
+                                 std::chrono::milliseconds(delay_ms));
             } else {
                 response_client_write(request, ERR_BUSY);
             }
