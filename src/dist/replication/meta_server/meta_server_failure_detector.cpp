@@ -37,9 +37,9 @@
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/fmt_logging.h>
 #include "meta_server_failure_detector.h"
-#include "dist/replication/meta_server/server_state.h"
-#include "dist/replication/meta_server/meta_service.h"
-#include "dist/replication/meta_server/meta_options.h"
+#include "server_state.h"
+#include "meta_service.h"
+#include "meta_options.h"
 
 #include <chrono>
 #include <thread>
