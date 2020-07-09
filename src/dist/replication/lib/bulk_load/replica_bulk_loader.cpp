@@ -183,9 +183,33 @@ void replica_bulk_loader::on_group_bulk_load_reply(error_code err,
 
     _replica->_primary_states.group_bulk_load_pending_replies.erase(req.target_address);
 
-    // TODO(heyuchen): TBD
-    // if error happened, reset secondary bulk_load_state
-    // otherwise, set secondary bulk_load_states from resp
+    if (err != ERR_OK) {
+        derror_replica("failed to receive group_bulk_load_reply from {}, error = {}",
+                       req.target_address.to_string(),
+                       err.to_string());
+        _replica->_primary_states.reset_node_bulk_load_states(req.target_address);
+        return;
+    }
+
+    if (resp.err != ERR_OK) {
+        derror_replica("receive group_bulk_load response from {} failed, error = {}",
+                       req.target_address.to_string(),
+                       resp.err.to_string());
+        _replica->_primary_states.reset_node_bulk_load_states(req.target_address);
+        return;
+    }
+
+    if (req.config.ballot != get_ballot()) {
+        derror_replica("recevied wrong group_bulk_load response from {}, request ballot = {}, "
+                       "current ballot = {}",
+                       req.target_address.to_string(),
+                       req.config.ballot,
+                       get_ballot());
+        _replica->_primary_states.reset_node_bulk_load_states(req.target_address);
+        return;
+    }
+
+    _replica->_primary_states.secondary_bulk_load_states[req.target_address] = resp.bulk_load_state;
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
@@ -233,10 +257,13 @@ error_code replica_bulk_loader::do_bulk_load(const std::string &app_name,
     case bulk_load_status::BLS_PAUSING:
         pause_bulk_load();
         break;
-    case bulk_load_status::BLS_CANCELED: {
+    case bulk_load_status::BLS_CANCELED:
         handle_bulk_load_finish(bulk_load_status::BLS_CANCELED);
-    } break;
-    // TODO(heyuchen): add other bulk load status
+        break;
+    case bulk_load_status::BLS_FAILED:
+        handle_bulk_load_finish(bulk_load_status::BLS_FAILED);
+        // TODO(heyuchen): add perf-counter here
+        break;
     default:
         break;
     }
@@ -481,7 +508,9 @@ void replica_bulk_loader::handle_bulk_load_finish(bulk_load_status::type new_sta
     }
 
     if (status() == partition_status::PS_PRIMARY) {
-        // TODO(heyuchen): cleanup _primary_states.secondary_bulk_load_states
+        for (const auto &target_address : _replica->_primary_states.membership.secondaries) {
+            _replica->_primary_states.reset_node_bulk_load_states(target_address);
+        }
     }
 
     ddebug_replica("bulk load finished, old_status = {}, new_status = {}",
@@ -540,7 +569,7 @@ void replica_bulk_loader::clear_bulk_load_states()
     _replica->_is_bulk_load_ingestion = false;
     _replica->_app->set_ingestion_status(ingestion_status::IS_INVALID);
 
-    // TODO(heyuchen): clear other states
+    // TODO(heyuchen): clear other states for perf-counter
 
     _status = bulk_load_status::BLS_INVALID;
 }
@@ -604,12 +633,12 @@ void replica_bulk_loader::report_bulk_load_states_to_meta(bulk_load_status::type
         break;
     case bulk_load_status::BLS_SUCCEED:
     case bulk_load_status::BLS_CANCELED:
+    case bulk_load_status::BLS_FAILED:
         report_group_cleaned_up(response);
         break;
     case bulk_load_status::BLS_PAUSING:
         report_group_is_paused(response);
         break;
-    // TODO(heyuchen): add other status
     default:
         break;
     }
@@ -795,18 +824,29 @@ void replica_bulk_loader::report_bulk_load_states_to_primary(
         break;
     case bulk_load_status::BLS_SUCCEED:
     case bulk_load_status::BLS_CANCELED:
+    case bulk_load_status::BLS_FAILED:
         bulk_load_state.__set_is_cleaned_up(is_cleaned_up());
         break;
     case bulk_load_status::BLS_PAUSING:
         bulk_load_state.__set_is_paused(local_status == bulk_load_status::BLS_PAUSED);
         break;
-    // TODO(heyuchen): add other status
     default:
         break;
     }
 
     response.status = local_status;
     response.bulk_load_state = bulk_load_state;
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_bulk_loader::clear_bulk_load_states_if_needed(partition_status::type new_status)
+{
+    partition_status::type old_status = status();
+    if ((new_status == partition_status::PS_PRIMARY ||
+         new_status == partition_status::PS_SECONDARY) &&
+        new_status != old_status) {
+        clear_bulk_load_states();
+    }
 }
 
 } // namespace replication
