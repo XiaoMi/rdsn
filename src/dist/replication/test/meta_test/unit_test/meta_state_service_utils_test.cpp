@@ -44,7 +44,7 @@ struct meta_state_service_utils_test : ::testing::Test
         error_code err = _svc->initialize({});
         ASSERT_EQ(err, ERR_OK);
 
-        _storage = new mss::meta_storage(_svc, &_tracker);
+        _storage = new mss::meta_storage(_svc, &_tracker, LPC_META_STATE_HIGH);
     }
 
     void TearDown() override

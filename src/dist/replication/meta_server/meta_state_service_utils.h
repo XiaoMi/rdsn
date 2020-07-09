@@ -35,8 +35,6 @@ namespace mss { // abbreviation of meta_state_service
 /// This class is a convenience wrapper over meta_state_service.
 /// It wraps every operation with a simple error handling mechanism, and provides utilities
 /// like recursive node creation.
-/// Notice: The operations always run in THREAD_POOL_META_STATE: LPC_META_STATE_HIGH.
-///         This class is thread-safe.
 ///
 /// ERROR HANDLING:
 /// Currently it retries for every timeout(ERR_TIMEOUT) operation infinitely,
@@ -46,7 +44,9 @@ namespace mss { // abbreviation of meta_state_service
 /// \see meta_state_service_utils_impl.h # operation
 struct meta_storage
 {
-    meta_storage(dist::meta_state_service *remote_storage, task_tracker *tracker);
+    meta_storage(dist::meta_state_service *remote_storage,
+                 task_tracker *tracker,
+                 task_code callback_code);
 
     ~meta_storage();
 
@@ -81,6 +81,7 @@ private:
 
     dist::meta_state_service *_remote;
     dsn::task_tracker *_tracker;
+    task_code _cb_code;
 };
 
 } // namespace mss
