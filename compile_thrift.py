@@ -65,7 +65,7 @@ thrift_description = [
     },
     {
         "name": "nfs",
-        "path": "src/dist/nfs",
+        "path": "src/nfs",
         "include_fix": {
             "_types.h": {
                 "add": ["<dsn/service_api_cpp.h>"],
@@ -79,10 +79,10 @@ thrift_description = [
     },
     {
         "name": "command",
-        "path": "src/dist/cmd",
+        "path": "src/remote_cmd",
         "file_move": {
-            "_types.h": "src/dist/cmd",
-            "_types.cpp": "src/dist/cmd"
+            "_types.h": "src/remote_cmd",
+            "_types.cpp": "src/remote_cmd"
         }
     }
 ]
