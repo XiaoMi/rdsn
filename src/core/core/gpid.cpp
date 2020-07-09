@@ -25,7 +25,7 @@
  */
 #include <dsn/utility/fixed_size_buffer_pool.h>
 #include <dsn/tool-api/gpid.h>
-#include <cstring>
+#include <dsn/cpp/json_helper.h>
 
 namespace dsn {
 
@@ -41,4 +41,15 @@ const char *gpid::to_string() const
     snprintf(b, bf.get_chunk_size(), "%d.%d", _value.u.app_id, _value.u.partition_index);
     return b;
 }
+
+namespace json {
+// json serialization for gpid, we treat it as string: "app_id.partition_id"
+void json_encode(JsonWriter &out, const dsn::gpid &pid) { json_encode(out, pid.to_string()); }
+bool json_decode(const dsn::json::JsonObject &in, dsn::gpid &pid)
+{
+    std::string gpid_message;
+    dverify(json_decode(in, gpid_message));
+    return pid.parse_from(gpid_message.c_str());
 }
+} // namespace json
+} // namespace dsn

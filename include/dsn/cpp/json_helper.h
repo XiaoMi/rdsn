@@ -214,11 +214,11 @@
     }
 
 #define NON_MEMBER_JSON_SERIALIZATION(type, ...)                                                   \
-    inline void json_encode(dsn::json::JsonWriter &output, const type &t)                          \
+    void json_encode(dsn::json::JsonWriter &output, const type &t)                                 \
     {                                                                                              \
         JSON_ENCODE_ENTRIES(output, t, __VA_ARGS__);                                               \
     }                                                                                              \
-    inline bool json_decode(const dsn::json::JsonObject &input, type &t)                           \
+    bool json_decode(const dsn::json::JsonObject &input, type &t)                                  \
     {                                                                                              \
         JSON_DECODE_ENTRIES(input, t, __VA_ARGS__);                                                \
     }
@@ -339,40 +339,21 @@ ENUM_TYPE_SERIALIZATION(dsn::replication::bulk_load_status::type,
                         dsn::replication::bulk_load_status::BLS_INVALID)
 
 // json serialization for gpid, we treat it as string: "app_id.partition_id"
-inline void json_encode(JsonWriter &out, const dsn::gpid &pid)
-{
-    json_encode(out, pid.to_string());
-}
-inline bool json_decode(const dsn::json::JsonObject &in, dsn::gpid &pid)
-{
-    std::string gpid_message;
-    dverify(json_decode(in, gpid_message));
-    return pid.parse_from(gpid_message.c_str());
-}
+void json_encode(JsonWriter &out, const dsn::gpid &pid);
+bool json_decode(const dsn::json::JsonObject &in, dsn::gpid &pid);
 
 // json serialization for rpc address, we use the string representation of a address
-inline void json_encode(JsonWriter &out, const dsn::rpc_address &address)
-{
-    json_encode(out, address.to_string());
-}
-inline bool json_decode(const dsn::json::JsonObject &in, dsn::rpc_address &address)
-{
-    std::string rpc_address_string;
-    dverify(json_decode(in, rpc_address_string));
-    if (rpc_address_string == "invalid address") {
-        return true;
-    }
-    return address.from_string_ipv4(rpc_address_string.c_str());
-}
+void json_encode(JsonWriter &out, const dsn::rpc_address &address);
+bool json_decode(const dsn::json::JsonObject &in, dsn::rpc_address &address);
 
-inline void json_encode(JsonWriter &out, const dsn::partition_configuration &config);
-inline bool json_decode(const JsonObject &in, dsn::partition_configuration &config);
-inline void json_encode(JsonWriter &out, const dsn::app_info &info);
-inline bool json_decode(const JsonObject &in, dsn::app_info &info);
-inline void json_encode(JsonWriter &out, const dsn::replication::file_meta &f_meta);
-inline bool json_decode(const JsonObject &in, dsn::replication::file_meta &f_meta);
-inline void json_encode(JsonWriter &out, const dsn::replication::bulk_load_metadata &metadata);
-inline bool json_decode(const JsonObject &in, dsn::replication::bulk_load_metadata &metadata);
+void json_encode(JsonWriter &out, const dsn::partition_configuration &config);
+bool json_decode(const JsonObject &in, dsn::partition_configuration &config);
+void json_encode(JsonWriter &out, const dsn::app_info &info);
+bool json_decode(const JsonObject &in, dsn::app_info &info);
+void json_encode(JsonWriter &out, const dsn::replication::file_meta &f_meta);
+bool json_decode(const JsonObject &in, dsn::replication::file_meta &f_meta);
+void json_encode(JsonWriter &out, const dsn::replication::bulk_load_metadata &metadata);
+bool json_decode(const JsonObject &in, dsn::replication::bulk_load_metadata &metadata);
 
 template <typename T>
 inline void json_encode_iterable(JsonWriter &out, const T &t)
@@ -613,34 +594,5 @@ public:
     }
 };
 
-NON_MEMBER_JSON_SERIALIZATION(dsn::partition_configuration,
-                              pid,
-                              ballot,
-                              max_replica_count,
-                              primary,
-                              secondaries,
-                              last_drops,
-                              last_committed_decree,
-                              partition_flags)
-
-NON_MEMBER_JSON_SERIALIZATION(dsn::app_info,
-                              status,
-                              app_type,
-                              app_name,
-                              app_id,
-                              partition_count,
-                              envs,
-                              is_stateful,
-                              max_replica_count,
-                              expire_second,
-                              create_second,
-                              drop_second,
-                              duplicating,
-                              init_partition_count,
-                              is_bulk_loading)
-
-NON_MEMBER_JSON_SERIALIZATION(dsn::replication::file_meta, name, size, md5)
-
-NON_MEMBER_JSON_SERIALIZATION(dsn::replication::bulk_load_metadata, files, file_total_size)
 } // namespace json
 } // namespace dsn
