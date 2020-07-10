@@ -45,7 +45,7 @@
 #include "dist/replication/meta_server/meta_options.h"
 #include "dist/replication/meta_server/meta_backup_service.h"
 #include "dist/replication/meta_server/meta_state_service_utils.h"
-#include "dist/block_service/block_service_manager.h"
+#include "block_service/block_service_manager.h"
 
 namespace dsn {
 namespace replication {
@@ -53,7 +53,6 @@ namespace replication {
 class server_state;
 class meta_server_failure_detector;
 class server_load_balancer;
-class replication_checker;
 class meta_duplication_service;
 class meta_split_service;
 class bulk_load_service;
@@ -227,7 +226,6 @@ private:
     bool check_freeze() const;
 
 private:
-    friend class replication_checker;
     friend class test::test_checker;
     friend class meta_service_test_app;
     friend class bulk_load_service_test;

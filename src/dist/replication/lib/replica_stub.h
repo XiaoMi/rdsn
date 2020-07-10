@@ -40,7 +40,7 @@
 
 #include "dist/replication/common/replication_common.h"
 #include "dist/replication/common/fs_manager.h"
-#include "dist/block_service/block_service_manager.h"
+#include "block_service/block_service_manager.h"
 #include "replica.h"
 
 namespace dsn {
@@ -59,7 +59,6 @@ typedef rpc_holder<notify_catch_up_request, notify_cacth_up_response> notify_cat
 typedef rpc_holder<group_bulk_load_request, group_bulk_load_response> group_bulk_load_rpc;
 
 class mutation_log;
-class replication_checker;
 namespace test {
 class test_checker;
 }
@@ -279,7 +278,6 @@ private:
 #endif
 
 private:
-    friend class ::dsn::replication::replication_checker;
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::replica;
     friend class ::dsn::replication::potential_secondary_context;
