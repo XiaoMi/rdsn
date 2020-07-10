@@ -20,7 +20,8 @@ bulk_load_service::bulk_load_service(meta_service *meta_svc, const std::string &
 void bulk_load_service::initialize_bulk_load_service()
 {
     task_tracker tracker;
-    _sync_bulk_load_storage.reset(new mss::meta_storage(_meta_svc->get_remote_storage(), &tracker));
+    _sync_bulk_load_storage =
+        make_unique<mss::meta_storage>(_meta_svc->get_remote_storage(), &tracker);
 
     create_bulk_load_root_dir();
     tracker.wait_outstanding_tasks();
@@ -1218,7 +1219,7 @@ void bulk_load_service::create_bulk_load_root_dir()
 {
     blob value = blob();
     std::string path = _bulk_load_root;
-    get_sync_bulk_load_storage()->create_node(std::move(path), std::move(value), [this]() {
+    _sync_bulk_load_storage->create_node(std::move(path), std::move(value), [this]() {
         ddebug_f("create bulk load root({}) succeed", _bulk_load_root);
         sync_apps_bulk_load_from_remote_stroage();
     });
