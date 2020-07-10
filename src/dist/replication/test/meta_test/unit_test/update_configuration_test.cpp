@@ -7,7 +7,7 @@
 #include "dist/replication/meta_server/meta_service.h"
 #include "dist/replication/meta_server/server_state.h"
 #include "dist/replication/meta_server/greedy_load_balancer.h"
-#include "failure_detector/meta_server_failure_detector.h"
+#include "dist/replication/meta_server/meta_server_failure_detector.h"
 #include "dist/replication/test/meta_test/misc/misc.h"
 
 #include "meta_service_test_app.h"
