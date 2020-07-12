@@ -29,16 +29,18 @@
 #include <dsn/cpp/serialization.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/process_utils.h>
+#include <dsn/utility/flags.h>
 #include <dsn/tool-api/command_manager.h>
 #include <fstream>
+#include <dsn/utility/time_utils.h>
+
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
 #endif
 
 #include "service_engine.h"
-#include "rpc_engine.h"
-#include "disk_engine.h"
-#include "task_engine.h"
+#include "core/rpc/rpc_engine.h"
+#include "core/task/task_engine.h"
 #include "coredump.h"
 
 //
@@ -275,7 +277,9 @@ tool_app *get_current_tool() { return dsn_all.tool.get(); }
 } // namespace tools
 } // namespace dsn
 
-extern void dsn_log_init(const std::string &logging_factory_name, const std::string &dir_log);
+extern void dsn_log_init(const std::string &logging_factory_name,
+                         const std::string &dir_log,
+                         std::function<std::string()> dsn_log_prefixed_message_func);
 extern void dsn_core_init();
 
 inline void dsn_global_init()
@@ -285,6 +289,49 @@ inline void dsn_global_init()
     // task queues length.
     dsn::perf_counters::instance();
     dsn::service_engine::instance();
+}
+
+static std::string dsn_log_prefixed_message_func()
+{
+    std::string res;
+    res.resize(100);
+    char *prefixed_message = const_cast<char *>(res.c_str());
+
+    int tid = dsn::utils::get_current_tid();
+    auto t = dsn::task::get_current_task_id();
+    if (t) {
+        if (nullptr != dsn::task::get_current_worker2()) {
+            sprintf(prefixed_message,
+                    "%6s.%7s%d.%016" PRIx64 ": ",
+                    dsn::task::get_current_node_name(),
+                    dsn::task::get_current_worker2()->pool_spec().name.c_str(),
+                    dsn::task::get_current_worker2()->index(),
+                    t);
+        } else {
+            sprintf(prefixed_message,
+                    "%6s.%7s.%05d.%016" PRIx64 ": ",
+                    dsn::task::get_current_node_name(),
+                    "io-thrd",
+                    tid,
+                    t);
+        }
+    } else {
+        if (nullptr != dsn::task::get_current_worker2()) {
+            sprintf(prefixed_message,
+                    "%6s.%7s%u: ",
+                    dsn::task::get_current_node_name(),
+                    dsn::task::get_current_worker2()->pool_spec().name.c_str(),
+                    dsn::task::get_current_worker2()->index());
+        } else {
+            sprintf(prefixed_message,
+                    "%6s.%7s.%05d: ",
+                    dsn::task::get_current_node_name(),
+                    "io-thrd",
+                    tid);
+        }
+    }
+
+    return res;
 }
 
 bool run(const char *config_file,
@@ -306,6 +353,8 @@ bool run(const char *config_file,
         printf("Fail to load config file %s\n", config_file);
         return false;
     }
+
+    dsn::flags_initialize();
 
     // pause when necessary
     if (dsn_config_get_value_bool("core",
@@ -384,7 +433,7 @@ bool run(const char *config_file,
 #endif
 
     // init logging
-    dsn_log_init(spec.logging_factory_name, spec.dir_log);
+    dsn_log_init(spec.logging_factory_name, spec.dir_log, dsn_log_prefixed_message_func);
 
     // prepare minimum necessary
     ::dsn::service_engine::instance().init_before_toollets(spec);

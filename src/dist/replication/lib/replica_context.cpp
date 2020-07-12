@@ -41,34 +41,10 @@
 #include "replica_stub.h"
 #include "mutation.h"
 #include "mutation_log.h"
-#include "../common/block_service_manager.h"
+#include "block_service/block_service_manager.h"
 
 namespace dsn {
 namespace replication {
-
-#define CLEANUP_TASK(task_, force)                                                                 \
-    {                                                                                              \
-        task_ptr t = task_;                                                                        \
-        if (t != nullptr) {                                                                        \
-            bool finished;                                                                         \
-            t->cancel(force, &finished);                                                           \
-            if (!finished && !dsn_task_is_running_inside(task_.get()))                             \
-                return false;                                                                      \
-            task_ = nullptr;                                                                       \
-        }                                                                                          \
-    }
-
-#define CLEANUP_TASK_ALWAYS(task_)                                                                 \
-    {                                                                                              \
-        task_ptr t = task_;                                                                        \
-        if (t != nullptr) {                                                                        \
-            bool finished;                                                                         \
-            t->cancel(false, &finished);                                                           \
-            dassert(finished || dsn_task_is_running_inside(task_.get()),                           \
-                    "task must be finished at this point");                                        \
-            task_ = nullptr;                                                                       \
-        }                                                                                          \
-    }
 
 void primary_context::cleanup(bool clean_pending_mutations)
 {
@@ -91,17 +67,29 @@ void primary_context::cleanup(bool clean_pending_mutations)
     // clean up checkpoint
     CLEANUP_TASK_ALWAYS(checkpoint_task)
 
+    // clean up register child task
+    CLEANUP_TASK_ALWAYS(register_child_task)
+
+    // cleanup group bulk load
+    for (auto &kv : group_bulk_load_pending_replies) {
+        CLEANUP_TASK_ALWAYS(kv.second);
+    }
+    group_bulk_load_pending_replies.clear();
+
     membership.ballot = 0;
 
     caught_up_children.clear();
 
     sync_send_write_request = false;
+
+    cleanup_bulk_load_states();
 }
 
 bool primary_context::is_cleaned()
 {
     return nullptr == group_check_task && nullptr == reconfiguration_task &&
-           nullptr == checkpoint_task && group_check_pending_replies.empty();
+           nullptr == checkpoint_task && group_check_pending_replies.empty() &&
+           nullptr == register_child_task && group_bulk_load_pending_replies.empty();
 }
 
 void primary_context::do_cleanup_pending_mutations(bool clean_pending_mutations)
@@ -164,6 +152,22 @@ bool primary_context::check_exist(::dsn::rpc_address node, partition_status::typ
         dassert(false, "invalid partition_status, status = %s", enum_to_string(st));
         return false;
     }
+}
+
+void primary_context::reset_node_bulk_load_states(const rpc_address &node)
+{
+    secondary_bulk_load_states[node].__set_download_progress(0);
+    secondary_bulk_load_states[node].__set_download_status(ERR_OK);
+    secondary_bulk_load_states[node].__set_ingest_status(ingestion_status::IS_INVALID);
+    secondary_bulk_load_states[node].__set_is_cleaned_up(false);
+    secondary_bulk_load_states[node].__set_is_paused(false);
+}
+
+void primary_context::cleanup_bulk_load_states()
+{
+    secondary_bulk_load_states.erase(secondary_bulk_load_states.begin(),
+                                     secondary_bulk_load_states.end());
+    ingestion_is_empty_prepare_sent = false;
 }
 
 bool secondary_context::cleanup(bool force)

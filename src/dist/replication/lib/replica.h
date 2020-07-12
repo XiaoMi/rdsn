@@ -49,7 +49,7 @@
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/dist/replication/replica_base.h>
 
-#include "dist/replication/common/replication_common.h"
+#include "common/replication_common.h"
 #include "mutation.h"
 #include "mutation_log.h"
 #include "prepare_list.h"
@@ -61,9 +61,9 @@ namespace replication {
 
 class replication_app_base;
 class replica_stub;
-class replication_checker;
 class replica_duplicator_manager;
 class replica_backup_manager;
+class replica_bulk_loader;
 
 namespace test {
 class test_checker;
@@ -186,6 +186,11 @@ public:
     void update_last_checkpoint_generate_time();
 
     //
+    // Bulk load
+    //
+    replica_bulk_loader *get_bulk_loader() const { return _bulk_loader.get(); }
+
+    //
     // Statistics
     //
     void update_commit_qps(int count);
@@ -214,11 +219,15 @@ private:
 
     /////////////////////////////////////////////////////////////////
     // 2pc
-    void init_prepare(mutation_ptr &mu, bool reconciliation);
+    // `pop_all_committed_mutations = true` will be used for ingestion empty write
+    // See more about it in `replica_bulk_loader.cpp`
+    void
+    init_prepare(mutation_ptr &mu, bool reconciliation, bool pop_all_committed_mutations = false);
     void send_prepare_message(::dsn::rpc_address addr,
                               partition_status::type status,
                               const mutation_ptr &mu,
                               int timeout_milliseconds,
+                              bool pop_all_committed_mutations = false,
                               int64_t learn_signature = invalid_signature);
     void on_append_log_completed(mutation_ptr &mu, error_code err, size_t size);
     void on_prepare_reply(std::pair<mutation_ptr, partition_status::type> pr,
@@ -330,15 +339,19 @@ private:
     /////////////////////////////////////////////////////////////////
     // replica restore from backup
     bool read_cold_backup_metadata(const std::string &file, cold_backup_metadata &backup_metadata);
-    bool verify_checkpoint(const cold_backup_metadata &backup_metadata,
-                           const std::string &chkpt_dir);
     // checkpoint on cold backup media maybe contain useless file,
     // we should abandon these file base cold_backup_metadata
     bool remove_useless_file_under_chkpt(const std::string &chkpt_dir,
                                          const cold_backup_metadata &metadata);
-    dsn::error_code download_checkpoint(const configuration_restore_request &req,
-                                        const std::string &remote_chkpt_dir,
-                                        const std::string &local_chkpt_dir);
+    void clear_restore_useless_files(const std::string &local_chkpt_dir,
+                                     const cold_backup_metadata &metadata);
+    error_code get_backup_metadata(dist::block_service::block_filesystem *fs,
+                                   const std::string &remote_chkpt_dir,
+                                   const std::string &local_chkpt_dir,
+                                   cold_backup_metadata &backup_metadata);
+    error_code download_checkpoint(const configuration_restore_request &req,
+                                   const std::string &remote_chkpt_dir,
+                                   const std::string &local_chkpt_dir);
     dsn::error_code find_valid_checkpoint(const configuration_restore_request &req,
                                           /*out*/ std::string &remote_chkpt_dir);
     dsn::error_code restore_checkpoint();
@@ -348,7 +361,7 @@ private:
 
     void report_restore_status_to_meta();
 
-    void update_restore_progress();
+    void update_restore_progress(uint64_t f_size);
 
     std::string query_compact_state() const;
 
@@ -401,6 +414,17 @@ private:
     // sync_point is the first decree after parent send write request to child synchronously
     void parent_check_sync_point_commit(decree sync_point);
 
+    // primary parent register children on meta_server
+    void register_child_on_meta(ballot b);
+    void on_register_child_on_meta_reply(dsn::error_code ec,
+                                         const register_child_request &request,
+                                         const register_child_response &response);
+    // primary sends register request to meta_server
+    void parent_send_register_request(const register_child_request &request);
+
+    // child partition has been registered on meta_server, could be active
+    void child_partition_active(const partition_configuration &config);
+
     // return true if parent status is valid
     bool parent_check_states();
 
@@ -414,7 +438,6 @@ private:
     void init_table_level_latency_counters();
 
 private:
-    friend class ::dsn::replication::replication_checker;
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::mutation_queue;
     friend class ::dsn::replication::replica_stub;
@@ -426,6 +449,7 @@ private:
     friend class replica_split_test;
     friend class replica_test;
     friend class replica_backup_manager;
+    friend class replica_bulk_loader;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -514,6 +538,11 @@ private:
     // in normal cases, _partition_version = partition_count-1
     // when replica reject client read write request, partition_version = -1
     std::atomic<int32_t> _partition_version;
+
+    // bulk load
+    std::unique_ptr<replica_bulk_loader> _bulk_loader;
+    // if replica in bulk load ingestion 2pc, will reject other write requests
+    bool _is_bulk_load_ingestion{false};
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;

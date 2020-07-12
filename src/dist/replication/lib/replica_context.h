@@ -50,6 +50,30 @@ struct remote_learner_state
 
 typedef std::unordered_map<::dsn::rpc_address, remote_learner_state> learner_map;
 
+#define CLEANUP_TASK(task_, force)                                                                 \
+    {                                                                                              \
+        task_ptr t = task_;                                                                        \
+        if (t != nullptr) {                                                                        \
+            bool finished;                                                                         \
+            t->cancel(force, &finished);                                                           \
+            if (!finished && !dsn_task_is_running_inside(task_.get()))                             \
+                return false;                                                                      \
+            task_ = nullptr;                                                                       \
+        }                                                                                          \
+    }
+
+#define CLEANUP_TASK_ALWAYS(task_)                                                                 \
+    {                                                                                              \
+        task_ptr t = task_;                                                                        \
+        if (t != nullptr) {                                                                        \
+            bool finished;                                                                         \
+            t->cancel(false, &finished);                                                           \
+            dassert(finished || dsn_task_is_running_inside(task_.get()),                           \
+                    "task must be finished at this point");                                        \
+            task_ = nullptr;                                                                       \
+        }                                                                                          \
+    }
+
 class primary_context
 {
 public:
@@ -72,6 +96,11 @@ public:
     partition_status::type get_node_status(::dsn::rpc_address addr) const;
 
     void do_cleanup_pending_mutations(bool clean_pending_mutations = true);
+
+    // reset bulk load states in secondary_bulk_load_states by node address
+    void reset_node_bulk_load_states(const rpc_address &node);
+
+    void cleanup_bulk_load_states();
 
 public:
     // membership mgr, including learners
@@ -118,6 +147,19 @@ public:
     // if app_id of `_child_gpid` is greater than zero, it means replica is during partition split,
     // otherwise, not during partition split
     bool sync_send_write_request{false};
+
+    // Used for partition split
+    // primary parent register child on meta_server task
+    dsn::task_ptr register_child_task;
+
+    // Used for bulk load
+    // group bulk_load response tasks of RPC_GROUP_BULK_LOAD for each secondary replica
+    node_tasks group_bulk_load_pending_replies;
+    // bulk_load_state of secondary replicas
+    std::unordered_map<rpc_address, partition_bulk_load_state> secondary_bulk_load_states;
+    // if primary send an empty prepare after ingestion succeed to gurantee secondary commit its
+    // ingestion request
+    bool ingestion_is_empty_prepare_sent{false};
 };
 
 class secondary_context
@@ -222,14 +264,6 @@ enum cold_backup_status
     ColdBackupFailed
 };
 const char *cold_backup_status_to_string(cold_backup_status status);
-
-struct file_meta
-{
-    std::string name;
-    int64_t size;
-    std::string md5;
-    DEFINE_JSON_SERIALIZATION(name, size, md5)
-};
 
 struct cold_backup_metadata
 {

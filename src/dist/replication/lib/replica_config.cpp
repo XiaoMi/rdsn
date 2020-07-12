@@ -38,8 +38,10 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
+#include "bulk_load/replica_bulk_loader.h"
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/utility/fail_point.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/dist/replication/replica_envs.h>
 
@@ -361,6 +363,13 @@ void replica::update_configuration_on_meta_server(config_type::type type,
                                                   ::dsn::rpc_address node,
                                                   partition_configuration &newConfig)
 {
+    // type should never be `CT_REGISTER_CHILD`
+    // if this happens, it means serious mistake happened during partition split
+    // assert here to stop split and avoid splitting wrong
+    if (type == config_type::CT_REGISTER_CHILD) {
+        dassert_replica(false, "invalid config_type, type = {}", enum_to_string(type));
+    }
+
     newConfig.last_committed_decree = last_committed_decree();
 
     if (type == config_type::CT_PRIMARY_FORCE_UPDATE_BALLOT) {
@@ -702,6 +711,16 @@ bool replica::update_local_configuration(const replica_configuration &config,
             }
         }
         break;
+    case partition_status::PS_PARTITION_SPLIT:
+        if (config.status == partition_status::PS_INACTIVE) {
+            dwarn_replica("status change from {} @ {} to {} @ {} is not allowed",
+                          enum_to_string(old_status),
+                          old_ballot,
+                          enum_to_string(config.status),
+                          config.ballot);
+            return false;
+        }
+        break;
     default:
         break;
     }
@@ -730,6 +749,8 @@ bool replica::update_local_configuration(const replica_configuration &config,
             "%" PRId64 " VS %" PRId64 "",
             max_prepared_decree(),
             last_committed_decree());
+
+    _bulk_loader->clear_bulk_load_states_if_needed(config.status);
 
     // Notice: there has five ways that primary can change its partition_status
     //   1, primary change partition config, such as add/remove secondary
@@ -837,6 +858,28 @@ bool replica::update_local_configuration(const replica_configuration &config,
             // => do this in close as it may block
             // r = _potential_secondary_states.cleanup(true);
             // dassert(r, "%s: potential secondary context cleanup failed", name());
+            break;
+        default:
+            dassert(false, "invalid execution path");
+        }
+        break;
+    case partition_status::PS_PARTITION_SPLIT:
+        switch (config.status) {
+        case partition_status::PS_PRIMARY:
+            _split_states.cleanup(true);
+            init_group_check();
+            replay_prepare_list();
+            break;
+        case partition_status::PS_SECONDARY:
+            _split_states.cleanup(true);
+            break;
+        case partition_status::PS_POTENTIAL_SECONDARY:
+            dassert(false, "invalid execution path");
+            break;
+        case partition_status::PS_INACTIVE:
+            break;
+        case partition_status::PS_ERROR:
+            _split_states.cleanup(false);
             break;
         default:
             dassert(false, "invalid execution path");

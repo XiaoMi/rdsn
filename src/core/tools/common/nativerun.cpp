@@ -40,8 +40,8 @@ namespace tools {
 
 void nativerun::install(service_spec &spec)
 {
-    if (spec.aio_factory_name == "") {
-        spec.aio_factory_name = ("dsn::tools::native_aio_provider");
+    if (0 == strlen(FLAGS_aio_factory_name)) {
+        FLAGS_aio_factory_name = "dsn::tools::native_aio_provider";
     }
 
     if (spec.env_factory_name == "")
@@ -92,9 +92,6 @@ void nativerun::install(service_spec &spec)
 
     if (spec.semaphore_factory_name == "")
         spec.semaphore_factory_name = ("dsn::tools::std_semaphore_provider");
-
-    if (spec.nfs_factory_name == "")
-        spec.nfs_factory_name = "dsn::service::nfs_node_simple";
 
     for (auto it = spec.threadpool_specs.begin(); it != spec.threadpool_specs.end(); ++it) {
         threadpool_spec &tspec = *it;

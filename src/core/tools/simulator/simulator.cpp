@@ -36,9 +36,8 @@
 #include <dsn/tool/simulator.h>
 #include "scheduler.h"
 
-#include "diske.sim.h"
 #include "env.sim.h"
-#include "task_engine.sim.h"
+#include "core/task/task_engine.sim.h"
 #include "sim_clock.h"
 
 namespace dsn {
@@ -52,7 +51,6 @@ void simulator::register_checker(const std::string &name, checker::factory f)
 
 void simulator::install(service_spec &spec)
 {
-    register_component_provider<sim_aio_provider>("dsn::tools::sim_aio_provider");
     register_component_provider<sim_env_provider>("dsn::tools::sim_env_provider");
     register_component_provider<sim_task_queue>("dsn::tools::sim_task_queue");
     register_component_provider<sim_timer_service>("dsn::tools::sim_timer_service");
@@ -66,8 +64,9 @@ void simulator::install(service_spec &spec)
 
     scheduler::instance();
 
-    if (spec.aio_factory_name == "")
-        spec.aio_factory_name = ("dsn::tools::sim_aio_provider");
+    if (0 == strlen(FLAGS_aio_factory_name)) {
+        FLAGS_aio_factory_name = "dsn::tools::sim_aio_provider";
+    }
 
     if (spec.env_factory_name == "")
         spec.env_factory_name = ("dsn::tools::sim_env_provider");
@@ -104,9 +103,6 @@ void simulator::install(service_spec &spec)
 
     if (spec.semaphore_factory_name == "")
         spec.semaphore_factory_name = ("dsn::tools::sim_semaphore_provider");
-
-    if (spec.nfs_factory_name == "")
-        spec.nfs_factory_name = "dsn::service::nfs_node_simple";
 
     for (auto it = spec.threadpool_specs.begin(); it != spec.threadpool_specs.end(); ++it) {
         threadpool_spec &tspec = *it;

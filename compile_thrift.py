@@ -30,7 +30,7 @@ thrift_description = [
     },
     {
         "name": "fd",
-        "path": "src/dist/failure_detector",
+        "path": "src/failure_detector",
         "file_move": {
             "_types.h": "include/dsn/dist/failure_detector"
         },
@@ -50,7 +50,7 @@ thrift_description = [
         "path": "src/dist/replication",
         "file_move": {
             "_types.h": "include/dsn/dist/replication",
-            "_types.cpp": "src/dist/replication/common"
+            "_types.cpp": "src/common"
         },
         "include_fix": {
             "_types.h": {
@@ -65,7 +65,7 @@ thrift_description = [
     },
     {
         "name": "nfs",
-        "path": "src/dist/nfs",
+        "path": "src/nfs",
         "include_fix": {
             "_types.h": {
                 "add": ["<dsn/service_api_cpp.h>"],
@@ -78,22 +78,15 @@ thrift_description = [
         "path": "src/dist/replication/storage_engine/simple_kv"
     },
     {
-        "name": "cli",
-        "path": "src/dist/cli",
+        "name": "command",
+        "path": "src/remote_cmd",
         "file_move": {
-            "_types.h": "include/dsn/dist/cli"
-        },
-        "include_fix": {
-            "_types.h": {
-                "remove": ["\"dsn_types.h\""]
-            },
-            "_types.cpp": {
-                "add": ["<dsn/dist/cli/cli_types.h>"],
-                "remove": ["\"cli_types.h\""]
-            },
+            "_types.h": "src/remote_cmd",
+            "_types.cpp": "src/remote_cmd"
         }
     }
 ]
+
 
 class CompileError(Exception):
     """ Raised when dealing with thrift idl have errors"""

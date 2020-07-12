@@ -24,16 +24,40 @@
  * THE SOFTWARE.
  */
 
-#include <dsn/service_api_c.h>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/logging_provider.h>
-#include <dsn/tool_api.h>
-#include "service_engine.h"
 #include <dsn/tool-api/auto_codes.h>
+#include <dsn/utility/flags.h>
 #include <dsn/utility/smart_pointers.h>
 #include "core/tools/common/simple_logger.h"
 
 DSN_API dsn_log_level_t dsn_log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
+DSN_DEFINE_string("core",
+                  logging_start_level,
+                  "LOG_LEVEL_INFORMATION",
+                  "logs with level below this will not be logged");
+
+DSN_DEFINE_bool("core", logging_flush_on_exit, true, "flush log when exit system");
+
+namespace dsn {
+std::function<std::string()> log_prefixed_message_func = []() {
+    static thread_local std::string prefixed_message;
+
+    static thread_local std::once_flag flag;
+    std::call_once(flag, [&]() {
+        prefixed_message.resize(23);
+        int tid = dsn::utils::get_current_tid();
+        sprintf(const_cast<char *>(prefixed_message.c_str()), "unknown.io-thrd.%05d: ", tid);
+    });
+
+    return prefixed_message;
+};
+
+void set_log_prefixed_message_func(std::function<std::string()> func)
+{
+    log_prefixed_message_func = func;
+}
+} // namespace dsn
 
 static void log_on_sys_exit(::dsn::sys_exit_type)
 {
@@ -41,22 +65,18 @@ static void log_on_sys_exit(::dsn::sys_exit_type)
     logger->flush();
 }
 
-void dsn_log_init(const std::string &logging_factory_name, const std::string &dir_log)
+void dsn_log_init(const std::string &logging_factory_name,
+                  const std::string &dir_log,
+                  std::function<std::string()> dsn_log_prefixed_message_func)
 {
-    dsn_log_start_level = enum_from_string(
-        dsn_config_get_value_string("core",
-                                    "logging_start_level",
-                                    enum_to_string(dsn_log_start_level),
-                                    "logs with level below this will not be logged"),
-        dsn_log_level_t::LOG_LEVEL_INVALID);
+    dsn_log_start_level =
+        enum_from_string(FLAGS_logging_start_level, dsn_log_level_t::LOG_LEVEL_INVALID);
 
     dassert(dsn_log_start_level != dsn_log_level_t::LOG_LEVEL_INVALID,
             "invalid [core] logging_start_level specified");
 
     // register log flush on exit
-    bool logging_flush_on_exit = dsn_config_get_value_bool(
-        "core", "logging_flush_on_exit", true, "flush log when exit system");
-    if (logging_flush_on_exit) {
+    if (FLAGS_logging_flush_on_exit) {
         ::dsn::tools::sys_exit.put_back(log_on_sys_exit, "log.flush");
     }
 
@@ -81,12 +101,8 @@ void dsn_log_init(const std::string &logging_factory_name, const std::string &di
         [](const std::vector<std::string> &args) {
             dsn_log_level_t start_level;
             if (args.size() == 0) {
-                start_level = enum_from_string(
-                    dsn_config_get_value_string("core",
-                                                "logging_start_level",
-                                                enum_to_string(dsn_log_start_level),
-                                                "logs with level below this will not be logged"),
-                    dsn_log_level_t::LOG_LEVEL_INVALID);
+                start_level =
+                    enum_from_string(FLAGS_logging_start_level, dsn_log_level_t::LOG_LEVEL_INVALID);
             } else {
                 std::string level_str = "LOG_LEVEL_" + args[0];
                 start_level =
@@ -98,6 +114,8 @@ void dsn_log_init(const std::string &logging_factory_name, const std::string &di
             dsn_log_set_start_level(start_level);
             return std::string("OK, current level is ") + enum_to_string(start_level);
         });
+
+    dsn::set_log_prefixed_message_func(dsn_log_prefixed_message_func);
 }
 
 DSN_API dsn_log_level_t dsn_log_get_start_level() { return dsn_log_start_level; }

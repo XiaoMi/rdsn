@@ -23,7 +23,10 @@ private:
 public:
     fake_sender_meta_service(meta_service_test_app *app) : meta_service(), _app(app) {}
 
-    virtual void reply_message(dsn::message_ex *request, dsn::message_ex *response) override {}
+    virtual void reply_message(dsn::message_ex *request, dsn::message_ex *response) override
+    {
+        destroy_message(response);
+    }
     virtual void send_message(const dsn::rpc_address &target, dsn::message_ex *request) override
     {
         // we expect this is a configuration_update_request proposal
@@ -138,15 +141,14 @@ void meta_service_test_app::call_config_sync(
     ::dsn::marshall(fake_request, *request);
 
     dsn::message_ex *recvd_request = create_corresponding_receive(fake_request);
-    recvd_request->add_ref();
-
     destroy_message(fake_request);
 
-    dsn::tasking::enqueue(
-        LPC_META_STATE_HIGH,
-        nullptr,
-        std::bind(&server_state::on_config_sync, svc->_state.get(), recvd_request),
-        server_state::sStateHash);
+    auto rpc = rpc_holder<configuration_query_by_node_request,
+                          configuration_query_by_node_response>::auto_reply(recvd_request);
+    dsn::tasking::enqueue(LPC_META_STATE_HIGH,
+                          nullptr,
+                          std::bind(&server_state::on_config_sync, svc->_state.get(), rpc),
+                          server_state::sStateHash);
 }
 
 bool meta_service_test_app::wait_state(server_state *ss, const state_validator &validator, int time)

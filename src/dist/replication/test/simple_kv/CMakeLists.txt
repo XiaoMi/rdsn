@@ -9,20 +9,11 @@ set(MY_PROJ_SRC ${MY_PROJ_SRC} ../../storage_engine/simple_kv/simple_kv_types.cp
 set(MY_PROJ_LIBS dsn_replica_server
                  dsn_meta_server
                  dsn_replication_common
-                 dsn_replication_client
-                 dsn.block_service.local
-                 dsn.block_service.fds
-                 dsn.failure_detector.multimaster
+                 dsn_client
                  dsn.failure_detector
                  dsn.replication.zookeeper_provider
                  dsn_runtime
                  zookeeper_mt
-                 galaxy-fds-sdk-cpp
-                 PocoNet
-                 PocoFoundation
-                 PocoNetSSL
-                 PocoJSON
-                 crypto
                  gtest
                  )
 

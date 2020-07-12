@@ -27,15 +27,11 @@ cd $INSTALL_DIR
 
 if [ ! -f zookeeper-3.4.6.tar.gz ]; then
     echo "Downloading zookeeper..."
-    download_url="http://git.n.xiaomi.com/pegasus/packages/raw/master/zookeeper-3.4.6.tar.gz"
+    download_url="https://github.com/XiaoMi/pegasus-common/releases/download/deps/zookeeper-3.4.6.tar.gz"
     wget -T 5 -t 1 $download_url
     if [ $? -ne 0 ]; then
-        download_url="https://github.com/XiaoMi/pegasus-common/releases/download/deps/zookeeper-3.4.6.tar.gz"
-        wget -T 5 -t 1 $download_url
-        if [ $? -ne 0 ]; then
-            echo "ERROR: download zookeeper failed"
-            exit 1
-        fi
+        echo "ERROR: download zookeeper failed"
+        exit 1
     fi
 fi
 
@@ -59,10 +55,17 @@ mkdir -p $ZOOKEEPER_HOME/data
 $ZOOKEEPER_HOME/bin/zkServer.sh start
 sleep 1
 
-if echo ruok | nc localhost $ZOOKEEPER_PORT | grep -q imok; then
-    echo "Zookeeper started at port $ZOOKEEPER_PORT"
-    exit 0
-else
-    echo "ERROR: start zookeeper failed"
-    exit 1
-fi
+zk_check_count=0
+while true; do
+    sleep 1 # wait until zookeeper bootstrapped
+    if echo ruok | nc localhost "$ZOOKEEPER_PORT" | grep -q imok; then
+        echo "Zookeeper started at port $ZOOKEEPER_PORT"
+        exit 0
+    fi
+    zk_check_count=$((zk_check_count+1))
+    echo "ERROR: starting zookeeper has failed ${zk_check_count} times"
+    if [ $zk_check_count -gt 30 ]; then
+        echo "ERROR: failed to start zookeeper in 30 seconds"
+        exit 1
+    fi
+done

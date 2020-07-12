@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <dsn/tool-api/task.h>
+#include <dsn/tool-api/aio_task.h>
 
 namespace dsn {
 
@@ -86,6 +86,8 @@ extern aio_task_ptr write_vector(disk_file *file,
                                  task_tracker *tracker,
                                  aio_handler &&callback,
                                  int hash = 0);
+
+extern aio_context_ptr prepare_aio_context(aio_task *tsk);
 
 } // namespace file
 } // namespace dsn

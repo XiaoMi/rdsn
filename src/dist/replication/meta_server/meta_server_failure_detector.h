@@ -38,7 +38,7 @@
 #include <dsn/dist/failure_detector.h>
 #include <dsn/dist/distributed_lock_service.h>
 
-#include "dist/replication/common/replication_common.h"
+#include "common/replication_common.h"
 #include "dist/replication/meta_server/meta_options.h"
 
 namespace dsn {
@@ -120,7 +120,6 @@ private:
     // meta_service need to visit the failure_detector's lock
     friend class meta_service;
 
-    friend class replication_checker;
     friend class test::test_checker;
 
     // initialize in the constructor

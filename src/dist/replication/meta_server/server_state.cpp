@@ -88,8 +88,8 @@ server_state::~server_state()
 
 void server_state::register_cli_commands()
 {
-    _cli_dump_handle = dsn::command_manager::instance().register_app_command(
-        {"dump"},
+    _cli_dump_handle = dsn::command_manager::instance().register_command(
+        {"meta.dump"},
         "dump: dump app_states of meta server to local file",
         "dump -t|--target target_file",
         [this](const std::vector<std::string> &args) {
@@ -113,8 +113,8 @@ void server_state::register_cli_commands()
         });
     dassert(_cli_dump_handle != nullptr, "register cli handler failed");
 
-    _ctrl_add_secondary_enable_flow_control = dsn::command_manager::instance().register_app_command(
-        {"lb.add_secondary_enable_flow_control"},
+    _ctrl_add_secondary_enable_flow_control = dsn::command_manager::instance().register_command(
+        {"meta.lb.add_secondary_enable_flow_control"},
         "lb.add_secondary_enable_flow_control <true|false>",
         "control whether enable add secondary flow control",
         [this](const std::vector<std::string> &args) {
@@ -123,30 +123,29 @@ void server_state::register_cli_commands()
         });
     dassert(_ctrl_add_secondary_enable_flow_control, "register cli handler failed");
 
-    _ctrl_add_secondary_max_count_for_one_node =
-        dsn::command_manager::instance().register_app_command(
-            {"lb.add_secondary_max_count_for_one_node"},
-            "lb.add_secondary_max_count_for_one_node [num | DEFAULT]",
-            "control the max count to add secondary for one node",
-            [this](const std::vector<std::string> &args) {
-                std::string result("OK");
-                if (args.empty()) {
-                    result = std::to_string(_add_secondary_max_count_for_one_node);
+    _ctrl_add_secondary_max_count_for_one_node = dsn::command_manager::instance().register_command(
+        {"meta.lb.add_secondary_max_count_for_one_node"},
+        "lb.add_secondary_max_count_for_one_node [num | DEFAULT]",
+        "control the max count to add secondary for one node",
+        [this](const std::vector<std::string> &args) {
+            std::string result("OK");
+            if (args.empty()) {
+                result = std::to_string(_add_secondary_max_count_for_one_node);
+            } else {
+                if (args[0] == "DEFAULT") {
+                    _add_secondary_max_count_for_one_node =
+                        _meta_svc->get_meta_options().add_secondary_max_count_for_one_node;
                 } else {
-                    if (args[0] == "DEFAULT") {
-                        _add_secondary_max_count_for_one_node =
-                            _meta_svc->get_meta_options().add_secondary_max_count_for_one_node;
+                    int32_t v = 0;
+                    if (!dsn::buf2int32(args[0], v) || v < 0) {
+                        result = std::string("ERR: invalid arguments");
                     } else {
-                        int32_t v = 0;
-                        if (!dsn::buf2int32(args[0], v) || v < 0) {
-                            result = std::string("ERR: invalid arguments");
-                        } else {
-                            _add_secondary_max_count_for_one_node = v;
-                        }
+                        _add_secondary_max_count_for_one_node = v;
                     }
                 }
-                return result;
-            });
+            }
+            return result;
+        });
     dassert(_ctrl_add_secondary_max_count_for_one_node, "register cli handler failed");
 }
 
@@ -750,39 +749,12 @@ void server_state::set_replica_migration_subscriber_for_test(
     _replica_migration_subscriber = subscriber;
 }
 
-// client => meta server
-void server_state::query_configuration_by_node(
-    const configuration_query_by_node_request &request,
-    /*out*/ configuration_query_by_node_response &response)
-{
-    zauto_read_lock l(_lock);
-    node_state *ns = get_node_state(_nodes, request.node, false);
-    if (ns == nullptr) {
-        response.err = ERR_OBJECT_NOT_FOUND;
-    } else {
-        response.err = ERR_OK;
-        response.partitions.resize(ns->partition_count());
-        int i = 0;
-        ns->for_each_partition([&, this](const gpid &pid) {
-            std::shared_ptr<app_state> app = get_app(pid.get_app_id());
-            dassert(app != nullptr, "invalid app_id, app_id = %d", pid.get_app_id());
-            response.partitions[i].info = *app;
-            response.partitions[i].host_node = request.node;
-            response.partitions[i].config = app->partitions[pid.get_partition_index()];
-            ++i;
-            return true;
-        });
-    }
-}
-
 // partition server => meta server
 // this is done in meta_state_thread_pool
-void server_state::on_config_sync(dsn::message_ex *msg)
+void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
 {
-    configuration_query_by_node_request request;
-    configuration_query_by_node_response response;
-
-    dsn::unmarshall(msg, request);
+    configuration_query_by_node_response &response = rpc.response();
+    const configuration_query_by_node_request &request = rpc.request();
 
     bool reject_this_request = false;
     response.__isset.gc_replicas = false;
@@ -831,14 +803,14 @@ void server_state::on_config_sync(dsn::message_ex *msg)
         if (!reject_this_request && request.__isset.stored_replicas) {
             if (ns != nullptr)
                 ns->set_replicas_collect_flag(true);
-            std::vector<replica_info> &replicas = request.stored_replicas;
+            const std::vector<replica_info> &replicas = request.stored_replicas;
             meta_function_level::type level = _meta_svc->get_function_level();
             // if the node serve the replica on the meta server, then we ignore it
             // if the dropped servers on the meta servers are enough, we need to gc it
             // there are not enough dropped servers, we need to add it to dropped
             // the app is deleted but not expired, we need to ignore it
             // if the app is deleted and expired, we need to gc it
-            for (replica_info &rep : replicas) {
+            for (const replica_info &rep : replicas) {
                 dinfo("receive stored replica from %s, pid(%d.%d)",
                       request.node.to_string(),
                       rep.pid.get_app_id(),
@@ -916,8 +888,6 @@ void server_state::on_config_sync(dsn::message_ex *msg)
            response.err.to_string(),
            (int)response.partitions.size(),
            (int)response.gc_replicas.size());
-    _meta_svc->reply_data(msg, response);
-    msg->release_ref();
 }
 
 bool server_state::query_configuration_by_gpid(dsn::gpid id,
@@ -1388,7 +1358,7 @@ void server_state::update_configuration_locally(
     health_status new_health_status = partition_health_status(new_cfg, min_2pc_count);
 
     if (app.is_stateful) {
-        dassert(old_cfg.ballot + 1 == new_cfg.ballot,
+        dassert(old_cfg.ballot == invalid_ballot || old_cfg.ballot + 1 == new_cfg.ballot,
                 "invalid configuration update request, old ballot %" PRId64 ", new ballot %" PRId64
                 "",
                 old_cfg.ballot,
@@ -1438,6 +1408,14 @@ void server_state::update_configuration_locally(
         case config_type::CT_ADD_SECONDARY_FOR_LB:
             dassert(false, "invalid execution work flow");
             break;
+        case config_type::CT_REGISTER_CHILD: {
+            ns->put_partition(gpid, true);
+            for (auto &secondary : config_request->config.secondaries) {
+                auto secondary_node = get_node_state(_nodes, secondary, false);
+                secondary_node->put_partition(gpid, false);
+            }
+            break;
+        }
         default:
             dassert(false, "");
             break;
