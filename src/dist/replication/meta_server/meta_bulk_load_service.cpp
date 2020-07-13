@@ -20,13 +20,14 @@ bulk_load_service::bulk_load_service(meta_service *meta_svc, const std::string &
 void bulk_load_service::initialize_bulk_load_service()
 {
     task_tracker tracker;
-    _sync_bulk_load_storage =
-        make_unique<mss::meta_storage>(_meta_svc->get_remote_storage(), &tracker);
+    error_code err = ERR_OK;
 
-    create_bulk_load_root_dir();
+    create_bulk_load_root_dir(err, tracker);
     tracker.wait_outstanding_tasks();
 
-    try_to_continue_bulk_load();
+    if (err == ERR_OK) {
+        try_to_continue_bulk_load();
+    }
 }
 
 // ThreadPool: THREAD_POOL_META_SERVER
@@ -1215,18 +1216,36 @@ void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::create_bulk_load_root_dir()
+void bulk_load_service::create_bulk_load_root_dir(error_code &err, task_tracker &tracker)
 {
     blob value = blob();
-    std::string path = _bulk_load_root;
-    _sync_bulk_load_storage->create_node(std::move(path), std::move(value), [this]() {
-        ddebug_f("create bulk load root({}) succeed", _bulk_load_root);
-        sync_apps_bulk_load_from_remote_stroage();
-    });
+    _meta_svc->get_remote_storage()->create_node(
+        _bulk_load_root,
+        LPC_META_CALLBACK,
+        [this, &err, &tracker](error_code ec) {
+            if (ERR_OK == ec || ERR_NODE_ALREADY_EXIST == ec) {
+                ddebug_f("create bulk load root({}) succeed", _bulk_load_root);
+                sync_apps_bulk_load_from_remote_stroage(err, tracker);
+            } else if (ERR_TIMEOUT == ec) {
+                dwarn_f("create bulk load root({}) failed, retry later", _bulk_load_root);
+                tasking::enqueue(
+                    LPC_META_STATE_NORMAL,
+                    _meta_svc->tracker(),
+                    std::bind(&bulk_load_service::create_bulk_load_root_dir, this, err, tracker),
+                    0,
+                    std::chrono::seconds(1));
+            } else {
+                err = ec;
+                dfatal_f(
+                    "create bulk load root({}) failed, error={}", _bulk_load_root, ec.to_string());
+            }
+        },
+        value,
+        &tracker);
 }
 
-// ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::sync_apps_bulk_load_from_remote_stroage()
+void bulk_load_service::sync_apps_bulk_load_from_remote_stroage(error_code &err,
+                                                                task_tracker &tracker)
 {
     // TODO(heyuchen): TBD
 }

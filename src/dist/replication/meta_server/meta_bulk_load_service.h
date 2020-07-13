@@ -209,9 +209,9 @@ private:
     /// sync bulk load states from remote storage
     /// called when service initialized or meta server leader switch
     ///
-    void create_bulk_load_root_dir();
+    void create_bulk_load_root_dir(error_code &err, task_tracker &tracker);
 
-    void sync_apps_bulk_load_from_remote_stroage();
+    void sync_apps_bulk_load_from_remote_stroage(error_code &err, task_tracker &tracker);
 
     ///
     /// try to continue bulk load according to states from remote stroage
@@ -311,7 +311,6 @@ private:
 
     meta_service *_meta_svc;
     server_state *_state;
-    std::unique_ptr<mss::meta_storage> _sync_bulk_load_storage;
 
     zrwlock_nr &app_lock() const { return _state->_lock; }
     zrwlock_nr _lock; // bulk load states lock
