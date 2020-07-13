@@ -319,7 +319,9 @@ private:
 
     meta_service *_meta_svc;
     server_state *_state;
+
     std::unique_ptr<mss::meta_storage> _sync_bulk_load_storage;
+    task_tracker _sync_tracker;
 
     zrwlock_nr &app_lock() const { return _state->_lock; }
     zrwlock_nr _lock; // bulk load states lock

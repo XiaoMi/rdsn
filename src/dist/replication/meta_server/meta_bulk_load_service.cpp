@@ -19,12 +19,11 @@ bulk_load_service::bulk_load_service(meta_service *meta_svc, const std::string &
 // ThreadPool: THREAD_POOL_META_SERVER
 void bulk_load_service::initialize_bulk_load_service()
 {
-    task_tracker tracker;
     _sync_bulk_load_storage =
-        make_unique<mss::meta_storage>(_meta_svc->get_remote_storage(), &tracker);
+        make_unique<mss::meta_storage>(_meta_svc->get_remote_storage(), &_sync_tracker);
 
     create_bulk_load_root_dir();
-    tracker.wait_outstanding_tasks();
+    _sync_tracker.wait_outstanding_tasks();
 
     try_to_continue_bulk_load();
 }
@@ -1233,7 +1232,7 @@ void bulk_load_service::sync_apps_bulk_load_from_remote_storage()
         std::move(path), [this](bool flag, const std::vector<std::string> &children) {
             if (flag && children.size() > 0) {
                 ddebug_f("There are {} apps need to sync bulk load status", children.size());
-                for (auto &elem : children) {
+                for (const auto &elem : children) {
                     uint32_t app_id = boost::lexical_cast<uint32_t>(elem);
                     ddebug_f("start to sync app({}) bulk load status", app_id);
                     do_sync_app_bulk_load(app_id);
