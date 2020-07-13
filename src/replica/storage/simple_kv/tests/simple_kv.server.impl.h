@@ -26,7 +26,7 @@
 #pragma once
 
 #include <dsn/tool-api/zlocks.h>
-#include "dist/replication/storage_engine/simple_kv/simple_kv.server.h"
+#include "replica/storage/simple_kv/simple_kv.server.h"
 
 namespace dsn {
 namespace replication {

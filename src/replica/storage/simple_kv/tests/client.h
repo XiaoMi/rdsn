@@ -37,7 +37,7 @@
 
 #include <dsn/cpp/service_app.h>
 #include <dsn/dist/replication/replication_types.h>
-#include "dist/replication/storage_engine/simple_kv/simple_kv.client.h"
+#include "replica/storage/simple_kv/simple_kv.client.h"
 
 namespace dsn {
 namespace replication {

@@ -6,7 +6,7 @@
 
 #include <atomic>
 
-#include "lib/replica_stub.h"
+#include "replica/replica_stub.h"
 
 #include <dsn/dist/replication/duplication_common.h>
 #include <dsn/utility/chrono_literals.h>

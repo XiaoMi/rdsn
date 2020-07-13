@@ -24,3 +24,5 @@ file(GLOB
 set(MY_BINPLACES ${RES_FILES})
 
 dsn_add_test()
+
+add_subdirectory(tests)

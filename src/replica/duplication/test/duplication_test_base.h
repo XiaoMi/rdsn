@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include "lib/mutation_log_utils.h"
+#include "replica/mutation_log_utils.h"
 #include "replica/tests/replica_test_base.h"
-#include "lib/duplication/replica_duplicator.h"
-#include "lib/duplication/replica_duplicator_manager.h"
-#include "lib/duplication/duplication_sync_timer.h"
+#include "replica/duplication/replica_duplicator.h"
+#include "replica/duplication/replica_duplicator_manager.h"
+#include "replica/duplication/duplication_sync_timer.h"
 
 namespace dsn {
 namespace replication {

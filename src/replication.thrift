@@ -1,5 +1,5 @@
-include "../../dsn.thrift"
-include "../../dsn.layer2.thrift"
+include "dsn.thrift"
+include "dsn.layer2.thrift"
 
 namespace cpp dsn.replication
 

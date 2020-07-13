@@ -9,7 +9,7 @@
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/dist/block_service.h>
-#include "dist/replication/lib/replica_context.h"
+#include "replica/replica_context.h"
 #include "replication_service_test_app.h"
 #include "block_service/test/block_service_mock.h"
 

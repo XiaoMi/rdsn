@@ -10,8 +10,8 @@
 #include <boost/filesystem/operations.hpp>
 #undef BOOST_NO_CXX11_SCOPED_ENUMS
 
-#include "lib/mutation_log_utils.h"
-#include "lib/duplication/load_from_private_log.h"
+#include "replica/mutation_log_utils.h"
+#include "replica/duplication/load_from_private_log.h"
 #include "duplication_test_base.h"
 
 namespace dsn {

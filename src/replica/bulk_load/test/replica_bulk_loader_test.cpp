@@ -2,7 +2,7 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include "lib/bulk_load/replica_bulk_loader.h"
+#include "replica/bulk_load/replica_bulk_loader.h"
 #include "replica/tests/replica_test_base.h"
 
 #include <fstream>

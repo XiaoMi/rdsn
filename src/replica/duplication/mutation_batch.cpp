@@ -29,7 +29,7 @@
 
 #include "replica_duplicator.h"
 #include "mutation_batch.h"
-#include "lib/prepare_list.h"
+#include "replica/prepare_list.h"
 
 namespace dsn {
 namespace replication {

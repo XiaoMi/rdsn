@@ -28,7 +28,7 @@
 
 #include <dsn/dist/replication/mutation_duplicator.h>
 
-#include "lib/mutation.h"
+#include "replica/mutation.h"
 
 namespace dsn {
 namespace replication {

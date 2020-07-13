@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <fmt/format.h>
 #include "replica_http_service.h"
-#include "lib/duplication/duplication_sync_timer.h"
+#include "duplication/duplication_sync_timer.h"
 
 namespace dsn {
 namespace replication {

@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include "dist/replication/lib/mutation_log.h"
+#include "replica/mutation_log.h"
 #include "replica_test_base.h"
 
 #include <dsn/utility/filesystem.h>

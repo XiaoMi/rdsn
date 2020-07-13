@@ -25,7 +25,7 @@
  */
 
 #include "duplication_test_base.h"
-#include "lib/duplication/mutation_batch.h"
+#include "replica/duplication/mutation_batch.h"
 
 namespace dsn {
 namespace replication {

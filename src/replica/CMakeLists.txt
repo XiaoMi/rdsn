@@ -48,9 +48,7 @@ set(MY_BINPLACES "")
 dsn_add_shared_library()
 
 add_subdirectory(duplication/test)
-
 add_subdirectory(backup/test)
-
 add_subdirectory(bulk_load/test)
-
 add_subdirectory(storage)
+add_subdirectory(tests)

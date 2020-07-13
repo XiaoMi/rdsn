@@ -4,9 +4,9 @@
 
 #include <gtest/gtest.h>
 
-#include "dist/replication/lib/replica.h"
+#include "replica/replica.h"
 #include "mock_utils.h"
-#include "dist/replication/lib/duplication/test/duplication_test_base.h"
+#include "replica/duplication/test/duplication_test_base.h"
 
 namespace dsn {
 namespace replication {

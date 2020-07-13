@@ -5,7 +5,7 @@
 #include "replica_duplicator.h"
 #include "load_from_private_log.h"
 #include "duplication_pipeline.h"
-#include "lib/replica_stub.h"
+#include "replica/replica_stub.h"
 
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>

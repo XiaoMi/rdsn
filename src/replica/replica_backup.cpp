@@ -6,7 +6,7 @@
 #include <dsn/dist/replication/replication_app_base.h>
 
 #include "block_service/block_service_manager.h"
-#include "lib/backup/replica_backup_manager.h"
+#include "backup/replica_backup_manager.h"
 
 #include "replica.h"
 #include "mutation.h"

@@ -1,6 +1,6 @@
 #include "dist/replication/meta_server/meta_server_failure_detector.h"
 #include "dist/replication/meta_server/meta_options.h"
-#include "dist/replication/lib/replica_stub.h"
+#include "replica/replica_stub.h"
 
 #include <gtest/gtest.h>
 #include <dsn/service_api_cpp.h>

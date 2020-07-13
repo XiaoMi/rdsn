@@ -28,9 +28,9 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
-#include "lib/duplication/replica_duplicator_manager.h"
-#include "lib/backup/replica_backup_manager.h"
-#include "lib/bulk_load/replica_bulk_loader.h"
+#include "duplication/replica_duplicator_manager.h"
+#include "backup/replica_backup_manager.h"
+#include "bulk_load/replica_bulk_loader.h"
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>

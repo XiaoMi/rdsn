@@ -4,9 +4,9 @@
 
 #include <dsn/utility/filesystem.h>
 
-#include "lib/mutation_log_utils.h"
-#include "lib/duplication/load_from_private_log.h"
-#include "lib/duplication/duplication_pipeline.h"
+#include "replica/mutation_log_utils.h"
+#include "replica/duplication/load_from_private_log.h"
+#include "replica/duplication/duplication_pipeline.h"
 #include "duplication_test_base.h"
 
 namespace dsn {

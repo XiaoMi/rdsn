@@ -2,8 +2,8 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include "lib/replica_stub.h"
-#include "lib/replica.h"
+#include "replica/replica_stub.h"
+#include "replica/replica.h"
 
 #include "duplication_sync_timer.h"
 #include "replica_duplicator_manager.h"

@@ -28,7 +28,7 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica_stub.h"
-#include "lib/backup/replica_backup_manager.h"
+#include "backup/replica_backup_manager.h"
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/replication/replication_app_base.h>

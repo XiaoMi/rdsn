@@ -3,7 +3,7 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include "replica/tests/replica_test_base.h"
-#include "lib/backup/replica_backup_manager.h"
+#include "replica/backup/replica_backup_manager.h"
 
 namespace dsn {
 namespace replication {

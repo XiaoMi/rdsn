@@ -31,8 +31,8 @@
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/filesystem.h>
 
-#include "dist/replication/lib/replica.h"
-#include "dist/replication/lib/replica_stub.h"
+#include "replica/replica.h"
+#include "replica/replica_stub.h"
 
 namespace dsn {
 namespace replication {

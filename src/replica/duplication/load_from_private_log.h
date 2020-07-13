@@ -9,7 +9,7 @@
 #include <dsn/dist/replication/mutation_duplicator.h>
 #include <gtest/gtest_prod.h>
 
-#include "lib/mutation_log.h"
+#include "replica/mutation_log.h"
 #include "mutation_batch.h"
 
 namespace dsn {

@@ -32,7 +32,7 @@
 #include <dsn/utility/errors.h>
 #include <gtest/gtest.h>
 
-#include "dist/replication/lib/replica_stub.h"
+#include "replica/replica_stub.h"
 
 #include "mock_utils.h"
 

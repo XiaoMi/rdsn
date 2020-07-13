@@ -4,9 +4,9 @@
 
 #include <dsn/dist/fmt_logging.h>
 
-#include "lib/replica_stub.h"
-#include "lib/replica.h"
-#include "lib/mutation_log_utils.h"
+#include "replica/replica_stub.h"
+#include "replica/replica.h"
+#include "replica/mutation_log_utils.h"
 #include "load_from_private_log.h"
 #include "replica_duplicator.h"
 

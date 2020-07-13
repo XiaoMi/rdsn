@@ -2,8 +2,8 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include "lib/duplication/mutation_batch.h"
-#include "lib/duplication/duplication_pipeline.h"
+#include "replica/duplication/mutation_batch.h"
+#include "replica/duplication/duplication_pipeline.h"
 #include "duplication_test_base.h"
 
 namespace dsn {

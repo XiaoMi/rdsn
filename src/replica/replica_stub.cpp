@@ -37,9 +37,9 @@
 #include "replica_stub.h"
 #include "mutation_log.h"
 #include "mutation.h"
-#include "lib/bulk_load/replica_bulk_loader.h"
-#include "lib/duplication/duplication_sync_timer.h"
-#include "lib/backup/replica_backup_manager.h"
+#include "bulk_load/replica_bulk_loader.h"
+#include "duplication/duplication_sync_timer.h"
+#include "backup/replica_backup_manager.h"
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/filesystem.h>

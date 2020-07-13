@@ -9,8 +9,8 @@
 #include <dsn/dist/replication/replication_types.h>
 #include <dsn/dist/replication/duplication_common.h>
 
-#include "lib/replica.h"
-#include "lib/mutation_log.h"
+#include "replica/replica.h"
+#include "replica/mutation_log.h"
 
 namespace dsn {
 namespace replication {

@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <lib/replica.h>
-#include <lib/replica_context.h>
-#include <lib/replica_stub.h>
+#include "replica/replica.h"
+#include "replica/replica_context.h"
+#include "replica/replica_stub.h"
 
 namespace dsn {
 namespace replication {

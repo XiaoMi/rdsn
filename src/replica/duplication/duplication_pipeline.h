@@ -8,7 +8,7 @@
 #include <dsn/dist/replication/replica_base.h>
 #include <dsn/dist/replication/mutation_duplicator.h>
 
-#include "lib/replica.h"
+#include "replica/replica.h"
 #include "replica_duplicator.h"
 
 namespace dsn {

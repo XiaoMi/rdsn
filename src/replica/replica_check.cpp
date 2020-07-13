@@ -38,7 +38,7 @@
 #include "mutation_log.h"
 #include "replica_stub.h"
 
-#include "lib/duplication/replica_duplicator_manager.h"
+#include "duplication/replica_duplicator_manager.h"
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
