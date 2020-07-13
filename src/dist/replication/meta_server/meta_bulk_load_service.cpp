@@ -486,7 +486,7 @@ void bulk_load_service::handle_app_downloading(const bulk_load_response &respons
 
     // if replica report metadata, update metadata on remote storage
     if (response.__isset.metadata && is_partition_metadata_not_updated(pid)) {
-        update_partition_metadata_on_remote_stroage(app_name, pid, response.metadata);
+        update_partition_metadata_on_remote_storage(app_name, pid, response.metadata);
     }
 
     // update download progress
@@ -743,7 +743,7 @@ void bulk_load_service::handle_app_unavailable(int32_t app_id, const std::string
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::update_partition_metadata_on_remote_stroage(
+void bulk_load_service::update_partition_metadata_on_remote_storage(
     const std::string &app_name, const gpid &pid, const bulk_load_metadata &metadata)
 {
     zauto_read_lock l(_lock);
@@ -1221,12 +1221,12 @@ void bulk_load_service::create_bulk_load_root_dir()
     std::string path = _bulk_load_root;
     _sync_bulk_load_storage->create_node(std::move(path), std::move(value), [this]() {
         ddebug_f("create bulk load root({}) succeed", _bulk_load_root);
-        sync_apps_bulk_load_from_remote_stroage();
+        sync_apps_bulk_load_from_remote_storage();
     });
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::sync_apps_bulk_load_from_remote_stroage()
+void bulk_load_service::sync_apps_bulk_load_from_remote_storage()
 {
     std::string path = _bulk_load_root;
     _sync_bulk_load_storage->get_children(
@@ -1255,12 +1255,12 @@ void bulk_load_service::do_sync_app_bulk_load(int32_t app_id)
                 _bulk_load_app_id.insert(app_id);
                 _app_bulk_load_info[app_id] = ainfo;
             }
-            sync_partitions_bulk_load_from_remote_stroage(ainfo.app_id, ainfo.app_name);
+            sync_partitions_bulk_load_from_remote_storage(ainfo.app_id, ainfo.app_name);
         });
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::sync_partitions_bulk_load_from_remote_stroage(int32_t app_id,
+void bulk_load_service::sync_partitions_bulk_load_from_remote_storage(int32_t app_id,
                                                                       const std::string &app_name)
 {
     std::string app_path = get_app_bulk_load_path(app_id);

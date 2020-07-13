@@ -164,7 +164,7 @@ private:
 
     // Called by `handle_app_downloading`
     // update partition bulk load metadata reported by replica server on remote storage
-    void update_partition_metadata_on_remote_stroage(const std::string &app_name,
+    void update_partition_metadata_on_remote_storage(const std::string &app_name,
                                                      const gpid &pid,
                                                      const bulk_load_metadata &metadata);
 
@@ -211,18 +211,18 @@ private:
     ///
     void create_bulk_load_root_dir();
 
-    void sync_apps_bulk_load_from_remote_stroage();
+    void sync_apps_bulk_load_from_remote_storage();
 
     void do_sync_app_bulk_load(int32_t app_id);
 
-    void sync_partitions_bulk_load_from_remote_stroage(int32_t app_id, const std::string &app_name);
+    void sync_partitions_bulk_load_from_remote_storage(int32_t app_id, const std::string &app_name);
 
     void do_sync_partition_bulk_load(const gpid &pid,
                                      const std::string &app_name,
                                      std::string &partition_path);
 
     ///
-    /// try to continue bulk load according to states from remote stroage
+    /// try to continue bulk load according to states from remote storage
     /// called when service initialized or meta server leader switch
     ///
     void try_to_continue_bulk_load();
@@ -241,7 +241,7 @@ private:
         return oss.str();
     }
 
-    // get app_bulk_load_info path on remote stroage
+    // get app_bulk_load_info path on remote storage
     // <_bulk_load_root>/<app_id>
     inline std::string get_app_bulk_load_path(int32_t app_id) const
     {
@@ -250,7 +250,7 @@ private:
         return oss.str();
     }
 
-    // get partition_bulk_load_info path on remote stroage
+    // get partition_bulk_load_info path on remote storage
     // <_bulk_load_root>/<app_id>/<partition_id>
     inline std::string get_partition_bulk_load_path(const std::string &app_bulk_load_path,
                                                     int partition_id) const
