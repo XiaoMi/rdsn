@@ -16,18 +16,17 @@ bulk_load_service::bulk_load_service(meta_service *meta_svc, const std::string &
     _state = _meta_svc->get_server_state();
 }
 
-// ThreadPool: THREAD_POOL_META_STATE
+// ThreadPool: THREAD_POOL_META_SERVER
 void bulk_load_service::initialize_bulk_load_service()
 {
     task_tracker tracker;
-    error_code err = ERR_OK;
+    _sync_bulk_load_storage =
+        make_unique<mss::meta_storage>(_meta_svc->get_remote_storage(), &tracker);
 
-    create_bulk_load_root_dir(err, tracker);
+    create_bulk_load_root_dir();
     tracker.wait_outstanding_tasks();
 
-    if (err == ERR_OK) {
-        try_to_continue_bulk_load();
-    }
+    try_to_continue_bulk_load();
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
@@ -1223,39 +1222,85 @@ void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
     }
 }
 
-// ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::create_bulk_load_root_dir(error_code &err, task_tracker &tracker)
+// ThreadPool: THREAD_POOL_META_SERVER
+void bulk_load_service::create_bulk_load_root_dir()
 {
     blob value = blob();
-    _meta_svc->get_remote_storage()->create_node(
-        _bulk_load_root,
-        LPC_META_CALLBACK,
-        [this, &err, &tracker](error_code ec) {
-            if (ERR_OK == ec || ERR_NODE_ALREADY_EXIST == ec) {
-                ddebug_f("create bulk load root({}) succeed", _bulk_load_root);
-                sync_apps_bulk_load_from_remote_stroage(err, tracker);
-            } else if (ERR_TIMEOUT == ec) {
-                dwarn_f("create bulk load root({}) failed, retry later", _bulk_load_root);
-                tasking::enqueue(
-                    LPC_META_STATE_NORMAL,
-                    _meta_svc->tracker(),
-                    std::bind(&bulk_load_service::create_bulk_load_root_dir, this, err, tracker),
-                    0,
-                    std::chrono::seconds(1));
-            } else {
-                err = ec;
-                dfatal_f(
-                    "create bulk load root({}) failed, error={}", _bulk_load_root, ec.to_string());
-            }
-        },
-        value,
-        &tracker);
+    std::string path = _bulk_load_root;
+    _sync_bulk_load_storage->create_node(std::move(path), std::move(value), [this]() {
+        ddebug_f("create bulk load root({}) succeed", _bulk_load_root);
+        sync_apps_bulk_load_from_remote_stroage();
+    });
 }
 
-void bulk_load_service::sync_apps_bulk_load_from_remote_stroage(error_code &err,
-                                                                task_tracker &tracker)
+// ThreadPool: THREAD_POOL_META_STATE
+void bulk_load_service::sync_apps_bulk_load_from_remote_stroage()
 {
-    // TODO(heyuchen): TBD
+    std::string path = _bulk_load_root;
+    _sync_bulk_load_storage->get_children(
+        std::move(path), [this](bool flag, const std::vector<std::string> &children) {
+            if (flag && children.size() > 0) {
+                ddebug_f("There are {} apps need to sync bulk load status", children.size());
+                for (auto &elem : children) {
+                    uint32_t app_id = boost::lexical_cast<uint32_t>(elem);
+                    ddebug_f("start to sync app({}) bulk load status", app_id);
+                    do_sync_app_bulk_load(app_id);
+                }
+            }
+        });
+}
+
+// ThreadPool: THREAD_POOL_META_STATE
+void bulk_load_service::do_sync_app_bulk_load(int32_t app_id)
+{
+    std::string app_path = get_app_bulk_load_path(app_id);
+    _sync_bulk_load_storage->get_data(
+        std::move(app_path), [this, app_id, app_path](const blob &value) {
+            app_bulk_load_info ainfo;
+            dsn::json::json_forwarder<app_bulk_load_info>::decode(value, ainfo);
+            {
+                zauto_write_lock l(_lock);
+                _bulk_load_app_id.insert(app_id);
+                _app_bulk_load_info[app_id] = ainfo;
+            }
+            sync_partitions_bulk_load_from_remote_stroage(ainfo.app_id, ainfo.app_name);
+        });
+}
+
+// ThreadPool: THREAD_POOL_META_STATE
+void bulk_load_service::sync_partitions_bulk_load_from_remote_stroage(int32_t app_id,
+                                                                      const std::string &app_name)
+{
+    std::string app_path = get_app_bulk_load_path(app_id);
+    _sync_bulk_load_storage->get_children(
+        std::move(app_path),
+        [this, app_path, app_id, app_name](bool flag, const std::vector<std::string> &children) {
+            ddebug_f("app(name={},app_id={}) has {} partition bulk load info to be synced",
+                     app_name,
+                     app_id,
+                     children.size());
+            for (const auto &child_pidx : children) {
+                uint32_t pidx = boost::lexical_cast<uint32_t>(child_pidx);
+                std::string partition_path = get_partition_bulk_load_path(app_path, pidx);
+                do_sync_partition_bulk_load(gpid(app_id, pidx), app_name, partition_path);
+            }
+        });
+}
+
+// ThreadPool: THREAD_POOL_META_STATE
+void bulk_load_service::do_sync_partition_bulk_load(const gpid &pid,
+                                                    const std::string &app_name,
+                                                    std::string &partition_path)
+{
+    _sync_bulk_load_storage->get_data(
+        std::move(partition_path), [this, pid, app_name, partition_path](const blob &value) {
+            partition_bulk_load_info pinfo;
+            dsn::json::json_forwarder<partition_bulk_load_info>::decode(value, pinfo);
+            {
+                zauto_write_lock l(_lock);
+                _partition_bulk_load_info[pid] = pinfo;
+            }
+        });
 }
 
 void bulk_load_service::try_to_continue_bulk_load()
