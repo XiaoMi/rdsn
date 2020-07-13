@@ -5,8 +5,8 @@
 #include <chrono>
 #include <thread>
 
-#include "dist/replication/meta_server/meta_state_service_simple.h"
-#include "dist/replication/meta_server/meta_state_service_zookeeper.h"
+#include "meta/meta_state_service_simple.h"
+#include "meta/meta_state_service_zookeeper.h"
 
 using namespace dsn;
 using namespace dsn::dist;
