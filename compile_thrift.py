@@ -75,7 +75,7 @@ thrift_description = [
     },
     {
         "name": "simple_kv",
-        "path": "src/dist/replication/storage_engine/simple_kv"
+        "path": "src/replica/storage/simple_kv"
     },
     {
         "name": "command",
