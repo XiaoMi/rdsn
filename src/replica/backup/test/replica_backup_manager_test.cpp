@@ -2,7 +2,7 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
+#include "replica/tests/replica_test_base.h"
 #include "lib/backup/replica_backup_manager.h"
 
 namespace dsn {

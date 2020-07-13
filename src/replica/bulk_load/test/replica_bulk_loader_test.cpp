@@ -3,7 +3,7 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include "lib/bulk_load/replica_bulk_loader.h"
-#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
+#include "replica/tests/replica_test_base.h"
 
 #include <fstream>
 

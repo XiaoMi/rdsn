@@ -25,7 +25,7 @@
  */
 
 #include "dist/replication/lib/mutation_log.h"
-#include "dist/replication/test/replica_test/unit_test/replica_test_base.h"
+#include "replica_test_base.h"
 
 #include <dsn/utility/filesystem.h>
 #include <gtest/gtest.h>
