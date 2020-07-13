@@ -41,6 +41,7 @@
 #include "checker.h"
 #include "case.h"
 
+<<<<<<< HEAD:src/replica/storage/simple_kv/tests/checker.cpp
 #include "replica/replica.h"
 #include "replica/replica_stub.h"
 #include "replica/mutation_log.h"
@@ -48,6 +49,15 @@
 #include "dist/replication/meta_server/meta_server_failure_detector.h"
 #include "dist/replication/meta_server/server_state.h"
 #include "dist/replication/meta_server/server_load_balancer.h"
+=======
+#include "dist/replication/lib/replica.h"
+#include "dist/replication/lib/replica_stub.h"
+#include "dist/replication/lib/mutation_log.h"
+#include "meta/meta_service.h"
+#include "meta/meta_server_failure_detector.h"
+#include "meta/server_state.h"
+#include "meta/server_load_balancer.h"
+>>>>>>> upstream/master:src/dist/replication/test/simple_kv/checker.cpp
 
 #include "core/core/service_engine.h"
 #include "core/rpc/rpc_engine.h"
