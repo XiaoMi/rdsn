@@ -1,2 +1,3 @@
 add_subdirectory(unit_test)
 add_subdirectory(balancer_simulator)
+add_subdirectory(meta_state)
