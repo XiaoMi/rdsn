@@ -12,7 +12,7 @@ set(MY_PROJ_SRC "${DUPLICATION_SRC}")
 # Search mode for source files under CURRENT project directory?
 # "GLOB_RECURSE" for recursive search
 # "GLOB" for non-recursive search
-set(MY_SRC_SEARCH_MODE "GLOB_RECURSE")
+#set(MY_SRC_SEARCH_MODE "GLOB_RECURSE")
 
 set(MY_PROJ_LIBS
     dsn_replication_common
