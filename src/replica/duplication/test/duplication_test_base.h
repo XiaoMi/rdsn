@@ -5,7 +5,7 @@
 #pragma once
 
 #include "replica/mutation_log_utils.h"
-#include "replica/test/replica_test_base.h"
+#include "replica/tests/replica_test_base.h"
 #include "replica/duplication/replica_duplicator.h"
 #include "replica/duplication/replica_duplicator_manager.h"
 #include "replica/duplication/duplication_sync_timer.h"

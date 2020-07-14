@@ -14,4 +14,4 @@ set(MY_BINPLACES "")
 
 dsn_add_object()
 
-add_subdirectory(test)
+add_subdirectory(tests)
