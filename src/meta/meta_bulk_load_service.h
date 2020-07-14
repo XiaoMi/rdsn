@@ -211,15 +211,13 @@ private:
     ///
     void create_bulk_load_root_dir();
 
-    void sync_apps_bulk_load_from_remote_storage();
+    void sync_apps_from_remote_storage();
 
-    void do_sync_app_bulk_load(int32_t app_id);
+    void do_sync_app(int32_t app_id);
 
-    void sync_partitions_bulk_load_from_remote_storage(int32_t app_id, const std::string &app_name);
+    void sync_partitions_from_remote_storage(int32_t app_id, const std::string &app_name);
 
-    void do_sync_partition_bulk_load(const gpid &pid,
-                                     const std::string &app_name,
-                                     std::string &partition_path);
+    void do_sync_partition(const gpid &pid, std::string &partition_path);
 
     ///
     /// try to continue bulk load according to states from remote storage
