@@ -1,12 +1,12 @@
 set(MY_PROJ_NAME dsn_replica_server)
 
 set(DUPLICATION_SRC
-       duplication/replica_duplicator_manager.cpp
-       duplication/duplication_sync_timer.cpp
-       duplication/replica_duplicator.cpp
-       duplication/duplication_pipeline.cpp
-       duplication/load_from_private_log.cpp
-       duplication/mutation_batch.cpp
+        duplication/replica_duplicator_manager.cpp
+        duplication/duplication_sync_timer.cpp
+        duplication/replica_duplicator.cpp
+        duplication/duplication_pipeline.cpp
+        duplication/load_from_private_log.cpp
+        duplication/mutation_batch.cpp
 )
 
 set(BACKUP_SRC backup/replica_backup_manager.cpp)
@@ -16,9 +16,9 @@ set(BULK_LOAD_SRC bulk_load/replica_bulk_loader.cpp)
 # Source files under CURRENT project directory will be automatically included.
 # You can manually set MY_PROJ_SRC to include source files under other directories.
 set(MY_PROJ_SRC
-       ${DUPLICATION_SRC}
-       ${BACKUP_SRC}
-       ${BULK_LOAD_SRC}
+        ${DUPLICATION_SRC}
+        ${BACKUP_SRC}
+        ${BULK_LOAD_SRC}
 )
 
 # Search mode for source files under CURRENT project directory?
