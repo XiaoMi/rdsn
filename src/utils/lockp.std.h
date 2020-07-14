@@ -36,7 +36,7 @@
 #pragma once
 
 #include <dsn/utility/synchronize.h>
-#include "core/utils/zlock_provider.h"
+#include "utils/zlock_provider.h"
 
 namespace dsn {
 namespace tools {

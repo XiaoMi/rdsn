@@ -33,7 +33,7 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-#include "core/tools/common/lockp.std.h"
+#include "utils/lockp.std.h"
 #include <gtest/gtest.h>
 
 using namespace dsn;

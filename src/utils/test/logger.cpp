@@ -33,7 +33,7 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-#include "core/tools/common/simple_logger.h"
+#include "utils/simple_logger.h"
 #include <gtest/gtest.h>
 #include <dsn/utility/filesystem.h>
 

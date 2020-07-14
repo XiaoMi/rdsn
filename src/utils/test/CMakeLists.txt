@@ -1,12 +1,13 @@
-set(MY_PROJ_NAME dsn.utils.tests)
+set(MY_PROJ_NAME dsn_utils_tests)
 
 # Search mode for source files under CURRENT project directory?
 # "GLOB_RECURSE" for recursive search
 # "GLOB" for non-recursive search
 set(MY_SRC_SEARCH_MODE "GLOB")
 
-set(MY_PROJ_LIBS gtest
-                 dsn_runtime
+set(MY_PROJ_LIBS dsn_runtime
+                 dsn_utils
+                 gtest
                  )
 
 set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)

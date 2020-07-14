@@ -33,10 +33,10 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
+#include "utils/message_utils.cpp"
 #include <dsn/utility/crc.h>
 #include <dsn/utility/transient_memory.h>
 #include <dsn/tool-api/rpc_message.h>
-#include <core/utils/message_utils.cpp>
 #include <gtest/gtest.h>
 
 using namespace ::dsn;
