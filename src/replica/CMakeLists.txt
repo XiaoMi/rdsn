@@ -9,9 +9,11 @@ set(DUPLICATION_SRC
         duplication/mutation_batch.cpp
 )
 
-set(BACKUP_SRC backup/replica_backup_manager.cpp)
+set(BACKUP_SRC
+        backup/replica_backup_manager.cpp)
 
-set(BULK_LOAD_SRC bulk_load/replica_bulk_loader.cpp)
+set(BULK_LOAD_SRC
+        bulk_load/replica_bulk_loader.cpp)
 
 # Source files under CURRENT project directory will be automatically included.
 # You can manually set MY_PROJ_SRC to include source files under other directories.
