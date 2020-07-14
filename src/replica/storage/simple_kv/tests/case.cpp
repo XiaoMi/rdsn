@@ -39,15 +39,9 @@
 
 #include <dsn/tool-api/task.h>
 #include <dsn/tool-api/rpc_message.h>
-<<<<<<< HEAD:src/replica/storage/simple_kv/tests/case.cpp
-#include "dist/replication/meta_server/server_load_balancer.h"
 #include "replica/replica_stub.h"
 #include "core/core/service_engine.h"
-=======
 #include "meta/server_load_balancer.h"
-#include "../../lib/replica_stub.h"
-#include "../../../../core/core/service_engine.h"
->>>>>>> upstream/master:src/dist/replication/test/simple_kv/case.cpp
 
 #include <iostream>
 #include <string>
