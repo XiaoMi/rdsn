@@ -4,9 +4,9 @@ if [ -z "${REPORT_DIR}" ]; then
     REPORT_DIR="."
 fi
 
-output_xml="${REPORT_DIR}/dsn.zookeeper.tests_${/.ini/.xml}"
-
 ./clear.sh
+
+output_xml="${REPORT_DIR}/dsn.zookeeper.tests.xml"
 GTEST_OUTPUT="xml:${output_xml}" ./dsn.zookeeper.tests config-test.ini
 
 if [ $? -ne 0 ]; then
