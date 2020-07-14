@@ -101,7 +101,6 @@ TEST(tools_common, simple_logger)
     log_print(logger, "%s", "test_print");
     std::thread t(
         [](screen_logger *lg) {
-            tls_dsn.magic = 0xdeadbeef;
             log_print(lg, "%s", "test_print");
         },
         logger);

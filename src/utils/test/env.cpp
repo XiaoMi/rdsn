@@ -33,10 +33,8 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
-#include <dsn/tool-api/env_provider.h>
 #include <gtest/gtest.h>
 #include <dsn/utility/rand.h>
-#include "core/tools/simulator/env.sim.h"
 
 using namespace ::dsn;
 
