@@ -34,4 +34,4 @@ set(MY_BINPLACES "")
 
 dsn_add_shared_library()
 
-add_subdirectory(test)
+add_subdirectory(tests)
