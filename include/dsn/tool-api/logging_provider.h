@@ -37,6 +37,7 @@
 
 #include <stdarg.h>
 #include <dsn/utility/factory_store.h>
+#include <dsn/utility/factory_store.h>
 
 namespace dsn {
 /*!
