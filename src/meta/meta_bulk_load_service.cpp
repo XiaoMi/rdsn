@@ -1493,11 +1493,11 @@ void bulk_load_service::try_to_continue_app_bulk_load(
     case bulk_load_status::BLS_INGESTING: {
         // if app status is downloaded, valid partition status is downloaded or ingesting
         // if app status is ingesting, valid partition status is ingesting or succeed
-        const auto valid_status = (app_status == bulk_load_status::BLS_DOWNLOADED)
-                                      ? bulk_load_status::BLS_INGESTING
-                                      : bulk_load_status::BLS_SUCCEED;
+        const auto other_valid_status = (app_status == bulk_load_status::BLS_DOWNLOADED)
+                                            ? bulk_load_status::BLS_INGESTING
+                                            : bulk_load_status::BLS_SUCCEED;
         for (const auto &kv : pinfo_map) {
-            if (kv.second.status != app_status && kv.second.status != valid_status) {
+            if (kv.second.status != app_status && kv.second.status != other_valid_status) {
                 derror_f("app({}) bulk_load_status = {}, but partition[{}] bulk_load_status = {}, "
                          "only {} and {} is valid",
                          ainfo.app_name,
@@ -1505,7 +1505,7 @@ void bulk_load_service::try_to_continue_app_bulk_load(
                          kv.first,
                          dsn::enum_to_string(kv.second.status),
                          dsn::enum_to_string(app_status),
-                         dsn::enum_to_string(valid_status));
+                         dsn::enum_to_string(other_valid_status));
                 is_valid = false;
                 break;
             }
@@ -1513,8 +1513,8 @@ void bulk_load_service::try_to_continue_app_bulk_load(
     } break;
     case bulk_load_status::BLS_SUCCEED:
     case bulk_load_status::BLS_PAUSED:
-        // if app status is succeed and paused, partition status should not be different from app
-        // status
+        // if app status is succeed or paused, all partitions' status should not be different from
+        // app's
         if (different_status_count > 0) {
             derror_f("app({}) bulk_load_status = {}, {} partitions status is different from app, "
                      "this is invalid",
