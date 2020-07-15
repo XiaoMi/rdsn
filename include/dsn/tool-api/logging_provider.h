@@ -86,6 +86,10 @@ private:
     static logging_provider *create_default_instance();
 };
 
-void set_log_prefixed_message_func(std::function<std::string()> func);
 extern std::function<std::string()> log_prefixed_message_func;
+void set_log_prefixed_message_func(std::function<std::string()> func);
 } // namespace dsn
+
+extern void dsn_log_init(const std::string &logging_factory_name,
+                         const std::string &dir_log,
+                         std::function<std::string()> dsn_log_prefixed_message_func);
