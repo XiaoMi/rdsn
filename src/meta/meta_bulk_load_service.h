@@ -234,7 +234,7 @@ private:
     static bool validate_app(int32_t app_id,
                              int32_t partition_count,
                              const app_bulk_load_info &ainfo,
-                             int32_t pinfo_size);
+                             int32_t pinfo_count);
 
     static bool
     validate_partition(const app_bulk_load_info &ainfo,

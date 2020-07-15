@@ -1357,7 +1357,7 @@ void bulk_load_service::try_to_continue_bulk_load()
         app_bulk_load_info ainfo = _app_bulk_load_info[app_id];
         // <partition_index, partition_bulk_load_info>
         std::unordered_map<int32_t, partition_bulk_load_info> pinfo_map;
-        for (const auto kv : _partition_bulk_load_info) {
+        for (const auto &kv : _partition_bulk_load_info) {
             if (kv.first.get_app_id() == app_id) {
                 pinfo_map[kv.first.get_partition_index()] = kv.second;
             }
@@ -1421,7 +1421,7 @@ void bulk_load_service::try_to_continue_app_bulk_load(
 /*static*/ bool bulk_load_service::validate_app(int32_t app_id,
                                                 int32_t partition_count,
                                                 const app_bulk_load_info &ainfo,
-                                                int32_t pinfo_size)
+                                                int32_t pinfo_count)
 {
     // app id and partition from `app_bulk_load_info` is inconsistent with current app_info
     if (app_id != ainfo.app_id || partition_count != ainfo.partition_count) {
@@ -1435,28 +1435,28 @@ void bulk_load_service::try_to_continue_app_bulk_load(
         return false;
     }
 
-    // partition_bulk_load_info_size should not be greater than partition_count
-    if (partition_count < pinfo_size) {
+    // partition_bulk_load_info count should not be greater than partition_count
+    if (partition_count < pinfo_count) {
         derror_f("app({}) has invalid count, app partition_count = {}, remote "
                  "partition_bulk_load_info count = {}",
                  ainfo.app_name,
                  partition_count,
-                 pinfo_size);
+                 pinfo_count);
         return false;
     }
 
-    // partition_bulk_load_info_size is not equal to partition_count can only be happended when app
+    // partition_bulk_load_info count is not equal to partition_count can only be happended when app
     // status is downloading, consider the following condition:
     // when starting bulk load, meta server will create app_bulk_load_dir and
     // partition_bulk_load_dir on remote storage
     // however, meta server crash when create app directory and part of partition directory
     // when meta server recover, partition directory count is less than partition_count
-    if (pinfo_size != partition_count && ainfo.status != bulk_load_status::BLS_DOWNLOADING) {
+    if (pinfo_count != partition_count && ainfo.status != bulk_load_status::BLS_DOWNLOADING) {
         derror_f("app({}) bulk_load_status = {}, but there are {} partitions lack "
                  "partition_bulk_load dir",
                  ainfo.app_name,
                  dsn::enum_to_string(ainfo.status),
-                 partition_count - pinfo_size);
+                 partition_count - pinfo_count);
         return false;
     }
 
