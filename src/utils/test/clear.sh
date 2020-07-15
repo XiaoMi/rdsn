@@ -1,3 +1,3 @@
 #!/bin/sh
 
-rm -rf data dsn.utils.tests.xml
+rm -rf dsn.utils.tests.xml log*.txt

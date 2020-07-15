@@ -99,11 +99,7 @@ TEST(tools_common, simple_logger)
     // cases for print_header
     screen_logger *logger = new screen_logger("./");
     log_print(logger, "%s", "test_print");
-    std::thread t(
-        [](screen_logger *lg) {
-            log_print(lg, "%s", "test_print");
-        },
-        logger);
+    std::thread t([](screen_logger *lg) { log_print(lg, "%s", "test_print"); }, logger);
     t.join();
 
     logger->flush();

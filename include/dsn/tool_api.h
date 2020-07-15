@@ -150,7 +150,7 @@ DSN_API bool register_component_provider(network_header_format fmt,
 DSN_API bool register_toollet(const char *name, toollet::factory f, ::dsn::provider_type type);
 DSN_API bool register_tool(const char *name, tool_app::factory f, ::dsn::provider_type type);
 DSN_API toollet *get_toollet(const char *name, ::dsn::provider_type type);
-}
+} // namespace internal_use_only
 
 /*!
 @addtogroup tool-api-hooks

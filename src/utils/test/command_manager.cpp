@@ -56,3 +56,23 @@ void command_manager_module_init()
             return ss.str();
         });
 }
+
+TEST(command_manager, exist_command) {
+    const std::string cmd = "test-cmd";
+    const std::vector<std::string> cmd_args{"this", "is", "test", "argument"};
+    std::string output;
+    dsn::command_manager::instance().run_command(cmd, cmd_args, output);
+
+    std::string expect_output = "test-cmd response: [this is test argument]";
+    ASSERT_EQ(output, expect_output);
+}
+
+TEST(command_manager, not_exist_command) {
+    const std::string cmd = "not-exist-cmd";
+    const std::vector<std::string> cmd_args{"arg1", "arg2"};
+    std::string output;
+    dsn::command_manager::instance().run_command(cmd, cmd_args, output);
+
+    std::string expect_output = std::string("unknown command '") + cmd + "'";
+    ASSERT_EQ(output, expect_output);
+}
