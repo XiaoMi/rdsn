@@ -41,11 +41,6 @@ DSN_DEFINE_string("core",
 DSN_DEFINE_bool("core", logging_flush_on_exit, true, "flush log when exit system");
 
 namespace dsn {
-
-using namespace tools;
-DSN_REGISTER_COMPONENT_PROVIDER(simple_logger, "dsn::tools::simple_logger");
-DSN_REGISTER_COMPONENT_PROVIDER(screen_logger, "dsn::tools::screen_logger");
-
 std::function<std::string()> log_prefixed_message_func = []() {
     static thread_local std::string prefixed_message;
 
@@ -121,9 +116,7 @@ void dsn_log_init(const std::string &logging_factory_name,
             return std::string("OK, current level is ") + enum_to_string(start_level);
         });
 
-    if (dsn_log_prefixed_message_func != nullptr) {
-        dsn::set_log_prefixed_message_func(dsn_log_prefixed_message_func);
-    }
+    dsn::set_log_prefixed_message_func(dsn_log_prefixed_message_func);
 }
 
 DSN_API dsn_log_level_t dsn_log_get_start_level() { return dsn_log_start_level; }
