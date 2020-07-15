@@ -29,7 +29,6 @@
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/utility/flags.h>
 #include <dsn/utility/smart_pointers.h>
-#include "core/core/service_engine.h"
 #include "simple_logger.h"
 
 DSN_API dsn_log_level_t dsn_log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
