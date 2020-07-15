@@ -57,7 +57,8 @@ void command_manager_module_init()
         });
 }
 
-TEST(command_manager, exist_command) {
+TEST(command_manager, exist_command)
+{
     const std::string cmd = "test-cmd";
     const std::vector<std::string> cmd_args{"this", "is", "test", "argument"};
     std::string output;
@@ -67,7 +68,8 @@ TEST(command_manager, exist_command) {
     ASSERT_EQ(output, expect_output);
 }
 
-TEST(command_manager, not_exist_command) {
+TEST(command_manager, not_exist_command)
+{
     const std::string cmd = "not-exist-cmd";
     const std::vector<std::string> cmd_args{"arg1", "arg2"};
     std::string output;
