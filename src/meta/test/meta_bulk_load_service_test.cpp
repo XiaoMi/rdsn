@@ -892,6 +892,16 @@ TEST_F(bulk_load_failover_test, app_info_inconsistency)
     ASSERT_FALSE(app_is_bulk_loading(SYNC_APP_NAME));
 }
 
+// app:downloading, partition[0,1]=downloading, partition[2,3] not existed
+TEST_F(bulk_load_failover_test, lack_of_partition_with_downloading)
+{
+    mock_pstatus_map(bulk_load_status::BLS_DOWNLOADING, 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
 // app:download, partition[0]=downloaded, partition[1~3] not existed
 TEST_F(bulk_load_failover_test, lack_of_partition_with_downloaded)
 {
@@ -956,6 +966,56 @@ TEST_F(bulk_load_failover_test, downloading_with_partition_wrong_status)
     ASSERT_FALSE(app_is_bulk_loading(SYNC_APP_NAME));
 }
 
+// app:downloading, partition[0~3]=downloading
+TEST_F(bulk_load_failover_test, downloading_with_partition_all_downloading)
+{
+    mock_pstatus_map(bulk_load_status::BLS_DOWNLOADING, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:downloading, partition[0~3]=downloaded
+TEST_F(bulk_load_failover_test, downloading_with_partition_all_downloaded)
+{
+    mock_pstatus_map(bulk_load_status::BLS_DOWNLOADED, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:downloading, partition[0]=downloaded, partition[1~3]=downloading
+TEST_F(bulk_load_failover_test, downloading_with_partition_mixed_status)
+{
+    _pstatus_map[0] = bulk_load_status::BLS_DOWNLOADED;
+    mock_pstatus_map(bulk_load_status::BLS_DOWNLOADING, SYNC_PARTITION_COUNT - 1, 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:downloading, all partition not exist
+TEST_F(bulk_load_failover_test, downloading_with_partition_all_not_exist)
+{
+    try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:downloading, partition[0-3]=succeed
+TEST_F(bulk_load_failover_test, downloading_with_rollback)
+{
+    mock_pstatus_map(bulk_load_status::BLS_SUCCEED, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
 // app:downloaded, partition[0]=succeed, partition[1~3]=ingesting
 TEST_F(bulk_load_failover_test, downloaded_with_partition_wrong_status)
 {
@@ -963,6 +1023,37 @@ TEST_F(bulk_load_failover_test, downloaded_with_partition_wrong_status)
     mock_pstatus_map(bulk_load_status::BLS_INGESTING, SYNC_PARTITION_COUNT - 1, 1);
     try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADED);
     ASSERT_FALSE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:downloaded, partition[0~3]=downloaded
+TEST_F(bulk_load_failover_test, downloaded_with_partition_all_downloaded)
+{
+    mock_pstatus_map(bulk_load_status::BLS_DOWNLOADED, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADED);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADED);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:downloaded, partition[0~3]=ingesting
+TEST_F(bulk_load_failover_test, downloaded_with_partition_all_ingesting)
+{
+    mock_pstatus_map(bulk_load_status::BLS_INGESTING, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADED);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADED);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), 0);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:downloaded, partition[0]=downloaded, partition[1~3]=ingesting
+TEST_F(bulk_load_failover_test, downloaded_with_partition_mixed)
+{
+    _pstatus_map[0] = bulk_load_status::BLS_DOWNLOADED;
+    mock_pstatus_map(bulk_load_status::BLS_INGESTING, SYNC_PARTITION_COUNT - 1, 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADED);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADED);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), 1);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
 }
 
 // app:ingesting, partition[0]=downloading, partition[1~3]=ingesting
@@ -974,6 +1065,37 @@ TEST_F(bulk_load_failover_test, ingesting_with_partition_wrong_status)
     ASSERT_FALSE(app_is_bulk_loading(SYNC_APP_NAME));
 }
 
+// app:ingesting, partition[0~3]=ingesting
+TEST_F(bulk_load_failover_test, ingesting_with_partition_all_ingesting)
+{
+    mock_pstatus_map(bulk_load_status::BLS_INGESTING, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:ingesting, partition[0~3]=succeed
+TEST_F(bulk_load_failover_test, ingesting_with_partition_all_succeed)
+{
+    mock_pstatus_map(bulk_load_status::BLS_SUCCEED, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), 0);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:ingesting, partition[0]=succeed, partition[1~3]=ingesting
+TEST_F(bulk_load_failover_test, ingesting_with_partition_mixed)
+{
+    _pstatus_map[0] = bulk_load_status::BLS_SUCCEED;
+    mock_pstatus_map(bulk_load_status::BLS_INGESTING, SYNC_PARTITION_COUNT - 1, 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), 3);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
 // app:succeed, partition[0~2]=succeed, partition[3]=failed
 TEST_F(bulk_load_failover_test, succeed_with_partition_wrong_status)
 {
@@ -981,6 +1103,73 @@ TEST_F(bulk_load_failover_test, succeed_with_partition_wrong_status)
     _pstatus_map[3] = bulk_load_status::BLS_FAILED;
     try_to_continue_bulk_load(bulk_load_status::BLS_SUCCEED);
     ASSERT_FALSE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:succeed, partition[0~3]=succeed
+TEST_F(bulk_load_failover_test, succeed_with_partition_all_succeed)
+{
+    mock_pstatus_map(bulk_load_status::BLS_SUCCEED, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_SUCCEED);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_SUCCEED);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:failed, partition[0~3]=failed
+TEST_F(bulk_load_failover_test, failed_with_partition_all_failed)
+{
+    mock_pstatus_map(bulk_load_status::BLS_FAILED, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_FAILED);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_FAILED);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:failed, partition[0,1]=downloading, partition[2]=downloaded, partition[3]=failed
+TEST_F(bulk_load_failover_test, failed_with_partition_mixed_status)
+{
+    mock_pstatus_map(bulk_load_status::BLS_DOWNLOADING, 1);
+    _pstatus_map[2] = bulk_load_status::BLS_DOWNLOADED;
+    _pstatus_map[3] = bulk_load_status::BLS_FAILED;
+    try_to_continue_bulk_load(bulk_load_status::BLS_FAILED);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_FAILED);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:pausing, partition[0]=downloading, partition[1]=downloaded, partition[2]=pausing,
+// partition[3]=paused
+TEST_F(bulk_load_failover_test, pausing_with_partition_mixed_status)
+{
+    _pstatus_map[0] = bulk_load_status::BLS_DOWNLOADING;
+    _pstatus_map[1] = bulk_load_status::BLS_DOWNLOADED;
+    _pstatus_map[2] = bulk_load_status::BLS_PAUSING;
+    _pstatus_map[3] = bulk_load_status::BLS_PAUSED;
+    try_to_continue_bulk_load(bulk_load_status::BLS_PAUSING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_PAUSING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:pausing, partition[0~3]=pasuing
+TEST_F(bulk_load_failover_test, pausing_with_all_pausing)
+{
+    mock_pstatus_map(bulk_load_status::BLS_PAUSING, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_PAUSING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_PAUSING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:pausing, partition[0,1]=pausing, partition[2,3]=paused
+TEST_F(bulk_load_failover_test, pausing_with_some_paused)
+{
+    mock_pstatus_map(bulk_load_status::BLS_PAUSING, 1);
+    mock_pstatus_map(bulk_load_status::BLS_PAUSED, SYNC_PARTITION_COUNT - 1, 2);
+    try_to_continue_bulk_load(bulk_load_status::BLS_PAUSING);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_PAUSING);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
 }
 
 // app:paused, partition[0~2]=paused, partition[3]=pausing
@@ -992,7 +1181,36 @@ TEST_F(bulk_load_failover_test, paused_with_wrong_status)
     ASSERT_FALSE(app_is_bulk_loading(SYNC_APP_NAME));
 }
 
-// TODO(heyuchen): add other tests
+// app:paused, partition[0~3]=paused
+TEST_F(bulk_load_failover_test, paused_with_all_paused)
+{
+    mock_pstatus_map(bulk_load_status::BLS_PAUSED, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_PAUSED);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_PAUSED);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:cancel, partition[0~3]=cancel
+TEST_F(bulk_load_failover_test, cancel_with_all_cancel)
+{
+    mock_pstatus_map(bulk_load_status::BLS_CANCELED, SYNC_PARTITION_COUNT - 1);
+    try_to_continue_bulk_load(bulk_load_status::BLS_CANCELED);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_CANCELED);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+// app:cancel, partition[0~2]=ingestion, partition[3]=downloaded
+TEST_F(bulk_load_failover_test, cancel_with_mixed_status)
+{
+    mock_pstatus_map(bulk_load_status::BLS_INGESTING, 1);
+    mock_pstatus_map(bulk_load_status::BLS_DOWNLOADED, SYNC_PARTITION_COUNT - 1, 2);
+    try_to_continue_bulk_load(bulk_load_status::BLS_CANCELED);
+    ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_CANCELED);
+    ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+    ASSERT_TRUE(app_is_bulk_loading(SYNC_APP_NAME));
+}
 
 } // namespace replication
 } // namespace dsn
