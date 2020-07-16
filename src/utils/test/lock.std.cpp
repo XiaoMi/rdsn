@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     Unit-test for std lock.
- *
- * Revision history:
- *     Nov., 2015, @shengofsun (Weijie Sun), first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #include "utils/lockp.std.h"
 #include <gtest/gtest.h>
 

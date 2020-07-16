@@ -58,11 +58,7 @@ static void file_utils_test_get_process_image_path()
     if (!dsn::utils::filesystem::get_current_directory(imagepath)) {
         EXPECT_TRUE(false);
     }
-#ifdef WIN32
-    imagepath = dsn::utils::filesystem::path_combine(imagepath, "dsn_utils_tests.exe");
-#else
     imagepath = dsn::utils::filesystem::path_combine(imagepath, "dsn_utils_tests");
-#endif
 
     ret = dsn::utils::filesystem::get_current_process_image_path(path);
     EXPECT_TRUE(ret == dsn::ERR_OK);
