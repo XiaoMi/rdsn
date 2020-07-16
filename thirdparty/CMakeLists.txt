@@ -1,9 +1,20 @@
+project(pegasus_thirdparties)
+cmake_minimum_required(VERSION 3.0.2)
+
 include(ExternalProject)
 
-set(TP_DIR ${PROJECT_SOURCE_DIR}/thirdparty)
-set(TP_OUTPUT ${PROJECT_SOURCE_DIR}/thirdparty/output)
-# keep all 3rdparty files under one separated directory
-set_property(DIRECTORY PROPERTY EP_PREFIX ${TP_DIR}/build)
+set(TP_DIR ${PROJECT_SOURCE_DIR})
+set(TP_OUTPUT ${PROJECT_SOURCE_DIR}/output)
+
+# TMP_DIR      = <base>/tmp/<name>
+# STAMP_DIR    = <base>/Stamp/<name>
+# DOWNLOAD_DIR = <base>/Download/<name>
+# SOURCE_DIR   = <base>/Source/<name>
+# BINARY_DIR   = <base>/Build/<name>
+# INSTALL_DIR  = <base>/Install/<name>
+# LOG_DIR      = <STAMP_DIR>
+set_property(DIRECTORY PROPERTY EP_BASE ${TP_DIR}/build)
+
 set(OSS_URL_PREFIX "http://pegasus-thirdparties.oss-cn-beijing.aliyuncs.com")
 
 message("Setting up third-parties...")
@@ -19,6 +30,7 @@ ExternalProject_Add(concurrentqueue
         INSTALL_COMMAND cp -R blockingconcurrentqueue.h concurrentqueue.h internal ${TP_OUTPUT}/include/concurrentqueue
         BUILD_IN_SOURCE 1
         )
+add_custom_target(tp_concurrentqueue DEPENDS concurrentqueue)
 
 ExternalProject_Add(googletest
         URL ${OSS_URL_PREFIX}/googletest-release-1.8.0.tar.gz
@@ -28,6 +40,7 @@ ExternalProject_Add(googletest
         )
 ExternalProject_Get_property(googletest SOURCE_DIR)
 set(googletest_SRC ${SOURCE_DIR})
+add_custom_target(tp_googletest DEPENDS googletest)
 
 ExternalProject_Add(gperftools
         URL ${OSS_URL_PREFIX}/gperftools-2.7.tar.gz
@@ -36,6 +49,7 @@ ExternalProject_Add(gperftools
         CONFIGURE_COMMAND ./configure --prefix=${TP_OUTPUT} --enable-static=no --enable-frame-pointers=yes
         BUILD_IN_SOURCE 1
         )
+add_custom_target(tp_gperftools DEPENDS gperftools)
 
 # header-only
 ExternalProject_Add(rapidjson
@@ -47,6 +61,7 @@ ExternalProject_Add(rapidjson
         INSTALL_COMMAND cp -R include/rapidjson ${TP_OUTPUT}/include
         BUILD_IN_SOURCE 1
         )
+add_custom_target(tp_rapidjson DEPENDS rapidjson)
 
 ExternalProject_Add(zookeeper
         URL ${OSS_URL_PREFIX}/zookeeper-3.4.10.tar.gz
@@ -57,6 +72,7 @@ ExternalProject_Add(zookeeper
         INSTALL_COMMAND cd src/c && make install
         BUILD_IN_SOURCE 1
         )
+add_custom_target(tp_zookeeper DEPENDS zookeeper)
 
 ExternalProject_Add(libevent
         URL ${OSS_URL_PREFIX}/libevent-release-2.1.8-stable.tar.gz
@@ -64,6 +80,7 @@ ExternalProject_Add(libevent
         URL_MD5 80f8652e4b08d2ec86a5f5eb46b74510
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT} -DEVENT__DISABLE_DEBUG_MODE=On -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         )
+add_custom_target(tp_libevent DEPENDS libevent)
 
 ExternalProject_Add(thrift
         URL ${OSS_URL_PREFIX}/thrift-0.9.3.tar.gz
@@ -87,6 +104,7 @@ ExternalProject_Add(thrift
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DWITH_SHARED_LIB=OFF
         )
+add_custom_target(tp_thrift DEPENDS thrift)
 
 ExternalProject_Add(fmt
         URL ${OSS_URL_PREFIX}/fmt-4.0.0.tar.gz
@@ -94,6 +112,7 @@ ExternalProject_Add(fmt
         URL_MD5 c9be9a37bc85493d1116b0af59a25eba
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT} -DFMT_TEST=false -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         )
+add_custom_target(tp_fmt DEPENDS fmt)
 
 ExternalProject_Add(gflags
         URL ${OSS_URL_PREFIX}/gflags-2.2.1.zip
@@ -101,6 +120,7 @@ ExternalProject_Add(gflags
         URL_MD5 2d988ef0b50939fb50ada965dafce96b
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
         )
+add_custom_target(tp_gflags DEPENDS gflags)
 
 ExternalProject_Add(nlohmann_json
         URL ${OSS_URL_PREFIX}/nlohmann_json-3.7.3.zip
@@ -111,6 +131,7 @@ ExternalProject_Add(nlohmann_json
         INSTALL_COMMAND cp -R include/nlohmann ${TP_OUTPUT}/include
         BUILD_IN_SOURCE 1
         )
+add_custom_target(tp_nlohmann_json DEPENDS nlohmann_json)
 
 ExternalProject_Add(poco
         URL ${OSS_URL_PREFIX}/poco-poco-1.7.8-release.tar.gz
@@ -132,6 +153,7 @@ ExternalProject_Add(poco
         -DENABLE_PAGECOMPILER_FILE2PAGE=OFF
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         )
+add_custom_target(tp_poco DEPENDS poco)
 
 ExternalProject_Add(fds
         GIT_REPOSITORY https://github.com/XiaoMi/galaxy-fds-sdk-cpp.git
@@ -149,6 +171,7 @@ ExternalProject_Add(fds
         DEPENDS googletest poco
         BUILD_IN_SOURCE 1
         )
+add_custom_target(tp_fds DEPENDS fds)
 
 # civetweb is one of the dependencies of promemetheus-cpp, do not build & install
 ExternalProject_Add(civetweb
@@ -161,6 +184,7 @@ ExternalProject_Add(civetweb
         )
 ExternalProject_Get_property(civetweb SOURCE_DIR)
 set(civetweb_SRC ${SOURCE_DIR})
+add_custom_target(tp_civetweb DEPENDS civetweb)
 
 ExternalProject_Add(curl
         URL ${OSS_URL_PREFIX}/curl-7.47.0.tar.gz
@@ -189,6 +213,7 @@ ExternalProject_Add(curl
         --without-libidn
         BUILD_IN_SOURCE 1
         )
+add_custom_target(tp_curl DEPENDS curl)
 
 ExternalProject_Add(prometheus-cpp
         URL ${OSS_URL_PREFIX}/prometheus-cpp-0.7.0.tar.gz
@@ -198,6 +223,7 @@ ExternalProject_Add(prometheus-cpp
         PATCH_COMMAND rm -rf 3rdparty/civetweb && cp -R ${civetweb_SRC} 3rdparty/civetweb # replace the submodule
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT} -DENABLE_TESTING=OFF
         )
+add_custom_target(tp_prometheus-cpp DEPENDS prometheus-cpp)
 
 ExternalProject_Add(s2geometry
         URL ${OSS_URL_PREFIX}/s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba.zip
@@ -207,3 +233,4 @@ ExternalProject_Add(s2geometry
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT} -DGTEST_ROOT=${googletest_SRC}/googletest
         DEPENDS googletest
         )
+add_custom_target(tp_s2geometry DEPENDS s2geometry)

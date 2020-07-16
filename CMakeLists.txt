@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.5.2)
 
 project(dsn C CXX)
 
-include(bin/thirdparties.cmake)
 include(bin/dsn.cmake)
 
 set(DSN_BUILD_RUNTIME TRUE)
