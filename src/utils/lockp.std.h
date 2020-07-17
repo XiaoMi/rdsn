@@ -102,7 +102,5 @@ public:
 private:
     dsn::utils::semaphore _sema;
 };
-
-void register_std_lock_providers();
 }
 } // end namespace dsn::tools
