@@ -1661,5 +1661,48 @@ void bulk_load_service::create_missing_partition_dir(const std::string &app_name
         });
 }
 
+// ThreadPool: THREAD_POOL_META_SERVER
+void bulk_load_service::check_app_bulk_load_states(std::shared_ptr<app_state> app,
+                                                   bool is_app_bulk_loading)
+{
+    std::string app_path = get_app_bulk_load_path(app->app_id);
+    _meta_svc->get_remote_storage()->node_exist(
+        app_path, LPC_META_CALLBACK, [this, app_path, app, is_app_bulk_loading](error_code err) {
+            if (err == ERR_TIMEOUT) {
+                ddebug_f(
+                    "check app({}) bulk load dir({}) timeout, try later", app->app_name, app_path);
+                tasking::enqueue(LPC_META_CALLBACK,
+                                 nullptr,
+                                 std::bind(&bulk_load_service::check_app_bulk_load_states,
+                                           this,
+                                           app,
+                                           is_app_bulk_loading),
+                                 0,
+                                 std::chrono::seconds(1));
+                return;
+            } else {
+                if (err != ERR_OK && is_app_bulk_loading) {
+                    derror_f(
+                        "app({}): bulk load dir({}) not exist, but is_bulk_loading = {}, reset "
+                        "app is_bulk_loading flag",
+                        app->app_name,
+                        app_path,
+                        is_app_bulk_loading);
+                    update_app_not_bulk_loading_on_remote_storage(std::move(app));
+                    return;
+                }
+                if (err == ERR_OK && !is_app_bulk_loading) {
+                    derror_f("app({}): bulk load dir({}) exist, but is_bulk_loading = {}, remove "
+                             "useless bulk load dir",
+                             app->app_name,
+                             app_path,
+                             is_app_bulk_loading);
+                    remove_bulk_load_dir_on_remote_storage(std::move(app), false);
+                    return;
+                }
+            }
+        });
+}
+
 } // namespace replication
 } // namespace dsn
