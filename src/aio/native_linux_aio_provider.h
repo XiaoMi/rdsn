@@ -28,18 +28,9 @@
 
 #include "aio_provider.h"
 
-#include <dsn/tool_api.h>
-#include <dsn/utility/synchronize.h>
-#include <queue>
-#include <stdio.h>       /* for perror() */
-#include <sys/syscall.h> /* for __NR_* definitions */
-#include <libaio.h>
-#include <fcntl.h>    /* O_RDWR */
-#include <string.h>   /* memset() */
-#include <inttypes.h> /* uint64_t */
-
 namespace dsn {
 
+class io_event_loop_t;
 class native_linux_aio_provider : public aio_provider
 {
 public:
@@ -50,33 +41,14 @@ public:
     error_code close(dsn_handle_t fh) override;
     error_code flush(dsn_handle_t fh) override;
     void submit_aio_task(aio_task *aio) override;
-    aio_context *prepare_aio_context(aio_task *tsk) override;
-
-    class linux_disk_aio_context : public aio_context
-    {
-    public:
-        struct iocb cb;
-        aio_task *tsk;
-        native_linux_aio_provider *this_;
-        utils::notify_event *evt;
-        error_code err;
-        uint32_t bytes;
-
-        explicit linux_disk_aio_context(aio_task *tsk_)
-            : tsk(tsk_), this_(nullptr), evt(nullptr), err(ERR_UNKNOWN), bytes(0)
-        {
-        }
-    };
+    aio_context *prepare_aio_context(aio_task *tsk) override { return new aio_context; }
 
 protected:
     error_code aio_internal(aio_task *aio, bool async, /*out*/ uint32_t *pbytes = nullptr);
-    void complete_aio(struct iocb *io, int bytes, int err);
-    void get_event();
 
 private:
-    io_context_t _ctx;
-    std::atomic<bool> _is_running{false};
-    std::thread _worker;
+    std::vector<std::shared_ptr<io_event_loop_t>> _high_pri_workers;
+    std::vector<std::shared_ptr<io_event_loop_t>> _comm_pri_workers;
 };
 
 } // namespace dsn
