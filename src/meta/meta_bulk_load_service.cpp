@@ -1557,6 +1557,10 @@ void bulk_load_service::do_continue_app_bulk_load(
         same_count,
         different_count);
 
+    // _apps_in_progress_count is used for updating app bulk load, when _apps_in_progress_count = 0
+    // means app bulk load status can transfer to next stage, for example, when app status is
+    // downloaded, and _apps_in_progress_count = 0, app status can turn to ingesting
+    // see more in function `update_partition_status_on_remote_storage_reply`
     int32_t in_progress_partition_count = partition_count;
     if (app_status == bulk_load_status::BLS_DOWNLOADING) {
         if (invalid_count > 0) {
@@ -1565,8 +1569,8 @@ void bulk_load_service::do_continue_app_bulk_load(
         } else if (different_count > 0) {
             // it is hard to distinguish that bulk load is normal downloading or rollback to
             // downloading before meta server crash, when app status is downloading, we consider
-            // bulk load is rollback to downloading for convenience, for partitions whose status is
-            // not downloading, update them to downloading, so the in_progress_count should be
+            // bulk load as rolling back to downloading for convenience, for partitions whose status
+            // is not downloading, update them to downloading, so the in_progress_count should be
             // different_count
             in_progress_partition_count = different_count;
         }
