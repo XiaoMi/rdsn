@@ -164,19 +164,25 @@ public:
     {
         std::string path = bulk_svc()._bulk_load_root;
         blob value = blob();
+        std::unordered_map<int32_t, partition_bulk_load_info> pinfo_map;
         // create bulk_load_root
         _ms->get_meta_storage()->create_node(
             std::move(path),
             std::move(value),
-            [this, &app_id_set, &app_bulk_load_info_map, &partition_bulk_load_info_map]() {
+            [this,
+             &app_id_set,
+             &app_bulk_load_info_map,
+             &partition_bulk_load_info_map,
+             &pinfo_map]() {
                 for (const auto app_id : app_id_set) {
                     auto app_iter = app_bulk_load_info_map.find(app_id);
                     auto partition_iter = partition_bulk_load_info_map.find(app_id);
-
-                    if (app_iter != app_bulk_load_info_map.end() &&
-                        partition_iter != partition_bulk_load_info_map.end()) {
-                        mock_app_bulk_load_info_on_remote_stroage(app_iter->second,
-                                                                  partition_iter->second);
+                    if (app_iter != app_bulk_load_info_map.end()) {
+                        mock_app_bulk_load_info_on_remote_stroage(
+                            app_iter->second,
+                            partition_iter == partition_bulk_load_info_map.end()
+                                ? pinfo_map
+                                : partition_iter->second);
                     }
                 }
             });
@@ -865,6 +871,309 @@ TEST_F(bulk_load_failover_test, sync_bulk_load)
     ASSERT_TRUE(app_is_bulk_loading(APP_NAME));
     ASSERT_EQ(get_app_bulk_load_status(APP_ID), bulk_load_status::BLS_FAILED);
     ASSERT_EQ(get_partition_bulk_load_info_size(APP_ID), 1);
+}
+
+/// try_to_continue_bulk_load unit test
+// partition_count from bulk load is SYNC_PARTITION_COUNT, app partition_count is PARTITION_COUNT
+TEST_F(bulk_load_failover_test, app_info_inconsistency)
+{
+    prepare_bulk_load_structures(SYNC_APP_ID,
+                                 PARTITION_COUNT,
+                                 SYNC_APP_NAME,
+                                 bulk_load_status::BLS_DOWNLOADED,
+                                 _pstatus_map,
+                                 true);
+    _app_bulk_load_info_map[SYNC_APP_ID].partition_count = SYNC_PARTITION_COUNT;
+    initialize_meta_server_with_mock_bulk_load(
+        _app_id_set, _app_bulk_load_info_map, _partition_bulk_load_info_map, _app_info_list);
+    bulk_svc().initialize_bulk_load_service();
+    wait_all();
+
+    ASSERT_FALSE(app_is_bulk_loading(SYNC_APP_NAME));
+}
+
+TEST_F(bulk_load_failover_test, app_downloading_test)
+{
+    // Test cases:
+    // - partition[0,1]=downloading, partition[2,3] not existed
+    // - partition[0,1]=downloading, partition[2]=downloaded, partition[3] not exist
+    // - partition[0~3]=downloading
+    // - partition[0~3]=downloaded
+    // - partition[0]=downloaded, partition[1~3]=downloading
+    // - partition[0-3]=succeed
+    struct app_downloading_test
+    {
+        int32_t start_index;
+        int32_t end_index;
+        bulk_load_status::type pstatus;
+        int32_t downloaded_pidx;
+        bool expected_is_bulk_loading;
+        int32_t expected_in_process_count;
+    } tests[] = {{0, 1, bulk_load_status::BLS_DOWNLOADING, -1, true, SYNC_PARTITION_COUNT},
+                 {0, 1, bulk_load_status::BLS_DOWNLOADING, 2, false, 0},
+                 {0, 3, bulk_load_status::BLS_DOWNLOADING, -1, true, SYNC_PARTITION_COUNT},
+                 {0, 3, bulk_load_status::BLS_DOWNLOADED, -1, true, SYNC_PARTITION_COUNT},
+                 {1, 3, bulk_load_status::BLS_DOWNLOADING, 0, true, SYNC_PARTITION_COUNT},
+                 {0, 3, bulk_load_status::BLS_SUCCEED, -1, true, SYNC_PARTITION_COUNT}};
+
+    for (const auto &test : tests) {
+        SetUp();
+        mock_pstatus_map(test.pstatus, test.end_index, test.start_index);
+        if (test.downloaded_pidx > 0) {
+            _pstatus_map[test.downloaded_pidx] = bulk_load_status::BLS_DOWNLOADED;
+        }
+        try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADING);
+        ASSERT_EQ(app_is_bulk_loading(SYNC_APP_NAME), test.expected_is_bulk_loading);
+        if (test.expected_is_bulk_loading) {
+            ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADING);
+            ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), test.expected_in_process_count);
+        }
+        TearDown();
+    }
+}
+
+TEST_F(bulk_load_failover_test, app_downloaded_test)
+{
+    // Test cases:
+    // - partition[0]=downloaded, partition[1~3] not existed
+    // - partition[0]=ingesting, partition[1~3]=succeed
+    // - partition[0~3]=downloaded
+    // - partition[0~3]=ingesting
+    // - partition[0~2]=downloaded, partition[3]=ingesting
+    struct app_downloaded_test
+    {
+        int32_t start_index;
+        int32_t end_index;
+        bulk_load_status::type pstatus;
+        int32_t ingesting_pidx;
+        bool expected_is_bulk_loading;
+        int32_t expected_in_process_count;
+    } tests[] = {{0, 0, bulk_load_status::BLS_DOWNLOADED, -1, false, 0},
+                 {1, 3, bulk_load_status::BLS_SUCCEED, 0, false, 0},
+                 {0, 3, bulk_load_status::BLS_DOWNLOADED, -1, true, SYNC_PARTITION_COUNT},
+                 {0, 3, bulk_load_status::BLS_INGESTING, -1, true, 0},
+                 {0, 2, bulk_load_status::BLS_DOWNLOADED, 3, true, 3}};
+
+    for (const auto &test : tests) {
+        SetUp();
+        mock_pstatus_map(test.pstatus, test.end_index, test.start_index);
+        if (test.ingesting_pidx > 0) {
+            _pstatus_map[test.ingesting_pidx] = bulk_load_status::BLS_INGESTING;
+        }
+        try_to_continue_bulk_load(bulk_load_status::BLS_DOWNLOADED);
+        ASSERT_EQ(app_is_bulk_loading(SYNC_APP_NAME), test.expected_is_bulk_loading);
+        if (test.expected_is_bulk_loading) {
+            ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_DOWNLOADED);
+            ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), test.expected_in_process_count);
+        }
+        TearDown();
+    }
+}
+
+TEST_F(bulk_load_failover_test, app_ingesting_test)
+{
+    // Test cases:
+    // - all partition not exist
+    // - partition[0~2]=ingesting, partition[3]=downloading
+    // - partition[0~3]=ingesting
+    // - partition[0~3]=succeed
+    // - partition[0~2]=succeed, partition[3]=ingesting
+    struct app_ingesting_test
+    {
+        int32_t end_index;
+        bulk_load_status::type pstatus;
+        bulk_load_status::type p3_status;
+        bool expected_is_bulk_loading;
+        int32_t expected_in_process_count;
+    } tests[] = {{-1, bulk_load_status::BLS_INVALID, bulk_load_status::BLS_INVALID, false, 0},
+                 {2, bulk_load_status::BLS_INGESTING, bulk_load_status::BLS_DOWNLOADING, false, 0},
+                 {3,
+                  bulk_load_status::BLS_INGESTING,
+                  bulk_load_status::BLS_INVALID,
+                  true,
+                  SYNC_PARTITION_COUNT},
+                 {3, bulk_load_status::BLS_SUCCEED, bulk_load_status::BLS_INVALID, true, 0},
+                 {2, bulk_load_status::BLS_SUCCEED, bulk_load_status::BLS_INGESTING, true, 1}};
+
+    for (const auto &test : tests) {
+        SetUp();
+        mock_pstatus_map(test.pstatus, test.end_index, 0);
+        if (test.p3_status != bulk_load_status::BLS_INVALID) {
+            _pstatus_map[3] = test.p3_status;
+        }
+        try_to_continue_bulk_load(bulk_load_status::BLS_INGESTING);
+        ASSERT_EQ(app_is_bulk_loading(SYNC_APP_NAME), test.expected_is_bulk_loading);
+        if (test.expected_is_bulk_loading) {
+            ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_INGESTING);
+            ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), test.expected_in_process_count);
+        }
+        TearDown();
+    }
+}
+
+TEST_F(bulk_load_failover_test, app_succeed_test)
+{
+    // Test cases:
+    // - partition[0~2]=succeed, partition[3] not exist
+    // - partition[0~2]=succeed, partition[3]=failed
+    // - partition[0~3]=succeed
+    struct app_succeed_test
+    {
+        bulk_load_status::type p3_status;
+        bool expected_is_bulk_loading;
+    } tests[] = {{bulk_load_status::BLS_INVALID, false},
+                 {bulk_load_status::BLS_FAILED, false},
+                 {bulk_load_status::BLS_SUCCEED, true}};
+
+    for (const auto &test : tests) {
+        SetUp();
+        mock_pstatus_map(bulk_load_status::BLS_SUCCEED, 2, 0);
+        if (test.p3_status != bulk_load_status::BLS_INVALID) {
+            _pstatus_map[3] = test.p3_status;
+        }
+        try_to_continue_bulk_load(bulk_load_status::BLS_SUCCEED);
+        ASSERT_EQ(app_is_bulk_loading(SYNC_APP_NAME), test.expected_is_bulk_loading);
+        if (test.expected_is_bulk_loading) {
+            ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_SUCCEED);
+            ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+        }
+        TearDown();
+    }
+}
+
+TEST_F(bulk_load_failover_test, app_pausing_test)
+{
+    // Test cases:
+    // - partition[0]=pausing, partition[1~3] not existed
+    // - partition[0]=downloading, partition[1]=downloaded, partition[2]=pausing,
+    // partition[3]=paused
+    // - partition[0~3]=pasuing
+    // - partition[0]=pausing, partition[1~3]=paused
+    struct app_pausing_test
+    {
+        bool mixed_status;
+        int32_t start_index;
+        bulk_load_status::type pstatus;
+        bool expected_is_bulk_loading;
+    } tests[] = {{false, -1, bulk_load_status::type::BLS_PAUSING, false},
+                 {true, -1, bulk_load_status::type::BLS_PAUSING, true},
+                 {false, 1, bulk_load_status::type::BLS_PAUSING, true},
+                 {false, 1, bulk_load_status::type::BLS_PAUSED, true}};
+    for (const auto &test : tests) {
+        SetUp();
+        if (test.mixed_status) {
+            _pstatus_map[0] = bulk_load_status::BLS_DOWNLOADING;
+            _pstatus_map[1] = bulk_load_status::BLS_DOWNLOADED;
+            _pstatus_map[2] = bulk_load_status::BLS_PAUSING;
+            _pstatus_map[3] = bulk_load_status::BLS_PAUSED;
+        } else {
+            _pstatus_map[0] = bulk_load_status::BLS_PAUSING;
+            if (test.start_index > 0) {
+                mock_pstatus_map(test.pstatus, 3, test.start_index);
+            }
+        }
+        try_to_continue_bulk_load(bulk_load_status::BLS_PAUSING);
+        ASSERT_EQ(app_is_bulk_loading(SYNC_APP_NAME), test.expected_is_bulk_loading);
+        if (test.expected_is_bulk_loading) {
+            ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_PAUSING);
+            ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+        }
+        TearDown();
+    }
+}
+
+TEST_F(bulk_load_failover_test, app_paused_test)
+{
+    // Test cases:
+    // - partition[0~2]=paused, partition[3] not existed
+    // - partition[0~2]=paused, partition[3]=pausing
+    // - partition[0~3]=paused
+    struct app_paused_test
+    {
+        bulk_load_status::type p3_status;
+        bool expected_is_bulk_loading;
+        int32_t expected_in_process_count;
+    } tests[] = {{bulk_load_status::BLS_INVALID, false},
+                 {bulk_load_status::BLS_PAUSING, false},
+                 {bulk_load_status::BLS_PAUSED, true}};
+
+    for (const auto &test : tests) {
+        SetUp();
+        mock_pstatus_map(bulk_load_status::BLS_PAUSED, 2, 0);
+        if (test.p3_status != bulk_load_status::BLS_INVALID) {
+            _pstatus_map[3] = test.p3_status;
+        }
+        try_to_continue_bulk_load(bulk_load_status::BLS_PAUSED);
+        ASSERT_EQ(app_is_bulk_loading(SYNC_APP_NAME), test.expected_is_bulk_loading);
+        if (test.expected_is_bulk_loading) {
+            ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_PAUSED);
+            ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+        }
+        TearDown();
+    }
+}
+
+TEST_F(bulk_load_failover_test, app_failed_test)
+{
+    // Test cases:
+    // - partition[0~2]=failed, partition[3] not existed
+    // - partition[0~3]=failed
+    // - partition[0,1]=downloading, partition[2]=downloaded, partition[3]=failed
+    struct app_failed_test
+    {
+        bool mixed_status;
+        int32_t end_index;
+        bool expected_is_bulk_loading;
+    } tests[] = {{false, 2, false}, {false, 3, true}, {true, -1, true}};
+    for (const auto &test : tests) {
+        SetUp();
+        if (test.mixed_status) {
+            _pstatus_map[0] = bulk_load_status::BLS_DOWNLOADING;
+            _pstatus_map[1] = bulk_load_status::BLS_DOWNLOADING;
+            _pstatus_map[2] = bulk_load_status::BLS_DOWNLOADED;
+            _pstatus_map[3] = bulk_load_status::BLS_FAILED;
+        } else {
+            mock_pstatus_map(bulk_load_status::BLS_FAILED, test.end_index, 0);
+        }
+        try_to_continue_bulk_load(bulk_load_status::BLS_FAILED);
+        ASSERT_EQ(app_is_bulk_loading(SYNC_APP_NAME), test.expected_is_bulk_loading);
+        if (test.expected_is_bulk_loading) {
+            ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_FAILED);
+            ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+        }
+        TearDown();
+    }
+}
+
+TEST_F(bulk_load_failover_test, app_cancel_test)
+{
+    // Test cases:
+    // - partition[0~2]=pausing, partition[3] not existed
+    // - partition[0~3]=cancel
+    // - partition[0~2]=ingestion, partition[3]=downloaded
+    struct app_cancel_test
+    {
+        bulk_load_status::type pstatus;
+        bulk_load_status::type p3_status;
+        bool expected_is_bulk_loading;
+    } tests[] = {
+        {bulk_load_status::type::BLS_PAUSING, bulk_load_status::type::BLS_INVALID, false},
+        {bulk_load_status::type::BLS_CANCELED, bulk_load_status::type::BLS_CANCELED, true},
+        {bulk_load_status::type::BLS_INGESTING, bulk_load_status::type::BLS_DOWNLOADED, true}};
+    for (const auto &test : tests) {
+        SetUp();
+        mock_pstatus_map(test.pstatus, 2, 0);
+        if (test.p3_status != bulk_load_status::type::BLS_INVALID) {
+            _pstatus_map[3] = test.p3_status;
+        }
+        try_to_continue_bulk_load(bulk_load_status::BLS_CANCELED);
+        ASSERT_EQ(app_is_bulk_loading(SYNC_APP_NAME), test.expected_is_bulk_loading);
+        if (test.expected_is_bulk_loading) {
+            ASSERT_EQ(get_app_bulk_load_status(SYNC_APP_ID), bulk_load_status::BLS_CANCELED);
+            ASSERT_EQ(get_app_in_process_count(SYNC_APP_ID), SYNC_PARTITION_COUNT);
+        }
+        TearDown();
+    }
 }
 
 } // namespace replication
