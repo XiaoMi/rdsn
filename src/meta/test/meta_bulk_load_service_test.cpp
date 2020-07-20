@@ -283,7 +283,7 @@ public:
         return count;
     }
 
-    bool app_bulk_load_states_reset(int32_t app_id)
+    bool is_app_bulk_load_states_reset(int32_t app_id)
     {
         return bulk_svc()._bulk_load_app_id.find(app_id) == bulk_svc()._bulk_load_app_id.end();
     }
@@ -1214,7 +1214,7 @@ TEST_F(bulk_load_failover_test, status_inconsistency_wrong_bulk_load_dir)
     bulk_svc().initialize_bulk_load_service();
     wait_all();
 
-    ASSERT_TRUE(app_bulk_load_states_reset(SYNC_APP_ID));
+    ASSERT_TRUE(is_app_bulk_load_states_reset(SYNC_APP_ID));
 }
 
 } // namespace replication
