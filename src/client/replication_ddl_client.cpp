@@ -1563,7 +1563,7 @@ replication_ddl_client::start_bulk_load(const std::string &app_name,
 
 error_with<control_bulk_load_response>
 replication_ddl_client::control_bulk_load(const std::string &app_name,
-                                          bulk_load_control_type::type control_type)
+                                          const bulk_load_control_type::type control_type)
 {
     auto req = make_unique<control_bulk_load_request>();
     req->app_name = app_name;
