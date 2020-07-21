@@ -350,9 +350,9 @@ void replica_stub::install_perf_counters()
                                                         COUNTER_TYPE_VOLATILE_NUMBER,
                                                         "current bulk load ingestion count");
     _counter_bulk_load_succeed_count.init_app_counter("eon.replica_stub",
-                                                      "bulk.load.finish.count",
+                                                      "bulk.load.succeed.count",
                                                       COUNTER_TYPE_VOLATILE_NUMBER,
-                                                      "current bulk load finish count");
+                                                      "current bulk load succeed count");
     _counter_bulk_load_failed_count.init_app_counter("eon.replica_stub",
                                                      "bulk.load.failed.count",
                                                      COUNTER_TYPE_VOLATILE_NUMBER,
@@ -384,7 +384,7 @@ void replica_stub::install_perf_counters()
         "eon.replica_stub",
         "bulk.load.max.ingestion.duration.time.ms",
         COUNTER_TYPE_NUMBER,
-        "bulk load max duration time(ms)");
+        "bulk load max ingestion duration time(ms)");
     _counter_bulk_load_max_duration_time_ms.init_app_counter("eon.replica_stub",
                                                              "bulk.load.max.duration.time.ms",
                                                              COUNTER_TYPE_NUMBER,
