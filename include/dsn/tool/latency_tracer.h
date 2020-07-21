@@ -44,16 +44,29 @@ namespace tool {
  * the "points" will record the all points' time_used_from_previous and time_used_from_start
 **/
 
-struct latency_tracer
+class latency_tracer
 {
-
 public:
+    latency_tracer(int id, const std::string &start_name, const std::string &type);
+
+    // this method is called for any other method which will be recorded methed name and timestamp
+    //
+    // -name: generally, it is the name of that call this method. but you can define the more
+    // significant name to show the events of one moment
+    void add_point(const std::string &name);
+
+    void add_link_tracer(std::shared_ptr<latency_tracer> &link_tracer);
+
+    //  threshold < 0: don't dump any trace points
+    //  threshold = 0: dump all trace points
+    //  threshold > 0: dump the trace point which time_used > threshold
+    void dump_trace_points(int threshold, std::string trace = std::string());
+
+private:
     dsn::zrwlock_nr lock;
 
     uint64_t id = 0;
     std::string type = "mutation";
-    // user can open or close all trace point if user has add_point in many methods
-    bool enable_trace = true;
     std::map<int64_t, std::string> points;
     // link_tracers is used for tracking the request which may transfer the other type,
     // for example: rdsn "request" type will be transered "mutation" type, the "tracking
@@ -66,89 +79,6 @@ public:
     // from stageB, the tracer of request can link the tracer of mutation and continue tracking
     // through mutation object
     std::vector<std::shared_ptr<latency_tracer>> link_tracers;
-
-public:
-    latency_tracer(int id, const std::string &start_name, const std::string &type)
-        : id(id), type(type)
-    {
-        points[dsn_now_ns()] = start_name;
-    };
-
-    // this method is called for any other method which will be recorded methed name and timestamp
-    //
-    // -name: generally, it is the name of that call this method. but you can define the more
-    // significant name to show the events of one moment
-    void add_point(const std::string &name)
-    {
-        if (!enable_trace) {
-            return;
-        }
-
-        int64_t ts = dsn_now_ns();
-        dsn::zauto_write_lock write(lock);
-        points[ts] = name;
-    }
-
-    void add_link_tracer(std::shared_ptr<latency_tracer> &link_tracer)
-    {
-        if (!enable_trace) {
-            return;
-        }
-
-        dsn::zauto_write_lock write(lock);
-        link_tracers.emplace_back(link_tracer);
-    }
-
-    void enable_trace(bool trace) { enable_trace = trace; }
-
-    //  threshold < 0: don't dump any trace points
-    //  threshold = 0: dump all trace points
-    //  threshold > 0: dump the trace point which time_used > threshold
-    void dump_trace_points(int threshold, std::string trace = std::string())
-    {
-        if (threshold < 0 || !enable_trace) {
-            return;
-        }
-
-        if (points.empty()) {
-            return;
-        }
-
-        dsn::zauto_read_lock read(lock);
-
-        uint64_t start_time = points.begin()->first;
-        uint64_t time_used = points.rbegin()->first - start_time;
-
-        if (time_used < threshold) {
-            return;
-        }
-
-        uint64_t previous_time = points.begin()->first;
-        for (const auto &point : points) {
-            trace = fmt::format(
-                "{}\n\tTRACER[{:<10}]:name={:<50}, from_previous={:<20}, from_start={:<20}, "
-                "ts={:<20}, id={}",
-                trace,
-                type,
-                point.second,
-                point.first - previous_time,
-                point.first - start_time,
-                point.first,
-                id);
-            previous_time = point.first;
-        }
-
-        if (link_tracers.empty()) {
-            dwarn_f("TRACER:the trace as fallow\n{}", trace);
-        }
-
-        for (auto const &tracer : link_tracers) {
-            trace =
-                fmt::format("{}\n\tTRACE:The trace transfer the follow id[{}]", trace, tracer->id);
-            tracer->dump_trace_points(0, trace);
-        }
-        return;
-    }
 };
 } // namespace tool
 } // namespace dsn
