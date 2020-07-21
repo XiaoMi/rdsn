@@ -51,7 +51,6 @@ Component providers define the interface for the local components (e.g., network
 #pragma once
 
 // providers
-#include <dsn/tool-api/global_config.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/tool-api/task_queue.h>
 #include <dsn/tool-api/task_worker.h>
@@ -61,6 +60,7 @@ Component providers define the interface for the local components (e.g., network
 #include <dsn/tool-api/message_parser.h>
 #include <dsn/tool-api/logging_provider.h>
 #include <dsn/tool-api/timer_service.h>
+#include <dsn/utility/sys_exit_hook.h>
 
 namespace dsn {
 namespace tools {
@@ -140,9 +140,6 @@ DSN_API bool
 register_component_provider(const char *name, network::factory f, ::dsn::provider_type type);
 DSN_API bool
 register_component_provider(const char *name, env_provider::factory f, ::dsn::provider_type type);
-DSN_API bool register_component_provider(const char *name,
-                                         logging_provider::factory f,
-                                         ::dsn::provider_type type);
 DSN_API bool register_component_provider(network_header_format fmt,
                                          const std::vector<const char *> &signatures,
                                          message_parser::factory f,
@@ -150,7 +147,7 @@ DSN_API bool register_component_provider(network_header_format fmt,
 DSN_API bool register_toollet(const char *name, toollet::factory f, ::dsn::provider_type type);
 DSN_API bool register_tool(const char *name, tool_app::factory f, ::dsn::provider_type type);
 DSN_API toollet *get_toollet(const char *name, ::dsn::provider_type type);
-}
+} // namespace internal_use_only
 
 /*!
 @addtogroup tool-api-hooks
@@ -158,7 +155,6 @@ DSN_API toollet *get_toollet(const char *name, ::dsn::provider_type type);
 */
 DSN_API extern join_point<void> sys_init_before_app_created;
 DSN_API extern join_point<void> sys_init_after_app_created;
-DSN_API extern join_point<void, sys_exit_type> sys_exit;
 /*@}*/
 
 template <typename T>
@@ -167,6 +163,13 @@ bool register_component_provider(const char *name)
     return internal_use_only::register_component_provider(
         name, T::template create<T>, ::dsn::PROVIDER_TYPE_MAIN);
 }
+
+template <typename T>
+struct component_provider_registerer
+{
+    component_provider_registerer(const char *name) { register_component_provider<T>(name); }
+};
+
 template <typename T>
 bool register_component_aspect(const char *name)
 {
@@ -211,5 +214,9 @@ bool register_message_header_parser(network_header_format fmt,
     return internal_use_only::register_component_provider(
         fmt, signatures, T::template create<T>, sizeof(T));
 }
-}
-} // end namespace dsn::tools
+} // namespace tools
+
+#define DSN_REGISTER_COMPONENT_PROVIDER(type, name)                                                \
+    static tools::component_provider_registerer<type> COMPONENT_PROVIDER_REG_##type(name)
+
+} // namespace dsn

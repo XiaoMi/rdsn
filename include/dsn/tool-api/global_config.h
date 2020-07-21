@@ -33,6 +33,10 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
+/// Attention: There are some types which are defined in dsn_runtime being used in this file,
+/// so this file is coupled with dsn_runtime. If you want to add some variables/types here or
+/// include this file, please make sure whether you want to couple with dsn_runtime or not.
+
 #pragma once
 
 #include <dsn/tool-api/task_spec.h>
@@ -157,7 +161,6 @@ struct service_spec
     std::string lock_nr_factory_name;
     std::string rwlock_nr_factory_name;
     std::string semaphore_factory_name;
-    std::string nfs_factory_name;
     std::string logging_factory_name;
 
     network_client_configs network_default_client_cfs; // default network configed by tools
@@ -193,24 +196,8 @@ CONFIG_FLD_STRING(lock_factory_name, "", "recursive exclusive lock provider")
 CONFIG_FLD_STRING(lock_nr_factory_name, "", "non-recurisve exclusive lock provider")
 CONFIG_FLD_STRING(rwlock_nr_factory_name, "", "non-recurisve rwlock provider")
 CONFIG_FLD_STRING(semaphore_factory_name, "", "semaphore provider")
-CONFIG_FLD_STRING(nfs_factory_name, "", "nfs provider")
 CONFIG_FLD_STRING(logging_factory_name, "", "logging provider")
 CONFIG_END
-
-enum sys_exit_type
-{
-    SYS_EXIT_NORMAL,
-    SYS_EXIT_BREAK, // Ctrl-C/Break,Shutdown,LogOff, see SetConsoleCtrlHandler
-    SYS_EXIT_EXCEPTION,
-
-    SYS_EXIT_INVALID
-};
-
-ENUM_BEGIN(sys_exit_type, SYS_EXIT_INVALID)
-ENUM_REG(SYS_EXIT_NORMAL)
-ENUM_REG(SYS_EXIT_BREAK)
-ENUM_REG(SYS_EXIT_EXCEPTION)
-ENUM_END(sys_exit_type)
 
 extern const char *FLAGS_aio_factory_name;
 } // namespace dsn

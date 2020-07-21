@@ -35,11 +35,10 @@
 
 #pragma once
 
-#include <dsn/service_api_c.h>
 #include <stdarg.h>
+#include <dsn/utility/factory_store.h>
 
 namespace dsn {
-
 /*!
 @addtogroup tool-api-providers
 @{
@@ -87,6 +86,18 @@ private:
     static logging_provider *create_default_instance();
 };
 
-/*@}*/
-// ----------------------- inline implementation ---------------------------------------
+void set_log_prefixed_message_func(std::function<std::string()> func);
+extern std::function<std::string()> log_prefixed_message_func;
+
+namespace tools {
+namespace internal_use_only {
+DSN_API bool register_component_provider(const char *name,
+                                         logging_provider::factory f,
+                                         ::dsn::provider_type type);
+} // namespace internal_use_only
+} // namespace tools
 } // namespace dsn
+
+extern void dsn_log_init(const std::string &logging_factory_name,
+                         const std::string &dir_log,
+                         std::function<std::string()> dsn_log_prefixed_message_func);
