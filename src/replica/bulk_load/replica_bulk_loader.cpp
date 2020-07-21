@@ -419,13 +419,13 @@ error_code replica_bulk_loader::download_sst_files(const std::string &app_name,
                     _download_status.store(ec);
                     derror_replica(
                         "failed to download file({}), error = {}", f_meta.name, ec.to_string());
-                    _stub->_counter_bulk_load_recent_download_file_fail_count->increment();
+                    _stub->_counter_bulk_load_download_file_fail_count->increment();
                     return;
                 }
                 // download file succeed, update progress
                 update_bulk_load_download_progress(f_size, f_meta.name);
-                _stub->_counter_bulk_load_recent_download_file_succ_count->increment();
-                _stub->_counter_bulk_load_recent_download_file_size->add(f_size);
+                _stub->_counter_bulk_load_download_file_succ_count->increment();
+                _stub->_counter_bulk_load_download_file_size->add(f_size);
                 set_max_download_file_size(f_size);
             });
         _download_task[f_meta.name] = bulk_load_download_task;
@@ -543,7 +543,7 @@ void replica_bulk_loader::handle_bulk_load_succeed()
 
     _replica->_app->set_ingestion_status(ingestion_status::IS_INVALID);
     _status = bulk_load_status::BLS_SUCCEED;
-    _stub->_counter_bulk_load_finish_count->increment();
+    _stub->_counter_bulk_load_succeed_count->increment();
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION

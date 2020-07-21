@@ -349,10 +349,10 @@ void replica_stub::install_perf_counters()
                                                         "bulk.load.ingestion.count",
                                                         COUNTER_TYPE_VOLATILE_NUMBER,
                                                         "current bulk load ingestion count");
-    _counter_bulk_load_finish_count.init_app_counter("eon.replica_stub",
-                                                     "bulk.load.finish.count",
-                                                     COUNTER_TYPE_VOLATILE_NUMBER,
-                                                     "current bulk load finish count");
+    _counter_bulk_load_succeed_count.init_app_counter("eon.replica_stub",
+                                                      "bulk.load.finish.count",
+                                                      COUNTER_TYPE_VOLATILE_NUMBER,
+                                                      "current bulk load finish count");
     _counter_bulk_load_failed_count.init_app_counter("eon.replica_stub",
                                                      "bulk.load.failed.count",
                                                      COUNTER_TYPE_VOLATILE_NUMBER,
@@ -362,21 +362,20 @@ void replica_stub::install_perf_counters()
         "bulk.load.ingestion.reject.write.count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "bulk load ingestion reject write requests count");
-    _counter_bulk_load_recent_download_file_succ_count.init_app_counter(
+    _counter_bulk_load_download_file_succ_count.init_app_counter(
         "eon.replica_stub",
-        "bulk.load.recent.download.file.success.count",
+        "bulk.load.download.file.success.count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "bulk load recent download file success count");
-    _counter_bulk_load_recent_download_file_fail_count.init_app_counter(
+    _counter_bulk_load_download_file_fail_count.init_app_counter(
         "eon.replica_stub",
-        "bulk.load.recent.download.file.fail.count",
+        "bulk.load.download.file.fail.count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "bulk load recent download file failed count");
-    _counter_bulk_load_recent_download_file_size.init_app_counter(
-        "eon.replica_stub",
-        "bulk.load.recent.download.file.size",
-        COUNTER_TYPE_VOLATILE_NUMBER,
-        "bulk load recent download file size");
+    _counter_bulk_load_download_file_size.init_app_counter("eon.replica_stub",
+                                                           "bulk.load.download.file.size",
+                                                           COUNTER_TYPE_VOLATILE_NUMBER,
+                                                           "bulk load recent download file size");
     _counter_bulk_load_max_download_file_size.init_app_counter("eon.replica_stub",
                                                                "bulk.load.max.download.file.size",
                                                                COUNTER_TYPE_VOLATILE_NUMBER,
