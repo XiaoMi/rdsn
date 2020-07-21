@@ -52,7 +52,8 @@ public:
 
     uint64_t id = 0;
     std::string type = "mutation";
-    bool disable_trace = false;
+    // user can open or close all trace point if user has add_point in many methods
+    bool enable_trace = true;
     std::map<int64_t, std::string> points;
     // link_tracers is used for tracking the request which may transfer the other type,
     // for example: rdsn "request" type will be transered "mutation" type, the "tracking
@@ -79,7 +80,7 @@ public:
     // significant name to show the events of one moment
     void add_point(const std::string &name)
     {
-        if (disable_trace) {
+        if (!enable_trace) {
             return;
         }
 
@@ -90,7 +91,7 @@ public:
 
     void add_link_tracer(std::shared_ptr<latency_tracer> &link_tracer)
     {
-        if (disable_trace) {
+        if (!enable_trace) {
             return;
         }
 
@@ -98,14 +99,14 @@ public:
         link_tracers.emplace_back(link_tracer);
     }
 
-    void disable_trace() { disable_trace = true; }
+    void enable_trace(bool trace) { enable_trace = trace; }
 
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
     //  threshold > 0: dump the trace point which time_used > threshold
     void dump_trace_points(int threshold, std::string trace = std::string())
     {
-        if (threshold < 0 || disable_trace) {
+        if (threshold < 0 || !enable_trace) {
             return;
         }
 
