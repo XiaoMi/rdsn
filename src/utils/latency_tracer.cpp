@@ -12,7 +12,7 @@
 namespace dsn {
 namespace utility {
 
-DSN_DEFINE_bool("replication", enable_trace, true, "whether enable the latency tracer");
+DSN_DEFINE_bool("replication", enable_latency_tracer, true, "whether enable the latency tracer");
 
 latency_tracer::latency_tracer(int id, const std::string &start_name, const std::string &type)
     : id(id), type(type)
@@ -22,7 +22,7 @@ latency_tracer::latency_tracer(int id, const std::string &start_name, const std:
 
 void latency_tracer::add_point(const std::string &name)
 {
-    if (!FLAGS_enable_trace) {
+    if (!FLAGS_enable_latency_tracer) {
         return;
     }
 
@@ -33,7 +33,7 @@ void latency_tracer::add_point(const std::string &name)
 
 void latency_tracer::add_sub_tracer(std::shared_ptr<latency_tracer> &sub_tracer)
 {
-    if (!FLAGS_enable_trace) {
+    if (!FLAGS_enable_latency_tracer) {
         return;
     }
 
@@ -50,7 +50,7 @@ std::vector<std::shared_ptr<latency_tracer>> &latency_tracer::get_sub_tracers()
 
 void latency_tracer::dump_trace_points(int threshold, std::string trace)
 {
-    if (threshold < 0 || !FLAGS_enable_trace) {
+    if (threshold < 0 || !FLAGS_enable_latency_tracer) {
         return;
     }
 
