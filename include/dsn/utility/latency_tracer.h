@@ -55,11 +55,11 @@ public:
     // significant name to show the events of one moment
     void add_point(const std::string &name);
 
-    void add_link_tracer(std::shared_ptr<latency_tracer> &link_tracer);
+    void add_sub_tracer(std::shared_ptr<latency_tracer> &sub_tracer);
 
     std::map<int64_t, std::string> &get_points();
 
-    std::vector<std::shared_ptr<latency_tracer>> &get_link_tracers();
+    std::vector<std::shared_ptr<latency_tracer>> &get_sub_tracers();
 
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
@@ -72,17 +72,14 @@ private:
     uint64_t id = 0;
     std::string type = "mutation";
     std::map<int64_t, std::string> points;
-    // link_tracers is used for tracking the request which may transfer the other type,
+    // sub_tracers is used for tracking the request which may transfer the other type,
     // for example: rdsn "rpc_message" will be convert to "mutation", the "tracking
     // responsibility" is also passed on the "mutation":
     //
     // stageA[request]--stageB[request]--
     //                                  |-->stageC[mutation]
     // stageA[request]--stageB[request]--
-    //
-    // from stageB, the tracer of request can link the tracer of mutation and continue tracking
-    // through mutation object
-    std::vector<std::shared_ptr<latency_tracer>> link_tracers;
+    std::vector<std::shared_ptr<latency_tracer>> sub_tracers;
 };
 } // namespace utility
 } // namespace dsn

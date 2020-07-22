@@ -31,21 +31,21 @@ void latency_tracer::add_point(const std::string &name)
     points[ts] = name;
 };
 
-void latency_tracer::add_link_tracer(std::shared_ptr<latency_tracer> &link_tracer)
+void latency_tracer::add_sub_tracer(std::shared_ptr<latency_tracer> &sub_tracer)
 {
     if (!FLAGS_enable_trace) {
         return;
     }
 
     utils::auto_write_lock write(lock);
-    link_tracers.emplace_back(link_tracer);
+    sub_tracers.emplace_back(sub_tracer);
 };
 
 std::map<int64_t, std::string> &latency_tracer::get_points() { return points; };
 
-std::vector<std::shared_ptr<latency_tracer>> &latency_tracer::get_link_tracers()
+std::vector<std::shared_ptr<latency_tracer>> &latency_tracer::get_sub_tracers()
 {
-    return link_tracers;
+    return sub_tracers;
 };
 
 void latency_tracer::dump_trace_points(int threshold, std::string trace)
@@ -69,25 +69,26 @@ void latency_tracer::dump_trace_points(int threshold, std::string trace)
 
     uint64_t previous_time = points.begin()->first;
     for (const auto &point : points) {
-        trace = fmt::format(
-            "{}\tTRACER[{:<10}]:name={:<50}, from_previous={:<20}, from_start={:<20}, "
-            "ts={:<20}, id={}\n",
-            trace,
-            type,
-            point.second,
-            point.first - previous_time,
-            point.first - start_time,
-            point.first,
-            id);
+        trace =
+            fmt::format("{}\tTRACER[{:<10}]:name={:<50}, from_previous={:<20}, from_start={:<20}, "
+                        "ts={:<20}, id={}\n",
+                        trace,
+                        type,
+                        point.second,
+                        point.first - previous_time,
+                        point.first - start_time,
+                        point.first,
+                        id);
         previous_time = point.first;
     }
 
-    if (link_tracers.empty()) {
-        dwarn_f("TRACER:the trace as fallow\n{}", trace);
+    if (sub_tracers.empty()) {
+        dwarn_f("\n\tTRACER:the root trace as fallow\n{}", trace);
     }
 
-    for (auto const &tracer : link_tracers) {
-        trace = fmt::format("{}\tTRACE:The trace is passed on the follow type[{}]\n", trace, tracer->type);
+    for (auto const &tracer : sub_tracers) {
+        trace = fmt::format(
+            "{}\tTRACE:The sub_tracers trace[{}({})] as follow\n", trace, tracer->type, tracer->id);
         tracer->dump_trace_points(0, trace);
     }
     return;
