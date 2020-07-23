@@ -19,7 +19,7 @@ TEST(latency_tracer, add_point)
     std::shared_ptr<latency_tracer> tracer2 =
         std::make_shared<latency_tracer>(1, "stage0", "type1");
     std::shared_ptr<latency_tracer> sub_tracer =
-        std::make_shared<latency_tracer>(2, "stage0", "link");
+        std::make_shared<latency_tracer>(2, "stage0", "sub");
 
     for (int i = 1; i < tracer1_stage_count; i++) {
         tracer1->add_point(fmt::format("stage{}", i));

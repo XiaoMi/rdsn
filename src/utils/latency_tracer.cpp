@@ -4,10 +4,8 @@
 
 #include <dsn/service_api_c.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/tool-api/zlocks.h>
-#include <dsn/tool-api/task.h>
-#include <dsn/utility/latency_tracer.h>
 #include <dsn/utility/flags.h>
+#include <dsn/utility/latency_tracer.h>
 
 namespace dsn {
 namespace utility {
@@ -17,7 +15,9 @@ DSN_DEFINE_bool("replication", enable_latency_tracer, true, "whether enable the 
 latency_tracer::latency_tracer(int id, const std::string &start_name, const std::string &type)
     : id(id), type(type)
 {
-    points[dsn_now_ns()] = start_name;
+    if (FLAGS_enable_latency_tracer) {
+        points[dsn_now_ns()] = start_name;
+    }
 };
 
 void latency_tracer::add_point(const std::string &name)
@@ -67,7 +67,7 @@ void latency_tracer::dump_trace_points(int threshold, std::string trace)
         return;
     }
 
-    uint64_t previous_time = points.begin()->first;
+    uint64_t previous_time = start_time;
     for (const auto &point : points) {
         trace =
             fmt::format("{}\tTRACER[{:<10}]:name={:<50}, from_previous={:<20}, from_start={:<20}, "
@@ -82,16 +82,15 @@ void latency_tracer::dump_trace_points(int threshold, std::string trace)
         previous_time = point.first;
     }
 
-    if (sub_tracers.empty()) {
-        dwarn_f("\n\tTRACER:the root trace as fallow\n{}", trace);
-    }
-
     for (auto const &tracer : sub_tracers) {
         trace = fmt::format(
             "{}\tTRACE:The sub_tracers trace[{}({})] as follow\n", trace, tracer->type, tracer->id);
         tracer->dump_trace_points(0, trace);
     }
-    return;
+
+    if (sub_tracers.empty()) {
+        dwarn_f("\n\tTRACER:the root trace as fallow\n{}", trace);
+    }
 };
 
 } // namespace utility
