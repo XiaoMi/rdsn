@@ -287,9 +287,6 @@ function(dsn_setup_thirdparty_libs)
     find_package(Boost COMPONENTS system filesystem regex REQUIRED)
     include_directories(${Boost_INCLUDE_DIRS})
 
-    # always relies on thrift and fmt to be built before
-    # every rDSN target.
-    add_custom_target(default_third DEPENDS thrift fmt)
     # link them to every target
     set(CMAKE_PREFIX_PATH ${DSN_THIRDPARTY_ROOT};${CMAKE_PREFIX_PATH})
     find_library(THRIFT_LIB NAMES libthrift.a PATHS ${DSN_THIRDPARTY_ROOT}/lib NO_DEFAULT_PATH)

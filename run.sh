@@ -47,7 +47,6 @@ function usage_build()
     echo "                         e.g., \"gcc,g++\" or \"clang-3.9,clang++-3.9\""
     echo "                         default is \"gcc,g++\""
     echo "   -j|--jobs <num>       the number of jobs to run simultaneously, default 8"
-    echo "   -b|--boost_dir <dir>  specify customized boost directory, use system boost if not set"
     echo "   --enable_gcov         generate gcov code coverage report, default no"
     echo "   -v|--verbose          build in verbose mode, default no"
     echo "   --notest              build without building unit tests, default no"
@@ -75,7 +74,6 @@ function run_build()
     CLEAR=NO
     CLEAR_THIRDPARTY=NO
     JOB_NUM=8
-    BOOST_DIR=""
     ENABLE_GCOV=NO
     RUN_VERBOSE=NO
     NO_TEST=NO
@@ -114,10 +112,6 @@ function run_build()
                 ;;
             -j|--jobs)
                 JOB_NUM="$2"
-                shift
-                ;;
-            -b|--boost_dir)
-                BOOST_DIR="$2"
                 shift
                 ;;
             --enable_gcov)
@@ -175,7 +169,21 @@ function run_build()
     fi
 
     if [[ ${SKIP_THIRDPARTY} == "YES" ]]; then
-        echo "Skip building thirdparty..."
+        echo "Skip building third-parties..."
+    else
+        cd thirdparty
+        if [[ "$CLEAR_THIRDPARTY" == "YES" ]]; then
+            echo "Clear third-parties..."
+            rm -rf build
+        fi
+        echo "Start building third-parties..."
+        mkdir -p build
+        pushd build
+            cmake ..
+            make -j$JOB_NUM
+            exit_if_fail $?
+        popd
+        cd ..
     fi
 
     if [ "$BUILD_TYPE" != "debug" -a "$BUILD_TYPE" != "release" ]; then
@@ -193,7 +201,7 @@ function run_build()
     fi
     C_COMPILER="$C_COMPILER" CXX_COMPILER="$CXX_COMPILER" BUILD_TYPE="$BUILD_TYPE" \
         ONLY_BUILD="$ONLY_BUILD" CLEAR="$CLEAR" JOB_NUM="$JOB_NUM" \
-        BOOST_DIR="$BOOST_DIR" ENABLE_GCOV="$ENABLE_GCOV" SANITIZER="$SANITIZER" \
+        ENABLE_GCOV="$ENABLE_GCOV" SANITIZER="$SANITIZER" \
         RUN_VERBOSE="$RUN_VERBOSE" TEST_MODULE="$TEST_MODULE" NO_TEST="$NO_TEST" \
         DISABLE_GPERF="$DISABLE_GPERF" $scripts_dir/build.sh
 }
