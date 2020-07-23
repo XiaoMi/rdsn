@@ -73,7 +73,7 @@ private:
     void pause_bulk_load();
 
     error_code remove_local_bulk_load_dir(const std::string &bulk_load_dir);
-    void cleanup_download_task();
+    bool cleanup_download_task();
     void clear_bulk_load_states();
     bool is_cleaned_up();
 

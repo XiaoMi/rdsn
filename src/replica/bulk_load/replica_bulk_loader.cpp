@@ -590,12 +590,15 @@ error_code replica_bulk_loader::remove_local_bulk_load_dir(const std::string &bu
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica_bulk_loader::cleanup_download_task()
+bool replica_bulk_loader::cleanup_download_task()
 {
     for (auto &kv : _download_task) {
-        CLEANUP_TASK_ALWAYS(kv.second)
+        if (kv.second != nullptr) {
+            CLEANUP_TASK(kv.second, true);
+        }
     }
     _download_task.clear();
+    return true;
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
