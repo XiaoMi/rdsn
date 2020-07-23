@@ -60,7 +60,7 @@ public:
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
     //  threshold > 0: dump the trace point when time_used > threshold
-    void dump_trace_points(int threshold, std::string trace = std::string());
+    void dump_trace_points(int threshold, /*out*/ std::string trace = std::string());
 
 private:
     utils::rw_lock_nr lock;

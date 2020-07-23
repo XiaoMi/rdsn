@@ -18,7 +18,7 @@ latency_tracer::latency_tracer(int id, const std::string &start_name, const std:
     if (FLAGS_enable_latency_tracer) {
         points[dsn_now_ns()] = start_name;
     }
-};
+}
 
 void latency_tracer::add_point(const std::string &name)
 {
@@ -29,7 +29,7 @@ void latency_tracer::add_point(const std::string &name)
     int64_t ts = dsn_now_ns();
     utils::auto_write_lock write(lock);
     points[ts] = name;
-};
+}
 
 void latency_tracer::add_sub_tracer(std::shared_ptr<latency_tracer> &sub_tracer)
 {
@@ -39,14 +39,14 @@ void latency_tracer::add_sub_tracer(std::shared_ptr<latency_tracer> &sub_tracer)
 
     utils::auto_write_lock write(lock);
     sub_tracers.emplace_back(sub_tracer);
-};
+}
 
 std::map<int64_t, std::string> &latency_tracer::get_points() { return points; };
 
 std::vector<std::shared_ptr<latency_tracer>> &latency_tracer::get_sub_tracers()
 {
     return sub_tracers;
-};
+}
 
 void latency_tracer::dump_trace_points(int threshold, std::string trace)
 {
@@ -91,7 +91,7 @@ void latency_tracer::dump_trace_points(int threshold, std::string trace)
     if (sub_tracers.empty()) {
         dwarn_f("\n\tTRACER:the root trace as fallow\n{}", trace);
     }
-};
+}
 
 } // namespace utility
 } // namespace dsn
