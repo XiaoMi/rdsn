@@ -446,7 +446,6 @@ private:
     perf_counter_wrapper _counter_bulk_load_download_file_succ_count;
     perf_counter_wrapper _counter_bulk_load_download_file_fail_count;
     perf_counter_wrapper _counter_bulk_load_download_file_size;
-    perf_counter_wrapper _counter_bulk_load_max_download_file_size;
     perf_counter_wrapper _counter_bulk_load_max_ingestion_time_ms;
     perf_counter_wrapper _counter_bulk_load_max_duration_time_ms;
 

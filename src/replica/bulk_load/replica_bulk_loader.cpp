@@ -426,7 +426,6 @@ error_code replica_bulk_loader::download_sst_files(const std::string &app_name,
                 update_bulk_load_download_progress(f_size, f_meta.name);
                 _stub->_counter_bulk_load_download_file_succ_count->increment();
                 _stub->_counter_bulk_load_download_file_size->add(f_size);
-                set_max_download_file_size(f_size);
             });
         _download_task[f_meta.name] = bulk_load_download_task;
     }
@@ -616,7 +615,6 @@ void replica_bulk_loader::clear_bulk_load_states()
     _replica->_is_bulk_load_ingestion = false;
     _replica->_app->set_ingestion_status(ingestion_status::IS_INVALID);
 
-    _max_download_file_size.store(0);
     _bulk_load_start_time_ms = 0;
     _replica->_bulk_load_ingestion_start_time_ms = 0;
 

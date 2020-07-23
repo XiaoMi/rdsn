@@ -376,10 +376,6 @@ void replica_stub::install_perf_counters()
                                                            "bulk.load.download.file.size",
                                                            COUNTER_TYPE_VOLATILE_NUMBER,
                                                            "bulk load recent download file size");
-    _counter_bulk_load_max_download_file_size.init_app_counter("eon.replica_stub",
-                                                               "bulk.load.max.download.file.size",
-                                                               COUNTER_TYPE_VOLATILE_NUMBER,
-                                                               "bulk load max download file size");
     _counter_bulk_load_max_ingestion_time_ms.init_app_counter(
         "eon.replica_stub",
         "bulk.load.max.ingestion.duration.time.ms",
@@ -1772,7 +1768,6 @@ void replica_stub::on_gc()
     uint64_t cold_backup_max_duration_time_ms = 0;
     uint64_t cold_backup_max_upload_file_size = 0;
     uint64_t bulk_load_running_count = 0;
-    uint64_t bulk_load_max_download_file_size = 0;
     uint64_t bulk_load_max_ingestion_time_ms = 0;
     uint64_t bulk_load_max_duration_time_ms = 0;
     for (auto &kv : rs) {
@@ -1795,9 +1790,6 @@ void replica_stub::on_gc()
 
             if (rep->get_bulk_loader()->get_bulk_load_status() != bulk_load_status::BLS_INVALID) {
                 bulk_load_running_count++;
-                bulk_load_max_download_file_size =
-                    std::max(bulk_load_max_download_file_size,
-                             rep->get_bulk_loader()->max_download_file_size());
                 bulk_load_max_ingestion_time_ms =
                     std::max(bulk_load_max_ingestion_time_ms, rep->ingestion_duration_ms());
                 bulk_load_max_duration_time_ms =
@@ -1813,7 +1805,6 @@ void replica_stub::on_gc()
     _counter_cold_backup_max_duration_time_ms->set(cold_backup_max_duration_time_ms);
     _counter_cold_backup_max_upload_file_size->set(cold_backup_max_upload_file_size);
     _counter_bulk_load_running_count->set(bulk_load_running_count);
-    _counter_bulk_load_max_download_file_size->set(bulk_load_max_download_file_size);
     _counter_bulk_load_max_ingestion_time_ms->set(bulk_load_max_ingestion_time_ms);
     _counter_bulk_load_max_duration_time_ms->set(bulk_load_max_duration_time_ms);
 

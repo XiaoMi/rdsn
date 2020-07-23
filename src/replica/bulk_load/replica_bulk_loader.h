@@ -112,15 +112,6 @@ private:
 
     inline void set_bulk_load_status(bulk_load_status::type status) { _status = status; }
 
-    inline uint64_t max_download_file_size() const { return _max_download_file_size.load(); }
-
-    inline void set_max_download_file_size(uint64_t f_size)
-    {
-        if (f_size > _max_download_file_size.load()) {
-            _max_download_file_size.store(f_size);
-        }
-    }
-
     inline uint64_t duration_ms() const
     {
         return _bulk_load_start_time_ms > 0 ? (dsn_now_ms() - _bulk_load_start_time_ms) : 0;
@@ -158,8 +149,6 @@ private:
 
     // Used for perf-counter
     uint64_t _bulk_load_start_time_ms{0};
-    // current replica max download file size
-    std::atomic<uint64_t> _max_download_file_size{0};
 };
 
 } // namespace replication
