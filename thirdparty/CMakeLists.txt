@@ -24,8 +24,8 @@ ExternalProject_Add(boost
         https://dl.bintray.com/boostorg/release/1.69.0/source/boost_1_69_0.tar.bz2
         URL_MD5 a1332494397bf48332cb152abfefcec2
         CONFIGURE_COMMAND ./bootstrap.sh --prefix=. --with-libraries=system,filesystem,regex --with-toolset=gcc
-        BUILD_COMMAND ./b2 toolset=gcc cxxflags=-fPIC cxxflags=-std=c++11 install
-        INSTALL_COMMAND cp -R include/boost ${TP_OUTPUT}/include && cp -R lib ${TP_OUTPUT}/lib
+        BUILD_COMMAND ./b2 toolset=gcc cxxflags=-fPIC cxxstd=11 install
+        INSTALL_COMMAND cp -R include/boost ${TP_OUTPUT}/include && cp -R lib ${TP_OUTPUT}/
         BUILD_IN_SOURCE 1
         )
 

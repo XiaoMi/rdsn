@@ -175,13 +175,14 @@ function run_build()
         if [[ "$CLEAR_THIRDPARTY" == "YES" ]]; then
             echo "Clear third-parties..."
             rm -rf build
+            rm -rf output
         fi
         echo "Start building third-parties..."
         mkdir -p build
         pushd build
-            cmake ..
-            make -j$JOB_NUM
-            exit_if_fail $?
+        cmake ..
+        make -j$JOB_NUM
+        exit_if_fail $?
         popd
         cd ..
     fi
