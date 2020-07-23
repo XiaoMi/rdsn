@@ -284,11 +284,10 @@ function(dsn_setup_thirdparty_libs)
     set(Boost_USE_STATIC_LIBS OFF)
     set(Boost_USE_STATIC_RUNTIME OFF)
 
+    set(CMAKE_PREFIX_PATH ${DSN_THIRDPARTY_ROOT};${CMAKE_PREFIX_PATH})
     find_package(Boost COMPONENTS system filesystem regex REQUIRED)
     include_directories(${Boost_INCLUDE_DIRS})
 
-    # link them to every target
-    set(CMAKE_PREFIX_PATH ${DSN_THIRDPARTY_ROOT};${CMAKE_PREFIX_PATH})
     find_library(THRIFT_LIB NAMES libthrift.a PATHS ${DSN_THIRDPARTY_ROOT}/lib NO_DEFAULT_PATH)
     if(NOT THRIFT_LIB)
         message(FATAL_ERROR "thrift library not found in ${DSN_THIRDPARTY_ROOT}/lib")
