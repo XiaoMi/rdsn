@@ -2,11 +2,12 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
+#include "../latency_tracer.h"
+
 #include <gtest/gtest.h>
-#include <dsn/utility/latency_tracer.h>
 #include <dsn/dist/fmt_logging.h>
 
-using namespace dsn::utility;
+using namespace dsn::utils;
 
 TEST(latency_tracer, add_point)
 {
@@ -14,25 +15,22 @@ TEST(latency_tracer, add_point)
     int tracer2_stage_count = 2;
     int sub_tracer_stage_count = 2;
 
-    std::shared_ptr<latency_tracer> tracer1 =
-        std::make_shared<latency_tracer>(0, "stage0", "type1");
-    std::shared_ptr<latency_tracer> tracer2 =
-        std::make_shared<latency_tracer>(1, "stage0", "type1");
-    std::shared_ptr<latency_tracer> sub_tracer =
-        std::make_shared<latency_tracer>(2, "stage0", "sub");
+    std::shared_ptr<latency_tracer> tracer1 = std::make_shared<latency_tracer>(0, "name1");
+    std::shared_ptr<latency_tracer> tracer2 = std::make_shared<latency_tracer>(1, "name2");
+    std::shared_ptr<latency_tracer> sub_tracer = std::make_shared<latency_tracer>(2, "sub");
 
-    for (int i = 1; i < tracer1_stage_count; i++) {
+    for (int i = 0; i < tracer1_stage_count; i++) {
         tracer1->add_point(fmt::format("stage{}", i));
     }
 
-    for (int i = 1; i < tracer2_stage_count; i++) {
+    for (int i = 0; i < tracer2_stage_count; i++) {
         tracer2->add_point(fmt::format("stage{}", i));
     }
 
     tracer1->add_sub_tracer(sub_tracer);
     tracer2->add_sub_tracer(sub_tracer);
 
-    for (int i = 1; i < sub_tracer_stage_count; i++) {
+    for (int i = 0; i < sub_tracer_stage_count; i++) {
         sub_tracer->add_point(fmt::format("stage{}", i));
     }
 

@@ -7,7 +7,7 @@
 #include <dsn/tool-api/task.h>
 
 namespace dsn {
-namespace utility {
+namespace utils {
 
 /**
  * latency_tracer is a simple tool for tracking request time consuming in different stages, which
@@ -45,7 +45,7 @@ namespace utility {
 class latency_tracer
 {
 public:
-    latency_tracer(int id, const std::string &start_name, const std::string &type);
+    latency_tracer(int id, const std::string &name);
 
     // add a trace point to the tracer
     // -name: user specified name of the trace point
@@ -53,20 +53,22 @@ public:
 
     void add_sub_tracer(std::shared_ptr<latency_tracer> &sub_tracer);
 
-    std::map<int64_t, std::string> &get_points();
+    const std::map<int64_t, std::string> &get_points();
 
-    std::vector<std::shared_ptr<latency_tracer>> &get_sub_tracers();
+    const std::vector<std::shared_ptr<latency_tracer>> &get_sub_tracers();
 
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
     //  threshold > 0: dump the trace point when time_used > threshold
-    void dump_trace_points(int threshold, /*out*/ std::string trace = std::string());
+    void dump_trace_points(int threshold);
+    void dump_trace_points(int threshold, /*out*/ std::string &traces);
 
 private:
     utils::rw_lock_nr lock;
 
     uint64_t id = 0;
-    std::string type = "default";
+    std::string name;
+    uint64_t start_time;
     std::map<int64_t, std::string> points;
     // sub_tracers is used for tracking the request which may transfer the other type,
     // for example: rdsn "rpc_message" will be convert to "mutation", the "tracking
@@ -77,5 +79,5 @@ private:
     // stageA[rpc_message]--stageB[rpc_message]--
     std::vector<std::shared_ptr<latency_tracer>> sub_tracers;
 };
-} // namespace utility
+} // namespace utils
 } // namespace dsn
