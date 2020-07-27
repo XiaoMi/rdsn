@@ -48,7 +48,7 @@ public:
 
     // add a trace point to the tracer
     // -name: user specified name of the trace point
-    void add_point(const std::string &name);
+    void add_point(const std::string &stage_name);
 
     void add_sub_tracer(std::shared_ptr<latency_tracer> &sub_tracer);
 
