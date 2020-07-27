@@ -27,8 +27,8 @@ TEST(latency_tracer, add_point)
         tracer2->add_point(fmt::format("stage{}", i));
     }
 
-    tracer1->add_sub_tracer(sub_tracer);
-    tracer2->add_sub_tracer(sub_tracer);
+    tracer1->set_sub_tracer(sub_tracer);
+    tracer2->set_sub_tracer(sub_tracer);
 
     for (int i = 0; i < sub_tracer_stage_count; i++) {
         sub_tracer->add_point(fmt::format("stage{}", i));
@@ -48,19 +48,16 @@ TEST(latency_tracer, add_point)
         ASSERT_EQ(point.second, fmt::format("stage{}", count2++));
     }
 
-    auto tracer1_sub_tracers = tracer1->get_sub_tracers();
-    auto tracer2_sub_tracers = tracer2->get_sub_tracers();
-    ASSERT_EQ(tracer1_sub_tracers, tracer2_sub_tracers);
-    ASSERT_EQ(tracer1_sub_tracers.size(), 1);
+    auto tracer1_sub_tracer = tracer1->get_sub_tracer();
+    auto tracer2_sub_tracer = tracer2->get_sub_tracer();
+    ASSERT_EQ(tracer1_sub_tracer, tracer2_sub_tracer);
 
-    for (auto tracer : tracer1_sub_tracers) {
-        auto points = tracer->get_points();
-        ASSERT_TRUE(tracer->get_sub_tracers().empty());
-        ASSERT_EQ(points.size(), sub_tracer_stage_count);
-        int count3 = 0;
-        for (auto point : points) {
-            ASSERT_EQ(point.second, fmt::format("stage{}", count3++));
-        }
+    auto points = tracer1_sub_tracer->get_points();
+    ASSERT_TRUE(tracer1_sub_tracer->get_sub_tracer() == nullptr);
+    ASSERT_EQ(points.size(), sub_tracer_stage_count);
+    int count3 = 0;
+    for (auto point : points) {
+        ASSERT_EQ(point.second, fmt::format("stage{}", count3++));
     }
 
     tracer1->dump_trace_points(0);

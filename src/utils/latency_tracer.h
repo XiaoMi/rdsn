@@ -50,11 +50,11 @@ public:
     // -name: user specified name of the trace point
     void add_point(const std::string &stage_name);
 
-    void add_sub_tracer(std::shared_ptr<latency_tracer> &sub_tracer);
+    void set_sub_tracer(std::shared_ptr<latency_tracer> &tracer);
 
     const std::map<int64_t, std::string> &get_points();
 
-    const std::vector<std::shared_ptr<latency_tracer>> &get_sub_tracers();
+    const std::shared_ptr<latency_tracer> &get_sub_tracer();
 
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
@@ -75,7 +75,7 @@ private:
     // stageA[rpc_message]--stageB[rpc_message]--
     //                                          |-->stageC[mutation]
     // stageA[rpc_message]--stageB[rpc_message]--
-    std::vector<std::shared_ptr<latency_tracer>> sub_tracers;
+    std::shared_ptr<latency_tracer> sub_tracer;
 };
 } // namespace utils
 } // namespace dsn

@@ -28,22 +28,14 @@ void latency_tracer::add_point(const std::string &stage_name)
     points[ts] = stage_name;
 }
 
-void latency_tracer::add_sub_tracer(std::shared_ptr<latency_tracer> &sub_tracer)
+void latency_tracer::set_sub_tracer(std::shared_ptr<latency_tracer> &tracer)
 {
-    if (!FLAGS_enable_latency_tracer) {
-        return;
-    }
-
-    utils::auto_write_lock write(lock);
-    sub_tracers.emplace_back(sub_tracer);
+    sub_tracer = tracer;
 }
+
+const std::shared_ptr<latency_tracer> &latency_tracer::get_sub_tracer() { return sub_tracer; }
 
 const std::map<int64_t, std::string> &latency_tracer::get_points() { return points; };
-
-const std::vector<std::shared_ptr<latency_tracer>> &latency_tracer::get_sub_tracers()
-{
-    return sub_tracers;
-}
 
 void latency_tracer::dump_trace_points(int threshold)
 {
@@ -82,14 +74,12 @@ void latency_tracer::dump_trace_points(int threshold, /*out*/ std::string &trace
         previous_time = point.first;
     }
 
-    if (sub_tracers.empty()) {
+    if (sub_tracer == nullptr) {
         dwarn_f("TRACE:the traces as fallow:\n{}", traces);
         return;
     }
 
-    for (auto const &tracer : sub_tracers) {
-        tracer->dump_trace_points(0, traces);
-    }
+    sub_tracer->dump_trace_points(0, traces);
 }
 
 } // namespace utils
