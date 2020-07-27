@@ -3,8 +3,7 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #pragma once
-#include <dsn/tool-api/zlocks.h>
-#include <dsn/tool-api/task.h>
+#include <dsn/utility/synchronize.h>
 
 namespace dsn {
 namespace utils {
@@ -66,7 +65,6 @@ public:
 private:
     utils::rw_lock_nr lock;
 
-    uint64_t id = 0;
     std::string name;
     uint64_t start_time;
     std::map<int64_t, std::string> points;

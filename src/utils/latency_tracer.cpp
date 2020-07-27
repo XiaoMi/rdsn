@@ -13,11 +13,11 @@ namespace utils {
 DSN_DEFINE_bool("replication", enable_latency_tracer, true, "whether enable the latency tracer");
 
 latency_tracer::latency_tracer(int id, const std::string &name)
-    : id(id), name(name), start_time(dsn_now_ns())
+    : name(fmt::format("(TRACE.{}.{})", name, id)), start_time(dsn_now_ns())
 {
 }
 
-void latency_tracer::add_point(const std::string &name)
+void latency_tracer::add_point(const std::string &stage_name)
 {
     if (!FLAGS_enable_latency_tracer) {
         return;
@@ -25,7 +25,7 @@ void latency_tracer::add_point(const std::string &name)
 
     int64_t ts = dsn_now_ns();
     utils::auto_write_lock write(lock);
-    points[ts] = name;
+    points[ts] = stage_name;
 }
 
 void latency_tracer::add_sub_tracer(std::shared_ptr<latency_tracer> &sub_tracer)
@@ -69,33 +69,25 @@ void latency_tracer::dump_trace_points(int threshold, /*out*/ std::string &trace
         return;
     }
 
+    traces.append(fmt::format("\t***************[{}]***************\n", name));
     uint64_t previous_time = start_time;
     for (const auto &point : points) {
-        std::string trace =
-            fmt::format("\tTRACER[{:<10}]:name={:<50}, from_previous={:<20}, from_start={:<20}, "
-                        "ts={:<20}, id={}\n",
-                        name,
-                        point.second,
-                        point.first - previous_time,
-                        point.first - start_time,
-                        point.first,
-                        id);
+        std::string trace = fmt::format("\tTRACE:name={:<50}, span={:<20}, total={:<20}, "
+                                        "ts={:<20}\n",
+                                        point.second,
+                                        point.first - previous_time,
+                                        point.first - start_time,
+                                        point.first);
         traces.append(trace);
         previous_time = point.first;
     }
 
     if (sub_tracers.empty()) {
-        dwarn_f("\n\tTRACER:the traces as fallow:\n{}", traces);
+        dwarn_f("TRACE:the traces as fallow:\n{}", traces);
         return;
     }
 
     for (auto const &tracer : sub_tracers) {
-        std::string trace = fmt::format("\tTRACE:The sub trace[{}({})] of [{}({})] as follow:\n",
-                                        tracer->name,
-                                        tracer->id,
-                                        name,
-                                        id);
-        traces.append(trace);
         tracer->dump_trace_points(0, traces);
     }
 }
