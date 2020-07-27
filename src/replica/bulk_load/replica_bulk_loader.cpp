@@ -590,15 +590,17 @@ error_code replica_bulk_loader::remove_local_bulk_load_dir(const std::string &bu
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-bool replica_bulk_loader::cleanup_download_task()
+void replica_bulk_loader::cleanup_download_task()
 {
     for (auto &kv : _download_task) {
         if (kv.second != nullptr) {
-            CLEANUP_TASK(kv.second, true);
+            bool finished = false;
+            kv.second->cancel(false, &finished);
+            if (finished) {
+                kv.second = nullptr;
+            }
         }
     }
-    _download_task.clear();
-    return true;
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
@@ -609,6 +611,7 @@ void replica_bulk_loader::clear_bulk_load_states()
     }
 
     cleanup_download_task();
+    _download_task.clear();
     _metadata.files.clear();
     _metadata.file_total_size = 0;
     _cur_downloaded_size.store(0);
