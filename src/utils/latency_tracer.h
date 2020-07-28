@@ -33,6 +33,7 @@ namespace utils {
  * void end(request req){
  *      req.tracer.add_point("end");
  * };
+ * ```
  *
  *  point1     point2     point3    point4
  *    |         |           |         |
