@@ -1,6 +1,13 @@
 project(pegasus_thirdparties)
 cmake_minimum_required(VERSION 3.0.2)
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    # require at least gcc 4.8
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.8)
+        message(FATAL_ERROR "GCC version must be at least 4.8!")
+    endif()
+endif()
+
 include(ExternalProject)
 
 set(TP_DIR ${PROJECT_SOURCE_DIR})
@@ -237,11 +244,15 @@ ExternalProject_Add(nlohmann_json
         )
 
 ExternalProject_Add(s2geometry
-        URL ${OSS_URL_PREFIX}/s2geometry-0239455c1e260d6d2c843649385b4fb9f5b28dba.zip
-        https://github.com/google/s2geometry/archive/0239455c1e260d6d2c843649385b4fb9f5b28dba.zip
-        URL_MD5 bfa5f1c08f535a72fb2c92ec16332c64
-        PATCH_COMMAND patch -p1 < ${TP_DIR}/fix_s2_for_pegasus.patch
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT} -DGTEST_ROOT=${googletest_SRC}/googletest
+        URL ${OSS_URL_PREFIX}/s2geometry-e8d16637a467d9f096a92a6d81a50a9b747ca828.zip
+	https://github.com/neverchanje/s2geometry/archive/e8d16637a467d9f096a92a6d81a50a9b747ca828.zip
+        URL_MD5 75cc44c9c31382083d8a2d0e42590788
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
+        -DGTEST_ROOT=${googletest_SRC}/googletest
+        -DBUILD_SHARED_LIBS=OFF
+        -DBUILD_PYTHON=OFF
+        -DBUILD_TESTING=OFF
+        -DBUILD_EXAMPLES=OFF
         DEPENDS googletest
         )
 
@@ -249,5 +260,12 @@ ExternalProject_Add(rocksdb
         URL ${OSS_URL_PREFIX}/pegasus-rocksdb-6.6.4-compatible.zip
         https://github.com/XiaoMi/pegasus-rocksdb/archive/v6.6.4-compatible.zip
         URL_MD5 595b21fbe681dcf126c4cccda46f1cbb
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT} -DWITH_TESTS=OFF -DWITH_GFLAGS=OFF
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
+        -DWITH_LZ4=ON
+        -DWITH_ZSTD=ON
+        -DWITH_SNAPPY=ON
+        -DWITH_BZ2=OFF
+        -DWITH_TESTS=OFF
+        -DWITH_GFLAGS=OFF
+        -DUSE_RTTI=ON
         )
