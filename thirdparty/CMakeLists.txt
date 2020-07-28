@@ -65,6 +65,8 @@ ExternalProject_Add(googletest
         https://codeload.github.com/google/googletest/tar.gz/release-1.8.0
         URL_MD5 16877098823401d1bf2ed7891d7dce36
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         )
 ExternalProject_Get_property(googletest SOURCE_DIR)
 set(googletest_SRC ${SOURCE_DIR})
@@ -110,6 +112,8 @@ ExternalProject_Add(thrift
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DWITH_SHARED_LIB=OFF
         -DBOOST_ROOT=${TP_OUTPUT}
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         DEPENDS boost
         )
 
@@ -127,7 +131,11 @@ ExternalProject_Add(libevent
         URL ${OSS_URL_PREFIX}/libevent-release-2.1.8-stable.tar.gz
         https://github.com/libevent/libevent/archive/release-2.1.8-stable.tar.gz
         URL_MD5 80f8652e4b08d2ec86a5f5eb46b74510
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT} -DEVENT__DISABLE_DEBUG_MODE=On -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
+        -DEVENT__DISABLE_DEBUG_MODE=On
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         )
 
 ExternalProject_Add(poco
@@ -150,6 +158,8 @@ ExternalProject_Add(poco
         -DENABLE_PAGECOMPILER_FILE2PAGE=OFF
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DBOOST_ROOT=${TP_OUTPUT}
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         DEPENDS boost
         )
 
@@ -160,6 +170,8 @@ ExternalProject_Add(fds
         -DPOCO_LIB=${TP_OUTPUT}/lib
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DBOOST_ROOT=${TP_OUTPUT}
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         INSTALL_COMMAND cp libgalaxy-fds-sdk-cpp.a ${TP_OUTPUT}/lib
         COMMAND rm -rf ${TP_OUTPUT}/include/fds
         COMMAND cp -r include fds-include
@@ -173,7 +185,12 @@ ExternalProject_Add(fmt
         URL ${OSS_URL_PREFIX}/fmt-4.0.0.tar.gz
         https://codeload.github.com/fmtlib/fmt/tar.gz/4.0.0
         URL_MD5 c9be9a37bc85493d1116b0af59a25eba
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT} -DFMT_TEST=false -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
+        -DCMAKE_BUILD_TYPE=release
+        -DFMT_TEST=false
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         )
 
 ExternalProject_Add(gflags
@@ -181,6 +198,8 @@ ExternalProject_Add(gflags
         https://github.com/gflags/gflags/archive/v2.2.1.zip
         URL_MD5 2d988ef0b50939fb50ada965dafce96b
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         )
 
 # civetweb is one of the dependencies of promemetheus-cpp, do not build & install
@@ -229,7 +248,10 @@ ExternalProject_Add(prometheus-cpp
         URL_MD5 dc75c31ceaefd160e978365bdca8eb01
         DEPENDS civetweb curl
         PATCH_COMMAND rm -rf 3rdparty/civetweb && cp -R ${civetweb_SRC} 3rdparty/civetweb # replace the submodule
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT} -DENABLE_TESTING=OFF
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
+        -DENABLE_TESTING=OFF
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         )
 
 # header-only
@@ -245,7 +267,7 @@ ExternalProject_Add(nlohmann_json
 
 ExternalProject_Add(s2geometry
         URL ${OSS_URL_PREFIX}/s2geometry-e8d16637a467d9f096a92a6d81a50a9b747ca828.zip
-	https://github.com/neverchanje/s2geometry/archive/e8d16637a467d9f096a92a6d81a50a9b747ca828.zip
+        https://github.com/neverchanje/s2geometry/archive/e8d16637a467d9f096a92a6d81a50a9b747ca828.zip
         URL_MD5 75cc44c9c31382083d8a2d0e42590788
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
         -DGTEST_ROOT=${googletest_SRC}/googletest
@@ -253,6 +275,8 @@ ExternalProject_Add(s2geometry
         -DBUILD_PYTHON=OFF
         -DBUILD_TESTING=OFF
         -DBUILD_EXAMPLES=OFF
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         DEPENDS googletest
         )
 
@@ -268,4 +292,6 @@ ExternalProject_Add(rocksdb
         -DWITH_TESTS=OFF
         -DWITH_GFLAGS=OFF
         -DUSE_RTTI=ON
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         )
