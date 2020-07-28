@@ -9,11 +9,10 @@ namespace dsn {
 namespace utils {
 
 /**
- * latency_tracer is a tool for tracking the time spent in each of the stages during request execution.
- * It can help users to figure out where the latency bottleneck is located.
- * User needs to use `add_point` before entering one stage, which will record the name
- * of this stage and its start time.
- * When the request is finished, you can dump the formatted result by `dump_trace_points`.
+ * latency_tracer is a tool for tracking the time spent in each of the stages during request
+ * execution. It can help users to figure out where the latency bottleneck is located. User needs to
+ * use `add_point` before entering one stage, which will record the name of this stage and its start
+ * time. When the request is finished, you can dump the formatted result by `dump_trace_points`.
  *
  * For example, given a request with a 4-stage pipeline (the `latency_tracer` need to
  * be held by this request throughout the execution):
