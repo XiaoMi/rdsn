@@ -46,17 +46,13 @@ namespace utils {
 class latency_tracer
 {
 public:
-    latency_tracer(int id, const std::string &name);
+    latency_tracer(const std::string &name);
 
     // add a trace point to the tracer
     // -name: user specified name of the trace point
     void add_point(const std::string &stage_name);
 
-    void set_sub_tracer(std::shared_ptr<latency_tracer> &tracer);
-
-    const std::map<int64_t, std::string> &get_points();
-
-    const std::shared_ptr<latency_tracer> &get_sub_tracer();
+    void set_sub_tracer(const std::shared_ptr<latency_tracer> &tracer);
 
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
@@ -65,19 +61,21 @@ public:
     void dump_trace_points(int threshold, /*out*/ std::string &traces);
 
 private:
-    utils::rw_lock_nr lock;
+    utils::rw_lock_nr _lock;
 
-    std::string name;
-    uint64_t start_time;
-    std::map<int64_t, std::string> points;
-    // sub_tracers is used for tracking the request which may transfer the other type,
+    std::string _name;
+    uint64_t _start_time;
+    std::map<int64_t, std::string> _points;
+    // sub_tracer is used for tracking the request which may transfer the other type,
     // for example: rdsn "rpc_message" will be convert to "mutation", the "tracking
     // responsibility" is also passed on the "mutation":
     //
     // stageA[rpc_message]--stageB[rpc_message]--
     //                                          |-->stageC[mutation]
     // stageA[rpc_message]--stageB[rpc_message]--
-    std::shared_ptr<latency_tracer> sub_tracer;
+    std::shared_ptr<latency_tracer> _sub_tracer;
+
+    friend class latency_tracer_test;
 };
 } // namespace utils
 } // namespace dsn

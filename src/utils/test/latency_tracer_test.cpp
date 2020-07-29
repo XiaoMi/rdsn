@@ -9,57 +9,87 @@
 
 using namespace dsn::utils;
 
-TEST(latency_tracer, add_point)
+namespace dsn {
+namespace utils {
+class latency_tracer_test : public testing::Test
 {
-    int tracer1_stage_count = 3;
-    int tracer2_stage_count = 2;
-    int sub_tracer_stage_count = 2;
+public:
+    int _tracer1_stage_count = 3;
+    int _tracer2_stage_count = 2;
+    int _sub_tracer_stage_count = 2;
 
-    std::shared_ptr<latency_tracer> tracer1 = std::make_shared<latency_tracer>(0, "name1");
-    std::shared_ptr<latency_tracer> tracer2 = std::make_shared<latency_tracer>(1, "name2");
-    std::shared_ptr<latency_tracer> sub_tracer = std::make_shared<latency_tracer>(2, "sub");
+    std::shared_ptr<latency_tracer> _tracer1;
+    std::shared_ptr<latency_tracer> _tracer2;
+    std::shared_ptr<latency_tracer> _sub_tracer;
 
-    for (int i = 0; i < tracer1_stage_count; i++) {
-        tracer1->add_point(fmt::format("stage{}", i));
+public:
+    void SetUp() override { init_trace_points(); }
+
+    void init_trace_points()
+    {
+        _tracer1 = std::make_shared<latency_tracer>("name1");
+        for (int i = 0; i < _tracer1_stage_count; i++) {
+            _tracer1->add_point(fmt::format("stage{}", i));
+        }
+
+        _tracer2 = std::make_shared<latency_tracer>("name2");
+
+        for (int i = 0; i < _tracer2_stage_count; i++) {
+            _tracer2->add_point(fmt::format("stage{}", i));
+        }
+
+        _sub_tracer = std::make_shared<latency_tracer>("sub");
+
+        _tracer1->set_sub_tracer(_sub_tracer);
+        _tracer2->set_sub_tracer(_sub_tracer);
+
+        for (int i = 0; i < _sub_tracer_stage_count; i++) {
+            _sub_tracer->add_point(fmt::format("stage{}", i));
+        }
     }
 
-    for (int i = 0; i < tracer2_stage_count; i++) {
-        tracer2->add_point(fmt::format("stage{}", i));
+    std::map<int64_t, std::string> get_points(std::shared_ptr<latency_tracer> tracer)
+    {
+        return tracer->_points;
     }
 
-    tracer1->set_sub_tracer(sub_tracer);
-    tracer2->set_sub_tracer(sub_tracer);
-
-    for (int i = 0; i < sub_tracer_stage_count; i++) {
-        sub_tracer->add_point(fmt::format("stage{}", i));
+    std::shared_ptr<latency_tracer> get_sub_tracer(std::shared_ptr<latency_tracer> tracer)
+    {
+        return tracer->_sub_tracer;
     }
+};
 
-    auto tracer1_points = tracer1->get_points();
-    ASSERT_EQ(tracer1_points.size(), tracer1_stage_count);
+TEST_F(latency_tracer_test, add_point)
+{
+
+    auto tracer1_points = get_points(_tracer1);
+    ASSERT_EQ(tracer1_points.size(), _tracer1_stage_count);
     int count1 = 0;
     for (auto point : tracer1_points) {
         ASSERT_EQ(point.second, fmt::format("stage{}", count1++));
     }
 
-    auto tracer2_points = tracer2->get_points();
-    ASSERT_EQ(tracer2_points.size(), tracer2_stage_count);
+    auto tracer2_points = get_points(_tracer2);
+    ASSERT_EQ(tracer2_points.size(), _tracer2_stage_count);
     int count2 = 0;
     for (auto point : tracer2_points) {
         ASSERT_EQ(point.second, fmt::format("stage{}", count2++));
     }
 
-    auto tracer1_sub_tracer = tracer1->get_sub_tracer();
-    auto tracer2_sub_tracer = tracer2->get_sub_tracer();
+    auto tracer1_sub_tracer = get_sub_tracer(_tracer1);
+    auto tracer2_sub_tracer = get_sub_tracer(_tracer2);
     ASSERT_EQ(tracer1_sub_tracer, tracer2_sub_tracer);
 
-    auto points = tracer1_sub_tracer->get_points();
-    ASSERT_TRUE(tracer1_sub_tracer->get_sub_tracer() == nullptr);
-    ASSERT_EQ(points.size(), sub_tracer_stage_count);
+    auto points = get_points(tracer1_sub_tracer);
+    ASSERT_TRUE(get_sub_tracer(tracer1_sub_tracer) == nullptr);
+    ASSERT_EQ(points.size(), _sub_tracer_stage_count);
     int count3 = 0;
     for (auto point : points) {
         ASSERT_EQ(point.second, fmt::format("stage{}", count3++));
     }
 
-    tracer1->dump_trace_points(0);
-    tracer2->dump_trace_points(0);
+    _tracer1->dump_trace_points(0);
+    _tracer2->dump_trace_points(0);
 }
+} // namespace utils
+} // namespace dsn

@@ -12,10 +12,7 @@ namespace utils {
 
 DSN_DEFINE_bool("replication", enable_latency_tracer, true, "whether enable the latency tracer");
 
-latency_tracer::latency_tracer(int id, const std::string &name)
-    : name(fmt::format("(TRACE.{}.{})", name, id)), start_time(dsn_now_ns())
-{
-}
+latency_tracer::latency_tracer(const std::string &name) : _name(name), _start_time(dsn_now_ns()) {}
 
 void latency_tracer::add_point(const std::string &stage_name)
 {
@@ -23,19 +20,15 @@ void latency_tracer::add_point(const std::string &stage_name)
         return;
     }
 
-    int64_t ts = dsn_now_ns();
-    utils::auto_write_lock write(lock);
-    points[ts] = stage_name;
+    uint64_t ts = dsn_now_ns();
+    utils::auto_write_lock write(_lock);
+    _points[ts] = stage_name;
 }
 
-void latency_tracer::set_sub_tracer(std::shared_ptr<latency_tracer> &tracer)
+void latency_tracer::set_sub_tracer(const std::shared_ptr<latency_tracer> &tracer)
 {
-    sub_tracer = tracer;
+    _sub_tracer = tracer;
 }
-
-const std::shared_ptr<latency_tracer> &latency_tracer::get_sub_tracer() { return sub_tracer; }
-
-const std::map<int64_t, std::string> &latency_tracer::get_points() { return points; };
 
 void latency_tracer::dump_trace_points(int threshold)
 {
@@ -49,37 +42,37 @@ void latency_tracer::dump_trace_points(int threshold, /*out*/ std::string &trace
         return;
     }
 
-    if (points.empty()) {
+    if (_points.empty()) {
         return;
     }
 
-    utils::auto_read_lock read(lock);
+    utils::auto_read_lock read(_lock);
 
-    uint64_t time_used = points.rbegin()->first - start_time;
+    uint64_t time_used = _points.rbegin()->first - _start_time;
 
     if (time_used < threshold) {
         return;
     }
 
-    traces.append(fmt::format("\t***************[{}]***************\n", name));
-    uint64_t previous_time = start_time;
-    for (const auto &point : points) {
+    traces.append(fmt::format("\t***************[{}]***************\n", _name));
+    uint64_t previous_time = _start_time;
+    for (const auto &point : _points) {
         std::string trace = fmt::format("\tTRACE:name={:<50}, span={:<20}, total={:<20}, "
                                         "ts={:<20}\n",
                                         point.second,
                                         point.first - previous_time,
-                                        point.first - start_time,
+                                        point.first - _start_time,
                                         point.first);
         traces.append(trace);
         previous_time = point.first;
     }
 
-    if (sub_tracer == nullptr) {
+    if (_sub_tracer == nullptr) {
         dwarn_f("TRACE:the traces as fallow:\n{}", traces);
         return;
     }
 
-    sub_tracer->dump_trace_points(0, traces);
+    _sub_tracer->dump_trace_points(0, traces);
 }
 
 } // namespace utils
