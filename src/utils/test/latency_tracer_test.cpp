@@ -59,7 +59,6 @@ public:
 
 TEST_F(latency_tracer_test, add_point)
 {
-
     auto tracer1_points = get_points(_tracer1);
     ASSERT_EQ(tracer1_points.size(), _tracer1_stage_count);
     int count1 = 0;
