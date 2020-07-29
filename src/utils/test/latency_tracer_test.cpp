@@ -7,8 +7,6 @@
 #include <gtest/gtest.h>
 #include <dsn/dist/fmt_logging.h>
 
-using namespace dsn::utils;
-
 namespace dsn {
 namespace utils {
 class latency_tracer_test : public testing::Test
