@@ -7,9 +7,7 @@
 namespace dsn {
 namespace security {
 
-client_negotiation::client_negotiation(rpc_session *session) : negotiation(session)
-{
-}
+client_negotiation::client_negotiation(rpc_session *session) : negotiation(session) {}
 
 void client_negotiation::start_negotiate()
 {
