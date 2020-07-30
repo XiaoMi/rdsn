@@ -201,7 +201,6 @@ void asio_rpc_session::connect()
                 set_options();
 
                 // start auth negotiation when client is connecting to server
-                set_negotiation();
                 negotiation();
 
                 set_connected();

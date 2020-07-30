@@ -431,6 +431,11 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
 void rpc_session::negotiation()
 {
     if (_net.need_auth()) {
+        // set the negotiation state if it's a client rpc_session
+        if (is_client()) {
+            set_negotiation();
+        }
+
         auth_negotiation();
     }
 }
