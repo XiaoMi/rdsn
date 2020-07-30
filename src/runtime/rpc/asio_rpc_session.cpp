@@ -199,6 +199,11 @@ void asio_rpc_session::connect()
                 dinfo("client session %s connected", _remote_addr.to_string());
 
                 set_options();
+
+                // start auth negotiation when client is connecting to server
+                set_negotiation();
+                negotiation();
+
                 set_connected();
                 on_send_completed();
                 start_read_next();

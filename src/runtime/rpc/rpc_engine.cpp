@@ -409,6 +409,8 @@ rpc_engine::rpc_engine(service_node *node) : _node(node), _rpc_matcher(this)
     dassert(_node != nullptr, "");
     _is_running = false;
     _is_serving = false;
+
+    _need_auth = dsn_config_get_value_bool("security", "open_auth", false, "whether open auth");
 }
 
 //

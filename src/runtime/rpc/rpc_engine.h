@@ -173,6 +173,7 @@ public:
     // call with explicit address
     void call_address(rpc_address addr, message_ex *request, const rpc_response_task_ptr &call);
 
+    bool need_auth() { return _need_auth; }
 private:
     network *create_network(const network_server_config &netcs,
                             bool client_only,
@@ -190,6 +191,9 @@ private:
 
     volatile bool _is_running;
     volatile bool _is_serving;
+
+    // read from config file
+    bool _need_auth;
 };
 
 // ------------------------ inline implementations --------------------

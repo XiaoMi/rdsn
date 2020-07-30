@@ -26,6 +26,7 @@
 
 #include <dsn/tool-api/network.h>
 #include <dsn/utility/factory_store.h>
+#include <runtime/security/negotiation.h>
 #include "message_parser_manager.h"
 #include "runtime/rpc/rpc_engine.h"
 
@@ -73,6 +74,17 @@ void rpc_session::set_connected()
     _net.on_client_session_connected(sp);
 
     on_rpc_session_connected.execute(this);
+}
+
+void rpc_session::set_negotiation()
+{
+    dassert(is_client(), "must be client session");
+
+    {
+        utils::auto_lock<utils::ex_lock_nr> l(_lock);
+        dassert(_connect_state == SS_CONNECTING, "session must be connecting");
+        _connect_state = SS_NEGOTIATION;
+    }
 }
 
 bool rpc_session::set_disconnected()
@@ -414,6 +426,19 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
     return true;
 }
 
+void rpc_session::negotiation()
+{
+    if (_net.need_auth()) {
+        auth_negotiation();
+    }
+}
+
+void rpc_session::auth_negotiation()
+{
+    _negotiation = security::create_negotiation(is_client(), this);
+    _negotiation->start_negotiate();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 network::network(rpc_engine *srv, network *inner_provider)
     : _engine(srv), _client_hdr_format(NET_HDR_DSN), _unknown_msg_header_format(NET_HDR_INVALID)
@@ -720,4 +745,10 @@ void connection_oriented_network::on_client_session_disconnected(rpc_session_ptr
                scount);
     }
 }
+
+bool connection_oriented_network::need_auth()
+{
+    return engine()->need_auth();
+}
+
 } // namespace dsn

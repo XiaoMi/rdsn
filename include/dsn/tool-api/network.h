@@ -174,6 +174,8 @@ public:
     // to be defined
     virtual rpc_session_ptr create_client_session(::dsn::rpc_address server_addr) = 0;
 
+    bool need_auth();
+
 protected:
     typedef std::unordered_map<::dsn::rpc_address, rpc_session_ptr> client_sessions;
     client_sessions _clients; // to_address => rpc_session
@@ -191,6 +193,11 @@ protected:
 /*!
   session managements (both client and server types)
 */
+
+namespace security {
+    class negotiation;
+}
+
 class rpc_client_matcher;
 class rpc_session : public ref_counter
 {
@@ -227,6 +234,10 @@ public:
     bool delay_recv(int delay_ms);
     bool on_recv_message(message_ex *msg, int delay_ms);
 
+    /// for negotiation
+    void negotiation();
+    void auth_negotiation();
+
 public:
     ///
     /// for subclass to implement receiving message
@@ -256,6 +267,7 @@ protected:
     enum session_state
     {
         SS_CONNECTING,
+        SS_NEGOTIATION,
         SS_CONNECTED,
         SS_DISCONNECTED
     };
@@ -286,6 +298,7 @@ protected:
     bool set_connecting();
     // return true when it is permitted
     bool set_disconnected();
+    void set_negotiation();
     void set_connected();
 
     void clear_send_queue(bool resend_msgs);
@@ -304,6 +317,9 @@ private:
     rpc_client_matcher *_matcher;
 
     std::atomic_int _delay_server_receive_ms;
+
+    /// for negotiation
+    std::unique_ptr<security::negotiation> _negotiation;
 };
 
 // --------- inline implementation --------------
