@@ -24,11 +24,12 @@
  * THE SOFTWARE.
  */
 
-#include <dsn/tool-api/network.h>
-#include <dsn/utility/factory_store.h>
-#include <runtime/security/negotiation.h>
+#include "runtime/security/negotiation.h"
 #include "message_parser_manager.h"
 #include "runtime/rpc/rpc_engine.h"
+
+#include <dsn/tool-api/network.h>
+#include <dsn/utility/factory_store.h>
 
 namespace dsn {
 /*static*/ join_point<void, rpc_session *>
