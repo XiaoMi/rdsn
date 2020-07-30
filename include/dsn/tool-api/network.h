@@ -234,7 +234,6 @@ public:
 
     /// for negotiation
     void negotiation();
-    void auth_negotiation();
 
 public:
     ///
@@ -309,6 +308,9 @@ protected:
     int _max_buffer_block_count_per_send;
     message_reader _reader;
     message_parser_ptr _parser;
+
+private:
+    void auth_negotiation();
 
 private:
     const bool _is_client;

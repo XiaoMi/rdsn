@@ -16,10 +16,16 @@ extern bool FLAGS_open_auth;
 class negotiation
 {
 public:
-    negotiation() = default;
+    negotiation(rpc_session *session) : _session(session) {}
     virtual ~negotiation() = 0;
 
     virtual void start_negotiate() = 0;
+
+protected:
+    // In rpc_session, there is a pointer to a negotiation which type is `std::shared_ptr`,
+    // if we use `std::shared<rpc_session> _session`, it will case a circular reference between
+    // these two `std::shared_ptr`
+    rpc_session *_session;
 };
 
 std::unique_ptr<negotiation> create_negotiation(bool is_client, rpc_session *session);

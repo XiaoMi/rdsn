@@ -14,10 +14,6 @@ class client_negotiation : public negotiation
 public:
     client_negotiation(rpc_session *session);
     void start_negotiate();
-
-private:
-    // the lifetime of _session should be longer than client_negotiation
-    rpc_session *_session;
 };
 
 } // namespace security
