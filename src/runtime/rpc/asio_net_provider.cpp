@@ -153,7 +153,7 @@ void asio_network_provider::do_accept()
                                          null_parser,
                                          false);
 
-                // start negotiation when server accept the connection
+                // start negotiation when server accepts the connection
                 s->negotiation();
 
                 // when server connection threshold is hit, close the session, otherwise accept it
