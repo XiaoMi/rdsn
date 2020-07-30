@@ -66,7 +66,9 @@ void rpc_session::set_connected()
 
     {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        dassert(_connect_state == SS_CONNECTING, "session must be connecting");
+        dassert((_connect_state == SS_NEGOTIATION && net().need_auth()) ||
+                    (_connect_state == SS_CONNECTING && !net().need_auth()),
+                "wrong session state");
         _connect_state = SS_CONNECTED;
     }
 
@@ -746,9 +748,6 @@ void connection_oriented_network::on_client_session_disconnected(rpc_session_ptr
     }
 }
 
-bool connection_oriented_network::need_auth()
-{
-    return engine()->need_auth();
-}
+bool connection_oriented_network::need_auth() { return engine()->need_auth(); }
 
 } // namespace dsn
