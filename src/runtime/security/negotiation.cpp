@@ -6,12 +6,13 @@
 #include "client_negotiation.h"
 #include "server_negotiation.h"
 
+#include <dsn/utility/flags.h>
 #include <dsn/utility/smart_pointers.h>
 
 namespace dsn {
-class rpc_session;
-
 namespace security {
+
+DSN_DEFINE_bool("security", open_auth, false, "whether open auth or not");
 
 negotiation::~negotiation() {}
 

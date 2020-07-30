@@ -11,6 +11,8 @@ class rpc_session;
 
 namespace security {
 
+extern bool FLAGS_open_auth;
+
 class negotiation
 {
 public:

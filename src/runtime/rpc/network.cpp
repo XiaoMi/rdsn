@@ -66,8 +66,8 @@ void rpc_session::set_connected()
 
     {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        dassert((_connect_state == SS_NEGOTIATION && net().need_auth()) ||
-                    (_connect_state == SS_CONNECTING && !net().need_auth()),
+        dassert((_connect_state == SS_NEGOTIATION && security::FLAGS_open_auth) ||
+                    (_connect_state == SS_CONNECTING && !security::FLAGS_open_auth),
                 "wrong session state");
         _connect_state = SS_CONNECTED;
     }
@@ -430,7 +430,7 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
 
 void rpc_session::negotiation()
 {
-    if (_net.need_auth()) {
+    if (security::FLAGS_open_auth) {
         // set the negotiation state if it's a client rpc_session
         if (is_client()) {
             set_negotiation();
@@ -752,7 +752,5 @@ void connection_oriented_network::on_client_session_disconnected(rpc_session_ptr
                scount);
     }
 }
-
-bool connection_oriented_network::need_auth() { return engine()->need_auth(); }
 
 } // namespace dsn

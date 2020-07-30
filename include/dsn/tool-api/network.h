@@ -174,8 +174,6 @@ public:
     // to be defined
     virtual rpc_session_ptr create_client_session(::dsn::rpc_address server_addr) = 0;
 
-    bool need_auth();
-
 protected:
     typedef std::unordered_map<::dsn::rpc_address, rpc_session_ptr> client_sessions;
     client_sessions _clients; // to_address => rpc_session
@@ -195,7 +193,7 @@ protected:
 */
 
 namespace security {
-    class negotiation;
+class negotiation;
 }
 
 class rpc_client_matcher;
