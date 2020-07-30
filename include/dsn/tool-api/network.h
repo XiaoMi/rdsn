@@ -318,7 +318,6 @@ private:
 
     std::atomic_int _delay_server_receive_ms;
 
-    /// for negotiation
     std::unique_ptr<security::negotiation> _negotiation;
 };
 
