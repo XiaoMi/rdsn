@@ -10,7 +10,7 @@
 namespace dsn {
 namespace utils {
 
-DSN_DEFINE_bool("replication", enable_latency_tracer, true, "whether enable the latency tracer");
+DSN_DEFINE_bool("replication", enable_latency_tracer, false, "whether enable the latency tracer");
 
 latency_tracer::latency_tracer(const std::string &name) : _name(name), _start_time(dsn_now_ns()) {}
 

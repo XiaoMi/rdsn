@@ -2,7 +2,7 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include "../latency_tracer.h"
+#include "utils/latency_tracer.h"
 
 #include <gtest/gtest.h>
 #include <dsn/dist/fmt_logging.h>
@@ -21,7 +21,11 @@ public:
     std::shared_ptr<latency_tracer> _sub_tracer;
 
 public:
-    void SetUp() override { init_trace_points(); }
+    void SetUp() override
+    {
+        FLAGS_enable_latency_tracer = true;
+        init_trace_points();
+    }
 
     void init_trace_points()
     {

@@ -19,20 +19,20 @@ namespace utils {
  *
  * ```
  * class request {
- *      latency_tracer tracer
+ *      latency_tracer tracer;
  * }
  * void start(request req){
  *      req.tracer.add_point("start");
- * };
+ * }
  * void stageA(request req){
  *      req.tracer.add_point("stageA");
- * };
+ * }
  * void stageB(request req){
  *      req.tracer.add_point("stageB");
- * };
+ * }
  * void end(request req){
  *      req.tracer.add_point("end");
- * };
+ * }
  * ```
  *
  *  point1     point2     point3    point4
@@ -40,8 +40,9 @@ namespace utils {
  *    |         |           |         |
  *  start---->stageA----->stageB---->end
  *
- * the "points" will record all points' time_used_from_previous and time_used_from_start
+ * "request.tracer" will record the time duration among all tracepoints.
 **/
+extern bool FLAGS_enable_latency_tracer;
 
 class latency_tracer
 {
@@ -63,8 +64,8 @@ public:
 private:
     utils::rw_lock_nr _lock;
 
-    std::string _name;
-    uint64_t _start_time;
+    const std::string _name;
+    const uint64_t _start_time;
     std::map<int64_t, std::string> _points;
     // sub_tracer is used for tracking the request which may transfer the other type,
     // for example: rdsn "rpc_message" will be convert to "mutation", the "tracking
