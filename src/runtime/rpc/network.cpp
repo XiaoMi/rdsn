@@ -67,8 +67,8 @@ void rpc_session::set_connected()
 
     {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        dassert((_connect_state == SS_NEGOTIATION && security::FLAGS_open_auth) ||
-                    (_connect_state == SS_CONNECTING && !security::FLAGS_open_auth),
+        dassert((_connect_state == SS_NEGOTIATION && security::FLAGS_enable_auth) ||
+                    (_connect_state == SS_CONNECTING && !security::FLAGS_enable_auth),
                 "wrong session state");
         _connect_state = SS_CONNECTED;
     }
@@ -429,9 +429,9 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
     return true;
 }
 
-void rpc_session::negotiation()
+void rpc_session::start_negotiation()
 {
-    if (security::FLAGS_open_auth) {
+    if (security::FLAGS_enable_auth) {
         // set the negotiation state if it's a client rpc_session
         if (is_client()) {
             set_negotiation();

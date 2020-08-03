@@ -233,7 +233,7 @@ public:
     bool on_recv_message(message_ex *msg, int delay_ms);
 
     /// for negotiation
-    void negotiation();
+    void start_negotiation();
 
 public:
     ///
