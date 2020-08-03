@@ -38,7 +38,7 @@ namespace dsn {
     rpc_session::on_rpc_session_disconnected("rpc.session.disconnected");
 
 namespace security {
-    extern bool FLAGS_enable_auth;
+extern bool FLAGS_enable_auth;
 } // namespace security
 
 rpc_session::~rpc_session()
