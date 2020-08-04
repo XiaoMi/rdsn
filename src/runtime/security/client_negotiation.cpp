@@ -38,11 +38,11 @@ void client_negotiation::list_mechanisms()
     send(req);
 }
 
-void client_negotiation::send(const negotiation_message &n)
+void client_negotiation::send(const negotiation_message &message)
 {
-    message_ptr msg = message_ex::create_request(RPC_NEGOTIATION);
-    dsn::marshall(msg.get(), n);
-    _session->send_message(msg.get());
+    message_ptr request = message_ex::create_request(RPC_NEGOTIATION);
+    dsn::marshall(request.get(), message);
+    _session->send_message(request.get());
 }
 
 } // namespace security
