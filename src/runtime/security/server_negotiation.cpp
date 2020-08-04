@@ -17,6 +17,8 @@
 
 #include "server_negotiation.h"
 
+#include <dsn/dist/fmt_logging.h>
+
 namespace dsn {
 namespace security {
 
@@ -24,7 +26,8 @@ server_negotiation::server_negotiation(rpc_session *session) : negotiation(sessi
 
 void server_negotiation::start_negotiate()
 {
-    // TBD(zlw)
+    _status = negotiation_status::type::SASL_LIST_MECHANISMS;
+    ddebug_f("{}: start negotiation", _name);
 }
 
 } // namespace security

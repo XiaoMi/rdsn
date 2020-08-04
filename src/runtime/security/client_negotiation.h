@@ -27,6 +27,10 @@ class client_negotiation : public negotiation
 public:
     client_negotiation(rpc_session *session);
     void start_negotiate();
+
+private:
+    void list_mechanisms();
+    void send(const negotiation_message &n);
 };
 
 } // namespace security
