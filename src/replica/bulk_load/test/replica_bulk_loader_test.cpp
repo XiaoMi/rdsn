@@ -74,7 +74,7 @@ public:
 
     void test_update_download_progress(uint64_t file_size)
     {
-        _bulk_loader->_is_downloading = true;
+        _bulk_loader->_is_downloading.store(true);
         _bulk_loader->update_bulk_load_download_progress(file_size, "test_file_name");
         _bulk_loader->tracker()->wait_outstanding_tasks();
     }
@@ -296,7 +296,7 @@ public:
     {
         _bulk_loader->_status = status;
         _bulk_loader->_download_progress = download_progress;
-        _bulk_loader->_is_downloading = is_downloading;
+        _bulk_loader->_is_downloading.store(is_downloading);
         _replica->set_is_ingestion(is_ingestion);
         _replica->set_ingestion_status(istatus);
     }
