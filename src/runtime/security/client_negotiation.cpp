@@ -33,9 +33,9 @@ void client_negotiation::start_negotiate()
 
 void client_negotiation::list_mechanisms()
 {
-    negotiation_message req;
-    _status = req.status = negotiation_status::type::SASL_LIST_MECHANISMS;
-    send(req);
+    negotiation_message message;
+    _status = message.status = negotiation_status::type::SASL_LIST_MECHANISMS;
+    send(message);
 }
 
 void client_negotiation::send(const negotiation_message &message)
