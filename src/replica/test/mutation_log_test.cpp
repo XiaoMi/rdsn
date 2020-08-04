@@ -280,7 +280,7 @@ public:
 
     void TearDown() override { utils::filesystem::remove_path(_log_dir); }
 
-    mutation_ptr create_test_mutation(decree d, string_view data) override
+    mutation_ptr create_test_mutation(decree d, const std::string &data) override
     {
         mutation_ptr mu(new mutation());
         mu->data.header.ballot = 1;
