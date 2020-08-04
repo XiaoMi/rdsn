@@ -28,7 +28,7 @@ namespace cpp dsn.security
 //                          | <--        RPC_RESP          ---- |
 
 enum negotiation_status {
-    INVALID = 0,
+    INVALID,
     SASL_LIST_MECHANISMS,
     SASL_LIST_MECHANISMS_RESP,
     SASL_SELECT_MECHANISMS,
