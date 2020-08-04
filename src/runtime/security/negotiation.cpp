@@ -32,9 +32,9 @@ negotiation::~negotiation() {}
 std::unique_ptr<negotiation> create_negotiation(bool is_client, rpc_session *session)
 {
     if (is_client) {
-        return dsn::make_unique<dsn::security::client_negotiation>(session);
+        return make_unique<client_negotiation>(session);
     } else {
-        return dsn::make_unique<dsn::security::server_negotiation>(session);
+        return make_unique<server_negotiation>(session);
     }
 }
 
