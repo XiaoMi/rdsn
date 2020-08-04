@@ -264,7 +264,7 @@ protected:
     enum session_state
     {
         SS_CONNECTING,
-        SS_NEGOTIATION,
+        SS_NEGOTIATING,
         SS_CONNECTED,
         SS_DISCONNECTED
     };

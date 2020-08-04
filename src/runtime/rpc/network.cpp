@@ -71,8 +71,8 @@ void rpc_session::set_connected()
 
     {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        dassert((_connect_state == SS_NEGOTIATION && security::FLAGS_enable_auth) ||
-                    (_connect_state == SS_CONNECTING && !security::FLAGS_enable_auth),
+        dassert((_connect_state == SS_NEGOTIATING && security::FLAGS_enable_auth) ||
+                (_connect_state == SS_CONNECTING && !security::FLAGS_enable_auth),
                 "wrong session state");
         _connect_state = SS_CONNECTED;
     }
@@ -90,7 +90,7 @@ void rpc_session::set_negotiation()
     {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
         dassert(_connect_state == SS_CONNECTING, "session must be connecting");
-        _connect_state = SS_NEGOTIATION;
+        _connect_state = SS_NEGOTIATING;
     }
 }
 
