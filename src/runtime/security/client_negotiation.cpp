@@ -23,7 +23,11 @@
 namespace dsn {
 namespace security {
 
-client_negotiation::client_negotiation(rpc_session *session) : negotiation(session) {}
+client_negotiation::client_negotiation(rpc_session *session) : negotiation(session)
+{
+    _name = fmt::format(
+        "C_NEGO_L({})=>R({})", dsn_primary_address(), _session->remote_address().to_string());
+}
 
 void client_negotiation::start_negotiate()
 {
