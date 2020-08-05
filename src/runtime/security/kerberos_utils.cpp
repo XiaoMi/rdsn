@@ -104,17 +104,17 @@ void init_krb5_ctx()
 // switch the code of krb5_xxx function to error_s
 static error_s krb5_call_to_errors(krb5_context ctx, krb5_error_code code, const char *prefix_msg)
 {
-    std::unique_ptr<const char, std::function<void(const char *)>> error_msg(
-        krb5_get_error_message(ctx, code),
-        std::bind(krb5_free_error_message, ctx, std::placeholders::_1));
-
-    std::string msg;
+    std::string msg = "";
     if (prefix_msg != nullptr) {
         msg = prefix_msg;
         msg += ": ";
     }
-    msg += error_msg.get();
-    return error_s::make(ERR_INTERNAL, msg.c_str());
+
+    const char *error_msg = krb5_get_error_message(ctx, code);
+    msg += error_msg;
+    krb5_free_error_message(ctx, error_msg);
+
+    return error_s::make(ERR_KRB5_INTERNAL, msg.c_str());
 }
 
 static error_s parse_username_from_principal(krb5_const_principal principal, std::string &username)
@@ -140,17 +140,17 @@ static error_s parse_username_from_principal(krb5_const_principal principal, std
             }
             return error_s::make(ERR_OK);
         }
-        return error_s::make(ERR_INTERNAL, "parse username from principal failed");
+        return error_s::make(ERR_KRB5_INTERNAL, "parse username from principal failed");
     }
 
     if (err == KRB5_CONFIG_NOTENUFSPACE) {
-        return error_s::make(ERR_INTERNAL, fmt::format("username is larger than {}", buf_len));
+        return error_s::make(ERR_KRB5_INTERNAL, fmt::format("username is larger than {}", buf_len));
     }
 
     KRB5_RETURN_NOT_OK(err, "krb5 parse aname to localname failed");
 
     if (strlen(buf) <= 0) {
-        return error_s::make(ERR_INTERNAL, "empty username");
+        return error_s::make(ERR_KRB5_INTERNAL, "empty username");
     }
     username.assign((const char *)buf);
     return error_s::make(ERR_OK);
