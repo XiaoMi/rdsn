@@ -31,7 +31,7 @@ struct negotiation_status
         SASL_SELECT_MECHANISMS_OK = 4,
         SASL_INITIATE = 5,
         SASL_CHALLENGE = 6,
-        SASL_RESPONSE = 7,
+        SASL_CHANLLENGE_RESPONSE = 7,
         SASL_SUCC = 8,
         SASL_AUTH_FAIL = 9
     };

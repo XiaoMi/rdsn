@@ -13,12 +13,12 @@ namespace cpp dsn.security
 //                          | ---      SASL_INITIATE        --> |
 //                          |                                   |
 //                          | <--      SASL_CHALLENGE       --- |
-//                          | ---      SASL_RESPONSE        --> |
+//                          | ---  SASL_CHALLENGE_RESPONSE  --> |
 //                          |                                   |
 //                          |              .....                |
 //                          |                                   |
 //                          | <--      SASL_CHALLENGE       --- |
-//                          | ---      SASL_RESPONSE        --> |
+//                          | ---  SASL_CHALLENGE_RESPONSE  --> |
 //                          |                                   | (authentication will succeed
 //                          |                                   |  if all chanllenges passed)
 //                          | <--        SASL_SUCC          --- |
@@ -35,7 +35,7 @@ enum negotiation_status {
     SASL_SELECT_MECHANISMS_OK,
     SASL_INITIATE,
     SASL_CHALLENGE,
-    SASL_RESPONSE,
+    SASL_CHANLLENGE_RESPONSE,
     SASL_SUCC,
     SASL_AUTH_FAIL
 }
