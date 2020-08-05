@@ -26,7 +26,8 @@ class client_negotiation : public negotiation
 {
 public:
     client_negotiation(rpc_session *session);
-    void start_negotiate();
+
+    void start();
 
 private:
     void list_mechanisms();

@@ -25,11 +25,12 @@ namespace security {
 
 client_negotiation::client_negotiation(rpc_session *session) : negotiation(session)
 {
-    _name = fmt::format(
-        "C_NEGO_L({})=>R({})", dsn_primary_address(), _session->remote_address().to_string());
+    _name = fmt::format("C_NEGO_L({})=>R({})",
+                        dsn_primary_address().to_string(),
+                        _session->remote_address().to_string());
 }
 
-void client_negotiation::start_negotiate()
+void client_negotiation::start()
 {
     ddebug_f("{}: start negotiation", _name);
     list_mechanisms();
