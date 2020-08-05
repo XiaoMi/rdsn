@@ -296,7 +296,7 @@ function(dsn_setup_thirdparty_libs)
         message(FATAL_ERROR "thrift library not found in ${DSN_THIRDPARTY_ROOT}/lib")
     endif()
     find_package(fmt REQUIRED)
-    set(DEFAULT_THIRDPARTY_LIBS ${THRIFT_LIB} fmt::fmt sasl2 gssapi_krb5 krb5 CACHE STRING "default thirdparty libs" FORCE)
+    set(DEFAULT_THIRDPARTY_LIBS ${THRIFT_LIB} fmt::fmt CACHE STRING "default thirdparty libs" FORCE)
 
     # rocksdb
     file(GLOB ROCKSDB_DEPENDS_MODULE_PATH ${DSN_PROJECT_DIR}/thirdparty/build/Source/rocksdb/cmake/modules)
