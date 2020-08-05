@@ -68,6 +68,13 @@ inline void time_ms_to_date_time(uint64_t ts_ms, char *str, int len)
     strftime(str, len, "%Y-%m-%d %H:%M:%S", get_localtime(ts_ms, &tmp));
 }
 
+inline std::string time_s_to_date_time(uint64_t unix_seconds)
+{
+    char buffer[128];
+    utils::time_ms_to_date_time(unix_seconds * 1000, buffer, 128);
+    return std::string(buffer);
+}
+
 // parse hour/min/sec from the given timestamp
 inline void time_ms_to_date_time(uint64_t ts_ms, int32_t &hour, int32_t &min, int32_t &sec)
 {
@@ -83,6 +90,8 @@ inline uint64_t get_current_physical_time_ns()
     auto now = std::chrono::high_resolution_clock::now();
     return std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
 }
+
+inline uint64_t get_current_physical_time_s() { return get_current_physical_time_ns() * 1e-9; }
 
 // get unix timestamp of today's zero o'clock.
 // eg. `1525881600` returned when called on May 10, 2018, CST

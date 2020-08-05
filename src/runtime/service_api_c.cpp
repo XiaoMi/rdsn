@@ -36,12 +36,21 @@
 
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
+#include <runtime/security/kerberos_utils.h>
+#include <dsn/dist/fmt_logging.h>
+
 #endif
 
 #include "service_engine.h"
 #include "runtime/rpc/rpc_engine.h"
 #include "runtime/task/task_engine.h"
 #include "utils/coredump.h"
+
+namespace dsn {
+namespace security {
+    extern bool FLAGS_enable_auth;
+} // namespace security
+} // namespace dsn
 
 //
 // global state
@@ -457,6 +466,14 @@ bool run(const char *config_file,
     ::dsn::service_engine::instance().init_after_toollets();
 
     dsn_all.engine_ready = true;
+    if (dsn::security::FLAGS_enable_auth) {
+        dsn::error_s err_s = dsn::security::init_kerberos(sleep_after_init);
+        if (!err_s.is_ok()) {
+            derror_f("initialize kerberos failed, with err = {}", err_s.description());
+            return false;
+        }
+        ddebug("initialize kerberos succeed");
+    }
 
     // split app_name and app_index
     std::list<std::string> applistkvs;
