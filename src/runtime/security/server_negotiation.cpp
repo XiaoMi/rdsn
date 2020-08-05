@@ -24,9 +24,7 @@ namespace security {
 
 server_negotiation::server_negotiation(rpc_session *session) : negotiation(session)
 {
-    _name = fmt::format("S_NEGO_L({})=>R({})",
-                        dsn_primary_address().to_string(),
-                        _session->remote_address().to_string());
+    _name = fmt::format("SERVER_NEGOTIATION(CLIENT={})", _session->remote_address().to_string());
 }
 
 void server_negotiation::start()
