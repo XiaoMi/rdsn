@@ -40,7 +40,6 @@ protected:
     // The ownership of the negotiation instance is held by rpc_session.
     // So negotiation keeps only a raw pointer.
     rpc_session *_session;
-    // for logging
     std::string _name;
     negotiation_status::type _status;
 };
