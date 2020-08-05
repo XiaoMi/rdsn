@@ -5,68 +5,26 @@
 #include "kerberos_utils.h"
 #include "utils/shared_io_service.h"
 
-#include <mutex>
-#include <functional>
 #include <boost/asio/deadline_timer.hpp>
 #include <fmt/format.h>
 #include <krb5/krb5.h>
 
-#include <dsn/c/api_utilities.h>
-#include <dsn/utility/config_api.h>
-#include <dsn/utility/filesystem.h>
 #include <dsn/utility/defer.h>
-#include <dsn/utility/utils.h>
 #include <dsn/utility/time_utils.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/flags.h>
+#include <dsn/utility/filesystem.h>
 
 namespace dsn {
 namespace security {
 
-DSN_DEFINE_string("security", service_fqdn, "pegasus", "service fqdn");
-DSN_DEFINE_string("security", service_name, "pegasus", "service name");
 DSN_DEFINE_string("security", krb5_keytab, "", "absolute path of keytab file");
 DSN_DEFINE_string("security", krb5_config, "", "absolute path of krb5_config file");
 DSN_DEFINE_string("security", krb5_principal, "", "kerberos principal");
 
 namespace internal {
 
-class kinit_context;
-static std::unique_ptr<utils::rw_lock_nr> g_kerberos_lock;
-static std::unique_ptr<kinit_context> g_kinit_ctx;
 static krb5_context g_krb5_context;
-
-class kinit_context
-{
-public:
-    kinit_context() : _opt(nullptr) {}
-    virtual ~kinit_context();
-    // implementation of 'kinit -k -t <keytab_file> <principal>'
-    error_s kinit(const std::string &keytab_file, const std::string &principal);
-
-private:
-    // krb5 structure
-    krb5_principal _principal;
-    // keytab file with absolute path
-    krb5_keytab _keytab;
-    krb5_ccache _ccache;
-    krb5_get_init_creds_opt *_opt;
-
-    // principal and username that logged in as, this determines "who I am"
-    std::string _principal_name;
-    std::string _username;
-
-    uint64_t _cred_expire_timestamp;
-
-    std::shared_ptr<boost::asio::deadline_timer> _timer;
-
-private:
-    // get _principal_name and _user_name from _principal
-    error_s get_formatted_identities();
-    // get or renew credentials from KDC and store it to _ccache
-    error_s get_credentials();
-    void schedule_renew_credentials();
-};
 
 void init_krb5_ctx()
 {
@@ -114,17 +72,18 @@ static error_s krb5_call_to_errors(krb5_context ctx, krb5_error_code code, const
     msg += error_msg;
     krb5_free_error_message(ctx, error_msg);
 
-    return error_s::make(ERR_KRB5_INTERNAL, msg.c_str());
+    return error_s::make(ERR_KRB5_INTERNAL, msg);
 }
 
 static error_s parse_username_from_principal(krb5_const_principal principal, std::string &username)
 {
     // Attention: here we just assume the length of username must be little than 1024
-    uint16_t buf_len = 1024;
-    char buf[buf_len];
+    const uint16_t BUF_LEN = 1024;
+    char buf[BUF_LEN];
     krb5_error_code err = 0;
     err = krb5_aname_to_localname(g_krb5_context, principal, sizeof(buf), buf);
 
+    /*** check the call status of the krb5_aname_to_localname function ***/
     // KRB5_LNAME_NOTRANS means no translation available for requested principal
     if (err == KRB5_LNAME_NOTRANS) {
         if (principal->length > 0) {
@@ -142,21 +101,51 @@ static error_s parse_username_from_principal(krb5_const_principal principal, std
         }
         return error_s::make(ERR_KRB5_INTERNAL, "parse username from principal failed");
     }
-
+    // KRB5_CONFIG_NOTENUFSPACE means BUF_LEN is not enough
     if (err == KRB5_CONFIG_NOTENUFSPACE) {
-        return error_s::make(ERR_KRB5_INTERNAL, fmt::format("username is larger than {}", buf_len));
+        return error_s::make(ERR_KRB5_INTERNAL, fmt::format("username is larger than {}", BUF_LEN));
     }
-
     KRB5_RETURN_NOT_OK(err, "krb5 parse aname to localname failed");
-
     if (strlen(buf) <= 0) {
         return error_s::make(ERR_KRB5_INTERNAL, "empty username");
     }
+
     username.assign((const char *)buf);
     return error_s::make(ERR_OK);
 }
 
-// inline implementation of kinit_context
+class kinit_context
+{
+public:
+    kinit_context() : _opt(nullptr) {}
+    virtual ~kinit_context();
+    // implementation of 'kinit -k -t <keytab_file> <principal>'
+    error_s kinit(const std::string &keytab_file, const std::string &principal);
+
+private:
+    // krb5 structure
+    krb5_principal _principal;
+    // keytab file with absolute path
+    krb5_keytab _keytab;
+    krb5_ccache _ccache;
+    krb5_get_init_creds_opt *_opt;
+
+    // principal and username that logged in as, this determines "who I am"
+    std::string _principal_name;
+    std::string _username;
+
+    uint64_t _cred_expire_timestamp;
+
+    std::shared_ptr<boost::asio::deadline_timer> _timer;
+
+private:
+    // get _principal_name and _user_name from _principal
+    error_s get_formatted_identities();
+    // get or renew credentials from KDC and store it to _ccache
+    error_s get_credentials();
+    void schedule_renew_credentials();
+};
+
 kinit_context::~kinit_context() { krb5_get_init_creds_opt_free(g_krb5_context, _opt); }
 
 void kinit_context::schedule_renew_credentials()
@@ -171,17 +160,13 @@ void kinit_context::schedule_renew_credentials()
     //  1. currently the rdsn framework may not started yet.
     //  2. the rdsn framework is used for codes of a service_app,
     //     not for codes under service_app
-    if (!_timer)
+    if (nullptr == _timer) {
         _timer.reset(new boost::asio::deadline_timer(tools::shared_io_service::instance().ios));
+    }
     _timer->expires_from_now(boost::posix_time::seconds(renew_gap));
     _timer->async_wait([this](const boost::system::error_code &err) {
         if (!err) {
-            error_s e = get_credentials();
-
-            // what if the KDC fails?
-            // in this case, the authentication layer is untrusted any more.
-            // could we kill ourselves?
-            // dassert(e.is_ok(), "renew credentials failed");
+            get_credentials();
             schedule_renew_credentials();
         } else if (err == boost::system::errc::operation_canceled) {
             dwarn("the renew credentials timer is cancelled");
@@ -285,8 +270,36 @@ error_s kinit_context::kinit(const std::string &keytab_file, const std::string &
 #undef WRAP_KRB5_ERR      // only used in this internal namespace
 } // namespace internal
 
+error_s check_configuration()
+{
+    if (0 == strlen(FLAGS_krb5_keytab) || !utils::filesystem::file_exists(FLAGS_krb5_keytab)) {
+        return error_s::make(ERR_INVALID_PARAMETERS,
+                             fmt::format("invalid keytab file \"{}\"", FLAGS_krb5_keytab));
+    }
+
+    if (0 == strlen(FLAGS_krb5_config) || !utils::filesystem::file_exists(FLAGS_krb5_config)) {
+        return error_s::make(ERR_INVALID_PARAMETERS,
+                             fmt::format("invalid krb5 config file \"{}\"", FLAGS_krb5_config));
+    }
+
+    if (0 == strlen(FLAGS_krb5_principal)) {
+        return error_s::make(ERR_INVALID_PARAMETERS, "empty principal");
+    }
+
+    return error_s::make(ERR_OK);
+}
+
+static std::unique_ptr<internal::kinit_context> g_kinit_ctx;
 error_s init_kerberos(bool is_server)
 {
+    // Attention: we can't do these check work in `DSN_DEFINE_validator`, because somebody may don't
+    // want to use security, so these configuration may not setted. In this case, these checks will
+    // not pass.
+    error_s err = check_configuration();
+    if (!err.is_ok()) {
+        return err;
+    }
+
     /// setup kerberos envs(for more details:
     /// https://web.mit.edu/kerberos/krb5-1.12/doc/admin/env_variables.html)
     setenv("KRB5CCNAME", is_server ? "MEMORY:pegasus-server" : "MEMORY:pegasus-client", 1);
@@ -294,11 +307,9 @@ error_s init_kerberos(bool is_server)
     setenv("KRB5_KTNAME", FLAGS_krb5_keytab, 1);
     setenv("KRB5RCACHETYPE", "none", 1);
 
-    internal::g_kinit_ctx.reset(new internal::kinit_context);
-    error_s err = internal::g_kinit_ctx->kinit(FLAGS_krb5_keytab, FLAGS_krb5_principal);
-    ddebug_f("after call kinit err = {}", err.description());
-
-    internal::g_kerberos_lock.reset(new utils::rw_lock_nr);
+    g_kinit_ctx.reset(new internal::kinit_context);
+    err = g_kinit_ctx->kinit(FLAGS_krb5_keytab, FLAGS_krb5_principal);
+    ddebug_f("something is wrong with kinit, err = {}", err.description());
     return err;
 }
 
