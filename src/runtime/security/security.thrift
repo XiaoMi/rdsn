@@ -4,7 +4,7 @@ namespace cpp dsn.security
 
 // negotiation process:
 //
-//                       client               server
+//                       client                              server
 //                          | ---   SASL_LIST_MECHANISMS    --> |
 //                          | <-- SASL_LIST_MECHANISMS_RESP --- |
 //                          | --    SASL_SELECT_MECHANISMS  --> |
