@@ -38,13 +38,13 @@ const std::map<int, const char *> _negotiation_status_VALUES_TO_NAMES(
     ::apache::thrift::TEnumIterator(10, _knegotiation_statusValues, _knegotiation_statusNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
-negotiation_message::~negotiation_message() throw() {}
+negotiation_request::~negotiation_request() throw() {}
 
-void negotiation_message::__set_status(const negotiation_status::type val) { this->status = val; }
+void negotiation_request::__set_status(const negotiation_status::type val) { this->status = val; }
 
-void negotiation_message::__set_msg(const ::dsn::blob &val) { this->msg = val; }
+void negotiation_request::__set_msg(const std::string &val) { this->msg = val; }
 
-uint32_t negotiation_message::read(::apache::thrift::protocol::TProtocol *iprot)
+uint32_t negotiation_request::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
     apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
@@ -74,8 +74,8 @@ uint32_t negotiation_message::read(::apache::thrift::protocol::TProtocol *iprot)
             }
             break;
         case 2:
-            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
-                xfer += this->msg.read(iprot);
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->msg);
                 this->__isset.msg = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -93,18 +93,18 @@ uint32_t negotiation_message::read(::apache::thrift::protocol::TProtocol *iprot)
     return xfer;
 }
 
-uint32_t negotiation_message::write(::apache::thrift::protocol::TProtocol *oprot) const
+uint32_t negotiation_request::write(::apache::thrift::protocol::TProtocol *oprot) const
 {
     uint32_t xfer = 0;
     apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
-    xfer += oprot->writeStructBegin("negotiation_message");
+    xfer += oprot->writeStructBegin("negotiation_request");
 
     xfer += oprot->writeFieldBegin("status", ::apache::thrift::protocol::T_I32, 1);
     xfer += oprot->writeI32((int32_t)this->status);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("msg", ::apache::thrift::protocol::T_STRUCT, 2);
-    xfer += this->msg.write(oprot);
+    xfer += oprot->writeFieldBegin("msg", ::apache::thrift::protocol::T_STRING, 2);
+    xfer += oprot->writeString(this->msg);
     xfer += oprot->writeFieldEnd();
 
     xfer += oprot->writeFieldStop();
@@ -112,7 +112,7 @@ uint32_t negotiation_message::write(::apache::thrift::protocol::TProtocol *oprot
     return xfer;
 }
 
-void swap(negotiation_message &a, negotiation_message &b)
+void swap(negotiation_request &a, negotiation_request &b)
 {
     using ::std::swap;
     swap(a.status, b.status);
@@ -120,36 +120,154 @@ void swap(negotiation_message &a, negotiation_message &b)
     swap(a.__isset, b.__isset);
 }
 
-negotiation_message::negotiation_message(const negotiation_message &other1)
+negotiation_request::negotiation_request(const negotiation_request &other1)
 {
     status = other1.status;
     msg = other1.msg;
     __isset = other1.__isset;
 }
-negotiation_message::negotiation_message(negotiation_message &&other2)
+negotiation_request::negotiation_request(negotiation_request &&other2)
 {
     status = std::move(other2.status);
     msg = std::move(other2.msg);
     __isset = std::move(other2.__isset);
 }
-negotiation_message &negotiation_message::operator=(const negotiation_message &other3)
+negotiation_request &negotiation_request::operator=(const negotiation_request &other3)
 {
     status = other3.status;
     msg = other3.msg;
     __isset = other3.__isset;
     return *this;
 }
-negotiation_message &negotiation_message::operator=(negotiation_message &&other4)
+negotiation_request &negotiation_request::operator=(negotiation_request &&other4)
 {
     status = std::move(other4.status);
     msg = std::move(other4.msg);
     __isset = std::move(other4.__isset);
     return *this;
 }
-void negotiation_message::printTo(std::ostream &out) const
+void negotiation_request::printTo(std::ostream &out) const
 {
     using ::apache::thrift::to_string;
-    out << "negotiation_message(";
+    out << "negotiation_request(";
+    out << "status=" << to_string(status);
+    out << ", "
+        << "msg=" << to_string(msg);
+    out << ")";
+}
+
+negotiation_response::~negotiation_response() throw() {}
+
+void negotiation_response::__set_status(const negotiation_status::type val) { this->status = val; }
+
+void negotiation_response::__set_msg(const std::string &val) { this->msg = val; }
+
+uint32_t negotiation_response::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                int32_t ecast5;
+                xfer += iprot->readI32(ecast5);
+                this->status = (negotiation_status::type)ecast5;
+                this->__isset.status = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->msg);
+                this->__isset.msg = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t negotiation_response::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("negotiation_response");
+
+    xfer += oprot->writeFieldBegin("status", ::apache::thrift::protocol::T_I32, 1);
+    xfer += oprot->writeI32((int32_t)this->status);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("msg", ::apache::thrift::protocol::T_STRING, 2);
+    xfer += oprot->writeString(this->msg);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(negotiation_response &a, negotiation_response &b)
+{
+    using ::std::swap;
+    swap(a.status, b.status);
+    swap(a.msg, b.msg);
+    swap(a.__isset, b.__isset);
+}
+
+negotiation_response::negotiation_response(const negotiation_response &other6)
+{
+    status = other6.status;
+    msg = other6.msg;
+    __isset = other6.__isset;
+}
+negotiation_response::negotiation_response(negotiation_response &&other7)
+{
+    status = std::move(other7.status);
+    msg = std::move(other7.msg);
+    __isset = std::move(other7.__isset);
+}
+negotiation_response &negotiation_response::operator=(const negotiation_response &other8)
+{
+    status = other8.status;
+    msg = other8.msg;
+    __isset = other8.__isset;
+    return *this;
+}
+negotiation_response &negotiation_response::operator=(negotiation_response &&other9)
+{
+    status = std::move(other9.status);
+    msg = std::move(other9.msg);
+    __isset = std::move(other9.__isset);
+    return *this;
+}
+void negotiation_response::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "negotiation_response(";
     out << "status=" << to_string(status);
     out << ", "
         << "msg=" << to_string(msg);

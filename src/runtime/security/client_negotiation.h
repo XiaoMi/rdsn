@@ -31,7 +31,7 @@ public:
 
 private:
     void list_mechanisms();
-    void send(const negotiation_message &message);
+    void send(const negotiation_request &request);
 };
 
 } // namespace security

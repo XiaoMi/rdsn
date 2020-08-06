@@ -39,35 +39,37 @@ struct negotiation_status
 
 extern const std::map<int, const char *> _negotiation_status_VALUES_TO_NAMES;
 
-class negotiation_message;
+class negotiation_request;
 
-typedef struct _negotiation_message__isset
+class negotiation_response;
+
+typedef struct _negotiation_request__isset
 {
-    _negotiation_message__isset() : status(false), msg(false) {}
+    _negotiation_request__isset() : status(false), msg(false) {}
     bool status : 1;
     bool msg : 1;
-} _negotiation_message__isset;
+} _negotiation_request__isset;
 
-class negotiation_message
+class negotiation_request
 {
 public:
-    negotiation_message(const negotiation_message &);
-    negotiation_message(negotiation_message &&);
-    negotiation_message &operator=(const negotiation_message &);
-    negotiation_message &operator=(negotiation_message &&);
-    negotiation_message() : status((negotiation_status::type)0) {}
+    negotiation_request(const negotiation_request &);
+    negotiation_request(negotiation_request &&);
+    negotiation_request &operator=(const negotiation_request &);
+    negotiation_request &operator=(negotiation_request &&);
+    negotiation_request() : status((negotiation_status::type)0), msg() {}
 
-    virtual ~negotiation_message() throw();
+    virtual ~negotiation_request() throw();
     negotiation_status::type status;
-    ::dsn::blob msg;
+    std::string msg;
 
-    _negotiation_message__isset __isset;
+    _negotiation_request__isset __isset;
 
     void __set_status(const negotiation_status::type val);
 
-    void __set_msg(const ::dsn::blob &val);
+    void __set_msg(const std::string &val);
 
-    bool operator==(const negotiation_message &rhs) const
+    bool operator==(const negotiation_request &rhs) const
     {
         if (!(status == rhs.status))
             return false;
@@ -75,9 +77,9 @@ public:
             return false;
         return true;
     }
-    bool operator!=(const negotiation_message &rhs) const { return !(*this == rhs); }
+    bool operator!=(const negotiation_request &rhs) const { return !(*this == rhs); }
 
-    bool operator<(const negotiation_message &) const;
+    bool operator<(const negotiation_request &) const;
 
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
@@ -85,9 +87,61 @@ public:
     virtual void printTo(std::ostream &out) const;
 };
 
-void swap(negotiation_message &a, negotiation_message &b);
+void swap(negotiation_request &a, negotiation_request &b);
 
-inline std::ostream &operator<<(std::ostream &out, const negotiation_message &obj)
+inline std::ostream &operator<<(std::ostream &out, const negotiation_request &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _negotiation_response__isset
+{
+    _negotiation_response__isset() : status(false), msg(false) {}
+    bool status : 1;
+    bool msg : 1;
+} _negotiation_response__isset;
+
+class negotiation_response
+{
+public:
+    negotiation_response(const negotiation_response &);
+    negotiation_response(negotiation_response &&);
+    negotiation_response &operator=(const negotiation_response &);
+    negotiation_response &operator=(negotiation_response &&);
+    negotiation_response() : status((negotiation_status::type)0), msg() {}
+
+    virtual ~negotiation_response() throw();
+    negotiation_status::type status;
+    std::string msg;
+
+    _negotiation_response__isset __isset;
+
+    void __set_status(const negotiation_status::type val);
+
+    void __set_msg(const std::string &val);
+
+    bool operator==(const negotiation_response &rhs) const
+    {
+        if (!(status == rhs.status))
+            return false;
+        if (!(msg == rhs.msg))
+            return false;
+        return true;
+    }
+    bool operator!=(const negotiation_response &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const negotiation_response &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(negotiation_response &a, negotiation_response &b);
+
+inline std::ostream &operator<<(std::ostream &out, const negotiation_response &obj)
 {
     obj.printTo(out);
     return out;

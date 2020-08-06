@@ -36,16 +36,16 @@ void client_negotiation::start()
 
 void client_negotiation::list_mechanisms()
 {
-    negotiation_message message;
-    _status = message.status = negotiation_status::type::SASL_LIST_MECHANISMS;
-    send(message);
+    negotiation_request request;
+    _status = request.status = negotiation_status::type::SASL_LIST_MECHANISMS;
+    send(request);
 }
 
-void client_negotiation::send(const negotiation_message &message)
+void client_negotiation::send(const negotiation_request &request)
 {
-    message_ptr request = message_ex::create_request(RPC_NEGOTIATION);
-    dsn::marshall(request.get(), message);
-    _session->send_message(request.get());
+    message_ptr req = message_ex::create_request(RPC_NEGOTIATION);
+    dsn::marshall(req, request);
+    _session->send_message(req);
 }
 
 } // namespace security

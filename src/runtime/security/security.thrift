@@ -40,7 +40,12 @@ enum negotiation_status {
     SASL_AUTH_FAIL
 }
 
-struct negotiation_message {
+struct negotiation_request {
     1: negotiation_status status;
-    2: dsn.blob msg;
+    2: string msg;
+}
+
+struct negotiation_response {
+    1: negotiation_status status;
+    2: string msg;
 }
