@@ -25,9 +25,10 @@
  */
 
 #include "service_engine.h"
+#include "utils/coredump.h"
 #include "runtime/rpc/rpc_engine.h"
 #include "runtime/task/task_engine.h"
-#include "utils/coredump.h"
+#include "runtime/security/kerberos_utils.h"
 
 #include <fstream>
 
@@ -44,9 +45,6 @@
 
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
-#include <runtime/security/kerberos_utils.h>
-#include <dsn/dist/fmt_logging.h>
-
 #endif
 
 namespace dsn {
