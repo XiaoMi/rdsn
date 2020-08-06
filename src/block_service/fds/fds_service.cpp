@@ -41,7 +41,7 @@ DSN_DEFINE_uint32("replication", fds_write_limit_rate, 100, "write rate limit of
 
 DSN_DEFINE_uint32("replication", fds_read_limit_rate, 100, "read rate limit of fds(MB/s)");
 
-DSN_DEFINE_uint32("replication", fds_read_batch_size, 5, "read batch size of fds(MB)");
+DSN_DEFINE_uint32("replication", fds_read_batch_size, 100, "read batch size of fds(MB)");
 
 class utils
 {
