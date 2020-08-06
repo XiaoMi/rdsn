@@ -83,7 +83,6 @@ static error_s parse_username_from_principal(krb5_const_principal principal, std
     krb5_error_code err = 0;
     err = krb5_aname_to_localname(g_krb5_context, principal, sizeof(buf), buf);
 
-    /*** check the call status of the krb5_aname_to_localname function ***/
     // KRB5_LNAME_NOTRANS means no translation available for requested principal
     if (err == KRB5_LNAME_NOTRANS) {
         if (principal->length > 0) {
@@ -101,11 +100,13 @@ static error_s parse_username_from_principal(krb5_const_principal principal, std
         }
         return error_s::make(ERR_KRB5_INTERNAL, "parse username from principal failed");
     }
+
     // KRB5_CONFIG_NOTENUFSPACE means BUF_LEN is not enough
     if (err == KRB5_CONFIG_NOTENUFSPACE) {
         return error_s::make(ERR_KRB5_INTERNAL, fmt::format("username is larger than {}", BUF_LEN));
     }
     KRB5_RETURN_NOT_OK(err, "krb5 parse aname to localname failed");
+
     if (strlen(buf) <= 0) {
         return error_s::make(ERR_KRB5_INTERNAL, "empty username");
     }
@@ -228,10 +229,6 @@ error_s kinit_context::get_formatted_identities()
 
 error_s kinit_context::kinit(const std::string &keytab_file, const std::string &principal)
 {
-    if (keytab_file.empty() || principal.empty()) {
-        return error_s::make(dsn::ERR_INVALID_PARAMETERS, "invalid keytab or principal");
-    }
-
     // create a krb5 library context.
     init_krb5_ctx();
 
@@ -292,9 +289,9 @@ error_s check_configuration()
 static std::unique_ptr<internal::kinit_context> g_kinit_ctx;
 error_s init_kerberos(bool is_server)
 {
-    // Attention: we can't do these check work in `DSN_DEFINE_validator`, because somebody may don't
-    // want to use security, so these configuration may not setted. In this case, these checks will
-    // not pass.
+    // Attention: we can't do these check work by `DSN_DEFINE_validator`, because somebody may don't
+    // want to use security, so these configuration may not setted. In this situation, these checks
+    // will not pass.
     error_s err = check_configuration();
     if (!err.is_ok()) {
         return err;
