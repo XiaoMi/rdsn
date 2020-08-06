@@ -48,7 +48,7 @@
 
 namespace dsn {
 namespace security {
-    extern bool FLAGS_enable_auth;
+extern bool FLAGS_enable_auth;
 } // namespace security
 } // namespace dsn
 
