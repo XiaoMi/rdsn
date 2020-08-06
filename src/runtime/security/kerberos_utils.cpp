@@ -80,8 +80,7 @@ static error_s parse_username_from_principal(krb5_const_principal principal, std
     // Attention: here we just assume the length of username must be little than 1024
     const uint16_t BUF_LEN = 1024;
     char buf[BUF_LEN];
-    krb5_error_code err = 0;
-    err = krb5_aname_to_localname(g_krb5_context, principal, sizeof(buf), buf);
+    krb5_error_code err = krb5_aname_to_localname(g_krb5_context, principal, sizeof(buf), buf);
 
     // KRB5_LNAME_NOTRANS means no translation available for requested principal
     if (err == KRB5_LNAME_NOTRANS) {
