@@ -247,7 +247,7 @@ error_s kinit_context::kinit(const std::string &keytab_file, const std::string &
     KRB5_RETURN_NOT_OK(krb5_cc_default(g_krb5_context, &_ccache),
                        "couldn't acquire credential cache handle");
 
-    // initialize credential cache.
+    // initialize credential cache
     KRB5_RETURN_NOT_OK(krb5_cc_initialize(g_krb5_context, _ccache, _principal),
                        "initialize credential cache failed");
 
