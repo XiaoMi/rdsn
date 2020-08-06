@@ -166,7 +166,7 @@ void kinit_context::schedule_renew_credentials()
     }
     _timer->expires_from_now(boost::posix_time::seconds(renew_gap));
     _timer->async_wait([this](const boost::system::error_code &err) {
-        if (!err) {
+        if (!err.failed()) {
             get_credentials();
             schedule_renew_credentials();
         } else if (err == boost::system::errc::operation_canceled) {
