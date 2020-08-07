@@ -82,8 +82,7 @@ private:
     // init kerberos context
     void init_krb5_ctx();
 
-    // get _principal_name and _user_name from _principal
-    error_s get_formatted_identities();
+    // get _user_name from _principal
     error_s parse_username_from_principal();
 
     // get or renew credentials from KDC and store it to _ccache
@@ -104,7 +103,6 @@ private:
     krb5_get_init_creds_opt *_opt = nullptr;
 
     // principal and username that logged in as, this determines "who I am"
-    std::string _principal_name;
     std::string _user_name;
 
     uint64_t _cred_expire_timestamp;
@@ -127,8 +125,8 @@ error_s kinit_context_impl::kinit()
     KRB5_RETURN_NOT_OK(krb5_parse_name(_krb5_context, FLAGS_krb5_principal, &_principal),
                        "couldn't parse principal");
 
-    // get _principal_name and _user_name from _principal
-    RETURN_NOT_OK(get_formatted_identities());
+    // get _user_name from _principal
+    RETURN_NOT_OK(parse_username_from_principal());
 
     // get a handle for a key table.
     KRB5_RETURN_NOT_OK(krb5_kt_resolve(_krb5_context, FLAGS_krb5_keytab, &_keytab),
@@ -150,7 +148,7 @@ error_s kinit_context_impl::kinit()
     RETURN_NOT_OK(get_credentials());
     schedule_renew_credentials();
 
-    ddebug_f("logged in from keytab as {}, local username {}", _principal_name, _user_name);
+    ddebug_f("logged in from keytab as {}, local username {}", FLAGS_krb5_principal, _user_name);
     return error_s::make(ERR_OK);
 }
 
@@ -163,17 +161,6 @@ void kinit_context_impl::init_krb5_ctx()
             dassert_f(false, "init kerberos context failed, with kerberos  error_code = {}", err);
         }
     });
-}
-
-error_s kinit_context_impl::get_formatted_identities()
-{
-    char *tmp_str = nullptr;
-    KRB5_RETURN_NOT_OK(krb5_unparse_name(_krb5_context, _principal, &tmp_str),
-                       "unparse principal name failed");
-    auto cleanup = dsn::defer([&]() { krb5_free_unparsed_name(_krb5_context, tmp_str); });
-    _principal_name = tmp_str;
-
-    return parse_username_from_principal();
 }
 
 error_s kinit_context_impl::parse_username_from_principal()
@@ -233,7 +220,7 @@ error_s kinit_context_impl::get_credentials()
                         "get_init_cred");
     if (!err.is_ok()) {
         dwarn_f("get credentials of {} from KDC failed, reason({})",
-                _principal_name,
+                FLAGS_krb5_principal,
                 err.description());
         return err;
     }
@@ -242,14 +229,15 @@ error_s kinit_context_impl::get_credentials()
     // store credentials into _ccache.
     err = wrap_krb5_err(krb5_cc_store_cred(_krb5_context, _ccache, &creds), "store_cred");
     if (!err.is_ok()) {
-        dwarn_f(
-            "store credentials of {} to cache failed, err({})", _principal_name, err.description());
+        dwarn_f("store credentials of {} to cache failed, err({})",
+                FLAGS_krb5_principal,
+                err.description());
         return err;
     }
 
     _cred_expire_timestamp = creds.times.endtime;
     ddebug_f("get credentials of {} from KDC ok, expires at {}",
-             _principal_name,
+             FLAGS_krb5_principal,
              utils::time_s_to_date_time(_cred_expire_timestamp));
     return err;
 }
