@@ -48,7 +48,7 @@ error_s init_kerberos(bool is_server)
 bool init(bool is_server)
 {
     error_s err = init_kerberos(is_server);
-    if (err.is_ok()) {
+    if (!err.is_ok()) {
         derror_f("initialize kerberos failed, with err = {}", err.description());
         return false;
     }
