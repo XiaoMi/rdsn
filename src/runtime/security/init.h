@@ -18,25 +18,10 @@
 #pragma once
 
 #include <dsn/utility/errors.h>
-#include <dsn/utility/singleton.h>
 
 namespace dsn {
 namespace security {
-class kinit_context_impl;
-
-class kinit_context : public utils::singleton<kinit_context>
-{
-public:
-    ~kinit_context();
-    // implementation of 'kinit -k -t <keytab_file> <principal>'
-    error_s kinit();
-
-private:
-    friend class dsn::utils::singleton<kinit_context>;
-    kinit_context();
-
-    // compilation firewall: decouple interface from implementation
-    std::unique_ptr<kinit_context_impl> impl;
-};
+// init security(kerberos and sasl)
+bool init(bool is_server);
 } // namespace security
 } // namespace dsn

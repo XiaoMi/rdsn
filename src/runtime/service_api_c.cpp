@@ -28,7 +28,7 @@
 #include "utils/coredump.h"
 #include "runtime/rpc/rpc_engine.h"
 #include "runtime/task/task_engine.h"
-#include "runtime/security/kerberos_utils.h"
+#include "runtime/security/init.h"
 
 #include <fstream>
 
@@ -467,13 +467,12 @@ bool run(const char *config_file,
     ::dsn::service_engine::instance().init_after_toollets();
 
     dsn_all.engine_ready = true;
+
+    // init security if FLAGS_enable_auth == true
     if (dsn::security::FLAGS_enable_auth) {
-        dsn::error_s err_s = dsn::security::init_kerberos(sleep_after_init);
-        if (!err_s.is_ok()) {
-            derror_f("initialize kerberos failed, with err = {}", err_s.description());
+        if (!dsn::security::init(sleep_after_init)) {
             return false;
         }
-        ddebug("initialize kerberos succeed");
     }
 
     // split app_name and app_index
