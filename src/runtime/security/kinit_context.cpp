@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "kerberos_utils.h"
+#include "kinit_context.h"
 #include "utils/shared_io_service.h"
 
 #include <boost/asio/deadline_timer.hpp>
