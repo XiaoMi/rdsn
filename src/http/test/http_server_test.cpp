@@ -36,7 +36,7 @@ TEST(http_server, parse_url)
             blob::create_from_bytes(std::string("POST")));
         m->buffers.emplace_back(blob::create_from_bytes(std::string(tt.url)));
 
-        auto res = http_request::parse(m.get());
+        auto res = parse_http_request(m.get());
         if (res.is_ok()) {
             ASSERT_EQ(res.get_value().service_method, tt.result) << tt.url;
         } else {
@@ -280,7 +280,7 @@ TEST_F(http_message_parser_test, parse_query_params)
             blob::create_from_bytes(std::string("POST")));
         m->buffers.emplace_back(blob::create_from_bytes(std::string(tt.url)));
 
-        auto res = http_request::parse(m.get());
+        auto res = parse_http_request(m.get());
         if (res.is_ok()) {
             ASSERT_EQ(res.get_value().query_args, tt.result) << tt.url;
         } else {

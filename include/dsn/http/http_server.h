@@ -32,8 +32,6 @@ enum http_method
 
 struct http_request
 {
-    static error_with<http_request> parse(dsn::message_ex *m);
-
     // http://ip:port/<service>/<method>
     std::pair<std::string, std::string> service_method;
     // <args_name, args_val>
@@ -143,5 +141,9 @@ private:
 /// The rpc code for all the HTTP RPCs.
 /// Since http is used only for system monitoring, it is restricted to lowest priority.
 DEFINE_TASK_CODE_RPC(RPC_HTTP_SERVICE, TASK_PRIORITY_LOW, THREAD_POOL_DEFAULT);
+
+// Do not use directly.
+// This function is for the internal HTTP protocol parsing.
+static error_with<http_request> parse_http_request(dsn::message_ex *m);
 
 } // namespace dsn
