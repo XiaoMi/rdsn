@@ -95,10 +95,11 @@ private:
 
 private:
     krb5_context _krb5_context;
-    // krb5 structure
+    // krb5 principal
     krb5_principal _principal;
     // keytab file with absolute path
     krb5_keytab _keytab;
+    // credential cache
     krb5_ccache _ccache;
     krb5_get_init_creds_opt *_opt = nullptr;
 
