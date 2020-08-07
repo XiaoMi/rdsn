@@ -144,6 +144,6 @@ DEFINE_TASK_CODE_RPC(RPC_HTTP_SERVICE, TASK_PRIORITY_LOW, THREAD_POOL_DEFAULT);
 
 // Do not use directly.
 // This function is for the internal HTTP protocol parsing.
-static error_with<http_request> parse_http_request(dsn::message_ex *m);
+extern error_with<http_request> parse_http_request(dsn::message_ex *m);
 
 } // namespace dsn

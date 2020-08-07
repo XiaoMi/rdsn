@@ -95,7 +95,7 @@ void http_server::add_service(http_service *service)
     _service_map.emplace(service->path(), std::unique_ptr<http_service>(service));
 }
 
-/*static*/ error_with<http_request> http_request::parse(message_ex *m)
+/*extern*/ error_with<http_request> parse_http_request(message_ex *m)
 {
     if (m->buffers.size() != 3) {
         return error_s::make(ERR_INVALID_DATA,
