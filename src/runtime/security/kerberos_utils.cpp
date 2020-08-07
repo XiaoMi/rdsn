@@ -105,7 +105,7 @@ private:
 
     // principal and username that logged in as, this determines "who I am"
     std::string _principal_name;
-    std::string _username;
+    std::string _user_name;
 
     uint64_t _cred_expire_timestamp;
     std::shared_ptr<boost::asio::deadline_timer> _timer;
@@ -150,7 +150,7 @@ error_s kinit_context_impl::kinit()
     RETURN_NOT_OK(get_credentials());
     schedule_renew_credentials();
 
-    ddebug_f("logged in from keytab as {}, local username {}", _principal_name, _username);
+    ddebug_f("logged in from keytab as {}, local username {}", _principal_name, _user_name);
     return error_s::make(ERR_OK);
 }
 
@@ -191,10 +191,10 @@ error_s kinit_context_impl::parse_username_from_principal()
                 std::string tname;
                 tname.assign((const char *)_principal->data[cnt].data,
                              _principal->data[cnt].length);
-                if (!_username.empty()) {
-                    _username += '/';
+                if (!_user_name.empty()) {
+                    _user_name += '/';
                 }
-                _username += tname;
+                _user_name += tname;
                 cnt++;
             }
             return error_s::make(ERR_OK);
@@ -212,7 +212,7 @@ error_s kinit_context_impl::parse_username_from_principal()
         return error_s::make(ERR_KRB5_INTERNAL, "empty username");
     }
 
-    _username.assign((const char *)buf);
+    _user_name.assign((const char *)buf);
     return error_s::ok();
 }
 
