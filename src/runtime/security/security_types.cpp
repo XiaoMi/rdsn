@@ -21,7 +21,7 @@ int _knegotiation_statusValues[] = {negotiation_status::INVALID,
                                     negotiation_status::SASL_SELECT_MECHANISMS_OK,
                                     negotiation_status::SASL_INITIATE,
                                     negotiation_status::SASL_CHALLENGE,
-                                    negotiation_status::SASL_CHANLLENGE_RESPONSE,
+                                    negotiation_status::SASL_CHANLLENGE_RESP,
                                     negotiation_status::SASL_SUCC,
                                     negotiation_status::SASL_AUTH_FAIL};
 const char *_knegotiation_statusNames[] = {"INVALID",
@@ -31,7 +31,7 @@ const char *_knegotiation_statusNames[] = {"INVALID",
                                            "SASL_SELECT_MECHANISMS_OK",
                                            "SASL_INITIATE",
                                            "SASL_CHALLENGE",
-                                           "SASL_CHANLLENGE_RESPONSE",
+                                           "SASL_CHANLLENGE_RESP",
                                            "SASL_SUCC",
                                            "SASL_AUTH_FAIL"};
 const std::map<int, const char *> _negotiation_status_VALUES_TO_NAMES(
