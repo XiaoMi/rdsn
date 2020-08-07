@@ -67,7 +67,7 @@ error_s check_configuration()
         return error_s::make(ERR_INVALID_PARAMETERS, "empty principal");
     }
 
-    return error_s::make(ERR_OK);
+    return error_s::ok();
 }
 
 class kinit_context_impl
@@ -148,8 +148,7 @@ error_s kinit_context_impl::kinit()
     RETURN_NOT_OK(get_credentials());
     schedule_renew_credentials();
 
-    ddebug_f("logged in from keytab as {}, local username {}", FLAGS_krb5_principal, _user_name);
-    return error_s::make(ERR_OK);
+    return error_s::ok();
 }
 
 void kinit_context_impl::init_krb5_ctx()
@@ -184,7 +183,7 @@ error_s kinit_context_impl::parse_username_from_principal()
                 _user_name += tname;
                 cnt++;
             }
-            return error_s::make(ERR_OK);
+            return error_s::ok();
         }
         return error_s::make(ERR_KRB5_INTERNAL, "parse username from principal failed");
     }
