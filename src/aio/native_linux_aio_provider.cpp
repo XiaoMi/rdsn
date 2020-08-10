@@ -199,6 +199,7 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
 
     cbs[0] = &aio->cb;
     ret = io_submit(_ctx, 1, cbs);
+    aio_tsk->tracer->add_point("native_linux_aio_provider::aio_submit_complete");
 
     if (ret != 1) {
         if (ret < 0)
