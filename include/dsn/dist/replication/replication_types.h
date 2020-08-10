@@ -206,6 +206,19 @@ struct ingestion_status
 
 extern const std::map<int, const char *> _ingestion_status_VALUES_TO_NAMES;
 
+struct bulk_load_control_type
+{
+    enum type
+    {
+        BLC_PAUSE = 0,
+        BLC_RESTART = 1,
+        BLC_CANCEL = 2,
+        BLC_FORCE_CANCEL = 3
+    };
+};
+
+extern const std::map<int, const char *> _bulk_load_control_type_VALUES_TO_NAMES;
+
 class mutation_header;
 
 class mutation_update;
@@ -409,6 +422,14 @@ class group_bulk_load_response;
 class ingestion_request;
 
 class ingestion_response;
+
+class control_bulk_load_request;
+
+class control_bulk_load_response;
+
+class query_bulk_load_request;
+
+class query_bulk_load_response;
 
 typedef struct _mutation_header__isset
 {
@@ -7057,6 +7078,255 @@ public:
 void swap(ingestion_response &a, ingestion_response &b);
 
 inline std::ostream &operator<<(std::ostream &out, const ingestion_response &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _control_bulk_load_request__isset
+{
+    _control_bulk_load_request__isset() : app_name(false), type(false) {}
+    bool app_name : 1;
+    bool type : 1;
+} _control_bulk_load_request__isset;
+
+class control_bulk_load_request
+{
+public:
+    control_bulk_load_request(const control_bulk_load_request &);
+    control_bulk_load_request(control_bulk_load_request &&);
+    control_bulk_load_request &operator=(const control_bulk_load_request &);
+    control_bulk_load_request &operator=(control_bulk_load_request &&);
+    control_bulk_load_request() : app_name(), type((bulk_load_control_type::type)0) {}
+
+    virtual ~control_bulk_load_request() throw();
+    std::string app_name;
+    bulk_load_control_type::type type;
+
+    _control_bulk_load_request__isset __isset;
+
+    void __set_app_name(const std::string &val);
+
+    void __set_type(const bulk_load_control_type::type val);
+
+    bool operator==(const control_bulk_load_request &rhs) const
+    {
+        if (!(app_name == rhs.app_name))
+            return false;
+        if (!(type == rhs.type))
+            return false;
+        return true;
+    }
+    bool operator!=(const control_bulk_load_request &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const control_bulk_load_request &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(control_bulk_load_request &a, control_bulk_load_request &b);
+
+inline std::ostream &operator<<(std::ostream &out, const control_bulk_load_request &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _control_bulk_load_response__isset
+{
+    _control_bulk_load_response__isset() : err(false), hint_msg(false) {}
+    bool err : 1;
+    bool hint_msg : 1;
+} _control_bulk_load_response__isset;
+
+class control_bulk_load_response
+{
+public:
+    control_bulk_load_response(const control_bulk_load_response &);
+    control_bulk_load_response(control_bulk_load_response &&);
+    control_bulk_load_response &operator=(const control_bulk_load_response &);
+    control_bulk_load_response &operator=(control_bulk_load_response &&);
+    control_bulk_load_response() : hint_msg() {}
+
+    virtual ~control_bulk_load_response() throw();
+    ::dsn::error_code err;
+    std::string hint_msg;
+
+    _control_bulk_load_response__isset __isset;
+
+    void __set_err(const ::dsn::error_code &val);
+
+    void __set_hint_msg(const std::string &val);
+
+    bool operator==(const control_bulk_load_response &rhs) const
+    {
+        if (!(err == rhs.err))
+            return false;
+        if (__isset.hint_msg != rhs.__isset.hint_msg)
+            return false;
+        else if (__isset.hint_msg && !(hint_msg == rhs.hint_msg))
+            return false;
+        return true;
+    }
+    bool operator!=(const control_bulk_load_response &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const control_bulk_load_response &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(control_bulk_load_response &a, control_bulk_load_response &b);
+
+inline std::ostream &operator<<(std::ostream &out, const control_bulk_load_response &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _query_bulk_load_request__isset
+{
+    _query_bulk_load_request__isset() : app_name(false) {}
+    bool app_name : 1;
+} _query_bulk_load_request__isset;
+
+class query_bulk_load_request
+{
+public:
+    query_bulk_load_request(const query_bulk_load_request &);
+    query_bulk_load_request(query_bulk_load_request &&);
+    query_bulk_load_request &operator=(const query_bulk_load_request &);
+    query_bulk_load_request &operator=(query_bulk_load_request &&);
+    query_bulk_load_request() : app_name() {}
+
+    virtual ~query_bulk_load_request() throw();
+    std::string app_name;
+
+    _query_bulk_load_request__isset __isset;
+
+    void __set_app_name(const std::string &val);
+
+    bool operator==(const query_bulk_load_request &rhs) const
+    {
+        if (!(app_name == rhs.app_name))
+            return false;
+        return true;
+    }
+    bool operator!=(const query_bulk_load_request &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const query_bulk_load_request &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(query_bulk_load_request &a, query_bulk_load_request &b);
+
+inline std::ostream &operator<<(std::ostream &out, const query_bulk_load_request &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _query_bulk_load_response__isset
+{
+    _query_bulk_load_response__isset()
+        : err(false),
+          app_name(false),
+          app_status(false),
+          partitions_status(false),
+          max_replica_count(false),
+          bulk_load_states(false),
+          hint_msg(false)
+    {
+    }
+    bool err : 1;
+    bool app_name : 1;
+    bool app_status : 1;
+    bool partitions_status : 1;
+    bool max_replica_count : 1;
+    bool bulk_load_states : 1;
+    bool hint_msg : 1;
+} _query_bulk_load_response__isset;
+
+class query_bulk_load_response
+{
+public:
+    query_bulk_load_response(const query_bulk_load_response &);
+    query_bulk_load_response(query_bulk_load_response &&);
+    query_bulk_load_response &operator=(const query_bulk_load_response &);
+    query_bulk_load_response &operator=(query_bulk_load_response &&);
+    query_bulk_load_response()
+        : app_name(), app_status((bulk_load_status::type)0), max_replica_count(0), hint_msg()
+    {
+    }
+
+    virtual ~query_bulk_load_response() throw();
+    ::dsn::error_code err;
+    std::string app_name;
+    bulk_load_status::type app_status;
+    std::vector<bulk_load_status::type> partitions_status;
+    int32_t max_replica_count;
+    std::vector<std::map<::dsn::rpc_address, partition_bulk_load_state>> bulk_load_states;
+    std::string hint_msg;
+
+    _query_bulk_load_response__isset __isset;
+
+    void __set_err(const ::dsn::error_code &val);
+
+    void __set_app_name(const std::string &val);
+
+    void __set_app_status(const bulk_load_status::type val);
+
+    void __set_partitions_status(const std::vector<bulk_load_status::type> &val);
+
+    void __set_max_replica_count(const int32_t val);
+
+    void __set_bulk_load_states(
+        const std::vector<std::map<::dsn::rpc_address, partition_bulk_load_state>> &val);
+
+    void __set_hint_msg(const std::string &val);
+
+    bool operator==(const query_bulk_load_response &rhs) const
+    {
+        if (!(err == rhs.err))
+            return false;
+        if (!(app_name == rhs.app_name))
+            return false;
+        if (!(app_status == rhs.app_status))
+            return false;
+        if (!(partitions_status == rhs.partitions_status))
+            return false;
+        if (!(max_replica_count == rhs.max_replica_count))
+            return false;
+        if (!(bulk_load_states == rhs.bulk_load_states))
+            return false;
+        if (__isset.hint_msg != rhs.__isset.hint_msg)
+            return false;
+        else if (__isset.hint_msg && !(hint_msg == rhs.hint_msg))
+            return false;
+        return true;
+    }
+    bool operator!=(const query_bulk_load_response &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const query_bulk_load_response &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(query_bulk_load_response &a, query_bulk_load_response &b);
+
+inline std::ostream &operator<<(std::ostream &out, const query_bulk_load_response &obj)
 {
     obj.printTo(out);
     return out;
