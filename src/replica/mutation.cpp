@@ -36,6 +36,7 @@
 #include "mutation.h"
 #include "mutation_log.h"
 #include "replica.h"
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
@@ -52,8 +53,8 @@ mutation::mutation()
     _appro_data_bytes = sizeof(mutation_header);
     _create_ts_ns = dsn_now_ns();
     _tid = ++s_tid;
-    tracer = std::shared_ptr<dsn::tool::latency_tracer>(
-        new dsn::tool::latency_tracer(_tid, "mutation::mutation()", "mutation_request"));
+    tracer =
+        std::make_shared<dsn::utility::latency_tracer>(fmt::format("{}[{}]", "mutation", _tid));
 }
 
 mutation_ptr mutation::copy_no_reply(const mutation_ptr &old_mu)
@@ -137,6 +138,9 @@ void mutation::copy_from(mutation_ptr &old)
 
 void mutation::add_client_request(task_code code, dsn::message_ex *request)
 {
+    if (request != nullptr) {
+        tracer->add_point(fmt::format("mutation::add_client_request({})", request->header->id));
+    }
     data.updates.push_back(mutation_update());
     mutation_update &update = data.updates.back();
     _appro_data_bytes += 32; // approximate code size
@@ -341,9 +345,6 @@ mutation_queue::mutation_queue(gpid gpid,
 mutation_ptr mutation_queue::add_work(task_code code, dsn::message_ex *request, replica *r)
 {
     task_spec *spec = task_spec::get(code);
-    if (request->tracer != nullptr) {
-        request->tracer->add_point("mutation_queue::add_work");
-    }
     // if not allow write batch, switch work queue
     if (_pending_mutation && !spec->rpc_request_is_write_allow_batch) {
         _pending_mutation->add_ref(); // released when unlink
@@ -355,7 +356,6 @@ mutation_ptr mutation_queue::add_work(task_code code, dsn::message_ex *request, 
     // add to work queue
     if (!_pending_mutation) {
         _pending_mutation = r->new_mutation(invalid_decree);
-        request->tracer->set_shared_tracer(_pending_mutation->tracer);
     }
 
     dinfo("add request with trace_id = %016" PRIx64 " into mutation with mutation_tid = %" PRIu64,

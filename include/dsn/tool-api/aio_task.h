@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <dsn/utility/latency_tracer.h>
 #include <dsn/tool-api/task.h>
 #include <vector>
 
@@ -100,12 +101,14 @@ public:
     virtual void exec() override
     {
         if (nullptr != _cb) {
+            tracer->add_point("aio_task::callback_exec");
             _cb(_error, _transferred_size);
         }
     }
 
     std::vector<dsn_file_buffer_t> _unmerged_write_buffers;
     blob _merged_write_buffer_holder;
+    std::shared_ptr<dsn::utility::latency_tracer> tracer;
 
 protected:
     void clear_non_trivial_on_task_end() override { _cb = nullptr; }

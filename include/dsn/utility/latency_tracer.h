@@ -19,7 +19,7 @@
 #include <dsn/utility/synchronize.h>
 
 namespace dsn {
-namespace utils {
+namespace utility {
 
 /**
  * latency_tracer is a tool for tracking the time spent in each of the stages during request
@@ -92,5 +92,5 @@ private:
 
     friend class latency_tracer_test;
 };
-} // namespace utils
+} // namespace utility
 } // namespace dsn

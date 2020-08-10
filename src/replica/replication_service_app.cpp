@@ -87,10 +87,6 @@ void replication_service_app::on_intercepted_request(dsn::gpid gpid,
                                                      bool is_write,
                                                      dsn::message_ex *msg)
 {
-    if (msg->tracer != nullptr) {
-        msg->tracer->add_point("replication_service_app::on_intercepted_request");
-    }
-
     if (is_write) {
         _stub->on_client_write(gpid, msg);
     } else {

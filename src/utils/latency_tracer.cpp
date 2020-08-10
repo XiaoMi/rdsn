@@ -15,14 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "latency_tracer.h"
-
 #include <dsn/service_api_c.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/flags.h>
+#include <dsn/utility/latency_tracer.h>
 
 namespace dsn {
-namespace utils {
+namespace utility {
 
 DSN_DEFINE_bool("replication", enable_latency_tracer, false, "whether enable the latency tracer");
 
@@ -89,5 +88,5 @@ void latency_tracer::dump_trace_points(int threshold, /*out*/ std::string &trace
     _sub_tracer->dump_trace_points(0, traces);
 }
 
-} // namespace utils
+} // namespace utility
 } // namespace dsn

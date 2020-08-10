@@ -15,13 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "utils/latency_tracer.h"
-
+#include <dsn/utility/latency_tracer.h>
 #include <gtest/gtest.h>
 #include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
-namespace utils {
+namespace utility {
 class latency_tracer_test : public testing::Test
 {
 public:
@@ -105,5 +104,5 @@ TEST_F(latency_tracer_test, add_point)
     _tracer1->dump_trace_points(0);
     _tracer2->dump_trace_points(0);
 }
-} // namespace utils
+} // namespace utility
 } // namespace dsn

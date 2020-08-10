@@ -133,6 +133,10 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
         [this, lf, pending](error_code err, size_t sz) mutable {
             dassert(_is_writing.load(std::memory_order_relaxed), "");
 
+            for (auto &mutation : pending->mutations()) {
+                mutation->tracer->add_point("log_shared::commit_complete");
+            }
+
             for (auto &block : pending->all_blocks()) {
                 auto hdr = (log_block_header *)block.front().data();
                 dassert(hdr->magic == 0xdeadbeef, "header magic is changed: 0x%x", hdr->magic);
