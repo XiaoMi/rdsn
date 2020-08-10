@@ -145,24 +145,6 @@ public:
     void set_is_sync_to_child(bool sync_to_child) { _is_sync_to_child = sync_to_child; }
     bool is_sync_to_child() { return _is_sync_to_child; }
 
-    std::shared_ptr<dsn::tool::latency_tracer> tracer;
-
-    void report_trace_if_exceed_threshold(uint64_t time_threshold)
-    {
-        if (time_threshold <= 0 || tracer == nullptr) {
-            return;
-        }
-
-        for (auto const &req : client_requests) {
-            if (req != nullptr) {
-                req->report_trace_if_exceed_threshold(time_threshold);
-            } else if (tracer->get_total_time_used() < time_threshold) {
-                ddebug_f(tracer->to_string());
-                break;
-            }
-        }
-    }
-
 private:
     union
     {
