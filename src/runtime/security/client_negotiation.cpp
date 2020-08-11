@@ -35,9 +35,7 @@ void client_negotiation::start()
     list_mechanisms();
 }
 
-void client_negotiation::handle_response(message_ex *resp) {
-    ddebug("server_negotiation::handle_response");
-}
+void client_negotiation::handle_response(message_ex *resp) {}
 
 void client_negotiation::list_mechanisms()
 {

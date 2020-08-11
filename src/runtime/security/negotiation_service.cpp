@@ -27,33 +27,24 @@ negotiation_service::negotiation_service() : serverlet("negotiation_service") {}
 
 void negotiation_service::open_service()
 {
-    register_rpc_handler(
+    register_rpc_handler_with_rpc_holder(
         RPC_NEGOTIATION, "Negotiation", &negotiation_service::on_negotiation_request);
 }
 
-void negotiation_service::on_negotiation_request(message_ex *req)
+void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
 {
-    dassert(!req->io_session->is_client(), "only server session receive negotiation request");
+    dassert(!rpc.dsn_request()->io_session->is_client(),
+            "only server session receive negotiation request");
 
     // return SASL_AUTH_DISABLE if auth is not enable
     if (!security::FLAGS_enable_auth) {
-        reply_auth_disable(req);
+        rpc.response().status = negotiation_status::type::SASL_AUTH_DISABLE;
         return;
     }
 
     server_negotiation *s_negotiation =
-        dynamic_cast<server_negotiation *>(req->io_session->get_negotiation());
-    s_negotiation->handle_request(req);
-}
-
-void negotiation_service::reply_auth_disable(message_ex *req)
-{
-    auto resp = req->create_response();
-
-    negotiation_response response;
-    response.status = negotiation_status::type::SASL_AUTH_DISABLE;
-    marshall(resp, response);
-    dsn_rpc_reply(resp);
+        dynamic_cast<server_negotiation *>(rpc.dsn_request()->io_session->get_negotiation());
+    s_negotiation->handle_request(rpc);
 }
 
 } // namespace security

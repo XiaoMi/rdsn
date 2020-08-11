@@ -18,6 +18,7 @@
 #pragma once
 
 #include <dsn/cpp/serverlet.h>
+#include "server_negotiation.h"
 
 namespace dsn {
 namespace security {
@@ -28,10 +29,9 @@ class negotiation_service : public serverlet<negotiation_service>,
 public:
     negotiation_service();
     void open_service();
-    void on_negotiation_request(message_ex *proposal);
+    void on_negotiation_request(negotiation_rpc rpc);
 
 private:
-    void reply_auth_disable(message_ex *req);
     friend class serverlet<negotiation_service>;
 };
 

@@ -53,7 +53,7 @@ std::string string_md5(const char *buffer, unsigned int length);
 
 // combine strings with comma delimiter
 template <typename ForwardIterator>
-std::string combine(ForwardIterator begin, ForwardIterator end, const std::string &delimiter)
+std::string merge(ForwardIterator begin, ForwardIterator end, const std::string &delimiter)
 {
     std::stringstream result;
     if (begin != end) {
