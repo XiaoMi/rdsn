@@ -37,6 +37,7 @@ void server_negotiation::start()
 
 void server_negotiation::handle_request(message_ptr req)
 {
+    ddebug("server_negotiation::handle_request");
     negotiation_request request;
     dsn::unmarshall(req, request);
     if (_status == negotiation_status::type::SASL_LIST_MECHANISMS) {

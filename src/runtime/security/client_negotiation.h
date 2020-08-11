@@ -26,10 +26,10 @@ class client_negotiation : public negotiation
 {
 public:
     client_negotiation(rpc_session *session);
-
     void start();
 
 private:
+    void handle_response(message_ex *resp);
     void list_mechanisms();
     void send(const negotiation_request &request);
 };
