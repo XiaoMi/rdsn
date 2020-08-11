@@ -89,7 +89,8 @@ private:
                                             /*out*/ group_bulk_load_response &response);
 
     // called by `update_local_configuration` to do possible states cleaning up
-    void clear_bulk_load_states_if_needed(partition_status::type new_status);
+    void clear_bulk_load_states_if_needed(partition_status::type old_status,
+                                          partition_status::type new_status);
 
     ///
     /// bulk load path on remote file provider:
@@ -141,6 +142,7 @@ private:
 
     bulk_load_status::type _status{bulk_load_status::BLS_INVALID};
     bulk_load_metadata _metadata;
+    std::atomic<bool> _is_downloading{false};
     std::atomic<uint64_t> _cur_downloaded_size{0};
     std::atomic<int32_t> _download_progress{0};
     std::atomic<error_code> _download_status{ERR_OK};

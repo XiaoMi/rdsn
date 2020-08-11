@@ -7,6 +7,10 @@
 #include <dsn/utility/fail_point.h>
 
 #include "meta_test_base.h"
+#include "meta_service_test_app.h"
+#include "meta/meta_bulk_load_service.h"
+#include "meta/meta_data.h"
+#include "meta/meta_server_failure_detector.h"
 
 namespace dsn {
 namespace replication {
@@ -147,7 +151,7 @@ public:
 
         // mock app
         for (auto &info : app_list) {
-            mock_app_on_remote_stroage(info);
+            mock_app_on_remote_storage(info);
         }
         state->initialize_data_structure();
 
@@ -178,7 +182,7 @@ public:
                     auto app_iter = app_bulk_load_info_map.find(app_id);
                     auto partition_iter = partition_bulk_load_info_map.find(app_id);
                     if (app_iter != app_bulk_load_info_map.end()) {
-                        mock_app_bulk_load_info_on_remote_stroage(
+                        mock_app_bulk_load_info_on_remote_storage(
                             app_iter->second,
                             partition_iter == partition_bulk_load_info_map.end()
                                 ? pinfo_map
@@ -189,7 +193,7 @@ public:
         wait_all();
     }
 
-    void mock_app_bulk_load_info_on_remote_stroage(
+    void mock_app_bulk_load_info_on_remote_storage(
         const app_bulk_load_info &ainfo,
         const std::unordered_map<int32_t, partition_bulk_load_info> &partition_bulk_load_info_map)
     {
@@ -206,19 +210,19 @@ public:
                          app_path,
                          dsn::enum_to_string(ainfo.status));
                 for (const auto kv : partition_bulk_load_info_map) {
-                    mock_partition_bulk_load_info_on_remote_stroage(gpid(ainfo.app_id, kv.first),
+                    mock_partition_bulk_load_info_on_remote_storage(gpid(ainfo.app_id, kv.first),
                                                                     kv.second);
                 }
             });
     }
 
-    void mock_partition_bulk_load_info_on_remote_stroage(const gpid &pid,
+    void mock_partition_bulk_load_info_on_remote_storage(const gpid &pid,
                                                          const partition_bulk_load_info &pinfo)
     {
         std::string partition_path = bulk_svc().get_partition_bulk_load_path(pid);
         blob value = json::json_forwarder<partition_bulk_load_info>::encode(pinfo);
         _ms->get_meta_storage()->create_node(
-            std::move(partition_path), std::move(value), [this, partition_path, pid, &pinfo]() {
+            std::move(partition_path), std::move(value), [partition_path, pid, &pinfo]() {
                 ddebug_f("create partition[{}] bulk load dir({}), bulk_load_status={}",
                          pid,
                          partition_path,
@@ -226,7 +230,7 @@ public:
             });
     }
 
-    void mock_app_on_remote_stroage(const app_info &info)
+    void mock_app_on_remote_storage(const app_info &info)
     {
         static const char *lock_state = "lock";
         static const char *unlock_state = "unlock";
@@ -254,7 +258,7 @@ public:
                         _app_root + "/" + boost::lexical_cast<std::string>(info.app_id) + "/" +
                             boost::lexical_cast<std::string>(i),
                         std::move(v),
-                        [info, i, this]() {
+                        [info, i]() {
                             ddebug_f("create app({}), partition({}.{}) dir succeed",
                                      info.app_name,
                                      info.app_id,
@@ -688,6 +692,20 @@ TEST_F(bulk_load_process_test, ingest_rpc_error)
 {
     mock_ingestion_context(ERR_OK, 1, _partition_count);
     test_on_partition_ingestion_reply(_ingestion_resp, gpid(_app_id, _pidx), ERR_TIMEOUT);
+    ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_DOWNLOADING);
+}
+
+TEST_F(bulk_load_process_test, repeated_ingest_rpc)
+{
+    mock_ingestion_context(ERR_OK, 1, _partition_count);
+    test_on_partition_ingestion_reply(_ingestion_resp, gpid(_app_id, _pidx), ERR_NO_NEED_OPERATE);
+    ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_INGESTING);
+}
+
+TEST_F(bulk_load_process_test, ingest_wrong_state)
+{
+    mock_ingestion_context(ERR_OK, 1, _partition_count);
+    test_on_partition_ingestion_reply(_ingestion_resp, gpid(_app_id, _pidx), ERR_INVALID_STATE);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_DOWNLOADING);
 }
 
