@@ -17,24 +17,22 @@
 
 #pragma once
 
-#include "negotiation.h"
+#include <dsn/cpp/serverlet.h>
 
 namespace dsn {
 namespace security {
-extern const std::set<std::string> supported_mechanisms;
 
-class server_negotiation : public negotiation
+class negotiation_service : public serverlet<negotiation_service>,
+                            public utils::singleton<negotiation_service>
 {
 public:
-    server_negotiation(rpc_session *session);
-
-    void start();
-    void handle_request(message_ptr msg);
+    negotiation_service();
+    void open_service();
+    void on_negotiation_request(message_ex *proposal);
 
 private:
-    void on_list_mechanisms(const message_ptr &msg, const negotiation_request &request);
-    void reply(const message_ptr &req, const negotiation_response &response);
-    void fail_negotiation(const message_ptr &req, const std::string &reason);
+    void reply_auth_disable(message_ex *req);
+    friend class serverlet<negotiation_service>;
 };
 
 } // namespace security
