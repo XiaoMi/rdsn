@@ -26,6 +26,7 @@ class client_negotiation : public negotiation
 {
 public:
     client_negotiation(rpc_session *session);
+
     void start();
 
 private:
