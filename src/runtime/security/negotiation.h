@@ -24,8 +24,6 @@ namespace dsn {
 class rpc_session;
 
 namespace security {
-DEFINE_TASK_CODE_RPC(RPC_NEGOTIATION, TASK_PRIORITY_COMMON, dsn::THREAD_POOL_DEFAULT)
-
 class negotiation
 {
 public:
