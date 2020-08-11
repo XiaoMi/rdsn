@@ -54,10 +54,10 @@ void server_negotiation::on_list_mechanisms(negotiation_rpc rpc)
         response.msg = std::move(mech_list);
         return;
     } else {
-        dwarn_f("{}: got message({}) while expect({})",
-                _name,
-                enum_to_string(rpc.request().status),
-                enum_to_string(negotiation_status::type::SASL_LIST_MECHANISMS));
+        ddebug_f("{}: got message({}) while expect({})",
+                 _name,
+                 enum_to_string(rpc.request().status),
+                 enum_to_string(negotiation_status::type::SASL_LIST_MECHANISMS));
         fail_negotiation(rpc, "invalid_client_message_status");
         return;
     }
