@@ -27,12 +27,12 @@ class negotiation_service : public serverlet<negotiation_service>,
                             public utils::singleton<negotiation_service>
 {
 public:
-    negotiation_service();
     void open_service();
-    void on_negotiation_request(negotiation_rpc rpc);
 
 private:
-    friend class serverlet<negotiation_service>;
+    negotiation_service();
+    void on_negotiation_request(negotiation_rpc rpc);
+    friend class utils::singleton<negotiation_service>;
 };
 
 } // namespace security
