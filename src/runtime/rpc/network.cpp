@@ -142,6 +142,7 @@ void rpc_session::clear_send_queue(bool resend_msgs)
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
         swapped_sending_msgs.insert(
             swapped_sending_msgs.end(), _pending_connected.begin(), _pending_connected.end());
+        _pending_connected.clear();
     }
 
     // resend pending messages if need
