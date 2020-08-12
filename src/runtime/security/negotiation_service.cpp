@@ -36,15 +36,15 @@ void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
     dassert(!rpc.dsn_request()->io_session->is_client(),
             "only server session receive negotiation request");
 
-    // return SASL_AUTH_DISABLE if auth is not enable
+    // reply SASL_AUTH_DISABLE if auth is not enable
     if (!security::FLAGS_enable_auth) {
         rpc.response().status = negotiation_status::type::SASL_AUTH_DISABLE;
         return;
     }
 
-    server_negotiation *s_negotiation =
+    server_negotiation *srv_negotiation =
         dynamic_cast<server_negotiation *>(rpc.dsn_request()->io_session->get_negotiation());
-    s_negotiation->handle_request(rpc);
+    srv_negotiation->handle_request(rpc);
 }
 
 } // namespace security
