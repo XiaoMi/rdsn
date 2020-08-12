@@ -25,11 +25,13 @@
  */
 
 #include "runtime/security/negotiation.h"
+#include "runtime/security/negotiation_utils.h"
 #include "message_parser_manager.h"
 #include "runtime/rpc/rpc_engine.h"
 
 #include <dsn/tool-api/network.h>
 #include <dsn/utility/factory_store.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 /*static*/ join_point<void, rpc_session *>
@@ -75,6 +77,13 @@ void rpc_session::set_connected()
                     (_connect_state == SS_CONNECTING && !security::FLAGS_enable_auth),
                 "wrong session state");
         _connect_state = SS_CONNECTED;
+
+        // insert the pending messages which are pended by connecting into send queue
+        for (const auto &msg : _pending_connected) {
+            msg->dl.insert_before(&_messages);
+            ++_message_count;
+        }
+        _pending_connected.clear();
     }
 
     rpc_session_ptr sp = this;
@@ -128,6 +137,11 @@ void rpc_session::clear_send_queue(bool resend_msgs)
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
         _sending_msgs.swap(swapped_sending_msgs);
         _sending_buffers.clear();
+    }
+    {
+        utils::auto_lock<utils::ex_lock_nr> l(_lock);
+        swapped_sending_msgs.insert(
+            swapped_sending_msgs.end(), _pending_connected.begin(), _pending_connected.end());
     }
 
     // resend pending messages if need
@@ -272,18 +286,27 @@ void rpc_session::send_message(message_ex *msg)
     uint64_t sig;
     {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        msg->dl.insert_before(&_messages);
-        ++_message_count;
 
-        if (SS_CONNECTED == _connect_state && !_is_sending_next) {
-            _is_sending_next = true;
-            sig = _message_sent + 1;
-            unlink_message_for_send();
+        // Attention: here we only allow two cases to send message:
+        //  case 1: session's state is SS_CONNECTED
+        //  case 2: session is sending negotiation message
+        if (SS_CONNECTED == _connect_state || security::is_negotiation_message(msg->rpc_code())) {
+            msg->dl.insert_before(&_messages);
+            ++_message_count;
+
+            if (!_is_sending_next) {
+                _is_sending_next = true;
+                sig = _message_sent + 1;
+                unlink_message_for_send();
+            } else { // is under send msg, just return
+                return;
+            }
         } else {
+            dassert(_connect_state != SS_CONNECTED, "invalid session state");
+            _pending_connected.push_back(msg);
             return;
         }
     }
-
     this->send(sig);
 }
 
@@ -391,12 +414,35 @@ bool rpc_session::on_disconnected(bool is_write)
     return ret;
 }
 
+bool rpc_session::prepare_auth(message_ex *msg)
+{
+    if (security::FLAGS_enable_auth) {
+        if (!_negotiation->negotiation_succeed()) {
+            dwarn_f("reject message({}) from {}, session {} client",
+                    msg->rpc_code().to_string(),
+                    _remote_addr.to_string(),
+                    is_client() ? "is" : "isn't");
+            dsn::message_ptr msg_ref(msg);
+            if (msg->header->context.u.is_request)
+                _net.engine()->reply(msg->create_response(), ERR_UNAUTHENTICATED);
+            return false;
+        }
+        // TODO(zlw): add user_name for acl
+    }
+
+    return true;
+}
+
 bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
 {
     if (msg->header->from_address.is_invalid())
         msg->header->from_address = _remote_addr;
     msg->to_address = _net.address();
     msg->io_session = this;
+
+    if (!security::is_negotiation_message(msg->rpc_code()) && !prepare_auth(msg)) {
+        return false;
+    }
 
     if (msg->header->context.u.is_request) {
         // ATTENTION: need to check if self connection occurred.

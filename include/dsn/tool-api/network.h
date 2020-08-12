@@ -271,6 +271,10 @@ protected:
     ::dsn::utils::ex_lock_nr _lock; // [
     volatile session_state _connect_state;
 
+    // when a session isn't connected, all messages are queued in _pending_connected.
+    // after connected, all of them are moved to "_messages"
+    std::vector<message_ex *> _pending_connected;
+
     // messages are sent in batch, firstly all messages are linked together
     // in a doubly-linked list "_messages".
     // if no messages are on-the-flying, a batch of messages are fetch from the "_messages"
@@ -300,6 +304,7 @@ protected:
 
     void clear_send_queue(bool resend_msgs);
     bool on_disconnected(bool is_write);
+    bool prepare_auth(message_ex *msg);
 
 protected:
     // constant info
