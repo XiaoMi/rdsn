@@ -414,20 +414,18 @@ bool rpc_session::on_disconnected(bool is_write)
     return ret;
 }
 
-bool rpc_session::prepare_auth(message_ex *msg)
+bool rpc_session::is_auth_success(message_ex *msg)
 {
-    if (security::FLAGS_enable_auth) {
-        if (!_negotiation->negotiation_succeed()) {
-            dwarn_f("reject message({}) from {}, session {} client",
-                    msg->rpc_code().to_string(),
-                    _remote_addr.to_string(),
-                    is_client() ? "is" : "isn't");
-            dsn::message_ptr msg_ref(msg);
-            if (msg->header->context.u.is_request)
-                _net.engine()->reply(msg->create_response(), ERR_UNAUTHENTICATED);
-            return false;
+    if (security::FLAGS_enable_auth && !_negotiation->negotiation_succeed()) {
+        dwarn_f("reject message({}) from {}, session {} client",
+                msg->rpc_code().to_string(),
+                _remote_addr.to_string(),
+                is_client() ? "is" : "isn't");
+        // reply response with ERR_UNAUTHENTICATED if msg is request
+        if (msg->header->context.u.is_request) {
+            _net.engine()->reply(msg->create_response(), ERR_UNAUTHENTICATED);
         }
-        // TODO(zlw): add user_name for acl
+        return false;
     }
 
     return true;
@@ -440,7 +438,9 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
     msg->to_address = _net.address();
     msg->io_session = this;
 
-    if (!security::is_negotiation_message(msg->rpc_code()) && !prepare_auth(msg)) {
+    // return false if msg is negotiation message and auth is not success
+    if (!security::is_negotiation_message(msg->rpc_code()) && !is_auth_success(msg)) {
+        delete msg;
         return false;
     }
 

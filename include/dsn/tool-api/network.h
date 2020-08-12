@@ -304,7 +304,7 @@ protected:
 
     void clear_send_queue(bool resend_msgs);
     bool on_disconnected(bool is_write);
-    bool prepare_auth(message_ex *msg);
+    bool is_auth_success(message_ex *msg);
 
 protected:
     // constant info
