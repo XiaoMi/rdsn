@@ -303,7 +303,6 @@ void rpc_session::send_message(message_ex *msg)
                 return;
             }
         } else {
-            dassert(_connect_state != SS_CONNECTED, "invalid session state");
             _pending_connected.push_back(msg);
             return;
         }
