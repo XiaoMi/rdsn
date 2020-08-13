@@ -24,6 +24,7 @@ namespace dsn {
 class rpc_session;
 
 namespace security {
+
 class negotiation
 {
 public:
