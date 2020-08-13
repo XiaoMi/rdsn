@@ -22,7 +22,6 @@
 #include <dsn/utility/TokenBucket.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/flags.h>
-#include <dsn/tool-api/command_manager.h>
 
 namespace dsn {
 namespace dist {
