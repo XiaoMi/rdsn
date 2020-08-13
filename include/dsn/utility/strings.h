@@ -51,22 +51,5 @@ char *trim_string(char *s);
 // calculate the md5 checksum of buffer
 std::string string_md5(const char *buffer, unsigned int length);
 
-// merge strings with specified delimiter
-template <typename ForwardIterator>
-std::string merge(ForwardIterator begin, ForwardIterator end, const std::string &delimiter)
-{
-    std::stringstream result;
-    if (begin != end) {
-        result << std::string(begin->data(), begin->size());
-        ++begin;
-    }
-    while (begin != end) {
-        result << delimiter;
-        result << std::string(begin->data(), begin->size());
-        ++begin;
-    }
-    return result.str();
-}
-
 } // namespace utils
 } // namespace dsn

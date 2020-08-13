@@ -20,6 +20,7 @@
 
 #include <dsn/utility/strings.h>
 #include <dsn/dist/fmt_logging.h>
+#include <boost/algorithm/string/join.hpp>
 
 namespace dsn {
 namespace security {
@@ -46,21 +47,19 @@ void server_negotiation::handle_request(negotiation_rpc rpc)
 void server_negotiation::on_list_mechanisms(negotiation_rpc rpc)
 {
     if (rpc.request().status == negotiation_status::type::SASL_LIST_MECHANISMS) {
-        std::string mech_list =
-            utils::merge(supported_mechanisms.begin(), supported_mechanisms.end(), ",");
+        std::string mech_list = boost::join(supported_mechanisms.begin(), ",");
         ddebug_f("{}: reply server mechs({})", _name, mech_list);
         negotiation_response &response = rpc.response();
         _status = response.status = negotiation_status::type::SASL_LIST_MECHANISMS_RESP;
         response.msg = std::move(mech_list);
-        return;
     } else {
         ddebug_f("{}: got message({}) while expect({})",
                  _name,
                  enum_to_string(rpc.request().status),
                  enum_to_string(negotiation_status::type::SASL_LIST_MECHANISMS));
         fail_negotiation(rpc, "invalid_client_message_status");
-        return;
     }
+    return;
 }
 
 void server_negotiation::fail_negotiation(negotiation_rpc rpc, const std::string &reason)
