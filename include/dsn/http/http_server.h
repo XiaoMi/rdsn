@@ -95,6 +95,7 @@ private:
     std::map<std::string, std::pair<http_callback, std::string>> _cb_map;
 };
 
+
 class http_server : public serverlet<http_server>
 {
 public:
