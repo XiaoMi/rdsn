@@ -422,10 +422,6 @@ bool rpc_session::is_auth_success(message_ex *msg)
                 msg->rpc_code().to_string(),
                 _remote_addr.to_string(),
                 is_client() ? "is" : "isn't");
-        // reply response with ERR_UNAUTHENTICATED if msg is request
-        if (msg->header->context.u.is_request) {
-            _net.engine()->reply(msg->create_response(), ERR_UNAUTHENTICATED);
-        }
         return false;
     }
 
@@ -441,6 +437,10 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
 
     // return false if msg is negotiation message and auth is not success
     if (!security::is_negotiation_message(msg->rpc_code()) && !is_auth_success(msg)) {
+        // reply response with ERR_UNAUTHENTICATED if msg is request
+        if (msg->header->context.u.is_request) {
+            _net.engine()->reply(msg->create_response(), ERR_UNAUTHENTICATED);
+        }
         delete msg;
         return false;
     }
