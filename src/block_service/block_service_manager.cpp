@@ -252,7 +252,7 @@ std::string block_service_manager::set_read_batch_size(const std::vector<std::st
 
     uint32_t value = 0;
     if (!dsn::buf2uint32(args[0], value) || value < 0) {
-        return "invalid arguments of " + args[0];
+        return "invalid argument of " + args[0];
     }
 
     FLAGS_fds_read_batch_size = value;
