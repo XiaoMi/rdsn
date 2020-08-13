@@ -33,9 +33,6 @@ public:
 
     galaxy::fds::GalaxyFDSClient *get_client() { return _client.get(); }
     const std::string &get_bucket_name() { return _bucket_name; }
-    void register_ctrl_commands();
-    void unregister_ctrl_commands();
-    std::string set_rate_limit(const std::vector<std::string> &args);
     virtual error_code initialize(const std::vector<std::string> &args) override;
     virtual dsn::task_ptr list_dir(const ls_request &req,
                                    dsn::task_code code,
@@ -76,7 +73,6 @@ private:
     std::string _bucket_name;
     std::unique_ptr<folly::TokenBucket> _read_token_bucket;
     std::unique_ptr<folly::TokenBucket> _write_token_bucket;
-    dsn_handle_t _set_fds_rate_limit = nullptr;
 
     friend class fds_file_object;
 };
@@ -134,6 +130,7 @@ private:
     std::string _md5sum;
     uint64_t _size;
     bool _has_meta_synced;
+    dsn_handle_t _set_fds_rate_limit = nullptr;
 
     static const size_t PIECE_SIZE = 16384; // 16k
 };

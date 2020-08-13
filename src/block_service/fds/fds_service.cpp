@@ -138,50 +138,9 @@ fds_service::fds_service()
     _write_token_bucket.reset(new folly::TokenBucket(FLAGS_fds_write_limit_rate << 20, burst_size));
     burst_size = 2 * FLAGS_fds_read_limit_rate << 20;
     _read_token_bucket.reset(new folly::TokenBucket(FLAGS_fds_read_limit_rate << 20, burst_size));
-
-    register_ctrl_commands();
 }
 
-fds_service::~fds_service() { unregister_ctrl_commands(); }
-
-void fds_service::register_ctrl_commands()
-{
-    static std::once_flag flag;
-    std::call_once(flag, [&]() {
-        _set_fds_rate_limit = command_manager::instance().register_command(
-            {"fds.set_rate_limit"},
-            "fds.set_rate_limit",
-            "set rate limit of fds. w: write limit rate. r: read limit rate. b: batch size",
-            [this](const std::vector<std::string> &args) { return set_rate_limit(args); });
-    });
-}
-
-void fds_service::unregister_ctrl_commands() { UNREGISTER_VALID_HANDLER(_set_fds_rate_limit); }
-
-std::string fds_service::set_rate_limit(const std::vector<std::string> &args)
-{
-    if (args.size() % 2 != 0) {
-        return "invalid argument count";
-    }
-
-    for (int i = 0; i < args.size(); i += 2) {
-        uint32_t value = 0;
-        if (!dsn::buf2uint32(args[i + 1], value) || value < 0) {
-            return "invalid arguments of " + args[i + 1];
-        }
-
-        if ("w" == args[i]) {
-            FLAGS_fds_write_limit_rate = value;
-        } else if ("r" == args[i]) {
-            FLAGS_fds_read_limit_rate = value;
-        } else if ("b" == args[i]) {
-            FLAGS_fds_read_batch_size = value;
-        } else {
-            return "invalid argument of " + args[i];
-        }
-    }
-    return "ok";
-}
+fds_service::~fds_service() {}
 
 /**
  * @brief fds_service::initialize

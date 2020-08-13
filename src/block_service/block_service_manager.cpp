@@ -9,10 +9,13 @@
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>
+#include <dsn/tool-api/command_manager.h>
 
 namespace dsn {
 namespace dist {
 namespace block_service {
+
+extern uint32_t FLAGS_fds_read_batch_size;
 
 block_service_registry::block_service_registry()
 {
@@ -31,7 +34,10 @@ block_service_manager::block_service_manager()
       // to make sure that the filesystem providers are registered
       _registry_holder(block_service_registry::instance())
 {
+    register_ctrl_commands();
 }
+
+block_service_manager::~block_service_manager() { unregister_ctrl_commands(); }
 
 block_filesystem *block_service_manager::get_block_filesystem(const std::string &provider)
 {
@@ -94,8 +100,10 @@ error_code block_service_manager::download_file(const std::string &remote_dir,
     error_code download_err = ERR_OK;
     task_tracker tracker;
 
-    auto download_file_callback_func = [&download_err, &download_file_size](
-        const download_response &resp, block_file_ptr bf, const std::string &local_file_name) {
+    auto download_file_callback_func = [&download_err,
+                                        &download_file_size](const download_response &resp,
+                                                             block_file_ptr bf,
+                                                             const std::string &local_file_name) {
         if (resp.err != ERR_OK) {
             // during bulk load process, ERR_OBJECT_NOT_FOUND will be considered as a recoverable
             // error, however, if file damaged on remote file provider, bulk load should stop,
@@ -211,6 +219,49 @@ error_code block_service_manager::download_file(const std::string &remote_dir,
                     &tracker);
     tracker.wait_outstanding_tasks();
     return download_err;
+}
+
+void block_service_manager::register_ctrl_commands()
+{
+    static std::once_flag flag;
+    std::call_once(flag, [&]() {
+        _set_fds_read_batch_size = command_manager::instance().register_command(
+            {"fds.set_read_batch_size"},
+            "set read batch size(MB) of fds",
+            "set read batch size(MB) of fds",
+            [this](const std::vector<std::string> &args) { return set_read_batch_size(args); });
+        _get_fds_read_batch_size = command_manager::instance().register_command(
+            {"fds.get_read_batch_size"},
+            "get read batch size(MB) of fds",
+            "get read batch size(MB) of fds",
+            [this](const std::vector<std::string> &args) { return get_read_batch_size(args); });
+    });
+}
+
+void block_service_manager::unregister_ctrl_commands()
+{
+    UNREGISTER_VALID_HANDLER(_set_fds_read_batch_size);
+    UNREGISTER_VALID_HANDLER(_get_fds_read_batch_size);
+}
+
+std::string block_service_manager::set_read_batch_size(const std::vector<std::string> &args)
+{
+    if (args.size() < 1) {
+        return "invalid argument count";
+    }
+
+    uint32_t value = 0;
+    if (!dsn::buf2uint32(args[0], value) || value < 0) {
+        return "invalid arguments of " + args[0];
+    }
+
+    FLAGS_fds_read_batch_size = value;
+    return "ok";
+}
+
+std::string block_service_manager::get_read_batch_size(const std::vector<std::string> &args)
+{
+    return fmt::format("read_batch_size = {} MB", FLAGS_fds_read_batch_size);
 }
 
 } // namespace block_service
