@@ -32,7 +32,7 @@ public:
 private:
     void handle_response(error_code err, const negotiation_response &&response);
     void list_mechanisms();
-    void send(const negotiation_request &request);
+    void send(std::unique_ptr<negotiation_request> request);
 };
 
 } // namespace security

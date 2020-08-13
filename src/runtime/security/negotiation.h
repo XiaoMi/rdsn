@@ -18,12 +18,15 @@
 #pragma once
 
 #include "security_types.h"
+
 #include <memory>
+#include <dsn/cpp/rpc_holder.h>
 
 namespace dsn {
 class rpc_session;
 
 namespace security {
+typedef rpc_holder<negotiation_request, negotiation_response> negotiation_rpc;
 
 class negotiation
 {

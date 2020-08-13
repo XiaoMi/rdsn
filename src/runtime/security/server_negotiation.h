@@ -19,12 +19,9 @@
 
 #include "negotiation.h"
 
-#include <dsn/cpp/rpc_holder.h>
-
 namespace dsn {
 namespace security {
 extern const std::set<std::string> supported_mechanisms;
-typedef rpc_holder<negotiation_request, negotiation_response> negotiation_rpc;
 
 class server_negotiation : public negotiation
 {
