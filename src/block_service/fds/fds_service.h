@@ -8,13 +8,13 @@ template <typename Clock>
 class BasicTokenBucket;
 
 using TokenBucket = BasicTokenBucket<std::chrono::steady_clock>;
-}
+} // namespace folly
 
 namespace galaxy {
 namespace fds {
 class GalaxyFDSClient;
 }
-}
+} // namespace galaxy
 
 namespace dsn {
 namespace dist {
@@ -29,10 +29,10 @@ public:
 
 public:
     fds_service();
+    virtual ~fds_service() override;
+
     galaxy::fds::GalaxyFDSClient *get_client() { return _client.get(); }
     const std::string &get_bucket_name() { return _bucket_name; }
-
-    virtual ~fds_service() override;
     virtual error_code initialize(const std::vector<std::string> &args) override;
     virtual dsn::task_ptr list_dir(const ls_request &req,
                                    dsn::task_code code,
@@ -130,10 +130,11 @@ private:
     std::string _md5sum;
     uint64_t _size;
     bool _has_meta_synced;
+    dsn_handle_t _set_fds_rate_limit = nullptr;
 
     static const size_t PIECE_SIZE = 16384; // 16k
 };
-}
-}
-}
+} // namespace block_service
+} // namespace dist
+} // namespace dsn
 #endif // FDS_SERVICE_H

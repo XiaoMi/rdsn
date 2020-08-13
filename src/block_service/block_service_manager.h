@@ -26,6 +26,7 @@ class block_service_manager
 {
 public:
     block_service_manager();
+    ~block_service_manager();
     block_filesystem *get_block_filesystem(const std::string &provider);
 
     // download files from remote file system
@@ -40,10 +41,18 @@ public:
                              /*out*/ uint64_t &download_file_size);
 
 private:
+    void register_ctrl_commands();
+    void unregister_ctrl_commands();
+    std::string set_read_batch_size(const std::vector<std::string> &args);
+    std::string get_read_batch_size(const std::vector<std::string> &args);
+
+private:
     block_service_registry &_registry_holder;
 
     mutable zrwlock_nr _fs_lock;
     std::map<std::string, std::unique_ptr<block_filesystem>> _fs_map;
+    dsn_handle_t _set_fds_read_batch_size = nullptr;
+    dsn_handle_t _get_fds_read_batch_size = nullptr;
 
     friend class block_service_manager_mock;
 };
