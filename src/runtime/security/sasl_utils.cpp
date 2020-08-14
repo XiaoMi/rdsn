@@ -47,7 +47,7 @@ int sasl_simple_logger(void *context, int level, const char *msg)
     return SASL_OK;
 }
 
-int get_path(void *context, char **path)
+int sasl_get_path(void *context, char **path)
 {
     if (nullptr == path) {
         return SASL_BADPARAM;
@@ -56,13 +56,13 @@ int get_path(void *context, char **path)
     return SASL_OK;
 }
 
-int get_username(void *context, int id, const char **result, unsigned *len)
+int sasl_get_username(void *context, int id, const char **result, unsigned *len)
 {
     if (nullptr == result) {
         return SASL_BADPARAM;
     }
     // TODO(zlw)
-    //static std::string username = get_username();
+    // static std::string username = get_username();
     std::string username;
     switch (id) {
     case SASL_CB_USER:
@@ -78,14 +78,15 @@ int get_username(void *context, int id, const char **result, unsigned *len)
     }
 }
 
-sasl_callback_t client_callbacks[] = {{SASL_CB_USER, (sasl_callback_ft)&get_username, nullptr},
-                                      {SASL_CB_GETPATH, (sasl_callback_ft)&get_path, nullptr},
-                                      {SASL_CB_AUTHNAME, (sasl_callback_ft)&get_username, nullptr},
-                                      {SASL_CB_LOG, (sasl_callback_ft)&sasl_simple_logger, nullptr},
-                                      {SASL_CB_LIST_END, nullptr, nullptr}};
+sasl_callback_t client_callbacks[] = {
+    {SASL_CB_USER, (sasl_callback_ft)&sasl_get_username, nullptr},
+    {SASL_CB_GETPATH, (sasl_callback_ft)&sasl_get_path, nullptr},
+    {SASL_CB_AUTHNAME, (sasl_callback_ft)&sasl_get_username, nullptr},
+    {SASL_CB_LOG, (sasl_callback_ft)&sasl_simple_logger, nullptr},
+    {SASL_CB_LIST_END, nullptr, nullptr}};
 
 sasl_callback_t server_callbacks[] = {{SASL_CB_LOG, (sasl_callback_ft)&sasl_simple_logger, nullptr},
-                                      {SASL_CB_GETPATH, (sasl_callback_ft)&get_path, nullptr},
+                                      {SASL_CB_GETPATH, (sasl_callback_ft)&sasl_get_path, nullptr},
                                       {SASL_CB_LIST_END, nullptr, nullptr}};
 
 // provide mutex function for sasl
