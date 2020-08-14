@@ -15,9 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include <dsn/utils/latency_tracer.h>
 #include <gtest/gtest.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utils/latency_tracer.h>
 
 namespace dsn {
 namespace utils {
