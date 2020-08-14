@@ -42,7 +42,7 @@ error_s init_kerberos(bool is_server)
     set_krb5_env(is_server);
 
     // kinit -k -t <keytab_file> <principal>
-    return kinit_context::instance().kinit();
+    return run_kinit();
 }
 
 bool init(bool is_server)

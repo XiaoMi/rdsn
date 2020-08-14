@@ -70,11 +70,11 @@ error_s check_configuration()
     return error_s::ok();
 }
 
-class kinit_context_impl
+class kinit_context
 {
 public:
-    kinit_context_impl() : _opt(nullptr) {}
-    virtual ~kinit_context_impl();
+    kinit_context() : _opt(nullptr) {}
+    virtual ~kinit_context();
     // implementation of 'kinit -k -t <keytab_file> <principal>'
     error_s kinit();
 
@@ -109,9 +109,9 @@ private:
     std::shared_ptr<boost::asio::deadline_timer> _timer;
 };
 
-kinit_context_impl::~kinit_context_impl() { krb5_get_init_creds_opt_free(_krb5_context, _opt); }
+kinit_context::~kinit_context() { krb5_get_init_creds_opt_free(_krb5_context, _opt); }
 
-error_s kinit_context_impl::kinit()
+error_s kinit_context::kinit()
 {
     error_s err = check_configuration();
     if (!err.is_ok()) {
@@ -151,7 +151,7 @@ error_s kinit_context_impl::kinit()
     return error_s::ok();
 }
 
-void kinit_context_impl::init_krb5_ctx()
+void kinit_context::init_krb5_ctx()
 {
     static std::once_flag once;
     std::call_once(once, [&]() {
@@ -162,7 +162,7 @@ void kinit_context_impl::init_krb5_ctx()
     });
 }
 
-error_s kinit_context_impl::parse_username_from_principal()
+error_s kinit_context::parse_username_from_principal()
 {
     // Attention: here we just assume the length of username must be little than 1024
     const uint16_t BUF_LEN = 1024;
@@ -202,7 +202,7 @@ error_s kinit_context_impl::parse_username_from_principal()
     return error_s::ok();
 }
 
-error_s kinit_context_impl::get_credentials()
+error_s kinit_context::get_credentials()
 {
     krb5_creds creds;
     error_s err = error_s::ok();
@@ -241,7 +241,7 @@ error_s kinit_context_impl::get_credentials()
     return err;
 }
 
-void kinit_context_impl::schedule_renew_credentials()
+void kinit_context::schedule_renew_credentials()
 {
     // reserve 300 seconds for renew
     int64_t renew_gap = _cred_expire_timestamp - utils::get_current_physical_time_s() - 300;
@@ -270,8 +270,7 @@ void kinit_context_impl::schedule_renew_credentials()
 }
 
 // switch krb5_error_code to error_s
-error_s kinit_context_impl::krb5_call_to_errors(krb5_error_code krb5_code,
-                                                const std::string &prefix_msg)
+error_s kinit_context::krb5_call_to_errors(krb5_error_code krb5_code, const std::string &prefix_msg)
 {
     std::string msg = prefix_msg;
 
@@ -282,7 +281,7 @@ error_s kinit_context_impl::krb5_call_to_errors(krb5_error_code krb5_code,
     return error_s::make(ERR_KRB5_INTERNAL, msg);
 }
 
-error_s kinit_context_impl::wrap_krb5_err(krb5_error_code krb5_err, const std::string &msg)
+error_s kinit_context::wrap_krb5_err(krb5_error_code krb5_err, const std::string &msg)
 {
     error_s result_err;
     if (krb5_err != 0) {
@@ -294,13 +293,11 @@ error_s kinit_context_impl::wrap_krb5_err(krb5_error_code krb5_err, const std::s
     return result_err;
 }
 
-kinit_context::kinit_context() { impl = make_unique<kinit_context_impl>(); }
-
-// the destruction of std::unique_ptr<kinit_context_impl> need the class information of
-// kinit_context_impl, so we must add kinit_context::~kinit_context in this file
-kinit_context::~kinit_context() = default;
-
-error_s kinit_context::kinit() { return impl->kinit(); }
+error_s run_kinit()
+{
+    static kinit_context context;
+    return context.kinit();
+}
 
 } // namespace security
 } // namespace dsn
