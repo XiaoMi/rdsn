@@ -62,10 +62,10 @@ namespace replication {
 
 bool replica_stub::s_not_exit_on_log_failure = false;
 
-DSN_DEFINE_int64("replication",
-                 abnormal_write_trace_latency_threshold,
-                 1000000000,
-                 "latency trace will be logged when exceed the write latency threshold");
+DSN_DEFINE_uint64("replication",
+                  abnormal_write_trace_latency_threshold,
+                  1000000000,
+                  "latency trace will be logged when exceed the write latency threshold");
 
 replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
                            bool is_long_subscriber /* = true*/)
@@ -431,7 +431,6 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     _mem_release_max_reserved_mem_percentage = _options.mem_release_max_reserved_mem_percentage;
     _max_concurrent_bulk_load_downloading_count =
         _options.max_concurrent_bulk_load_downloading_count;
-    _abnormal_write_trace_latency_threshold = FLAGS_abnormal_write_trace_latency_threshold;
 
     // clear dirs if need
     if (clear) {

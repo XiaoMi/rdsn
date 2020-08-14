@@ -58,6 +58,8 @@ typedef rpc_holder<backup_request, backup_response> backup_rpc;
 typedef rpc_holder<notify_catch_up_request, notify_cacth_up_response> notify_catch_up_rpc;
 typedef rpc_holder<group_bulk_load_request, group_bulk_load_response> group_bulk_load_rpc;
 
+extern uint64_t FLAGS_abnormal_write_trace_latency_threshold;
+
 class mutation_log;
 namespace test {
 class test_checker;
@@ -372,9 +374,6 @@ private:
 
     // replica count exectuting bulk load downloading concurrently
     std::atomic_int _bulk_load_downloading_count;
-    // if the threshold > 0 and the request latency excced it, the latency trace record will be
-    // logged
-    int64_t _abnormal_write_trace_latency_threshold;
 
     // performance counters
     perf_counter_wrapper _counter_replicas_count;

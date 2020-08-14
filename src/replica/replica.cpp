@@ -315,7 +315,7 @@ void replica::execute_mutation(mutation_ptr &mu)
 
     // update table level latency perf-counters for primary partition
     mu->tracer->add_point("complete(write2rocksdb)");
-    mu->tracer->dump_trace_points(_stub->_abnormal_write_trace_latency_threshold);
+    mu->tracer->dump_trace_points(FLAGS_abnormal_write_trace_latency_threshold);
     if (partition_status::PS_PRIMARY == status()) {
         uint64_t now_ns = dsn_now_ns();
         for (auto update : mu->data.updates) {
