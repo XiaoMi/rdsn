@@ -21,7 +21,7 @@
 #include <dsn/utils/latency_tracer.h>
 
 namespace dsn {
-namespace utility {
+namespace utils {
 
 DSN_DEFINE_bool("replication", enable_latency_tracer, false, "whether enable the latency tracer");
 
@@ -88,5 +88,5 @@ void latency_tracer::dump_trace_points(int threshold, /*out*/ std::string &trace
     _sub_tracer->dump_trace_points(0, traces);
 }
 
-} // namespace utility
+} // namespace utils
 } // namespace dsn
