@@ -32,7 +32,7 @@
 #include <vector>
 #include <queue>
 
-#include  <nodejs/http_parser.h>
+#include <nodejs/http_parser.h>
 
 namespace dsn {
 
