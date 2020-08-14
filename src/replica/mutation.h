@@ -35,11 +35,10 @@
 
 #pragma once
 
-#include "common/replication_common.h"
-#include <dsn/utils/latency_tracer.h>
 #include <list>
 #include <atomic>
 #include <dsn/utility/link.h>
+#include <dsn/utility/latency_tracer.h>
 
 #ifndef __linux__
 #pragma warning(disable : 4201)
