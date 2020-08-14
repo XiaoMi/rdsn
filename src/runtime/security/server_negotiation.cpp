@@ -18,9 +18,9 @@
 #include "server_negotiation.h"
 #include "negotiation_utils.h"
 
+#include <boost/algorithm/string/join.hpp>
 #include <dsn/utility/strings.h>
 #include <dsn/dist/fmt_logging.h>
-#include <boost/algorithm/string/join.hpp>
 
 namespace dsn {
 namespace security {
