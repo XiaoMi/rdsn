@@ -459,16 +459,7 @@ void rpc_session::start_negotiation()
         auth_negotiation();
     } else {
         // set negotiation success if auth is disabled
-        complete_negotiation(true);
-    }
-}
-
-void rpc_session::complete_negotiation(bool succ)
-{
-    if (succ) {
         on_success();
-    } else {
-        on_failure(true);
     }
 }
 

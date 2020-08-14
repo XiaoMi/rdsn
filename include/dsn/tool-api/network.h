@@ -234,16 +234,6 @@ public:
 
     /// for negotiation
     void start_negotiation();
-    /**
-     * complete the security negotiation:
-     *   \param succ  whether the negotiation is success or not.
-     *
-     * If negotiation is success, this func will set the connect state to SS_CONNECTED, and start to
-     * send message.
-     * If negotiation is fail, this func will clear the send queue and close the
-     * connection
-     **/
-    void complete_negotiation(bool succ);
     security::negotiation *get_negotiation() const;
 
 public:
