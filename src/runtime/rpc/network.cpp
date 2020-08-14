@@ -398,6 +398,14 @@ void rpc_session::on_failure(bool is_write)
     }
 }
 
+void rpc_session::on_success()
+{
+    if (is_client()) {
+        set_connected();
+        on_send_completed();
+    }
+}
+
 bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
 {
     if (msg->header->from_address.is_invalid())
@@ -458,10 +466,7 @@ void rpc_session::start_negotiation()
 void rpc_session::complete_negotiation(bool succ)
 {
     if (succ) {
-        if (is_client()) {
-            set_connected();
-            on_send_completed();
-        }
+        on_success();
     } else {
         on_failure(true);
     }

@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "server_negotiation.h"
+
 #include <dsn/cpp/serverlet.h>
 
 namespace dsn {
@@ -26,13 +28,12 @@ class negotiation_service : public serverlet<negotiation_service>,
                             public utils::singleton<negotiation_service>
 {
 public:
-    negotiation_service();
     void open_service();
-    void on_negotiation_request(message_ex *proposal);
 
 private:
-    void reply_auth_disable(message_ex *req);
-    friend class serverlet<negotiation_service>;
+    negotiation_service();
+    void on_negotiation_request(negotiation_rpc rpc);
+    friend class utils::singleton<negotiation_service>;
 };
 
 } // namespace security

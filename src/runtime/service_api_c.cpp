@@ -44,12 +44,6 @@
 #include "utils/coredump.h"
 #include "runtime/security/negotiation_service.h"
 
-namespace dsn {
-namespace security {
-extern bool FLAGS_enable_auth;
-} // namespace security
-} // namespace dsn
-
 //
 // global state
 //
@@ -552,9 +546,7 @@ service_app *service_app::new_service_app(const std::string &type,
 
 service_app::service_app(const dsn::service_app_info *info) : _info(info), _started(false)
 {
-    if (security::FLAGS_enable_auth) {
-        security::negotiation_service::instance().open_service();
-    }
+    security::negotiation_service::instance().open_service();
 }
 
 const service_app_info &service_app::info() const { return *_info; }

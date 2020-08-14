@@ -20,6 +20,7 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/async_calls.h>
+#include <dsn/utility/smart_pointers.h>
 
 namespace dsn {
 namespace security {
@@ -35,27 +36,24 @@ void client_negotiation::start()
     list_mechanisms();
 }
 
-void client_negotiation::handle_response(message_ex *resp) {
-    ddebug("server_negotiation::handle_response");
+void client_negotiation::handle_response(error_code err, const negotiation_response &&response)
+{
+    // TBD(zlw)
 }
 
 void client_negotiation::list_mechanisms()
 {
-    negotiation_request request;
-    _status = request.status = negotiation_status::type::SASL_LIST_MECHANISMS;
-    send(request);
+    auto request = dsn::make_unique<negotiation_request>();
+    _status = request->status = negotiation_status::type::SASL_LIST_MECHANISMS;
+    send(std::move(request));
 }
 
-void client_negotiation::send(const negotiation_request &request)
+void client_negotiation::send(std::unique_ptr<negotiation_request> request)
 {
-    message_ptr msg = message_ex::create_request(RPC_NEGOTIATION);
-    dsn::marshall(msg.get(), request);
-
-    rpc_response_task_ptr t = rpc::create_rpc_response_task(
-        msg, nullptr, [this](error_code err, dsn::message_ex *request, dsn::message_ex *response) {
-            handle_response(response);
-        });
-    dsn_rpc_call(_session->remote_address(), t);
+    negotiation_rpc rpc(std::move(request), RPC_NEGOTIATION);
+    rpc.call(_session->remote_address(), nullptr, [this, rpc](error_code err) mutable {
+        handle_response(err, std::move(rpc.response()));
+    });
 }
 
 } // namespace security

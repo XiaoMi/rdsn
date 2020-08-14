@@ -26,12 +26,13 @@ class client_negotiation : public negotiation
 {
 public:
     client_negotiation(rpc_session *session);
+
     void start();
 
 private:
-    void handle_response(message_ex *resp);
+    void handle_response(error_code err, const negotiation_response &&response);
     void list_mechanisms();
-    void send(const negotiation_request &request);
+    void send(std::unique_ptr<negotiation_request> request);
 };
 
 } // namespace security

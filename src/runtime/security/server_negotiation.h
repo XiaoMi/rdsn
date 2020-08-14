@@ -29,12 +29,11 @@ public:
     server_negotiation(rpc_session *session);
 
     void start();
-    void handle_request(message_ptr msg);
+    void handle_request(negotiation_rpc rpc);
 
 private:
-    void on_list_mechanisms(const message_ptr &msg, const negotiation_request &request);
-    void reply(const message_ptr &req, const negotiation_response &response);
-    void fail_negotiation(const message_ptr &req, const std::string &reason);
+    void on_list_mechanisms(negotiation_rpc rpc);
+    void fail_negotiation(negotiation_rpc rpc, const std::string &reason);
 };
 
 } // namespace security
