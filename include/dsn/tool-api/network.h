@@ -234,6 +234,10 @@ public:
 
     /// for negotiation
     void start_negotiation();
+    /**
+     * complete the security negotiation:
+     *   \param succ  whether the negotiation is success or not.
+     **/
     void complete_negotiation(bool succ);
     security::negotiation *get_negotiation() const;
 
