@@ -36,7 +36,7 @@
 #pragma once
 
 #include "common/replication_common.h"
-#include <dsn/utility/latency_tracer.h>
+#include <dsn/utils/latency_tracer.h>
 #include <list>
 #include <atomic>
 #include <dsn/utility/link.h>
@@ -143,7 +143,7 @@ public:
     // used by pending mutation queue only
     mutation *next;
 
-    std::shared_ptr<dsn::utility::latency_tracer> tracer;
+    std::shared_ptr<dsn::utils::latency_tracer> tracer;
 
     void set_is_sync_to_child(bool sync_to_child) { _is_sync_to_child = sync_to_child; }
     bool is_sync_to_child() { return _is_sync_to_child; }

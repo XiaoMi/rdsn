@@ -18,7 +18,7 @@
 #include <dsn/service_api_c.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/flags.h>
-#include <dsn/utility/latency_tracer.h>
+#include <dsn/utils/latency_tracer.h>
 
 namespace dsn {
 namespace utility {
