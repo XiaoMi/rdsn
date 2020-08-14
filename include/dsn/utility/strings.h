@@ -5,7 +5,6 @@
 #include <list>
 #include <map>
 #include <iostream>
-#include <sstream>
 
 namespace dsn {
 namespace utils {
