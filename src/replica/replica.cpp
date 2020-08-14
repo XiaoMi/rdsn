@@ -227,6 +227,7 @@ void replica::execute_mutation(mutation_ptr &mu)
 
     error_code err = ERR_OK;
     decree d = mu->data.header.decree;
+
     switch (status()) {
     case partition_status::PS_INACTIVE:
         if (_app->last_committed_decree() + 1 == d) {
@@ -306,16 +307,17 @@ void replica::execute_mutation(mutation_ptr &mu)
     if (status() == partition_status::PS_PRIMARY) {
         mutation_ptr next = _primary_states.write_queue.check_possible_work(
             static_cast<int>(_prepare_list->max_decree() - d));
+
         if (next) {
             init_prepare(next, false);
         }
     }
 
     // update table level latency perf-counters for primary partition
-    uint64_t now_ns = dsn_now_ns();
     mu->tracer->add_point("complete(write2rocksdb)");
     mu->tracer->dump_trace_points(_stub->_abnormal_write_trace_latency_threshold);
     if (partition_status::PS_PRIMARY == status()) {
+        uint64_t now_ns = dsn_now_ns();
         for (auto update : mu->data.updates) {
             // If the corresponding perf counter exist, count the duration of this operation.
             // code in update will always be legal

@@ -46,7 +46,6 @@
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/tool-api/rpc_address.h>
 #include <dsn/tool-api/global_config.h>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 class rpc_session;

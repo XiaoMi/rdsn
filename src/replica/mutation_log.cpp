@@ -51,6 +51,7 @@ namespace replication {
                  : nullptr;
 
     _slock.lock();
+
     mu->tracer->add_point("mutation_log_shared::append");
     // init pending buffer
     if (nullptr == _pending_write) {
