@@ -269,7 +269,7 @@ void kinit_context_impl::schedule_renew_credentials()
     });
 }
 
-// switch the code of krb5_xxx function to error_s
+// switch krb5_error_code to error_s
 error_s kinit_context_impl::krb5_call_to_errors(krb5_error_code krb5_code,
                                                 const std::string &prefix_msg)
 {
