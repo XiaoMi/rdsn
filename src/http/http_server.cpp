@@ -12,6 +12,7 @@
 #include "pprof_http_service.h"
 #include "perf_counter_http_service.h"
 #include "uri_decoder.h"
+#include "http_call_registry.h"
 
 namespace dsn {
 
@@ -34,6 +35,18 @@ namespace dsn {
     }
 }
 
+void http_service::register_handler(std::string path, http_callback cb, std::string help)
+{
+    auto call = std::make_shared<http_call>();
+    call->path = this->path();
+    if (!path.empty()) {
+        call->path += "/" + std::move(path);
+    }
+    call->callback = std::move(cb);
+    call->help = std::move(help);
+    http_call_registry::instance().add(std::move(call));
+}
+
 http_server::http_server(bool start /*default=true*/) : serverlet<http_server>("http_server")
 {
     if (!start) {
@@ -45,7 +58,7 @@ http_server::http_server(bool start /*default=true*/) : serverlet<http_server>("
     tools::register_message_header_parser<http_message_parser>(NET_HDR_HTTP, {"GET ", "POST"});
 
     // add builtin services
-    add_service(new root_http_service(this));
+    add_service(new root_http_service());
 
 #ifdef DSN_ENABLE_GPERF
     add_service(new pprof_http_service());
@@ -63,12 +76,12 @@ void http_server::serve(message_ex *msg)
         resp.body = fmt::format("failed to parse request: {}", res.get_error());
     } else {
         const http_request &req = res.get_value();
-        auto it = _service_map.find(req.service_method.first);
-        if (it != _service_map.end()) {
-            it->second->call(req, resp);
+        std::shared_ptr<http_call> call = http_call_registry::instance().find(req.path);
+        if (call != nullptr) {
+            call->callback(req, resp);
         } else {
             resp.status_code = http_status_code::not_found;
-            resp.body = fmt::format("service not found for \"{}\"", req.service_method.first);
+            resp.body = fmt::format("service not found for \"{}\"", req.path);
         }
     }
 
@@ -131,26 +144,7 @@ void http_server::add_service(http_service *service)
     if (!unresolved_path.empty() && *unresolved_path.crbegin() == '\0') {
         unresolved_path.pop_back();
     }
-    std::vector<std::string> args;
-    boost::split(args, unresolved_path, boost::is_any_of("/"));
-    std::vector<std::string> real_args;
-    for (std::string &arg : args) {
-        if (!arg.empty()) {
-            real_args.emplace_back(std::move(arg));
-        }
-    }
-    if (real_args.size() == 0) {
-        ret.service_method = {"", ""};
-    } else if (real_args.size() == 1) {
-        ret.service_method = {std::move(real_args[0]), ""};
-    } else {
-        std::string method = std::move(real_args[1]);
-        for (int i = 2; i < real_args.size(); i++) {
-            method += '/';
-            method += real_args[i];
-        }
-        ret.service_method = {std::move(real_args[0]), std::move(method)};
-    }
+    ret.path = std::move(unresolved_path);
 
     // find if there are method args (<ip>:<port>/<service>/<method>?<arg>=<val>&<arg>=<val>)
     if (!unresolved_query.empty()) {
