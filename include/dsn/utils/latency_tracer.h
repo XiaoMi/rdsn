@@ -17,6 +17,7 @@
 
 #pragma once
 #include <dsn/utility/synchronize.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace utils {
@@ -55,7 +56,7 @@ namespace utils {
  *
  * "request.tracer" will record the time duration among all tracepoints.
 **/
-extern bool FLAGS_enable_latency_tracer;
+DSN_DECLARE_bool(enable_latency_tracer);
 
 class latency_tracer
 {
