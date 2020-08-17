@@ -58,9 +58,6 @@ typedef rpc_holder<query_app_info_request, query_app_info_response> query_app_in
 typedef rpc_holder<backup_request, backup_response> backup_rpc;
 typedef rpc_holder<notify_catch_up_request, notify_cacth_up_response> notify_catch_up_rpc;
 typedef rpc_holder<group_bulk_load_request, group_bulk_load_response> group_bulk_load_rpc;
-
-DSN_DECLARE_uint64(abnormal_write_trace_latency_threshold);
-
 class mutation_log;
 namespace test {
 class test_checker;

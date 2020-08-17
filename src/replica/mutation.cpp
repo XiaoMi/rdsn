@@ -37,9 +37,15 @@
 #include "mutation_log.h"
 #include "replica.h"
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace replication {
+
+DSN_DEFINE_uint64("replication",
+                  abnormal_write_trace_latency_threshold,
+                  1000000000,
+                  "latency trace will be logged when exceed the write latency threshold");
 
 std::atomic<uint64_t> mutation::s_tid(0);
 
@@ -53,7 +59,10 @@ mutation::mutation()
     _appro_data_bytes = sizeof(mutation_header);
     _create_ts_ns = dsn_now_ns();
     _tid = ++s_tid;
-    tracer = std::make_shared<dsn::utils::latency_tracer>(fmt::format("{}[{}]", "mutation", _tid));
+    tracer =
+        std::make_shared<dsn::utils::latency_tracer>(fmt::format("{}[{}]", "mutation", _tid),
+                                                     false,
+                                                     FLAGS_abnormal_write_trace_latency_threshold);
 }
 
 mutation_ptr mutation::copy_no_reply(const mutation_ptr &old_mu)

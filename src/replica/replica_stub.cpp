@@ -55,17 +55,11 @@
 #endif
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/remote_command.h>
-#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace replication {
 
 bool replica_stub::s_not_exit_on_log_failure = false;
-
-DSN_DEFINE_uint64("replication",
-                  abnormal_write_trace_latency_threshold,
-                  1000000000,
-                  "latency trace will be logged when exceed the write latency threshold");
 
 replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
                            bool is_long_subscriber /* = true*/)

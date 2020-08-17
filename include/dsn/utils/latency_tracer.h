@@ -61,7 +61,9 @@ DSN_DECLARE_bool(enable_latency_tracer);
 class latency_tracer
 {
 public:
-    latency_tracer(const std::string &name);
+    latency_tracer(const std::string &name, const bool is_sub, const uint64_t threshold = 0);
+
+    ~latency_tracer();
 
     // add a trace point to the tracer
     // -name: user specified name of the trace point
@@ -76,17 +78,17 @@ public:
     // stageA[rpc_message]--stageB[rpc_message]--
     void set_sub_tracer(const std::shared_ptr<latency_tracer> &tracer);
 
-    //  threshold < 0: don't dump any trace points
-    //  threshold = 0: dump all trace points
-    //  threshold > 0: dump the trace point when time_used > threshold
-    void dump_trace_points(int threshold);
-
 private:
-    void dump_trace_points(int threshold, /*out*/ std::string &traces);
+    void dump_trace_points(/*out*/ std::string &traces);
 
     utils::rw_lock_nr _lock;
 
     const std::string _name;
+    const bool _is_sub;
+    //  threshold < 0: don't dump any trace points
+    //  threshold = 0: dump all trace points
+    //  threshold > 0: dump the trace point when time_used > threshold
+    const uint64_t _threshold;
     const uint64_t _start_time;
     std::map<int64_t, std::string> _points;
     std::shared_ptr<latency_tracer> _sub_tracer;

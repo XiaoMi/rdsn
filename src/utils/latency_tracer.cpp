@@ -25,7 +25,20 @@ namespace utils {
 
 DSN_DEFINE_bool("replication", enable_latency_tracer, false, "whether enable the latency tracer");
 
-latency_tracer::latency_tracer(const std::string &name) : _name(name), _start_time(dsn_now_ns()) {}
+latency_tracer::latency_tracer(const std::string &name, const bool is_sub, const uint64_t threshold)
+    : _name(name), _is_sub(is_sub), _threshold(threshold), _start_time(dsn_now_ns())
+{
+}
+
+latency_tracer::~latency_tracer()
+{
+    if (_is_sub) {
+        return;
+    }
+
+    std::string traces;
+    dump_trace_points(traces);
+}
 
 void latency_tracer::add_point(const std::string &stage_name)
 {
@@ -43,15 +56,9 @@ void latency_tracer::set_sub_tracer(const std::shared_ptr<latency_tracer> &trace
     _sub_tracer = tracer;
 }
 
-void latency_tracer::dump_trace_points(int threshold)
+void latency_tracer::dump_trace_points(std::string &traces)
 {
-    std::string traces;
-    dump_trace_points(threshold, traces);
-}
-
-void latency_tracer::dump_trace_points(int threshold, /*out*/ std::string &traces)
-{
-    if (threshold < 0 || !FLAGS_enable_latency_tracer) {
+    if (_threshold < 0 || !FLAGS_enable_latency_tracer) {
         return;
     }
 
@@ -63,7 +70,7 @@ void latency_tracer::dump_trace_points(int threshold, /*out*/ std::string &trace
 
     uint64_t time_used = _points.rbegin()->first - _start_time;
 
-    if (time_used < threshold) {
+    if (time_used < _threshold) {
         return;
     }
 
@@ -85,7 +92,7 @@ void latency_tracer::dump_trace_points(int threshold, /*out*/ std::string &trace
         return;
     }
 
-    _sub_tracer->dump_trace_points(0, traces);
+    _sub_tracer->dump_trace_points(traces);
 }
 
 } // namespace utils
