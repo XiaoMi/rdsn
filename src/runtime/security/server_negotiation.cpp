@@ -48,7 +48,6 @@ void server_negotiation::on_list_mechanisms(negotiation_rpc rpc)
 {
     if (rpc.request().status == negotiation_status::type::SASL_LIST_MECHANISMS) {
         std::string mech_list = boost::join(supported_mechanisms, ",");
-        ddebug_f("{}: reply server mechs({})", _name, mech_list);
         negotiation_response &response = rpc.response();
         _status = response.status = negotiation_status::type::SASL_LIST_MECHANISMS_RESP;
         response.msg = std::move(mech_list);
