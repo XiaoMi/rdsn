@@ -40,14 +40,14 @@ inline const char *enum_to_string(negotiation_status::type s)
         return "negotiation_initiate";
     case negotiation_status::type::SASL_CHALLENGE:
         return "negotiation_challenge";
-    case negotiation_status::type::SASL_CHANLLENGE_RESP:
-        return "negotiation_chanllenge_response";
+    case negotiation_status::type::SASL_CHALLENGE_RESP:
+        return "negotiation_challenge_response";
     case negotiation_status::type::SASL_AUTH_DISABLE:
         return "negotiation_auth_disable";
     case negotiation_status::type::INVALID:
         return "negotiation_invalid";
     default:
-        return "negotiation-unkown";
+        return "negotiation-unknown";
     }
 }
 
