@@ -43,12 +43,7 @@ void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
     }
 
     server_negotiation *srv_negotiation =
-        dynamic_cast<server_negotiation *>(rpc.dsn_request()->io_session->get_negotiation());
-    if (nullptr == srv_negotiation) {
-        rpc.response().status = negotiation_status::type::SASL_AUTH_FAIL;
-        return;
-    }
-
+        static_cast<server_negotiation *>(rpc.dsn_request()->io_session->get_negotiation());
     srv_negotiation->handle_request(rpc);
 }
 
