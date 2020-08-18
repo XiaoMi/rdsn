@@ -127,6 +127,9 @@ void mutation_log_shared::write_pending_mutations(bool release_lock_required)
 void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
                                                    std::shared_ptr<log_appender> &pending)
 {
+    for (auto &mutation : pending->mutations()) {
+        mutation->tracer->add_point("mutation_log_shared::commit_pending_mutations");
+    }
     lf->commit_log_blocks( // forces a new line for params
         *pending,
         LPC_WRITE_REPLICATION_LOG_SHARED,

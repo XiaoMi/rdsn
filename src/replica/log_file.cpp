@@ -266,10 +266,6 @@ aio_task_ptr log_file::commit_log_blocks(log_appender &pending,
         return nullptr;
     }
 
-    for (auto &mutation : pending.mutations()) {
-        mutation->tracer->add_point("log_file::commit_log_blocks");
-    }
-
     auto size = (long long)pending.size();
     size_t vec_size = pending.blob_count();
     std::vector<dsn_file_buffer_t> buffer_vector(vec_size);
