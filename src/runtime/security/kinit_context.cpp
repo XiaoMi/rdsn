@@ -28,6 +28,7 @@
 #include <dsn/utility/flags.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/smart_pointers.h>
+#include <dsn/utility/rand.h>
 
 namespace dsn {
 namespace security {
@@ -88,6 +89,7 @@ private:
     // get or renew credentials from KDC and store it to _ccache
     error_s get_credentials();
     void schedule_renew_credentials();
+    int32_t get_next_renew_interval();
 
     error_s wrap_krb5_err(krb5_error_code krb5_err, const std::string &msg);
     error_s krb5_call_to_errors(krb5_error_code krb5_code, const std::string &prefix_msg);
@@ -243,10 +245,7 @@ error_s kinit_context::get_credentials()
 
 void kinit_context::schedule_renew_credentials()
 {
-    // reserve 300 seconds for renew
-    int64_t renew_gap = _cred_expire_timestamp - utils::get_current_physical_time_s() - 300;
-    if (renew_gap < 300)
-        renew_gap = 300;
+    int64_t renew_gap = get_next_renew_interval();
     ddebug_f("schedule to renew credentials in {} seconds later", renew_gap);
 
     // why don't we use timers in rDSN framework?
@@ -267,6 +266,26 @@ void kinit_context::schedule_renew_credentials()
             dassert_f(false, "unhandled error({})", err.message());
         }
     });
+}
+
+int32_t kinit_context::get_next_renew_interval()
+{
+    int32_t time_remaining = _cred_expire_timestamp - utils::get_current_physical_time_s();
+
+    // If the time remaining between now and ticket expiry is:
+    // * > 10 minutes:   We attempt to reacquire the ticket between 5 seconds and 5 minutes before
+    // the
+    //                   ticket expires.
+    // * 5 - 10 minutes: We attempt to reacquire the ticket betwen 5 seconds and 1 minute before the
+    //                   ticket expires.
+    // * < 5 minutes:    Attempt to reacquire the ticket every 'time_remaining'.
+    // The jitter is added to make sure that every server doesn't flood the KDC at the same time.
+    if (time_remaining > 600) {
+        return time_remaining - rand::next_u32(5, 300);
+    } else if (time_remaining > 300) {
+        return time_remaining - rand::next_u32(5, 60);
+    }
+    return time_remaining;
 }
 
 // switch krb5_error_code to error_s
