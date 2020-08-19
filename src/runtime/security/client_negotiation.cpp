@@ -68,6 +68,7 @@ void client_negotiation::handle_response(error_code err, const negotiation_respo
         // TBD(zlw)
         break;
     case negotiation_status::type::SASL_INITIATE:
+    case negotiation_status::type::SASL_CHALLENGE_RESP:
         // TBD(zlw)
         break;
     default:
