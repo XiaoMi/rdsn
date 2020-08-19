@@ -18,11 +18,12 @@
 #include "kinit_context.h"
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace security {
-extern char *FLAGS_krb5_config;
-extern char *FLAGS_krb5_keytab;
+DSN_DECLARE_string(krb5_config);
+DSN_DECLARE_string(krb5_keytab);
 
 /***
  * set kerberos envs(for more details:

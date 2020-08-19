@@ -47,12 +47,17 @@
 #include <gperftools/malloc_extension.h>
 #endif
 
+#include "service_engine.h"
+#include "runtime/rpc/rpc_engine.h"
+#include "runtime/task/task_engine.h"
+#include "utils/coredump.h"
+#include "runtime/security/negotiation_service.h"
+
 namespace dsn {
 namespace security {
-extern bool FLAGS_enable_auth;
+DSN_DECLARE_bool(enable_auth);
 } // namespace security
 } // namespace dsn
-
 //
 // global state
 //
@@ -555,7 +560,10 @@ service_app *service_app::new_service_app(const std::string &type,
         type.c_str(), dsn::PROVIDER_TYPE_MAIN, info);
 }
 
-service_app::service_app(const dsn::service_app_info *info) : _info(info), _started(false) {}
+service_app::service_app(const dsn::service_app_info *info) : _info(info), _started(false)
+{
+    security::negotiation_service::instance().open_service();
+}
 
 const service_app_info &service_app::info() const { return *_info; }
 

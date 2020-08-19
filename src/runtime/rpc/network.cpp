@@ -30,6 +30,7 @@
 
 #include <dsn/tool-api/network.h>
 #include <dsn/utility/factory_store.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 /*static*/ join_point<void, rpc_session *>
@@ -38,7 +39,7 @@ namespace dsn {
     rpc_session::on_rpc_session_disconnected("rpc.session.disconnected");
 
 namespace security {
-extern bool FLAGS_enable_auth;
+DSN_DECLARE_bool(enable_auth);
 } // namespace security
 
 rpc_session::~rpc_session()
@@ -391,6 +392,21 @@ bool rpc_session::on_disconnected(bool is_write)
     return ret;
 }
 
+void rpc_session::on_failure(bool is_write)
+{
+    if (on_disconnected(is_write)) {
+        close();
+    }
+}
+
+void rpc_session::on_success()
+{
+    if (is_client()) {
+        set_connected();
+        on_send_completed();
+    }
+}
+
 bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
 {
     if (msg->header->from_address.is_invalid())
@@ -442,6 +458,9 @@ void rpc_session::start_negotiation()
         }
 
         auth_negotiation();
+    } else {
+        // set negotiation success if auth is disabled
+        on_success();
     }
 }
 
@@ -450,6 +469,8 @@ void rpc_session::auth_negotiation()
     _negotiation = security::create_negotiation(is_client(), this);
     _negotiation->start();
 }
+
+security::negotiation *rpc_session::get_negotiation() const { return _negotiation.get(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 network::network(rpc_engine *srv, network *inner_provider)
