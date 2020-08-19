@@ -32,7 +32,7 @@
 
 namespace dsn {
 namespace security {
-extern bool FLAGS_enable_auth;
+DSN_DECLARE_bool(enable_auth);
 
 #define KRB5_RETURN_NOT_OK(err, msg)                                                               \
     do {                                                                                           \
