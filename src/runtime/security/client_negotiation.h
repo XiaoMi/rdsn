@@ -21,7 +21,6 @@
 
 namespace dsn {
 namespace security {
-extern const std::set<std::string> supported_mechanisms;
 
 class client_negotiation : public negotiation
 {

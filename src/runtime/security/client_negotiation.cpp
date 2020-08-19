@@ -26,6 +26,7 @@
 namespace dsn {
 namespace security {
 extern bool FLAGS_mandatory_auth;
+extern const std::set<std::string> supported_mechanisms;
 
 client_negotiation::client_negotiation(rpc_session *session) : negotiation(session)
 {
