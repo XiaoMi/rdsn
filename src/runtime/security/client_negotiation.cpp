@@ -68,10 +68,10 @@ void client_negotiation::handle_response(error_code err, const negotiation_respo
 void client_negotiation::recv_mechanisms(const negotiation_response &resp)
 {
     if (resp.status != negotiation_status::type::SASL_LIST_MECHANISMS_RESP) {
-        dwarn_f("{}: get message({}) while expect({})",
-                _name,
-                enum_to_string(resp.status),
-                enum_to_string(negotiation_status::type::SASL_LIST_MECHANISMS_RESP));
+        ddebug_f("{}: get message({}) while expect({})",
+                 _name,
+                 enum_to_string(resp.status),
+                 enum_to_string(negotiation_status::type::SASL_LIST_MECHANISMS_RESP));
         fail_negotiation();
         return;
     }
@@ -83,21 +83,30 @@ void client_negotiation::recv_mechanisms(const negotiation_response &resp)
 
     for (const std::string &server_support_mechanism : server_support_mechanisms) {
         if (supported_mechanisms.find(server_support_mechanism) != supported_mechanisms.end()) {
-            ddebug_f("{}: find {} mechanism in server, use it", _name, server_support_mechanism);
             match_mechanism = server_support_mechanism;
             break;
         }
     }
 
     if (match_mechanism.empty()) {
-        dwarn_f("server only support mechanisms of ({}), can't find expected ({})",
-                resp_string,
-                boost::join(supported_mechanisms, ","));
+        ddebug_f("server only support mechanisms of ({}), can't find expected ({})",
+                 resp_string,
+                 boost::join(supported_mechanisms, ","));
         fail_negotiation();
         return;
     }
 
-    // TODO(zlw): select mechanism
+    select_mechanism(match_mechanism);
+}
+
+void client_negotiation::select_mechanism(const std::string &mechanism)
+{
+    _selected_mechanism = mechanism;
+
+    auto req = dsn::make_unique<negotiation_request>();
+    _status = req->status = negotiation_status::type::SASL_SELECT_MECHANISMS;
+    req->msg = mechanism;
+    send(std::move(req));
 }
 
 void client_negotiation::send(std::unique_ptr<negotiation_request> request)

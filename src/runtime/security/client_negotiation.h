@@ -34,6 +34,7 @@ private:
     void handle_response(error_code err, const negotiation_response &&response);
     void list_mechanisms();
     void recv_mechanisms(const negotiation_response &resp);
+    void select_mechanism(const std::string &mechanism);
     void send(std::unique_ptr<negotiation_request> request);
     void fail_negotiation();
     void succ_negotiation();
