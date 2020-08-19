@@ -20,7 +20,7 @@ namespace cpp dsn.security
 //                          | <--      SASL_CHALLENGE       --- |
 //                          | ---    SASL_CHALLENGE_RESP    --> |
 //                          |                                   | (authentication will succeed
-//                          |                                   |  if all chanllenges passed)
+//                          |                                   |  if all challenges passed)
 //                          | <--        SASL_SUCC          --- |
 // (client won't response   |                                   |
 // if servers says ok)      |                                   |
