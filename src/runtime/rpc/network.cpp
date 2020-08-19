@@ -307,6 +307,7 @@ void rpc_session::send_message(message_ex *msg)
             return;
         }
     }
+
     this->send(sig);
 }
 
