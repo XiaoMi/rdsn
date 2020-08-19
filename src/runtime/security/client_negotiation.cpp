@@ -22,10 +22,11 @@
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/utility/smart_pointers.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace security {
-extern bool FLAGS_mandatory_auth;
+DSN_DECLARE_bool(mandatory_auth);
 extern const std::set<std::string> supported_mechanisms;
 
 client_negotiation::client_negotiation(rpc_session *session) : negotiation(session)
