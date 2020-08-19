@@ -38,6 +38,13 @@ void client_negotiation::start()
     list_mechanisms();
 }
 
+void client_negotiation::list_mechanisms()
+{
+    auto request = dsn::make_unique<negotiation_request>();
+    _status = request->status = negotiation_status::type::SASL_LIST_MECHANISMS;
+    send(std::move(request));
+}
+
 void client_negotiation::handle_response(error_code err, const negotiation_response &&response)
 {
     if (err != ERR_OK) {
@@ -45,11 +52,9 @@ void client_negotiation::handle_response(error_code err, const negotiation_respo
         return;
     }
 
-    // if server doesn't enable auth and the auth is not mandantory, make the negotiation success
+    // make the negotiation succeed if server doesn't enable auth and the auth is not mandantory
     if (negotiation_status::type::SASL_AUTH_DISABLE == response.status && !FLAGS_mandatory_auth) {
-        ddebug_f("{}: treat negotiation succeed as server doesn't enable it, user_name in later "
-                 "messages aren't trustable",
-                 _name);
+        ddebug_f("{}: treat negotiation succeed as server doesn't enable it", _name);
         succ_negotiation();
         return;
     }
@@ -58,13 +63,6 @@ void client_negotiation::handle_response(error_code err, const negotiation_respo
         recv_mechanisms(response);
         return;
     }
-}
-
-void client_negotiation::list_mechanisms()
-{
-    auto request = dsn::make_unique<negotiation_request>();
-    _status = request->status = negotiation_status::type::SASL_LIST_MECHANISMS;
-    send(std::move(request));
 }
 
 void client_negotiation::recv_mechanisms(const negotiation_response &resp)
