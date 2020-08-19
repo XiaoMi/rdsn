@@ -135,7 +135,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation, bool pop_all_c
             "invalid partition_status, status = %s",
             enum_to_string(status()));
 
-    mu->tracer->add_point("replica::init_prepare");
+    mu->tracer->add_point("ready to prepare");
 
     error_code err = ERR_OK;
     uint8_t count = 0;
@@ -284,7 +284,7 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
                                    bool pop_all_committed_mutations,
                                    int64_t learn_signature)
 {
-    mu->tracer->add_point(fmt::format("replica::send_prepare[{}]", addr.to_string()));
+    mu->tracer->add_point(fmt::format("send prepare to node[{}]", addr.to_string()));
     dsn::message_ex *msg = dsn::message_ex::create_request(
         RPC_PREPARE, timeout_milliseconds, get_gpid().thread_hash());
     replica_configuration rconfig;
@@ -324,7 +324,7 @@ void replica::do_possible_commit_on_primary(mutation_ptr &mu)
             "invalid partition_status, status = %s",
             enum_to_string(status()));
 
-    mu->tracer->add_point("replica::do_possible_commit_on_primary");
+    mu->tracer->add_point("try commit on primary");
     if (mu->is_ready_for_commit()) {
         _prepare_list->commit(mu->data.header.decree, COMMIT_ALL_READY);
     }
@@ -343,7 +343,7 @@ void replica::on_prepare(dsn::message_ex *request)
         mu = mutation::read_from(reader, request);
     }
 
-    mu->tracer->add_point("replica::on_prepare");
+    mu->tracer->add_point("secondary receive prepare");
 
     decree decree = mu->data.header.decree;
 
@@ -497,7 +497,7 @@ void replica::on_append_log_completed(mutation_ptr &mu, error_code err, size_t s
           size,
           err.to_string());
 
-    mu->tracer->add_point("replica::on_append_log_completed");
+    mu->tracer->add_point("shared log append completed");
 
     if (err == ERR_OK) {
         mu->set_logged();
@@ -556,7 +556,7 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
     partition_status::type target_status = pr.second;
 
     mu->tracer->add_point(
-        fmt::format("replica::on_prepare_reply[{}]", request->to_address.to_string()));
+        fmt::format("receive prepare reply from[{}]", request->to_address.to_string()));
 
     // skip callback for old mutations
     if (partition_status::PS_PRIMARY != status() || mu->data.header.ballot < get_ballot() ||
@@ -593,9 +593,8 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
               resp.err.to_string());
     } else {
         int64_t now = dsn_now_ns();
-        mu->tracer->add_point(fmt::format("replica::on_prepare_reply_error::{}[{}]",
-                                          enum_to_string(target_status),
-                                          request->to_address.to_string()));
+        mu->tracer->add_point(
+            fmt::format("prepare reply error[{}]", request->to_address.to_string()));
         derror("%s: mutation %s on_prepare_reply from %s, appro_data_bytes = %d, "
                "target_status = %s, err = %s",
                name(),
@@ -717,7 +716,7 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
 
 void replica::ack_prepare_message(error_code err, mutation_ptr &mu)
 {
-    mu->tracer->add_point(fmt::format("replica::ack_prepare[{}]", name()));
+    mu->tracer->add_point(fmt::format("ack prepare to[{}]", name()));
     prepare_ack resp;
     resp.pid = get_gpid();
     resp.err = err;

@@ -101,7 +101,7 @@ public:
     virtual void exec() override
     {
         if (nullptr != _cb) {
-            tracer->add_point("aio_task::callback_exec");
+            tracer->add_point("aio task execute callback");
             _cb(_error, _transferred_size);
         }
     }

@@ -147,7 +147,7 @@ void mutation::copy_from(mutation_ptr &old)
 void mutation::add_client_request(task_code code, dsn::message_ex *request)
 {
     if (request != nullptr) {
-        tracer->add_point(fmt::format("mutation::add_client_request({})", request->header->id));
+        tracer->add_point(fmt::format("add request({}) to mutation", request->header->id));
     }
     data.updates.push_back(mutation_update());
     mutation_update &update = data.updates.back();
