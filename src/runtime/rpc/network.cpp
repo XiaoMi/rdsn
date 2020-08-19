@@ -35,388 +35,373 @@
 
 namespace dsn {
 /*static*/ join_point<void, rpc_session *>
-    rpc_session::on_rpc_session_connected("rpc.session.connected");
+            rpc_session::on_rpc_session_connected("rpc.session.connected");
 /*static*/ join_point<void, rpc_session *>
-    rpc_session::on_rpc_session_disconnected("rpc.session.disconnected");
+            rpc_session::on_rpc_session_disconnected("rpc.session.disconnected");
 
-namespace security {
-extern bool FLAGS_enable_auth;
-} // namespace security
+    namespace security {
+        extern bool FLAGS_enable_auth;
+    } // namespace security
 
-rpc_session::~rpc_session()
-{
-    clear_send_queue(false);
+    rpc_session::~rpc_session() {
+        clear_send_queue(false);
 
-    {
-        utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        dassert(0 == _sending_msgs.size(), "sending queue is not cleared yet");
-        dassert(0 == _message_count, "sending queue is not cleared yet");
-    }
-}
-
-bool rpc_session::set_connecting()
-{
-    dassert(is_client(), "must be client session");
-
-    utils::auto_lock<utils::ex_lock_nr> l(_lock);
-    if (_connect_state == SS_DISCONNECTED) {
-        _connect_state = SS_CONNECTING;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-void rpc_session::set_connected()
-{
-    dassert(is_client(), "must be client session");
-
-    {
-        utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        dassert((_connect_state == SS_NEGOTIATING && security::FLAGS_enable_auth) ||
-                    (_connect_state == SS_CONNECTING && !security::FLAGS_enable_auth),
-                "wrong session state");
-        _connect_state = SS_CONNECTED;
-
-        // insert the pending messages which are pended by connecting into send queue
-        for (const auto &msg : _pending_connected) {
-            msg->dl.insert_before(&_messages);
-            ++_message_count;
+        {
+            utils::auto_lock<utils::ex_lock_nr> l(_lock);
+            dassert(0 == _sending_msgs.size(), "sending queue is not cleared yet");
+            dassert(0 == _message_count, "sending queue is not cleared yet");
         }
-        _pending_connected.clear();
     }
 
-    rpc_session_ptr sp = this;
-    _net.on_client_session_connected(sp);
+    bool rpc_session::set_connecting() {
+        dassert(is_client(), "must be client session");
 
-    on_rpc_session_connected.execute(this);
-}
-
-void rpc_session::set_negotiation()
-{
-    dassert(is_client(), "must be client session");
-
-    {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        dassert(_connect_state == SS_CONNECTING, "session must be connecting");
-        _connect_state = SS_NEGOTIATING;
-    }
-}
-
-bool rpc_session::set_disconnected()
-{
-    {
-        utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        if (_connect_state != SS_DISCONNECTED) {
-            _connect_state = SS_DISCONNECTED;
+        if (_connect_state == SS_DISCONNECTED) {
+            _connect_state = SS_CONNECTING;
+            return true;
         } else {
             return false;
         }
     }
 
-    on_rpc_session_disconnected.execute(this);
-    return true;
-}
+    void rpc_session::set_connected() {
+        dassert(is_client(), "must be client session");
 
-void rpc_session::clear_send_queue(bool resend_msgs)
-{
-    //
-    // - in concurrent case, resending _sending_msgs and _messages
-    //   may not maintain the original sending order
-    // - can optimize by batch sending instead of sending one by one
-    //
-    // however, our threading model cannot ensure in-order processing
-    // of incoming messages neither, so this guarantee is not necesssary
-    // and the upper applications should not always rely on this (but can
-    // rely on this with a high probability).
-    //
-
-    std::vector<message_ex *> swapped_sending_msgs;
-    {
-        // protect _sending_msgs and _sending_buffers in lock
-        utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        _sending_msgs.swap(swapped_sending_msgs);
-        _sending_buffers.clear();
-    }
-    {
-        utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        swapped_sending_msgs.insert(
-            swapped_sending_msgs.end(), _pending_connected.begin(), _pending_connected.end());
-        _pending_connected.clear();
-    }
-
-    // resend pending messages if need
-    for (auto &msg : swapped_sending_msgs) {
-        if (resend_msgs) {
-            _net.send_message(msg);
-        }
-
-        // if not resend, the message's callback will not be invoked until timeout,
-        // it's too slow - let's try to mimic the failure by recving an empty reply
-        else if (msg->header->context.u.is_request && !msg->header->context.u.is_forwarded) {
-            _net.on_recv_reply(msg->header->id, nullptr, 0);
-        }
-
-        // added in rpc_engine::reply (for server) or rpc_session::send_message (for client)
-        msg->release_ref();
-    }
-
-    while (true) {
-        dlink *msg;
         {
             utils::auto_lock<utils::ex_lock_nr> l(_lock);
-            msg = _messages.next();
-            if (msg == &_messages)
+            dassert((_connect_state == SS_NEGOTIATING && security::FLAGS_enable_auth) ||
+                    (_connect_state == SS_CONNECTING && !security::FLAGS_enable_auth),
+                    "wrong session state");
+            _connect_state = SS_CONNECTED;
+
+            // insert the pending messages which are pended by connecting into send queue
+            for (const auto &msg : _pending_connected) {
+                msg->dl.insert_before(&_messages);
+                ++_message_count;
+            }
+            _pending_connected.clear();
+        }
+
+        rpc_session_ptr sp = this;
+        _net.on_client_session_connected(sp);
+
+        on_rpc_session_connected.execute(this);
+    }
+
+    void rpc_session::set_negotiation() {
+        dassert(is_client(), "must be client session");
+
+        {
+            utils::auto_lock<utils::ex_lock_nr> l(_lock);
+            dassert(_connect_state == SS_CONNECTING, "session must be connecting");
+            _connect_state = SS_NEGOTIATING;
+        }
+    }
+
+    bool rpc_session::set_disconnected() {
+        {
+            utils::auto_lock<utils::ex_lock_nr> l(_lock);
+            if (_connect_state != SS_DISCONNECTED) {
+                _connect_state = SS_DISCONNECTED;
+            } else {
+                return false;
+            }
+        }
+
+        on_rpc_session_disconnected.execute(this);
+        return true;
+    }
+
+    void rpc_session::clear_send_queue(bool resend_msgs) {
+        //
+        // - in concurrent case, resending _sending_msgs and _messages
+        //   may not maintain the original sending order
+        // - can optimize by batch sending instead of sending one by one
+        //
+        // however, our threading model cannot ensure in-order processing
+        // of incoming messages neither, so this guarantee is not necesssary
+        // and the upper applications should not always rely on this (but can
+        // rely on this with a high probability).
+        //
+
+        std::vector<message_ex *> swapped_sending_msgs;
+        {
+            // protect _sending_msgs and _sending_buffers in lock
+            utils::auto_lock<utils::ex_lock_nr> l(_lock);
+            _sending_msgs.swap(swapped_sending_msgs);
+            _sending_buffers.clear();
+        }
+        {
+            utils::auto_lock<utils::ex_lock_nr> l(_lock);
+            swapped_sending_msgs.insert(
+                    swapped_sending_msgs.end(), _pending_connected.begin(), _pending_connected.end());
+            _pending_connected.clear();
+        }
+
+        // resend pending messages if need
+        for (auto &msg : swapped_sending_msgs) {
+            if (resend_msgs) {
+                _net.send_message(msg);
+            }
+
+                // if not resend, the message's callback will not be invoked until timeout,
+                // it's too slow - let's try to mimic the failure by recving an empty reply
+            else if (msg->header->context.u.is_request && !msg->header->context.u.is_forwarded) {
+                _net.on_recv_reply(msg->header->id, nullptr, 0);
+            }
+
+            // added in rpc_engine::reply (for server) or rpc_session::send_message (for client)
+            msg->release_ref();
+        }
+
+        while (true) {
+            dlink *msg;
+            {
+                utils::auto_lock<utils::ex_lock_nr> l(_lock);
+                msg = _messages.next();
+                if (msg == &_messages)
+                    break;
+
+                msg->remove();
+                --_message_count;
+            }
+
+            auto rmsg = CONTAINING_RECORD(msg, message_ex, dl);
+            rmsg->io_session = nullptr;
+
+            if (resend_msgs) {
+                _net.send_message(rmsg);
+            }
+
+                // if not resend, the message's callback will not be invoked until timeout,
+                // it's too slow - let's try to mimic the failure by recving an empty reply
+            else if (rmsg->header->context.u.is_request && !rmsg->header->context.u.is_forwarded) {
+                _net.on_recv_reply(rmsg->header->id, nullptr, 0);
+            }
+
+            // added in rpc_engine::reply (for server) or rpc_session::send_message (for client)
+            rmsg->release_ref();
+        }
+    }
+
+    inline bool rpc_session::unlink_message_for_send() {
+        auto n = _messages.next();
+        int bcount = 0;
+
+                dbg_dassert(0 == _sending_buffers.size(),
+                            "sending_buffers should be empty, but size = %d",
+                            (int) _sending_buffers.size());
+                dbg_dassert(0 == _sending_msgs.size(),
+                            "sending_msgs should be empty, but size = %d",
+                            (int) _sending_msgs.size());
+
+        while (n != &_messages) {
+            auto lmsg = CONTAINING_RECORD(n, message_ex, dl);
+            auto lcount = _parser->get_buffer_count_on_send(lmsg);
+            if (bcount > 0 && bcount + lcount > _max_buffer_block_count_per_send) {
                 break;
+            }
 
-            msg->remove();
-            --_message_count;
+            _sending_buffers.resize(bcount + lcount);
+            auto rcount = _parser->get_buffers_on_send(lmsg, &_sending_buffers[bcount]);
+            dassert(lcount >= rcount, "%d VS %d", lcount, rcount);
+            if (lcount != rcount)
+                _sending_buffers.resize(bcount + rcount);
+            bcount += rcount;
+            _sending_msgs.push_back(lmsg);
+
+            n = n->next();
+            lmsg->dl.remove();
         }
 
-        auto rmsg = CONTAINING_RECORD(msg, message_ex, dl);
-        rmsg->io_session = nullptr;
-
-        if (resend_msgs) {
-            _net.send_message(rmsg);
-        }
-
-        // if not resend, the message's callback will not be invoked until timeout,
-        // it's too slow - let's try to mimic the failure by recving an empty reply
-        else if (rmsg->header->context.u.is_request && !rmsg->header->context.u.is_forwarded) {
-            _net.on_recv_reply(rmsg->header->id, nullptr, 0);
-        }
-
-        // added in rpc_engine::reply (for server) or rpc_session::send_message (for client)
-        rmsg->release_ref();
-    }
-}
-
-inline bool rpc_session::unlink_message_for_send()
-{
-    auto n = _messages.next();
-    int bcount = 0;
-
-    dbg_dassert(0 == _sending_buffers.size(),
-                "sending_buffers should be empty, but size = %d",
-                (int)_sending_buffers.size());
-    dbg_dassert(0 == _sending_msgs.size(),
-                "sending_msgs should be empty, but size = %d",
-                (int)_sending_msgs.size());
-
-    while (n != &_messages) {
-        auto lmsg = CONTAINING_RECORD(n, message_ex, dl);
-        auto lcount = _parser->get_buffer_count_on_send(lmsg);
-        if (bcount > 0 && bcount + lcount > _max_buffer_block_count_per_send) {
-            break;
-        }
-
-        _sending_buffers.resize(bcount + lcount);
-        auto rcount = _parser->get_buffers_on_send(lmsg, &_sending_buffers[bcount]);
-        dassert(lcount >= rcount, "%d VS %d", lcount, rcount);
-        if (lcount != rcount)
-            _sending_buffers.resize(bcount + rcount);
-        bcount += rcount;
-        _sending_msgs.push_back(lmsg);
-
-        n = n->next();
-        lmsg->dl.remove();
+        // added in send_message
+        _message_count -= (int) _sending_msgs.size();
+        return _sending_msgs.size() > 0;
     }
 
-    // added in send_message
-    _message_count -= (int)_sending_msgs.size();
-    return _sending_msgs.size() > 0;
-}
+    DEFINE_TASK_CODE(LPC_DELAY_RPC_REQUEST_RATE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
 
-DEFINE_TASK_CODE(LPC_DELAY_RPC_REQUEST_RATE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
+    void rpc_session::start_read_next(int read_next) {
+        // server only
+        if (!is_client()) {
+            int delay_ms = _delay_server_receive_ms.exchange(0);
 
-void rpc_session::start_read_next(int read_next)
-{
-    // server only
-    if (!is_client()) {
-        int delay_ms = _delay_server_receive_ms.exchange(0);
-
-        // delayed read
-        if (delay_ms > 0) {
-            this->add_ref();
-            dsn::task_ptr delay_task(new raw_task(LPC_DELAY_RPC_REQUEST_RATE, [this]() {
-                start_read_next();
-                this->release_ref();
-            }));
-            delay_task->enqueue(std::chrono::milliseconds(delay_ms));
+            // delayed read
+            if (delay_ms > 0) {
+                this->add_ref();
+                dsn::task_ptr delay_task(new raw_task(LPC_DELAY_RPC_REQUEST_RATE, [this]() {
+                    start_read_next();
+                    this->release_ref();
+                }));
+                delay_task->enqueue(std::chrono::milliseconds(delay_ms));
+            } else {
+                do_read(read_next);
+            }
         } else {
             do_read(read_next);
         }
-    } else {
-        do_read(read_next);
     }
-}
 
-int rpc_session::prepare_parser()
-{
-    if (_reader._buffer_occupied < sizeof(uint32_t))
-        return sizeof(uint32_t) - _reader._buffer_occupied;
+    int rpc_session::prepare_parser() {
+        if (_reader._buffer_occupied < sizeof(uint32_t))
+            return sizeof(uint32_t) - _reader._buffer_occupied;
 
-    auto hdr_format = message_parser::get_header_type(_reader._buffer.data());
-    if (hdr_format == NET_HDR_INVALID) {
-        hdr_format = _net.unknown_msg_hdr_format();
-
+        auto hdr_format = message_parser::get_header_type(_reader._buffer.data());
         if (hdr_format == NET_HDR_INVALID) {
-            derror("invalid header type, remote_client = %s, header_type = '%s'",
-                   _remote_addr.to_string(),
-                   message_parser::get_debug_string(_reader._buffer.data()).c_str());
-            return -1;
+            hdr_format = _net.unknown_msg_hdr_format();
+
+            if (hdr_format == NET_HDR_INVALID) {
+                derror("invalid header type, remote_client = %s, header_type = '%s'",
+                       _remote_addr.to_string(),
+                       message_parser::get_debug_string(_reader._buffer.data()).c_str());
+                return -1;
+            }
         }
+        _parser = _net.new_message_parser(hdr_format);
+        dinfo("message parser created, remote_client = %s, header_format = %s",
+              _remote_addr.to_string(),
+              hdr_format.to_string());
+
+        return 0;
     }
-    _parser = _net.new_message_parser(hdr_format);
-    dinfo("message parser created, remote_client = %s, header_format = %s",
-          _remote_addr.to_string(),
-          hdr_format.to_string());
 
-    return 0;
-}
+    void rpc_session::send_message(message_ex *msg) {
+        msg->add_ref(); // released in on_send_completed
 
-void rpc_session::send_message(message_ex *msg)
-{
-    msg->add_ref(); // released in on_send_completed
+        msg->io_session = this;
 
-    msg->io_session = this;
+        dassert(_parser, "parser should not be null when send");
+        _parser->prepare_on_send(msg);
 
-    dassert(_parser, "parser should not be null when send");
-    _parser->prepare_on_send(msg);
+        uint64_t sig;
+        {
+            utils::auto_lock<utils::ex_lock_nr> l(_lock);
 
-    uint64_t sig;
-    {
-        utils::auto_lock<utils::ex_lock_nr> l(_lock);
+            // Attention: here we only allow two cases to send message:
+            //  case 1: session's state is SS_CONNECTED
+            //  case 2: session is sending negotiation message
+            if (SS_CONNECTED == _connect_state || security::is_negotiation_message(msg->rpc_code())) {
+                msg->dl.insert_before(&_messages);
+                ++_message_count;
 
-        // Attention: here we only allow two cases to send message:
-        //  case 1: session's state is SS_CONNECTED
-        //  case 2: session is sending negotiation message
-        if (SS_CONNECTED == _connect_state || security::is_negotiation_message(msg->rpc_code())) {
-            msg->dl.insert_before(&_messages);
-            ++_message_count;
-
-            if (!_is_sending_next) {
-                _is_sending_next = true;
-                sig = _message_sent + 1;
-                unlink_message_for_send();
-            } else { // is under send msg, just return
+                if (!_is_sending_next) {
+                    _is_sending_next = true;
+                    sig = _message_sent + 1;
+                    unlink_message_for_send();
+                } else { // is under send msg, just return
+                    return;
+                }
+            } else {
+                _pending_connected.push_back(msg);
                 return;
             }
-        } else {
-            _pending_connected.push_back(msg);
-            return;
         }
+
+        this->send(sig);
     }
 
-    this->send(sig);
-}
-
-bool rpc_session::cancel(message_ex *request)
-{
-    if (request->io_session.get() != this)
-        return false;
-
-    {
-        utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        if (request->dl.is_alone())
+    bool rpc_session::cancel(message_ex *request) {
+        if (request->io_session.get() != this)
             return false;
 
-        request->dl.remove();
-        --_message_count;
-    }
+        {
+            utils::auto_lock<utils::ex_lock_nr> l(_lock);
+            if (request->dl.is_alone())
+                return false;
 
-    // added in rpc_engine::reply (for server) or rpc_session::send_message (for client)
-    request->release_ref();
-    request->io_session = nullptr;
-    return true;
-}
-
-void rpc_session::on_send_completed(uint64_t signature)
-{
-    uint64_t sig = 0;
-    {
-        utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        if (signature != 0) {
-            dassert(_is_sending_next && signature == _message_sent + 1, "sent msg must be sending");
-            _is_sending_next = false;
-
-            // the _sending_msgs may have been cleared when reading of the rpc_session is failed.
-            if (_sending_msgs.size() == 0) {
-                dassert(_connect_state == SS_DISCONNECTED,
-                        "assume sending queue is cleared due to session closed");
-                return;
-            }
-
-            for (auto &msg : _sending_msgs) {
-                // added in rpc_engine::reply (for server) or rpc_session::send_message (for client)
-                msg->release_ref();
-                _message_sent++;
-            }
-            _sending_msgs.clear();
-            _sending_buffers.clear();
+            request->dl.remove();
+            --_message_count;
         }
 
-        if (!_is_sending_next) {
-            if (unlink_message_for_send()) {
-                sig = _message_sent + 1;
-                _is_sending_next = true;
+        // added in rpc_engine::reply (for server) or rpc_session::send_message (for client)
+        request->release_ref();
+        request->io_session = nullptr;
+        return true;
+    }
+
+    void rpc_session::on_send_completed(uint64_t signature) {
+        uint64_t sig = 0;
+        {
+            utils::auto_lock<utils::ex_lock_nr> l(_lock);
+            if (signature != 0) {
+                dassert(_is_sending_next && signature == _message_sent + 1, "sent msg must be sending");
+                _is_sending_next = false;
+
+                // the _sending_msgs may have been cleared when reading of the rpc_session is failed.
+                if (_sending_msgs.size() == 0) {
+                    dassert(_connect_state == SS_DISCONNECTED,
+                            "assume sending queue is cleared due to session closed");
+                    return;
+                }
+
+                for (auto &msg : _sending_msgs) {
+                    // added in rpc_engine::reply (for server) or rpc_session::send_message (for client)
+                    msg->release_ref();
+                    _message_sent++;
+                }
+                _sending_msgs.clear();
+                _sending_buffers.clear();
             }
+
+            if (!_is_sending_next) {
+                if (unlink_message_for_send()) {
+                    sig = _message_sent + 1;
+                    _is_sending_next = true;
+                }
+            }
+        }
+
+        // for next send messages
+        if (sig != 0)
+            this->send(sig);
+    }
+
+    rpc_session::rpc_session(connection_oriented_network &net,
+                             ::dsn::rpc_address remote_addr,
+                             message_parser_ptr &parser,
+                             bool is_client)
+            : _connect_state(is_client ? SS_DISCONNECTED : SS_CONNECTED),
+              _message_count(0),
+              _is_sending_next(false),
+              _message_sent(0),
+              _net(net),
+              _remote_addr(remote_addr),
+              _max_buffer_block_count_per_send(net.max_buffer_block_count_per_send()),
+              _reader(net.message_buffer_block_size()),
+              _parser(parser),
+
+              _is_client(is_client),
+              _matcher(_net.engine()->matcher()),
+              _delay_server_receive_ms(0) {
+        if (!is_client) {
+            on_rpc_session_connected.execute(this);
         }
     }
 
-    // for next send messages
-    if (sig != 0)
-        this->send(sig);
-}
+    bool rpc_session::on_disconnected(bool is_write) {
+        bool ret;
+        if (set_disconnected()) {
+            rpc_session_ptr sp = this;
+            if (is_client()) {
+                _net.on_client_session_disconnected(sp);
+            } else {
+                _net.on_server_session_disconnected(sp);
+            }
 
-rpc_session::rpc_session(connection_oriented_network &net,
-                         ::dsn::rpc_address remote_addr,
-                         message_parser_ptr &parser,
-                         bool is_client)
-    : _connect_state(is_client ? SS_DISCONNECTED : SS_CONNECTED),
-      _message_count(0),
-      _is_sending_next(false),
-      _message_sent(0),
-      _net(net),
-      _remote_addr(remote_addr),
-      _max_buffer_block_count_per_send(net.max_buffer_block_count_per_send()),
-      _reader(net.message_buffer_block_size()),
-      _parser(parser),
-
-      _is_client(is_client),
-      _matcher(_net.engine()->matcher()),
-      _delay_server_receive_ms(0)
-{
-    if (!is_client) {
-        on_rpc_session_connected.execute(this);
-    }
-}
-
-bool rpc_session::on_disconnected(bool is_write)
-{
-    bool ret;
-    if (set_disconnected()) {
-        rpc_session_ptr sp = this;
-        if (is_client()) {
-            _net.on_client_session_disconnected(sp);
+            ret = true;
         } else {
-            _net.on_server_session_disconnected(sp);
+            ret = false;
         }
 
-        ret = true;
-    } else {
-        ret = false;
+        if (is_write) {
+            clear_send_queue(false);
+        }
+
+        return ret;
     }
 
-    if (is_write) {
-        clear_send_queue(false);
-    }
-
-    return ret;
-}
-
-bool rpc_session::is_auth_success(message_ex *msg)
-{
+bool rpc_session::is_auth_success(message_ex *msg) {
     if (security::FLAGS_enable_auth && !_negotiation->negotiation_succeed()) {
         dwarn_f("reject message({}) from {}, session {} client",
                 msg->rpc_code().to_string(),
@@ -426,6 +411,21 @@ bool rpc_session::is_auth_success(message_ex *msg)
     }
 
     return true;
+}
+
+void rpc_session::on_failure(bool is_write)
+{
+    if (on_disconnected(is_write)) {
+        close();
+    }
+}
+
+void rpc_session::on_success()
+{
+    if (is_client()) {
+        set_connected();
+        on_send_completed();
+    }
 }
 
 bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
@@ -489,6 +489,9 @@ void rpc_session::start_negotiation()
         }
 
         auth_negotiation();
+    } else {
+        // set negotiation success if auth is disabled
+        on_success();
     }
 }
 
@@ -497,6 +500,8 @@ void rpc_session::auth_negotiation()
     _negotiation = security::create_negotiation(is_client(), this);
     _negotiation->start();
 }
+
+security::negotiation *rpc_session::get_negotiation() const { return _negotiation.get(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 network::network(rpc_engine *srv, network *inner_provider)

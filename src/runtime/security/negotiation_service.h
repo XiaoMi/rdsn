@@ -17,22 +17,23 @@
 
 #pragma once
 
-#include "negotiation.h"
+#include "server_negotiation.h"
+
+#include <dsn/cpp/serverlet.h>
 
 namespace dsn {
 namespace security {
 
-class client_negotiation : public negotiation
+class negotiation_service : public serverlet<negotiation_service>,
+                            public utils::singleton<negotiation_service>
 {
 public:
-    client_negotiation(rpc_session *session);
-
-    void start();
+    void open_service();
 
 private:
-    void handle_response(error_code err, const negotiation_response &&response);
-    void list_mechanisms();
-    void send(std::unique_ptr<negotiation_request> request);
+    negotiation_service();
+    void on_negotiation_request(negotiation_rpc rpc);
+    friend class utils::singleton<negotiation_service>;
 };
 
 } // namespace security
