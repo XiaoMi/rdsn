@@ -101,6 +101,7 @@ private:
     // keytab file with absolute path
     krb5_keytab _keytab;
     // credential cache
+    // TODO(zlw): reuse ticket from ccache
     krb5_ccache _ccache;
     krb5_get_init_creds_opt *_opt = nullptr;
 
@@ -158,9 +159,7 @@ void kinit_context::init_krb5_ctx()
     static std::once_flag once;
     std::call_once(once, [&]() {
         int64_t err = krb5_init_context(&_krb5_context);
-        if (err != 0) {
-            dassert_f(false, "init kerberos context failed, with kerberos  error_code = {}", err);
-        }
+        dcheck_eq(err, 0);
     });
 }
 
