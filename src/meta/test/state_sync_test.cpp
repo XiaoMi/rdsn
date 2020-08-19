@@ -301,6 +301,8 @@ void meta_service_test_app::state_sync_test()
         ASSERT_EQ(ec, dsn::ERR_OK);
         ASSERT_TRUE(ss2->spin_wait_staging(30));
     }
+
+    ss1->_all_apps.clear();
 }
 
 static dsn::app_info create_app_info(dsn::app_status::type status,
@@ -333,6 +335,7 @@ void meta_service_test_app::construct_apps_test()
     resp.err = dsn::ERR_OK;
 
     std::shared_ptr<meta_service> svc(new meta_service());
+    svc->_state->_all_apps.clear();
 
     std::vector<dsn::rpc_address> nodes;
     std::string hint_message;

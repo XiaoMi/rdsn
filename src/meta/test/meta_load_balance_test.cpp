@@ -121,6 +121,7 @@ void meta_load_balance_test::simple_lb_cure_test()
     dsn::error_code ec;
     dsn::task_ptr t;
     std::shared_ptr<message_filter> svc(new message_filter(this));
+    svc->_state->_all_apps.clear();
     svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(svc.get()));
     bool proposal_sent;
     dsn::rpc_address last_addr;
@@ -700,6 +701,8 @@ void meta_load_balance_test::simple_lb_cure_test()
     t->wait();
     PROPOSAL_FLAG_CHECK;
     CONDITION_CHECK([&] { return pc.primary == nodes[0]; });
+
+    state->_all_apps.clear();
 }
 
 static void check_nodes_loads(node_mapper &nodes)

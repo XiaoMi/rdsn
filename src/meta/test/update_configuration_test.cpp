@@ -247,6 +247,8 @@ void meta_service_test_app::update_configuration_test()
     svc->_meta_opts._lb_opts.replica_assign_delay_ms_for_dropouts = 0;
     svc->_balancer.reset(new simple_load_balancer(svc.get()));
     ASSERT_TRUE(wait_state(ss, validator3, 10));
+
+    ss->_all_apps.clear();
 }
 
 void meta_service_test_app::adjust_dropped_size()

@@ -59,6 +59,7 @@ void meta_service_test_app::app_envs_basic_test()
     // create meta_service
     std::shared_ptr<meta_service> meta_svc = std::make_shared<meta_service>();
     meta_service *svc = meta_svc.get();
+    svc->_state->_all_apps.clear();
 
     svc->_meta_opts.cluster_root = "/meta_test";
     svc->_meta_opts.meta_state_service_type = "meta_state_service_simple";
