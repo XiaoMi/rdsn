@@ -87,12 +87,12 @@ void meta_service_test_app::state_sync_test()
     svc->remote_storage_initialize();
 
     std::string apps_root = "/meta_test/apps";
-    std::shared_ptr<server_state> ss1 = svc->_state;
+    server_state *ss1 = svc->_state;
 
     // create apss randomly, and sync it to meta state service simple
     std::cerr << "testing create apps and sync to remote storage" << std::endl;
     {
-        server_state *ss = ss1.get();
+        server_state *ss = ss1;
         ss->initialize(svc, apps_root);
 
         drop_set.clear();
@@ -132,7 +132,7 @@ void meta_service_test_app::state_sync_test()
     // then we sync from meta_state_service_simple, and dump to local file
     std::cerr << "testing sync from remote storage and dump to local file" << std::endl;
     {
-        std::shared_ptr<server_state> ss2 = std::make_shared<server_state>();
+        std::unique_ptr<server_state> ss2 = std::unique_ptr<server_state>(new server_state);
         ss2->initialize(svc, apps_root);
         dsn::error_code ec = ss2->sync_apps_from_remote_storage();
         ASSERT_EQ(ec, dsn::ERR_OK);
@@ -152,7 +152,7 @@ void meta_service_test_app::state_sync_test()
     // dump another way
     std::cerr << "testing directly dump to local file" << std::endl;
     {
-        std::shared_ptr<server_state> ss2 = std::make_shared<server_state>();
+        std::unique_ptr<server_state> ss2 = std::unique_ptr<server_state>(new server_state);
         ss2->initialize(svc, apps_root);
         dsn::error_code ec = ss2->dump_from_remote_storage("meta_state.dump2", true);
 
@@ -180,7 +180,7 @@ void meta_service_test_app::state_sync_test()
     std::cerr << "test sync to zookeeper's remote storage" << std::endl;
     // restore from the local file, and restore to zookeeper
     {
-        std::shared_ptr<server_state> ss2 = std::make_shared<server_state>();
+        std::unique_ptr<server_state> ss2 = std::unique_ptr<server_state>(new server_state);
 
         ss2->initialize(svc, apps_root);
         dsn::error_code ec = ss2->restore_from_local_storage("meta_state.dump2");
@@ -190,7 +190,7 @@ void meta_service_test_app::state_sync_test()
     // then sync from zookeeper
     std::cerr << "test sync from zookeeper's storage" << std::endl;
     {
-        std::shared_ptr<server_state> ss2 = std::make_shared<server_state>();
+        std::unique_ptr<server_state> ss2 = std::unique_ptr<server_state>(new server_state);
         ss2->initialize(svc, apps_root);
 
         dsn::error_code ec = ss2->initialize_data_structure();
@@ -210,7 +210,7 @@ void meta_service_test_app::state_sync_test()
 
     // then we restore from local storage and restore to remote
     {
-        std::shared_ptr<server_state> ss2 = std::make_shared<server_state>();
+        std::unique_ptr<server_state> ss2 = std::unique_ptr<server_state>(new server_state);
 
         ss2->initialize(svc, apps_root);
         dsn::error_code ec = ss2->restore_from_local_storage("meta_state.dump3");
@@ -283,7 +283,7 @@ void meta_service_test_app::state_sync_test()
     // simulate the half creating
     std::cerr << "test some node for a app is not create on remote storage" << std::endl;
     {
-        std::shared_ptr<server_state> ss2 = std::make_shared<server_state>();
+        std::unique_ptr<server_state> ss2 = std::unique_ptr<server_state>(new server_state);
         dsn::error_code ec;
         ss2->initialize(svc, apps_root);
 

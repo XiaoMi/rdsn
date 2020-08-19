@@ -84,8 +84,7 @@ public:
         dsn::tasking::enqueue(
             LPC_META_STATE_HIGH,
             nullptr,
-            std::bind(
-                &server_state::on_update_configuration, svc->_state.get(), request, fake_request),
+            std::bind(&server_state::on_update_configuration, svc->_state, request, fake_request),
             server_state::sStateHash);
     }
 };
@@ -130,7 +129,7 @@ void meta_load_balance_test::simple_lb_cure_test()
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_balancer.reset(new simple_load_balancer(svc.get()));
 
-    server_state *state = svc->_state.get();
+    server_state *state = svc->_state;
     state->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));
     dsn::app_info info;
     info.is_stateful = true;

@@ -133,7 +133,7 @@ void test_checker::control_balancer(bool disable_it)
 {
     checker_load_balancer::s_disable_balancer = disable_it;
     if (disable_it && meta_leader()) {
-        server_state *ss = meta_leader()->_service->_state.get();
+        server_state *ss = meta_leader()->_service->_state;
         for (auto &kv : ss->_exist_apps) {
             std::shared_ptr<app_state> &app = kv.second;
             app->helpers->clear_proposals();
@@ -369,6 +369,6 @@ void install_checkers()
     dsn::tools::simulator::register_checker("simple_kv.checker",
                                             dsn::tools::checker::create<wrap_checker>);
 }
-}
-}
-}
+} // namespace test
+} // namespace replication
+} // namespace dsn

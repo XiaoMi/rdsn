@@ -106,13 +106,12 @@ class meta_service;
 // D. thread-model of meta server
 // E. load balancer
 
-class server_state
+class server_state : public utils::singleton<server_state>
 {
 public:
     static const int sStateHash = 0;
 
 public:
-    server_state();
     ~server_state();
 
     void initialize(meta_service *meta_svc, const std::string &apps_root);
@@ -186,6 +185,8 @@ public:
     void wait_all_task() { _tracker.wait_outstanding_tasks(); }
 
 private:
+    server_state();
+
     //-1 means waiting forever
     bool spin_wait_staging(int timeout_seconds = -1);
     bool can_run_balancer();
@@ -301,6 +302,7 @@ private:
     friend class meta_split_service;
     friend class bulk_load_service;
     friend class bulk_load_service_test;
+    friend class utils::singleton<server_state>;
 
     dsn::task_tracker _tracker;
 

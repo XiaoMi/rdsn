@@ -63,7 +63,7 @@ void meta_test_base::TearDown()
         delete_all_on_meta_storage();
     }
 
-    _ss.reset();
+    _ss = nullptr;
     _ms.reset(nullptr);
 }
 
@@ -94,7 +94,7 @@ void meta_test_base::create_app(const std::string &name, uint32_t partition_coun
     req.options.is_stateful = true;
     req.options.envs["value_version"] = "1";
 
-    auto result = fake_create_app(_ss.get(), req);
+    auto result = fake_create_app(_ss, req);
     fake_wait_rpc(result, resp);
     ASSERT_EQ(resp.err, ERR_OK) << resp.err.to_string() << " " << name;
 
@@ -110,7 +110,7 @@ void meta_test_base::drop_app(const std::string &name)
     req.app_name = name;
     req.options.success_if_not_exist = false;
 
-    auto result = fake_drop_app(_ss.get(), req);
+    auto result = fake_drop_app(_ss, req);
     fake_wait_rpc(result, resp);
     ASSERT_EQ(resp.err, ERR_OK) << resp.err.to_string() << " " << name;
 

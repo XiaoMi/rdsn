@@ -54,7 +54,7 @@ public:
 
     bulk_load_service &bulk_svc();
 
-    std::shared_ptr<server_state> _ss;
+    server_state *_ss;
     std::unique_ptr<meta_service> _ms;
     std::string _app_root;
 };

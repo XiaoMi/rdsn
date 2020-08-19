@@ -130,7 +130,7 @@ void meta_service_test_app::call_update_configuration(
     dsn::tasking::enqueue(
         LPC_META_STATE_HIGH,
         nullptr,
-        std::bind(&server_state::on_update_configuration, svc->_state.get(), request, fake_request),
+        std::bind(&server_state::on_update_configuration, svc->_state, request, fake_request),
         server_state::sStateHash);
 }
 
@@ -147,7 +147,7 @@ void meta_service_test_app::call_config_sync(
                           configuration_query_by_node_response>::auto_reply(recvd_request);
     dsn::tasking::enqueue(LPC_META_STATE_HIGH,
                           nullptr,
-                          std::bind(&server_state::on_config_sync, svc->_state.get(), rpc),
+                          std::bind(&server_state::on_config_sync, svc->_state, rpc),
                           server_state::sStateHash);
 }
 
@@ -181,7 +181,7 @@ void meta_service_test_app::update_configuration_test()
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_balancer.reset(new simple_load_balancer(svc.get()));
 
-    server_state *ss = svc->_state.get();
+    server_state *ss = svc->_state;
     ss->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));
     dsn::app_info info;
     info.is_stateful = true;
@@ -258,7 +258,7 @@ void meta_service_test_app::adjust_dropped_size()
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_balancer.reset(new simple_load_balancer(svc.get()));
 
-    server_state *ss = svc->_state.get();
+    server_state *ss = svc->_state;
     ss->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));
     dsn::app_info info;
     info.is_stateful = true;
@@ -364,7 +364,7 @@ void meta_service_test_app::apply_balancer_test()
     std::vector<dsn::rpc_address> node_list;
     generate_node_list(node_list, 5, 10);
 
-    server_state *ss = meta_svc->_state.get();
+    server_state *ss = meta_svc->_state;
     generate_apps(ss->_all_apps, node_list, 5, 5, std::pair<uint32_t, uint32_t>(2, 5), false);
 
     app_mapper backed_app;

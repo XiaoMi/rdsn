@@ -65,7 +65,7 @@ void meta_service_test_app::app_envs_basic_test()
     svc->remote_storage_initialize();
 
     std::string apps_root = "/meta_test/apps";
-    std::shared_ptr<server_state> ss = svc->_state;
+    server_state *ss = svc->_state;
     ss->initialize(svc, apps_root);
 
     ss->_all_apps.emplace(std::make_pair(fake_app->app_id, fake_app));

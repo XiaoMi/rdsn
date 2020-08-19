@@ -58,7 +58,7 @@ meta_service::meta_service()
     _meta_opts.initialize();
     _node_live_percentage_threshold_for_update =
         _meta_opts.node_live_percentage_threshold_for_update;
-    _state.reset(new server_state());
+    _state = &server_state::instance();
     _function_level.store(_meta_opts.meta_function_level_on_start);
     if (_meta_opts.recover_from_replica_server) {
         ddebug("enter recovery mode for [meta_server].recover_from_replica_server = true");
@@ -192,11 +192,10 @@ void meta_service::set_node_state(const std::vector<rpc_address> &nodes, bool is
         return;
     }
     for (const rpc_address &address : nodes) {
-        tasking::enqueue(
-            LPC_META_STATE_HIGH,
-            nullptr,
-            std::bind(&server_state::on_change_node_state, _state.get(), address, is_alive),
-            server_state::sStateHash);
+        tasking::enqueue(LPC_META_STATE_HIGH,
+                         nullptr,
+                         std::bind(&server_state::on_change_node_state, _state, address, is_alive),
+                         server_state::sStateHash);
     }
 }
 
@@ -264,13 +263,13 @@ void meta_service::start_service()
     for (const dsn::rpc_address &node : _alive_set) {
         tasking::enqueue(LPC_META_STATE_HIGH,
                          nullptr,
-                         std::bind(&server_state::on_change_node_state, _state.get(), node, true),
+                         std::bind(&server_state::on_change_node_state, _state, node, true),
                          server_state::sStateHash);
     }
     for (const dsn::rpc_address &node : _dead_set) {
         tasking::enqueue(LPC_META_STATE_HIGH,
                          nullptr,
-                         std::bind(&server_state::on_change_node_state, _state.get(), node, false),
+                         std::bind(&server_state::on_change_node_state, _state, node, false),
                          server_state::sStateHash);
     }
 
@@ -496,7 +495,7 @@ void meta_service::on_create_app(dsn::message_ex *req)
     req->add_ref();
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      nullptr,
-                     std::bind(&server_state::create_app, _state.get(), req),
+                     std::bind(&server_state::create_app, _state, req),
                      server_state::sStateHash);
 }
 
@@ -508,7 +507,7 @@ void meta_service::on_drop_app(dsn::message_ex *req)
     req->add_ref();
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      nullptr,
-                     std::bind(&server_state::drop_app, _state.get(), req),
+                     std::bind(&server_state::drop_app, _state, req),
                      server_state::sStateHash);
 }
 
@@ -520,7 +519,7 @@ void meta_service::on_recall_app(dsn::message_ex *req)
     req->add_ref();
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      nullptr,
-                     std::bind(&server_state::recall_app, _state.get(), req),
+                     std::bind(&server_state::recall_app, _state, req),
                      server_state::sStateHash);
 }
 
@@ -646,7 +645,7 @@ void meta_service::on_config_sync(configuration_query_by_node_rpc rpc)
         zauto_lock l(_failure_detector->_lock);
         tasking::enqueue(LPC_META_STATE_HIGH,
                          nullptr,
-                         std::bind(&server_state::on_config_sync, _state.get(), rpc),
+                         std::bind(&server_state::on_config_sync, _state, rpc),
                          server_state::sStateHash);
     }
 }
@@ -675,7 +674,7 @@ void meta_service::on_update_configuration(dsn::message_ex *req)
     req->add_ref();
     tasking::enqueue(LPC_META_STATE_HIGH,
                      nullptr,
-                     std::bind(&server_state::on_update_configuration, _state.get(), request, req),
+                     std::bind(&server_state::on_update_configuration, _state, request, req),
                      server_state::sStateHash);
 }
 
@@ -696,7 +695,7 @@ void meta_service::on_control_meta_level(configuration_meta_control_rpc rpc)
     if (request.level <= meta_function_level::fl_steady) {
         tasking::enqueue(LPC_META_STATE_NORMAL,
                          nullptr,
-                         std::bind(&server_state::clear_proposals, _state.get()),
+                         std::bind(&server_state::clear_proposals, _state),
                          server_state::sStateHash);
     }
 
@@ -751,7 +750,7 @@ void meta_service::on_start_restore(dsn::message_ex *req)
 
     req->add_ref();
     tasking::enqueue(
-        LPC_RESTORE_BACKGROUND, nullptr, std::bind(&server_state::restore_app, _state.get(), req));
+        LPC_RESTORE_BACKGROUND, nullptr, std::bind(&server_state::restore_app, _state, req));
 }
 
 void meta_service::on_add_backup_policy(dsn::message_ex *req)
@@ -814,7 +813,7 @@ void meta_service::on_report_restore_status(configuration_report_restore_status_
 
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      nullptr,
-                     std::bind(&server_state::on_recv_restore_report, _state.get(), rpc));
+                     std::bind(&server_state::on_recv_restore_report, _state, rpc));
 }
 
 void meta_service::on_query_restore_status(configuration_query_restore_rpc rpc)
@@ -825,7 +824,7 @@ void meta_service::on_query_restore_status(configuration_query_restore_rpc rpc)
 
     tasking::enqueue(LPC_META_STATE_NORMAL,
                      nullptr,
-                     std::bind(&server_state::on_query_restore_status, _state.get(), rpc));
+                     std::bind(&server_state::on_query_restore_status, _state, rpc));
 }
 
 void meta_service::on_add_duplication(duplication_add_rpc rpc)
@@ -914,7 +913,7 @@ void meta_service::register_duplication_rpc_handlers()
 void meta_service::initialize_duplication_service()
 {
     if (_opts.duplication_enabled) {
-        _dup_svc = make_unique<meta_duplication_service>(_state.get(), this);
+        _dup_svc = make_unique<meta_duplication_service>(_state, this);
     }
 }
 
@@ -930,17 +929,17 @@ void meta_service::update_app_env(app_env_rpc env_rpc)
     case app_env_operation::type::APP_ENV_OP_SET:
         tasking::enqueue(LPC_META_STATE_NORMAL,
                          nullptr,
-                         std::bind(&server_state::set_app_envs, _state.get(), env_rpc));
+                         std::bind(&server_state::set_app_envs, _state, env_rpc));
         break;
     case app_env_operation::type::APP_ENV_OP_DEL:
         tasking::enqueue(LPC_META_STATE_NORMAL,
                          nullptr,
-                         std::bind(&server_state::del_app_envs, _state.get(), env_rpc));
+                         std::bind(&server_state::del_app_envs, _state, env_rpc));
         break;
     case app_env_operation::type::APP_ENV_OP_CLEAR:
         tasking::enqueue(LPC_META_STATE_NORMAL,
                          nullptr,
-                         std::bind(&server_state::clear_app_envs, _state.get(), env_rpc));
+                         std::bind(&server_state::clear_app_envs, _state, env_rpc));
         break;
     default: // app_env_operation::type::APP_ENV_OP_INVALID
         dwarn("recv a invalid update app_env request, just ignore");

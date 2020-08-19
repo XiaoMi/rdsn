@@ -191,7 +191,7 @@ void meta_service_test_app::policy_context_test()
     std::shared_ptr<meta_service> s = std::make_shared<progress_liar>();
     dsn::error_code ec = s->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
-    server_state *state = s->_state.get();
+    server_state *state = s->_state;
     s->_started = true;
     s->_backup_handler = std::make_shared<backup_service>(s.get(), policy_root, ".", nullptr);
     s->_backup_handler->backup_option().app_dropped_retry_delay_ms = 500_ms;

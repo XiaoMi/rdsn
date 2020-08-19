@@ -78,7 +78,7 @@ public:
     dist::meta_state_service *get_remote_storage() const { return _storage.get(); }
     mss::meta_storage *get_meta_storage() const { return _meta_storage.get(); }
 
-    server_state *get_server_state() { return _state.get(); }
+    server_state *get_server_state() { return _state; }
     server_load_balancer *get_balancer() { return _balancer.get(); }
     dist::block_service::block_service_manager &get_block_service_manager()
     {
@@ -211,7 +211,7 @@ private:
     uint64_t _node_live_percentage_threshold_for_update;
     dsn_handle_t _ctrl_node_live_percentage_threshold_for_update = nullptr;
 
-    std::shared_ptr<server_state> _state;
+    server_state *_state;
     std::shared_ptr<meta_server_failure_detector> _failure_detector;
 
     std::shared_ptr<dist::meta_state_service> _storage;
