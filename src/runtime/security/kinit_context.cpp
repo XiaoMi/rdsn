@@ -98,7 +98,6 @@ private:
     krb5_context _krb5_context;
     // krb5 principal
     krb5_principal _principal;
-    // keytab file with absolute path
     krb5_keytab _keytab;
     // credential cache
     krb5_ccache _ccache;
