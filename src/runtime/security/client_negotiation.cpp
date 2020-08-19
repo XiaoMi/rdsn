@@ -60,9 +60,18 @@ void client_negotiation::handle_response(error_code err, const negotiation_respo
         return;
     }
 
-    if (_status == negotiation_status::type::SASL_LIST_MECHANISMS) {
+    switch (_status) {
+    case negotiation_status::type::SASL_LIST_MECHANISMS:
         recv_mechanisms(response);
-        return;
+        break;
+    case negotiation_status::type::SASL_SELECT_MECHANISMS:
+        // TBD(zlw)
+        break;
+    case negotiation_status::type::SASL_INITIATE:
+        // TBD(zlw)
+        break;
+    default:
+        fail_negotiation();
     }
 }
 
