@@ -137,8 +137,6 @@ public:
         return iter->second;
     }
 
-    void query_configuration_by_index(const configuration_query_by_index_request &request,
-                                      /*out*/ configuration_query_by_index_response &response);
     bool query_configuration_by_gpid(const dsn::gpid id, /*out*/ partition_configuration &config);
 
     // app options
@@ -296,6 +294,8 @@ private:
 
     // client => meta server
     void on_query_configuration_by_index(configuration_query_by_index_rpc rpc);
+    void query_configuration_by_index(const configuration_query_by_index_request &request,
+                                      /*out*/ configuration_query_by_index_response &response);
 
 private:
     friend class test::test_checker;
