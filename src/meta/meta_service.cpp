@@ -140,7 +140,6 @@ bool meta_service::check_status(TRpcHolder rpc, rpc_address *forward_address)
 
 template<typename TRespType>
 bool meta_service::check_status(message_ex *dsn_msg, TRespType response_struct) {
-    dinfo("rpc %s called", __FUNCTION__);
     int result = check_leader(dsn_msg, nullptr);
     if (result == 0) {
         return false;
