@@ -565,9 +565,8 @@ dsn::error_code server_state::sync_apps_from_remote_storage()
     dsn::task_tracker tracker;
 
     dist::meta_state_service *storage = _meta_svc->get_remote_storage();
-    auto sync_partition = [this, storage, &err, &tracker](std::shared_ptr<app_state> &app,
-                                                          int partition_id,
-                                                          const std::string &partition_path) {
+    auto sync_partition = [this, storage, &err, &tracker](
+        std::shared_ptr<app_state> &app, int partition_id, const std::string &partition_path) {
         storage->get_data(
             partition_path,
             LPC_META_CALLBACK,
@@ -2082,9 +2081,8 @@ error_code server_state::construct_partitions(
                     std::ostringstream oss;
                     if (skip_lost_partitions) {
                         oss << "WARNING: partition(" << app->app_id << "."
-                            << pc.pid.get_partition_index()
-                            << ") has no replica collected, force "
-                               "recover the lost partition to empty"
+                            << pc.pid.get_partition_index() << ") has no replica collected, force "
+                                                               "recover the lost partition to empty"
                             << std::endl;
                     } else {
                         oss << "ERROR: partition(" << app->app_id << "."
@@ -2578,7 +2576,8 @@ void server_state::do_update_app_info(const std::string &app_path,
 {
     // persistent envs to zookeeper
     blob value = dsn::json::json_forwarder<app_info>::encode(info);
-    auto new_cb = [this, app_path, info, user_cb = std::move(cb)](error_code ec) {
+    auto new_cb = [this, app_path, info, user_cb = std::move(cb)](error_code ec)
+    {
         if (ec == ERR_OK) {
             user_cb(ec);
         } else if (ec == ERR_TIMEOUT) {
