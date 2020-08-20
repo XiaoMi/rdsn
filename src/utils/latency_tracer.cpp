@@ -25,8 +25,8 @@ namespace utils {
 
 DSN_DEFINE_bool("replication", enable_latency_tracer, false, "whether enable the latency tracer");
 
-latency_tracer::latency_tracer(const std::string &name, const bool is_sub, const uint64_t threshold)
-    : _name(name), _is_sub(is_sub), _threshold(threshold), _start_time(dsn_now_ns())
+latency_tracer::latency_tracer(const std::string &name, const uint64_t threshold)
+    : _name(name), _threshold(threshold), _is_sub(false), _start_time(dsn_now_ns())
 {
 }
 
@@ -53,6 +53,7 @@ void latency_tracer::add_point(const std::string &stage_name)
 
 void latency_tracer::set_sub_tracer(const std::shared_ptr<latency_tracer> &tracer)
 {
+    tracer->_is_sub = true;
     _sub_tracer = tracer;
 }
 

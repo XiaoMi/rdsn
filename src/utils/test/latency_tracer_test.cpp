@@ -41,18 +41,18 @@ public:
 
     void init_trace_points()
     {
-        _tracer1 = std::make_shared<latency_tracer>("name1", false, 0);
+        _tracer1 = std::make_shared<latency_tracer>("name1");
         for (int i = 0; i < _tracer1_stage_count; i++) {
             _tracer1->add_point(fmt::format("stage{}", i));
         }
 
-        _tracer2 = std::make_shared<latency_tracer>("name2", false, 0);
+        _tracer2 = std::make_shared<latency_tracer>("name2");
 
         for (int i = 0; i < _tracer2_stage_count; i++) {
             _tracer2->add_point(fmt::format("stage{}", i));
         }
 
-        _sub_tracer = std::make_shared<latency_tracer>("sub", true, 0);
+        _sub_tracer = std::make_shared<latency_tracer>("sub");
 
         _tracer1->set_sub_tracer(_sub_tracer);
         _tracer2->set_sub_tracer(_sub_tracer);

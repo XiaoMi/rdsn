@@ -26,8 +26,8 @@ namespace utils {
  * latency_tracer is a tool for tracking the time spent in each of the stages during request
  * execution. It can help users to figure out where the latency bottleneck is located. User needs to
  * use `add_point` before entering one stage, which will record the name of this stage and its start
- * time. When the request is finished, the formatted result can be dumped automoticlly via
- *`dump_trace_points`.
+ * time. When the request is finished, the formatted result can be dumped automatically via
+ * "dump_trace_points".
  *
  * For example, given a request with a 4-stage pipeline (the `latency_tracer` need to
  * be held by this request throughout the execution):
@@ -55,14 +55,17 @@ namespace utils {
  *    |         |           |         |
  *  start---->stageA----->stageB---->end
  *
- * "request.tracer" will record the time duration among all tracepoints.
+ * "request.tracer" will record the time duration among all trace points.
 **/
 DSN_DECLARE_bool(enable_latency_tracer);
 
 class latency_tracer
 {
 public:
-    latency_tracer(const std::string &name, const bool is_sub, const uint64_t threshold = 0);
+    //  threshold < 0: don't dump any trace points
+    //  threshold = 0: dump all trace points
+    //  threshold > 0: dump the trace point when time_used > threshold
+    latency_tracer(const std::string &name, const uint64_t threshold = 0);
 
     ~latency_tracer();
 
@@ -85,11 +88,8 @@ private:
     utils::rw_lock_nr _lock;
 
     const std::string _name;
-    const bool _is_sub;
-    //  threshold < 0: don't dump any trace points
-    //  threshold = 0: dump all trace points
-    //  threshold > 0: dump the trace point when time_used > threshold
     const uint64_t _threshold;
+    bool _is_sub;
     const uint64_t _start_time;
     std::map<int64_t, std::string> _points;
     std::shared_ptr<latency_tracer> _sub_tracer;
