@@ -80,10 +80,10 @@ void client_negotiation::handle_response(error_code err, const negotiation_respo
 void client_negotiation::recv_mechanisms(const negotiation_response &resp)
 {
     if (resp.status != negotiation_status::type::SASL_LIST_MECHANISMS_RESP) {
-        ddebug_f("{}: get message({}) while expect({})",
-                 _name,
-                 enum_to_string(resp.status),
-                 enum_to_string(negotiation_status::type::SASL_LIST_MECHANISMS_RESP));
+        dwarn_f("{}: get message({}) while expect({})",
+                _name,
+                enum_to_string(resp.status),
+                enum_to_string(negotiation_status::type::SASL_LIST_MECHANISMS_RESP));
         fail_negotiation();
         return;
     }
@@ -101,9 +101,9 @@ void client_negotiation::recv_mechanisms(const negotiation_response &resp)
     }
 
     if (match_mechanism.empty()) {
-        ddebug_f("server only support mechanisms of ({}), can't find expected ({})",
-                 resp_string,
-                 boost::join(supported_mechanisms, ","));
+        dwarn_f("server only support mechanisms of ({}), can't find expected ({})",
+                resp_string,
+                boost::join(supported_mechanisms, ","));
         fail_negotiation();
         return;
     }
