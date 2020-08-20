@@ -257,7 +257,7 @@ private:
 };
 
 template <typename TRpcHolder>
-bool meta_service::check_status(TRpcHolder rpc, /*out*/ rpc_address *forward_address)
+bool meta_service::check_status(TRpcHolder rpc, rpc_address *forward_address)
 {
     int result = check_leader(rpc, forward_address);
     if (result == 0) {
