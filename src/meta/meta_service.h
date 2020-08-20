@@ -201,8 +201,8 @@ private:
     //    true:  check succeed
     template <typename TRpcHolder>
     bool check_status(TRpcHolder rpc, /*out*/ rpc_address *forward_address = nullptr);
-    template<typename TRespType>
-    bool check_status(message_ex *dsn_msg, TRespType response_struct);
+    template <typename TRespType>
+    bool check_status_with_msg(message_ex *dsn_msg, TRespType response_struct);
 
     error_code remote_storage_initialize();
     bool check_freeze() const;

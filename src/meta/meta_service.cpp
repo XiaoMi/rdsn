@@ -138,8 +138,9 @@ bool meta_service::check_status(TRpcHolder rpc, rpc_address *forward_address)
     return true;
 }
 
-template<typename TRespType>
-bool meta_service::check_status(message_ex *dsn_msg, TRespType response_struct) {
+template <typename TRespType>
+bool meta_service::check_status_with_msg(message_ex *dsn_msg, TRespType response_struct)
+{
     int result = check_leader(dsn_msg, nullptr);
     if (result == 0) {
         return false;
@@ -492,7 +493,7 @@ int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_a
 void meta_service::on_create_app(dsn::message_ex *req)
 {
     configuration_create_app_response response;
-    if (!check_status(req, response)) {
+    if (!check_status_with_msg(req, response)) {
         return;
     }
 
@@ -506,7 +507,7 @@ void meta_service::on_create_app(dsn::message_ex *req)
 void meta_service::on_drop_app(dsn::message_ex *req)
 {
     configuration_drop_app_response response;
-    if (!check_status(req, response)) {
+    if (!check_status_with_msg(req, response)) {
         return;
     }
 
@@ -520,7 +521,7 @@ void meta_service::on_drop_app(dsn::message_ex *req)
 void meta_service::on_recall_app(dsn::message_ex *req)
 {
     configuration_recall_app_response response;
-    if (!check_status(req, response)) {
+    if (!check_status_with_msg(req, response)) {
         return;
     }
 
@@ -661,7 +662,7 @@ void meta_service::on_config_sync(configuration_query_by_node_rpc rpc)
 void meta_service::on_update_configuration(dsn::message_ex *req)
 {
     configuration_update_response response;
-    if (!check_status(req, response)) {
+    if (!check_status_with_msg(req, response)) {
         return;
     }
 
@@ -756,7 +757,7 @@ void meta_service::on_start_recovery(configuration_recovery_rpc rpc)
 void meta_service::on_start_restore(dsn::message_ex *req)
 {
     configuration_create_app_response response;
-    if (!check_status(req, response)) {
+    if (!check_status_with_msg(req, response)) {
         return;
     }
 
@@ -768,7 +769,7 @@ void meta_service::on_start_restore(dsn::message_ex *req)
 void meta_service::on_add_backup_policy(dsn::message_ex *req)
 {
     configuration_add_backup_policy_response response;
-    if (!check_status(req, response)) {
+    if (!check_status_with_msg(req, response)) {
         return;
     }
 
