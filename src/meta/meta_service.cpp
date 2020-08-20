@@ -93,51 +93,6 @@ bool meta_service::check_freeze() const
     return _alive_set.size() * 100 < _node_live_percentage_threshold_for_update * total;
 }
 
-template <typename TRpcHolder>
-int meta_service::check_leader(TRpcHolder rpc, rpc_address *forward_address)
-{
-    dsn::rpc_address leader;
-    if (!_failure_detector->get_leader(&leader)) {
-        if (!rpc.dsn_request()->header->context.u.is_forward_supported) {
-            if (forward_address != nullptr)
-                *forward_address = leader;
-            return -1;
-        }
-
-        dinfo("leader address: %s", leader.to_string());
-        if (!leader.is_invalid()) {
-            rpc.forward(leader);
-            return 0;
-        } else {
-            if (forward_address != nullptr)
-                forward_address->set_invalid();
-            return -1;
-        }
-    }
-    return 1;
-}
-
-template <typename TRpcHolder>
-bool meta_service::check_status(TRpcHolder rpc, rpc_address *forward_address)
-{
-    int result = check_leader(rpc, forward_address);
-    if (result == 0)
-        return false;
-    if (result == -1 || !_started) {
-        if (result == -1) {
-            rpc.response().err = ERR_FORWARD_TO_OTHERS;
-        } else if (_recovering) {
-            rpc.response().err = ERR_UNDER_RECOVERY;
-        } else {
-            rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
-        }
-        ddebug("reject request with %s", rpc.response().err.to_string());
-        return false;
-    }
-
-    return true;
-}
-
 error_code meta_service::remote_storage_initialize()
 {
     // create storage
@@ -389,9 +344,6 @@ void meta_service::register_rpc_handlers()
 {
     register_rpc_handler_with_rpc_holder(
         RPC_CM_CONFIG_SYNC, "config_sync", &meta_service::on_config_sync);
-    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
-                                         "query_configuration_by_index",
-                                         &meta_service::on_query_configuration_by_index);
     register_rpc_handler(RPC_CM_UPDATE_PARTITION_CONFIGURATION,
                          "update_configuration",
                          &meta_service::on_update_configuration);
@@ -602,29 +554,6 @@ void meta_service::on_query_cluster_info(configuration_cluster_info_rpc rpc)
     response.keys.push_back("total_replica_count_stddev");
     response.values.push_back(fmt::format("{:.{}f}", total_stddev, 2));
     response.err = dsn::ERR_OK;
-}
-
-// client => meta server
-void meta_service::on_query_configuration_by_index(configuration_query_by_index_rpc rpc)
-{
-    configuration_query_by_index_response &response = rpc.response();
-    rpc_address forward_address;
-    if (!check_status(rpc, &forward_address)) {
-        if (!forward_address.is_invalid()) {
-            partition_configuration config;
-            config.primary = forward_address;
-            response.partitions.push_back(std::move(config));
-        }
-        return;
-    }
-
-    _state->query_configuration_by_index(rpc.request(), response);
-    if (ERR_OK == response.err) {
-        ddebug_f("client {} queried an available app {} with appid {}",
-                 rpc.dsn_request()->header->from_address.to_string(),
-                 rpc.request().app_name,
-                 response.app_id);
-    }
 }
 
 // partition sever => meta sever

@@ -106,7 +106,7 @@ class meta_service;
 // D. thread-model of meta server
 // E. load balancer
 
-class server_state
+class server_state : public serverlet<server_state>
 {
 public:
     static const int sStateHash = 0;
@@ -290,6 +290,12 @@ private:
 
     void process_one_partition(std::shared_ptr<app_state> &app);
     void transition_staging_state(std::shared_ptr<app_state> &app);
+
+    void register_rpc_handlers();
+    void unregister_rpc_handlers();
+
+    // client => meta server
+    void on_query_configuration_by_index(configuration_query_by_index_rpc rpc);
 
 private:
     friend class test::test_checker;

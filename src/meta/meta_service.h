@@ -47,12 +47,12 @@
 #include "meta_backup_service.h"
 #include "meta_state_service_utils.h"
 #include "block_service/block_service_manager.h"
+#include "meta_server_failure_detector.h"
 
 namespace dsn {
 namespace replication {
 
 class server_state;
-class meta_server_failure_detector;
 class server_load_balancer;
 class meta_duplication_service;
 class meta_split_service;
@@ -128,13 +128,31 @@ public:
 
     dsn::task_tracker *tracker() { return &_tracker; }
 
+    template <typename TRpcHolder>
+    bool check_status(TRpcHolder rpc, /*out*/ rpc_address *forward_address = nullptr)
+    {
+        int result = check_leader(rpc, forward_address);
+        if (result == 0)
+            return false;
+        if (result == -1 || !_started) {
+            if (result == -1) {
+                rpc.response().err = ERR_FORWARD_TO_OTHERS;
+            } else if (_recovering) {
+                rpc.response().err = ERR_UNDER_RECOVERY;
+            } else {
+                rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
+            }
+            ddebug("reject request with %s", rpc.response().err.to_string());
+            return false;
+        }
+
+        return true;
+    }
+
 private:
     void register_rpc_handlers();
     void register_ctrl_commands();
     void unregister_ctrl_commands();
-
-    // client => meta server
-    void on_query_configuration_by_index(configuration_query_by_index_rpc rpc);
 
     // partition server => meta server
     void on_config_sync(configuration_query_by_node_rpc rpc);
@@ -195,9 +213,29 @@ private:
     // if return -1 and `forward_address' != nullptr, then return leader by `forward_address'.
     int check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address);
     template <typename TRpcHolder>
-    int check_leader(TRpcHolder rpc, /*out*/ rpc_address *forward_address);
-    template <typename TRpcHolder>
-    bool check_status(TRpcHolder rpc, /*out*/ rpc_address *forward_address = nullptr);
+    int check_leader(TRpcHolder rpc, rpc_address *forward_address)
+    {
+        dsn::rpc_address leader;
+        if (!_failure_detector->get_leader(&leader)) {
+            if (!rpc.dsn_request()->header->context.u.is_forward_supported) {
+                if (forward_address != nullptr)
+                    *forward_address = leader;
+                return -1;
+            }
+
+            dinfo("leader address: %s", leader.to_string());
+            if (!leader.is_invalid()) {
+                rpc.forward(leader);
+                return 0;
+            } else {
+                if (forward_address != nullptr)
+                    forward_address->set_invalid();
+                return -1;
+            }
+        }
+        return 1;
+    }
+
     error_code remote_storage_initialize();
     bool check_freeze() const;
 
@@ -205,6 +243,7 @@ private:
     friend class test::test_checker;
     friend class meta_service_test_app;
     friend class bulk_load_service_test;
+    friend class server_state;
 
     replication_options _opts;
     meta_options _meta_opts;
