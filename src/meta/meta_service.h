@@ -129,25 +129,7 @@ public:
     dsn::task_tracker *tracker() { return &_tracker; }
 
     template <typename TRpcHolder>
-    bool check_status(TRpcHolder rpc, /*out*/ rpc_address *forward_address = nullptr)
-    {
-        int result = check_leader(rpc, forward_address);
-        if (result == 0)
-            return false;
-        if (result == -1 || !_started) {
-            if (result == -1) {
-                rpc.response().err = ERR_FORWARD_TO_OTHERS;
-            } else if (_recovering) {
-                rpc.response().err = ERR_UNDER_RECOVERY;
-            } else {
-                rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
-            }
-            ddebug("reject request with %s", rpc.response().err.to_string());
-            return false;
-        }
-
-        return true;
-    }
+    bool check_status(TRpcHolder rpc, /*out*/ rpc_address *forward_address = nullptr);
 
 private:
     void register_rpc_handlers();
@@ -213,28 +195,7 @@ private:
     // if return -1 and `forward_address' != nullptr, then return leader by `forward_address'.
     int check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address);
     template <typename TRpcHolder>
-    int check_leader(TRpcHolder rpc, rpc_address *forward_address)
-    {
-        dsn::rpc_address leader;
-        if (!_failure_detector->get_leader(&leader)) {
-            if (!rpc.dsn_request()->header->context.u.is_forward_supported) {
-                if (forward_address != nullptr)
-                    *forward_address = leader;
-                return -1;
-            }
-
-            dinfo("leader address: %s", leader.to_string());
-            if (!leader.is_invalid()) {
-                rpc.forward(leader);
-                return 0;
-            } else {
-                if (forward_address != nullptr)
-                    forward_address->set_invalid();
-                return -1;
-            }
-        }
-        return 1;
-    }
+    int check_leader(TRpcHolder rpc, rpc_address *forward_address);
 
     error_code remote_storage_initialize();
     bool check_freeze() const;
@@ -294,6 +255,54 @@ private:
 
     dsn::task_tracker _tracker;
 };
+
+template <typename TRpcHolder>
+bool meta_service::check_status(TRpcHolder rpc, /*out*/ rpc_address *forward_address)
+{
+    int result = check_leader(rpc, forward_address);
+    if (result == 0) {
+        return false;
+    }
+    if (result == -1 || !_started) {
+        if (result == -1) {
+            rpc.response().err = ERR_FORWARD_TO_OTHERS;
+        } else if (_recovering) {
+            rpc.response().err = ERR_UNDER_RECOVERY;
+        } else {
+            rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
+        }
+        ddebug("reject request with %s", rpc.response().err.to_string());
+        return false;
+    }
+
+    return true;
+}
+
+template <typename TRpcHolder>
+int meta_service::check_leader(TRpcHolder rpc, rpc_address *forward_address)
+{
+    dsn::rpc_address leader;
+    if (!_failure_detector->get_leader(&leader)) {
+        if (!rpc.dsn_request()->header->context.u.is_forward_supported) {
+            if (forward_address != nullptr) {
+                *forward_address = leader;
+            }
+            return -1;
+        }
+
+        dinfo("leader address: %s", leader.to_string());
+        if (!leader.is_invalid()) {
+            rpc.forward(leader);
+            return 0;
+        } else {
+            if (forward_address != nullptr) {
+                forward_address->set_invalid();
+            }
+            return -1;
+        }
+    }
+    return 1;
+}
 
 } // namespace replication
 } // namespace dsn
