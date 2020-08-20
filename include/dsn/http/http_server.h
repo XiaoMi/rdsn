@@ -8,8 +8,11 @@
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/cpp/serverlet.h>
 #include <dsn/utility/errors.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
+
+DSN_DECLARE_bool(enable_http_server);
 
 enum http_method
 {
@@ -73,7 +76,7 @@ public:
 class http_server : public serverlet<http_server>
 {
 public:
-    explicit http_server(bool start = true);
+    explicit http_server();
 
     ~http_server() override = default;
 

@@ -16,6 +16,8 @@
 
 namespace dsn {
 
+DSN_DEFINE_bool("http", enable_http_server, true, "whether to enable the embedded HTTP server");
+
 /*extern*/ std::string http_status_code_to_string(http_status_code code)
 {
     switch (code) {
@@ -37,6 +39,9 @@ namespace dsn {
 
 void http_service::register_handler(std::string path, http_callback cb, std::string help)
 {
+    if (!FLAGS_enable_http_server) {
+        return;
+    }
     auto call = make_unique<http_call>();
     call->path = this->path();
     if (!path.empty()) {
@@ -47,9 +52,9 @@ void http_service::register_handler(std::string path, http_callback cb, std::str
     http_call_registry::instance().add(std::move(call));
 }
 
-http_server::http_server(bool start /*default=true*/) : serverlet<http_server>("http_server")
+http_server::http_server() : serverlet<http_server>("http_server")
 {
-    if (!start) {
+    if (!FLAGS_enable_http_server) {
         return;
     }
 

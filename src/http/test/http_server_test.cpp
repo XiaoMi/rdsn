@@ -47,7 +47,9 @@ TEST(http_server, parse_url)
 
 TEST(root_http_service_test, get_help)
 {
-    http_server server(false);
+    bool old_flag_value = FLAGS_enable_http_server;
+    FLAGS_enable_http_server = false;
+    http_server server;
     auto root = new root_http_service();
     server.add_service(root);
 
@@ -61,6 +63,7 @@ TEST(root_http_service_test, get_help)
     server.add_service(ver);
     root->default_handler(req, resp);
     ASSERT_EQ(resp.body, "{\"/\":\"ip:port/\",\"/version\":\"ip:port/version\"}\n");
+    FLAGS_enable_http_server = old_flag_value; // restore old value
 }
 
 class http_message_parser_test : public testing::Test
