@@ -37,7 +37,7 @@ namespace dsn {
 
 void http_service::register_handler(std::string path, http_callback cb, std::string help)
 {
-    auto call = std::make_shared<http_call>();
+    auto call = make_unique<http_call>();
     call->path = this->path();
     if (!path.empty()) {
         call->path += "/" + std::move(path);

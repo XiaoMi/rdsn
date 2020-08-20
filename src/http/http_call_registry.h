@@ -42,9 +42,13 @@ public:
         _call_map.erase(path);
     }
 
-    void add(std::shared_ptr<http_call> call)
+    void add(std::unique_ptr<http_call> call_uptr)
     {
+        auto call = std::shared_ptr<http_call>(call_uptr.release());
         std::lock_guard<std::mutex> guard(_mu);
+        dassert(_call_map.find(call->path) == _call_map.end(),
+                "repeatedly register http call %s",
+                call->path.c_str());
         _call_map[call->path] = call;
     }
 
@@ -58,6 +62,10 @@ public:
         }
         return ret;
     }
+
+private:
+    friend class utils::singleton<http_call_registry>;
+    http_call_registry() = default;
 
 private:
     mutable std::mutex _mu;
