@@ -2576,7 +2576,7 @@ void server_state::do_update_app_info(const std::string &app_path,
 {
     // persistent envs to zookeeper
     blob value = dsn::json::json_forwarder<app_info>::encode(info);
-    auto new_cb = [this, app_path, info, user_cb = std::move(cb)](error_code ec)
+    auto new_cb = [ this, app_path, info, user_cb = std::move(cb)](error_code ec)
     {
         if (ec == ERR_OK) {
             user_cb(ec);
