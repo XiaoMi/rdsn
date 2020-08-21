@@ -57,7 +57,7 @@ const char *logger_level_to_string(int level)
 
 int sasl_simple_logger(void *context, int level, const char *msg)
 {
-    if (level == SASL_LOG_NONE || nullptr == msg) {
+    if (SASL_LOG_NONE == level || nullptr == msg) {
         return SASL_OK;
     }
 
