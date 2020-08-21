@@ -77,13 +77,6 @@ void rpc_session::set_connected()
                     (_connect_state == SS_CONNECTING && !security::FLAGS_enable_auth),
                 "wrong session state");
         _connect_state = SS_CONNECTED;
-
-        // insert the pending messages which are pended by connecting into send queue
-        for (const auto &msg : _pending_connected) {
-            msg->dl.insert_before(&_messages);
-            ++_message_count;
-        }
-        _pending_connected.clear();
     }
 
     rpc_session_ptr sp = this;
@@ -137,12 +130,6 @@ void rpc_session::clear_send_queue(bool resend_msgs)
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
         _sending_msgs.swap(swapped_sending_msgs);
         _sending_buffers.clear();
-    }
-    {
-        utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        swapped_sending_msgs.insert(
-            swapped_sending_msgs.end(), _pending_connected.begin(), _pending_connected.end());
-        _pending_connected.clear();
     }
 
     // resend pending messages if need
@@ -287,23 +274,18 @@ void rpc_session::send_message(message_ex *msg)
     uint64_t sig;
     {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
+        msg->dl.insert_before(&_messages);
+        ++_message_count;
 
         // Attention: here we only allow two cases to send message:
         //  case 1: session's state is SS_CONNECTED
         //  case 2: session is sending negotiation message
-        if (SS_CONNECTED == _connect_state || security::is_negotiation_message(msg->rpc_code())) {
-            msg->dl.insert_before(&_messages);
-            ++_message_count;
-
-            if (!_is_sending_next) {
-                _is_sending_next = true;
-                sig = _message_sent + 1;
-                unlink_message_for_send();
-            } else { // is under send msg, just return
-                return;
-            }
-        } else {
-            _pending_connected.push_back(msg);
+        if ((SS_CONNECTED == _connect_state || security::is_negotiation_message(msg->rpc_code())) &&
+            !_is_sending_next) {
+            _is_sending_next = true;
+            sig = _message_sent + 1;
+            unlink_message_for_send();
+        } else { // is under send msg, just return
             return;
         }
     }
