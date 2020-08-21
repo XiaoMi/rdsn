@@ -88,7 +88,7 @@ void client_negotiation::recv_mechanisms(const negotiation_response &resp)
         return;
     }
 
-    std::string match_mechanism = "";
+    std::string match_mechanism;
     std::vector<std::string> server_support_mechanisms;
     std::string resp_string = resp.msg;
     utils::split_args(resp_string.c_str(), server_support_mechanisms, ',');
