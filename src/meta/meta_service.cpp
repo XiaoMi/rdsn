@@ -139,9 +139,9 @@ bool meta_service::check_status(TRpcHolder rpc, rpc_address *forward_address)
 }
 
 template <typename TRespType>
-bool meta_service::check_status_with_msg(message_ex *dsn_msg, TRespType response_struct)
+bool meta_service::check_status_with_msg(message_ex *req, TRespType response_struct)
 {
-    int result = check_leader(dsn_msg, nullptr);
+    int result = check_leader(req, nullptr);
     if (result == 0) {
         return false;
     }
@@ -154,7 +154,7 @@ bool meta_service::check_status_with_msg(message_ex *dsn_msg, TRespType response
             response_struct.err = ERR_SERVICE_NOT_ACTIVE;
         }
         ddebug("reject request with %s", response_struct.err.to_string());
-        reply(dsn_msg, response_struct);
+        reply(req, response_struct);
         return false;
     }
 
