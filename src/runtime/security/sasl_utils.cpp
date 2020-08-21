@@ -1,8 +1,26 @@
-// Copyright (c) 2017, Xiaomi, Inc.  All rights reserved.
-// This source code is licensed under the Apache License Version 2.0, which
-// can be found in the LICENSE file in the root directory of this source tree.
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 #include "sasl_utils.h"
+#include "kinit_context.h"
+
+#include <sasl/sasl.h>
+#include <sasl/saslplug.h>
+#include <functional>
 
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
@@ -61,9 +79,7 @@ int sasl_get_username(void *context, int id, const char **result, unsigned *len)
     if (nullptr == result) {
         return SASL_BADPARAM;
     }
-    // TODO(zlw)
-    // static std::string username = get_username();
-    std::string username;
+    static const std::string username = get_username();
     switch (id) {
     case SASL_CB_USER:
     case SASL_CB_AUTHNAME:
@@ -114,7 +130,7 @@ void sasl_set_mutex_local()
                    &sasl_mutex_free_local);
 }
 
-error_s sasl_init(bool is_server)
+error_s init_sasl(bool is_server)
 {
     sasl_set_mutex_local();
     int err = 0;

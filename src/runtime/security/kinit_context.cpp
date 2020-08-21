@@ -71,13 +71,15 @@ error_s check_configuration()
     return error_s::ok();
 }
 
-class kinit_context
+class kinit_context : public utils::singleton<kinit_context>
 {
 public:
     kinit_context() : _opt(nullptr) {}
     virtual ~kinit_context();
+
     // implementation of 'kinit -k -t <keytab_file> <principal>'
     error_s kinit();
+    const std::string username() const { return _user_name; }
 
 private:
     // init kerberos context
@@ -310,11 +312,8 @@ error_s kinit_context::wrap_krb5_err(krb5_error_code krb5_err, const std::string
     return result_err;
 }
 
-error_s run_kinit()
-{
-    static kinit_context context;
-    return context.kinit();
-}
+error_s run_kinit() { return kinit_context::instance().kinit(); }
 
+const std::string get_username() { return kinit_context::instance().username(); }
 } // namespace security
 } // namespace dsn
