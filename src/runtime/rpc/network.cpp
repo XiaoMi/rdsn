@@ -30,8 +30,9 @@
 #include "runtime/rpc/rpc_engine.h"
 
 #include <dsn/tool-api/network.h>
-#include <dsn/utility/factory_store.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/flags.h>
+#include <dsn/utility/factory_store.h>
 
 namespace dsn {
 /*static*/ join_point<void, rpc_session *>
@@ -40,7 +41,7 @@ namespace dsn {
     rpc_session::on_rpc_session_disconnected("rpc.session.disconnected");
 
 namespace security {
-extern bool FLAGS_enable_auth;
+DSN_DECLARE_bool(enable_auth);
 } // namespace security
 
 rpc_session::~rpc_session()
