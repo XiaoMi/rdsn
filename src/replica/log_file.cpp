@@ -318,10 +318,6 @@ aio_task_ptr log_file::commit_log_blocks(log_appender &pending,
                                  hash);
     }
 
-    for (auto &mutation : pending.mutations()) {
-        mutation->tracer->set_sub_tracer(tsk->tracer);
-    }
-
     _end_offset.fetch_add(size);
     return tsk;
 }

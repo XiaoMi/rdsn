@@ -136,7 +136,6 @@ void native_linux_aio_provider::complete_aio(struct iocb *io, int bytes, int err
 
     if (!aio->evt) {
         aio_task *aio_ptr(aio->tsk);
-        aio_ptr->tracer->add_point("aio task complete");
         aio->this_->complete_io(aio_ptr, ec, bytes);
     } else {
         aio->err = ec;
@@ -149,7 +148,6 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
                                                    bool async,
                                                    /*out*/ uint32_t *pbytes /*= nullptr*/)
 {
-    aio_tsk->tracer->add_point("aio task submit");
     struct iocb *cbs[1];
     linux_disk_aio_context *aio;
     int ret;
@@ -199,7 +197,6 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
 
     cbs[0] = &aio->cb;
     ret = io_submit(_ctx, 1, cbs);
-    aio_tsk->tracer->add_point("aio task submit complete");
 
     if (ret != 1) {
         if (ret < 0)
