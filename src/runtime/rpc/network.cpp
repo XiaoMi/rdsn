@@ -285,7 +285,7 @@ void rpc_session::send_message(message_ex *msg)
             _is_sending_next = true;
             sig = _message_sent + 1;
             unlink_message_for_send();
-        } else { // is under send msg, just return
+        } else {
             return;
         }
     }
