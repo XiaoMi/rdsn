@@ -17,8 +17,9 @@
 
 #pragma once
 
-#include <dsn/utility/errors.h>
 #include "negotiation.h"
+
+#include <dsn/utility/errors.h>
 
 namespace dsn {
 namespace security {
