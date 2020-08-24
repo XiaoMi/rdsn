@@ -74,14 +74,15 @@ error_s check_configuration()
 class kinit_context : public utils::singleton<kinit_context>
 {
 public:
-    kinit_context() : _opt(nullptr) {}
-    virtual ~kinit_context();
+    ~kinit_context();
 
     // implementation of 'kinit -k -t <keytab_file> <principal>'
     error_s kinit();
-    const std::string username() const { return _user_name; }
+    const std::string &username() const { return _user_name; }
 
 private:
+    kinit_context() : _opt(nullptr) {}
+
     // init kerberos context
     void init_krb5_ctx();
 
@@ -111,6 +112,8 @@ private:
 
     uint64_t _cred_expire_timestamp;
     std::shared_ptr<boost::asio::deadline_timer> _timer;
+
+    friend class utils::singleton<kinit_context>;
 };
 
 kinit_context::~kinit_context() { krb5_get_init_creds_opt_free(_krb5_context, _opt); }
@@ -314,6 +317,6 @@ error_s kinit_context::wrap_krb5_err(krb5_error_code krb5_err, const std::string
 
 error_s run_kinit() { return kinit_context::instance().kinit(); }
 
-const std::string get_username() { return kinit_context::instance().username(); }
+const std::string &get_username() { return kinit_context::instance().username(); }
 } // namespace security
 } // namespace dsn
