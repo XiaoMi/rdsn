@@ -412,6 +412,11 @@ bool rpc_session::is_auth_success(message_ex *msg)
     return true;
 }
 
+bool rpc_session::in_security_write_list(task_code code)
+{
+    return security::is_negotiation_message(code) && fd::is_failure_detector_message(code);
+}
+
 void rpc_session::on_failure(bool is_write)
 {
     if (on_disconnected(is_write)) {
@@ -434,9 +439,8 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
     msg->to_address = _net.address();
     msg->io_session = this;
 
-    // return false if msg is negotiation message and auth is not success
-    if (!security::is_negotiation_message(msg->rpc_code()) &&
-        !fd::is_failure_detector_message(msg->rpc_code()) && !is_auth_success(msg)) {
+    // reply with error_code ERR_UNAUTHENTICATED if msg is not in whitelist and auth is not success
+    if (!in_security_write_list(msg->rpc_code()) && !is_auth_success(msg)) {
         // reply response with ERR_UNAUTHENTICATED if msg is request
         if (msg->header->context.u.is_request) {
             _net.engine()->reply(msg->create_response(), ERR_UNAUTHENTICATED);
