@@ -54,12 +54,14 @@ bool init(bool is_server)
         derror_f("initialize kerberos failed, with err = {}", err.description());
         return false;
     }
+    ddebug("initialize kerberos succeed");
 
     err = init_sasl(is_server);
     if (!err.is_ok()) {
         derror_f("initialize sasl failed, with err = {}", err.description());
         return false;
     }
+    ddebug("initialize sasl succeed");
 
     return true;
 }
