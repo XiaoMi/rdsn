@@ -28,17 +28,13 @@ DSN_DEFINE_bool("replication", enable_latency_tracer, false, "whether enable the
 latency_tracer::latency_tracer(const std::string &name,
                                const bool is_open,
                                const uint64_t threshold)
-    : _name(name),
-      _is_open(is_open),
-      _threshold(threshold),
-      _is_sub(false),
-      _start_time(dsn_now_ns())
+    : _name(name), _threshold(threshold), _is_sub(false), _start_time(dsn_now_ns())
 {
 }
 
 latency_tracer::~latency_tracer()
 {
-    if (!_is_open || _is_sub) {
+    if (_is_sub) {
         return;
     }
 
@@ -48,7 +44,7 @@ latency_tracer::~latency_tracer()
 
 void latency_tracer::add_point(const std::string &stage_name)
 {
-    if (!FLAGS_enable_latency_tracer || !_is_open) {
+    if (!FLAGS_enable_latency_tracer) {
         return;
     }
 
@@ -59,17 +55,16 @@ void latency_tracer::add_point(const std::string &stage_name)
 
 void latency_tracer::set_sub_tracer(const std::shared_ptr<latency_tracer> &tracer)
 {
-    if (!FLAGS_enable_latency_tracer || !_is_open) {
+    if (!FLAGS_enable_latency_tracer) {
         return;
     }
     tracer->_is_sub = true;
-    tracer->_is_open = true;
     _sub_tracer = tracer;
 }
 
 void latency_tracer::dump_trace_points(std::string &traces)
 {
-    if (!FLAGS_enable_latency_tracer || !_is_open || _threshold < 0 || _points.empty()) {
+    if (!FLAGS_enable_latency_tracer || _threshold < 0 || _points.empty()) {
         return;
     }
 

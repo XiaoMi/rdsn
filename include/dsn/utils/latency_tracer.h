@@ -65,9 +65,7 @@ public:
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
     //  threshold > 0: dump the trace point when time_used > threshold
-    latency_tracer(const std::string &name,
-                   const bool is_open = false,
-                   const uint64_t threshold = 0);
+    latency_tracer(const std::string &name, const uint64_t threshold = 0);
 
     ~latency_tracer();
 
@@ -90,7 +88,6 @@ private:
     utils::rw_lock_nr _lock;
 
     const std::string _name;
-    bool _is_open;
     const uint64_t _threshold;
     bool _is_sub;
     const uint64_t _start_time;
