@@ -27,7 +27,7 @@ namespace utils {
  * execution. It can help users to figure out where the latency bottleneck is located. User needs to
  * use `add_point` before entering one stage, which will record the name of this stage and its start
  * time. When the request is finished, the formatted result can be dumped automatically in
- *deconstructer
+ * deconstructer
  *
  * For example, given a request with a 4-stage pipeline (the `latency_tracer` need to
  * be held by this request throughout the execution):
