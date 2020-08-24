@@ -133,6 +133,8 @@ void sasl_set_mutex_local()
 
 error_s init_sasl(bool is_server)
 {
+    // server is also a client to other server.
+    // for example: replica server is a client of meta server.
     sasl_set_mutex_local();
     int err = sasl_client_init(&client_callbacks[0]);
     error_s ret = error_s::make(ERR_OK);

@@ -81,7 +81,7 @@ public:
     const std::string &username() const { return _user_name; }
 
 private:
-    kinit_context() : _opt(nullptr) {}
+    kinit_context() = default;
 
     // init kerberos context
     void init_krb5_ctx();
