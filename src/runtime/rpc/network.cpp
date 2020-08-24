@@ -441,7 +441,6 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
 
     // reply with error_code ERR_UNAUTHENTICATED if msg is not in whitelist and auth is not success
     if (!in_security_white_list(msg->rpc_code()) && !is_auth_success(msg)) {
-        // reply response with ERR_UNAUTHENTICATED if msg is request
         if (msg->header->context.u.is_request) {
             _net.engine()->reply(msg->create_response(), ERR_UNAUTHENTICATED);
         }
