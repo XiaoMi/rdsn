@@ -30,8 +30,8 @@ inline const char *enum_to_string(negotiation_status::type s)
         return "negotiation_list_mechanisms_resp";
     case negotiation_status::type::SASL_SELECT_MECHANISMS:
         return "negotiation_select_mechanisms";
-    case negotiation_status::type::SASL_SELECT_MECHANISMS_OK:
-        return "negotiation_select_mechanisms_ok";
+    case negotiation_status::type::SASL_SELECT_MECHANISMS_RESP:
+        return "negotiation_select_mechanisms_resp";
     case negotiation_status::type::SASL_SUCC:
         return "negotiation_succ";
     case negotiation_status::type::SASL_AUTH_FAIL:
@@ -52,5 +52,11 @@ inline const char *enum_to_string(negotiation_status::type s)
 }
 
 DEFINE_TASK_CODE_RPC(RPC_NEGOTIATION, TASK_PRIORITY_COMMON, dsn::THREAD_POOL_DEFAULT)
+
+inline bool is_negotiation_message(dsn::task_code code)
+{
+    return code == RPC_NEGOTIATION || code == RPC_NEGOTIATION_ACK;
+}
+
 } // namespace security
 } // namespace dsn
