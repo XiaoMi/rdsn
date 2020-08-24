@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <dsn/utility/errors.h>
 #include "negotiation.h"
 
 namespace dsn {
@@ -33,6 +34,8 @@ public:
 
 private:
     void on_list_mechanisms(negotiation_rpc rpc);
+    void on_select_mechanism(negotiation_rpc rpc);
+    error_s do_sasl_server_init();
     void fail_negotiation(negotiation_rpc rpc, const std::string &reason);
 };
 
