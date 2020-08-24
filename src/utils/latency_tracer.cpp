@@ -60,7 +60,7 @@ void latency_tracer::set_sub_tracer(const std::shared_ptr<latency_tracer> &trace
     _sub_tracer = tracer;
 }
 
-void latency_tracer::dump_trace_points(std::string &traces)
+void latency_tracer::dump_trace_points(/*out*/ std::string &traces)
 {
     if (!FLAGS_enable_latency_tracer || _threshold < 0 || _points.empty()) {
         return;
