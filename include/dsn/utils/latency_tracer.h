@@ -26,8 +26,8 @@ namespace utils {
  * latency_tracer is a tool for tracking the time spent in each of the stages during request
  * execution. It can help users to figure out where the latency bottleneck is located. User needs to
  * use `add_point` before entering one stage, which will record the name of this stage and its start
- * time. When the request is finished, the formatted result can be dumped automatically via
- * "dump_trace_points".
+ * time. When the request is finished, the formatted result can be dumped automatically in
+ *deconstructer
  *
  * For example, given a request with a 4-stage pipeline (the `latency_tracer` need to
  * be held by this request throughout the execution):
@@ -65,7 +65,7 @@ public:
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
     //  threshold > 0: dump the trace point when time_used > threshold
-    latency_tracer(const std::string &name, const uint64_t threshold = 0);
+    latency_tracer(const std::string &name, uint64_t threshold = 0);
 
     ~latency_tracer();
 

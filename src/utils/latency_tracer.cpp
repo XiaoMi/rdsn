@@ -25,7 +25,7 @@ namespace utils {
 
 DSN_DEFINE_bool("replication", enable_latency_tracer, false, "whether enable the latency tracer");
 
-latency_tracer::latency_tracer(const std::string &name, const uint64_t threshold)
+latency_tracer::latency_tracer(const std::string &name, uint64_t threshold)
     : _name(name), _threshold(threshold), _is_sub(false), _start_time(dsn_now_ns())
 {
 }
