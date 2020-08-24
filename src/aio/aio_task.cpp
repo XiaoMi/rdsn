@@ -5,7 +5,6 @@
 #include "runtime/task/task_engine.h"
 #include <dsn/tool-api/file_io.h>
 #include <dsn/utility/error_code.h>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 
