@@ -223,7 +223,7 @@ void replica::execute_mutation(mutation_ptr &mu)
           name(),
           mu->name(),
           static_cast<int>(mu->client_requests.size()));
-    mu->tracer->add_point("ready to execute the mutation");
+    ADD_POINT(mu->tracer);
 
     error_code err = ERR_OK;
     decree d = mu->data.header.decree;
@@ -314,7 +314,7 @@ void replica::execute_mutation(mutation_ptr &mu)
     }
 
     // update table level latency perf-counters for primary partition
-    mu->tracer->add_point("write mutation to rocksdb completed");
+    ADD_CUSTOM_POINT(mu->tracer, "completed");
     if (partition_status::PS_PRIMARY == status()) {
         uint64_t now_ns = dsn_now_ns();
         for (auto update : mu->data.updates) {
