@@ -124,6 +124,7 @@ int sasl_mutex_unlock_local(void *m)
 
 void sasl_set_mutex_local()
 {
+    // sasl_set_mutex is a function in <sasl/sasl.h>
     sasl_set_mutex(&sasl_mutex_alloc_local,
                    &sasl_mutex_lock_local,
                    &sasl_mutex_unlock_local,
