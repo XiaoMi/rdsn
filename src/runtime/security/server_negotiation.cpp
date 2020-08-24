@@ -73,7 +73,6 @@ void server_negotiation::on_list_mechanisms(negotiation_rpc rpc)
 
 void server_negotiation::on_select_mechanism(negotiation_rpc rpc)
 {
-    ddebug("test point");
     const negotiation_request &request = rpc.request();
     if (request.status == negotiation_status::type::SASL_SELECT_MECHANISMS) {
         _selected_mechanism = request.msg;
@@ -84,8 +83,6 @@ void server_negotiation::on_select_mechanism(negotiation_rpc rpc)
             fail_negotiation(rpc, error_msg);
             return;
         }
-
-        ddebug_f("test point, select_mechanism = {}", _selected_mechanism);
 
         error_s err_s = do_sasl_server_init();
         if (!err_s.is_ok()) {
