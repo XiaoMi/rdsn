@@ -31,27 +31,20 @@ namespace dsn {
 namespace security {
 DSN_DEFINE_string("security", sasl_plugin_path, "/usr/lib/sasl2", "path to search sasl plugins");
 
-const char *logger_level_to_string(int level)
+dsn_log_level_t get_dsn_log_level(int level)
 {
+    // The log levels of LOG_LEVEL_DEBUG and LOG_LEVEL_INFORMATION are in reverse order.
+    // So here we should compatible with this case.
     switch (level) {
-    case SASL_LOG_NONE:
-        return "SASL_LOG_NONE";
     case SASL_LOG_ERR:
-        return "SASL_LOG_ERR";
+        return LOG_LEVEL_ERROR;
     case SASL_LOG_FAIL:
-        return "SASL_LOG_FAIL";
     case SASL_LOG_WARN:
-        return "SASL_LOG_WARN";
+        return LOG_LEVEL_WARNING;
     case SASL_LOG_NOTE:
-        return "SASL_LOG_NOTE";
-    case SASL_LOG_DEBUG:
-        return "SASL_LOG_DEBUG";
-    case SASL_LOG_TRACE:
-        return "SASL_LOG_TRACE";
-    case SASL_LOG_PASS:
-        return "SASL_LOG_PASS";
+        return LOG_LEVEL_DEBUG;
     default:
-        return "Unkown SASL log level";
+        return LOG_LEVEL_INFORMATION;
     }
 }
 
@@ -61,7 +54,7 @@ int sasl_simple_logger(void *context, int level, const char *msg)
         return SASL_OK;
     }
 
-    ddebug_f("sasl log info: log level = {}, message = {}", logger_level_to_string(level), msg);
+    dlog_f(get_dsn_log_level(level), "sasl log info: {}", msg);
     return SASL_OK;
 }
 
