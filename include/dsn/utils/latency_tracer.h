@@ -18,6 +18,7 @@
 #pragma once
 #include <dsn/utility/synchronize.h>
 #include <dsn/utility/flags.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace utils {
