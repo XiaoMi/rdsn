@@ -79,14 +79,16 @@ TEST_F(latency_tracer_test, add_point)
     ASSERT_EQ(tracer1_points.size(), _tracer1_stage_count);
     int count1 = 0;
     for (auto point : tracer1_points) {
-        // ASSERT_EQ(point.second, fmt::format("stage{}", count1++));
+        ASSERT_EQ(point.second,
+                  fmt::format("latency_tracer_test.cpp:46:init_trace_points[stage{}]", count1++));
     }
 
     auto tracer2_points = get_points(_tracer2);
     ASSERT_EQ(tracer2_points.size(), _tracer2_stage_count);
     int count2 = 0;
     for (auto point : tracer2_points) {
-        // ASSERT_EQ(point.second, fmt::format("stage{}", count2++));
+        ASSERT_EQ(point.second,
+                  fmt::format("latency_tracer_test.cpp:52:init_trace_points[stage{}]", count2++));
     }
 
     auto tracer1_sub_tracer = get_sub_tracer(_tracer1);
@@ -98,7 +100,8 @@ TEST_F(latency_tracer_test, add_point)
     ASSERT_EQ(points.size(), _sub_tracer_stage_count);
     int count3 = 0;
     for (auto point : points) {
-        // ASSERT_EQ(point.second, fmt::format("stage{}", count3++));
+        ASSERT_EQ(point.second,
+                  fmt::format("latency_tracer_test.cpp:61:init_trace_points[stage{}]", count3++));
     }
 }
 } // namespace utils
