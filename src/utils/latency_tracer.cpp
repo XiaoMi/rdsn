@@ -77,7 +77,7 @@ void latency_tracer::dump_trace_points(/*out*/ std::string &traces)
     traces.append(fmt::format("\t***************[TRACE:{}]***************\n", _name));
     uint64_t previous_time = _start_time;
     for (const auto &point : _points) {
-        std::string trace = fmt::format("\tTRACE:name={:<50}, span={:>20}, total={:>20}, "
+        std::string trace = fmt::format("\tTRACE:name={:<70}, span={:>20}, total={:>20}, "
                                         "ts={:<20}\n",
                                         point.second,
                                         point.first - previous_time,
