@@ -594,7 +594,7 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
     } else {
         int64_t now = dsn_now_ns();
 
-        ADD_CUSTOM_POINT(mu->tracer,fmt::format("error:{}", request->to_address.to_string());
+        ADD_CUSTOM_POINT(mu->tracer,fmt::format("error:{}", request->to_address.to_string()));
         derror("%s: mutation %s on_prepare_reply from %s, appro_data_bytes = %d, "
                "target_status = %s, err = %s",
                name(),
