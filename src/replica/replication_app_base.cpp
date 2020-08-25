@@ -26,6 +26,7 @@
 
 #include "replica.h"
 #include "mutation.h"
+#include <dsn/utils/latency_tracer.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>

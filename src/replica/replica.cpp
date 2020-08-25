@@ -32,6 +32,7 @@
 #include "backup/replica_backup_manager.h"
 #include "bulk_load/replica_bulk_loader.h"
 
+#include <dsn/utils/latency_tracer.h>
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>

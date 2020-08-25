@@ -28,6 +28,7 @@
 #include "replica.h"
 #include "mutation_log_utils.h"
 
+#include <dsn/utils/latency_tracer.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/crc.h>
 #include <dsn/utility/fail_point.h>

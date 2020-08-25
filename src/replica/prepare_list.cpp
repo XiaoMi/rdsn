@@ -26,6 +26,7 @@
 
 #include "prepare_list.h"
 
+#include <dsn/utils/latency_tracer.h>
 #include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
