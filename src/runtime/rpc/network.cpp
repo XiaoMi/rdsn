@@ -414,7 +414,7 @@ bool rpc_session::is_auth_success(message_ex *msg)
 
 bool rpc_session::in_security_white_list(task_code code)
 {
-    return security::is_negotiation_message(code) && fd::is_failure_detector_message(code);
+    return security::is_negotiation_message(code) || fd::is_failure_detector_message(code);
 }
 
 void rpc_session::on_failure(bool is_write)
@@ -445,7 +445,7 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
             _net.engine()->reply(msg->create_response(), ERR_UNAUTHENTICATED);
         }
         delete msg;
-        return true;
+        return false;
     }
 
     if (msg->header->context.u.is_request) {
