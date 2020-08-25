@@ -139,7 +139,7 @@ bool meta_service::check_status(TRpcHolder rpc, rpc_address *forward_address)
 }
 
 template <typename TRespType>
-bool meta_service::check_status_with_msg(message_ex *req, TRespType response_struct)
+bool meta_service::check_status_with_msg(message_ex *req, TRespType& response_struct)
 {
     int result = check_leader(req, nullptr);
     if (result == 0) {
