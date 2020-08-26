@@ -168,9 +168,11 @@ error_s call_sasl_func(sasl_conn_t *conn, const std::function<int()> &call)
     error_s ret;
     switch (err) {
     case SASL_OK:
-        return error_s::make(ERR_OK);
+        ret = error_s::make(ERR_OK);
+        break;
     case SASL_CONTINUE:
-        return error_s::make(ERR_NOT_IMPLEMENTED);
+        ret = error_s::make(ERR_NOT_IMPLEMENTED);
+        break;
     case SASL_FAIL:      // Generic failure (encompasses missing krb5 credentials).
     case SASL_BADAUTH:   // Authentication failure.
     case SASL_BADMAC:    // Decode failure.
