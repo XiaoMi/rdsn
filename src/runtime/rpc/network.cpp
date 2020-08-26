@@ -286,7 +286,7 @@ void rpc_session::send_message(message_ex *msg)
 
         // Attention: here we only allow two cases to send message:
         //  case 1: session's state is SS_CONNECTED
-        //  case 2: session is sending negotiation message
+        //  case 2: session is sending message in white list
         if ((SS_CONNECTED == _connect_state || security::in_white_list(msg->rpc_code())) &&
             !_is_sending_next) {
             _is_sending_next = true;
