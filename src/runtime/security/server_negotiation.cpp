@@ -17,13 +17,18 @@
 
 #include "server_negotiation.h"
 #include "negotiation_utils.h"
+#include "sasl_utils.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <dsn/utility/strings.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/flags.h>
+#include <sasl/sasl.h>
 
 namespace dsn {
 namespace security {
+DSN_DECLARE_string(service_fqdn);
+DSN_DECLARE_string(service_name);
 
 server_negotiation::server_negotiation(rpc_session *session) : negotiation(session)
 {
@@ -108,8 +113,16 @@ void server_negotiation::on_select_mechanism(negotiation_rpc rpc)
 
 error_s server_negotiation::do_sasl_server_init()
 {
-    // TBD(zlw)
-    return error_s::make(ERR_OK);
+    sasl_conn_t *conn = nullptr;
+    error_s err_s = call_sasl_func(nullptr, [&]() {
+        return sasl_server_new(
+            FLAGS_service_name, FLAGS_service_fqdn, nullptr, nullptr, nullptr, nullptr, 0, &conn);
+    });
+    if (err_s.is_ok()) {
+        _sasl_conn.reset(conn);
+    }
+
+    return err_s;
 }
 
 void server_negotiation::fail_negotiation(negotiation_rpc rpc, const std::string &reason)

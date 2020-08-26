@@ -21,6 +21,7 @@
 
 #include <dsn/utility/flags.h>
 #include <dsn/utility/smart_pointers.h>
+#include <sasl/sasl.h>
 
 namespace dsn {
 namespace security {
@@ -42,5 +43,6 @@ std::unique_ptr<negotiation> create_negotiation(bool is_client, rpc_session *ses
     }
 }
 
+void sasl_deleter::operator()(sasl_conn_t *conn) { sasl_dispose(&conn); }
 } // namespace security
 } // namespace dsn

@@ -148,5 +148,46 @@ error_s init_sasl(bool is_server)
     }
     return ret;
 }
+
+const char *sasl_err_desc(int status, sasl_conn_t *conn)
+{
+    if (conn != nullptr) {
+        return sasl_errdetail(conn);
+    } else {
+        return sasl_errstring(status, nullptr, nullptr);
+    }
+}
+
+error_s call_sasl_func(sasl_conn_t *conn, const std::function<int()> &call)
+{
+    static utils::rw_lock_nr sasl_lock;
+    sasl_lock.lock_read();
+    int err = call();
+    sasl_lock.unlock_read();
+
+    error_s ret;
+    switch (err) {
+    case SASL_OK:
+        return error_s::make(ERR_OK);
+    case SASL_CONTINUE:
+        return error_s::make(ERR_NOT_IMPLEMENTED);
+    case SASL_FAIL:      // Generic failure (encompasses missing krb5 credentials).
+    case SASL_BADAUTH:   // Authentication failure.
+    case SASL_BADMAC:    // Decode failure.
+    case SASL_NOAUTHZ:   // Authorization failure.
+    case SASL_NOUSER:    // User not found.
+    case SASL_WRONGMECH: // Server doesn't support requested mechanism.
+    case SASL_BADSERV: { // Server failed mutual authentication.
+        ret = error_s::make(ERR_SASL_INTERNAL);
+        ret << "sasl auth failed, error: " << sasl_err_desc(err, conn);
+        break;
+    }
+    default:
+        ret = error_s::make(ERR_UNKNOWN);
+        break;
+    }
+    return ret;
+}
+
 } // namespace security
 } // namespace dsn

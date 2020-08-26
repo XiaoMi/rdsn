@@ -22,11 +22,18 @@
 #include <memory>
 #include <dsn/cpp/rpc_holder.h>
 
+typedef struct sasl_conn sasl_conn_t;
+
 namespace dsn {
 class rpc_session;
 
 namespace security {
 typedef rpc_holder<negotiation_request, negotiation_response> negotiation_rpc;
+
+struct sasl_deleter
+{
+    void operator()(sasl_conn_t *conn);
+};
 
 class negotiation
 {
@@ -47,6 +54,7 @@ protected:
     std::string _name;
     negotiation_status::type _status;
     std::string _selected_mechanism;
+    std::unique_ptr<sasl_conn_t, sasl_deleter> _sasl_conn;
 };
 
 std::unique_ptr<negotiation> create_negotiation(bool is_client, rpc_session *session);

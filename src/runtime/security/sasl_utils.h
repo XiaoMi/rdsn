@@ -19,9 +19,13 @@
 
 #include <dsn/utility/errors.h>
 
+typedef struct sasl_conn sasl_conn_t;
+
 namespace dsn {
 namespace security {
 // you must have already initialized kerberos before call init_sasl
 error_s init_sasl(bool is_server);
+
+error_s call_sasl_func(sasl_conn_t *conn, const std::function<int()> &call);
 } // namespace security
 } // namespace dsn
