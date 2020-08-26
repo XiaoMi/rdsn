@@ -43,6 +43,11 @@ namespace dsn {
 
 namespace security {
 DSN_DECLARE_bool(enable_auth);
+
+bool in_white_list(task_code code)
+{
+    return is_negotiation_message(code) || fd::is_failure_detector_message(code);
+}
 } // namespace security
 
 rpc_session::~rpc_session()
@@ -282,7 +287,7 @@ void rpc_session::send_message(message_ex *msg)
         // Attention: here we only allow two cases to send message:
         //  case 1: session's state is SS_CONNECTED
         //  case 2: session is sending negotiation message
-        if ((SS_CONNECTED == _connect_state || in_security_white_list(msg->rpc_code())) &&
+        if ((SS_CONNECTED == _connect_state || security::in_white_list(msg->rpc_code())) &&
             !_is_sending_next) {
             _is_sending_next = true;
             sig = _message_sent + 1;
@@ -412,11 +417,6 @@ bool rpc_session::is_auth_success(message_ex *msg)
     return true;
 }
 
-bool rpc_session::in_security_white_list(task_code code)
-{
-    return security::is_negotiation_message(code) || fd::is_failure_detector_message(code);
-}
-
 void rpc_session::on_failure(bool is_write)
 {
     if (on_disconnected(is_write)) {
@@ -440,7 +440,7 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
     msg->io_session = this;
 
     // reply with error_code ERR_UNAUTHENTICATED if msg is not in whitelist and auth is not success
-    if (!in_security_white_list(msg->rpc_code()) && !is_auth_success(msg)) {
+    if (!security::in_white_list(msg->rpc_code()) && !is_auth_success(msg)) {
         if (msg->header->context.u.is_request) {
             _net.engine()->reply(msg->create_response(), ERR_UNAUTHENTICATED);
         }

@@ -304,7 +304,6 @@ protected:
     void clear_send_queue(bool resend_msgs);
     bool on_disconnected(bool is_write);
     bool is_auth_success(message_ex *msg);
-    bool in_security_white_list(task_code code);
 
 protected:
     // constant info
