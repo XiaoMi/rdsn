@@ -116,6 +116,8 @@ TEST(metrics_test, histogram)
 
     test_data_sink sink;
     collect_all_metrics(&sink);
+
+    // ensure histogram emits 2 snapshots: p99, p999.
     ASSERT_EQ(sink._snapshots.size(), 2);
     std::unordered_map<std::string, std::string> expected({{"p", "99"}});
     ASSERT_EQ(sink._snapshots[0].attributes, expected);

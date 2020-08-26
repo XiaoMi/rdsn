@@ -79,6 +79,7 @@ enum class metric_unit
     kRequestsPerSecond,
     kBytes,
     kMegaBytes,
+    kUnits,
 };
 
 class metric_t;
@@ -253,6 +254,9 @@ private:
     std::unique_ptr<impl> _i;
 };
 
+// Typical usages:
+// - recent write failures count.
+// - recent replica learns count.
 class counter_t : public metric_t
 {
 public:
