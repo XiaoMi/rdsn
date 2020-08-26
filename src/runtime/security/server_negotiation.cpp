@@ -20,10 +20,9 @@
 #include "sasl_utils.h"
 
 #include <boost/algorithm/string/join.hpp>
-#include <dsn/utility/strings.h>
+#include <sasl/sasl.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/flags.h>
-#include <sasl/sasl.h>
 
 namespace dsn {
 namespace security {
