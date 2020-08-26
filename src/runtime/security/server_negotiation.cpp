@@ -89,7 +89,7 @@ void server_negotiation::on_select_mechanism(negotiation_rpc rpc)
             return;
         }
 
-        error_s err_s = do_sasl_server_init();
+        error_s err_s = sasl_server_init();
         if (!err_s.is_ok()) {
             dwarn_f("{}: server initialize sasl failed, error = {}, msg = {}",
                     _name,
@@ -111,7 +111,7 @@ void server_negotiation::on_select_mechanism(negotiation_rpc rpc)
     }
 }
 
-error_s server_negotiation::do_sasl_server_init()
+error_s server_negotiation::sasl_server_init()
 {
     sasl_conn_t *conn = nullptr;
     error_s err_s = call_sasl_func(nullptr, [&]() {
