@@ -47,23 +47,24 @@ TEST(http_server, parse_url)
 
 TEST(root_http_service_test, get_help)
 {
-    bool old_flag_value = FLAGS_enable_http_server;
-    FLAGS_enable_http_server = false;
-    http_server server;
-    auto root = new root_http_service();
-    server.add_service(root);
+    for (const auto &call : http_call_registry::instance().list_all_calls()) {
+        http_call_registry::instance().remove(call->path);
+    }
 
+    root_http_service root;
     http_request req;
     http_response resp;
-    root->default_handler(req, resp);
+    root.default_handler(req, resp);
     ASSERT_EQ(resp.status_code, http_status_code::ok);
     ASSERT_EQ(resp.body, "{\"/\":\"ip:port/\"}\n");
 
-    auto ver = new version_http_service();
-    server.add_service(ver);
-    root->default_handler(req, resp);
+    version_http_service ver;
+    root.default_handler(req, resp);
     ASSERT_EQ(resp.body, "{\"/\":\"ip:port/\",\"/version\":\"ip:port/version\"}\n");
-    FLAGS_enable_http_server = old_flag_value; // restore old value
+
+    for (const auto &call : http_call_registry::instance().list_all_calls()) {
+        http_call_registry::instance().remove(call->path);
+    }
 }
 
 class http_message_parser_test : public testing::Test
