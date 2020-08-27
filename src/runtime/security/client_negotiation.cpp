@@ -129,12 +129,6 @@ void client_negotiation::send(std::unique_ptr<negotiation_request> request)
     });
 }
 
-void client_negotiation::fail_negotiation()
-{
-    _status = negotiation_status::type::SASL_AUTH_FAIL;
-    _session->on_failure(true);
-}
-
 void client_negotiation::succ_negotiation()
 {
     _status = negotiation_status::type::SASL_SUCC;
