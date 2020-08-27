@@ -42,7 +42,8 @@ std::unique_ptr<negotiation> create_negotiation(bool is_client, rpc_session *ses
     }
 }
 
-void negotiation::fail_negotiation() {
+void negotiation::fail_negotiation()
+{
     _status = negotiation_status::type::SASL_AUTH_FAIL;
     _session->on_failure(true);
 }
