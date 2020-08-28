@@ -32,7 +32,7 @@ public:
         std::unique_ptr<tools::asio_network_provider> asio_network(
             new tools::asio_network_provider(nullptr, nullptr));
         auto session = asio_network->create_client_session(rpc_address("localhost", 10086));
-        srv_negotiation = new server_negotiation(session);
+        _srv_negotiation = new server_negotiation(session);
     }
 
     negotiation_rpc create_fake_rpc(negotiation_status::type status, const std::string &msg)
@@ -43,11 +43,11 @@ public:
         return negotiation_rpc(std::move(request), RPC_NEGOTIATION);
     }
 
-    void on_list_mechanisms(negotiation_rpc rpc) { srv_negotiation->on_list_mechanisms(rpc); }
+    void on_list_mechanisms(negotiation_rpc rpc) { _srv_negotiation->on_list_mechanisms(rpc); }
 
-    void on_select_mechanism(negotiation_rpc rpc) { srv_negotiation->on_select_mechanism(rpc); }
+    void on_select_mechanism(negotiation_rpc rpc) { _srv_negotiation->on_select_mechanism(rpc); }
 
-    server_negotiation *srv_negotiation;
+    server_negotiation *_srv_negotiation;
 };
 
 TEST_F(server_negotiation_test, on_list_mechanisms)
