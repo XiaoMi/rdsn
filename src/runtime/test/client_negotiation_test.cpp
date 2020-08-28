@@ -42,10 +42,15 @@ public:
         auto rpc = negotiation_rpc(std::move(request), RPC_NEGOTIATION);
         rpc.response().status = status;
         rpc.response().msg = msg;
+        return rpc;
     }
 
     void on_recv_mechanism(negotiation_rpc rpc) {
         _client_negotiation->on_recv_mechanisms(rpc.response());
+    }
+
+    const std::string& get_selected_mechanism() {
+        return _client_negotiation->_selected_mechanism;
     }
 
     client_negotiation *_client_negotiation;
@@ -55,30 +60,43 @@ TEST_F(client_negotiation_test, on_list_mechanisms)
 {
     struct
     {
-        negotiation_status::type req_status;
-        std::string req_msg;
         negotiation_status::type resp_status;
         std::string resp_msg;
+        std::string selected_mechanism;
     } tests[] = {
-        {negotiation_status::type::SASL_LIST_MECHANISMS_RESP,
-         "GSSAPI",
-         negotiation_status::type::SASL_SELECT_MECHANISMS},
-        {negotiation_status::type::SASL_SELECT_MECHANISMS, "", negotiation_status::type::INVALID}};
+        {negotiation_status::type::SASL_SELECT_MECHANISMS, "GSSAPI", ""},
+        {negotiation_status::type::SASL_LIST_MECHANISMS_RESP, "TEST", ""},
+        {negotiation_status::type::SASL_LIST_MECHANISMS_RESP,"GSSAPI","GSSAPI"}};
 
     fail::setup();
     fail::cfg("negotiation_fail_negotiation", "return()");
     fail::cfg("client_negotiation_send", "return()");
     RPC_MOCKING(negotiation_rpc)
     {
-        for (const auto test : tests) {
-            auto rpc = create_fake_rpc(test.req_status, "");
+        for (const auto &test : tests) {
+            auto rpc = create_fake_rpc(test.resp_status, test.resp_msg);
             on_recv_mechanism(rpc);
 
-            ASSERT_EQ(rpc.response().status, test.resp_status);
-            ASSERT_EQ(rpc.response().msg, test.resp_msg);
+            ASSERT_EQ(get_selected_mechanism(), test.selected_mechanism);
         }
     }
     fail::teardown();
+}
+
+TEST_F(client_negotiation_test, handle_response) {
+    struct
+    {
+        negotiation_status::type resp_status;
+        std::string resp_msg;
+        std::string selected_mechanism;
+    } tests[] = {
+            {negotiation_status::type::SASL_SELECT_MECHANISMS, "GSSAPI", ""},
+            {negotiation_status::type::SASL_LIST_MECHANISMS_RESP, "TEST", ""},
+            {negotiation_status::type::SASL_LIST_MECHANISMS_RESP,"GSSAPI","GSSAPI"}};
+
+    for (const auto &test : tests) {
+
+    }
 }
 } // namespace security
 } // namespace dsn
