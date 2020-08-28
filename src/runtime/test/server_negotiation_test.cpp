@@ -16,11 +16,11 @@
 // under the License.
 
 #include "runtime/security/server_negotiation.h"
+#include "runtime/security/negotiation_utils.h"
+#include "runtime/rpc/asio_net_provider.h"
 
 #include <gtest/gtest.h>
-#include <runtime/security/negotiation_utils.h>
 #include <dsn/utility/fail_point.h>
-#include <runtime/rpc/asio_net_provider.h>
 
 namespace dsn {
 namespace security {
