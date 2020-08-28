@@ -23,6 +23,7 @@
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/utility/smart_pointers.h>
 #include <dsn/utility/flags.h>
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace security {
@@ -123,6 +124,8 @@ void client_negotiation::select_mechanism(const std::string &mechanism)
 
 void client_negotiation::send(std::unique_ptr<negotiation_request> request)
 {
+    FAIL_POINT_INJECT_F("client_negotiation_send", [](dsn::string_view str) {});
+
     negotiation_rpc rpc(std::move(request), RPC_NEGOTIATION);
     rpc.call(_session->remote_address(), nullptr, [this, rpc](error_code err) mutable {
         handle_response(err, std::move(rpc.response()));
