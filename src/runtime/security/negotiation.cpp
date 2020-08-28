@@ -21,6 +21,7 @@
 
 #include <dsn/utility/flags.h>
 #include <dsn/utility/smart_pointers.h>
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace security {
@@ -44,6 +45,8 @@ std::unique_ptr<negotiation> create_negotiation(bool is_client, rpc_session *ses
 
 void negotiation::fail_negotiation()
 {
+    FAIL_POINT_INJECT_F("negotiation_fail_negotiation", [](dsn::string_view str) {});
+
     _status = negotiation_status::type::SASL_AUTH_FAIL;
     _session->on_failure(true);
 }
