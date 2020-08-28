@@ -67,7 +67,7 @@ TEST_F(server_negotiation_test, on_list_mechanisms)
     fail::cfg("negotiation_fail_negotiation", "return()");
     RPC_MOCKING(negotiation_rpc)
     {
-        for (const auto test : tests) {
+        for (const auto &test : tests) {
             auto rpc = create_fake_rpc(test.req_status, "");
             on_list_mechanisms(rpc);
 
@@ -99,7 +99,7 @@ TEST_F(server_negotiation_test, on_select_mechanism)
     fail::cfg("server_negotiation_sasl_server_init", "return()");
     RPC_MOCKING(negotiation_rpc)
     {
-        for (const auto test : tests) {
+        for (const auto &test : tests) {
             auto rpc = create_fake_rpc(test.req_status, test.req_msg);
             on_select_mechanism(rpc);
 
