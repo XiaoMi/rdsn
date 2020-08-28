@@ -47,6 +47,8 @@ public:
 
     void on_select_mechanism(negotiation_rpc rpc) { _srv_negotiation->on_select_mechanism(rpc); }
 
+    negotiation_status::type get_negotiation_status() { return _srv_negotiation->_status; }
+
     server_negotiation *_srv_negotiation;
 };
 
@@ -57,11 +59,15 @@ TEST_F(server_negotiation_test, on_list_mechanisms)
         negotiation_status::type req_status;
         negotiation_status::type resp_status;
         std::string resp_msg;
-    } tests[] = {
-        {negotiation_status::type::SASL_LIST_MECHANISMS,
-         negotiation_status::type::SASL_LIST_MECHANISMS_RESP,
-         "GSSAPI"},
-        {negotiation_status::type::SASL_SELECT_MECHANISMS, negotiation_status::type::INVALID, ""}};
+        negotiation_status::type nego_status;
+    } tests[] = {{negotiation_status::type::SASL_LIST_MECHANISMS,
+                  negotiation_status::type::SASL_LIST_MECHANISMS_RESP,
+                  "GSSAPI",
+                  negotiation_status::type::SASL_LIST_MECHANISMS_RESP},
+                 {negotiation_status::type::SASL_SELECT_MECHANISMS,
+                  negotiation_status::type::INVALID,
+                  "",
+                  negotiation_status::type::SASL_AUTH_FAIL}};
 
     fail::setup();
     fail::cfg("negotiation_fail_negotiation", "return()");
@@ -85,14 +91,20 @@ TEST_F(server_negotiation_test, on_select_mechanism)
         negotiation_status::type req_status;
         std::string req_msg;
         negotiation_status::type resp_status;
-    } tests[] = {
-        {negotiation_status::type::SASL_SELECT_MECHANISMS,
-         "GSSAPI",
-         negotiation_status::type::SASL_SELECT_MECHANISMS_RESP},
-        {negotiation_status::type::SASL_SELECT_MECHANISMS,
-         "TEST",
-         negotiation_status::type::INVALID},
-        {negotiation_status::type::SASL_INITIATE, "GSSAPI", negotiation_status::type::INVALID}};
+        negotiation_status::type nego_status;
+    } tests[] = {{
+                     negotiation_status::type::SASL_SELECT_MECHANISMS,
+                     "GSSAPI",
+                     negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
+                     negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
+                 },
+                 {negotiation_status::type::SASL_SELECT_MECHANISMS,
+                  "TEST",
+                  negotiation_status::type::INVALID},
+                 {negotiation_status::type::SASL_INITIATE,
+                  "GSSAPI",
+                  negotiation_status::type::INVALID,
+                  negotiation_status::type::SASL_AUTH_FAIL}};
 
     fail::setup();
     fail::cfg("negotiation_fail_negotiation", "return()");
