@@ -35,8 +35,6 @@ public:
         srv_negotiation = new server_negotiation(session);
     }
 
-    ~server_negotiation_test() {}
-
     negotiation_rpc create_fake_rpc(negotiation_status::type status, const std::string &msg)
     {
         auto request = make_unique<negotiation_request>();
