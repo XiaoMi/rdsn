@@ -134,6 +134,10 @@ void client_negotiation::send(std::unique_ptr<negotiation_request> request)
 
 void client_negotiation::succ_negotiation()
 {
+    FAIL_POINT_INJECT_F("client_negotiation_succ_negotiation", [this](dsn::string_view str) {
+        _status = negotiation_status::type::SASL_SUCC;
+    });
+
     _status = negotiation_status::type::SASL_SUCC;
     _session->on_success();
 }
