@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "runtime/security/server_negotiation.h"
 #include "runtime/security/negotiation_utils.h"
 #include "runtime/security/client_negotiation.h"
 #include "runtime/rpc/asio_net_provider.h"
