@@ -158,13 +158,8 @@ const char *sasl_err_desc(int status, sasl_conn_t *conn)
     }
 }
 
-error_s call_sasl_func(sasl_conn_t *conn, const std::function<int()> &call)
+error_s wrap_sasl_error(int err, sasl_conn_t *conn)
 {
-    static utils::rw_lock_nr sasl_lock;
-    sasl_lock.lock_read();
-    int err = call();
-    sasl_lock.unlock_read();
-
     error_s ret;
     switch (err) {
     case SASL_OK:
@@ -190,6 +185,5 @@ error_s call_sasl_func(sasl_conn_t *conn, const std::function<int()> &call)
     }
     return ret;
 }
-
 } // namespace security
 } // namespace dsn

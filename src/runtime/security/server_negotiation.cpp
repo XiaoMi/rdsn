@@ -113,10 +113,9 @@ void server_negotiation::on_select_mechanism(negotiation_rpc rpc)
 error_s server_negotiation::sasl_server_init()
 {
     sasl_conn_t *conn = nullptr;
-    error_s err_s = call_sasl_func(nullptr, [&]() {
-        return sasl_server_new(
-            FLAGS_service_name, FLAGS_service_fqdn, nullptr, nullptr, nullptr, nullptr, 0, &conn);
-    });
+    int err = sasl_server_new(
+        FLAGS_service_name, FLAGS_service_fqdn, nullptr, nullptr, nullptr, nullptr, 0, &conn);
+    error_s err_s = wrap_sasl_error(err, conn);
     if (err_s.is_ok()) {
         _sasl_conn.reset(conn);
     }

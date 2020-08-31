@@ -26,6 +26,6 @@ namespace security {
 // you must have already initialized kerberos before call init_sasl
 error_s init_sasl(bool is_server);
 
-error_s call_sasl_func(sasl_conn_t *conn, const std::function<int()> &call);
+error_s wrap_sasl_error(int err, sasl_conn_t *conn);
 } // namespace security
 } // namespace dsn
