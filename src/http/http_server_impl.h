@@ -26,7 +26,7 @@ namespace dsn {
 class http_server : public serverlet<http_server>
 {
 public:
-    explicit http_server(bool start = true);
+    http_server();
 
     ~http_server() override = default;
 
@@ -37,6 +37,8 @@ public:
 private:
     std::map<std::string, std::unique_ptr<http_service>> _service_map;
 };
+
+extern void http_response_reply(const http_response &resp, message_ex *req);
 
 /// The rpc code for all the HTTP RPCs.
 /// Since http is used only for system monitoring, it is restricted to lowest priority.

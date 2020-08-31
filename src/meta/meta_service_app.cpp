@@ -81,7 +81,7 @@ void meta_service_app::register_all()
     register_components();
 }
 
-meta_service_app::meta_service_app(const service_app_info *info) : service_app(info),
+meta_service_app::meta_service_app(const service_app_info *info) : service_app(info)
 {
     // create in constructor because it may be used in checker before started
     _service.reset(new replication::meta_service());

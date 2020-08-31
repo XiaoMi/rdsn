@@ -79,6 +79,7 @@ public:
 extern void start_http_server();
 
 // NOTE: the memory of `svc` will be transfered to the underlying registry.
+// TODO(wutao): pass `svc` as a std::unique_ptr.
 extern void register_http_service(http_service *svc);
 
 } // namespace dsn
