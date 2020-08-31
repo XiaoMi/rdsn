@@ -43,6 +43,13 @@ std::unique_ptr<negotiation> create_negotiation(bool is_client, rpc_session *ses
     }
 }
 
+void negotiation::fail_negotiation()
+{
+    _status = negotiation_status::type::SASL_AUTH_FAIL;
+    _session->on_failure(true);
+}
+
 void sasl_deleter::operator()(sasl_conn_t *conn) { sasl_dispose(&conn); }
+
 } // namespace security
 } // namespace dsn
