@@ -35,7 +35,7 @@ public:
         _srv_negotiation = new server_negotiation(sim_session);
     }
 
-    negotiation_rpc create_fake_rpc(negotiation_status::type status, const std::string &msg)
+    negotiation_rpc create_negotiation_rpc(negotiation_status::type status, const std::string &msg)
     {
         auto request = make_unique<negotiation_request>();
         request->status = status;
@@ -70,7 +70,7 @@ TEST_F(server_negotiation_test, on_list_mechanisms)
     RPC_MOCKING(negotiation_rpc)
     {
         for (const auto &test : tests) {
-            auto rpc = create_fake_rpc(test.req_status, "");
+            auto rpc = create_negotiation_rpc(test.req_status, "");
             on_list_mechanisms(rpc);
 
             ASSERT_EQ(rpc.response().status, test.resp_status);
@@ -106,7 +106,7 @@ TEST_F(server_negotiation_test, on_select_mechanism)
     RPC_MOCKING(negotiation_rpc)
     {
         for (const auto &test : tests) {
-            auto rpc = create_fake_rpc(test.req_status, test.req_msg);
+            auto rpc = create_negotiation_rpc(test.req_status, test.req_msg);
             on_select_mechanism(rpc);
 
             ASSERT_EQ(rpc.response().status, test.resp_status);
