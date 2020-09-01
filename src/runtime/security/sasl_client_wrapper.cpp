@@ -17,7 +17,6 @@
 
 #include "sasl_client_wrapper.h"
 
-#include <sasl/sasl.h>
 #include <dsn/utility/flags.h>
 
 namespace dsn {

@@ -17,8 +17,8 @@
 
 #include "sasl_server_wrapper.h"
 
-#include <dsn/utility/flags.h>
 #include <sasl/sasl.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace security {
