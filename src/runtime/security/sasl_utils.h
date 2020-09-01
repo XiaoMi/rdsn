@@ -19,8 +19,6 @@
 
 #include <dsn/utility/errors.h>
 
-typedef struct sasl_conn sasl_conn_t;
-
 namespace dsn {
 namespace security {
 // you must have already initialized kerberos before call init_sasl

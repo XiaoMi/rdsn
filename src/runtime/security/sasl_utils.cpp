@@ -148,6 +148,5 @@ error_s init_sasl(bool is_server)
     }
     return ret;
 }
-
 } // namespace security
 } // namespace dsn

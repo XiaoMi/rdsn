@@ -23,8 +23,6 @@
 #include <memory>
 #include <dsn/cpp/rpc_holder.h>
 
-typedef struct sasl_conn sasl_conn_t;
-
 namespace dsn {
 class rpc_session;
 
