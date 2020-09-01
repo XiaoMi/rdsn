@@ -17,11 +17,10 @@
 
 #include "runtime/security/negotiation_service.h"
 #include "runtime/security/negotiation_utils.h"
-#include "runtime/rpc/asio_net_provider.h"
+#include "runtime/rpc/network.sim.h"
 
 #include <gtest/gtest.h>
 #include <dsn/utility/flags.h>
-#include <runtime/rpc/asio_rpc_session.h>
 
 namespace dsn {
 namespace security {
@@ -32,19 +31,12 @@ class negotiation_service_test : public testing::Test
 public:
     negotiation_rpc create_fake_rpc()
     {
-        std::unique_ptr<tools::asio_network_provider> asio_network(
-            new tools::asio_network_provider(nullptr, nullptr));
-
-        boost::asio::io_service io_srv;
-        auto sock = std::make_shared<boost::asio::ip::tcp::socket>(io_srv);
-
-        rpc_address fake_address("localhost", 10086);
-        message_parser_ptr parser;
-        rpc_session *session =
-            new tools::asio_rpc_session(*asio_network, fake_address, sock, parser, false);
-
+        std::unique_ptr<tools::sim_network_provider> sim_net(
+            new tools::sim_network_provider(nullptr, nullptr));
+        auto sim_session =
+            sim_net->create_server_session(rpc_address("localhost", 10086), rpc_session_ptr());
         auto rpc = negotiation_rpc(make_unique<negotiation_request>(), RPC_NEGOTIATION);
-        rpc.dsn_request()->io_session = session;
+        rpc.dsn_request()->io_session = sim_session;
         return rpc;
     }
 
@@ -54,7 +46,7 @@ public:
     }
 };
 
-TEST_F(negotiation_service_test, on_negotiation_request)
+TEST_F(negotiation_service_test, disable_auth)
 {
     RPC_MOCKING(negotiation_rpc)
     {
