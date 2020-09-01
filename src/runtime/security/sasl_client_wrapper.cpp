@@ -15,15 +15,34 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#pragma once
+#include "sasl_client_wrapper.h"
 
-#include <dsn/utility/errors.h>
-
-typedef struct sasl_conn sasl_conn_t;
+#include <sasl/sasl.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace security {
-// you must have already initialized kerberos before call init_sasl
-error_s init_sasl(bool is_server);
+DSN_DECLARE_string(service_fqdn);
+DSN_DECLARE_string(service_name);
+
+error_s sasl_client_wrapper::init()
+{
+    // TBD(zlw)
+    return error_s::make(ERR_OK);
+}
+
+error_s sasl_client_wrapper::start(const std::string &mechanism,
+                                   const std::string &input,
+                                   std::string &output)
+{
+    // TBD(zlw)
+    return error_s::make(ERR_OK);
+}
+
+error_s sasl_client_wrapper::step(const std::string &input, std::string &output)
+{
+    // TBD(zlw)
+    return error_s::make(ERR_OK);
+}
 } // namespace security
 } // namespace dsn

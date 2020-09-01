@@ -17,13 +17,19 @@
 
 #pragma once
 
-#include <dsn/utility/errors.h>
-
-typedef struct sasl_conn sasl_conn_t;
+#include "sasl_wrapper.h"
 
 namespace dsn {
 namespace security {
-// you must have already initialized kerberos before call init_sasl
-error_s init_sasl(bool is_server);
+class sasl_client_wrapper : public sasl_wrapper
+{
+public:
+    sasl_client_wrapper() = default;
+    ~sasl_client_wrapper() = default;
+
+    error_s init();
+    error_s start(const std::string &mechanism, const std::string &input, std::string &output);
+    error_s step(const std::string &input, std::string &output);
+};
 } // namespace security
 } // namespace dsn

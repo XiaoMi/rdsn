@@ -23,7 +23,22 @@ typedef struct sasl_conn sasl_conn_t;
 
 namespace dsn {
 namespace security {
-// you must have already initialized kerberos before call init_sasl
-error_s init_sasl(bool is_server);
+class sasl_wrapper
+{
+public:
+    virtual ~sasl_wrapper();
+
+    virtual error_s init() = 0;
+    virtual error_s
+    start(const std::string &mechanism, const std::string &input, std::string &output) = 0;
+    virtual error_s step(const std::string &input, std::string &output) = 0;
+
+protected:
+    sasl_wrapper() = default;
+    error_s wrap_error(int sasl_err);
+    sasl_conn_t *_conn = nullptr;
+};
+
+std::unique_ptr<sasl_wrapper> create_sasl_wrapper(bool is_server);
 } // namespace security
 } // namespace dsn

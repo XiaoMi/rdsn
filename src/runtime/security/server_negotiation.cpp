@@ -20,7 +20,6 @@
 #include "sasl_utils.h"
 
 #include <boost/algorithm/string/join.hpp>
-#include <sasl/sasl.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/flags.h>
 
@@ -88,7 +87,7 @@ void server_negotiation::on_select_mechanism(negotiation_rpc rpc)
             return;
         }
 
-        error_s err_s = sasl_server_init();
+        error_s err_s = _sasl->init();
         if (!err_s.is_ok()) {
             dwarn_f("{}: server initialize sasl failed, error = {}, msg = {}",
                     _name,
@@ -109,19 +108,5 @@ void server_negotiation::on_select_mechanism(negotiation_rpc rpc)
         return;
     }
 }
-
-error_s server_negotiation::sasl_server_init()
-{
-    sasl_conn_t *conn = nullptr;
-    int err = sasl_server_new(
-        FLAGS_service_name, FLAGS_service_fqdn, nullptr, nullptr, nullptr, nullptr, 0, &conn);
-    error_s err_s = wrap_sasl_error(err, conn);
-    if (err_s.is_ok()) {
-        _sasl_conn.reset(conn);
-    }
-
-    return err_s;
-}
-
 } // namespace security
 } // namespace dsn
