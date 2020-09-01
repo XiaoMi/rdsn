@@ -24,6 +24,9 @@ namespace security {
 class sasl_client_wrapper : public sasl_wrapper
 {
 public:
+    sasl_client_wrapper() = default;
+    ~sasl_client_wrapper() = default;
+
     error_s init();
     error_s start(const std::string &mechanism, const std::string &input, std::string &output);
     error_s step(const std::string &input, std::string &output);
