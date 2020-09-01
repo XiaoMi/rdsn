@@ -49,7 +49,5 @@ void negotiation::fail_negotiation()
     _session->on_failure(true);
 }
 
-void sasl_deleter::operator()(sasl_conn_t *conn) { sasl_dispose(&conn); }
-
 } // namespace security
 } // namespace dsn

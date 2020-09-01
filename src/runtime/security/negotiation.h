@@ -31,11 +31,6 @@ class rpc_session;
 namespace security {
 typedef rpc_holder<negotiation_request, negotiation_response> negotiation_rpc;
 
-struct sasl_deleter
-{
-    void operator()(sasl_conn_t *conn);
-};
-
 class negotiation
 {
 public:
