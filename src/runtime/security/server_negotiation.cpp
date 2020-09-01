@@ -17,7 +17,7 @@
 
 #include "server_negotiation.h"
 #include "negotiation_utils.h"
-#include "sasl_utils.h"
+#include "sasl_init.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <dsn/dist/fmt_logging.h>
