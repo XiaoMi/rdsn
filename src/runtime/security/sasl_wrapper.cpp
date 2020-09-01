@@ -65,12 +65,12 @@ error_s sasl_wrapper::wrap_error(int sasl_err)
     return ret;
 }
 
-std::unique_ptr<sasl_wrapper> create_sasl_wrapper(bool is_server)
+std::unique_ptr<sasl_wrapper> create_sasl_wrapper(bool is_client)
 {
-    if (is_server) {
-        return make_unique<sasl_server_wrapper>();
-    } else {
+    if (is_client) {
         return make_unique<sasl_client_wrapper>();
+    } else {
+        return make_unique<sasl_server_wrapper>();
     }
 }
 } // namespace security

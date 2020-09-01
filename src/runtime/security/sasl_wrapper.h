@@ -39,6 +39,6 @@ protected:
     sasl_conn_t *_conn = nullptr;
 };
 
-std::unique_ptr<sasl_wrapper> create_sasl_wrapper(bool is_server);
+std::unique_ptr<sasl_wrapper> create_sasl_wrapper(bool is_client);
 } // namespace security
 } // namespace dsn
