@@ -202,11 +202,11 @@ void http_server::serve(message_ex *msg)
 /*extern*/ void register_http_service(http_service *svc)
 {
     // simply hosting the memory of these http services.
-    static std::vector<std::shared_ptr<http_service>> services_holder;
+    static std::vector<std::unique_ptr<http_service>> services_holder;
     static std::mutex mu;
 
     std::lock_guard<std::mutex> guard(mu);
-    services_holder.push_back(std::shared_ptr<http_service>(svc));
+    services_holder.push_back(std::unique_ptr<http_service>(svc));
 }
 
 } // namespace dsn
