@@ -15,27 +15,35 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#pragma once
+#include "sasl_server_wrapper.h"
 
-#include "server_negotiation.h"
-
-#include <dsn/cpp/serverlet.h>
+#include <sasl/sasl.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace security {
+DSN_DECLARE_string(service_fqdn);
+DSN_DECLARE_string(service_name);
 
-class negotiation_service : public serverlet<negotiation_service>,
-                            public utils::singleton<negotiation_service>
+error_s sasl_server_wrapper::init()
 {
-public:
-    void open_service();
+    int sasl_err = sasl_server_new(
+        FLAGS_service_name, FLAGS_service_fqdn, nullptr, nullptr, nullptr, nullptr, 0, &_conn);
+    return wrap_error(sasl_err);
+}
 
-private:
-    negotiation_service();
-    void on_negotiation_request(negotiation_rpc rpc);
-    friend class utils::singleton<negotiation_service>;
-    friend class negotiation_service_test;
-};
+error_s sasl_server_wrapper::start(const std::string &mechanism,
+                                   const std::string &input,
+                                   std::string &output)
+{
+    // TBD(zlw)
+    return error_s::make(ERR_OK);
+}
 
+error_s sasl_server_wrapper::step(const std::string &input, std::string &output)
+{
+    // TBD(zlw)
+    return error_s::make(ERR_OK);
+}
 } // namespace security
 } // namespace dsn

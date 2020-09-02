@@ -17,13 +17,17 @@
 
 #include "server_negotiation.h"
 #include "negotiation_utils.h"
+#include "sasl_init.h"
 
 #include <boost/algorithm/string/join.hpp>
-#include <dsn/utility/strings.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/flags.h>
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace security {
+DSN_DECLARE_string(service_fqdn);
+DSN_DECLARE_string(service_name);
 
 server_negotiation::server_negotiation(rpc_session *session) : negotiation(session)
 {
@@ -84,7 +88,7 @@ void server_negotiation::on_select_mechanism(negotiation_rpc rpc)
             return;
         }
 
-        error_s err_s = do_sasl_server_init();
+        error_s err_s = _sasl->init();
         if (!err_s.is_ok()) {
             dwarn_f("{}: server initialize sasl failed, error = {}, msg = {}",
                     _name,
@@ -105,12 +109,5 @@ void server_negotiation::on_select_mechanism(negotiation_rpc rpc)
         return;
     }
 }
-
-error_s server_negotiation::do_sasl_server_init()
-{
-    // TBD(zlw)
-    return error_s::make(ERR_OK);
-}
-
 } // namespace security
 } // namespace dsn

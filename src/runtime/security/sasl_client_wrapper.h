@@ -17,25 +17,19 @@
 
 #pragma once
 
-#include "server_negotiation.h"
-
-#include <dsn/cpp/serverlet.h>
+#include "sasl_wrapper.h"
 
 namespace dsn {
 namespace security {
-
-class negotiation_service : public serverlet<negotiation_service>,
-                            public utils::singleton<negotiation_service>
+class sasl_client_wrapper : public sasl_wrapper
 {
 public:
-    void open_service();
+    sasl_client_wrapper() = default;
+    ~sasl_client_wrapper() = default;
 
-private:
-    negotiation_service();
-    void on_negotiation_request(negotiation_rpc rpc);
-    friend class utils::singleton<negotiation_service>;
-    friend class negotiation_service_test;
+    error_s init();
+    error_s start(const std::string &mechanism, const std::string &input, std::string &output);
+    error_s step(const std::string &input, std::string &output);
 };
-
 } // namespace security
 } // namespace dsn
