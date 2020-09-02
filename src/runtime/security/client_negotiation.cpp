@@ -124,8 +124,6 @@ void client_negotiation::select_mechanism(const std::string &mechanism)
 
 void client_negotiation::send(std::unique_ptr<negotiation_request> request)
 {
-    FAIL_POINT_INJECT_F("client_negotiation_send", [](dsn::string_view str) {});
-
     negotiation_rpc rpc(std::move(request), RPC_NEGOTIATION);
     rpc.call(_session->remote_address(), nullptr, [this, rpc](error_code err) mutable {
         handle_response(err, std::move(rpc.response()));

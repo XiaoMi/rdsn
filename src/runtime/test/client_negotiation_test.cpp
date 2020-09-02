@@ -64,9 +64,6 @@ TEST_F(client_negotiation_test, on_list_mechanisms)
                  {negotiation_status::type::SASL_LIST_MECHANISMS_RESP, "TEST", ""},
                  {negotiation_status::type::SASL_LIST_MECHANISMS_RESP, "GSSAPI", "GSSAPI"}};
 
-    fail::setup();
-    fail::cfg("client_negotiation_send", "return()");
-
     RPC_MOCKING(negotiation_rpc)
     {
         for (const auto &test : tests) {
@@ -78,8 +75,6 @@ TEST_F(client_negotiation_test, on_list_mechanisms)
             ASSERT_EQ(get_selected_mechanism(), test.selected_mechanism);
         }
     }
-
-    fail::teardown();
 }
 
 TEST_F(client_negotiation_test, handle_response)
