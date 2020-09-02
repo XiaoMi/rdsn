@@ -21,7 +21,6 @@
 
 #include <dsn/utility/flags.h>
 #include <dsn/utility/smart_pointers.h>
-#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace security {
