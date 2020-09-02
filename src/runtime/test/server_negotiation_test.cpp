@@ -33,7 +33,7 @@ public:
             new tools::sim_network_provider(nullptr, nullptr));
         _sim_session =
             sim_net->create_server_session(rpc_address("localhost", 10086), rpc_session_ptr());
-        _srv_negotiation = new server_negotiation(_sim_session);
+        _srv_negotiation = make_unique<server_negotiation>(_sim_session);
     }
 
     negotiation_rpc create_negotiation_rpc(negotiation_status::type status, const std::string &msg)
@@ -51,7 +51,7 @@ public:
     // _sim_session is used for holding the sim_rpc_session which is created in ctor,
     // in case it is released. Because negotiation keeps only a raw pointer.
     rpc_session_ptr _sim_session;
-    server_negotiation *_srv_negotiation;
+    std::unique_ptr<server_negotiation> _srv_negotiation;
 };
 
 TEST_F(server_negotiation_test, on_list_mechanisms)
