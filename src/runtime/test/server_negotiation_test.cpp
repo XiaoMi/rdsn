@@ -16,11 +16,11 @@
 // under the License.
 
 #include "runtime/security/server_negotiation.h"
+#include "runtime/security/negotiation_utils.h"
+#include "runtime/rpc/network.sim.h"
 
 #include <gtest/gtest.h>
-#include <runtime/security/negotiation_utils.h>
 #include <dsn/utility/fail_point.h>
-#include <runtime/rpc/asio_net_provider.h>
 
 namespace dsn {
 namespace security {
@@ -29,15 +29,13 @@ class server_negotiation_test : public testing::Test
 public:
     server_negotiation_test()
     {
-        std::unique_ptr<tools::asio_network_provider> asio_network(
-            new tools::asio_network_provider(nullptr, nullptr));
-        auto session = asio_network->create_client_session(rpc_address("localhost", 10086));
-        srv_negotiation = new server_negotiation(session);
+        std::unique_ptr<tools::sim_network_provider> sim_net(
+            new tools::sim_network_provider(nullptr, nullptr));
+        auto sim_session = sim_net->create_client_session(rpc_address("localhost", 10086));
+        _srv_negotiation = new server_negotiation(sim_session);
     }
 
-    ~server_negotiation_test() {}
-
-    negotiation_rpc create_fake_rpc(negotiation_status::type status, const std::string &msg)
+    negotiation_rpc create_negotiation_rpc(negotiation_status::type status, const std::string &msg)
     {
         auto request = make_unique<negotiation_request>();
         request->status = status;
@@ -45,11 +43,11 @@ public:
         return negotiation_rpc(std::move(request), RPC_NEGOTIATION);
     }
 
-    void on_list_mechanisms(negotiation_rpc rpc) { srv_negotiation->on_list_mechanisms(rpc); }
+    void on_list_mechanisms(negotiation_rpc rpc) { _srv_negotiation->on_list_mechanisms(rpc); }
 
-    void on_select_mechanism(negotiation_rpc rpc) { srv_negotiation->on_select_mechanism(rpc); }
+    void on_select_mechanism(negotiation_rpc rpc) { _srv_negotiation->on_select_mechanism(rpc); }
 
-    server_negotiation *srv_negotiation;
+    server_negotiation *_srv_negotiation;
 };
 
 TEST_F(server_negotiation_test, on_list_mechanisms)
@@ -59,25 +57,26 @@ TEST_F(server_negotiation_test, on_list_mechanisms)
         negotiation_status::type req_status;
         negotiation_status::type resp_status;
         std::string resp_msg;
-    } tests[] = {
-        {negotiation_status::type::SASL_LIST_MECHANISMS,
-         negotiation_status::type::SASL_LIST_MECHANISMS_RESP,
-         "GSSAPI"},
-        {negotiation_status::type::SASL_SELECT_MECHANISMS, negotiation_status::type::INVALID, ""}};
+        negotiation_status::type nego_status;
+    } tests[] = {{negotiation_status::type::SASL_LIST_MECHANISMS,
+                  negotiation_status::type::SASL_LIST_MECHANISMS_RESP,
+                  "GSSAPI",
+                  negotiation_status::type::SASL_LIST_MECHANISMS_RESP},
+                 {negotiation_status::type::SASL_SELECT_MECHANISMS,
+                  negotiation_status::type::INVALID,
+                  "",
+                  negotiation_status::type::SASL_AUTH_FAIL}};
 
-    fail::setup();
-    fail::cfg("negotiation_fail_negotiation", "return()");
     RPC_MOCKING(negotiation_rpc)
     {
-        for (const auto test : tests) {
-            auto rpc = create_fake_rpc(test.req_status, "");
+        for (const auto &test : tests) {
+            auto rpc = create_negotiation_rpc(test.req_status, "");
             on_list_mechanisms(rpc);
 
             ASSERT_EQ(rpc.response().status, test.resp_status);
             ASSERT_EQ(rpc.response().msg, test.resp_msg);
         }
     }
-    fail::teardown();
 }
 
 TEST_F(server_negotiation_test, on_select_mechanism)
@@ -87,22 +86,27 @@ TEST_F(server_negotiation_test, on_select_mechanism)
         negotiation_status::type req_status;
         std::string req_msg;
         negotiation_status::type resp_status;
-    } tests[] = {
-        {negotiation_status::type::SASL_SELECT_MECHANISMS,
-         "GSSAPI",
-         negotiation_status::type::SASL_SELECT_MECHANISMS_RESP},
-        {negotiation_status::type::SASL_SELECT_MECHANISMS,
-         "TEST",
-         negotiation_status::type::INVALID},
-        {negotiation_status::type::SASL_INITIATE, "GSSAPI", negotiation_status::type::INVALID}};
+        negotiation_status::type nego_status;
+    } tests[] = {{
+                     negotiation_status::type::SASL_SELECT_MECHANISMS,
+                     "GSSAPI",
+                     negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
+                     negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
+                 },
+                 {negotiation_status::type::SASL_SELECT_MECHANISMS,
+                  "TEST",
+                  negotiation_status::type::INVALID},
+                 {negotiation_status::type::SASL_INITIATE,
+                  "GSSAPI",
+                  negotiation_status::type::INVALID,
+                  negotiation_status::type::SASL_AUTH_FAIL}};
 
     fail::setup();
-    fail::cfg("negotiation_fail_negotiation", "return()");
     fail::cfg("server_negotiation_sasl_server_init", "return()");
     RPC_MOCKING(negotiation_rpc)
     {
-        for (const auto test : tests) {
-            auto rpc = create_fake_rpc(test.req_status, test.req_msg);
+        for (const auto &test : tests) {
+            auto rpc = create_negotiation_rpc(test.req_status, test.req_msg);
             on_select_mechanism(rpc);
 
             ASSERT_EQ(rpc.response().status, test.resp_status);

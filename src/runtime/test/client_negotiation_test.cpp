@@ -17,7 +17,7 @@
 
 #include "runtime/security/negotiation_utils.h"
 #include "runtime/security/client_negotiation.h"
-#include "runtime/rpc/asio_net_provider.h"
+#include "runtime/rpc/network.sim.h"
 
 #include <gtest/gtest.h>
 #include <dsn/utility/fail_point.h>
@@ -30,10 +30,10 @@ class client_negotiation_test : public testing::Test
 public:
     client_negotiation_test()
     {
-        std::unique_ptr<tools::asio_network_provider> asio_network(
-            new tools::asio_network_provider(nullptr, nullptr));
-        auto session = asio_network->create_client_session(rpc_address("localhost", 10086));
-        _client_negotiation = new client_negotiation(session);
+        std::unique_ptr<tools::sim_network_provider> sim_net(
+                new tools::sim_network_provider(nullptr, nullptr));
+        auto sim_session = sim_net->create_client_session(rpc_address("localhost", 10086));
+        _client_negotiation = new client_negotiation(sim_session);
     }
 
     void on_recv_mechanism(const negotiation_response &resp)
@@ -65,7 +65,6 @@ TEST_F(client_negotiation_test, on_list_mechanisms)
                  {negotiation_status::type::SASL_LIST_MECHANISMS_RESP, "GSSAPI", "GSSAPI"}};
 
     fail::setup();
-    fail::cfg("negotiation_fail_negotiation", "return()");
     fail::cfg("client_negotiation_send", "return()");
 
     RPC_MOCKING(negotiation_rpc)
@@ -106,7 +105,6 @@ TEST_F(client_negotiation_test, handle_response)
 
     DSN_DECLARE_bool(mandatory_auth);
     fail::setup();
-    fail::cfg("negotiation_fail_negotiation", "return()");
     fail::cfg("client_negotiation_succ_negotiation", "return()");
 
     for (const auto &test : tests) {
