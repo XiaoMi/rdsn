@@ -101,9 +101,7 @@ TEST_F(client_negotiation_test, handle_response)
                   negotiation_status::type::SASL_SUCC}};
 
     DSN_DECLARE_bool(mandatory_auth);
-    int i = 0;
     for (const auto &test : tests) {
-        ddebug("loop %d", ++i);
         negotiation_response resp;
         resp.status = test.resp_status;
         FLAGS_mandatory_auth = test.mandatory_auth;
