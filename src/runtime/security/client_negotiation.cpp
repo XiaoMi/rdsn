@@ -66,7 +66,7 @@ void client_negotiation::handle_response(error_code err, const negotiation_respo
         on_recv_mechanisms(response);
         break;
     case negotiation_status::type::SASL_SELECT_MECHANISMS:
-        // TBD(zlw)
+        on_mechanism_selected(response);
         break;
     case negotiation_status::type::SASL_INITIATE:
     case negotiation_status::type::SASL_CHALLENGE_RESP:
@@ -111,6 +111,20 @@ void client_negotiation::on_recv_mechanisms(const negotiation_response &resp)
     select_mechanism(match_mechanism);
 }
 
+void client_negotiation::on_mechanism_selected(const negotiation_response &resp)
+{
+    if (resp.status == negotiation_status::type::SASL_SELECT_MECHANISMS_RESP) {
+        initiate_negotiation();
+    } else {
+        dwarn_f("{}: select mechanism({}) from server failed, type({}), reason({})",
+                _name,
+                _selected_mechanism,
+                enum_to_string(resp.status),
+                resp.msg);
+        fail_negotiation();
+    }
+}
+
 void client_negotiation::select_mechanism(const std::string &mechanism)
 {
     _selected_mechanism = mechanism;
@@ -119,6 +133,48 @@ void client_negotiation::select_mechanism(const std::string &mechanism)
     _status = req->status = negotiation_status::type::SASL_SELECT_MECHANISMS;
     req->msg = mechanism;
     send(std::move(req));
+}
+
+void client_negotiation::initiate_negotiation()
+{
+    auto err_s = _sasl->init();
+    if (!err_s.is_ok()) {
+        dassert_f(false,
+                  "{}: initiaze sasl client failed, error = {}, reason = {}",
+                  _name,
+                  err_s.code().to_string(),
+                  err_s.description());
+        fail_negotiation();
+        return;
+    }
+
+    err_s = send_sasl_initiate_msg();
+    const std::string &desc = err_s.description();
+    if (err_s.code() == ERR_SASL_INTERNAL && desc.find("Ticket expired") != std::string::npos) {
+        derror_f("{}: start client negotiation with ticket expire, waiting on ticket renew", _name);
+        fail_negotiation();
+    } else if (!err_s.is_ok() && err_s.code() != ERR_NOT_IMPLEMENTED) {
+        dassert_f(false,
+                  "{}: client_negotiation: send sasl_client_start failed, error = {}, reason = {}",
+                  _name,
+                  err_s.code().to_string(),
+                  desc);
+        fail_negotiation();
+    }
+}
+
+error_s client_negotiation::send_sasl_initiate_msg()
+{
+    std::string resp_msg;
+    auto err = _sasl->start(_selected_mechanism, "", resp_msg);
+    if (err.is_ok() || err.code() == ERR_NOT_IMPLEMENTED) {
+        auto req = dsn::make_unique<negotiation_request>();
+        _status = req->status = negotiation_status::type::SASL_INITIATE;
+        req->msg = resp_msg;
+        send(std::move(req));
+    }
+
+    return err;
 }
 
 void client_negotiation::send(std::unique_ptr<negotiation_request> request)
