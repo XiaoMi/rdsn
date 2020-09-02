@@ -63,7 +63,9 @@ TEST_F(client_negotiation_test, on_recv_mechanisms)
         std::string resp_msg;
         std::string selected_mechanism;
     } tests[] = {{negotiation_status::type::SASL_SELECT_MECHANISMS, "GSSAPI", ""},
-                 {negotiation_status::type::SASL_LIST_MECHANISMS_RESP, "TEST", ""},
+                 {negotiation_status::type::SASL_LIST_MECHANISMS_RESP, "TEST1", ""},
+                 {negotiation_status::type::SASL_LIST_MECHANISMS_RESP, "TEST1, TEST2", ""},
+                 {negotiation_status::type::SASL_LIST_MECHANISMS_RESP, "TEST1, GSSAPI", "GSSAPI"},
                  {negotiation_status::type::SASL_LIST_MECHANISMS_RESP, "GSSAPI", "GSSAPI"}};
 
     RPC_MOCKING(negotiation_rpc)
