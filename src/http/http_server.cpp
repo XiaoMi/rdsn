@@ -64,13 +64,13 @@ http_server::http_server() : serverlet<http_server>("http_server")
     tools::register_message_header_parser<http_message_parser>(NET_HDR_HTTP, {"GET ", "POST"});
 
     // add builtin services
-    add_service(new root_http_service());
+    register_http_service(new root_http_service());
 
 #ifdef DSN_ENABLE_GPERF
-    add_service(new pprof_http_service());
+    register_http_service(new pprof_http_service());
 #endif // DSN_ENABLE_GPERF
 
-    add_service(new perf_counter_http_service());
+    register_http_service(new perf_counter_http_service());
 }
 
 void http_server::serve(message_ex *msg)
@@ -92,12 +92,6 @@ void http_server::serve(message_ex *msg)
     }
 
     http_response_reply(resp, msg);
-}
-
-void http_server::add_service(http_service *service)
-{
-    dassert(service != nullptr, "");
-    _service_map.emplace(service->path(), std::unique_ptr<http_service>(service));
 }
 
 /*static*/ error_with<http_request> http_request::parse(message_ex *m)

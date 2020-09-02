@@ -30,12 +30,7 @@ public:
 
     ~http_server() override = default;
 
-    void add_service(http_service *service);
-
     void serve(message_ex *msg);
-
-private:
-    std::map<std::string, std::unique_ptr<http_service>> _service_map;
 };
 
 extern void http_response_reply(const http_response &resp, message_ex *req);
