@@ -22,6 +22,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/flags.h>
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace security {

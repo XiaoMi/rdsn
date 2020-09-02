@@ -36,6 +36,8 @@ public:
 private:
     void on_list_mechanisms(negotiation_rpc rpc);
     void on_select_mechanism(negotiation_rpc rpc);
+
+    friend class server_negotiation_test;
 };
 
 } // namespace security
