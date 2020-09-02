@@ -23,7 +23,6 @@
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/utility/smart_pointers.h>
 #include <dsn/utility/flags.h>
-#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace security {
@@ -103,8 +102,8 @@ void client_negotiation::on_recv_mechanisms(const negotiation_response &resp)
 
     if (match_mechanism.empty()) {
         dwarn_f("server only support mechanisms of ({}), can't find expected ({})",
-                resp_string,
-                boost::join(supported_mechanisms, ","));
+                boost::join(supported_mechanisms, ","),
+                resp_string);
         fail_negotiation();
         return;
     }
@@ -132,10 +131,6 @@ void client_negotiation::send(std::unique_ptr<negotiation_request> request)
 
 void client_negotiation::succ_negotiation()
 {
-    FAIL_POINT_INJECT_F("client_negotiation_succ_negotiation", [this](dsn::string_view str) {
-        _status = negotiation_status::type::SASL_SUCC;
-    });
-
     _status = negotiation_status::type::SASL_SUCC;
     _session->on_success();
 }

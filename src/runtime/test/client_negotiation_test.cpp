@@ -20,7 +20,6 @@
 #include "runtime/rpc/network.sim.h"
 
 #include <gtest/gtest.h>
-#include <dsn/utility/fail_point.h>
 #include <dsn/utility/flags.h>
 
 namespace dsn {
@@ -31,9 +30,9 @@ public:
     client_negotiation_test()
     {
         std::unique_ptr<tools::sim_network_provider> sim_net(
-                new tools::sim_network_provider(nullptr, nullptr));
-        auto sim_session = sim_net->create_client_session(rpc_address("localhost", 10086));
-        _client_negotiation = new client_negotiation(sim_session);
+            new tools::sim_network_provider(nullptr, nullptr));
+        _sim_session = sim_net->create_client_session(rpc_address("localhost", 10086));
+        _client_negotiation = new client_negotiation(_sim_session);
     }
 
     void on_recv_mechanism(const negotiation_response &resp)
@@ -50,10 +49,13 @@ public:
 
     negotiation_status::type get_negotiation_status() { return _client_negotiation->_status; }
 
+    // _sim_session is used for holding the sim_rpc_session which is created in ctor,
+    // in case it is released. Because negotiation keeps only a raw pointer.
+    rpc_session_ptr _sim_session;
     client_negotiation *_client_negotiation;
 };
 
-TEST_F(client_negotiation_test, on_list_mechanisms)
+TEST_F(client_negotiation_test, on_recv_mechanisms)
 {
     struct
     {
@@ -99,10 +101,9 @@ TEST_F(client_negotiation_test, handle_response)
                   negotiation_status::type::SASL_SUCC}};
 
     DSN_DECLARE_bool(mandatory_auth);
-    fail::setup();
-    fail::cfg("client_negotiation_succ_negotiation", "return()");
-
+    int i = 0;
     for (const auto &test : tests) {
+        ddebug("loop %d", ++i);
         negotiation_response resp;
         resp.status = test.resp_status;
         FLAGS_mandatory_auth = test.mandatory_auth;
@@ -110,8 +111,6 @@ TEST_F(client_negotiation_test, handle_response)
 
         ASSERT_EQ(get_negotiation_status(), test.neg_status);
     }
-
-    fail::teardown();
 }
 } // namespace security
 } // namespace dsn
