@@ -39,6 +39,8 @@ private:
     void initiate_negotiation();
     void send(std::unique_ptr<negotiation_request> request);
     void succ_negotiation();
+
+    friend class client_negotiation_test;
 };
 
 } // namespace security
