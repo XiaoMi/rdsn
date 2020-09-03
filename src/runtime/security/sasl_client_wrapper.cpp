@@ -19,6 +19,7 @@
 
 #include <sasl/sasl.h>
 #include <dsn/utility/flags.h>
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace security {
@@ -27,6 +28,9 @@ DSN_DECLARE_string(service_name);
 
 error_s sasl_client_wrapper::init()
 {
+    FAIL_POINT_INJECT_F("sasl_client_wrapper_init",
+                        [](dsn::string_view) { return error_s::make(ERR_OK); });
+
     int sasl_err = sasl_client_new(
         FLAGS_service_name, FLAGS_service_fqdn, nullptr, nullptr, nullptr, 0, &_conn);
     return wrap_error(sasl_err);
@@ -36,6 +40,9 @@ error_s sasl_client_wrapper::start(const std::string &mechanism,
                                    const std::string &input,
                                    std::string &output)
 {
+    FAIL_POINT_INJECT_F("sasl_client_wrapper_start",
+                        [](dsn::string_view) { return error_s::make(ERR_OK); });
+
     const char *msg = nullptr;
     unsigned msg_len = 0;
     const char *client_mech = nullptr;
