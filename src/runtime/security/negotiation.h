@@ -56,6 +56,7 @@ protected:
     negotiation_status::type _status;
     std::string _selected_mechanism;
     std::unique_ptr<sasl_wrapper> _sasl;
+    std::string _user_name;
 };
 
 std::unique_ptr<negotiation> create_negotiation(bool is_client, rpc_session *session);

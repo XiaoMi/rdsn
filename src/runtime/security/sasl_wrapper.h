@@ -33,6 +33,8 @@ public:
     start(const std::string &mechanism, const std::string &input, std::string &output) = 0;
     virtual error_s step(const std::string &input, std::string &output) = 0;
 
+    error_with<std::string> retrive_username();
+
 protected:
     sasl_wrapper() = default;
     error_s wrap_error(int sasl_err);
