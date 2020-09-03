@@ -48,6 +48,8 @@ public:
 
     void on_select_mechanism(negotiation_rpc rpc) { _srv_negotiation->on_select_mechanism(rpc); }
 
+    negotiation_status::type get_negotiation_status() { return _srv_negotiation->_status; }
+
     // _sim_session is used for holding the sim_rpc_session which is created in ctor,
     // in case it is released. Because negotiation keeps only a raw pointer.
     rpc_session_ptr _sim_session;
@@ -79,6 +81,7 @@ TEST_F(server_negotiation_test, on_list_mechanisms)
 
             ASSERT_EQ(rpc.response().status, test.resp_status);
             ASSERT_EQ(rpc.response().msg, test.resp_msg);
+            ASSERT_EQ(get_negotiation_status(), test.nego_status);
         }
     }
 }
@@ -99,14 +102,15 @@ TEST_F(server_negotiation_test, on_select_mechanism)
                  },
                  {negotiation_status::type::SASL_SELECT_MECHANISMS,
                   "TEST",
-                  negotiation_status::type::INVALID},
+                  negotiation_status::type::INVALID,
+                  negotiation_status::type::SASL_AUTH_FAIL},
                  {negotiation_status::type::SASL_INITIATE,
                   "GSSAPI",
                   negotiation_status::type::INVALID,
                   negotiation_status::type::SASL_AUTH_FAIL}};
 
     fail::setup();
-    fail::cfg("server_negotiation_sasl_server_init", "return()");
+    fail::cfg("sasl_server_wrapper_init", "return()");
     RPC_MOCKING(negotiation_rpc)
     {
         for (const auto &test : tests) {
@@ -114,6 +118,7 @@ TEST_F(server_negotiation_test, on_select_mechanism)
             on_select_mechanism(rpc);
 
             ASSERT_EQ(rpc.response().status, test.resp_status);
+            ASSERT_EQ(get_negotiation_status(), test.nego_status);
         }
     }
     fail::teardown();
