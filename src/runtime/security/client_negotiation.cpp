@@ -157,7 +157,7 @@ void client_negotiation::initiate_negotiation()
         send(std::move(req));
     } else {
         dassert_f(false,
-                  "{}: client_negotiation: send sasl_client_start failed, error = {}, reason = {}",
+                  "{}: client_negotiation: sasl client start failed, error = {}, reason = {}",
                   _name,
                   err_s.code().to_string(),
                   err_s.description());
