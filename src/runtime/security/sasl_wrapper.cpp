@@ -68,8 +68,12 @@ error_s sasl_wrapper::wrap_error(int sasl_err)
 
 error_with<std::string> sasl_wrapper::retrive_username()
 {
-    FAIL_POINT_INJECT_F("sasl_wrapper_retrive_username",
-                        [](dsn::string_view) { return error_s::make(ERR_OK); });
+    FAIL_POINT_INJECT_F("sasl_wrapper_retrive_username", [](dsn::string_view str) {
+        if (0 == str.compare("ERR_OK")) {
+            return error_with<std::string>("TEST_NAME");
+        }
+        return error_with<std::string>(error_s::make(ERR_UNKNOWN));
+    });
 
     char *username = nullptr;
     int sasl_err = sasl_getprop(_conn, SASL_USERNAME, (const void **)&username);

@@ -130,32 +130,59 @@ TEST_F(server_negotiation_test, on_initiate)
 {
     struct
     {
+        std::string sasl_start_return;
+        std::string sasl_retrive_name_return;
         negotiation_status::type req_status;
         negotiation_status::type resp_status;
         negotiation_status::type nego_status;
-    } tests[] = {{
-                     negotiation_status::type::SASL_INITIATE,
-                     negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
-                     negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
-                 },
-                 {negotiation_status::type::SASL_SELECT_MECHANISMS,
-                  negotiation_status::type::INVALID,
-                  negotiation_status::type::SASL_AUTH_FAIL}};
+        std::string expect_user_name;
+    } tests[] = {
+        {"ERR_NOT_COMPLEMENTED",
+         "ERR_OK",
+         negotiation_status::type::SASL_INITIATE,
+         negotiation_status::type::SASL_CHALLENGE,
+         negotiation_status::type::SASL_CHALLENGE},
+        {
+            "ERR_OK",
+            "ERR_TIMEOUT",
+            negotiation_status::type::SASL_INITIATE,
+            negotiation_status::type::INVALID,
+            negotiation_status::type::SASL_AUTH_FAIL,
+        },
+        {"ERR_TIMEOUT",
+         "ERR_OK",
+         negotiation_status::type::SASL_INITIATE,
+         negotiation_status::type::INVALID,
+         negotiation_status::type::SASL_AUTH_FAIL},
+        {"ERR_OK",
+         "ERR_OK",
+         negotiation_status::type::SASL_SELECT_MECHANISMS,
+         negotiation_status::type::INVALID,
+         negotiation_status::type::SASL_AUTH_FAIL},
+        {"ERR_OK",
+         "ERR_OK",
+         negotiation_status::type::SASL_INITIATE,
+         negotiation_status::type::SASL_SUCC,
+         negotiation_status::type::SASL_SUCC,
+         "TEST_NAME"},
+    };
 
-    fail::setup();
-    fail::cfg("sasl_client_wrapper_init", "return()");
-    fail::cfg("sasl_client_wrapper_start", "return()");
     RPC_MOCKING(negotiation_rpc)
     {
         for (const auto &test : tests) {
+            fail::setup();
+            fail::cfg("sasl_server_wrapper_start", "return(" + test.sasl_start_return + ")");
+            fail::cfg("sasl_wrapper_retrive_username",
+                      "return(" + test.sasl_retrive_name_return + ")");
+
             auto rpc = create_negotiation_rpc(test.req_status, "");
             on_initiate(rpc);
-
             ASSERT_EQ(rpc.response().status, test.resp_status);
             ASSERT_EQ(get_negotiation_status(), test.nego_status);
+
+            fail::teardown();
         }
     }
-    fail::teardown();
 }
 } // namespace security
 } // namespace dsn

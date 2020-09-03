@@ -40,10 +40,22 @@ error_s sasl_server_wrapper::start(const std::string &mechanism,
                                    const std::string &input,
                                    std::string &output)
 {
-    FAIL_POINT_INJECT_F("sasl_server_wrapper_start",
-                        [](dsn::string_view) { return error_s::make(ERR_OK); });
-    // TBD(zlw)
-    return error_s::make(ERR_OK);
+    FAIL_POINT_INJECT_F("sasl_server_wrapper_start", [](dsn::string_view str) {
+        if (0 == str.compare("ERR_OK")) {
+            return error_s::make(ERR_OK);
+        } else if (0 == str.compare("ERR_NOT_COMPLEMENTED")) {
+            return error_s::make(ERR_NOT_COMPLEMENTED);
+        }
+        return error_s::make(ERR_UNKNOWN);
+    });
+
+    const char *msg = nullptr;
+    unsigned msg_len = 0;
+    int sasl_err =
+        sasl_server_start(_conn, mechanism.c_str(), input.c_str(), input.length(), &msg, &msg_len);
+
+    output.assign(msg, msg_len);
+    return wrap_error(sasl_err);
 }
 
 error_s sasl_server_wrapper::step(const std::string &input, std::string &output)

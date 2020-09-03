@@ -130,8 +130,12 @@ void server_negotiation::do_challenge(negotiation_rpc rpc,
 
     if (err_s.is_ok()) {
         auto err = _sasl->retrive_username();
-        dassert_f(err.is_ok(), "{}: unexpected result({})", _name, err.get_error().description());
-        ddebug_f("{}: negotiation succ for user({})", _name, _user_name);
+        if (!err.is_ok()) {
+            dwarn_f("{}: unexpected result({})", _name, err.get_error().description());
+            fail_negotiation();
+            return;
+        }
+
         _user_name = err.get_value();
         succ_negotiation(rpc);
     } else {
