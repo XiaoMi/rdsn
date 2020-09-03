@@ -123,27 +123,46 @@ TEST_F(client_negotiation_test, on_mechanism_selected)
 {
     struct
     {
+        std::string sasl_init_return_value;
+        std::string sasl_start_return_value;
         negotiation_status::type resp_status;
         negotiation_status::type neg_status;
-    } tests[] = {{negotiation_status::type::SASL_SELECT_MECHANISMS,
+    } tests[] = {{"ERR_OK",
+                  "ERR_OK",
+                  negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
+                  negotiation_status::type::SASL_INITIATE},
+                 {"ERR_OK",
+                  "ERR_NOT_COMPLEMENTED",
+                  negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
+                  negotiation_status::type::SASL_INITIATE},
+                 {"ERR_OK",
+                  "ERR_TIMEOUT",
+                  negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
                   negotiation_status::type::SASL_AUTH_FAIL},
-                 {negotiation_status::type::SASL_LIST_MECHANISMS_RESP,
-                  negotiation_status::type::SASL_INITIATE}};
+                 {"ERR_TIMEOUT",
+                  "ERR_OK",
+                  negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
+                  negotiation_status::type::SASL_AUTH_FAIL},
+                 {"ERR_OK",
+                  "ERR_OK",
+                  negotiation_status::type::SASL_SELECT_MECHANISMS,
+                  negotiation_status::type::SASL_AUTH_FAIL}};
 
-    fail::setup();
-    fail::cfg("sasl_client_wrapper_init", "return()");
-    fail::cfg("sasl_client_wrapper_start", "return()");
     RPC_MOCKING(negotiation_rpc)
     {
         for (const auto &test : tests) {
+            fail::setup();
+            fail::cfg("sasl_client_wrapper_init", "return(" + test.sasl_init_return_value + ")");
+            fail::cfg("sasl_client_wrapper_start", "return(" + test.sasl_start_return_value + ")");
+
             negotiation_response resp;
             resp.status = test.resp_status;
             on_mechanism_selected(resp);
-
             ASSERT_EQ(get_negotiation_status(), test.neg_status);
+
+            fail::teardown();
         }
     }
-    fail::teardown();
 }
 } // namespace security
 } // namespace dsn

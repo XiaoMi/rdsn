@@ -117,11 +117,10 @@ void client_negotiation::on_mechanism_selected(const negotiation_response &resp)
     // init client sasl
     auto err_s = _sasl->init();
     if (!err_s.is_ok()) {
-        dassert_f(false,
-                  "{}: initiaze sasl client failed, error = {}, reason = {}",
-                  _name,
-                  err_s.code().to_string(),
-                  err_s.description());
+        dwarn_f("{}: initiaze sasl client failed, error = {}, reason = {}",
+                _name,
+                err_s.code().to_string(),
+                err_s.description());
         fail_negotiation();
         return;
     }
@@ -135,11 +134,10 @@ void client_negotiation::on_mechanism_selected(const negotiation_response &resp)
         req->msg = start_output;
         send(std::move(req));
     } else {
-        dassert_f(false,
-                  "{}: client_negotiation: sasl client start failed, error = {}, reason = {}",
-                  _name,
-                  err_s.code().to_string(),
-                  err_s.description());
+        dwarn_f("{}: start sasl client failed, error = {}, reason = {}",
+                _name,
+                err_s.code().to_string(),
+                err_s.description());
         fail_negotiation();
     }
 }
