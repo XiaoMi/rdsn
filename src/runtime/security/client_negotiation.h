@@ -37,7 +37,6 @@ private:
     void list_mechanisms();
     void select_mechanism(const std::string &mechanism);
     void initiate_negotiation();
-    error_s send_sasl_initiate_msg();
     void send(std::unique_ptr<negotiation_request> request);
     void succ_negotiation();
 };
