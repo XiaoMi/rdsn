@@ -42,6 +42,11 @@ public:
     virtual void start() = 0;
     bool negotiation_succeed() const { return _status == negotiation_status::type::SASL_SUCC; }
     void fail_negotiation();
+    // check whether the status is equal to expect_status
+    // ret value:
+    //   true:  status == expect_status
+    //   false: status != expect_status
+    bool check_status(negotiation_status::type status, negotiation_status::type expect_status);
 
 protected:
     // The ownership of the negotiation instance is held by rpc_session.
