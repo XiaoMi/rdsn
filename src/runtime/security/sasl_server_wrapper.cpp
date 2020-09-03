@@ -28,8 +28,12 @@ DSN_DECLARE_string(service_name);
 
 error_s sasl_server_wrapper::init()
 {
-    FAIL_POINT_INJECT_F("sasl_server_wrapper_init",
-                        [](dsn::string_view) { return error_s::make(ERR_OK); });
+    FAIL_POINT_INJECT_F("sasl_server_wrapper_init", [](dsn::string_view str) {
+        if (0 == str.compare("ERR_OK")) {
+            return error_s::make(ERR_OK);
+        }
+        return error_s::make(ERR_UNKNOWN);
+    });
 
     int sasl_err = sasl_server_new(
         FLAGS_service_name, FLAGS_service_fqdn, nullptr, nullptr, nullptr, nullptr, 0, &_conn);
