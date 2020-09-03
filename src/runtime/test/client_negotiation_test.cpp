@@ -127,7 +127,7 @@ TEST_F(client_negotiation_test, on_mechanism_selected)
         negotiation_status::type neg_status;
     } tests[] = {{negotiation_status::type::SASL_SELECT_MECHANISMS,
                   negotiation_status::type::SASL_AUTH_FAIL},
-                 {negotiation_status::type::SASL_LIST_MECHANISMS_RESP,
+                 {negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
                   negotiation_status::type::SASL_INITIATE}};
 
     fail::setup();
