@@ -110,17 +110,17 @@ void server_negotiation::on_initiate(negotiation_rpc rpc)
         return;
     }
 
-    std::string resp_msg;
-    error_s err_s = _sasl->start(_selected_mechanism, request.msg, resp_msg);
-    return do_challenge_work(rpc, err_s, resp_msg);
+    std::string start_output;
+    error_s err_s = _sasl->start(_selected_mechanism, request.msg, start_output);
+    return do_challenge(rpc, err_s, start_output);
 }
 
-void server_negotiation::do_challenge_work(negotiation_rpc rpc,
-                                           error_s err_s,
-                                           const std::string &resp_msg)
+void server_negotiation::do_challenge(negotiation_rpc rpc,
+                                      error_s err_s,
+                                      const std::string &resp_msg)
 {
     if (!err_s.is_ok() && err_s.code() != ERR_NOT_COMPLEMENTED) {
-        dwarn_f("{}: negotiation failed locally, with err = {}, msg = {}",
+        dwarn_f("{}: negotiation failed, with err = {}, msg = {}",
                 _name,
                 err_s.code().to_string(),
                 err_s.description());

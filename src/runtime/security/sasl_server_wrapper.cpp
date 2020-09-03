@@ -40,6 +40,8 @@ error_s sasl_server_wrapper::start(const std::string &mechanism,
                                    const std::string &input,
                                    std::string &output)
 {
+    FAIL_POINT_INJECT_F("sasl_server_wrapper_start",
+                        [](dsn::string_view) { return error_s::make(ERR_OK); });
     // TBD(zlw)
     return error_s::make(ERR_OK);
 }
