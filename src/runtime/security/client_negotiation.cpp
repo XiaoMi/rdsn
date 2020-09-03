@@ -136,7 +136,7 @@ void client_negotiation::on_mechanism_selected(const negotiation_response &resp)
         send(std::move(req));
     } else {
         dassert_f(false,
-                  "{}: client_negotiation: sasl client start failed, error = {}, reason = {}",
+                  "{}: start sasl client failed, error = {}, reason = {}",
                   _name,
                   err_s.code().to_string(),
                   err_s.description());
