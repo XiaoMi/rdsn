@@ -137,6 +137,7 @@ void client_negotiation::select_mechanism(const std::string &mechanism)
 
 void client_negotiation::initiate_negotiation()
 {
+    // init client sasl
     auto err_s = _sasl->init();
     if (!err_s.is_ok()) {
         dassert_f(false,
@@ -148,6 +149,7 @@ void client_negotiation::initiate_negotiation()
         return;
     }
 
+    // start client sasl, and send `SASL_INITIATE` to `server_negotiation` if it returns ok
     std::string start_output;
     err_s = _sasl->start(_selected_mechanism, "", start_output);
     if (err_s.is_ok() || ERR_NOT_COMPLEMENTED == err_s.code()) {
