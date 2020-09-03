@@ -150,7 +150,7 @@ void client_negotiation::initiate_negotiation()
 
     std::string start_output;
     err_s = _sasl->start(_selected_mechanism, "", start_output);
-    if (err_s.is_ok() || err_s.code() == ERR_NOT_COMPLEMENTED) {
+    if (err_s.is_ok() || ERR_NOT_COMPLEMENTED == err_s.code()) {
         auto req = dsn::make_unique<negotiation_request>();
         _status = req->status = negotiation_status::type::SASL_INITIATE;
         req->msg = start_output;
