@@ -51,13 +51,13 @@ void negotiation::fail_negotiation()
 }
 
 bool negotiation::check_status(negotiation_status::type status,
-                               negotiation_status::type expect_status)
+                               negotiation_status::type expected_status)
 {
-    if (status != expect_status) {
+    if (status != expected_status) {
         dwarn_f("{}: get message({}) while expect({})",
                 _name,
                 enum_to_string(status),
-                enum_to_string(expect_status));
+                enum_to_string(expected_status));
         return false;
     }
 

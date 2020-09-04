@@ -119,7 +119,7 @@ void server_negotiation::do_challenge(negotiation_rpc rpc,
                                       error_s err_s,
                                       const std::string &resp_msg)
 {
-    if (!err_s.is_ok() && err_s.code() != ERR_NOT_COMPLEMENTED) {
+    if (!err_s.is_ok() && err_s.code() != ERR_SASL_INCOMPLETE) {
         dwarn_f("{}: negotiation failed, with err = {}, msg = {}",
                 _name,
                 err_s.code().to_string(),
@@ -143,6 +143,9 @@ void server_negotiation::do_challenge(negotiation_rpc rpc,
         _status = challenge.status = negotiation_status::type::SASL_CHALLENGE;
         challenge.msg = resp_msg;
     }
+
+    negotiation_response &response = rpc.response();
+    _status = response.status = negotiation_status::type::SASL_SELECT_MECHANISMS_RESP;
 }
 
 void server_negotiation::succ_negotiation(negotiation_rpc rpc)

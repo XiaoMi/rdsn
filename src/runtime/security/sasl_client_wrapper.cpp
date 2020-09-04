@@ -29,10 +29,8 @@ DSN_DECLARE_string(service_name);
 error_s sasl_client_wrapper::init()
 {
     FAIL_POINT_INJECT_F("sasl_client_wrapper_init", [](dsn::string_view str) {
-        if (0 == str.compare("ERR_OK")) {
-            return error_s::make(ERR_OK);
-        }
-        return error_s::make(ERR_UNKNOWN);
+        error_code err = error_code::try_get(str.data(), ERR_UNKNOWN);
+        return error_s::make(err);
     });
 
     int sasl_err = sasl_client_new(
@@ -45,12 +43,8 @@ error_s sasl_client_wrapper::start(const std::string &mechanism,
                                    std::string &output)
 {
     FAIL_POINT_INJECT_F("sasl_client_wrapper_start", [](dsn::string_view str) {
-        if (0 == str.compare("ERR_OK")) {
-            return error_s::make(ERR_OK);
-        } else if (0 == str.compare("ERR_NOT_COMPLEMENTED")) {
-            return error_s::make(ERR_NOT_COMPLEMENTED);
-        }
-        return error_s::make(ERR_UNKNOWN);
+        error_code err = error_code::try_get(str.data(), ERR_UNKNOWN);
+        return error_s::make(err);
     });
 
     const char *msg = nullptr;
