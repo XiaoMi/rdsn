@@ -87,6 +87,7 @@ meta_service_app::meta_service_app(const service_app_info *info) : service_app(i
 
     // add http service
     register_http_service(new replication::meta_http_service(_service.get()));
+    start_http_server();
 }
 
 meta_service_app::~meta_service_app() {}

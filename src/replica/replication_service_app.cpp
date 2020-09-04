@@ -45,6 +45,7 @@ replication_service_app::replication_service_app(const service_app_info *info) :
 
     // add http service
     register_http_service(new replica_http_service(_stub.get()));
+    start_http_server();
 }
 
 replication_service_app::~replication_service_app(void) {}
