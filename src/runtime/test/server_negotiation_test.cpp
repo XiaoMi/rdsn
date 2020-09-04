@@ -52,6 +52,8 @@ public:
 
     negotiation_status::type get_negotiation_status() { return _srv_negotiation->_status; }
 
+    std::string get_user_name() { return _srv_negotiation->_user_name; }
+
     // _sim_session is used for holding the sim_rpc_session which is created in ctor,
     // in case it is released. Because negotiation keeps only a raw pointer.
     rpc_session_ptr _sim_session;
@@ -189,6 +191,7 @@ TEST_F(server_negotiation_test, on_initiate)
             on_initiate(rpc);
             ASSERT_EQ(rpc.response().status, test.resp_status);
             ASSERT_EQ(get_negotiation_status(), test.nego_status);
+            ASSERT_EQ(get_user_name(), test.expect_user_name);
 
             fail::teardown();
         }
