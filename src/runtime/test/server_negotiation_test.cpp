@@ -147,7 +147,7 @@ TEST_F(server_negotiation_test, on_initiate)
         negotiation_status::type req_status;
         negotiation_status::type resp_status;
         negotiation_status::type nego_status;
-        std::string expect_user_name;
+        std::string user_name;
     } tests[] = {
         {
             "ERR_OK",
@@ -191,7 +191,7 @@ TEST_F(server_negotiation_test, on_initiate)
             on_initiate(rpc);
             ASSERT_EQ(rpc.response().status, test.resp_status);
             ASSERT_EQ(get_negotiation_status(), test.nego_status);
-            ASSERT_EQ(get_user_name(), test.expect_user_name);
+            ASSERT_EQ(get_user_name(), test.user_name);
 
             fail::teardown();
         }
