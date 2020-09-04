@@ -129,23 +129,12 @@ void server_negotiation::do_challenge(negotiation_rpc rpc,
     }
 
     if (err_s.is_ok()) {
-        auto err = _sasl->retrive_username();
-        if (!err.is_ok()) {
-            dwarn_f("{}: unexpected result({})", _name, err.get_error().description());
-            fail_negotiation();
-            return;
-        }
-
-        _user_name = err.get_value();
         succ_negotiation(rpc);
     } else {
         negotiation_response &challenge = rpc.response();
         _status = challenge.status = negotiation_status::type::SASL_CHALLENGE;
         challenge.msg = resp_msg;
     }
-
-    negotiation_response &response = rpc.response();
-    _status = response.status = negotiation_status::type::SASL_SELECT_MECHANISMS_RESP;
 }
 
 void server_negotiation::succ_negotiation(negotiation_rpc rpc)

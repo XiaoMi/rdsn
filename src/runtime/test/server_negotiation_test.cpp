@@ -143,40 +143,26 @@ TEST_F(server_negotiation_test, on_initiate)
     struct
     {
         std::string sasl_start_result;
-        std::string sasl_retrive_name_result;
         negotiation_status::type req_status;
         negotiation_status::type resp_status;
         negotiation_status::type nego_status;
-        std::string user_name;
     } tests[] = {
-        {
-            "ERR_OK",
-            "ERR_TIMEOUT",
-            negotiation_status::type::SASL_INITIATE,
-            negotiation_status::type::INVALID,
-            negotiation_status::type::SASL_AUTH_FAIL,
-        },
         {"ERR_TIMEOUT",
-         "ERR_OK",
          negotiation_status::type::SASL_INITIATE,
          negotiation_status::type::INVALID,
          negotiation_status::type::SASL_AUTH_FAIL},
         {"ERR_OK",
-         "ERR_OK",
          negotiation_status::type::SASL_SELECT_MECHANISMS,
          negotiation_status::type::INVALID,
          negotiation_status::type::SASL_AUTH_FAIL},
-        {"ERR_NOT_COMPLEMENTED",
-         "ERR_OK",
+        {"ERR_SASL_INCOMPLETE",
          negotiation_status::type::SASL_INITIATE,
          negotiation_status::type::SASL_CHALLENGE,
          negotiation_status::type::SASL_CHALLENGE},
         {"ERR_OK",
-         "ERR_OK",
          negotiation_status::type::SASL_INITIATE,
          negotiation_status::type::SASL_SUCC,
-         negotiation_status::type::SASL_SUCC,
-         "TEST_NAME"},
+         negotiation_status::type::SASL_SUCC},
     };
 
     RPC_MOCKING(negotiation_rpc)
@@ -184,14 +170,11 @@ TEST_F(server_negotiation_test, on_initiate)
         for (const auto &test : tests) {
             fail::setup();
             fail::cfg("sasl_server_wrapper_start", "return(" + test.sasl_start_result + ")");
-            fail::cfg("sasl_wrapper_retrive_username",
-                      "return(" + test.sasl_retrive_name_result + ")");
 
             auto rpc = create_negotiation_rpc(test.req_status, "");
             on_initiate(rpc);
             ASSERT_EQ(rpc.response().status, test.resp_status);
             ASSERT_EQ(get_negotiation_status(), test.nego_status);
-            ASSERT_EQ(get_user_name(), test.user_name);
 
             fail::teardown();
         }

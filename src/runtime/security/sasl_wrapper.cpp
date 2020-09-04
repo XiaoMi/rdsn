@@ -20,7 +20,6 @@
 #include "sasl_client_wrapper.h"
 
 #include <sasl/sasl.h>
-#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace security {
@@ -64,29 +63,6 @@ error_s sasl_wrapper::wrap_error(int sasl_err)
         break;
     }
     return ret;
-}
-
-error_with<std::string> sasl_wrapper::retrive_username()
-{
-    FAIL_POINT_INJECT_F("sasl_wrapper_retrive_username", [](dsn::string_view str) {
-        if (0 == str.compare("ERR_OK")) {
-            return error_with<std::string>("TEST_NAME");
-        }
-        return error_with<std::string>(error_s::make(ERR_UNKNOWN));
-    });
-
-    char *username = nullptr;
-    int sasl_err = sasl_getprop(_conn, SASL_USERNAME, (const void **)&username);
-
-    std::string output;
-    error_s err_s = wrap_error(sasl_err);
-    if (err_s.is_ok()) {
-        output = username;
-        output = output.substr(0, output.find_last_of('@'));
-        output = output.substr(0, output.find_first_of('/'));
-        return error_with<std::string>(std::move(output));
-    }
-    return err_s;
 }
 
 std::unique_ptr<sasl_wrapper> create_sasl_wrapper(bool is_client)
