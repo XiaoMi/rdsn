@@ -51,7 +51,8 @@ namespace dsn {
     register_http_call("recentStartTime")
         .with_callback([](const http_request &req, http_response &resp) {
             get_recent_start_time_handler(req, resp);
-        });
+        })
+        .with_help("Gets the server start time.");
 
     register_http_call("perfCounter")
         .with_callback([](const http_request &req, http_response &resp) {
