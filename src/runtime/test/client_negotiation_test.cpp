@@ -123,8 +123,8 @@ TEST_F(client_negotiation_test, on_mechanism_selected)
 {
     struct
     {
-        std::string sasl_init_return_value;
-        std::string sasl_start_return_value;
+        std::string sasl_init_result;
+        std::string sasl_start_result;
         negotiation_status::type resp_status;
         negotiation_status::type neg_status;
     } tests[] = {{"ERR_OK",
@@ -152,8 +152,8 @@ TEST_F(client_negotiation_test, on_mechanism_selected)
     {
         for (const auto &test : tests) {
             fail::setup();
-            fail::cfg("sasl_client_wrapper_init", "return(" + test.sasl_init_return_value + ")");
-            fail::cfg("sasl_client_wrapper_start", "return(" + test.sasl_start_return_value + ")");
+            fail::cfg("sasl_client_wrapper_init", "return(" + test.sasl_init_result + ")");
+            fail::cfg("sasl_client_wrapper_start", "return(" + test.sasl_start_result + ")");
 
             negotiation_response resp;
             resp.status = test.resp_status;
