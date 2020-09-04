@@ -132,7 +132,7 @@ TEST_F(client_negotiation_test, on_mechanism_selected)
                   negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
                   negotiation_status::type::SASL_INITIATE},
                  {"ERR_OK",
-                  "ERR_SASL_INCOMPLETED",
+                  "ERR_SASL_INCOMPLETE",
                   negotiation_status::type::SASL_SELECT_MECHANISMS_RESP,
                   negotiation_status::type::SASL_INITIATE},
                  {"ERR_OK",

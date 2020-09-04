@@ -128,7 +128,7 @@ void client_negotiation::on_mechanism_selected(const negotiation_response &resp)
     // start client sasl, and send `SASL_INITIATE` to `server_negotiation` if everything is ok
     std::string start_output;
     err_s = _sasl->start(_selected_mechanism, "", start_output);
-    if (err_s.is_ok() || ERR_SASL_INCOMPLETED == err_s.code()) {
+    if (err_s.is_ok() || ERR_SASL_INCOMPLETE == err_s.code()) {
         auto req = dsn::make_unique<negotiation_request>();
         _status = req->status = negotiation_status::type::SASL_INITIATE;
         req->msg = start_output;
