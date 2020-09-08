@@ -43,7 +43,6 @@ DSN_DEFINE_bool("http", enable_http_server, true, "whether to enable the embedde
     auto call_ptr = dsn::make_unique<http_call>();
     call_ptr->path = std::move(full_path);
     http_call &call = *call_ptr;
-    // register this call
     http_call_registry::instance().add(std::move(call_ptr));
     return call;
 }
