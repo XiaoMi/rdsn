@@ -128,8 +128,6 @@ void server_negotiation::do_challenge(negotiation_rpc rpc,
         return;
     }
 
-    // err_s.is_ok() means the negotiation is succeed, and `ERR_SASL_INCOMPLETE` means
-    // we should do next round of challenge to complete the negotiation.
     if (err_s.is_ok()) {
         negotiation_response &response = rpc.response();
         _status = response.status = negotiation_status::type::SASL_SUCC;
