@@ -283,6 +283,9 @@ function(dsn_setup_thirdparty_libs)
     set(Boost_USE_MULTITHREADED ON)
     set(Boost_USE_STATIC_LIBS OFF)
     set(Boost_USE_STATIC_RUNTIME OFF)
+    set(BOOST_ROOT ${DSN_THIRDPARTY_ROOT})
+    set(Boost_NO_SYSTEM_PATHS ON)
+    set(Boost_NO_BOOST_CMAKE ON)
 
     set(CMAKE_PREFIX_PATH ${DSN_THIRDPARTY_ROOT};${CMAKE_PREFIX_PATH})
     find_package(Boost COMPONENTS system filesystem regex REQUIRED)
@@ -296,7 +299,7 @@ function(dsn_setup_thirdparty_libs)
     set(DEFAULT_THIRDPARTY_LIBS ${THRIFT_LIB} fmt::fmt CACHE STRING "default thirdparty libs" FORCE)
 
     # rocksdb
-    file(GLOB ROCKSDB_DEPENDS_MODULE_PATH ${DSN_PROJECT_DIR}/thirdparty/src/*/cmake/modules)
+    file(GLOB ROCKSDB_DEPENDS_MODULE_PATH ${DSN_PROJECT_DIR}/thirdparty/build/Source/rocksdb/cmake/modules)
     if(NOT ROCKSDB_DEPENDS_MODULE_PATH)
         message(WARNING "Cannot find RocksDB depends cmake modules path, might not find snappy, zstd, lz4")
     endif()

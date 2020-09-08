@@ -11,9 +11,8 @@ namespace dsn {
 namespace replication {
 
 bulk_load_service::bulk_load_service(meta_service *meta_svc, const std::string &bulk_load_dir)
-    : _meta_svc(meta_svc), _bulk_load_root(bulk_load_dir)
+    : _meta_svc(meta_svc), _state(meta_svc->get_server_state()), _bulk_load_root(bulk_load_dir)
 {
-    _state = _meta_svc->get_server_state();
 }
 
 // ThreadPool: THREAD_POOL_META_SERVER
@@ -706,12 +705,22 @@ void bulk_load_service::handle_app_pausing(const bulk_load_response &response,
 // ThreadPool: THREAD_POOL_META_STATE
 void bulk_load_service::try_rollback_to_downloading(const std::string &app_name, const gpid &pid)
 {
-    zauto_read_lock l(_lock);
+    zauto_write_lock l(_lock);
+
     const auto app_status = get_app_bulk_load_status_unlocked(pid.get_app_id());
     if (app_status == bulk_load_status::BLS_DOWNLOADING ||
         app_status == bulk_load_status::BLS_DOWNLOADED ||
         app_status == bulk_load_status::BLS_INGESTING ||
         app_status == bulk_load_status::BLS_SUCCEED) {
+        if (_apps_rolling_back[pid.get_app_id()]) {
+            dwarn_f("app({}) is rolling back to downloading, ignore this request", app_name);
+            return;
+        }
+        ddebug_f("app({}) will rolling back from {} to {}",
+                 app_name,
+                 dsn::enum_to_string(app_status),
+                 dsn::enum_to_string(bulk_load_status::BLS_DOWNLOADING));
+        _apps_rolling_back[pid.get_app_id()] = true;
         update_app_status_on_remote_storage_unlocked(pid.get_app_id(),
                                                      bulk_load_status::type::BLS_DOWNLOADING);
     } else {
@@ -769,17 +778,45 @@ void bulk_load_service::update_partition_status_on_remote_storage(const std::str
                                                                   bulk_load_status::type new_status,
                                                                   bool should_send_request)
 {
-    zauto_read_lock l(_lock);
+    zauto_write_lock l(_lock);
     partition_bulk_load_info pinfo = _partition_bulk_load_info[pid];
-
-    if (pinfo.status == new_status) {
+    if (pinfo.status == new_status && new_status != bulk_load_status::BLS_DOWNLOADING) {
+        dwarn_f("app({}) partition({}) old status:{} VS new status:{}, ignore it",
+                app_name,
+                pid,
+                dsn::enum_to_string(pinfo.status),
+                dsn::enum_to_string(new_status));
         return;
     }
 
     if (_partitions_pending_sync_flag[pid]) {
-        ddebug_f("app({}) partition({}) has already sync bulk load status, wait for next round",
-                 app_name,
-                 pid);
+        if (_apps_rolling_back[pid.get_app_id()] &&
+            new_status == bulk_load_status::BLS_DOWNLOADING) {
+            dwarn_f("app({}) partition({}) has already sync bulk load status, current_status = {}, "
+                    "wait and retry to set status as {}",
+                    app_name,
+                    pid,
+                    dsn::enum_to_string(pinfo.status),
+                    dsn::enum_to_string(new_status));
+            tasking::enqueue(
+                LPC_META_STATE_NORMAL,
+                _meta_svc->tracker(),
+                std::bind(&bulk_load_service::update_partition_status_on_remote_storage,
+                          this,
+                          app_name,
+                          pid,
+                          new_status,
+                          should_send_request),
+                0,
+                std::chrono::seconds(1));
+        } else {
+            ddebug_f("app({}) partition({}) has already sync bulk load status, current_status = "
+                     "{}, new_status = {}, wait for next round",
+                     app_name,
+                     pid,
+                     dsn::enum_to_string(pinfo.status),
+                     dsn::enum_to_string(new_status));
+        }
         return;
     }
 
@@ -822,22 +859,23 @@ void bulk_load_service::update_partition_status_on_remote_storage_reply(
         case bulk_load_status::BLS_INGESTING:
         case bulk_load_status::BLS_SUCCEED:
         case bulk_load_status::BLS_PAUSED:
-            if (old_status != new_status && --_apps_in_progress_count[pid.get_app_id()] == 0) {
+            if (old_status != new_status && !_apps_rolling_back[pid.get_app_id()] &&
+                --_apps_in_progress_count[pid.get_app_id()] == 0) {
                 update_app_status_on_remote_storage_unlocked(pid.get_app_id(), new_status);
             }
             break;
-        case bulk_load_status::BLS_DOWNLOADING:
-            if (old_status != new_status) {
-                _partitions_bulk_load_state.erase(pid);
-                _partitions_total_download_progress[pid] = 0;
-                _partitions_cleaned_up[pid] = false;
-                if (--_apps_in_progress_count[pid.get_app_id()] == 0) {
-                    _apps_in_progress_count[pid.get_app_id()] =
-                        _app_bulk_load_info[pid.get_app_id()].partition_count;
-                    ddebug_f("app({}) restart to bulk load", app_name);
-                }
+        case bulk_load_status::BLS_DOWNLOADING: {
+            _partitions_bulk_load_state.erase(pid);
+            _partitions_total_download_progress[pid] = 0;
+            _partitions_cleaned_up[pid] = false;
+
+            if (--_apps_in_progress_count[pid.get_app_id()] == 0) {
+                _apps_in_progress_count[pid.get_app_id()] =
+                    _app_bulk_load_info[pid.get_app_id()].partition_count;
+                _apps_rolling_back[pid.get_app_id()] = false;
+                ddebug_f("app({}) restart to bulk load", app_name);
             }
-            break;
+        } break;
         default:
             // do nothing in other status
             break;
@@ -1020,6 +1058,14 @@ void bulk_load_service::on_partition_ingestion_reply(error_code err,
                                                      const std::string &app_name,
                                                      const gpid &pid)
 {
+    if (err == ERR_NO_NEED_OPERATE) {
+        dwarn_f(
+            "app({}) partition({}) has already executing ingestion, ignore this repeated request",
+            app_name,
+            pid);
+        return;
+    }
+
     // if meet 2pc error, ingesting will rollback to downloading, no need to retry here
     if (err != ERR_OK) {
         derror_f("app({}) partition({}) ingestion files failed, error = {}", app_name, pid, err);
@@ -1114,6 +1160,7 @@ void bulk_load_service::reset_local_bulk_load_states(int32_t app_id, const std::
     erase_map_elem_by_id(app_id, _partition_bulk_load_info);
     erase_map_elem_by_id(app_id, _partitions_total_download_progress);
     erase_map_elem_by_id(app_id, _partitions_cleaned_up);
+    _apps_rolling_back.erase(app_id);
     _apps_cleaning_up.erase(app_id);
     _bulk_load_app_id.erase(app_id);
     ddebug_f("reset local app({}) bulk load context", app_name);
@@ -1254,14 +1301,14 @@ void bulk_load_service::on_query_bulk_load_status(query_bulk_load_rpc rpc)
     response.app_status = get_app_bulk_load_status_unlocked(app_id);
 
     response.partitions_status.resize(partition_count);
-    for (const auto kv : _partition_bulk_load_info) {
+    for (const auto &kv : _partition_bulk_load_info) {
         if (kv.first.get_app_id() == app_id) {
             response.partitions_status[kv.first.get_partition_index()] = kv.second.status;
         }
     }
 
     response.bulk_load_states.resize(partition_count);
-    for (const auto kv : _partitions_bulk_load_state) {
+    for (const auto &kv : _partitions_bulk_load_state) {
         if (kv.first.get_app_id() == app_id) {
             response.bulk_load_states[kv.first.get_partition_index()] = kv.second;
         }
@@ -1538,8 +1585,176 @@ void bulk_load_service::do_continue_app_bulk_load(
     const std::unordered_map<int32_t, partition_bulk_load_info> &pinfo_map,
     const std::unordered_set<int32_t> &different_status_pidx_set)
 {
-    // TODO(heyuchen): TBD
-    // continue bulk load
+    const int32_t app_id = ainfo.app_id;
+    const int32_t partition_count = ainfo.partition_count;
+    const auto app_status = ainfo.status;
+    const int32_t different_count = different_status_pidx_set.size();
+    const int32_t same_count = pinfo_map.size() - different_count;
+    const int32_t invalid_count = partition_count - pinfo_map.size();
+
+    ddebug_f(
+        "app({}) continue bulk load, app_id = {}, partition_count = {}, status = {}, there are {} "
+        "partitions have bulk_load_info, {} partitions have same status with app, {} "
+        "partitions different",
+        ainfo.app_name,
+        app_id,
+        partition_count,
+        dsn::enum_to_string(app_status),
+        pinfo_map.size(),
+        same_count,
+        different_count);
+
+    // _apps_in_progress_count is used for updating app bulk load, when _apps_in_progress_count = 0
+    // means app bulk load status can transfer to next stage, for example, when app status is
+    // downloaded, and _apps_in_progress_count = 0, app status can turn to ingesting
+    // see more in function `update_partition_status_on_remote_storage_reply`
+    int32_t in_progress_partition_count = partition_count;
+    if (app_status == bulk_load_status::BLS_DOWNLOADING) {
+        if (invalid_count > 0) {
+            // create missing partition, so the in_progress_count should be invalid_count
+            in_progress_partition_count = invalid_count;
+        } else if (different_count > 0) {
+            // it is hard to distinguish that bulk load is normal downloading or rollback to
+            // downloading before meta server crash, when app status is downloading, we consider
+            // bulk load as rolling back to downloading for convenience, for partitions whose status
+            // is not downloading, update them to downloading, so the in_progress_count should be
+            // different_count
+            in_progress_partition_count = different_count;
+        }
+    } else if (app_status == bulk_load_status::BLS_DOWNLOADED ||
+               app_status == bulk_load_status::BLS_INGESTING ||
+               app_status == bulk_load_status::BLS_SUCCEED) {
+        // for app status is downloaded, when all partitions turn to ingesting, app partition will
+        // turn to ingesting, so the in_progress_count should be same_count, ingesting and succeed
+        // are same
+        in_progress_partition_count = same_count;
+    } // for other cases, in_progress_count should be partition_count
+    {
+        zauto_write_lock l(_lock);
+        _apps_in_progress_count[app_id] = in_progress_partition_count;
+    }
+
+    // if app is paused, no need to send bulk_load_request, just return
+    if (app_status == bulk_load_status::BLS_PAUSED) {
+        return;
+    }
+
+    // create all missing partitions then send request to all partitions
+    if (app_status == bulk_load_status::BLS_DOWNLOADING && invalid_count > 0) {
+        for (auto i = 0; i < partition_count; ++i) {
+            if (pinfo_map.find(i) == pinfo_map.end()) {
+                create_missing_partition_dir(ainfo.app_name, gpid(app_id, i), partition_count);
+            }
+        }
+        return;
+    }
+
+    // update all partition status to app_status
+    if ((app_status == bulk_load_status::BLS_FAILED ||
+         app_status == bulk_load_status::BLS_CANCELED ||
+         app_status == bulk_load_status::BLS_PAUSING ||
+         app_status == bulk_load_status::BLS_DOWNLOADING) &&
+        different_count > 0) {
+        for (auto pidx : different_status_pidx_set) {
+            update_partition_status_on_remote_storage(
+                ainfo.app_name, gpid(app_id, pidx), app_status);
+        }
+    }
+
+    // send bulk_load_request to all partitions
+    for (auto i = 0; i < partition_count; ++i) {
+        gpid pid = gpid(app_id, i);
+        partition_bulk_load(ainfo.app_name, pid);
+        if (app_status == bulk_load_status::BLS_INGESTING) {
+            tasking::enqueue(
+                LPC_BULK_LOAD_INGESTION,
+                _meta_svc->tracker(),
+                std::bind(&bulk_load_service::partition_ingestion, this, ainfo.app_name, pid));
+        }
+    }
+}
+
+// ThreadPool: THREAD_POOL_META_STATE
+void bulk_load_service::create_missing_partition_dir(const std::string &app_name,
+                                                     const gpid &pid,
+                                                     int32_t partition_count)
+{
+    partition_bulk_load_info pinfo;
+    pinfo.status = bulk_load_status::BLS_DOWNLOADING;
+    blob value = dsn::json::json_forwarder<partition_bulk_load_info>::encode(pinfo);
+
+    _meta_svc->get_meta_storage()->create_node(
+        get_partition_bulk_load_path(pid),
+        std::move(value),
+        [app_name, pid, partition_count, pinfo, this]() {
+            const int32_t app_id = pid.get_app_id();
+            bool send_request = false;
+            ddebug_f("app({}) create partition({}) bulk_load_info", app_name, pid);
+            {
+                zauto_write_lock l(_lock);
+                _partition_bulk_load_info[pid] = pinfo;
+
+                if (--_apps_in_progress_count[app_id] == 0) {
+                    _apps_in_progress_count[app_id] = partition_count;
+                    send_request = true;
+                }
+            }
+            if (send_request) {
+                ddebug_f("app({}) start to bulk load", app_name);
+                for (auto i = 0; i < partition_count; ++i) {
+                    partition_bulk_load(app_name, gpid(app_id, i));
+                }
+            }
+        });
+}
+
+// ThreadPool: THREAD_POOL_META_SERVER
+void bulk_load_service::check_app_bulk_load_states(std::shared_ptr<app_state> app,
+                                                   bool is_app_bulk_loading)
+{
+    std::string app_path = get_app_bulk_load_path(app->app_id);
+    _meta_svc->get_remote_storage()->node_exist(
+        app_path, LPC_META_CALLBACK, [this, app_path, app, is_app_bulk_loading](error_code err) {
+            if (err != ERR_OK && err != ERR_OBJECT_NOT_FOUND) {
+                dwarn_f("check app({}) bulk load dir({}) failed, error = {}, try later",
+                        app->app_name,
+                        app_path,
+                        err);
+                tasking::enqueue(LPC_META_CALLBACK,
+                                 nullptr,
+                                 std::bind(&bulk_load_service::check_app_bulk_load_states,
+                                           this,
+                                           app,
+                                           is_app_bulk_loading),
+                                 0,
+                                 std::chrono::seconds(1));
+                return;
+            }
+
+            if (err == ERR_OBJECT_NOT_FOUND && is_app_bulk_loading) {
+                derror_f("app({}): bulk load dir({}) not exist, but is_bulk_loading = {}, reset "
+                         "app is_bulk_loading flag",
+                         app->app_name,
+                         app_path,
+                         is_app_bulk_loading);
+                update_app_not_bulk_loading_on_remote_storage(std::move(app));
+                return;
+            }
+
+            if (err == ERR_OK && !is_app_bulk_loading) {
+                derror_f("app({}): bulk load dir({}) exist, but is_bulk_loading = {}, remove "
+                         "useless bulk load dir",
+                         app->app_name,
+                         app_path,
+                         is_app_bulk_loading);
+                remove_bulk_load_dir_on_remote_storage(std::move(app), false);
+                return;
+            }
+
+            // Normal cases:
+            // err = ERR_OBJECT_NOT_FOUND, is_app_bulk_load = false: app is not executing bulk load
+            // err = ERR_OK, is_app_bulk_load = true: app used to be executing bulk load
+        });
 }
 
 } // namespace replication

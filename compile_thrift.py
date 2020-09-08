@@ -25,7 +25,7 @@ thrift_description = [
         },
         "file_move": {
             "_types.h": "include/dsn/cpp/serialization_helper",
-            "_types.cpp": "src/core/core"
+            "_types.cpp": "src/runtime"
         }
     },
     {
@@ -83,6 +83,24 @@ thrift_description = [
         "file_move": {
             "_types.h": "src/remote_cmd",
             "_types.cpp": "src/remote_cmd"
+        }
+    },
+    {
+        "name": "security",
+        "path": "src/runtime/security",
+        "file_move": {
+            "_types.h": "src/runtime/security",
+            "_types.cpp": "src/runtime/security"
+        },
+        "include_fix": {
+            "_types.h": {
+                "add": ["<dsn/cpp/serialization_helper/dsn_types.h>"],
+                "remove": ["\"dsn_types.h\""]
+            },
+            "_types.cpp": {
+                "add": ["\"security_types.h\""],
+                "remove": ["\"security_types.h\""]
+            }
         }
     }
 ]

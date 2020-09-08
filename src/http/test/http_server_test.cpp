@@ -2,12 +2,13 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
-#include <dsn/tool-api/http_server.h>
+#include <dsn/http/http_server.h>
 #include <gtest/gtest.h>
 
 #include "http/http_message_parser.h"
 #include "http/root_http_service.h"
 #include "http/server_info_http_services.h"
+#include "http/http_server_impl.h"
 
 namespace dsn {
 
@@ -18,17 +19,17 @@ TEST(http_server, parse_url)
         std::string url;
 
         error_code err;
-        std::pair<std::string, std::string> result;
+        std::string path;
     } tests[] = {
-        {"http://127.0.0.1:34601", ERR_OK, {"", ""}},
-        {"http://127.0.0.1:34601/", ERR_OK, {"", ""}},
-        {"http://127.0.0.1:34601///", ERR_OK, {"", ""}},
-        {"http://127.0.0.1:34601/threads", ERR_OK, {"threads", ""}},
-        {"http://127.0.0.1:34601/threads/", ERR_OK, {"threads", ""}},
-        {"http://127.0.0.1:34601//pprof/heap/", ERR_OK, {"pprof", "heap"}},
-        {"http://127.0.0.1:34601//pprof///heap", ERR_OK, {"pprof", "heap"}},
-        {"http://127.0.0.1:34601/pprof/heap/arg/", ERR_OK, {"pprof", "heap/arg"}},
-        {"http://127.0.0.1:34601/pprof///heap///arg/", ERR_OK, {"pprof", "heap/arg"}},
+        {"http://127.0.0.1:34601", ERR_OK, ""},
+        {"http://127.0.0.1:34601/", ERR_OK, "/"},
+        {"http://127.0.0.1:34601///", ERR_OK, "///"},
+        {"http://127.0.0.1:34601/threads", ERR_OK, "/threads"},
+        {"http://127.0.0.1:34601/threads/?detail", ERR_OK, "/threads/"},
+        {"http://127.0.0.1:34601//pprof/heap/", ERR_OK, "//pprof/heap/"},
+        {"http://127.0.0.1:34601//pprof///heap?detailed=true", ERR_OK, "//pprof///heap"},
+        {"http://127.0.0.1:34601/pprof/heap/arg/", ERR_OK, "/pprof/heap/arg/"},
+        {"http://127.0.0.1:34601/pprof///heap///arg/", ERR_OK, "/pprof///heap///arg/"},
     };
 
     for (auto tt : tests) {
@@ -38,7 +39,7 @@ TEST(http_server, parse_url)
 
         auto res = http_request::parse(m.get());
         if (res.is_ok()) {
-            ASSERT_EQ(res.get_value().service_method, tt.result) << tt.url;
+            ASSERT_EQ(res.get_value().path, tt.path) << tt.url;
         } else {
             ASSERT_EQ(res.get_error().code(), tt.err);
         }
@@ -47,22 +48,24 @@ TEST(http_server, parse_url)
 
 TEST(root_http_service_test, get_help)
 {
-    http_server server(false);
-    auto root = new root_http_service(&server);
-    server.add_service(root);
-    ASSERT_EQ(server.get_help().size(), 1);
+    for (const auto &call : http_call_registry::instance().list_all_calls()) {
+        http_call_registry::instance().remove(call->path);
+    }
 
+    root_http_service root;
     http_request req;
     http_response resp;
-    root->default_handler(req, resp);
+    root.default_handler(req, resp);
     ASSERT_EQ(resp.status_code, http_status_code::ok);
     ASSERT_EQ(resp.body, "{\"/\":\"ip:port/\"}\n");
 
-    auto ver = new version_http_service();
-    server.add_service(ver);
-    ASSERT_EQ(server.get_help().size(), 2);
-    root->default_handler(req, resp);
+    version_http_service ver;
+    root.default_handler(req, resp);
     ASSERT_EQ(resp.body, "{\"/\":\"ip:port/\",\"/version\":\"ip:port/version\"}\n");
+
+    for (const auto &call : http_call_registry::instance().list_all_calls()) {
+        http_call_registry::instance().remove(call->path);
+    }
 }
 
 class http_message_parser_test : public testing::Test
@@ -125,7 +128,7 @@ public:
             ASSERT_EQ(msg->hdr_format, NET_HDR_HTTP);
             ASSERT_EQ(msg->header->hdr_type, http_method::HTTP_METHOD_GET);
             ASSERT_EQ(msg->header->context.u.is_request, 1);
-            ASSERT_EQ(msg->buffers.size(), 3);
+            ASSERT_EQ(msg->buffers.size(), 4);
             ASSERT_EQ(msg->buffers[2].size(), 1); // url
 
             // ensure states are reset
@@ -141,8 +144,7 @@ public:
 
 TEST_F(http_message_parser_test, parse_request)
 {
-    std::string http_request = "POST /path/file.html?sdfsdf=sdfs&sldf1=sdf HTTP/12.34\r\n"
-                               "From: someuser@jmarshall.com\r\n"
+    std::string http_request = "POST /path/file.html?sdfsdf=sdfs&sldf1=sdf HTTP/1.1\r\n"
                                "User-Agent: HTTPTool/1.0  \r\n" // intended ending spaces
                                "Content-Type: json\r\n"
                                "Content-Length: 19\r\n"
@@ -167,11 +169,12 @@ TEST_F(http_message_parser_test, parse_request)
     ASSERT_EQ(msg->hdr_format, NET_HDR_HTTP);
     ASSERT_EQ(msg->header->hdr_type, http_method::HTTP_METHOD_POST);
     ASSERT_EQ(msg->header->context.u.is_request, 1);
-    ASSERT_EQ(msg->buffers.size(), 3);
+    ASSERT_EQ(msg->buffers.size(), 4);
     ASSERT_EQ(msg->buffers[1].to_string(), "Message Body sdfsdf"); // body
     ASSERT_EQ(                                                     // url
         msg->buffers[2].to_string(),
         std::string("/path/file.html?sdfsdf=sdfs&sldf1=sdf"));
+    ASSERT_EQ(msg->buffers[3].to_string(), std::string("json"));
 }
 
 TEST_F(http_message_parser_test, eof)
@@ -217,7 +220,7 @@ TEST_F(http_message_parser_test, eof)
     ASSERT_EQ(msg->hdr_format, NET_HDR_HTTP);
     ASSERT_EQ(msg->header->hdr_type, http_method::HTTP_METHOD_GET);
     ASSERT_EQ(msg->header->context.u.is_request, 1);
-    ASSERT_EQ(msg->buffers.size(), 3);
+    ASSERT_EQ(msg->buffers.size(), 4);
     ASSERT_EQ(msg->buffers[1].to_string(), ""); // body
     ASSERT_EQ(                                  // url
         msg->buffers[2].to_string(),
@@ -225,6 +228,7 @@ TEST_F(http_message_parser_test, eof)
                     "weather?location=%E6%B5%B7%E5%8D%97%E7%9C%81%E7%9B%B4%E8%BE%96%E5%8E%BF%E7%BA%"
                     "A7%E8%A1%8C%"
                     "E6%94%BF%E5%8D%95%E4%BD%8D&output=json&ak=0l3FSP6qA0WbOzGRaafbmczS"));
+    ASSERT_EQ(msg->buffers[3].to_string(), std::string("application/json;charset=utf8"));
 }
 
 TEST_F(http_message_parser_test, parse_bad_request) { parse_bad_request(); }
@@ -247,7 +251,7 @@ TEST_F(http_message_parser_test, parse_long_url)
     ASSERT_EQ(msg->hdr_format, NET_HDR_HTTP);
     ASSERT_EQ(msg->header->hdr_type, http_method::HTTP_METHOD_GET);
     ASSERT_EQ(msg->header->context.u.is_request, 1);
-    ASSERT_EQ(msg->buffers.size(), 3);
+    ASSERT_EQ(msg->buffers.size(), 4);
     ASSERT_EQ(msg->buffers[2].size(), 4097); // url
 }
 

@@ -11,13 +11,13 @@ cache:
     - apt
 
 before_install:
-    - sudo apt-get -y install libboost-all-dev libaio-dev clang-format-3.9
+    - sudo apt-get -y install libaio-dev clang-format-3.9
 
 before_script:
     - cd thirdparty
-    - wget https://github.com/XiaoMi/pegasus-common/releases/download/deps/pegasus-thirdparty-prebuild.zip
-    - unzip pegasus-thirdparty-prebuild.zip
-    - rm -f pegasus-thirdparty-prebuild.zip
+    - wget https://github.com/XiaoMi/pegasus-common/releases/download/deps/pegasus-thirdparty-prebuild-bionic.zip
+    - unzip pegasus-thirdparty-prebuild-bionic.zip
+    - rm -f pegasus-thirdparty-prebuild-bionic.zip
     - cd ..
     - ulimit -c unlimited -S
 
