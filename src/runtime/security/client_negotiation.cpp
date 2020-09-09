@@ -129,7 +129,7 @@ void client_negotiation::on_mechanism_selected(const negotiation_response &resp)
     err_s = _sasl->start(_selected_mechanism, "", start_output);
     if (err_s.is_ok() || ERR_SASL_INCOMPLETE == err_s.code()) {
         _status = negotiation_status::type::SASL_INITIATE;
-        send(_status, start_output);
+        send(_status, std::move(start_output));
     } else {
         dwarn_f("{}: start sasl client failed, error = {}, reason = {}",
                 _name,
@@ -151,7 +151,7 @@ void client_negotiation::on_challenge(const negotiation_response &challenge)
         }
 
         _status = negotiation_status::type::SASL_CHALLENGE_RESP;
-        send(_status, response_msg);
+        send(_status, std::move(response_msg));
         return;
     }
 
@@ -169,10 +169,10 @@ void client_negotiation::select_mechanism(const std::string &mechanism)
     _selected_mechanism = mechanism;
     _status = negotiation_status::type::SASL_SELECT_MECHANISMS;
 
-    send(_status, mechanism);
+    send(_status, std::move(mechanism));
 }
 
-void client_negotiation::send(negotiation_status::type status, const std::string &msg)
+void client_negotiation::send(negotiation_status::type status, const std::string &&msg)
 {
     auto req = dsn::make_unique<negotiation_request>();
     req->status = status;
