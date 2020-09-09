@@ -72,6 +72,10 @@ public:
         if (_notify) {
             _notify->notify();
         } else {
+            task_spec *spec = task_spec::get(_tsk->code().code());
+            if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
+                ADD_POINT(_tsk->tracer);
+            }
             _provider->complete_io(_tsk, _err, _processed_bytes);
         }
     }

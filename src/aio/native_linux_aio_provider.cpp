@@ -29,6 +29,7 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication.codes.h>
+#include <dsn/utils/latency_tracer.h>
 
 namespace dsn {
 
@@ -82,6 +83,7 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
     auto evt = std::make_shared<io_event_t>(aio_tsk, async, this);
     task_spec *spec = task_spec::get(aio_tsk->code().code());
     if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
+        ADD_POINT(aio_tsk->tracer);
         _high_pri_workers[aio_tsk->hash() % _high_pri_workers.size()]->enqueue(evt);
     } else {
         _comm_pri_workers[aio_tsk->hash() % _comm_pri_workers.size()]->enqueue(evt);
