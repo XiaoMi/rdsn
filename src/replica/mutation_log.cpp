@@ -57,6 +57,7 @@ namespace replication {
     // init pending buffer
     if (nullptr == _pending_write) {
         _pending_write = std::make_shared<log_appender>(mark_new_offset(0, true).second);
+        ADD_CUSTOM_POINT(mu->tracer, "create_new_log");
     }
     _pending_write->append_mutation(mu, cb);
 
@@ -65,6 +66,7 @@ namespace replication {
 
     // start to write if possible
     if (!_is_writing.load(std::memory_order_acquire)) {
+        ADD_CUSTOM_POINT(mu->tracer, "is_write_false");
         write_pending_mutations(true);
         if (pending_size) {
             *pending_size = 0;
@@ -168,6 +170,9 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
             // because the following callbacks may run before "block" released, which may cause
             // the next init_prepare() not starting the write.
             _is_writing.store(false, std::memory_order_relaxed);
+            for (auto &mu : pending->mutations()) {
+                ADD_CUSTOM_POINT(mu->tracer, "is_writing_false");
+            }
 
             // notify the callbacks
             // ATTENTION: callback may be called before this code block executed done.
