@@ -86,7 +86,7 @@ void client_negotiation::on_recv_mechanisms(const negotiation_response &resp)
 
     std::string match_mechanism;
     std::vector<std::string> server_support_mechanisms;
-    std::string resp_string = resp.msg;
+    std::string resp_string = resp.msg.to_string();
     utils::split_args(resp_string.c_str(), server_support_mechanisms, ',');
 
     for (const std::string &server_support_mechanism : server_support_mechanisms) {
@@ -175,7 +175,7 @@ void client_negotiation::select_mechanism(const std::string &mechanism)
 
     auto req = dsn::make_unique<negotiation_request>();
     _status = req->status = negotiation_status::type::SASL_SELECT_MECHANISMS;
-    req->msg = mechanism;
+    req->msg = dsn::blob::create_from_bytes(mechanism.data(), mechanism.length());
     send(std::move(req));
 }
 
