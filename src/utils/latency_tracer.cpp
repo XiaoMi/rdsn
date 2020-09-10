@@ -56,6 +56,7 @@ void latency_tracer::set_sub_tracer(const std::shared_ptr<latency_tracer> &trace
     if (!FLAGS_enable_latency_tracer) {
         return;
     }
+
     _sub_tracer = tracer;
 }
 

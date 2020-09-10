@@ -17,31 +17,19 @@
 
 #pragma once
 
-#include "negotiation.h"
+#include <dsn/cpp/serverlet.h>
+#include <dsn/http/http_server.h>
+#include <dsn/utility/errors.h>
 
 namespace dsn {
-namespace security {
 
-class client_negotiation : public negotiation
-{
-public:
-    client_negotiation(rpc_session *session);
+// Register basic services for the HTTP server.
+extern void register_builtin_http_calls();
 
-    void start();
+extern void get_perf_counter_handler(const http_request &req, http_response &resp);
 
-private:
-    void handle_response(error_code err, const negotiation_response &&response);
-    void on_recv_mechanisms(const negotiation_response &resp);
-    void on_mechanism_selected(const negotiation_response &resp);
-    void on_challenge(const negotiation_response &resp);
+extern void get_help_handler(const http_request &req, http_response &resp);
 
-    void list_mechanisms();
-    void select_mechanism(const std::string &mechanism);
-    void send(std::unique_ptr<negotiation_request> request);
-    void succ_negotiation();
+extern void get_recent_start_time_handler(const http_request &req, http_response &resp);
 
-    friend class client_negotiation_test;
-};
-
-} // namespace security
 } // namespace dsn
