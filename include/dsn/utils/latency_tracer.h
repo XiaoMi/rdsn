@@ -70,8 +70,8 @@ class latency_tracer
 {
 public:
     //-is_sub:
-    //  if `is_sub`=true means its points will be dumped by parent tracer and won't be dumped when
-    //  decontructor
+    //  if `is_sub`=true means its points will be dumped by parent tracer and won't be dumped
+    //  repeatedly when decontructor
     //-threshold:
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
