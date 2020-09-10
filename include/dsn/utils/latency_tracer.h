@@ -69,6 +69,10 @@ DSN_DECLARE_bool(enable_latency_tracer);
 class latency_tracer
 {
 public:
+    //-is_sub:
+    //  if `is_sub`=true means its points will be dumped by parent tracer and won't be dumped when
+    //  decontructor
+    //-threshold:
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
     //  threshold > 0: dump the trace point when time_used > threshold
