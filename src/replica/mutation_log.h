@@ -432,6 +432,7 @@ private:
 
     bool _force_flush;
     perf_counter_wrapper *_write_size_counter;
+    static std::atomic<uint64_t> log_id;
 };
 
 class mutation_log_private : public mutation_log, private replica_base
