@@ -84,6 +84,7 @@ public:
         }
     }
     error_code get_error() const { return _err; }
+    aio_task *get_task() const { return _tsk; }
     uint32_t get_processed_bytes() const { return _processed_bytes; }
 
 private:
@@ -101,6 +102,11 @@ public:
     explicit io_event_loop_t(service_node *node)
     {
         _is_running = true;
+        _aio_enqueue.init_app_counter("app.pegasus",
+                                      "aio_enqueuq_size",
+                                      COUNTER_TYPE_NUMBER,
+                                      "statistic the count of sstable files");
+
         _thread = std::thread([this, node]() {
             task::set_tls_dsn_context(node, nullptr);
 
@@ -111,6 +117,11 @@ public:
                 }
                 if (!_evt_que.wait_dequeue_timed(evt, 200)) {
                     continue;
+                }
+                aio_task *tsk = evt->get_task();
+                task_spec *spec = task_spec::get(tsk->code().code());
+                if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
+                    _aio_enqueue->set(_evt_que.size_approx());
                 }
                 evt->complete();
             }
@@ -133,6 +144,7 @@ private:
     moodycamel::BlockingConcurrentQueue<std::shared_ptr<io_event_t>> _evt_que;
     std::thread _thread;
     std::atomic<bool> _is_running{false};
+    dsn::perf_counter_wrapper _aio_enqueue;
 };
 
 } // namespace dsn
