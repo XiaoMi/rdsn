@@ -61,10 +61,6 @@ namespace replication {
     }
     _pending_write->append_mutation(mu, cb);
 
-    for (auto &mu : _pending_write->mutations()) {
-        ADD_POINT(mu->tracer);
-    }
-
     // update meta
     update_max_decree(mu->data.header.pid, d);
 
