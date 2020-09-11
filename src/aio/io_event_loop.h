@@ -62,6 +62,10 @@ public:
         _processed_bytes = 0;
         auto aio_ctx = _tsk->get_aio_context();
         _err = ERR_UNKNOWN;
+        task_spec *spec = task_spec::get(_tsk->code().code());
+        if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
+            ADD_CUSTOM_POINT(_tsk->tracer, "start_write");
+        }
         if (aio_ctx->type == AIO_Read) {
             _err = do_read(aio_ctx, &_processed_bytes);
         } else if (aio_ctx->type == AIO_Write) {
@@ -74,7 +78,7 @@ public:
         } else {
             task_spec *spec = task_spec::get(_tsk->code().code());
             if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
-                ADD_POINT(_tsk->tracer);
+                ADD_CUSTOM_POINT(_tsk->tracer, "write_complete");
             }
             _provider->complete_io(_tsk, _err, _processed_bytes);
         }
