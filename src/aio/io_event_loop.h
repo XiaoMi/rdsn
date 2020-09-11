@@ -10,6 +10,7 @@
 #include <dsn/utility/smart_pointers.h>
 #include <fcntl.h>
 #include <concurrentqueue/blockingconcurrentqueue.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 
@@ -121,6 +122,7 @@ public:
                 aio_task *tsk = evt->get_task();
                 task_spec *spec = task_spec::get(tsk->code().code());
                 if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
+                    derrer_f("log enqueue size:{}", _evt_que.size_approx());
                     _aio_enqueue->set(_evt_que.size_approx());
                 }
                 evt->complete();
