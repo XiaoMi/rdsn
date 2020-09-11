@@ -32,7 +32,7 @@
 #include "backup/replica_backup_manager.h"
 #include "backup/cold_backup_context.h"
 #include "bulk_load/replica_bulk_loader.h"
-#include "partition_split/replica_split_manager.h"
+#include "split/replica_split_manager.h"
 
 #include <dsn/utils/latency_tracer.h>
 #include <dsn/cpp/json_helper.h>

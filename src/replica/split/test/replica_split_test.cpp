@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "replica/partition_split/replica_split_manager.h"
+#include "replica/split/replica_split_manager.h"
 #include "replica/test/replica_test_base.h"
 
 #include <gtest/gtest.h>
