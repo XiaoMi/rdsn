@@ -27,6 +27,7 @@
 #include "disk_engine.h"
 
 #include <dsn/tool-api/file_io.h>
+#include <dsn/utils/latency_tracer.h>
 
 namespace dsn {
 namespace file {
@@ -129,6 +130,8 @@ namespace file {
             cb->get_aio_context()->buffer_size += buffers[i].size;
         }
     }
+
+    ADD_CUSTOM_POINT(mu->tracer, fmt::format("aio_create_completed"));
 
     disk_engine::instance().write(cb);
     return cb;
