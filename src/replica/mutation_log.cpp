@@ -207,7 +207,7 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
                 }
             }
         },
-        0);
+        1);
 }
 
 ////////////////////////////////////////////////////
