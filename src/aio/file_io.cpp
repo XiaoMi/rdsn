@@ -131,7 +131,7 @@ namespace file {
         }
     }
 
-    ADD_CUSTOM_POINT(mu->tracer, fmt::format("aio_create_completed"));
+    ADD_CUSTOM_POINT(cb->tracer, fmt::format("aio_create_completed"));
 
     disk_engine::instance().write(cb);
     return cb;
