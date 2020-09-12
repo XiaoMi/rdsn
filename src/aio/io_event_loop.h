@@ -104,28 +104,27 @@ public:
     {
         _is_running = true;
         _aio_enqueue.init_app_counter("app.pegasus",
-                                      "aio_enqueuq_size",
+                                      "aio_enqueue_size",
                                       COUNTER_TYPE_NUMBER,
                                       "statistic the count of sstable files");
 
         _thread = std::thread([this, node]() {
             task::set_tls_dsn_context(node, nullptr);
 
-            std::shared_ptr<io_event_t> evt;
+            std::shared_ptr<io_event_t> evts[2];
+            int result = 0;
             while (true) {
                 if (dsn_unlikely(!_is_running.load(std::memory_order_relaxed))) {
                     break;
                 }
-                if (!_evt_que.wait_dequeue_timed(evt, 200)) {
+                result = _evt_que.wait_dequeue_bulk_timed(evts, 2, 200);
+                if (!result) {
                     continue;
                 }
-                aio_task *tsk = evt->get_task();
-                task_spec *spec = task_spec::get(tsk->code().code());
-                if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
-                    derror_f("log enqueue size:{}", _evt_que.size_approx());
-                    _aio_enqueue->set(_evt_que.size_approx());
+                _aio_enqueue->set(result);
+                for (int i = 0; i < result; i++) {
+                    evts[i]->complete();
                 }
-                evt->complete();
             }
         });
     }
