@@ -125,6 +125,10 @@ public:
                 for (int i = 0; i < result; i++) {
                     evts[i]->complete();
                 }
+
+                if (result > 1) {
+                    derror_f("enqueue size = {}", result);
+                }
             }
         });
     }
