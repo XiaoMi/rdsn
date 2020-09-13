@@ -1052,8 +1052,6 @@ void replica_stub::on_query_app_info(query_app_info_rpc rpc)
     }
 }
 
-
-
 void replica_stub::on_prepare(dsn::message_ex *request)
 {
     gpid id;
