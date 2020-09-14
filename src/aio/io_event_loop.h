@@ -123,11 +123,16 @@ public:
                 }
                 _aio_enqueue->set(result);
                 for (int i = 0; i < result; i++) {
+                    if (result > 1) {
+                        aio_task *task = evts[i]->get_task();
+                        auto aio_ctx = task->get_aio_context();
+                        derror_f("log info:result={}, start={}, size={}, end={}",
+                                 result,
+                                 aio_ctx->file_offset,
+                                 aio_ctx->buffer_size,
+                                 aio_ctx->file_offset + aio_ctx->buffer_size);
+                    }
                     evts[i]->complete();
-                }
-
-                if (result > 1) {
-                    derror_f("enqueue size = {}", result);
                 }
             }
         });
