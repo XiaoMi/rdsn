@@ -49,6 +49,7 @@ protected:
 private:
     std::vector<std::shared_ptr<io_event_loop_t>> _high_pri_workers;
     std::vector<std::shared_ptr<io_event_loop_t>> _comm_pri_workers;
+    std::vector<std::shared_ptr<io_event_loop_t>> _low_pri_workers;
 };
 
 } // namespace dsn

@@ -72,6 +72,9 @@ native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_pr
     for (int i = 0; i < 4; i++) {
         _comm_pri_workers.push_back(std::make_shared<io_event_loop_t>(disk->node()));
     }
+    for (int i = 0; i < 4; i++) {
+        _low_pri_workers.push_back(std::make_shared<io_event_loop_t>(disk->node()));
+    }
 }
 
 void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk) { aio_internal(aio_tsk, true); }
@@ -85,8 +88,10 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
     if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
         ADD_POINT(aio_tsk->tracer);
         _high_pri_workers[aio_tsk->hash() % _high_pri_workers.size()]->enqueue(evt);
-    } else {
+    } else if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_COMMON) {
         _comm_pri_workers[aio_tsk->hash() % _comm_pri_workers.size()]->enqueue(evt);
+    } else {
+        _low_pri_workers[aio_tsk->hash() % _low_pri_workers.size()]->enqueue(evt);
     }
 
     if (async) {
