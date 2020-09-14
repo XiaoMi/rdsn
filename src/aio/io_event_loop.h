@@ -125,19 +125,21 @@ public:
                     bool perf = false;
                     aio_task *task = evts[i]->get_task();
                     task_spec *spec = task_spec::get(task->code().code());
-                    if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH && result > 1) {
+                    if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
                         if (!perf) {
                             _aio_enqueue->set(result);
                             perf = true;
                         }
 
-                        aio_task *task = evts[i]->get_task();
-                        auto aio_ctx = task->get_aio_context();
-                        derror_f("slog info:result={}, start={}, size={}, end={}",
-                                 result,
-                                 aio_ctx->file_offset,
-                                 aio_ctx->buffer_size,
-                                 aio_ctx->file_offset + aio_ctx->buffer_size);
+                        if (result > 1) {
+                            aio_task *task = evts[i]->get_task();
+                            auto aio_ctx = task->get_aio_context();
+                            derror_f("slog info:result={}, start={}, size={}, end={}",
+                                     result,
+                                     aio_ctx->file_offset,
+                                     aio_ctx->buffer_size,
+                                     aio_ctx->file_offset + aio_ctx->buffer_size);
+                        }
                     }
                     evts[i]->complete();
                 }
