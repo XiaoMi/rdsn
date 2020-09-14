@@ -121,12 +121,16 @@ public:
                 if (!result) {
                     continue;
                 }
-
-                _aio_enqueue->set(result);
                 for (int i = 0; i < result; i++) {
+                    bool perf = false;
                     aio_task *task = evts[i]->get_task();
                     task_spec *spec = task_spec::get(task->code().code());
                     if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH && result > 1) {
+                        if (!perf) {
+                            _aio_enqueue->set(result);
+                            perf = true;
+                        }
+
                         aio_task *task = evts[i]->get_task();
                         auto aio_ctx = task->get_aio_context();
                         derror_f("slog info:result={}, start={}, size={}, end={}",
