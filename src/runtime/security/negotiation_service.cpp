@@ -20,10 +20,14 @@
 #include "server_negotiation.h"
 
 #include <dsn/utility/flags.h>
+#include <dsn/dist/failure_detector/fd.code.definition.h>
 
 namespace dsn {
 namespace security {
 DSN_DECLARE_bool(enable_auth);
+
+negotiation_map negotiation_service::_negotiations;
+utils::ex_lock_nr negotiation_service::_lock;
 
 negotiation_service::negotiation_service() : serverlet("negotiation_service") {}
 
@@ -44,10 +48,42 @@ void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
         return;
     }
 
-    server_negotiation *srv_negotiation =
-        static_cast<server_negotiation *>(rpc.dsn_request()->io_session->get_negotiation());
+    server_negotiation *srv_negotiation = nullptr;
+    {
+        utils::auto_lock<utils::ex_lock_nr> l(_lock);
+        srv_negotiation =
+            static_cast<server_negotiation *>(_negotiations[rpc.dsn_request()->io_session].get());
+    }
     srv_negotiation->handle_request(rpc);
 }
 
+void negotiation_service::on_rpc_connected(rpc_session *session)
+{
+    std::unique_ptr<negotiation> nego = security::create_negotiation(session->is_client(), session);
+    nego->start();
+    {
+        utils::auto_lock<utils::ex_lock_nr> l(_lock);
+        _negotiations[session] = std::move(nego);
+    }
+}
+
+void negotiation_service::on_rpc_disconnected(rpc_session *session)
+{
+    {
+        utils::auto_lock<utils::ex_lock_nr> l(_lock);
+        const auto iter = _negotiations.find(session);
+        if (iter != _negotiations.end()) {
+            _negotiations.erase(iter);
+        }
+    }
+}
+
+void init_join_point()
+{
+    rpc_session::on_rpc_session_connected.put_back(negotiation_service::on_rpc_connected,
+                                                   "security");
+    rpc_session::on_rpc_session_disconnected.put_back(negotiation_service::on_rpc_disconnected,
+                                                      "security");
+}
 } // namespace security
 } // namespace dsn
