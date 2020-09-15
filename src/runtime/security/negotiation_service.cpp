@@ -71,10 +71,7 @@ void negotiation_service::on_rpc_disconnected(rpc_session *session)
 {
     {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        const auto iter = _negotiations.find(session);
-        if (iter != _negotiations.end()) {
-            _negotiations.erase(iter);
-        }
+        _negotiations.erase(session);
     }
 }
 
