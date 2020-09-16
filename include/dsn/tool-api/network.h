@@ -270,7 +270,7 @@ protected:
         SS_CONNECTED,
         SS_DISCONNECTED
     };
-    mutable utils::ex_lock_nr _lock; // [
+    utils::ex_lock_nr _lock; // [
     volatile session_state _connect_state;
 
     bool negotiation_succeed = false;
