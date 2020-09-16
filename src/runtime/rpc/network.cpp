@@ -74,7 +74,7 @@ void rpc_session::set_connected()
 
     {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        dassert(_connect_state == SS_CONNECTING, "wrong session state");
+        dcheck_eq(_connect_state, SS_CONNECTING);
         _connect_state = SS_CONNECTED;
     }
 

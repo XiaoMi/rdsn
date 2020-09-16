@@ -54,6 +54,10 @@ void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
         srv_negotiation =
             static_cast<server_negotiation *>(_negotiations[rpc.dsn_request()->io_session].get());
     }
+
+    dassert(srv_negotiation != nullptr,
+            "negotiation is null for msg: {}",
+            rpc.dsn_request()->rpc_code().to_string());
     srv_negotiation->handle_request(rpc);
 }
 
@@ -71,10 +75,7 @@ void negotiation_service::on_rpc_disconnected(rpc_session *session)
 {
     {
         zauto_write_lock l(_lock);
-        const auto iter = _negotiations.find(session);
-        if (iter != _negotiations.end()) {
-            _negotiations.erase(iter);
-        }
+        _negotiations.erase(session);
     }
 }
 
