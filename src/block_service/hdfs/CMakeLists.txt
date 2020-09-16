@@ -1,0 +1,28 @@
+set(MY_PROJ_NAME dsn.block_service.hdfs)
+
+#Source files under CURRENT project directory will be automatically included.
+#You can manually set MY_PROJ_SRC to include source files under other directories.
+set(MY_PROJ_SRC "")
+
+#Search mode for source files under CURRENT project directory ?
+#"GLOB_RECURSE" for recursive search
+#"GLOB" for non - recursive search
+set(MY_SRC_SEARCH_MODE "GLOB")
+
+set(MY_PROJ_LIBS "")
+
+#Extra files that will be installed
+set(MY_BINPLACES "")
+
+dsn_add_static_library()
+
+set(LIBS hdfs)
+find_package(JNI)
+if (JNI_FOUND)
+  message (STATUS "JAVA_JVM_LIBRARY=${JAVA_JVM_LIBRARY}")
+  set(LIBS ${LIBS} ${JAVA_JVM_LIBRARY})
+else (JNI_FOUND)
+  message (FATAL_ERROR "JNI is required but not found, please make sure
+    jdk is installed and JAVA_HOME is set.")
+endif (JNI_FOUND)
+target_link_libraries(${MY_PROJ_NAME} PUBLIC ${LIBS})
