@@ -465,8 +465,11 @@ void rpc_session::set_negotiation_succeed()
     // todo(zlw): resend pending messages when negotiation is succeed
 }
 
-bool rpc_session::is_negotiation_succeed()
+bool rpc_session::is_negotiation_succeed() const
 {
+    // double check. the first one didn't lock the _lock. Because negotiation_succeed only
+    // transfered from false to true. So if it is true now, it will not change in the later.
+    // But if it is false now, maybe it will change soon. So we should use lock to protect it.
     if (negotiation_succeed) {
         return negotiation_succeed;
     } else {

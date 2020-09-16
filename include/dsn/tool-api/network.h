@@ -235,7 +235,7 @@ public:
     /// interfaces for security authentication,
     /// you can ignore them if you don't enable auth
     void set_negotiation_succeed();
-    bool is_negotiation_succeed();
+    bool is_negotiation_succeed() const;
 
 public:
     ///
@@ -270,7 +270,7 @@ protected:
         SS_CONNECTED,
         SS_DISCONNECTED
     };
-    ::dsn::utils::ex_lock_nr _lock; // [
+    mutable utils::ex_lock_nr _lock; // [
     volatile session_state _connect_state;
 
     bool negotiation_succeed = false;
