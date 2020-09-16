@@ -103,46 +103,20 @@ public:
     explicit io_event_loop_t(service_node *node)
     {
         _is_running = true;
-        _aio_enqueue.init_app_counter("app.pegasus",
-                                      "aio_enqueue_size",
-                                      COUNTER_TYPE_NUMBER,
-                                      "statistic the count of sstable files");
 
         _thread = std::thread([this, node]() {
             task::set_tls_dsn_context(node, nullptr);
 
-            std::shared_ptr<io_event_t> evts[2];
+            std::shared_ptr<io_event_t> evt;
             int result = 0;
             while (true) {
                 if (dsn_unlikely(!_is_running.load(std::memory_order_relaxed))) {
                     break;
                 }
-                result = _evt_que.wait_dequeue_bulk_timed(evts, 2, 200);
-                if (!result) {
+                if (!_evt_que.wait_dequeue_timed(evt, 200)) {
                     continue;
                 }
-                for (int i = 0; i < result; i++) {
-                    bool perf = false;
-                    aio_task *task = evts[i]->get_task();
-                    task_spec *spec = task_spec::get(task->code().code());
-                    if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
-                        if (!perf) {
-                            _aio_enqueue->set(result);
-                            perf = true;
-                        }
-
-                        if (result > 1) {
-                            aio_task *task = evts[i]->get_task();
-                            auto aio_ctx = task->get_aio_context();
-                            derror_f("slog info:result={}, start={}, size={}, end={}",
-                                     result,
-                                     aio_ctx->file_offset,
-                                     aio_ctx->buffer_size,
-                                     aio_ctx->file_offset + aio_ctx->buffer_size);
-                        }
-                    }
-                    evts[i]->complete();
-                }
+                evt->complete();
             }
         });
     }
