@@ -651,7 +651,7 @@ error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
         return err;
     }
 
-    ddebug("fds: start getObjectMetadata after putObject");
+    ddebug("start to check meta data after successfully write data to fds");
     if (get_file_meta() != ERR_OK) {
         err = ERR_FS_INTERNAL;
     }
