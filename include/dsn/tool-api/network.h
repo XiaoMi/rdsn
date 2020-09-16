@@ -273,7 +273,7 @@ protected:
     utils::ex_lock_nr _lock; // [
     volatile session_state _connect_state;
 
-    volatile bool negotiation_succeed = false;
+    bool negotiation_succeed = false;
     // TODO(zlw): add send pending message
 
     // messages are sent in batch, firstly all messages are linked together
