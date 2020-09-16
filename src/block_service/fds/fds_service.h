@@ -110,6 +110,7 @@ public:
                                    dsn::task_code code,
                                    const download_callback &cb,
                                    dsn::task_tracker *tracker) override;
+    error_code get_file_meta();
 
 private:
     error_code get_content_in_batches(uint64_t start,
@@ -123,7 +124,6 @@ private:
     error_code put_content(/*in-out*/ std::istream &is,
                            /*int*/ int64_t to_transfer_bytes,
                            /*out*/ uint64_t &transfered_bytes);
-    error_code get_file_meta();
 
     fds_service *_service;
     std::string _fds_path;
