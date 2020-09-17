@@ -110,6 +110,7 @@ public:
                                    dsn::task_code code,
                                    const download_callback &cb,
                                    dsn::task_tracker *tracker) override;
+
     error_code get_file_meta();
 
 private:
