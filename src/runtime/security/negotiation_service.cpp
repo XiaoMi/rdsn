@@ -27,6 +27,11 @@ namespace dsn {
 namespace security {
 DSN_DECLARE_bool(enable_auth);
 
+inline bool is_negotiation_message(dsn::task_code code)
+{
+    return code == RPC_NEGOTIATION || code == RPC_NEGOTIATION_ACK;
+}
+
 inline bool in_white_list(task_code code)
 {
     return is_negotiation_message(code) || fd::is_failure_detector_message(code);
@@ -90,6 +95,11 @@ bool negotiation_service::on_rpc_recv_msg(message_ex *msg)
     return in_white_list(msg->rpc_code()) || msg->io_session->is_negotiation_succeed();
 }
 
+bool negotiation_service::on_rpc_send_msg(message_ex *msg)
+{
+    return in_white_list(msg->rpc_code()) || !msg->io_session->try_pend_message(msg);
+}
+
 void init_join_point()
 {
     rpc_session::on_rpc_session_connected.put_back(negotiation_service::on_rpc_connected,
@@ -97,6 +107,7 @@ void init_join_point()
     rpc_session::on_rpc_session_disconnected.put_back(negotiation_service::on_rpc_disconnected,
                                                       "security");
     rpc_session::on_rpc_recv_message.put_native(negotiation_service::on_rpc_recv_msg);
+    rpc_session::on_rpc_send_message.put_native(negotiation_service::on_rpc_send_msg);
 }
 } // namespace security
 } // namespace dsn
