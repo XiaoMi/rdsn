@@ -293,12 +293,10 @@ dsn::task_ptr fds_service::create_file(const create_file_request &req,
         std::string fds_path = utils::path_to_fds(req.file_name, false);
 
         dsn::ref_ptr<fds_file_object> f = new fds_file_object(this, req.file_name, fds_path);
-        error_code err = f->get_file_meta();
-        if (err == ERR_OK || err == ERR_OBJECT_NOT_FOUND) {
+        resp.err = f->get_file_meta();
+        if (resp.err == ERR_OK || resp.err == ERR_OBJECT_NOT_FOUND) {
             resp.err = ERR_OK;
             resp.file_handle = f;
-        } else {
-            resp.err = ERR_FS_INTERNAL;
         }
 
         t->enqueue_with(resp);
