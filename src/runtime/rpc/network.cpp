@@ -399,7 +399,7 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
     // ignore msg if join point return false
     if (!on_rpc_recv_message.execute(msg, true)) {
         delete msg;
-        return true;
+        return false;
     }
 
     if (msg->header->context.u.is_request) {
