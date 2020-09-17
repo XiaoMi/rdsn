@@ -527,8 +527,9 @@ error_code fds_file_object::get_file_meta()
             err = ERR_OBJECT_NOT_FOUND;
         }
         derror_f("fds getObjectMetadata failed: parameter({}), code({}), msg({})",
-                 err = ERR_FS_INTERNAL;
-                 _name.c_str(), ex.code(), ex.what());
+                 _name.c_str(),
+                 ex.code(),
+                 ex.what());
         err = ERR_FS_INTERNAL;
     }
     FDS_EXCEPTION_HANDLE(err, "getObjectMetadata", _fds_path.c_str());
@@ -654,7 +655,13 @@ error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
     }
 
     ddebug("start to check meta data after successfully wrote data to fds");
-    return get_file_meta();
+    err = get_file_meta();
+    if (err == ERR_OK) {
+        transfered_bytes = _size;
+    } else {
+        err = ERR_FS_INTERNAL;
+    }
+    return err;
 }
 
 dsn::task_ptr fds_file_object::write(const write_request &req,

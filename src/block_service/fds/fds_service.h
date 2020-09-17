@@ -111,6 +111,10 @@ public:
                                    const download_callback &cb,
                                    dsn::task_tracker *tracker) override;
 
+    // Possible errors:
+    // - ERR_FS_INTERNAL
+    // - ERR_OBJECT_NOT_FOUND
+    // - ERR_TIMEOUT
     error_code get_file_meta();
 
 private:
