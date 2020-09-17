@@ -525,12 +525,13 @@ error_code fds_file_object::get_file_meta()
     } catch (const galaxy::fds::GalaxyFDSClientException &ex) {
         if (ex.code() == Poco::Net::HTTPResponse::HTTP_NOT_FOUND) {
             err = ERR_OBJECT_NOT_FOUND;
+        } else {
+            derror_f("fds getObjectMetadata failed: parameter({}), code({}), msg({})",
+                     _name.c_str(),
+                     ex.code(),
+                     ex.what());
+            err = ERR_FS_INTERNAL;
         }
-        derror_f("fds getObjectMetadata failed: parameter({}), code({}), msg({})",
-                 _name.c_str(),
-                 ex.code(),
-                 ex.what());
-        err = ERR_FS_INTERNAL;
     }
     FDS_EXCEPTION_HANDLE(err, "getObjectMetadata", _fds_path.c_str());
     return err;
@@ -658,8 +659,6 @@ error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
     err = get_file_meta();
     if (err == ERR_OK) {
         transfered_bytes = _size;
-    } else {
-        err = ERR_FS_INTERNAL;
     }
     return err;
 }
