@@ -74,7 +74,6 @@ TEST_F(negotiation_service_test, disable_auth)
 
 TEST_F(negotiation_service_test, on_rpc_recv_msg)
 {
-
     struct
     {
         task_code rpc_code;
