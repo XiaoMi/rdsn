@@ -38,7 +38,7 @@ inline bool in_white_list(task_code code)
 }
 
 negotiation_map negotiation_service::_negotiations;
-zrwlock_nr negotiation_service::_lock;
+utils::rw_lock_nr negotiation_service::_lock;
 
 negotiation_service::negotiation_service() : serverlet("negotiation_service") {}
 
@@ -61,7 +61,7 @@ void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
 
     server_negotiation *srv_negotiation = nullptr;
     {
-        zauto_read_lock l(_lock);
+        utils::auto_read_lock l(_lock);
         srv_negotiation =
             static_cast<server_negotiation *>(_negotiations[rpc.dsn_request()->io_session].get());
     }
@@ -77,7 +77,7 @@ void negotiation_service::on_rpc_connected(rpc_session *session)
     std::unique_ptr<negotiation> nego = security::create_negotiation(session->is_client(), session);
     nego->start();
     {
-        zauto_write_lock l(_lock);
+        utils::auto_write_lock l(_lock);
         _negotiations[session] = std::move(nego);
     }
 }
@@ -85,7 +85,7 @@ void negotiation_service::on_rpc_connected(rpc_session *session)
 void negotiation_service::on_rpc_disconnected(rpc_session *session)
 {
     {
-        zauto_write_lock l(_lock);
+        utils::auto_write_lock l(_lock);
         _negotiations.erase(session);
     }
 }
