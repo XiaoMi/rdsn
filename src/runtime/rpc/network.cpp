@@ -255,7 +255,7 @@ void rpc_session::send_message(message_ex *msg)
     msg->io_session = this;
 
     // ignore msg if join point return false
-    if (!on_rpc_send_message.execute(msg, true)) {
+    if (dsn_unlikely(!on_rpc_send_message.execute(msg, true))) {
         msg->release_ref();
         return;
     }
@@ -400,7 +400,7 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
     msg->io_session = this;
 
     // ignore msg if join point return false
-    if (!on_rpc_recv_message.execute(msg, true)) {
+    if (dsn_unlikely(!on_rpc_recv_message.execute(msg, true))) {
         delete msg;
         return false;
     }
@@ -444,7 +444,7 @@ bool rpc_session::try_pend_message(message_ex *msg)
 {
     // if negotiation is not succeed, we should pend msg,
     // in order to resend it when the negotiation is succeed
-    if (!negotiation_succeed) {
+    if (dsn_unlikely(!negotiation_succeed)) {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
         if (!negotiation_succeed) {
             msg->add_ref();
@@ -487,7 +487,7 @@ bool rpc_session::is_negotiation_succeed() const
     // Because negotiation_succeed only transfered from false to true.
     // So if it is true now, it will not change in the later.
     // But if it is false now, maybe it will change soon. So we should use lock to protect it.
-    if (negotiation_succeed) {
+    if (dsn_likely(negotiation_succeed)) {
         return negotiation_succeed;
     } else {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
