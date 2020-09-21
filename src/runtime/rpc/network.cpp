@@ -472,7 +472,6 @@ void rpc_session::set_negotiation_succeed()
         negotiation_succeed = true;
 
         _pending_messages.swap(swapped_pending_msgs);
-        _pending_messages.clear();
     }
 
     // resend the pending messages
