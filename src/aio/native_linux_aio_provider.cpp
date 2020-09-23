@@ -78,9 +78,9 @@ error_code native_linux_aio_provider::exec_aio_task(aio_task *aio_tsk)
     error_code err = ERR_UNKNOWN;
     uint32_t processed_bytes = 0;
     if (aio_ctx->type == AIO_Read) {
-        err = do_read(aio_ctx, &processed_bytes);
+        err = read(aio_ctx, &processed_bytes);
     } else if (aio_ctx->type == AIO_Write) {
-        err = do_write(aio_ctx, &processed_bytes);
+        err = write(aio_ctx, &processed_bytes);
     } else {
         return err;
     }
