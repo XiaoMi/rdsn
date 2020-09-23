@@ -41,15 +41,12 @@ public:
     error_code close(dsn_handle_t fh) override;
     error_code flush(dsn_handle_t fh) override;
     void submit_aio_task(aio_task *aio) override;
+    error_code exec_aio_task(aio_task *aio_tsk) override;
     aio_context *prepare_aio_context(aio_task *tsk) override { return new aio_context; }
 
-protected:
-    error_code aio_internal(aio_task *aio, bool async, /*out*/ uint32_t *pbytes = nullptr);
-
 private:
-    std::vector<std::shared_ptr<io_event_loop_t>> _high_pri_workers;
-    std::vector<std::shared_ptr<io_event_loop_t>> _comm_pri_workers;
-    std::vector<std::shared_ptr<io_event_loop_t>> _low_pri_workers;
+    error_code write(aio_context *aio_ctx, uint32_t *processed_bytes);
+    error_code read(aio_context *aio_ctx, uint32_t *processed_bytes);
 };
 
 } // namespace dsn

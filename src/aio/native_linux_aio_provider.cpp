@@ -30,6 +30,7 @@
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication.codes.h>
 #include <dsn/utils/latency_tracer.h>
+#include <dsn/tool-api/async_calls.h>
 
 namespace dsn {
 
@@ -64,44 +65,58 @@ error_code native_linux_aio_provider::flush(dsn_handle_t fh)
     }
 }
 
-native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk)
+void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk)
 {
-    for (int i = 0; i < 1; i++) {
-        _high_pri_workers.push_back(std::make_shared<io_event_loop_t>(disk->node()));
-    }
-    for (int i = 0; i < 4; i++) {
-        _comm_pri_workers.push_back(std::make_shared<io_event_loop_t>(disk->node()));
-    }
-    for (int i = 0; i < 4; i++) {
-        _low_pri_workers.push_back(std::make_shared<io_event_loop_t>(disk->node()));
-    }
+    tasking::enqueue(aio_tsk->code(),
+                     aio_tsk->tracker(),
+                     std::bind(&native_linux_aio_provider::exec_aio_task, this, aio_tsk),
+                     aio_tsk->hash());
 }
 
-void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk) { aio_internal(aio_tsk, true); }
-
-error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
-                                                   bool async,
-                                                   /*out*/ uint32_t *pbytes /*= nullptr*/)
+error_code native_linux_aio_provider::exec_aio_task(aio_task *aio_tsk)
 {
-    auto evt = std::make_shared<io_event_t>(aio_tsk, async, this);
-    task_spec *spec = task_spec::get(aio_tsk->code().code());
-    if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
-        ADD_POINT(aio_tsk->tracer);
-        _high_pri_workers[aio_tsk->hash() % _high_pri_workers.size()]->enqueue(evt);
-    } else if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_COMMON) {
-        _comm_pri_workers[aio_tsk->hash() % _comm_pri_workers.size()]->enqueue(evt);
+    aio_context *aio_ctx = aio_tsk->get_aio_context();
+    error_code err = ERR_UNKNOWN;
+    uint32_t processed_bytes = 0;
+    if (aio_ctx->type == AIO_Read) {
+        err = do_read(aio_ctx, &processed_bytes);
+    } else if (aio_ctx->type == AIO_Write) {
+        err = do_write(aio_ctx, &processed_bytes);
     } else {
-        _low_pri_workers[aio_tsk->hash() % _low_pri_workers.size()]->enqueue(evt);
+        return err;
     }
 
-    if (async) {
-        return ERR_IO_PENDING;
+    complete_io(aio_tsk, err, processed_bytes);
+    return err;
+}
+
+error_code native_linux_aio_provider::write(aio_context *aio_ctx, uint32_t *processed_bytes)
+{
+    ssize_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx->file),
+                         aio_ctx->buffer,
+                         aio_ctx->buffer_size,
+                         aio_ctx->file_offset);
+    if (ret < 0) {
+        return ERR_FILE_OPERATION_FAILED;
     }
-    evt->wait();
-    if (pbytes) {
-        *pbytes = evt->get_processed_bytes();
+    *processed_bytes = static_cast<uint32_t>(ret);
+    return ERR_OK;
+}
+
+error_code native_linux_aio_provider::read(aio_context *aio_ctx, uint32_t *processed_bytes)
+{
+    ssize_t ret = pread(static_cast<int>((ssize_t)aio_ctx->file),
+                        aio_ctx->buffer,
+                        aio_ctx->buffer_size,
+                        aio_ctx->file_offset);
+    if (ret < 0) {
+        return ERR_FILE_OPERATION_FAILED;
     }
-    return evt->get_error();
+    if (ret == 0) {
+        return ERR_HANDLE_EOF;
+    }
+    *processed_bytes = static_cast<uint32_t>(ret);
+    return ERR_OK;
 }
 
 } // namespace dsn
