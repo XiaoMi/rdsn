@@ -118,7 +118,7 @@ void FDSClientTest::TearDown() {}
 
 DEFINE_TASK_CODE(lpc_btest, TASK_PRIORITY_HIGH, dsn::THREAD_POOL_DEFAULT)
 
-// TODO: the test could not pass, should fix.
+// TODO(zhangyifan): the test could not pass, should fix.
 TEST_F(FDSClientTest, test_basic_operation)
 {
     const char *files[] = {"/fdstest1/test1/test1",
@@ -639,7 +639,7 @@ generate_file(const char *filename, unsigned long long file_size, char *block, u
     close(fd);
 }
 
-// TODO: the test could not pass, should fix.
+// TODO(zhangyifan): the test could not pass, should fix.
 TEST_F(FDSClientTest, test_concurrent_upload_download)
 {
     char block[1024];
