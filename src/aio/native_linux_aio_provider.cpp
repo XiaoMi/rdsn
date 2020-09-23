@@ -33,6 +33,11 @@
 
 namespace dsn {
 
+native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk)
+{
+    task::set_tls_dsn_context(node(), nullptr);
+}
+
 native_linux_aio_provider::~native_linux_aio_provider() {}
 
 dsn_handle_t native_linux_aio_provider::open(const char *file_name, int flag, int pmode)
