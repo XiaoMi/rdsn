@@ -45,7 +45,6 @@ public:
 
 protected:
     error_code aio_internal(aio_task *aio, bool async, /*out*/ uint32_t *pbytes = nullptr);
-    error_code do_aio_task(aio_task *aio_tsk,  /*out*/ uint32_t *pbytes = nullptr);
 
 private:
     error_code write(aio_context *aio_ctx, uint32_t *processed_bytes);

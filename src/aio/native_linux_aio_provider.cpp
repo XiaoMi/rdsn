@@ -35,7 +35,7 @@ namespace dsn {
 
 native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk)
 {
-    //task::set_tls_dsn_context(node(), nullptr);
+    // task::set_tls_dsn_context(node(), nullptr);
 }
 
 native_linux_aio_provider::~native_linux_aio_provider() {}
@@ -69,23 +69,17 @@ error_code native_linux_aio_provider::flush(dsn_handle_t fh)
     }
 }
 
-void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk) { aio_internal(aio_tsk, true); }
+void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk)
+{
+    tasking::enqueue(aio_tsk->code(),
+                     aio_tsk->tracker(),
+                     [=]() { aio_internal(aio_tsk, true); },
+                     aio_tsk->hash());
+}
 
 error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
                                                    bool async,
                                                    /*out*/ uint32_t *pbytes /*= nullptr*/)
-{
-    if (!async) {
-        return do_aio_task(aio_tsk, pbytes);
-    }
-
-    tasking::enqueue(
-       RPC_TEST, aio_tsk->tracker(), [=]() { do_aio_task(aio_tsk); }, aio_tsk->hash());
-
-    return ERR_IO_PENDING;
-}
-
-error_code native_linux_aio_provider::do_aio_task(aio_task *aio_tsk,  /*out*/ uint32_t *pbytes)
 {
     aio_context *aio_ctx = aio_tsk->get_aio_context();
     error_code err = ERR_UNKNOWN;
@@ -98,13 +92,17 @@ error_code native_linux_aio_provider::do_aio_task(aio_task *aio_tsk,  /*out*/ ui
         return err;
     }
 
-    if(pbytes) {
+    if (pbytes) {
         *pbytes = processed_bytes;
     }
 
-     derror_f("XXXXXXXX {}", processed_bytes);
+    if (async) {
+        complete_io(aio_tsk, err, processed_bytes);
+    } else {
+        std::unique_ptr<utils::notify_event> notify = std::make_unique<utils::notify_event>();
+        notify->notify();
+    }
 
-    complete_io(aio_tsk, err, processed_bytes);
     return err;
 }
 
@@ -114,7 +112,6 @@ error_code native_linux_aio_provider::write(aio_context *aio_ctx, uint32_t *proc
                          aio_ctx->buffer,
                          aio_ctx->buffer_size,
                          aio_ctx->file_offset);
-                         derror_f("JJJJJJJJJJ {}", ret);
     if (ret < 0) {
         return ERR_FILE_OPERATION_FAILED;
     }
