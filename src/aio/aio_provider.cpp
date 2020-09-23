@@ -38,7 +38,6 @@ void aio_provider::complete_io(aio_task *aio,
                                uint32_t bytes,
                                int delay_milliseconds)
 {
-    derror_f("ZZZZZZZZ {}", bytes);
     _engine->complete_io(aio, err, bytes, delay_milliseconds);
 }
 
