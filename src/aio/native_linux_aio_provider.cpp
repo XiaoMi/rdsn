@@ -69,12 +69,22 @@ error_code native_linux_aio_provider::flush(dsn_handle_t fh)
     }
 }
 
-void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk)
+void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk) { aio_internal(aio_tsk, true); }
+
+error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
+                                                   bool async,
+                                                   /*out*/ uint32_t *pbytes /*= nullptr*/)
 {
+    if (!async) {
+        return exec_aio_task(aio_tsk);
+    }
+
     tasking::enqueue(aio_tsk->code(),
                      aio_tsk->tracker(),
                      std::bind(&native_linux_aio_provider::exec_aio_task, this, aio_tsk),
                      aio_tsk->hash());
+
+    return ERR_IO_PENDING;
 }
 
 error_code native_linux_aio_provider::exec_aio_task(aio_task *aio_tsk)
