@@ -110,6 +110,7 @@ aio_task *disk_file::on_read_completed(aio_task *wk, error_code err, size_t size
 aio_task *disk_file::on_write_completed(aio_task *wk, void *ctx, error_code err, size_t size)
 {
     auto ret = _write_queue.on_work_completed(wk, ctx);
+    derror_f("VVVVVVV {}", size);
 
     while (wk) {
         aio_task *next = (aio_task *)wk->next;

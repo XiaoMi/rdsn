@@ -67,8 +67,6 @@ public:
     // to wait until it completes.
     virtual void submit_aio_task(aio_task *aio) = 0;
 
-    virtual error_code exec_aio_task(aio_task *aio_tsk) = 0;
-
     virtual aio_context *prepare_aio_context(aio_task *) = 0;
 
     void complete_io(aio_task *aio, error_code err, uint32_t bytes, int delay_milliseconds = 0);

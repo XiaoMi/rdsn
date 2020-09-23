@@ -35,7 +35,7 @@ namespace dsn {
 
 native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk)
 {
-    task::set_tls_dsn_context(node(), nullptr);
+    //task::set_tls_dsn_context(node(), nullptr);
 }
 
 native_linux_aio_provider::~native_linux_aio_provider() {}
@@ -76,18 +76,16 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
                                                    /*out*/ uint32_t *pbytes /*= nullptr*/)
 {
     if (!async) {
-        return exec_aio_task(aio_tsk);
+        return do_aio_task(aio_tsk, pbytes);
     }
 
-    tasking::enqueue(aio_tsk->code(),
-                     aio_tsk->tracker(),
-                     std::bind(&native_linux_aio_provider::exec_aio_task, this, aio_tsk),
-                     aio_tsk->hash());
+    tasking::enqueue(
+       RPC_TEST, aio_tsk->tracker(), [=]() { do_aio_task(aio_tsk); }, aio_tsk->hash());
 
     return ERR_IO_PENDING;
 }
 
-error_code native_linux_aio_provider::exec_aio_task(aio_task *aio_tsk)
+error_code native_linux_aio_provider::do_aio_task(aio_task *aio_tsk,  /*out*/ uint32_t *pbytes)
 {
     aio_context *aio_ctx = aio_tsk->get_aio_context();
     error_code err = ERR_UNKNOWN;
@@ -100,6 +98,12 @@ error_code native_linux_aio_provider::exec_aio_task(aio_task *aio_tsk)
         return err;
     }
 
+    if(pbytes) {
+        *pbytes = processed_bytes;
+    }
+
+     derror_f("XXXXXXXX {}", processed_bytes);
+
     complete_io(aio_tsk, err, processed_bytes);
     return err;
 }
@@ -110,6 +114,7 @@ error_code native_linux_aio_provider::write(aio_context *aio_ctx, uint32_t *proc
                          aio_ctx->buffer,
                          aio_ctx->buffer_size,
                          aio_ctx->file_offset);
+                         derror_f("JJJJJJJJJJ {}", ret);
     if (ret < 0) {
         return ERR_FILE_OPERATION_FAILED;
     }
