@@ -457,7 +457,7 @@ void mutation_log_private::commit_pending_mutations(log_file_ptr &lf,
                 _plock.unlock();
             }
         },
-        0);
+        get_gpid().thread_hash());
 }
 
 ///////////////////////////////////////////////////////////////
