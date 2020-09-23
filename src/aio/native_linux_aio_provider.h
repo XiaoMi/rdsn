@@ -44,6 +44,9 @@ public:
     error_code exec_aio_task(aio_task *aio_tsk) override;
     aio_context *prepare_aio_context(aio_task *tsk) override { return new aio_context; }
 
+protected:
+    error_code aio_internal(aio_task *aio, bool async, /*out*/ uint32_t *pbytes = nullptr);
+
 private:
     error_code write(aio_context *aio_ctx, uint32_t *processed_bytes);
     error_code read(aio_context *aio_ctx, uint32_t *processed_bytes);
