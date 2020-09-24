@@ -2098,7 +2098,8 @@ void replica_stub::open_service()
     register_rpc_handler_with_rpc_holder(RPC_BULK_LOAD, "bulk_load", &replica_stub::on_bulk_load);
     register_rpc_handler_with_rpc_holder(
         RPC_GROUP_BULK_LOAD, "group_bulk_load", &replica_stub::on_group_bulk_load);
-    register_rpc_handler_with_rpc_holder(RPC_DETECT_HOTKEY, "detect_hotkey", &replica_stub::on_detect_hotkey);
+    register_rpc_handler_with_rpc_holder(
+        RPC_DETECT_HOTKEY, "detect_hotkey", &replica_stub::on_detect_hotkey);
 
     register_ctrl_command();
 }
@@ -2768,7 +2769,8 @@ void replica_stub::on_group_bulk_load(group_bulk_load_rpc rpc)
     }
 }
 // TODO: (Tangyanzhao) implement it later
-void replica_stub::on_detect_hotkey(detect_hotkey_rpc rpc){
+void replica_stub::on_detect_hotkey(detect_hotkey_rpc rpc)
+{
     const auto &request = rpc.request();
     auto &response = rpc.response();
     replica_ptr rep = get_replica(request.pid);
