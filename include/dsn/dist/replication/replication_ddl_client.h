@@ -280,8 +280,8 @@ private:
 
     /// Send request to single replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
-    error_code call_rpc_async(const dsn::rpc_address &address,
-                              const TRpcHolder &rpc,
+    error_code call_rpc_async(dsn::rpc_address address,
+                              TRpcHolder rpc,
                               /*out*/ TResponse &resp)
     {
         dsn::task_tracker tracker;
