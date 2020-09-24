@@ -187,6 +187,9 @@ public:
 
     error_with<query_bulk_load_response> query_bulk_load(const std::string &app_name);
 
+    error_code detect_hotkey(const dsn::rpc_address &target,hotkey_detect_request &req
+        ,hotkey_detect_response &resp);
+
 private:
     bool static valid_app_char(int c);
 
@@ -274,10 +277,33 @@ private:
         }
     }
 
+    template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
+    error_code call_rpc_async(dsn::rpc_address address,
+                        TRpcHolder rpc,
+                        TResponse &resp,
+                        int reply_thread_hash = 0,
+                        bool enable_retry = true)
+    {
+        dsn::task_tracker tracker;
+        error_code err = ERR_UNKNOWN;
+        rpc.call(
+            address, &tracker, [&err, &resp,&rpc](error_code code) mutable {
+              err = code;
+              if (err == dsn::ERR_OK) {
+                  resp = rpc.response();
+              } else {
+                  err = code;
+              }
+            });
+        tracker.wait_outstanding_tasks();
+        return err;
+    }
+
 private:
     dsn::rpc_address _meta_server;
     dsn::task_tracker _tracker;
 
+    typedef rpc_holder<hotkey_detect_request, hotkey_detect_response> detect_hotkey_rpc;
     typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
 };
 } // namespace replication
