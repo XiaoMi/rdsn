@@ -1077,24 +1077,24 @@ enum hotkey_type
     WRITE
 }
 
-enum hotkey_detect_action
+enum detect_action
 {
     START,
     STOP
 }
 
-struct hotkey_detect_request {
+struct detect_hotkey_request {
     1: hotkey_type type
-    2: hotkey_detect_action action
+    2: detect_action action
     3: dsn.gpid pid;
 }
 
-struct hotkey_detect_response {
+struct detect_hotkey_response {
     // Possible error:
     // - ERR_OK: start/stop hotkey detect succeed
     // - ERR_SERVICE_NOT_FOUND: wrong rpc type
     // - ERR_SERVICE_ALREADY_EXIST: hotkey detection is running now
-    1: i32 err;
+    1: dsn.error_code err;
     2: optional string err_hint;
 }
 

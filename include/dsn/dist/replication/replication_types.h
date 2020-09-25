@@ -230,7 +230,7 @@ struct hotkey_type
 
 extern const std::map<int, const char *> _hotkey_type_VALUES_TO_NAMES;
 
-struct hotkey_detect_action
+struct detect_action
 {
     enum type
     {
@@ -239,7 +239,7 @@ struct hotkey_detect_action
     };
 };
 
-extern const std::map<int, const char *> _hotkey_detect_action_VALUES_TO_NAMES;
+extern const std::map<int, const char *> _detect_action_VALUES_TO_NAMES;
 
 class mutation_header;
 
@@ -453,9 +453,9 @@ class query_bulk_load_request;
 
 class query_bulk_load_response;
 
-class hotkey_detect_request;
+class detect_hotkey_request;
 
-class hotkey_detect_response;
+class detect_hotkey_response;
 
 typedef struct _mutation_header__isset
 {
@@ -7358,37 +7358,37 @@ inline std::ostream &operator<<(std::ostream &out, const query_bulk_load_respons
     return out;
 }
 
-typedef struct _hotkey_detect_request__isset
+typedef struct _detect_hotkey_request__isset
 {
-    _hotkey_detect_request__isset() : type(false), action(false), pid(false) {}
+    _detect_hotkey_request__isset() : type(false), action(false), pid(false) {}
     bool type : 1;
     bool action : 1;
     bool pid : 1;
-} _hotkey_detect_request__isset;
+} _detect_hotkey_request__isset;
 
-class hotkey_detect_request
+class detect_hotkey_request
 {
 public:
-    hotkey_detect_request(const hotkey_detect_request &);
-    hotkey_detect_request(hotkey_detect_request &&);
-    hotkey_detect_request &operator=(const hotkey_detect_request &);
-    hotkey_detect_request &operator=(hotkey_detect_request &&);
-    hotkey_detect_request() : type((hotkey_type::type)0), action((hotkey_detect_action::type)0) {}
+    detect_hotkey_request(const detect_hotkey_request &);
+    detect_hotkey_request(detect_hotkey_request &&);
+    detect_hotkey_request &operator=(const detect_hotkey_request &);
+    detect_hotkey_request &operator=(detect_hotkey_request &&);
+    detect_hotkey_request() : type((hotkey_type::type)0), action((detect_action::type)0) {}
 
-    virtual ~hotkey_detect_request() throw();
+    virtual ~detect_hotkey_request() throw();
     hotkey_type::type type;
-    hotkey_detect_action::type action;
+    detect_action::type action;
     ::dsn::gpid pid;
 
-    _hotkey_detect_request__isset __isset;
+    _detect_hotkey_request__isset __isset;
 
     void __set_type(const hotkey_type::type val);
 
-    void __set_action(const hotkey_detect_action::type val);
+    void __set_action(const detect_action::type val);
 
     void __set_pid(const ::dsn::gpid &val);
 
-    bool operator==(const hotkey_detect_request &rhs) const
+    bool operator==(const detect_hotkey_request &rhs) const
     {
         if (!(type == rhs.type))
             return false;
@@ -7398,9 +7398,9 @@ public:
             return false;
         return true;
     }
-    bool operator!=(const hotkey_detect_request &rhs) const { return !(*this == rhs); }
+    bool operator!=(const detect_hotkey_request &rhs) const { return !(*this == rhs); }
 
-    bool operator<(const hotkey_detect_request &) const;
+    bool operator<(const detect_hotkey_request &) const;
 
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
@@ -7408,41 +7408,41 @@ public:
     virtual void printTo(std::ostream &out) const;
 };
 
-void swap(hotkey_detect_request &a, hotkey_detect_request &b);
+void swap(detect_hotkey_request &a, detect_hotkey_request &b);
 
-inline std::ostream &operator<<(std::ostream &out, const hotkey_detect_request &obj)
+inline std::ostream &operator<<(std::ostream &out, const detect_hotkey_request &obj)
 {
     obj.printTo(out);
     return out;
 }
 
-typedef struct _hotkey_detect_response__isset
+typedef struct _detect_hotkey_response__isset
 {
-    _hotkey_detect_response__isset() : err(false), err_hint(false) {}
+    _detect_hotkey_response__isset() : err(false), err_hint(false) {}
     bool err : 1;
     bool err_hint : 1;
-} _hotkey_detect_response__isset;
+} _detect_hotkey_response__isset;
 
-class hotkey_detect_response
+class detect_hotkey_response
 {
 public:
-    hotkey_detect_response(const hotkey_detect_response &);
-    hotkey_detect_response(hotkey_detect_response &&);
-    hotkey_detect_response &operator=(const hotkey_detect_response &);
-    hotkey_detect_response &operator=(hotkey_detect_response &&);
-    hotkey_detect_response() : err(0), err_hint() {}
+    detect_hotkey_response(const detect_hotkey_response &);
+    detect_hotkey_response(detect_hotkey_response &&);
+    detect_hotkey_response &operator=(const detect_hotkey_response &);
+    detect_hotkey_response &operator=(detect_hotkey_response &&);
+    detect_hotkey_response() : err_hint() {}
 
-    virtual ~hotkey_detect_response() throw();
-    int32_t err;
+    virtual ~detect_hotkey_response() throw();
+    ::dsn::error_code err;
     std::string err_hint;
 
-    _hotkey_detect_response__isset __isset;
+    _detect_hotkey_response__isset __isset;
 
-    void __set_err(const int32_t val);
+    void __set_err(const ::dsn::error_code &val);
 
     void __set_err_hint(const std::string &val);
 
-    bool operator==(const hotkey_detect_response &rhs) const
+    bool operator==(const detect_hotkey_response &rhs) const
     {
         if (!(err == rhs.err))
             return false;
@@ -7452,9 +7452,9 @@ public:
             return false;
         return true;
     }
-    bool operator!=(const hotkey_detect_response &rhs) const { return !(*this == rhs); }
+    bool operator!=(const detect_hotkey_response &rhs) const { return !(*this == rhs); }
 
-    bool operator<(const hotkey_detect_response &) const;
+    bool operator<(const detect_hotkey_response &) const;
 
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
@@ -7462,9 +7462,9 @@ public:
     virtual void printTo(std::ostream &out) const;
 };
 
-void swap(hotkey_detect_response &a, hotkey_detect_response &b);
+void swap(detect_hotkey_response &a, detect_hotkey_response &b);
 
-inline std::ostream &operator<<(std::ostream &out, const hotkey_detect_response &obj)
+inline std::ostream &operator<<(std::ostream &out, const detect_hotkey_response &obj)
 {
     obj.printTo(out);
     return out;

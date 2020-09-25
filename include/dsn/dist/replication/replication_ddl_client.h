@@ -188,8 +188,8 @@ public:
     error_with<query_bulk_load_response> query_bulk_load(const std::string &app_name);
 
     error_code detect_hotkey(const dsn::rpc_address &target,
-                             hotkey_detect_request &req,
-                             hotkey_detect_response &resp);
+                             detect_hotkey_request &req,
+                             detect_hotkey_response &resp);
 
 private:
     bool static valid_app_char(int c);
@@ -246,10 +246,10 @@ private:
 
     /// Send request to multi replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
-    void call_rpcs_async(std::map<dsn::rpc_address, TRpcHolder> &rpcs,
-                         std::map<dsn::rpc_address, error_with<TResponse>> &resps,
-                         int reply_thread_hash = 0,
-                         bool enable_retry = true)
+    void call_rpcs_sync(std::map<dsn::rpc_address, TRpcHolder> &rpcs,
+                        std::map<dsn::rpc_address, error_with<TResponse>> &resps,
+                        int reply_thread_hash = 0,
+                        bool enable_retry = true)
     {
         dsn::task_tracker tracker;
         error_code err = ERR_UNKNOWN;
@@ -271,7 +271,7 @@ private:
 
         if (enable_retry && rpcs.size() > 0) {
             std::map<dsn::rpc_address, dsn::error_with<TResponse>> retry_resps;
-            call_rpcs_async(rpcs, retry_resps, reply_thread_hash, false);
+            call_rpcs_sync(rpcs, retry_resps, reply_thread_hash, false);
             for (auto &resp : retry_resps) {
                 resps.emplace(resp.first, std::move(resp.second));
             }
@@ -280,9 +280,9 @@ private:
 
     /// Send request to single replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
-    error_code call_rpc_async(dsn::rpc_address address,
-                              TRpcHolder rpc,
-                              /*out*/ TResponse &resp)
+    error_code call_rpc_sync(dsn::rpc_address address,
+                             TRpcHolder rpc,
+                             /*out*/ TResponse &resp)
     {
         dsn::task_tracker tracker;
         error_code err = ERR_UNKNOWN;
@@ -302,7 +302,7 @@ private:
     dsn::rpc_address _meta_server;
     dsn::task_tracker _tracker;
 
-    typedef rpc_holder<hotkey_detect_request, hotkey_detect_response> detect_hotkey_rpc;
+    typedef rpc_holder<detect_hotkey_request, detect_hotkey_response> detect_hotkey_rpc;
     typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
 };
 } // namespace replication
