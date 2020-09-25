@@ -1546,7 +1546,7 @@ void replication_ddl_client::query_disk_info(
         query_disk_info_rpcs.emplace(target,
                                      query_disk_info_rpc(std::move(request), RPC_QUERY_DISK_INFO));
     }
-    call_rpcs_async(query_disk_info_rpcs, resps);
+    call_rpcs_sync(query_disk_info_rpcs, resps);
 }
 
 error_with<start_bulk_load_response>
@@ -1586,7 +1586,7 @@ error_code replication_ddl_client::detect_hotkey(const dsn::rpc_address &target,
 {
     auto request = make_unique<hotkey_detect_request>(req);
     detect_hotkey_rpc rpc(std::move(request), RPC_DETECT_HOTKEY);
-    error_code err = call_rpc_async(target, rpc, resp);
+    error_code err = call_rpc_sync(target, rpc, resp);
     return err;
 }
 

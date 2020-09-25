@@ -246,7 +246,7 @@ private:
 
     /// Send request to multi replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
-    void call_rpcs_async(std::map<dsn::rpc_address, TRpcHolder> &rpcs,
+    void call_rpcs_sync(std::map<dsn::rpc_address, TRpcHolder> &rpcs,
                          std::map<dsn::rpc_address, error_with<TResponse>> &resps,
                          int reply_thread_hash = 0,
                          bool enable_retry = true)
@@ -271,7 +271,7 @@ private:
 
         if (enable_retry && rpcs.size() > 0) {
             std::map<dsn::rpc_address, dsn::error_with<TResponse>> retry_resps;
-            call_rpcs_async(rpcs, retry_resps, reply_thread_hash, false);
+            call_rpcs_sync(rpcs, retry_resps, reply_thread_hash, false);
             for (auto &resp : retry_resps) {
                 resps.emplace(resp.first, std::move(resp.second));
             }
@@ -280,7 +280,7 @@ private:
 
     /// Send request to single replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
-    error_code call_rpc_async(dsn::rpc_address address,
+    error_code call_rpc_sync(dsn::rpc_address address,
                               TRpcHolder rpc,
                               /*out*/ TResponse &resp)
     {
