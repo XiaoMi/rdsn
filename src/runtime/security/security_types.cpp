@@ -275,5 +275,6 @@ void negotiation_response::printTo(std::ostream &out) const
         << "msg=" << to_string(msg);
     out << ")";
 }
-}
-} // namespace
+
+} // namespace security
+} // namespace dsn
