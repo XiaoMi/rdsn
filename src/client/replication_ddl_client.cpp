@@ -1586,8 +1586,7 @@ error_code replication_ddl_client::detect_hotkey(const dsn::rpc_address &target,
 {
     auto request = make_unique<detect_hotkey_request>(req);
     detect_hotkey_rpc rpc(std::move(request), RPC_DETECT_HOTKEY);
-    error_code err = call_rpc_sync(target, rpc, resp);
-    return err;
+    return call_rpc_sync(target, rpc, resp);
 }
 
 } // namespace replication

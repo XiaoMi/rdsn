@@ -286,14 +286,10 @@ private:
     {
         dsn::task_tracker tracker;
         error_code err = ERR_UNKNOWN;
-        rpc.call(address, &tracker, [&err, &resp, rpc](error_code code) mutable {
+        rpc.call(address, &tracker, [&err](error_code code) mutable {
             err = code;
-            if (err == dsn::ERR_OK) {
-                resp = rpc.response();
-            } else {
-                err = code;
-            }
         });
+        resp = rpc.response();
         tracker.wait_outstanding_tasks();
         return err;
     }
