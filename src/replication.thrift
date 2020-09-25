@@ -1089,7 +1089,7 @@ struct detect_hotkey_request {
     3: dsn.gpid pid;
 }
 
-struct hotkey_detect_response {
+struct detect_hotkey_response {
     // Possible error:
     // - ERR_OK: start/stop hotkey detect succeed
     // - ERR_SERVICE_NOT_FOUND: wrong rpc type

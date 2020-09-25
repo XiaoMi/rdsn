@@ -423,7 +423,7 @@ class query_bulk_load_response;
 
 class detect_hotkey_request;
 
-class hotkey_detect_response;
+class detect_hotkey_response;
 
 typedef struct _mutation_header__isset {
   _mutation_header__isset() : pid(false), ballot(false), decree(false), log_offset(false), last_committed_decree(false), timestamp(false) {}
@@ -7132,33 +7132,33 @@ inline std::ostream& operator<<(std::ostream& out, const detect_hotkey_request& 
   return out;
 }
 
-typedef struct _hotkey_detect_response__isset {
-  _hotkey_detect_response__isset() : err(false), err_hint(false) {}
+typedef struct _detect_hotkey_response__isset {
+  _detect_hotkey_response__isset() : err(false), err_hint(false) {}
   bool err :1;
   bool err_hint :1;
-} _hotkey_detect_response__isset;
+} _detect_hotkey_response__isset;
 
-class hotkey_detect_response {
+class detect_hotkey_response {
  public:
 
-  hotkey_detect_response(const hotkey_detect_response&);
-  hotkey_detect_response(hotkey_detect_response&&);
-  hotkey_detect_response& operator=(const hotkey_detect_response&);
-  hotkey_detect_response& operator=(hotkey_detect_response&&);
-  hotkey_detect_response() : err_hint() {
+  detect_hotkey_response(const detect_hotkey_response&);
+  detect_hotkey_response(detect_hotkey_response&&);
+  detect_hotkey_response& operator=(const detect_hotkey_response&);
+  detect_hotkey_response& operator=(detect_hotkey_response&&);
+  detect_hotkey_response() : err_hint() {
   }
 
-  virtual ~hotkey_detect_response() throw();
+  virtual ~detect_hotkey_response() throw();
    ::dsn::error_code err;
   std::string err_hint;
 
-  _hotkey_detect_response__isset __isset;
+  _detect_hotkey_response__isset __isset;
 
   void __set_err(const  ::dsn::error_code& val);
 
   void __set_err_hint(const std::string& val);
 
-  bool operator == (const hotkey_detect_response & rhs) const
+  bool operator == (const detect_hotkey_response & rhs) const
   {
     if (!(err == rhs.err))
       return false;
@@ -7168,11 +7168,11 @@ class hotkey_detect_response {
       return false;
     return true;
   }
-  bool operator != (const hotkey_detect_response &rhs) const {
+  bool operator != (const detect_hotkey_response &rhs) const {
     return !(*this == rhs);
   }
 
-  bool operator < (const hotkey_detect_response & ) const;
+  bool operator < (const detect_hotkey_response & ) const;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
@@ -7180,9 +7180,9 @@ class hotkey_detect_response {
   virtual void printTo(std::ostream& out) const;
 };
 
-void swap(hotkey_detect_response &a, hotkey_detect_response &b);
+void swap(detect_hotkey_response &a, detect_hotkey_response &b);
 
-inline std::ostream& operator<<(std::ostream& out, const hotkey_detect_response& obj)
+inline std::ostream& operator<<(std::ostream& out, const detect_hotkey_response& obj)
 {
   obj.printTo(out);
   return out;

@@ -188,8 +188,8 @@ public:
     error_with<query_bulk_load_response> query_bulk_load(const std::string &app_name);
 
     error_code detect_hotkey(const dsn::rpc_address &target,
-                             hotkey_detect_request &req,
-                             hotkey_detect_response &resp);
+                             detect_hotkey_request &req,
+                             detect_hotkey_response &resp);
 
 private:
     bool static valid_app_char(int c);
@@ -302,7 +302,7 @@ private:
     dsn::rpc_address _meta_server;
     dsn::task_tracker _tracker;
 
-    typedef rpc_holder<hotkey_detect_request, hotkey_detect_response> detect_hotkey_rpc;
+    typedef rpc_holder<detect_hotkey_request, detect_hotkey_response> detect_hotkey_rpc;
     typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
 };
 } // namespace replication

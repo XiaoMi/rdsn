@@ -1581,10 +1581,10 @@ replication_ddl_client::query_bulk_load(const std::string &app_name)
 }
 
 error_code replication_ddl_client::detect_hotkey(const dsn::rpc_address &target,
-                                                 hotkey_detect_request &req,
-                                                 hotkey_detect_response &resp)
+                                                 detect_hotkey_request &req,
+                                                 detect_hotkey_response &resp)
 {
-    auto request = make_unique<hotkey_detect_request>(req);
+    auto request = make_unique<detect_hotkey_request>(req);
     detect_hotkey_rpc rpc(std::move(request), RPC_DETECT_HOTKEY);
     error_code err = call_rpc_sync(target, rpc, resp);
     return err;
