@@ -207,7 +207,7 @@ public:
     // This function is used for partition split error handler
     void split_replica_error_handler(gpid pid, local_execution handler);
 
-    // Hotkey detection
+    // TODO: (Tangyanzhao) add some comments
     void on_detect_hotkey(detect_hotkey_rpc rpc);
 
 private:

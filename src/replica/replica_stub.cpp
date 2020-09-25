@@ -2780,7 +2780,7 @@ void replica_stub::on_detect_hotkey(detect_hotkey_rpc rpc)
         response.err = ERR_SERVICE_NOT_FOUND;
         response.err_hint = "not find the replica";
     }
-};
+}
 
 } // namespace replication
 } // namespace dsn

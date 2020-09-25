@@ -280,15 +280,13 @@ private:
 
     /// Send request to single replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
-    error_code call_rpc_sync(dsn::rpc_address address,
+    error_code call_rpc_sync(const dsn::rpc_address address,
                              TRpcHolder rpc,
                              /*out*/ TResponse &resp)
     {
         dsn::task_tracker tracker;
         error_code err = ERR_UNKNOWN;
-        rpc.call(address, &tracker, [&err](error_code code) mutable {
-            err = code;
-        });
+        rpc.call(address, &tracker, [&err](error_code code) mutable { err = code; });
         resp = rpc.response();
         tracker.wait_outstanding_tasks();
         return err;
