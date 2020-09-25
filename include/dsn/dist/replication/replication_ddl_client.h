@@ -247,9 +247,9 @@ private:
     /// Send request to multi replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
     void call_rpcs_sync(std::map<dsn::rpc_address, TRpcHolder> &rpcs,
-                         std::map<dsn::rpc_address, error_with<TResponse>> &resps,
-                         int reply_thread_hash = 0,
-                         bool enable_retry = true)
+                        std::map<dsn::rpc_address, error_with<TResponse>> &resps,
+                        int reply_thread_hash = 0,
+                        bool enable_retry = true)
     {
         dsn::task_tracker tracker;
         error_code err = ERR_UNKNOWN;
@@ -281,8 +281,8 @@ private:
     /// Send request to single replica server synchronously.
     template <typename TRpcHolder, typename TResponse = typename TRpcHolder::response_type>
     error_code call_rpc_sync(dsn::rpc_address address,
-                              TRpcHolder rpc,
-                              /*out*/ TResponse &resp)
+                             TRpcHolder rpc,
+                             /*out*/ TResponse &resp)
     {
         dsn::task_tracker tracker;
         error_code err = ERR_UNKNOWN;

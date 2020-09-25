@@ -17,139 +17,137 @@
 
 #include <thrift/cxxfunctional.h>
 
+namespace dsn {
+namespace security {
 
-namespace dsn { namespace security {
-
-struct negotiation_status {
-  enum type {
-    INVALID = 0,
-    SASL_LIST_MECHANISMS = 1,
-    SASL_LIST_MECHANISMS_RESP = 2,
-    SASL_SELECT_MECHANISMS = 3,
-    SASL_SELECT_MECHANISMS_RESP = 4,
-    SASL_INITIATE = 5,
-    SASL_CHALLENGE = 6,
-    SASL_CHALLENGE_RESP = 7,
-    SASL_SUCC = 8,
-    SASL_AUTH_DISABLE = 9,
-    SASL_AUTH_FAIL = 10
-  };
+struct negotiation_status
+{
+    enum type
+    {
+        INVALID = 0,
+        SASL_LIST_MECHANISMS = 1,
+        SASL_LIST_MECHANISMS_RESP = 2,
+        SASL_SELECT_MECHANISMS = 3,
+        SASL_SELECT_MECHANISMS_RESP = 4,
+        SASL_INITIATE = 5,
+        SASL_CHALLENGE = 6,
+        SASL_CHALLENGE_RESP = 7,
+        SASL_SUCC = 8,
+        SASL_AUTH_DISABLE = 9,
+        SASL_AUTH_FAIL = 10
+    };
 };
 
-extern const std::map<int, const char*> _negotiation_status_VALUES_TO_NAMES;
+extern const std::map<int, const char *> _negotiation_status_VALUES_TO_NAMES;
 
 class negotiation_request;
 
 class negotiation_response;
 
-typedef struct _negotiation_request__isset {
-  _negotiation_request__isset() : status(false), msg(false) {}
-  bool status :1;
-  bool msg :1;
+typedef struct _negotiation_request__isset
+{
+    _negotiation_request__isset() : status(false), msg(false) {}
+    bool status : 1;
+    bool msg : 1;
 } _negotiation_request__isset;
 
-class negotiation_request {
- public:
+class negotiation_request
+{
+public:
+    negotiation_request(const negotiation_request &);
+    negotiation_request(negotiation_request &&);
+    negotiation_request &operator=(const negotiation_request &);
+    negotiation_request &operator=(negotiation_request &&);
+    negotiation_request() : status((negotiation_status::type)0) {}
 
-  negotiation_request(const negotiation_request&);
-  negotiation_request(negotiation_request&&);
-  negotiation_request& operator=(const negotiation_request&);
-  negotiation_request& operator=(negotiation_request&&);
-  negotiation_request() : status((negotiation_status::type)0) {
-  }
+    virtual ~negotiation_request() throw();
+    negotiation_status::type status;
+    ::dsn::blob msg;
 
-  virtual ~negotiation_request() throw();
-  negotiation_status::type status;
-   ::dsn::blob msg;
+    _negotiation_request__isset __isset;
 
-  _negotiation_request__isset __isset;
+    void __set_status(const negotiation_status::type val);
 
-  void __set_status(const negotiation_status::type val);
+    void __set_msg(const ::dsn::blob &val);
 
-  void __set_msg(const  ::dsn::blob& val);
+    bool operator==(const negotiation_request &rhs) const
+    {
+        if (!(status == rhs.status))
+            return false;
+        if (!(msg == rhs.msg))
+            return false;
+        return true;
+    }
+    bool operator!=(const negotiation_request &rhs) const { return !(*this == rhs); }
 
-  bool operator == (const negotiation_request & rhs) const
-  {
-    if (!(status == rhs.status))
-      return false;
-    if (!(msg == rhs.msg))
-      return false;
-    return true;
-  }
-  bool operator != (const negotiation_request &rhs) const {
-    return !(*this == rhs);
-  }
+    bool operator<(const negotiation_request &) const;
 
-  bool operator < (const negotiation_request & ) const;
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
 
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
+    virtual void printTo(std::ostream &out) const;
 };
 
 void swap(negotiation_request &a, negotiation_request &b);
 
-inline std::ostream& operator<<(std::ostream& out, const negotiation_request& obj)
+inline std::ostream &operator<<(std::ostream &out, const negotiation_request &obj)
 {
-  obj.printTo(out);
-  return out;
+    obj.printTo(out);
+    return out;
 }
 
-typedef struct _negotiation_response__isset {
-  _negotiation_response__isset() : status(false), msg(false) {}
-  bool status :1;
-  bool msg :1;
+typedef struct _negotiation_response__isset
+{
+    _negotiation_response__isset() : status(false), msg(false) {}
+    bool status : 1;
+    bool msg : 1;
 } _negotiation_response__isset;
 
-class negotiation_response {
- public:
+class negotiation_response
+{
+public:
+    negotiation_response(const negotiation_response &);
+    negotiation_response(negotiation_response &&);
+    negotiation_response &operator=(const negotiation_response &);
+    negotiation_response &operator=(negotiation_response &&);
+    negotiation_response() : status((negotiation_status::type)0) {}
 
-  negotiation_response(const negotiation_response&);
-  negotiation_response(negotiation_response&&);
-  negotiation_response& operator=(const negotiation_response&);
-  negotiation_response& operator=(negotiation_response&&);
-  negotiation_response() : status((negotiation_status::type)0) {
-  }
+    virtual ~negotiation_response() throw();
+    negotiation_status::type status;
+    ::dsn::blob msg;
 
-  virtual ~negotiation_response() throw();
-  negotiation_status::type status;
-   ::dsn::blob msg;
+    _negotiation_response__isset __isset;
 
-  _negotiation_response__isset __isset;
+    void __set_status(const negotiation_status::type val);
 
-  void __set_status(const negotiation_status::type val);
+    void __set_msg(const ::dsn::blob &val);
 
-  void __set_msg(const  ::dsn::blob& val);
+    bool operator==(const negotiation_response &rhs) const
+    {
+        if (!(status == rhs.status))
+            return false;
+        if (!(msg == rhs.msg))
+            return false;
+        return true;
+    }
+    bool operator!=(const negotiation_response &rhs) const { return !(*this == rhs); }
 
-  bool operator == (const negotiation_response & rhs) const
-  {
-    if (!(status == rhs.status))
-      return false;
-    if (!(msg == rhs.msg))
-      return false;
-    return true;
-  }
-  bool operator != (const negotiation_response &rhs) const {
-    return !(*this == rhs);
-  }
+    bool operator<(const negotiation_response &) const;
 
-  bool operator < (const negotiation_response & ) const;
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
 
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
+    virtual void printTo(std::ostream &out) const;
 };
 
 void swap(negotiation_response &a, negotiation_response &b);
 
-inline std::ostream& operator<<(std::ostream& out, const negotiation_response& obj)
+inline std::ostream &operator<<(std::ostream &out, const negotiation_response &obj)
 {
-  obj.printTo(out);
-  return out;
+    obj.printTo(out);
+    return out;
 }
-
-}} // namespace
+}
+} // namespace
 
 #endif
