@@ -48,6 +48,7 @@
 #include <dsn/utility/string_conv.h>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/utility/enum_helper.h>
 #include <vector>
 #include <deque>
 #include <dsn/dist/fmt_logging.h>
@@ -2773,14 +2774,20 @@ void replica_stub::on_detect_hotkey(detect_hotkey_rpc rpc)
 {
     const auto &request = rpc.request();
     auto &response = rpc.response();
+
+    ddebug_f("[{}@{}]: received detect hotkey request, hotkey_type = {}, detect_action = {}",
+             request.pid,
+             _primary_address_str,
+             enum_to_string(request.type),
+             enum_to_string(request.action));
+
     replica_ptr rep = get_replica(request.pid);
     if (rep != nullptr) {
         response.err = ERR_OK;
     } else {
-        response.err = ERR_SERVICE_NOT_FOUND;
-        response.err_hint = "not find the replica";
+        response.err = ERR_OBJECT_NOT_FOUND;
+        response.err_hint = fmt::format("not find the replica {} \n", request.pid);
     }
 }
-
 } // namespace replication
 } // namespace dsn

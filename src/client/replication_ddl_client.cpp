@@ -1586,8 +1586,7 @@ error_code replication_ddl_client::detect_hotkey(const dsn::rpc_address &target,
 {
     std::map<dsn::rpc_address, detect_hotkey_rpc> detect_hotkey_rpcs;
     auto request = make_unique<detect_hotkey_request>(req);
-    detect_hotkey_rpcs.emplace(target,
-                               detect_hotkey_rpc(std::move(request), RPC_DETECT_HOTKEY));
+    detect_hotkey_rpcs.emplace(target, detect_hotkey_rpc(std::move(request), RPC_DETECT_HOTKEY));
     std::map<dsn::rpc_address, error_with<detect_hotkey_response>> resps;
     call_rpcs_sync(detect_hotkey_rpcs, resps);
     auto err_info = resps.begin()->second.get_error().code();
