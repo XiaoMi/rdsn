@@ -15,35 +15,38 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#pragma once
+#include <gtest/gtest.h>
 
-#include "negotiation.h"
+#include <dsn/service_api_cpp.h>
 
-#include <dsn/utility/errors.h>
+int g_test_count = 0;
+int g_test_ret = 0;
 
-namespace dsn {
-namespace security {
-extern const std::set<std::string> supported_mechanisms;
-
-class server_negotiation : public negotiation
+class gtest_app : public dsn::service_app
 {
 public:
-    server_negotiation(rpc_session *session);
+    gtest_app(const dsn::service_app_info *info) : ::dsn::service_app(info) {}
 
-    void start();
-    void handle_request(negotiation_rpc rpc);
+    dsn::error_code start(const std::vector<std::string> &args) override
+    {
+        g_test_ret = RUN_ALL_TESTS();
+        g_test_count = 1;
+        return dsn::ERR_OK;
+    }
 
-private:
-    void on_list_mechanisms(negotiation_rpc rpc);
-    void on_select_mechanism(negotiation_rpc rpc);
-    void on_initiate(negotiation_rpc rpc);
-    void on_challenge_resp(negotiation_rpc rpc);
-
-    void do_challenge(negotiation_rpc rpc, error_s err_s, const blob &resp_msg);
-    void succ_negotiation(negotiation_rpc rpc);
-
-    friend class server_negotiation_test;
+    dsn::error_code stop(bool) override { return dsn::ERR_OK; }
 };
 
-} // namespace security
-} // namespace dsn
+GTEST_API_ int main(int argc, char **argv)
+{
+    testing::InitGoogleTest(&argc, argv);
+
+    dsn::service_app::register_factory<gtest_app>("replica");
+
+    dsn_run_config("config-test.ini", false);
+    while (g_test_count == 0) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    dsn_exit(g_test_ret);
+}

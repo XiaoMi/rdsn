@@ -17,36 +17,30 @@
 
 #pragma once
 
-#include "server_negotiation.h"
-
-#include <dsn/cpp/serverlet.h>
+#include <dsn/dist/replication/replication_types.h>
+#include <dsn/cpp/rpc_holder.h>
 
 namespace dsn {
-namespace security {
-typedef std::unordered_map<rpc_session *, std::unique_ptr<negotiation>> negotiation_map;
+namespace replication {
 
-class negotiation_service : public serverlet<negotiation_service>,
-                            public utils::singleton<negotiation_service>
+class replica_stub;
+
+typedef rpc_holder<backup_request, backup_response> backup_rpc;
+
+// A server distributes the cold-backup task to the targeted replica.
+class replica_backup_server
 {
 public:
-    static void on_rpc_connected(rpc_session *session);
-    static void on_rpc_disconnected(rpc_session *session);
-    static bool on_rpc_recv_msg(message_ex *msg);
-    static bool on_rpc_send_msg(message_ex *msg);
-
-    void open_service();
+    explicit replica_backup_server(const replica_stub *rs);
 
 private:
-    negotiation_service();
-    void on_negotiation_request(negotiation_rpc rpc);
-    friend class utils::singleton<negotiation_service>;
-    friend class negotiation_service_test;
+    void on_cold_backup(backup_rpc rpc);
 
-    static utils::rw_lock_nr _lock; // [
-    static negotiation_map _negotiations;
-    //]
+    void on_clear_cold_backup(const backup_clear_request &request);
+
+private:
+    const replica_stub *_stub;
 };
 
-void init_join_point();
-} // namespace security
+} // namespace replication
 } // namespace dsn

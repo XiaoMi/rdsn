@@ -24,8 +24,6 @@
  * THE SOFTWARE.
  */
 
-#include "runtime/security/negotiation.h"
-#include "runtime/security/negotiation_utils.h"
 #include "message_parser_manager.h"
 #include "runtime/rpc/rpc_engine.h"
 
@@ -39,13 +37,14 @@ namespace dsn {
     rpc_session::on_rpc_session_connected("rpc.session.connected");
 /*static*/ join_point<void, rpc_session *>
     rpc_session::on_rpc_session_disconnected("rpc.session.disconnected");
-
-namespace security {
-DSN_DECLARE_bool(enable_auth);
-} // namespace security
+/*static*/ join_point<bool, message_ex *>
+    rpc_session::on_rpc_recv_message("rpc.session.recv.message");
+/*static*/ join_point<bool, message_ex *>
+    rpc_session::on_rpc_send_message("rpc.session.send.message");
 
 rpc_session::~rpc_session()
 {
+    clear_pending_messages();
     clear_send_queue(false);
 
     {
@@ -74,9 +73,7 @@ void rpc_session::set_connected()
 
     {
         utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        dassert((_connect_state == SS_NEGOTIATING && security::FLAGS_enable_auth) ||
-                    (_connect_state == SS_CONNECTING && !security::FLAGS_enable_auth),
-                "wrong session state");
+        dcheck_eq(_connect_state, SS_CONNECTING);
         _connect_state = SS_CONNECTED;
     }
 
@@ -84,17 +81,6 @@ void rpc_session::set_connected()
     _net.on_client_session_connected(sp);
 
     on_rpc_session_connected.execute(this);
-}
-
-void rpc_session::set_negotiation()
-{
-    dassert(is_client(), "must be client session");
-
-    {
-        utils::auto_lock<utils::ex_lock_nr> l(_lock);
-        dassert(_connect_state == SS_CONNECTING, "session must be connecting");
-        _connect_state = SS_NEGOTIATING;
-    }
 }
 
 bool rpc_session::set_disconnected()
@@ -266,8 +252,13 @@ int rpc_session::prepare_parser()
 void rpc_session::send_message(message_ex *msg)
 {
     msg->add_ref(); // released in on_send_completed
-
     msg->io_session = this;
+
+    // ignore msg if join point return false
+    if (dsn_unlikely(!on_rpc_send_message.execute(msg, true))) {
+        msg->release_ref();
+        return;
+    }
 
     dassert(_parser, "parser should not be null when send");
     _parser->prepare_on_send(msg);
@@ -278,11 +269,7 @@ void rpc_session::send_message(message_ex *msg)
         msg->dl.insert_before(&_messages);
         ++_message_count;
 
-        // Attention: here we only allow two cases to send message:
-        //  case 1: session's state is SS_CONNECTED
-        //  case 2: session is sending negotiation message
-        if ((SS_CONNECTED == _connect_state || security::is_negotiation_message(msg->rpc_code())) &&
-            !_is_sending_next) {
+        if ((SS_CONNECTED == _connect_state) && !_is_sending_next) {
             _is_sending_next = true;
             sig = _message_sent + 1;
             unlink_message_for_send();
@@ -398,31 +385,10 @@ bool rpc_session::on_disconnected(bool is_write)
     return ret;
 }
 
-bool rpc_session::is_auth_success(message_ex *msg)
-{
-    if (security::FLAGS_enable_auth && !_negotiation->negotiation_succeed()) {
-        dwarn_f("reject message({}) from {}, session {} client",
-                msg->rpc_code().to_string(),
-                _remote_addr.to_string(),
-                is_client() ? "is" : "isn't");
-        return false;
-    }
-
-    return true;
-}
-
 void rpc_session::on_failure(bool is_write)
 {
     if (on_disconnected(is_write)) {
         close();
-    }
-}
-
-void rpc_session::on_success()
-{
-    if (is_client()) {
-        set_connected();
-        on_send_completed();
     }
 }
 
@@ -433,12 +399,8 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
     msg->to_address = _net.address();
     msg->io_session = this;
 
-    // return false if msg is negotiation message and auth is not success
-    if (!security::is_negotiation_message(msg->rpc_code()) && !is_auth_success(msg)) {
-        // reply response with ERR_UNAUTHENTICATED if msg is request
-        if (msg->header->context.u.is_request) {
-            _net.engine()->reply(msg->create_response(), ERR_UNAUTHENTICATED);
-        }
+    // ignore msg if join point return false
+    if (dsn_unlikely(!on_rpc_recv_message.execute(msg, true))) {
         delete msg;
         return false;
     }
@@ -478,28 +440,60 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
     return true;
 }
 
-void rpc_session::start_negotiation()
+bool rpc_session::try_pend_message(message_ex *msg)
 {
-    if (security::FLAGS_enable_auth) {
-        // set the negotiation state if it's a client rpc_session
-        if (is_client()) {
-            set_negotiation();
+    // if negotiation is not succeed, we should pend msg,
+    // in order to resend it when the negotiation is succeed
+    if (dsn_unlikely(!negotiation_succeed)) {
+        utils::auto_lock<utils::ex_lock_nr> l(_lock);
+        if (!negotiation_succeed) {
+            msg->add_ref();
+            _pending_messages.push_back(msg);
+            return true;
         }
+    }
+    return false;
+}
 
-        auth_negotiation();
-    } else {
-        // set negotiation success if auth is disabled
-        on_success();
+void rpc_session::clear_pending_messages()
+{
+    utils::auto_lock<utils::ex_lock_nr> l(_lock);
+    for (auto msg : _pending_messages) {
+        msg->release_ref();
+    }
+    _pending_messages.clear();
+}
+
+void rpc_session::set_negotiation_succeed()
+{
+    std::vector<message_ex *> swapped_pending_msgs;
+    {
+        utils::auto_lock<utils::ex_lock_nr> l(_lock);
+        negotiation_succeed = true;
+
+        _pending_messages.swap(swapped_pending_msgs);
+    }
+
+    // resend the pending messages
+    for (auto msg : swapped_pending_msgs) {
+        send_message(msg);
+        msg->release_ref();
     }
 }
 
-void rpc_session::auth_negotiation()
+bool rpc_session::is_negotiation_succeed() const
 {
-    _negotiation = security::create_negotiation(is_client(), this);
-    _negotiation->start();
+    // double check. the first one don't lock the _lock.
+    // Because negotiation_succeed only transfered from false to true.
+    // So if it is true now, it will not change in the later.
+    // But if it is false now, maybe it will change soon. So we should use lock to protect it.
+    if (dsn_likely(negotiation_succeed)) {
+        return negotiation_succeed;
+    } else {
+        utils::auto_lock<utils::ex_lock_nr> l(_lock);
+        return negotiation_succeed;
+    }
 }
-
-security::negotiation *rpc_session::get_negotiation() const { return _negotiation.get(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 network::network(rpc_engine *srv, network *inner_provider)
