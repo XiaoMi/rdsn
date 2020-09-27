@@ -68,7 +68,7 @@ error_code native_linux_aio_provider::flush(dsn_handle_t fh)
     }
 }
 
-error_code write(aio_context *aio_ctx, uint32_t *processed_bytes)
+error_code native_linux_aio_provider::write(aio_context *aio_ctx, uint32_t *processed_bytes)
 {
     ssize_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx->file),
                          aio_ctx->buffer,
@@ -81,7 +81,7 @@ error_code write(aio_context *aio_ctx, uint32_t *processed_bytes)
     return ERR_OK;
 }
 
-error_code read(aio_context *aio_ctx, uint32_t *processed_bytes)
+error_code native_linux_aio_provider::read(aio_context *aio_ctx, uint32_t *processed_bytes)
 {
     ssize_t ret = pread(static_cast<int>((ssize_t)aio_ctx->file),
                         aio_ctx->buffer,
