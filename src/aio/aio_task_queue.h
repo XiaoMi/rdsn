@@ -147,7 +147,7 @@ public:
             _low_pri_workers.push_back(std::make_shared<io_event_loop_t>(disk->node()));
         }
     };
-    ~aio_task_queue();
+    ~aio_task_queue(){};
 
     void enqueue(std::shared_ptr<io_event_t> evt)
     {
