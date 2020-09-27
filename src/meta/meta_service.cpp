@@ -93,30 +93,6 @@ bool meta_service::check_freeze() const
     return _alive_set.size() * 100 < _node_live_percentage_threshold_for_update * total;
 }
 
-template <typename TRpcHolder>
-int meta_service::check_leader(TRpcHolder rpc, rpc_address *forward_address)
-{
-    dsn::rpc_address leader;
-    if (!_failure_detector->get_leader(&leader)) {
-        if (!rpc.dsn_request()->header->context.u.is_forward_supported) {
-            if (forward_address != nullptr)
-                *forward_address = leader;
-            return -1;
-        }
-
-        dinfo("leader address: %s", leader.to_string());
-        if (!leader.is_invalid()) {
-            rpc.forward(leader);
-            return 0;
-        } else {
-            if (forward_address != nullptr)
-                forward_address->set_invalid();
-            return -1;
-        }
-    }
-    return 1;
-}
-
 template <typename TRespType>
 bool meta_service::check_status_with_msg(message_ex *req, TRespType &response_struct)
 {
