@@ -10,9 +10,13 @@ set(DUPLICATION_SRC
 )
 
 set(BACKUP_SRC backup/replica_backup_manager.cpp
-               backup/cold_backup_context.cpp)
+               backup/cold_backup_context.cpp
+               backup/replica_backup_server.cpp
+)
 
 set(BULK_LOAD_SRC bulk_load/replica_bulk_loader.cpp)
+
+set(SPLIT_SRC split/replica_split_manager.cpp)
 
 # Source files under CURRENT project directory will be automatically included.
 # You can manually set MY_PROJ_SRC to include source files under other directories.
@@ -20,6 +24,7 @@ set(MY_PROJ_SRC
         ${DUPLICATION_SRC}
         ${BACKUP_SRC}
         ${BULK_LOAD_SRC}
+        ${SPLIT_SRC}
 )
 
 # Search mode for source files under CURRENT project directory?
@@ -48,5 +53,6 @@ dsn_add_shared_library()
 add_subdirectory(duplication/test)
 add_subdirectory(backup/test)
 add_subdirectory(bulk_load/test)
+add_subdirectory(split/test)
 add_subdirectory(storage)
 add_subdirectory(test)
