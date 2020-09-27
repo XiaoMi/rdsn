@@ -298,7 +298,6 @@ aio_task_ptr log_file::commit_log_blocks(log_appender &pending,
 
     aio_task_ptr tsk;
     int64_t local_offset = pending.start_offset() - start_offset();
-
     if (callback) {
         tsk = file::write_vector(_handle,
                                  buffer_vector.data(),

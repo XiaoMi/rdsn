@@ -119,6 +119,7 @@ void mutation_log_shared::write_pending_mutations(bool release_lock_required)
 
     // move or reset pending variables
     auto pending = std::move(_pending_write);
+
     // seperate commit_log_block from within the lock
     _slock.unlock();
     commit_pending_mutations(pr.first, pending);
@@ -137,6 +138,9 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
         [this, lf, pending](error_code err, size_t sz) mutable {
             dassert(_is_writing.load(std::memory_order_relaxed), "");
 
+            for (auto &mu : pending->mutations()) {
+                ADD_CUSTOM_POINT(mu->tracer, "commit_pending_completed");
+            }
             for (auto &block : pending->all_blocks()) {
                 auto hdr = (log_block_header *)block.front().data();
                 dassert(hdr->magic == 0xdeadbeef, "header magic is changed: 0x%x", hdr->magic);
@@ -163,9 +167,6 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
             // because the following callbacks may run before "block" released, which may cause
             // the next init_prepare() not starting the write.
             _is_writing.store(false, std::memory_order_relaxed);
-            for (auto &mu : pending->mutations()) {
-                ADD_CUSTOM_POINT(mu->tracer, "is_writing_false");
-            }
 
             // notify the callbacks
             // ATTENTION: callback may be called before this code block executed done.
