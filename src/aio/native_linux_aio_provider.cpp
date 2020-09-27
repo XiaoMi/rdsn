@@ -25,7 +25,6 @@
  */
 
 #include "native_linux_aio_provider.h"
-#include "io_event_loop.h"
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication.codes.h>
