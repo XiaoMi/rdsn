@@ -196,6 +196,8 @@ private:
     int check_leader(dsn::message_ex *req, /*out*/ dsn::rpc_address *forward_address);
     template <typename TRpcHolder>
     int check_leader(TRpcHolder rpc, /*out*/ rpc_address *forward_address);
+    template <typename TRespType>
+    bool check_status_with_msg(message_ex *req, TRespType &response_struct);
 
     error_code remote_storage_initialize();
     bool check_freeze() const;

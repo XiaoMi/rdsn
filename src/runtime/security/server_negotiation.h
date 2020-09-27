@@ -36,8 +36,12 @@ public:
 private:
     void on_list_mechanisms(negotiation_rpc rpc);
     void on_select_mechanism(negotiation_rpc rpc);
-    error_s do_sasl_server_init();
-    void fail_negotiation(negotiation_rpc rpc, const std::string &reason);
+    void on_initiate(negotiation_rpc rpc);
+    void on_challenge_resp(negotiation_rpc rpc);
+
+    void do_challenge(negotiation_rpc rpc, error_s err_s, const blob &resp_msg);
+
+    friend class server_negotiation_test;
 };
 
 } // namespace security

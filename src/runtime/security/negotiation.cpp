@@ -18,9 +18,11 @@
 #include "negotiation.h"
 #include "client_negotiation.h"
 #include "server_negotiation.h"
+#include "negotiation_utils.h"
 
 #include <dsn/utility/flags.h>
 #include <dsn/utility/smart_pointers.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace security {
@@ -42,5 +44,24 @@ std::unique_ptr<negotiation> create_negotiation(bool is_client, rpc_session *ses
     }
 }
 
+void negotiation::fail_negotiation()
+{
+    _status = negotiation_status::type::SASL_AUTH_FAIL;
+    _session->on_failure(true);
+}
+
+bool negotiation::check_status(negotiation_status::type status,
+                               negotiation_status::type expected_status)
+{
+    if (status != expected_status) {
+        dwarn_f("{}: get message({}) while expect({})",
+                _name,
+                enum_to_string(status),
+                enum_to_string(expected_status));
+        return false;
+    }
+
+    return true;
+}
 } // namespace security
 } // namespace dsn

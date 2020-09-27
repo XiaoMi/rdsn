@@ -4,16 +4,20 @@
 
 #include <dsn/http/http_server.h>
 #include <dsn/tool_api.h>
+#include <dsn/utility/time_utils.h>
 #include <boost/algorithm/string.hpp>
 #include <fmt/ostream.h>
 
 #include "http_message_parser.h"
-#include "root_http_service.h"
 #include "pprof_http_service.h"
-#include "perf_counter_http_service.h"
+#include "builtin_http_calls.h"
 #include "uri_decoder.h"
+#include "http_call_registry.h"
+#include "http_server_impl.h"
 
 namespace dsn {
+
+DSN_DEFINE_bool("http", enable_http_server, true, "whether to enable the embedded HTTP server");
 
 /*extern*/ std::string http_status_code_to_string(http_status_code code)
 {
@@ -34,9 +38,38 @@ namespace dsn {
     }
 }
 
-http_server::http_server(bool start /*default=true*/) : serverlet<http_server>("http_server")
+/*extern*/ http_call &register_http_call(std::string full_path)
 {
-    if (!start) {
+    auto call_ptr = dsn::make_unique<http_call>();
+    call_ptr->path = std::move(full_path);
+    http_call &call = *call_ptr;
+    http_call_registry::instance().add(std::move(call_ptr));
+    return call;
+}
+
+/*extern*/ void deregister_http_call(const std::string &full_path)
+{
+    http_call_registry::instance().remove(full_path);
+}
+
+void http_service::register_handler(std::string path, http_callback cb, std::string help)
+{
+    if (!FLAGS_enable_http_server) {
+        return;
+    }
+    auto call = make_unique<http_call>();
+    call->path = this->path();
+    if (!path.empty()) {
+        call->path += "/" + std::move(path);
+    }
+    call->callback = std::move(cb);
+    call->help = std::move(help);
+    http_call_registry::instance().add(std::move(call));
+}
+
+http_server::http_server() : serverlet<http_server>("http_server")
+{
+    if (!FLAGS_enable_http_server) {
         return;
     }
 
@@ -45,13 +78,7 @@ http_server::http_server(bool start /*default=true*/) : serverlet<http_server>("
     tools::register_message_header_parser<http_message_parser>(NET_HDR_HTTP, {"GET ", "POST"});
 
     // add builtin services
-    add_service(new root_http_service(this));
-
-#ifdef DSN_ENABLE_GPERF
-    add_service(new pprof_http_service());
-#endif // DSN_ENABLE_GPERF
-
-    add_service(new perf_counter_http_service());
+    register_builtin_http_calls();
 }
 
 void http_server::serve(message_ex *msg)
@@ -63,23 +90,16 @@ void http_server::serve(message_ex *msg)
         resp.body = fmt::format("failed to parse request: {}", res.get_error());
     } else {
         const http_request &req = res.get_value();
-        auto it = _service_map.find(req.service_method.first);
-        if (it != _service_map.end()) {
-            it->second->call(req, resp);
+        std::shared_ptr<http_call> call = http_call_registry::instance().find(req.path);
+        if (call != nullptr) {
+            call->callback(req, resp);
         } else {
             resp.status_code = http_status_code::not_found;
-            resp.body = fmt::format("service not found for \"{}\"", req.service_method.first);
+            resp.body = fmt::format("service not found for \"{}\"", req.path);
         }
     }
 
-    message_ptr resp_msg = resp.to_message(msg);
-    dsn_rpc_reply(resp_msg.get());
-}
-
-void http_server::add_service(http_service *service)
-{
-    dassert(service != nullptr, "");
-    _service_map.emplace(service->path(), std::unique_ptr<http_service>(service));
+    http_response_reply(resp, msg);
 }
 
 /*static*/ error_with<http_request> http_request::parse(message_ex *m)
@@ -131,26 +151,7 @@ void http_server::add_service(http_service *service)
     if (!unresolved_path.empty() && *unresolved_path.crbegin() == '\0') {
         unresolved_path.pop_back();
     }
-    std::vector<std::string> args;
-    boost::split(args, unresolved_path, boost::is_any_of("/"));
-    std::vector<std::string> real_args;
-    for (std::string &arg : args) {
-        if (!arg.empty()) {
-            real_args.emplace_back(std::move(arg));
-        }
-    }
-    if (real_args.size() == 0) {
-        ret.service_method = {"", ""};
-    } else if (real_args.size() == 1) {
-        ret.service_method = {std::move(real_args[0]), ""};
-    } else {
-        std::string method = std::move(real_args[1]);
-        for (int i = 2; i < real_args.size(); i++) {
-            method += '/';
-            method += real_args[i];
-        }
-        ret.service_method = {std::move(real_args[0]), std::move(method)};
-    }
+    ret.path = std::move(unresolved_path);
 
     // find if there are method args (<ip>:<port>/<service>/<method>?<arg>=<val>&<arg>=<val>)
     if (!unresolved_query.empty()) {
@@ -179,25 +180,41 @@ void http_server::add_service(http_service *service)
     return ret;
 }
 
-message_ptr http_response::to_message(message_ex *req) const
+/*extern*/ void http_response_reply(const http_response &resp, message_ex *req)
 {
-    message_ptr resp = req->create_response();
+    message_ptr resp_msg = req->create_response();
 
     std::ostringstream os;
-    os << "HTTP/1.1 " << http_status_code_to_string(status_code) << "\r\n";
-    os << "Content-Type: " << content_type << "\r\n";
-    os << "Content-Length: " << body.length() << "\r\n";
-    if (!location.empty()) {
-        os << "Location: " << location << "\r\n";
+    os << "HTTP/1.1 " << http_status_code_to_string(resp.status_code) << "\r\n";
+    os << "Content-Type: " << resp.content_type << "\r\n";
+    os << "Content-Length: " << resp.body.length() << "\r\n";
+    if (!resp.location.empty()) {
+        os << "Location: " << resp.location << "\r\n";
     }
     os << "\r\n";
-    os << body;
+    os << resp.body;
 
-    rpc_write_stream writer(resp.get());
+    rpc_write_stream writer(resp_msg.get());
     writer.write(os.str().data(), os.str().length());
     writer.flush();
 
-    return resp;
+    dsn_rpc_reply(resp_msg.get());
+}
+
+/*extern*/ void start_http_server()
+{
+    // starts http server as a singleton
+    static http_server server;
+}
+
+/*extern*/ void register_http_service(http_service *svc)
+{
+    // simply hosting the memory of these http services.
+    static std::vector<std::unique_ptr<http_service>> services_holder;
+    static std::mutex mu;
+
+    std::lock_guard<std::mutex> guard(mu);
+    services_holder.push_back(std::unique_ptr<http_service>(svc));
 }
 
 } // namespace dsn

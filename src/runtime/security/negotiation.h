@@ -18,6 +18,7 @@
 #pragma once
 
 #include "security_types.h"
+#include "sasl_wrapper.h"
 
 #include <memory>
 #include <dsn/cpp/rpc_holder.h>
@@ -34,11 +35,18 @@ public:
     negotiation(rpc_session *session)
         : _session(session), _status(negotiation_status::type::INVALID)
     {
+        _sasl = create_sasl_wrapper(_session->is_client());
     }
     virtual ~negotiation() = 0;
 
     virtual void start() = 0;
     bool negotiation_succeed() const { return _status == negotiation_status::type::SASL_SUCC; }
+    void fail_negotiation();
+    // check whether the status is equal to expected_status
+    // ret value:
+    //   true:  status == expected_status
+    //   false: status != expected_status
+    bool check_status(negotiation_status::type status, negotiation_status::type expected_status);
 
 protected:
     // The ownership of the negotiation instance is held by rpc_session.
@@ -47,6 +55,7 @@ protected:
     std::string _name;
     negotiation_status::type _status;
     std::string _selected_mechanism;
+    std::unique_ptr<sasl_wrapper> _sasl;
 };
 
 std::unique_ptr<negotiation> create_negotiation(bool is_client, rpc_session *session);

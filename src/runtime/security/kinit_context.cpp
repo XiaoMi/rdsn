@@ -45,6 +45,8 @@ DSN_DECLARE_bool(enable_auth);
 DSN_DEFINE_string("security", krb5_keytab, "", "absolute path of keytab file");
 DSN_DEFINE_string("security", krb5_config, "", "absolute path of krb5_config file");
 DSN_DEFINE_string("security", krb5_principal, "", "kerberos principal");
+DSN_DEFINE_string("security", service_fqdn, "", "the fully qualified domain name of the server");
+DSN_DEFINE_string("security", service_name, "", "service name");
 
 // Attention: we can't do these check work by `DSN_DEFINE_validator`, because somebody may don't
 // want to use security, so these configuration may not setted. In this situation, these checks
@@ -71,15 +73,18 @@ error_s check_configuration()
     return error_s::ok();
 }
 
-class kinit_context
+class kinit_context : public utils::singleton<kinit_context>
 {
 public:
-    kinit_context() : _opt(nullptr) {}
-    virtual ~kinit_context();
+    ~kinit_context();
+
     // implementation of 'kinit -k -t <keytab_file> <principal>'
     error_s kinit();
+    const std::string &username() const { return _user_name; }
 
 private:
+    kinit_context() = default;
+
     // init kerberos context
     void init_krb5_ctx();
 
@@ -109,6 +114,8 @@ private:
 
     uint64_t _cred_expire_timestamp;
     std::shared_ptr<boost::asio::deadline_timer> _timer;
+
+    friend class utils::singleton<kinit_context>;
 };
 
 kinit_context::~kinit_context() { krb5_get_init_creds_opt_free(_krb5_context, _opt); }
@@ -310,11 +317,8 @@ error_s kinit_context::wrap_krb5_err(krb5_error_code krb5_err, const std::string
     return result_err;
 }
 
-error_s run_kinit()
-{
-    static kinit_context context;
-    return context.kinit();
-}
+error_s run_kinit() { return kinit_context::instance().kinit(); }
 
+const std::string &get_username() { return kinit_context::instance().username(); }
 } // namespace security
 } // namespace dsn

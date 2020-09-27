@@ -6,8 +6,8 @@
 #include <gtest/gtest.h>
 
 #include "http/http_message_parser.h"
-#include "http/root_http_service.h"
-#include "http/server_info_http_services.h"
+#include "http/builtin_http_calls.h"
+#include "http/http_call_registry.h"
 
 namespace dsn {
 
@@ -18,17 +18,17 @@ TEST(http_server, parse_url)
         std::string url;
 
         error_code err;
-        std::pair<std::string, std::string> result;
+        std::string path;
     } tests[] = {
-        {"http://127.0.0.1:34601", ERR_OK, {"", ""}},
-        {"http://127.0.0.1:34601/", ERR_OK, {"", ""}},
-        {"http://127.0.0.1:34601///", ERR_OK, {"", ""}},
-        {"http://127.0.0.1:34601/threads", ERR_OK, {"threads", ""}},
-        {"http://127.0.0.1:34601/threads/", ERR_OK, {"threads", ""}},
-        {"http://127.0.0.1:34601//pprof/heap/", ERR_OK, {"pprof", "heap"}},
-        {"http://127.0.0.1:34601//pprof///heap", ERR_OK, {"pprof", "heap"}},
-        {"http://127.0.0.1:34601/pprof/heap/arg/", ERR_OK, {"pprof", "heap/arg"}},
-        {"http://127.0.0.1:34601/pprof///heap///arg/", ERR_OK, {"pprof", "heap/arg"}},
+        {"http://127.0.0.1:34601", ERR_OK, ""},
+        {"http://127.0.0.1:34601/", ERR_OK, "/"},
+        {"http://127.0.0.1:34601///", ERR_OK, "///"},
+        {"http://127.0.0.1:34601/threads", ERR_OK, "/threads"},
+        {"http://127.0.0.1:34601/threads/?detail", ERR_OK, "/threads/"},
+        {"http://127.0.0.1:34601//pprof/heap/", ERR_OK, "//pprof/heap/"},
+        {"http://127.0.0.1:34601//pprof///heap?detailed=true", ERR_OK, "//pprof///heap"},
+        {"http://127.0.0.1:34601/pprof/heap/arg/", ERR_OK, "/pprof/heap/arg/"},
+        {"http://127.0.0.1:34601/pprof///heap///arg/", ERR_OK, "/pprof///heap///arg/"},
     };
 
     for (auto tt : tests) {
@@ -38,31 +38,42 @@ TEST(http_server, parse_url)
 
         auto res = http_request::parse(m.get());
         if (res.is_ok()) {
-            ASSERT_EQ(res.get_value().service_method, tt.result) << tt.url;
+            ASSERT_EQ(res.get_value().path, tt.path) << tt.url;
         } else {
             ASSERT_EQ(res.get_error().code(), tt.err);
         }
     }
 }
 
-TEST(root_http_service_test, get_help)
+TEST(bultin_http_calls_test, get_help)
 {
-    http_server server(false);
-    auto root = new root_http_service(&server);
-    server.add_service(root);
-    ASSERT_EQ(server.get_help().size(), 1);
+    for (const auto &call : http_call_registry::instance().list_all_calls()) {
+        http_call_registry::instance().remove(call->path);
+    }
+
+    register_http_call("")
+        .with_callback(
+            [](const http_request &req, http_response &resp) { get_help_handler(req, resp); })
+        .with_help("ip:port/");
 
     http_request req;
     http_response resp;
-    root->default_handler(req, resp);
+    get_help_handler(req, resp);
     ASSERT_EQ(resp.status_code, http_status_code::ok);
     ASSERT_EQ(resp.body, "{\"/\":\"ip:port/\"}\n");
 
-    auto ver = new version_http_service();
-    server.add_service(ver);
-    ASSERT_EQ(server.get_help().size(), 2);
-    root->default_handler(req, resp);
-    ASSERT_EQ(resp.body, "{\"/\":\"ip:port/\",\"/version\":\"ip:port/version\"}\n");
+    register_http_call("recentStartTime")
+        .with_callback([](const http_request &req, http_response &resp) {
+            get_recent_start_time_handler(req, resp);
+        })
+        .with_help("ip:port/recentStartTime");
+
+    get_help_handler(req, resp);
+    ASSERT_EQ(resp.body, "{\"/\":\"ip:port/\",\"/recentStartTime\":\"ip:port/recentStartTime\"}\n");
+
+    for (const auto &call : http_call_registry::instance().list_all_calls()) {
+        http_call_registry::instance().remove(call->path);
+    }
 }
 
 class http_message_parser_test : public testing::Test

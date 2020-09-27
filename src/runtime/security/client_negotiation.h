@@ -31,12 +31,16 @@ public:
 
 private:
     void handle_response(error_code err, const negotiation_response &&response);
+    void on_recv_mechanisms(const negotiation_response &resp);
+    void on_mechanism_selected(const negotiation_response &resp);
+    void on_challenge(const negotiation_response &resp);
+
     void list_mechanisms();
-    void recv_mechanisms(const negotiation_response &resp);
     void select_mechanism(const std::string &mechanism);
-    void send(std::unique_ptr<negotiation_request> request);
-    void fail_negotiation();
+    void send(negotiation_status::type status, const blob &msg = blob());
     void succ_negotiation();
+
+    friend class client_negotiation_test;
 };
 
 } // namespace security

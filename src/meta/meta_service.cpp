@@ -93,6 +93,53 @@ bool meta_service::check_freeze() const
     return _alive_set.size() * 100 < _node_live_percentage_threshold_for_update * total;
 }
 
+template <typename TRpcHolder>
+int meta_service::check_leader(TRpcHolder rpc, rpc_address *forward_address)
+{
+    dsn::rpc_address leader;
+    if (!_failure_detector->get_leader(&leader)) {
+        if (!rpc.dsn_request()->header->context.u.is_forward_supported) {
+            if (forward_address != nullptr)
+                *forward_address = leader;
+            return -1;
+        }
+
+        dinfo("leader address: %s", leader.to_string());
+        if (!leader.is_invalid()) {
+            rpc.forward(leader);
+            return 0;
+        } else {
+            if (forward_address != nullptr)
+                forward_address->set_invalid();
+            return -1;
+        }
+    }
+    return 1;
+}
+
+template <typename TRespType>
+bool meta_service::check_status_with_msg(message_ex *req, TRespType &response_struct)
+{
+    int result = check_leader(req, nullptr);
+    if (result == 0) {
+        return false;
+    }
+    if (result == -1 || !_started) {
+        if (result == -1) {
+            response_struct.err = ERR_FORWARD_TO_OTHERS;
+        } else if (_recovering) {
+            response_struct.err = ERR_UNDER_RECOVERY;
+        } else {
+            response_struct.err = ERR_SERVICE_NOT_ACTIVE;
+        }
+        ddebug("reject request with %s", response_struct.err.to_string());
+        reply(req, response_struct);
+        return false;
+    }
+
+    return true;
+}
+
 error_code meta_service::remote_storage_initialize()
 {
     // create storage
@@ -418,32 +465,13 @@ int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_a
     return 1;
 }
 
-/**
- * If your rpc interface uses rpc_holder, please don't use RPC_CHECK_STATUS.
- * Because it will cause the response to be sent repeatedly
- */
-#define RPC_CHECK_STATUS(dsn_msg, response_struct)                                                 \
-    dinfo("rpc %s called", __FUNCTION__);                                                          \
-    int result = check_leader(dsn_msg, nullptr);                                                   \
-    if (result == 0)                                                                               \
-        return;                                                                                    \
-    if (result == -1 || !_started) {                                                               \
-        if (result == -1)                                                                          \
-            response_struct.err = ERR_FORWARD_TO_OTHERS;                                           \
-        else if (_recovering)                                                                      \
-            response_struct.err = ERR_UNDER_RECOVERY;                                              \
-        else                                                                                       \
-            response_struct.err = ERR_SERVICE_NOT_ACTIVE;                                          \
-        ddebug("reject request with %s", response_struct.err.to_string());                         \
-        reply(dsn_msg, response_struct);                                                           \
-        return;                                                                                    \
-    }
-
 // table operations
 void meta_service::on_create_app(dsn::message_ex *req)
 {
     configuration_create_app_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status_with_msg(req, response)) {
+        return;
+    }
 
     req->add_ref();
     tasking::enqueue(LPC_META_STATE_NORMAL,
@@ -455,7 +483,9 @@ void meta_service::on_create_app(dsn::message_ex *req)
 void meta_service::on_drop_app(dsn::message_ex *req)
 {
     configuration_drop_app_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status_with_msg(req, response)) {
+        return;
+    }
 
     req->add_ref();
     tasking::enqueue(LPC_META_STATE_NORMAL,
@@ -467,7 +497,9 @@ void meta_service::on_drop_app(dsn::message_ex *req)
 void meta_service::on_recall_app(dsn::message_ex *req)
 {
     configuration_recall_app_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status_with_msg(req, response)) {
+        return;
+    }
 
     req->add_ref();
     tasking::enqueue(LPC_META_STATE_NORMAL,
@@ -583,7 +615,9 @@ void meta_service::on_config_sync(configuration_query_by_node_rpc rpc)
 void meta_service::on_update_configuration(dsn::message_ex *req)
 {
     configuration_update_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status_with_msg(req, response)) {
+        return;
+    }
 
     std::shared_ptr<configuration_update_request> request =
         std::make_shared<configuration_update_request>();
@@ -676,7 +710,9 @@ void meta_service::on_start_recovery(configuration_recovery_rpc rpc)
 void meta_service::on_start_restore(dsn::message_ex *req)
 {
     configuration_create_app_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status_with_msg(req, response)) {
+        return;
+    }
 
     req->add_ref();
     tasking::enqueue(
@@ -686,7 +722,9 @@ void meta_service::on_start_restore(dsn::message_ex *req)
 void meta_service::on_add_backup_policy(dsn::message_ex *req)
 {
     configuration_add_backup_policy_response response;
-    RPC_CHECK_STATUS(req, response);
+    if (!check_status_with_msg(req, response)) {
+        return;
+    }
 
     if (_backup_handler == nullptr) {
         derror("meta doesn't enable backup service");
