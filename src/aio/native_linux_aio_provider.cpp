@@ -33,6 +33,11 @@
 
 namespace dsn {
 
+native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk)
+{
+    _aio_task_queue_ptr = dsn::make_unique<aio_task_queue>(disk);
+}
+
 native_linux_aio_provider::~native_linux_aio_provider() {}
 
 dsn_handle_t native_linux_aio_provider::open(const char *file_name, int flag, int pmode)
@@ -64,17 +69,33 @@ error_code native_linux_aio_provider::flush(dsn_handle_t fh)
     }
 }
 
-native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk)
+error_code write(aio_context *aio_ctx, uint32_t *processed_bytes)
 {
-    for (int i = 0; i < 1; i++) {
-        _high_pri_workers.push_back(std::make_shared<io_event_loop_t>(disk->node()));
+    ssize_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx->file),
+                         aio_ctx->buffer,
+                         aio_ctx->buffer_size,
+                         aio_ctx->file_offset);
+    if (ret < 0) {
+        return ERR_FILE_OPERATION_FAILED;
     }
-    for (int i = 0; i < 4; i++) {
-        _comm_pri_workers.push_back(std::make_shared<io_event_loop_t>(disk->node()));
+    *processed_bytes = static_cast<uint32_t>(ret);
+    return ERR_OK;
+}
+
+error_code read(aio_context *aio_ctx, uint32_t *processed_bytes)
+{
+    ssize_t ret = pread(static_cast<int>((ssize_t)aio_ctx->file),
+                        aio_ctx->buffer,
+                        aio_ctx->buffer_size,
+                        aio_ctx->file_offset);
+    if (ret < 0) {
+        return ERR_FILE_OPERATION_FAILED;
     }
-    for (int i = 0; i < 4; i++) {
-        _low_pri_workers.push_back(std::make_shared<io_event_loop_t>(disk->node()));
+    if (ret == 0) {
+        return ERR_HANDLE_EOF;
     }
+    *processed_bytes = static_cast<uint32_t>(ret);
+    return ERR_OK;
 }
 
 void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk) { aio_internal(aio_tsk, true); }
@@ -84,15 +105,7 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
                                                    /*out*/ uint32_t *pbytes /*= nullptr*/)
 {
     auto evt = std::make_shared<io_event_t>(aio_tsk, async, this);
-    task_spec *spec = task_spec::get(aio_tsk->code().code());
-    if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_HIGH) {
-        ADD_POINT(aio_tsk->tracer);
-        _high_pri_workers[aio_tsk->hash() % _high_pri_workers.size()]->enqueue(evt);
-    } else if (spec->priority == dsn_task_priority_t::TASK_PRIORITY_COMMON) {
-        _comm_pri_workers[aio_tsk->hash() % _comm_pri_workers.size()]->enqueue(evt);
-    } else {
-        _low_pri_workers[aio_tsk->hash() % _low_pri_workers.size()]->enqueue(evt);
-    }
+    _aio_task_queue_ptr->enqueue(evt);
 
     if (async) {
         return ERR_IO_PENDING;

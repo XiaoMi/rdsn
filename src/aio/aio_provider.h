@@ -62,6 +62,10 @@ public:
     virtual error_code close(dsn_handle_t fh) = 0;
     virtual error_code flush(dsn_handle_t fh) = 0;
 
+    virtual error_code write(aio_context *aio_ctx, uint32_t *processed_bytes) = 0;
+
+    virtual error_code read(aio_context *aio_ctx, uint32_t *processed_bytes) = 0;
+
     // Submits the aio_task to the underlying disk-io executor.
     // This task may not be executed immediately, call `aio_task::wait`
     // to wait until it completes.
