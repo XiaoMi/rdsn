@@ -2769,6 +2769,7 @@ void replica_stub::on_group_bulk_load(group_bulk_load_rpc rpc)
         response.err = ERR_OBJECT_NOT_FOUND;
     }
 }
+
 // TODO: (Tangyanzhao) implement it later
 void replica_stub::on_detect_hotkey(detect_hotkey_rpc rpc)
 {
