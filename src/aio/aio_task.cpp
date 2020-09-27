@@ -25,9 +25,6 @@ aio_task::aio_task(dsn::task_code code, aio_handler &&cb, int hash, service_node
     set_error_code(ERR_IO_PENDING);
 
     _aio_ctx = file::prepare_aio_context(this);
-
-    tracer =
-        std::make_shared<dsn::utils::latency_tracer>(fmt::format("{}[{}]", "aio_task", id()), true);
 }
 
 void aio_task::collapse()

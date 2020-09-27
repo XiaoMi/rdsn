@@ -57,7 +57,6 @@ namespace replication {
     // init pending buffer
     if (nullptr == _pending_write) {
         _pending_write = std::make_shared<log_appender>(mark_new_offset(0, true).second);
-        ADD_CUSTOM_POINT(mu->tracer, "create_new_log");
     }
     _pending_write->append_mutation(mu, cb);
 
@@ -109,41 +108,27 @@ void mutation_log_shared::flush_internal(int max_count)
 
 void mutation_log_shared::write_pending_mutations(bool release_lock_required)
 {
-    for (auto &mu : _pending_write->mutations()) {
-        ADD_POINT(mu->tracer);
-    }
     dassert(release_lock_required, "lock must be hold at this point");
     dassert(!_is_writing.load(std::memory_order_relaxed), "");
     dassert(_pending_write != nullptr, "");
     dassert(_pending_write->size() > 0, "pending write size = %d", (int)_pending_write->size());
-    for (auto &mu : _pending_write->mutations()) {
-        ADD_POINT(mu->tracer);
-    }
     auto pr = mark_new_offset(_pending_write->size(), false);
     dcheck_eq(pr.second, _pending_write->start_offset());
-    for (auto &mu : _pending_write->mutations()) {
-        ADD_POINT(mu->tracer);
-    }
 
     _is_writing.store(true, std::memory_order_release);
 
     // move or reset pending variables
     auto pending = std::move(_pending_write);
-    for (auto &mu : pending->mutations()) {
-        ADD_POINT(mu->tracer);
-    }
-
     // seperate commit_log_block from within the lock
     _slock.unlock();
     commit_pending_mutations(pr.first, pending);
 }
 
-std::atomic<uint64_t> mutation_log_shared::log_id(0);
 void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
                                                    std::shared_ptr<log_appender> &pending)
 {
     for (auto &mu : pending->mutations()) {
-        ADD_CUSTOM_POINT(mu->tracer, fmt::format("LOG:{}", log_id++));
+        ADD_POINT(mu->tracer);
     }
     lf->commit_log_blocks( // forces a new line for params
         *pending,
@@ -151,10 +136,6 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
         &_tracker,
         [this, lf, pending](error_code err, size_t sz) mutable {
             dassert(_is_writing.load(std::memory_order_relaxed), "");
-
-            for (auto &mu : pending->mutations()) {
-                ADD_CUSTOM_POINT(mu->tracer, "commit_pending_completed");
-            }
 
             for (auto &block : pending->all_blocks()) {
                 auto hdr = (log_block_header *)block.front().data();
@@ -203,7 +184,7 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
                 }
             }
         },
-        1);
+        0);
 }
 
 ////////////////////////////////////////////////////

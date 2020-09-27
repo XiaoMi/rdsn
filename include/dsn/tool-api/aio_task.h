@@ -28,7 +28,6 @@
 
 #include <dsn/tool-api/task.h>
 #include <vector>
-#include <dsn/utils/latency_tracer.h>
 
 namespace dsn {
 
@@ -101,15 +100,12 @@ public:
     virtual void exec() override
     {
         if (nullptr != _cb) {
-            ADD_POINT(tracer);
             _cb(_error, _transferred_size);
         }
     }
 
     std::vector<dsn_file_buffer_t> _unmerged_write_buffers;
     blob _merged_write_buffer_holder;
-
-    std::shared_ptr<dsn::utils::latency_tracer> tracer;
 
 protected:
     void clear_non_trivial_on_task_end() override { _cb = nullptr; }

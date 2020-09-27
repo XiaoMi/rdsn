@@ -299,12 +299,6 @@ aio_task_ptr log_file::commit_log_blocks(log_appender &pending,
     aio_task_ptr tsk;
     int64_t local_offset = pending.start_offset() - start_offset();
 
-    if (hash == 1) {
-        for (auto &mu : pending.mutations()) {
-            ADD_CUSTOM_POINT(mu->tracer, fmt::format("start_aio"));
-        }
-    }
-
     if (callback) {
         tsk = file::write_vector(_handle,
                                  buffer_vector.data(),
@@ -324,14 +318,6 @@ aio_task_ptr log_file::commit_log_blocks(log_appender &pending,
                                  nullptr,
                                  hash);
     }
-
-    if (hash == 1) {
-        for (auto &mu : pending.mutations()) {
-            mu->tracer->set_sub_tracer(tsk->tracer);
-            ADD_CUSTOM_POINT(mu->tracer, fmt::format("aio_create_completed"));
-        }
-    }
-
     _end_offset.fetch_add(size);
     return tsk;
 }

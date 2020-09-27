@@ -26,10 +26,6 @@
 
 #include "native_linux_aio_provider.h"
 
-#include <dsn/dist/fmt_logging.h>
-#include <dsn/dist/replication/replication.codes.h>
-#include <dsn/utils/latency_tracer.h>
-
 namespace dsn {
 
 native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk)
