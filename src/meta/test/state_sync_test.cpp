@@ -92,7 +92,7 @@ void meta_service_test_app::state_sync_test()
     // create apss randomly, and sync it to meta state service simple
     std::cerr << "testing create apps and sync to remote storage" << std::endl;
     {
-        server_state *ss = ss1.get();
+        std::shared_ptr<server_state> ss = std::make_shared<server_state>();
         ss->initialize(svc, apps_root);
 
         drop_set.clear();
