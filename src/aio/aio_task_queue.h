@@ -29,9 +29,9 @@
 #include "disk_engine.h"
 
 #include <dsn/utility/smart_pointers.h>
+#include <dsn/dist/fmt_logging.h>
 #include <fcntl.h>
 #include <concurrentqueue/blockingconcurrentqueue.h>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 
