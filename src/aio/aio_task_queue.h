@@ -121,7 +121,6 @@ private:
     moodycamel::BlockingConcurrentQueue<std::shared_ptr<io_event_t>> _evt_que;
     std::thread _thread;
     std::atomic<bool> _is_running{false};
-    dsn::perf_counter_wrapper _aio_enqueue;
 };
 
 class aio_task_queue
