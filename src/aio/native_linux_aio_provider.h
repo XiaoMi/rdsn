@@ -31,7 +31,6 @@
 
 namespace dsn {
 
-class io_event_loop_t;
 class native_linux_aio_provider : public aio_provider
 {
 public:
