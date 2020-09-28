@@ -14,6 +14,8 @@
 #include "meta_service_test_app.h"
 
 namespace dsn {
+DSN_DECLARE_bool(enable_register_rpc_handler);
+
 namespace replication {
 
 static void random_assign_partition_config(std::shared_ptr<app_state> &app,
@@ -88,6 +90,9 @@ void meta_service_test_app::state_sync_test()
 
     std::string apps_root = "/meta_test/apps";
     std::shared_ptr<server_state> ss1 = svc->_state;
+
+    bool reserve_enable_register_rpc_handler = FLAGS_enable_register_rpc_handler;
+    FLAGS_enable_register_rpc_handler = false;
 
     // create apss randomly, and sync it to meta state service simple
     std::cerr << "testing create apps and sync to remote storage" << std::endl;
@@ -301,6 +306,8 @@ void meta_service_test_app::state_sync_test()
         ASSERT_EQ(ec, dsn::ERR_OK);
         ASSERT_TRUE(ss2->spin_wait_staging(30));
     }
+
+    FLAGS_enable_register_rpc_handler = reserve_enable_register_rpc_handler;
 }
 
 static dsn::app_info create_app_info(dsn::app_status::type status,

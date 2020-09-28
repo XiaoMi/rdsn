@@ -2838,12 +2838,9 @@ void server_state::clear_app_envs(const app_env_rpc &env_rpc)
 
 void server_state::register_rpc_handlers()
 {
-    static std::once_flag flag;
-    std::call_once(flag, [&]() {
-        register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
-                                             "query_configuration_by_index",
-                                             &server_state::on_query_configuration_by_index);
-    });
+    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
+                                         "query_configuration_by_index",
+                                         &server_state::on_query_configuration_by_index);
 }
 
 void server_state::unregister_rpc_handlers()
