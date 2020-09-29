@@ -141,6 +141,7 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
             for (auto &mu : pending->mutations()) {
                 ADD_CUSTOM_POINT(mu->tracer, "commit_pending_completed");
             }
+
             for (auto &block : pending->all_blocks()) {
                 auto hdr = (log_block_header *)block.front().data();
                 dassert(hdr->magic == 0xdeadbeef, "header magic is changed: 0x%x", hdr->magic);

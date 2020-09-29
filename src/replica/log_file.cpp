@@ -317,6 +317,7 @@ aio_task_ptr log_file::commit_log_blocks(log_appender &pending,
                                  nullptr,
                                  hash);
     }
+
     _end_offset.fetch_add(size);
     return tsk;
 }
