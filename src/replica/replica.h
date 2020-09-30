@@ -383,7 +383,7 @@ private:
 
     void init_table_level_latency_counters();
 
-    void on_detect_hotkey(const detect_hotkey_request &req, detect_hotkey_response &resp);
+    void on_detect_hotkey(const detect_hotkey_request &req, /*out*/ detect_hotkey_response &resp);
 
 private:
     friend class ::dsn::replication::test::test_checker;
