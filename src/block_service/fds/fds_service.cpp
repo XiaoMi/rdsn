@@ -697,9 +697,9 @@ dsn::task_ptr fds_file_object::download(const download_request &req,
         }
         handle->close();
         if (resp.err != ERR_OK && dsn::utils::filesystem::file_exists(req.output_local_name)) {
-            derror("fail to download file(%s) from fds, remove localfile(%s)",
-                   _fds_path.c_str(),
-                   req.output_local_name.c_str());
+            derror_f("fail to download file {} from fds, remove localfile {}",
+                     _fds_path,
+                     req.output_local_name);
             dsn::utils::filesystem::remove_path(req.output_local_name);
         }
         t->enqueue_with(resp);
