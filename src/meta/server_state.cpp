@@ -60,7 +60,8 @@ static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
 
 server_state::server_state()
-    : _meta_svc(nullptr),
+    : serverlet("server_state"),
+      _meta_svc(nullptr),
       _add_secondary_enable_flow_control(false),
       _add_secondary_max_count_for_one_node(0),
       _cli_dump_handle(nullptr),
@@ -86,6 +87,8 @@ server_state::~server_state()
             _ctrl_add_secondary_max_count_for_one_node);
         _ctrl_add_secondary_max_count_for_one_node = nullptr;
     }
+
+    unregister_rpc_handlers();
 }
 
 void server_state::register_cli_commands()
@@ -194,6 +197,8 @@ void server_state::initialize(meta_service *meta_svc, const std::string &apps_ro
         "recent_partition_change_writable_count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "partition change to writable count in the recent period");
+
+    register_rpc_handlers();
 }
 
 bool server_state::spin_wait_staging(int timeout_seconds)
@@ -2829,6 +2834,40 @@ void server_state::clear_app_envs(const app_env_rpc &env_rpc)
                    old_envs.c_str(),
                    new_envs.c_str());
         });
+}
+
+void server_state::register_rpc_handlers()
+{
+    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX,
+                                         "query_configuration_by_index",
+                                         &server_state::on_query_configuration_by_index);
+}
+
+void server_state::unregister_rpc_handlers()
+{
+    unregister_rpc_handler(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX);
+}
+
+void server_state::on_query_configuration_by_index(configuration_query_by_index_rpc rpc)
+{
+    configuration_query_by_index_response &response = rpc.response();
+    rpc_address forward_address;
+    if (!_meta_svc->check_status(rpc, &forward_address)) {
+        if (!forward_address.is_invalid()) {
+            partition_configuration config;
+            config.primary = forward_address;
+            response.partitions.push_back(std::move(config));
+        }
+        return;
+    }
+
+    query_configuration_by_index(rpc.request(), response);
+    if (ERR_OK == response.err) {
+        ddebug_f("client {} queried an available app {} with appid {}",
+                 rpc.dsn_request()->header->from_address.to_string(),
+                 rpc.request().app_name,
+                 response.app_id);
+    }
 }
 } // namespace replication
 } // namespace dsn

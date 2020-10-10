@@ -38,11 +38,17 @@
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/cpp/serialization.h>
 #include <dsn/utility/rand.h>
+#include <dsn/utility/flags.h>
 #include <set>
 
 namespace dsn {
 
 DEFINE_TASK_CODE(LPC_RPC_TIMEOUT, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
+
+DSN_DEFINE_bool("core",
+                enable_register_rpc_handler,
+                true,
+                "whether enable the register of rpc handler");
 
 class rpc_timeout_task : public task
 {
@@ -335,6 +341,10 @@ bool rpc_server_dispatcher::register_rpc_handler(dsn::task_code code,
                                                  const char *extra_name,
                                                  const rpc_request_handler &h)
 {
+    if (!FLAGS_enable_register_rpc_handler) {
+        return false;
+    }
+
     std::unique_ptr<handler_entry> ctx(new handler_entry{code, extra_name, h});
 
     utils::auto_write_lock l(_handlers_lock);
