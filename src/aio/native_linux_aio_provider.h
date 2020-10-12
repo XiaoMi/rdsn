@@ -27,7 +27,6 @@
 #pragma once
 
 #include "aio_provider.h"
-#include "aio_task_queue.h"
 
 namespace dsn {
 

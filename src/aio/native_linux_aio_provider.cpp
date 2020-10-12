@@ -26,6 +26,8 @@
 
 #include "native_linux_aio_provider.h"
 
+#include <dsn/tool-api/async_calls.h>
+
 namespace dsn {
 
 native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk) {}
