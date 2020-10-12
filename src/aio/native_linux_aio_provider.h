@@ -50,7 +50,8 @@ protected:
     error_code aio_internal(aio_task *aio, bool async, /*out*/ uint32_t *pbytes = nullptr);
 
 private:
-    std::unique_ptr<aio_task_queue> _aio_task_queue_ptr;
+    error_code write(aio_context *aio_ctx, uint32_t *processed_bytes);
+    error_code read(aio_context *aio_ctx, uint32_t *processed_bytes);
 };
 
 } // namespace dsn

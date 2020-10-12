@@ -28,10 +28,7 @@
 
 namespace dsn {
 
-native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk)
-{
-    _aio_task_queue_ptr = dsn::make_unique<aio_task_queue>(disk);
-}
+native_linux_aio_provider::native_linux_aio_provider(disk_engine *disk) : aio_provider(disk) {}
 
 native_linux_aio_provider::~native_linux_aio_provider() {}
 
@@ -93,23 +90,41 @@ error_code native_linux_aio_provider::read(aio_context *aio_ctx, uint32_t *proce
     return ERR_OK;
 }
 
-void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk) { aio_internal(aio_tsk, true); }
+void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk)
+{
+    tasking::enqueue(aio_tsk->code(),
+                     aio_tsk->tracker(),
+                     [=]() { aio_internal(aio_tsk, true); },
+                     aio_tsk->hash());
+}
 
 error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
                                                    bool async,
                                                    /*out*/ uint32_t *pbytes /*= nullptr*/)
 {
-    auto evt = std::make_shared<io_event_t>(aio_tsk, async, this);
-    _aio_task_queue_ptr->enqueue(evt);
+    aio_context *aio_ctx = aio_tsk->get_aio_context();
+    error_code err = ERR_UNKNOWN;
+    uint32_t processed_bytes = 0;
+    if (aio_ctx->type == AIO_Read) {
+        err = read(aio_ctx, &processed_bytes);
+    } else if (aio_ctx->type == AIO_Write) {
+        err = write(aio_ctx, &processed_bytes);
+    } else {
+        return err;
+    }
+
+    if (pbytes) {
+        *pbytes = processed_bytes;
+    }
 
     if (async) {
-        return ERR_IO_PENDING;
+        complete_io(aio_tsk, err, processed_bytes);
+    } else {
+        std::unique_ptr<utils::notify_event> notify = std::make_unique<utils::notify_event>();
+        notify->notify();
     }
-    evt->wait();
-    if (pbytes) {
-        *pbytes = evt->get_processed_bytes();
-    }
-    return evt->get_error();
+
+    return err;
 }
 
 } // namespace dsn
