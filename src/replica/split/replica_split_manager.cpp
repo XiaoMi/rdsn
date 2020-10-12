@@ -198,15 +198,9 @@ void replica_split_manager::parent_prepare_states(const std::string &dir) // on 
         std::make_shared<prepare_list>(_replica, *_replica->_prepare_list);
     plist->truncate(last_committed_decree());
 
-    dassert_replica(last_committed_decree() == checkpoint_decree || !mutation_list.empty() ||
-                        !files.empty(),
-                    "last_committed_decree({}) VS checkpoint_decree({}), mutation_list count={}, "
-                    "private log count={}",
-                    last_committed_decree(),
-                    checkpoint_decree,
-                    mutation_list.size(),
-                    files.size());
-
+    dcheck_eq(last_committed_decree(), checkpoint_decree);
+    dcheck_gt(mutation_list.size(), 0);
+    dcheck_gt(files.size(), 0);
     ddebug_replica("prepare state succeed: {} mutations, {} private log files, total file size = "
                    "{}, last_committed_decree = {}",
                    mutation_list.size(),
@@ -512,8 +506,8 @@ void replica_split_manager::child_notify_catch_up() // on child partition
 
     notify_catch_up_rpc rpc(std::move(request),
                             RPC_SPLIT_NOTIFY_CATCH_UP,
-                            0_ms,
-                            0,
+                            /*never timeout*/ 0_ms,
+                            /*partition_hash*/ 0,
                             _replica->_split_states.parent_gpid.thread_hash());
     rpc.call(_replica->_config.primary, tracker(), [this, rpc](error_code ec) mutable {
         auto response = rpc.response();
@@ -696,8 +690,11 @@ void replica_split_manager::parent_send_register_request(
 
     rpc_address meta_address(_stub->_failure_detector->get_servers());
     std::unique_ptr<register_child_request> req = make_unique<register_child_request>(request);
-    register_child_rpc rpc(
-        std::move(req), RPC_CM_REGISTER_CHILD_REPLICA, 0_ms, 0, get_gpid().thread_hash());
+    register_child_rpc rpc(std::move(req),
+                           RPC_CM_REGISTER_CHILD_REPLICA,
+                           /*never timeout*/ 0_ms,
+                           /*partition hash*/ 0,
+                           get_gpid().thread_hash());
 
     _replica->_primary_states.register_child_task =
         rpc.call(meta_address, tracker(), [this, rpc](error_code ec) mutable {
@@ -790,10 +787,10 @@ void replica_split_manager::child_partition_active(
         return;
     }
 
-    ddebug_replica("child partition become active");
     _replica->_primary_states.last_prepare_decree_on_new_primary =
         _replica->_prepare_list->max_decree();
     _replica->update_configuration(config);
+    ddebug_replica("child partition is active, status={}", enum_to_string(status()));
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
