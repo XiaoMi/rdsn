@@ -648,11 +648,6 @@ void replica_split_manager::parent_check_sync_point_commit(decree sync_point) //
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica_split_manager::register_child_on_meta(ballot b) // on primary parent
 {
-    if (status() != partition_status::PS_PRIMARY) {
-        dwarn_replica("failed to register child, status = {}", enum_to_string(status()));
-        return;
-    }
-
     if (status() != partition_status::PS_PRIMARY || _split_status != split_status::SPLITTING) {
         derror_replica(
             "wrong partition status or wrong split status, partition_status={}, split_status={}",
