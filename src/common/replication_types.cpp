@@ -65,6 +65,16 @@ const std::map<int, const char *> _learner_status_VALUES_TO_NAMES(
     ::apache::thrift::TEnumIterator(6, _klearner_statusValues, _klearner_statusNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
+int _ksplit_statusValues[] = {split_status::NOT_SPLIT,
+                              split_status::SPLITTING,
+                              split_status::PAUSING,
+                              split_status::PAUSED,
+                              split_status::CANCELING};
+const char *_ksplit_statusNames[] = {"NOT_SPLIT", "SPLITTING", "PAUSING", "PAUSED", "CANCELING"};
+const std::map<int, const char *> _split_status_VALUES_TO_NAMES(
+    ::apache::thrift::TEnumIterator(5, _ksplit_statusValues, _ksplit_statusNames),
+    ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+
 int _kconfig_typeValues[] = {config_type::CT_INVALID,
                              config_type::CT_ASSIGN_PRIMARY,
                              config_type::CT_UPGRADE_TO_PRIMARY,
@@ -188,6 +198,18 @@ const std::map<int, const char *> _bulk_load_control_type_VALUES_TO_NAMES(
     ::apache::thrift::TEnumIterator(4,
                                     _kbulk_load_control_typeValues,
                                     _kbulk_load_control_typeNames),
+    ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+
+int _khotkey_typeValues[] = {hotkey_type::READ, hotkey_type::WRITE};
+const char *_khotkey_typeNames[] = {"READ", "WRITE"};
+const std::map<int, const char *> _hotkey_type_VALUES_TO_NAMES(
+    ::apache::thrift::TEnumIterator(2, _khotkey_typeValues, _khotkey_typeNames),
+    ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+
+int _kdetect_actionValues[] = {detect_action::START, detect_action::STOP};
+const char *_kdetect_actionNames[] = {"START", "STOP"};
+const std::map<int, const char *> _detect_action_VALUES_TO_NAMES(
+    ::apache::thrift::TEnumIterator(2, _kdetect_actionValues, _kdetect_actionNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 mutation_header::~mutation_header() throw() {}
@@ -13941,16 +13963,16 @@ void ddd_diagnose_response::printTo(std::ostream &out) const
     out << ")";
 }
 
-app_partition_split_request::~app_partition_split_request() throw() {}
+start_partition_split_request::~start_partition_split_request() throw() {}
 
-void app_partition_split_request::__set_app_name(const std::string &val) { this->app_name = val; }
+void start_partition_split_request::__set_app_name(const std::string &val) { this->app_name = val; }
 
-void app_partition_split_request::__set_new_partition_count(const int32_t val)
+void start_partition_split_request::__set_new_partition_count(const int32_t val)
 {
     this->new_partition_count = val;
 }
 
-uint32_t app_partition_split_request::read(::apache::thrift::protocol::TProtocol *iprot)
+uint32_t start_partition_split_request::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
     apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
@@ -13997,11 +14019,11 @@ uint32_t app_partition_split_request::read(::apache::thrift::protocol::TProtocol
     return xfer;
 }
 
-uint32_t app_partition_split_request::write(::apache::thrift::protocol::TProtocol *oprot) const
+uint32_t start_partition_split_request::write(::apache::thrift::protocol::TProtocol *oprot) const
 {
     uint32_t xfer = 0;
     apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
-    xfer += oprot->writeStructBegin("app_partition_split_request");
+    xfer += oprot->writeStructBegin("start_partition_split_request");
 
     xfer += oprot->writeFieldBegin("app_name", ::apache::thrift::protocol::T_STRING, 1);
     xfer += oprot->writeString(this->app_name);
@@ -14016,7 +14038,7 @@ uint32_t app_partition_split_request::write(::apache::thrift::protocol::TProtoco
     return xfer;
 }
 
-void swap(app_partition_split_request &a, app_partition_split_request &b)
+void swap(start_partition_split_request &a, start_partition_split_request &b)
 {
     using ::std::swap;
     swap(a.app_name, b.app_name);
@@ -14024,57 +14046,56 @@ void swap(app_partition_split_request &a, app_partition_split_request &b)
     swap(a.__isset, b.__isset);
 }
 
-app_partition_split_request::app_partition_split_request(
-    const app_partition_split_request &other614)
+start_partition_split_request::start_partition_split_request(
+    const start_partition_split_request &other614)
 {
     app_name = other614.app_name;
     new_partition_count = other614.new_partition_count;
     __isset = other614.__isset;
 }
-app_partition_split_request::app_partition_split_request(app_partition_split_request &&other615)
+start_partition_split_request::start_partition_split_request(
+    start_partition_split_request &&other615)
 {
     app_name = std::move(other615.app_name);
     new_partition_count = std::move(other615.new_partition_count);
     __isset = std::move(other615.__isset);
 }
-app_partition_split_request &app_partition_split_request::
-operator=(const app_partition_split_request &other616)
+start_partition_split_request &start_partition_split_request::
+operator=(const start_partition_split_request &other616)
 {
     app_name = other616.app_name;
     new_partition_count = other616.new_partition_count;
     __isset = other616.__isset;
     return *this;
 }
-app_partition_split_request &app_partition_split_request::
-operator=(app_partition_split_request &&other617)
+start_partition_split_request &start_partition_split_request::
+operator=(start_partition_split_request &&other617)
 {
     app_name = std::move(other617.app_name);
     new_partition_count = std::move(other617.new_partition_count);
     __isset = std::move(other617.__isset);
     return *this;
 }
-void app_partition_split_request::printTo(std::ostream &out) const
+void start_partition_split_request::printTo(std::ostream &out) const
 {
     using ::apache::thrift::to_string;
-    out << "app_partition_split_request(";
+    out << "start_partition_split_request(";
     out << "app_name=" << to_string(app_name);
     out << ", "
         << "new_partition_count=" << to_string(new_partition_count);
     out << ")";
 }
 
-app_partition_split_response::~app_partition_split_response() throw() {}
+start_partition_split_response::~start_partition_split_response() throw() {}
 
-void app_partition_split_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
+void start_partition_split_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
 
-void app_partition_split_response::__set_app_id(const int32_t val) { this->app_id = val; }
-
-void app_partition_split_response::__set_partition_count(const int32_t val)
+void start_partition_split_response::__set_hint_msg(const std::string &val)
 {
-    this->partition_count = val;
+    this->hint_msg = val;
 }
 
-uint32_t app_partition_split_response::read(::apache::thrift::protocol::TProtocol *iprot)
+uint32_t start_partition_split_response::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
     apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
@@ -14102,17 +14123,9 @@ uint32_t app_partition_split_response::read(::apache::thrift::protocol::TProtoco
             }
             break;
         case 2:
-            if (ftype == ::apache::thrift::protocol::T_I32) {
-                xfer += iprot->readI32(this->app_id);
-                this->__isset.app_id = true;
-            } else {
-                xfer += iprot->skip(ftype);
-            }
-            break;
-        case 3:
-            if (ftype == ::apache::thrift::protocol::T_I32) {
-                xfer += iprot->readI32(this->partition_count);
-                this->__isset.partition_count = true;
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->hint_msg);
+                this->__isset.hint_msg = true;
             } else {
                 xfer += iprot->skip(ftype);
             }
@@ -14129,22 +14142,18 @@ uint32_t app_partition_split_response::read(::apache::thrift::protocol::TProtoco
     return xfer;
 }
 
-uint32_t app_partition_split_response::write(::apache::thrift::protocol::TProtocol *oprot) const
+uint32_t start_partition_split_response::write(::apache::thrift::protocol::TProtocol *oprot) const
 {
     uint32_t xfer = 0;
     apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
-    xfer += oprot->writeStructBegin("app_partition_split_response");
+    xfer += oprot->writeStructBegin("start_partition_split_response");
 
     xfer += oprot->writeFieldBegin("err", ::apache::thrift::protocol::T_STRUCT, 1);
     xfer += this->err.write(oprot);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("app_id", ::apache::thrift::protocol::T_I32, 2);
-    xfer += oprot->writeI32(this->app_id);
-    xfer += oprot->writeFieldEnd();
-
-    xfer += oprot->writeFieldBegin("partition_count", ::apache::thrift::protocol::T_I32, 3);
-    xfer += oprot->writeI32(this->partition_count);
+    xfer += oprot->writeFieldBegin("hint_msg", ::apache::thrift::protocol::T_STRING, 2);
+    xfer += oprot->writeString(this->hint_msg);
     xfer += oprot->writeFieldEnd();
 
     xfer += oprot->writeFieldStop();
@@ -14152,57 +14161,51 @@ uint32_t app_partition_split_response::write(::apache::thrift::protocol::TProtoc
     return xfer;
 }
 
-void swap(app_partition_split_response &a, app_partition_split_response &b)
+void swap(start_partition_split_response &a, start_partition_split_response &b)
 {
     using ::std::swap;
     swap(a.err, b.err);
-    swap(a.app_id, b.app_id);
-    swap(a.partition_count, b.partition_count);
+    swap(a.hint_msg, b.hint_msg);
     swap(a.__isset, b.__isset);
 }
 
-app_partition_split_response::app_partition_split_response(
-    const app_partition_split_response &other618)
+start_partition_split_response::start_partition_split_response(
+    const start_partition_split_response &other618)
 {
     err = other618.err;
-    app_id = other618.app_id;
-    partition_count = other618.partition_count;
+    hint_msg = other618.hint_msg;
     __isset = other618.__isset;
 }
-app_partition_split_response::app_partition_split_response(app_partition_split_response &&other619)
+start_partition_split_response::start_partition_split_response(
+    start_partition_split_response &&other619)
 {
     err = std::move(other619.err);
-    app_id = std::move(other619.app_id);
-    partition_count = std::move(other619.partition_count);
+    hint_msg = std::move(other619.hint_msg);
     __isset = std::move(other619.__isset);
 }
-app_partition_split_response &app_partition_split_response::
-operator=(const app_partition_split_response &other620)
+start_partition_split_response &start_partition_split_response::
+operator=(const start_partition_split_response &other620)
 {
     err = other620.err;
-    app_id = other620.app_id;
-    partition_count = other620.partition_count;
+    hint_msg = other620.hint_msg;
     __isset = other620.__isset;
     return *this;
 }
-app_partition_split_response &app_partition_split_response::
-operator=(app_partition_split_response &&other621)
+start_partition_split_response &start_partition_split_response::
+operator=(start_partition_split_response &&other621)
 {
     err = std::move(other621.err);
-    app_id = std::move(other621.app_id);
-    partition_count = std::move(other621.partition_count);
+    hint_msg = std::move(other621.hint_msg);
     __isset = std::move(other621.__isset);
     return *this;
 }
-void app_partition_split_response::printTo(std::ostream &out) const
+void start_partition_split_response::printTo(std::ostream &out) const
 {
     using ::apache::thrift::to_string;
-    out << "app_partition_split_response(";
+    out << "start_partition_split_response(";
     out << "err=" << to_string(err);
     out << ", "
-        << "app_id=" << to_string(app_id);
-    out << ", "
-        << "partition_count=" << to_string(partition_count);
+        << "hint_msg=" << to_string(hint_msg);
     out << ")";
 }
 
@@ -17263,6 +17266,269 @@ void query_bulk_load_response::printTo(std::ostream &out) const
     out << ", "
         << "hint_msg=";
     (__isset.hint_msg ? (out << to_string(hint_msg)) : (out << "<null>"));
+    out << ")";
+}
+
+detect_hotkey_request::~detect_hotkey_request() throw() {}
+
+void detect_hotkey_request::__set_type(const hotkey_type::type val) { this->type = val; }
+
+void detect_hotkey_request::__set_action(const detect_action::type val) { this->action = val; }
+
+void detect_hotkey_request::__set_pid(const ::dsn::gpid &val) { this->pid = val; }
+
+uint32_t detect_hotkey_request::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                int32_t ecast736;
+                xfer += iprot->readI32(ecast736);
+                this->type = (hotkey_type::type)ecast736;
+                this->__isset.type = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                int32_t ecast737;
+                xfer += iprot->readI32(ecast737);
+                this->action = (detect_action::type)ecast737;
+                this->__isset.action = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 3:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->pid.read(iprot);
+                this->__isset.pid = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t detect_hotkey_request::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("detect_hotkey_request");
+
+    xfer += oprot->writeFieldBegin("type", ::apache::thrift::protocol::T_I32, 1);
+    xfer += oprot->writeI32((int32_t)this->type);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("action", ::apache::thrift::protocol::T_I32, 2);
+    xfer += oprot->writeI32((int32_t)this->action);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("pid", ::apache::thrift::protocol::T_STRUCT, 3);
+    xfer += this->pid.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(detect_hotkey_request &a, detect_hotkey_request &b)
+{
+    using ::std::swap;
+    swap(a.type, b.type);
+    swap(a.action, b.action);
+    swap(a.pid, b.pid);
+    swap(a.__isset, b.__isset);
+}
+
+detect_hotkey_request::detect_hotkey_request(const detect_hotkey_request &other738)
+{
+    type = other738.type;
+    action = other738.action;
+    pid = other738.pid;
+    __isset = other738.__isset;
+}
+detect_hotkey_request::detect_hotkey_request(detect_hotkey_request &&other739)
+{
+    type = std::move(other739.type);
+    action = std::move(other739.action);
+    pid = std::move(other739.pid);
+    __isset = std::move(other739.__isset);
+}
+detect_hotkey_request &detect_hotkey_request::operator=(const detect_hotkey_request &other740)
+{
+    type = other740.type;
+    action = other740.action;
+    pid = other740.pid;
+    __isset = other740.__isset;
+    return *this;
+}
+detect_hotkey_request &detect_hotkey_request::operator=(detect_hotkey_request &&other741)
+{
+    type = std::move(other741.type);
+    action = std::move(other741.action);
+    pid = std::move(other741.pid);
+    __isset = std::move(other741.__isset);
+    return *this;
+}
+void detect_hotkey_request::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "detect_hotkey_request(";
+    out << "type=" << to_string(type);
+    out << ", "
+        << "action=" << to_string(action);
+    out << ", "
+        << "pid=" << to_string(pid);
+    out << ")";
+}
+
+detect_hotkey_response::~detect_hotkey_response() throw() {}
+
+void detect_hotkey_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
+
+void detect_hotkey_response::__set_err_hint(const std::string &val)
+{
+    this->err_hint = val;
+    __isset.err_hint = true;
+}
+
+uint32_t detect_hotkey_response::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->err.read(iprot);
+                this->__isset.err = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->err_hint);
+                this->__isset.err_hint = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t detect_hotkey_response::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("detect_hotkey_response");
+
+    xfer += oprot->writeFieldBegin("err", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->err.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    if (this->__isset.err_hint) {
+        xfer += oprot->writeFieldBegin("err_hint", ::apache::thrift::protocol::T_STRING, 2);
+        xfer += oprot->writeString(this->err_hint);
+        xfer += oprot->writeFieldEnd();
+    }
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(detect_hotkey_response &a, detect_hotkey_response &b)
+{
+    using ::std::swap;
+    swap(a.err, b.err);
+    swap(a.err_hint, b.err_hint);
+    swap(a.__isset, b.__isset);
+}
+
+detect_hotkey_response::detect_hotkey_response(const detect_hotkey_response &other742)
+{
+    err = other742.err;
+    err_hint = other742.err_hint;
+    __isset = other742.__isset;
+}
+detect_hotkey_response::detect_hotkey_response(detect_hotkey_response &&other743)
+{
+    err = std::move(other743.err);
+    err_hint = std::move(other743.err_hint);
+    __isset = std::move(other743.__isset);
+}
+detect_hotkey_response &detect_hotkey_response::operator=(const detect_hotkey_response &other744)
+{
+    err = other744.err;
+    err_hint = other744.err_hint;
+    __isset = other744.__isset;
+    return *this;
+}
+detect_hotkey_response &detect_hotkey_response::operator=(detect_hotkey_response &&other745)
+{
+    err = std::move(other745.err);
+    err_hint = std::move(other745.err_hint);
+    __isset = std::move(other745.__isset);
+    return *this;
+}
+void detect_hotkey_response::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "detect_hotkey_response(";
+    out << "err=" << to_string(err);
+    out << ", "
+        << "err_hint=";
+    (__isset.err_hint ? (out << to_string(err_hint)) : (out << "<null>"));
     out << ")";
 }
 }

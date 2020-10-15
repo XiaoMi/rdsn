@@ -77,6 +77,20 @@ struct learner_status
 
 extern const std::map<int, const char *> _learner_status_VALUES_TO_NAMES;
 
+struct split_status
+{
+    enum type
+    {
+        NOT_SPLIT = 0,
+        SPLITTING = 1,
+        PAUSING = 2,
+        PAUSED = 3,
+        CANCELING = 4
+    };
+};
+
+extern const std::map<int, const char *> _split_status_VALUES_TO_NAMES;
+
 struct config_type
 {
     enum type
@@ -218,6 +232,28 @@ struct bulk_load_control_type
 };
 
 extern const std::map<int, const char *> _bulk_load_control_type_VALUES_TO_NAMES;
+
+struct hotkey_type
+{
+    enum type
+    {
+        READ = 0,
+        WRITE = 1
+    };
+};
+
+extern const std::map<int, const char *> _hotkey_type_VALUES_TO_NAMES;
+
+struct detect_action
+{
+    enum type
+    {
+        START = 0,
+        STOP = 1
+    };
+};
+
+extern const std::map<int, const char *> _detect_action_VALUES_TO_NAMES;
 
 class mutation_header;
 
@@ -391,9 +427,9 @@ class ddd_partition_info;
 
 class ddd_diagnose_response;
 
-class app_partition_split_request;
+class start_partition_split_request;
 
-class app_partition_split_response;
+class start_partition_split_response;
 
 class notify_catch_up_request;
 
@@ -430,6 +466,10 @@ class control_bulk_load_response;
 class query_bulk_load_request;
 
 class query_bulk_load_response;
+
+class detect_hotkey_request;
+
+class detect_hotkey_response;
 
 typedef struct _mutation_header__isset
 {
@@ -5972,33 +6012,33 @@ inline std::ostream &operator<<(std::ostream &out, const ddd_diagnose_response &
     return out;
 }
 
-typedef struct _app_partition_split_request__isset
+typedef struct _start_partition_split_request__isset
 {
-    _app_partition_split_request__isset() : app_name(false), new_partition_count(false) {}
+    _start_partition_split_request__isset() : app_name(false), new_partition_count(false) {}
     bool app_name : 1;
     bool new_partition_count : 1;
-} _app_partition_split_request__isset;
+} _start_partition_split_request__isset;
 
-class app_partition_split_request
+class start_partition_split_request
 {
 public:
-    app_partition_split_request(const app_partition_split_request &);
-    app_partition_split_request(app_partition_split_request &&);
-    app_partition_split_request &operator=(const app_partition_split_request &);
-    app_partition_split_request &operator=(app_partition_split_request &&);
-    app_partition_split_request() : app_name(), new_partition_count(0) {}
+    start_partition_split_request(const start_partition_split_request &);
+    start_partition_split_request(start_partition_split_request &&);
+    start_partition_split_request &operator=(const start_partition_split_request &);
+    start_partition_split_request &operator=(start_partition_split_request &&);
+    start_partition_split_request() : app_name(), new_partition_count(0) {}
 
-    virtual ~app_partition_split_request() throw();
+    virtual ~start_partition_split_request() throw();
     std::string app_name;
     int32_t new_partition_count;
 
-    _app_partition_split_request__isset __isset;
+    _start_partition_split_request__isset __isset;
 
     void __set_app_name(const std::string &val);
 
     void __set_new_partition_count(const int32_t val);
 
-    bool operator==(const app_partition_split_request &rhs) const
+    bool operator==(const start_partition_split_request &rhs) const
     {
         if (!(app_name == rhs.app_name))
             return false;
@@ -6006,9 +6046,9 @@ public:
             return false;
         return true;
     }
-    bool operator!=(const app_partition_split_request &rhs) const { return !(*this == rhs); }
+    bool operator!=(const start_partition_split_request &rhs) const { return !(*this == rhs); }
 
-    bool operator<(const app_partition_split_request &) const;
+    bool operator<(const start_partition_split_request &) const;
 
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
@@ -6016,57 +6056,51 @@ public:
     virtual void printTo(std::ostream &out) const;
 };
 
-void swap(app_partition_split_request &a, app_partition_split_request &b);
+void swap(start_partition_split_request &a, start_partition_split_request &b);
 
-inline std::ostream &operator<<(std::ostream &out, const app_partition_split_request &obj)
+inline std::ostream &operator<<(std::ostream &out, const start_partition_split_request &obj)
 {
     obj.printTo(out);
     return out;
 }
 
-typedef struct _app_partition_split_response__isset
+typedef struct _start_partition_split_response__isset
 {
-    _app_partition_split_response__isset() : err(false), app_id(false), partition_count(false) {}
+    _start_partition_split_response__isset() : err(false), hint_msg(false) {}
     bool err : 1;
-    bool app_id : 1;
-    bool partition_count : 1;
-} _app_partition_split_response__isset;
+    bool hint_msg : 1;
+} _start_partition_split_response__isset;
 
-class app_partition_split_response
+class start_partition_split_response
 {
 public:
-    app_partition_split_response(const app_partition_split_response &);
-    app_partition_split_response(app_partition_split_response &&);
-    app_partition_split_response &operator=(const app_partition_split_response &);
-    app_partition_split_response &operator=(app_partition_split_response &&);
-    app_partition_split_response() : app_id(0), partition_count(0) {}
+    start_partition_split_response(const start_partition_split_response &);
+    start_partition_split_response(start_partition_split_response &&);
+    start_partition_split_response &operator=(const start_partition_split_response &);
+    start_partition_split_response &operator=(start_partition_split_response &&);
+    start_partition_split_response() : hint_msg() {}
 
-    virtual ~app_partition_split_response() throw();
+    virtual ~start_partition_split_response() throw();
     ::dsn::error_code err;
-    int32_t app_id;
-    int32_t partition_count;
+    std::string hint_msg;
 
-    _app_partition_split_response__isset __isset;
+    _start_partition_split_response__isset __isset;
 
     void __set_err(const ::dsn::error_code &val);
 
-    void __set_app_id(const int32_t val);
+    void __set_hint_msg(const std::string &val);
 
-    void __set_partition_count(const int32_t val);
-
-    bool operator==(const app_partition_split_response &rhs) const
+    bool operator==(const start_partition_split_response &rhs) const
     {
         if (!(err == rhs.err))
             return false;
-        if (!(app_id == rhs.app_id))
-            return false;
-        if (!(partition_count == rhs.partition_count))
+        if (!(hint_msg == rhs.hint_msg))
             return false;
         return true;
     }
-    bool operator!=(const app_partition_split_response &rhs) const { return !(*this == rhs); }
+    bool operator!=(const start_partition_split_response &rhs) const { return !(*this == rhs); }
 
-    bool operator<(const app_partition_split_response &) const;
+    bool operator<(const start_partition_split_response &) const;
 
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
@@ -6074,9 +6108,9 @@ public:
     virtual void printTo(std::ostream &out) const;
 };
 
-void swap(app_partition_split_response &a, app_partition_split_response &b);
+void swap(start_partition_split_response &a, start_partition_split_response &b);
 
-inline std::ostream &operator<<(std::ostream &out, const app_partition_split_response &obj)
+inline std::ostream &operator<<(std::ostream &out, const start_partition_split_response &obj)
 {
     obj.printTo(out);
     return out;
@@ -7327,6 +7361,118 @@ public:
 void swap(query_bulk_load_response &a, query_bulk_load_response &b);
 
 inline std::ostream &operator<<(std::ostream &out, const query_bulk_load_response &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _detect_hotkey_request__isset
+{
+    _detect_hotkey_request__isset() : type(false), action(false), pid(false) {}
+    bool type : 1;
+    bool action : 1;
+    bool pid : 1;
+} _detect_hotkey_request__isset;
+
+class detect_hotkey_request
+{
+public:
+    detect_hotkey_request(const detect_hotkey_request &);
+    detect_hotkey_request(detect_hotkey_request &&);
+    detect_hotkey_request &operator=(const detect_hotkey_request &);
+    detect_hotkey_request &operator=(detect_hotkey_request &&);
+    detect_hotkey_request() : type((hotkey_type::type)0), action((detect_action::type)0) {}
+
+    virtual ~detect_hotkey_request() throw();
+    hotkey_type::type type;
+    detect_action::type action;
+    ::dsn::gpid pid;
+
+    _detect_hotkey_request__isset __isset;
+
+    void __set_type(const hotkey_type::type val);
+
+    void __set_action(const detect_action::type val);
+
+    void __set_pid(const ::dsn::gpid &val);
+
+    bool operator==(const detect_hotkey_request &rhs) const
+    {
+        if (!(type == rhs.type))
+            return false;
+        if (!(action == rhs.action))
+            return false;
+        if (!(pid == rhs.pid))
+            return false;
+        return true;
+    }
+    bool operator!=(const detect_hotkey_request &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const detect_hotkey_request &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(detect_hotkey_request &a, detect_hotkey_request &b);
+
+inline std::ostream &operator<<(std::ostream &out, const detect_hotkey_request &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _detect_hotkey_response__isset
+{
+    _detect_hotkey_response__isset() : err(false), err_hint(false) {}
+    bool err : 1;
+    bool err_hint : 1;
+} _detect_hotkey_response__isset;
+
+class detect_hotkey_response
+{
+public:
+    detect_hotkey_response(const detect_hotkey_response &);
+    detect_hotkey_response(detect_hotkey_response &&);
+    detect_hotkey_response &operator=(const detect_hotkey_response &);
+    detect_hotkey_response &operator=(detect_hotkey_response &&);
+    detect_hotkey_response() : err_hint() {}
+
+    virtual ~detect_hotkey_response() throw();
+    ::dsn::error_code err;
+    std::string err_hint;
+
+    _detect_hotkey_response__isset __isset;
+
+    void __set_err(const ::dsn::error_code &val);
+
+    void __set_err_hint(const std::string &val);
+
+    bool operator==(const detect_hotkey_response &rhs) const
+    {
+        if (!(err == rhs.err))
+            return false;
+        if (__isset.err_hint != rhs.__isset.err_hint)
+            return false;
+        else if (__isset.err_hint && !(err_hint == rhs.err_hint))
+            return false;
+        return true;
+    }
+    bool operator!=(const detect_hotkey_response &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const detect_hotkey_response &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(detect_hotkey_response &a, detect_hotkey_response &b);
+
+inline std::ostream &operator<<(std::ostream &out, const detect_hotkey_response &obj)
 {
     obj.printTo(out);
     return out;
