@@ -135,9 +135,9 @@ error_code block_service_manager::download_file(const std::string &remote_dir,
         derror_f("create file({}) failed with error({})", remote_file_name, err.to_string());
         return err;
     }
-    block_file *bf = create_resp.file_handle.get();
+    block_file_ptr bf = create_resp.file_handle;
 
-    download_response resp = download_block_file_sync(local_file_name, bf, &tracker);
+    download_response resp = download_block_file_sync(local_file_name, bf.get(), &tracker);
     if (resp.err != ERR_OK) {
         // during bulk load process, ERR_OBJECT_NOT_FOUND will be considered as a recoverable
         // error, however, if file damaged on remote file provider, bulk load should stop,
