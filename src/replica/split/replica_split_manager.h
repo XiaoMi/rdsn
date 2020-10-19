@@ -35,11 +35,11 @@ public:
     void set_child_gpid(gpid pid) { _child_gpid = pid; }
 
 private:
-    // parent partition create child
-    void on_add_child(const group_check_request &request);
+    // parent partition start split
+    void parent_start_split(const group_check_request &request);
 
     // child replica initialize config and state info
-    void child_init_replica(gpid parent_gpid, dsn::rpc_address primary_address, ballot init_ballot);
+    void child_init_replica(gpid parent_gpid, rpc_address primary_address, ballot init_ballot);
 
     void parent_prepare_states(const std::string &dir);
 
@@ -84,7 +84,7 @@ private:
 
     // primary parent register children on meta_server
     void register_child_on_meta(ballot b);
-    void on_register_child_on_meta_reply(dsn::error_code ec,
+    void on_register_child_on_meta_reply(error_code ec,
                                          const register_child_request &request,
                                          const register_child_response &response);
     // primary sends register request to meta_server
@@ -119,9 +119,11 @@ private:
     friend class replica_stub;
     friend class replica_split_test;
 
+    split_status::type _split_status{split_status::NOT_SPLIT};
+
     // _child_gpid = gpid({app_id},{pidx}+{old_partition_count}) for parent partition
     // _child_gpid.app_id = 0 for parent partition not in partition split and child partition
-    dsn::gpid _child_gpid{0, 0};
+    gpid _child_gpid{0, 0};
     // ballot when starting partition split and split will stop if ballot changed
     // _child_init_ballot = 0 if partition not in partition split
     ballot _child_init_ballot{0};

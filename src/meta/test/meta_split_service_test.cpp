@@ -44,17 +44,16 @@ public:
         create_app(NAME, PARTITION_COUNT);
     }
 
-    app_partition_split_response start_partition_split(const std::string &app_name,
-                                                       int new_partition_count)
+    error_code start_partition_split(const std::string &app_name, int new_partition_count)
     {
-        auto request = dsn::make_unique<app_partition_split_request>();
+        auto request = dsn::make_unique<start_partition_split_request>();
         request->app_name = app_name;
         request->new_partition_count = new_partition_count;
 
-        app_partition_split_rpc rpc(std::move(request), RPC_CM_APP_PARTITION_SPLIT);
-        split_svc().app_partition_split(rpc);
+        start_split_rpc rpc(std::move(request), RPC_CM_START_PARTITION_SPLIT);
+        split_svc().start_partition_split(rpc);
         wait_all();
-        return rpc.response();
+        return rpc.response().err;
     }
 
     register_child_response
@@ -110,33 +109,43 @@ public:
     }
 
     const std::string NAME = "split_table";
-    const uint32_t PARTITION_COUNT = 4;
-    const uint32_t NEW_PARTITION_COUNT = 8;
-    const uint32_t PARENT_BALLOT = 3;
-    const uint32_t PARENT_INDEX = 0;
-    const uint32_t CHILD_INDEX = 4;
+    const int32_t PARTITION_COUNT = 4;
+    const int32_t NEW_PARTITION_COUNT = 8;
+    const int32_t PARENT_BALLOT = 3;
+    const int32_t PARENT_INDEX = 0;
+    const int32_t CHILD_INDEX = 4;
 };
 
-TEST_F(meta_split_service_test, start_split_with_not_existed_app)
+// start split unit tests
+TEST_F(meta_split_service_test, start_split_test)
 {
-    auto resp = start_partition_split("table_not_exist", PARTITION_COUNT);
-    ASSERT_EQ(resp.err, ERR_APP_NOT_EXIST);
+    // Test case:
+    // - app not existed
+    // - wrong partition_count
+    // - app already splitting
+    // - start split succeed
+    struct start_test
+    {
+        std::string app_name;
+        int32_t new_partition_count;
+        bool need_mock_splitting;
+        error_code expected_err;
+        int32_t expected_partition_count;
+    } tests[] = {{"table_not_exist", PARTITION_COUNT, false, ERR_APP_NOT_EXIST, PARTITION_COUNT},
+                 {NAME, PARTITION_COUNT, false, ERR_INVALID_PARAMETERS, PARTITION_COUNT},
+                 {NAME, NEW_PARTITION_COUNT, true, ERR_BUSY, PARTITION_COUNT},
+                 {NAME, NEW_PARTITION_COUNT, false, ERR_OK, NEW_PARTITION_COUNT}};
+
+    for (auto test : tests) {
+        auto app = find_app(NAME);
+        app->helpers->split_states.splitting_count = test.need_mock_splitting ? PARTITION_COUNT : 0;
+        ASSERT_EQ(start_partition_split(test.app_name, test.new_partition_count),
+                  test.expected_err);
+        ASSERT_EQ(app->partition_count, test.expected_partition_count);
+    }
 }
 
-TEST_F(meta_split_service_test, start_split_with_wrong_params)
-{
-    auto resp = start_partition_split(NAME, PARTITION_COUNT);
-    ASSERT_EQ(resp.err, ERR_INVALID_PARAMETERS);
-    ASSERT_EQ(resp.partition_count, PARTITION_COUNT);
-}
-
-TEST_F(meta_split_service_test, start_split_succeed)
-{
-    auto resp = start_partition_split(NAME, NEW_PARTITION_COUNT);
-    ASSERT_EQ(resp.err, ERR_OK);
-    ASSERT_EQ(resp.partition_count, NEW_PARTITION_COUNT);
-}
-
+// TODO(heyuchen): refactor register unit tests
 TEST_F(meta_split_service_test, register_child_with_wrong_ballot)
 {
     auto resp = register_child(PARENT_BALLOT - 1, invalid_ballot);
