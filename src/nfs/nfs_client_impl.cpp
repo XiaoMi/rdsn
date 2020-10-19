@@ -268,6 +268,7 @@ void nfs_client_impl::continue_copy()
             zauto_lock l(req->lock);
             const user_request_ptr &ureq = req->file_ctx->user_req;
             if (req->is_valid) {
+                // todo(jiashuo1) use non-block api `consumeWithBorrowNonBlocking` or `consume`
                 _copy_token_bucket->consumeWithBorrowAndWait(req->size);
 
                 copy_request copy_req;

@@ -63,12 +63,13 @@ error_code native_linux_aio_provider::flush(dsn_handle_t fh)
     }
 }
 
-error_code native_linux_aio_provider::write(aio_context *aio_ctx, uint32_t *processed_bytes)
+error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
+                                            /*out*/ uint32_t *processed_bytes)
 {
-    ssize_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx->file),
-                         aio_ctx->buffer,
-                         aio_ctx->buffer_size,
-                         aio_ctx->file_offset);
+    ssize_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx.file),
+                         aio_ctx.buffer,
+                         aio_ctx.buffer_size,
+                         aio_ctx.file_offset);
     if (ret < 0) {
         return ERR_FILE_OPERATION_FAILED;
     }
@@ -76,12 +77,13 @@ error_code native_linux_aio_provider::write(aio_context *aio_ctx, uint32_t *proc
     return ERR_OK;
 }
 
-error_code native_linux_aio_provider::read(aio_context *aio_ctx, uint32_t *processed_bytes)
+error_code native_linux_aio_provider::read(const aio_context &aio_ctx,
+                                           /*out*/ uint32_t *processed_bytes)
 {
-    ssize_t ret = pread(static_cast<int>((ssize_t)aio_ctx->file),
-                        aio_ctx->buffer,
-                        aio_ctx->buffer_size,
-                        aio_ctx->file_offset);
+    ssize_t ret = pread(static_cast<int>((ssize_t)aio_ctx.file),
+                        aio_ctx.buffer,
+                        aio_ctx.buffer_size,
+                        aio_ctx.file_offset);
     if (ret < 0) {
         return ERR_FILE_OPERATION_FAILED;
     }
@@ -109,10 +111,10 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
     uint32_t processed_bytes = 0;
     switch (aio_ctx->type) {
     case AIO_Read:
-        err = read(aio_ctx, &processed_bytes);
+        err = read(*aio_ctx, &processed_bytes);
         break;
     case AIO_Write:
-        err = write(aio_ctx, &processed_bytes);
+        err = write(*aio_ctx, &processed_bytes);
         break;
     default:
         return err;
