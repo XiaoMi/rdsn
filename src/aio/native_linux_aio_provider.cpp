@@ -107,11 +107,14 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
     aio_context *aio_ctx = aio_tsk->get_aio_context();
     error_code err = ERR_UNKNOWN;
     uint32_t processed_bytes = 0;
-    if (aio_ctx->type == AIO_Read) {
+    switch (aio_ctx->type) {
+    case AIO_Read:
         err = read(aio_ctx, &processed_bytes);
-    } else if (aio_ctx->type == AIO_Write) {
+        break;
+    case AIO_Write:
         err = write(aio_ctx, &processed_bytes);
-    } else {
+        break;
+    default:
         return err;
     }
 
@@ -122,8 +125,8 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
     if (async) {
         complete_io(aio_tsk, err, processed_bytes);
     } else {
-        std::unique_ptr<utils::notify_event> notify = std::make_unique<utils::notify_event>();
-        notify->notify();
+        utils::notify_event notify;
+        notify.notify();
     }
 
     return err;
