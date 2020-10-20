@@ -144,7 +144,7 @@ void meta_split_service::register_child_on_meta(register_child_rpc rpc)
     const gpid &child_gpid = request.child_config.pid;
     const auto &parent_config = app->partitions[parent_gpid.get_partition_index()];
     if (request.parent_config.ballot != parent_config.ballot) {
-        derror_f("app({}) partition({}) register child({}) failed, request is out-dated, request "
+        derror_f("app({}) partition({}) register child({}) failed, request is outdated, request "
                  "parent ballot = {}, local parent ballot = {}",
                  app_name,
                  parent_gpid,
