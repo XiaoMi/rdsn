@@ -77,8 +77,8 @@ void replica::update_throttle_env_internal(const std::map<std::string, std::stri
                           key,
                           find->second,
                           parse_error);
-            // reset if parse failed
-            cntl.reset(throttling_changed, old_throttling);
+            // recover if parse failed
+            cntl.recover();
         }
     } else {
         // reset if env not found
