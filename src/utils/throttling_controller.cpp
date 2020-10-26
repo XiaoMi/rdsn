@@ -168,11 +168,11 @@ void throttling_controller::recover()
 throttling_controller::throttling_type throttling_controller::control(
     const int64_t client_timeout_ms, int32_t request_units, int64_t &delay_ms)
 {
-    if (_reject_units > 0 && _request_reject_token_bucket->consume(request_units)) {
+    if (_reject_units > 0 && !_request_reject_token_bucket->consume(request_units)) {
         return REJECT;
     }
 
-    if (_delay_units > 0 && _request_delay_token_bucket->consume(request_units)) {
+    if (_delay_units > 0 && !_request_delay_token_bucket->consume(request_units)) {
         return DELAY;
     }
 
