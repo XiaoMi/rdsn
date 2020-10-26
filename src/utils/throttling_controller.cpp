@@ -39,10 +39,10 @@ throttling_controller::throttling_controller()
       _delay_units(0),
       _delay_ms(0),
       _reject_units(0),
-      _reject_delay_ms(0),
-      _last_request_time(0),
-      _cur_units(0)
+      _reject_delay_ms(0)
 {
+    _request_delay_token_bucket.reset(new TokenBucket(kMaxInt64, kMaxInt64));
+    _request_reject_token_bucket.reset(new TokenBucket(kMaxInt64, kMaxInt64));
 }
 
 bool throttling_controller::parse_from_env(const std::string &env_value,
@@ -105,6 +105,8 @@ bool throttling_controller::parse_from_env(const std::string &env_value,
             delay_parsed = true;
             delay_units = units / partition_count + 1;
             delay_ms = ms;
+
+            _request_delay_token_bucket->reset(delay_units, delay_units);
         } else if (sargs1[1] == "reject") {
             if (reject_parsed) {
                 parse_error = "duplicate reject config";
@@ -113,6 +115,8 @@ bool throttling_controller::parse_from_env(const std::string &env_value,
             reject_parsed = true;
             reject_units = units / partition_count + 1;
             reject_delay_ms = ms;
+
+            _request_reject_token_bucket->reset(reject_units, reject_units);
         } else {
             parse_error = "invalid throttling type";
             return false;
@@ -142,39 +146,33 @@ void throttling_controller::reset(bool &changed, std::string &old_env_value)
         _delay_ms = 0;
         _reject_units = 0;
         _reject_delay_ms = 0;
-        _last_request_time = 0;
-        _cur_units = 0;
     } else {
         changed = false;
+    }
+}
+
+void throttling_controller::recover()
+{
+    if (_reject_units > 0) {
+        _request_reject_token_bucket->reset(_reject_units, _reject_units);
+    }
+
+    if (_delay_units > 0) {
+        _request_delay_token_bucket->reset(_delay_units, _delay_units);
     }
 }
 
 throttling_controller::throttling_type throttling_controller::control(
     const int64_t client_timeout_ms, int32_t request_units, int64_t &delay_ms)
 {
-    int64_t now_s = dsn_now_s();
-    if (now_s != _last_request_time) {
-        _cur_units = 0;
-        _last_request_time = now_s;
-    }
-    _cur_units += request_units;
-    if (_reject_units > 0 && _cur_units > _reject_units) {
-        _cur_units -= request_units;
-        if (client_timeout_ms > 0) {
-            delay_ms = std::min(_reject_delay_ms, client_timeout_ms / 2);
-        } else {
-            delay_ms = _reject_delay_ms;
-        }
+    if (_reject_units > 0 && !_request_reject_token_bucket->consume(request_units)) {
         return REJECT;
     }
-    if (_delay_units > 0 && _cur_units > _delay_units) {
-        if (client_timeout_ms > 0) {
-            delay_ms = std::min(_delay_ms, client_timeout_ms / 2);
-        } else {
-            delay_ms = _delay_ms;
-        }
+
+    if (_delay_units > 0 && !_request_delay_token_bucket->consume(request_units)) {
         return DELAY;
     }
+
     return PASS;
 }
 

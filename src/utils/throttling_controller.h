@@ -28,10 +28,15 @@
 
 #include <stdint.h>
 #include <string>
+#include <dsn/utility/TokenBucket.h>
 
 namespace dsn {
 
 namespace replication {
+
+const int64_t kMaxInt64 = std::numeric_limits<int64_t>::max();
+
+using TokenBucket = folly::BasicTokenBucket<std::chrono::steady_clock>;
 
 // Used for replica throttling.
 // Different throttling strategies may use different 'request_units', which is
@@ -72,6 +77,9 @@ public:
     // reset to no throttling.
     void reset(/*out*/ bool &changed, /*out*/ std::string &old_env_value);
 
+    // recover to latest valid config
+    void recover();
+
     // if throttling is enabled.
     bool enabled() const { return _enabled; }
 
@@ -89,12 +97,13 @@ private:
     bool _enabled;
     std::string _env_value;
     int32_t _partition_count;
-    int64_t _delay_units;     // should >= 0
+    int64_t _delay_units;     // should >= 0, equal with 0 means no throttling
     int64_t _delay_ms;        // should >= 0
-    int64_t _reject_units;    // should >= 0
+    int64_t _reject_units;    // should >= 0, equal with 0 means no throttling
     int64_t _reject_delay_ms; // should >= 0
-    int64_t _last_request_time;
-    int64_t _cur_units;
+
+    std::unique_ptr<folly::TokenBucket> _request_delay_token_bucket;
+    std::unique_ptr<folly::TokenBucket> _request_reject_token_bucket;
 };
 
 } // namespace replication
