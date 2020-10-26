@@ -34,6 +34,8 @@ namespace dsn {
 
 namespace replication {
 
+const int64_t kMaxInt64 = std::numeric_limits<uint64_t>::max();
+
 using TokenBucket = folly::BasicTokenBucket<std::chrono::steady_clock>;
 
 // Used for replica throttling.
@@ -99,9 +101,6 @@ private:
     int64_t _delay_ms;        // should >= 0
     int64_t _reject_units;    // should >= 0, equal with 0 means no throttling
     int64_t _reject_delay_ms; // should >= 0
-
-    const int64_t kDelayUnits = std::numeric_limits<uint64_t>::max();
-    const int64_t kRejectUnits = std::numeric_limits<uint64_t>::max();
 
     std::unique_ptr<folly::TokenBucket> _request_delay_token_bucket;
     std::unique_ptr<folly::TokenBucket> _request_reject_token_bucket;

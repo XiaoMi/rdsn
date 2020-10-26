@@ -30,6 +30,8 @@
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/strings.h>
 
+#include <dsn/dist/fmt_logging.h>
+
 namespace dsn {
 namespace replication {
 
@@ -41,8 +43,9 @@ throttling_controller::throttling_controller()
       _reject_units(0),
       _reject_delay_ms(0)
 {
-    _request_delay_token_bucket.reset(new TokenBucket(kDelayUnits, kDelayUnits));
-    _request_reject_token_bucket.reset(new TokenBucket(kRejectUnits, kRejectUnits));
+    dessert_f("jiashuolog:max={}", kMaxInt64);
+    _request_delay_token_bucket.reset(new TokenBucket(kMaxInt64, kMaxInt64));
+    _request_reject_token_bucket.reset(new TokenBucket(kMaxInt64, kMaxInt64));
 }
 
 bool throttling_controller::parse_from_env(const std::string &env_value,
