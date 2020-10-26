@@ -34,7 +34,7 @@ namespace dsn {
 
 namespace replication {
 
-const int64_t kMaxInt64 = std::numeric_limits<uint64_t>::max();
+const int64_t kMaxInt64 = std::numeric_limits<int64_t>::max();
 
 using TokenBucket = folly::BasicTokenBucket<std::chrono::steady_clock>;
 
