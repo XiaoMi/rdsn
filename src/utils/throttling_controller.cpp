@@ -43,7 +43,7 @@ throttling_controller::throttling_controller()
       _reject_units(0),
       _reject_delay_ms(0)
 {
-    dessert_f("jiashuolog:max={}", kMaxInt64);
+    derror_f("jiashuolog:max={}", kMaxInt64);
     _request_delay_token_bucket.reset(new TokenBucket(kMaxInt64, kMaxInt64));
     _request_reject_token_bucket.reset(new TokenBucket(kMaxInt64, kMaxInt64));
 }
