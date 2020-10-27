@@ -120,12 +120,12 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
         ASSERT_EQ(disk_infos[i].holding_primary_replicas.size(), 2);
         ASSERT_EQ(disk_infos[i].holding_primary_replicas[app_id_1].size(), primary_count_for_disk);
         // test the gpid of app_id_1
-        int partition_index = 0;
+        int app_id_1_partition_index = 0;
         for (std::set<gpid>::iterator it = disk_infos[i].holding_primary_replicas[app_id_1].begin();
              it != disk_infos[i].holding_primary_replicas[app_id_1].end();
              it++) {
             ASSERT_EQ(it->get_app_id(), i);
-            ASSERT_EQ(it->get_partition_index(), partition_index++);
+            ASSERT_EQ(it->get_partition_index(), app_id_1_partition_index++);
         }
         ASSERT_EQ(disk_infos[i].holding_secondary_replicas[app_id_1].size(),
                   secondary_count_for_disk);
@@ -135,17 +135,17 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
              it != disk_infos[i].holding_secondary_replicas[app_id_1].end();
              it++) {
             ASSERT_EQ(it->get_app_id(), app_id_1);
-            ASSERT_EQ(it->get_partition_index(), partition_index++);
+            ASSERT_EQ(it->get_partition_index(), app_id_1_partition_index++);
         }
 
         // test the gpid of app_id_1
-        int partition_index = 0;
+        int app_id_2_partition_index = 0;
         ASSERT_EQ(disk_infos[i].holding_primary_replicas[app_id_2].size(), primary_count_for_disk);
         for (std::set<gpid>::iterator it = disk_infos[i].holding_primary_replicas[app_id_2].begin();
              it != disk_infos[i].holding_primary_replicas[app_id_2].end();
              it++) {
             ASSERT_EQ(it->get_app_id(), app_id_2);
-            ASSERT_EQ(it->get_partition_index(), partition_index++);
+            ASSERT_EQ(it->get_partition_index(), app_id_2_partition_index++);
         }
         ASSERT_EQ(disk_infos[i].holding_secondary_replicas[app_id_2].size(),
                   secondary_count_for_disk);
@@ -154,7 +154,7 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
              it != disk_infos[i].holding_secondary_replicas[app_id_2].end();
              it++) {
             ASSERT_EQ(it->get_app_id(), app_id_2);
-            ASSERT_EQ(it->get_partition_index(), partition_index++);
+            ASSERT_EQ(it->get_partition_index(), app_id_2_partition_index++);
         }
     }
 }
@@ -198,8 +198,8 @@ TEST_F(replica_disk_test, on_query_disk_info_one_app)
     int info_size = disk_infos_with_app_1.size();
     for (int i = 0; i < info_size; i++) {
         ASSERT_EQ(disk_infos_with_app_1[i].holding_primary_replicas.size(), 1);
-        ASSERT_EQ(disk_infos_with_app_1[i].holding_primary_replicas[app_id_1], 1);
-        ASSERT_EQ(disk_infos_with_app_1[i].holding_secondary_replicas[app_id_1], 2);
+        ASSERT_EQ(disk_infos_with_app_1[i].holding_primary_replicas[app_id_1].size(), 1);
+        ASSERT_EQ(disk_infos_with_app_1[i].holding_secondary_replicas[app_id_1].size(), 2);
         ASSERT_TRUE(disk_infos_with_app_1[i].holding_primary_replicas.find(app_id_2) ==
                     disk_infos_with_app_1[i].holding_primary_replicas.end());
         ASSERT_TRUE(disk_infos_with_app_1[i].holding_secondary_replicas.find(app_id_2) ==
