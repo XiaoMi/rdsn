@@ -686,7 +686,7 @@ void replica_split_manager::update_child_group_partition_count(
     for (const auto &kv : _replica->_primary_states.statuses) {
         not_replied_addresses->insert(kv.first);
     }
-    for (auto &iter : _replica->_primary_states.statuses) {
+    for (const auto &iter : _replica->_primary_states.statuses) {
         parent_send_update_partition_count_request(
             iter.first, new_partition_count, not_replied_addresses);
     }
