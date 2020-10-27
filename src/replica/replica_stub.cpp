@@ -983,15 +983,8 @@ void replica_stub::on_query_disk_info(query_disk_info_rpc rpc)
         disk_info info;
         // app_name empty means query all app replica_count
         if (req.app_name.empty()) {
-            for (const auto &holding_primary_replicas : dir_node->holding_primary_replicas) {
-                info.holding_primary_replicas[holding_primary_replicas.first] =
-                    holding_primary_replicas.second;
-            }
-
-            for (const auto &holding_secondary_replicas : dir_node->holding_secondary_replicas) {
-                info.holding_secondary_replicas[holding_secondary_replicas.first] =
-                    holding_secondary_replicas.second;
-            }
+            info.holding_primary_replicas = dir_node->holding_primary_replicas;
+            info.holding_secondary_replicas = dir_node->holding_primary_replicas;
         } else {
             const auto &primary_iter = dir_node->holding_primary_replicas.find(app_id);
             if (primary_iter != dir_node->holding_primary_replicas.end()) {
