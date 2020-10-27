@@ -143,7 +143,7 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
                  disk_infos[i].holding_secondary_replicas[app_info_1.app_id].begin();
              it != disk_infos[i].holding_secondary_replicas[app_info_1.app_id].end();
              it++) {
-            ASSERT_EQ(it->get_app_id(), app_info_2.app_id);
+            ASSERT_EQ(it->get_app_id(), app_info_1.app_id);
             ASSERT_EQ(it->get_partition_index(), app_id_1_partition_index++);
         }
 
