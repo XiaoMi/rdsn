@@ -2707,7 +2707,9 @@ void replica_stub::update_disk_holding_replicas()
         // holding_replicas
         dir_node->holding_primary_replicas.clear();
         dir_node->holding_secondary_replicas.clear();
+        derror_f("jiashuolog1.{}",dir_node->holding_replicas.size());
         for (const auto &holding_replicas : dir_node->holding_replicas) {
+            derror_f("jiashuolog2.{}",holding_replicas.first);
             const std::set<dsn::gpid> &pids = holding_replicas.second;
             for (const auto &pid : pids) {
                 replica_ptr replica = get_replica(pid);
@@ -2715,8 +2717,10 @@ void replica_stub::update_disk_holding_replicas()
                     continue;
                 }
                 if (replica->status() == partition_status::PS_PRIMARY) {
+                    derror_f("jiashuologPrimary.{}",pid.get_partition_index());
                     dir_node->holding_primary_replicas[holding_replicas.first].emplace(pid);
                 } else if (replica->status() == partition_status::PS_SECONDARY) {
+                    derror_f("jiashuologSecondary.{}",pid.get_partition_index());
                     dir_node->holding_secondary_replicas[holding_replicas.first].emplace(pid);
                 }
             }

@@ -116,7 +116,7 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
         ASSERT_EQ(disk_infos[i].full_dir, "full_dir_" + std::to_string(info_size - i));
         ASSERT_EQ(disk_infos[i].disk_capacity_mb, 500);
         ASSERT_EQ(disk_infos[i].disk_available_mb, (info_size - i) * 50);
-        // `holding_primary_replicas` is std::map<int32_t, std::set<::dsn::gpid>>
+        // `holding_primary_replicas` is std::map<app_id, std::set<::dsn::gpid>>
         ASSERT_EQ(disk_infos[i].holding_primary_replicas.size(), 2);
         ASSERT_EQ(disk_infos[i].holding_primary_replicas[app_id_1].size(), primary_count_for_disk);
         // test the gpid of app_id_1
