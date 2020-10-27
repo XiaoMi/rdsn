@@ -983,11 +983,9 @@ void replica_stub::on_query_disk_info(query_disk_info_rpc rpc)
         disk_info info;
         // app_name empty means query all app replica_count
         if (req.app_name.empty()) {
-            derror_f("jiashuolog:app name empty.{}", dir_node->holding_primary_replicas.size());
             info.holding_primary_replicas = dir_node->holding_primary_replicas;
             info.holding_secondary_replicas = dir_node->holding_secondary_replicas;
         } else {
-            derror_f("jiashuolog:app id.{}", app_id);
             const auto &primary_iter = dir_node->holding_primary_replicas.find(app_id);
             if (primary_iter != dir_node->holding_primary_replicas.end()) {
                 info.holding_primary_replicas[app_id] = primary_iter->second;
@@ -2709,21 +2707,16 @@ void replica_stub::update_disk_holding_replicas()
         // holding_replicas
         dir_node->holding_primary_replicas.clear();
         dir_node->holding_secondary_replicas.clear();
-        derror_f("jiashuolog.tag.{}.app_size.{}", dir_node->tag, dir_node->holding_replicas.size());
         for (const auto &holding_replicas : dir_node->holding_replicas) {
-            derror_f("jiashuolog.app.{}", holding_replicas.first);
             const std::set<dsn::gpid> &pids = holding_replicas.second;
             for (const auto &pid : pids) {
-                derror_f("jiashuolog.pid.{}", pid.to_string());
                 replica_ptr replica = get_replica(pid);
                 if (replica == nullptr) {
                     continue;
                 }
                 if (replica->status() == partition_status::PS_PRIMARY) {
-                    derror_f("jiashuolog.primary.{}", pid.to_string());
                     dir_node->holding_primary_replicas[holding_replicas.first].emplace(pid);
                 } else if (replica->status() == partition_status::PS_SECONDARY) {
-                    derror_f("jiashuologSecondary.{}", pid.to_string());
                     dir_node->holding_secondary_replicas[holding_replicas.first].emplace(pid);
                 }
             }
