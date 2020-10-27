@@ -983,9 +983,11 @@ void replica_stub::on_query_disk_info(query_disk_info_rpc rpc)
         disk_info info;
         // app_name empty means query all app replica_count
         if (req.app_name.empty()) {
+            derror_f("jiashuolog:app name empty");
             info.holding_primary_replicas = dir_node->holding_primary_replicas;
             info.holding_secondary_replicas = dir_node->holding_secondary_replicas;
         } else {
+            derror_f("jiashuolog:app id.{} empty", app_id);
             const auto &primary_iter = dir_node->holding_primary_replicas.find(app_id);
             if (primary_iter != dir_node->holding_primary_replicas.end()) {
                 info.holding_primary_replicas[app_id] = primary_iter->second;
