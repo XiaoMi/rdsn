@@ -2717,10 +2717,10 @@ void replica_stub::update_disk_holding_replicas()
                     continue;
                 }
                 if (replica->status() == partition_status::PS_PRIMARY) {
-                    derror_f("jiashuologPrimary.{}",pid.get_partition_index());
+                    derror_f("jiashuologPrimary.{}",pid.to_string());
                     dir_node->holding_primary_replicas[holding_replicas.first].emplace(pid);
                 } else if (replica->status() == partition_status::PS_SECONDARY) {
-                    derror_f("jiashuologSecondary.{}",pid.get_partition_index());
+                    derror_f("jiashuologSecondary.{}",pid.to_string());
                     dir_node->holding_secondary_replicas[holding_replicas.first].emplace(pid);
                 }
             }
