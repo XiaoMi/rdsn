@@ -77,14 +77,14 @@ private:
                 app_id_1_primary_count_for_disk + app_id_1_secondary_count_for_disk;
             while (app_id_1_disk_holding_replica_count-- > 0) {
                 node_disk->holding_replicas[app_info_1.app_id].emplace(
-                    gpid(app_info_1.app_id, app_id_1_disk_holding_replica_count - 1));
+                    gpid(app_info_1.app_id, app_id_1_disk_holding_replica_count));
             }
 
             int app_id_2_disk_holding_replica_count =
                 app_id_2_primary_count_for_disk + app_id_2_secondary_count_for_disk;
             while (app_id_2_disk_holding_replica_count-- > 0) {
                 node_disk->holding_replicas[app_info_2.app_id].emplace(
-                    gpid(app_info_2.app_id, app_id_2_disk_holding_replica_count - 1));
+                    gpid(app_info_2.app_id, app_id_2_disk_holding_replica_count));
             }
 
             stub->_fs_manager._dir_nodes.emplace_back(node_disk);
@@ -121,6 +121,7 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
         ASSERT_EQ(disk_infos[i].full_dir, "full_dir_" + std::to_string(info_size - i));
         ASSERT_EQ(disk_infos[i].disk_capacity_mb, 500);
         ASSERT_EQ(disk_infos[i].disk_available_mb, (info_size - i) * 50);
+
         // `holding_primary_replicas` is std::map<app_id, std::set<::dsn::gpid>>
         ASSERT_EQ(disk_infos[i].holding_primary_replicas.size(), 2);
         ASSERT_EQ(disk_infos[i].holding_primary_replicas[app_info_1.app_id].size(),
@@ -131,20 +132,20 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
                  disk_infos[i].holding_primary_replicas[app_info_1.app_id].begin();
              it != disk_infos[i].holding_primary_replicas[app_info_1.app_id].end();
              it++) {
-            ASSERT_EQ(it->get_app_id(), i);
-            ASSERT_EQ(it->get_partition_index(), app_id_1_partition_index++);
-        }
-        ASSERT_EQ(disk_infos[i].holding_secondary_replicas[app_info_1.app_id].size(),
-                  app_id_1_secondary_count_for_disk);
-
-        for (std::set<gpid>::iterator it =
-                 disk_infos[i].holding_secondary_replicas[app_info_1.app_id].begin();
-             it != disk_infos[i].holding_secondary_replicas[app_info_1.app_id].end();
-             it++) {
             ASSERT_EQ(it->get_app_id(), app_info_1.app_id);
             ASSERT_EQ(it->get_partition_index(), app_id_1_partition_index++);
         }
 
+        // `holding_secondary_replicas` is std::map<app_id, std::set<::dsn::gpid>>
+        ASSERT_EQ(disk_infos[i].holding_secondary_replicas[app_info_1.app_id].size(),
+                  app_id_1_secondary_count_for_disk);
+        for (std::set<gpid>::iterator it =
+                 disk_infos[i].holding_secondary_replicas[app_info_1.app_id].begin();
+             it != disk_infos[i].holding_secondary_replicas[app_info_1.app_id].end();
+             it++) {
+            ASSERT_EQ(it->get_app_id(), app_info_2.app_id);
+            ASSERT_EQ(it->get_partition_index(), app_id_1_partition_index++);
+        }
         // test the gpid of app_id_2
         int app_id_2_partition_index = 0;
         ASSERT_EQ(disk_infos[i].holding_primary_replicas[app_info_2.app_id].size(),
