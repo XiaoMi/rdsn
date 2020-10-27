@@ -2707,7 +2707,7 @@ void replica_stub::update_disk_holding_replicas()
         // holding_replicas
         dir_node->holding_primary_replicas.clear();
         dir_node->holding_secondary_replicas.clear();
-        derror_f("jiashuolog.tag.{}.app_size.{}",dir_node->holding_replicas.size());
+        derror_f("jiashuolog.tag.{}.app_size.{}",dir_node->tag, dir_node->holding_replicas.size());
         for (const auto &holding_replicas : dir_node->holding_replicas) {
             derror_f("jiashuolog.app.{}",holding_replicas.first);
             const std::set<dsn::gpid> &pids = holding_replicas.second;
