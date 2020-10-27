@@ -984,7 +984,7 @@ void replica_stub::on_query_disk_info(query_disk_info_rpc rpc)
         // app_name empty means query all app replica_count
         if (req.app_name.empty()) {
             info.holding_primary_replicas = dir_node->holding_primary_replicas;
-            info.holding_secondary_replicas = dir_node->holding_primary_replicas;
+            info.holding_secondary_replicas = dir_node->holding_secondary_replicas;
         } else {
             const auto &primary_iter = dir_node->holding_primary_replicas.find(app_id);
             if (primary_iter != dir_node->holding_primary_replicas.end()) {
