@@ -67,9 +67,10 @@ void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
             static_cast<server_negotiation *>(_negotiations[rpc.dsn_request()->io_session].get());
     }
 
-    dassert(srv_negotiation != nullptr,
-            "negotiation is null for msg: {}",
-            rpc.dsn_request()->rpc_code().to_string());
+    if (nullptr == srv_negotiation) {
+        ddebug("negotiation is null for msg: {}", rpc.dsn_request()->rpc_code().to_string());
+        return;
+    }
     srv_negotiation->handle_request(rpc);
 }
 
