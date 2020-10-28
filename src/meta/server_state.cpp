@@ -767,6 +767,7 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
 
     bool reject_this_request = false;
     response.__isset.gc_replicas = false;
+    std::map<gpid, split_status::type> splitting_replicas;
     ddebug("got config sync request from %s, stored_replicas_count(%d)",
            request.node.to_string(),
            (int)request.stored_replicas.size());
@@ -800,6 +801,14 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
                 response.partitions[i].info = *app;
                 response.partitions[i].config = app->partitions[pid.get_partition_index()];
                 response.partitions[i].host_node = request.node;
+                // set splitting_replicas
+                const split_state &app_split_states = app->helpers->split_states;
+                if (app_split_states.splitting_count > 0) {
+                    auto iter = app_split_states.status.find(pid.get_partition_index());
+                    if (iter != app_split_states.status.end()) {
+                        splitting_replicas[pid] = iter->second;
+                    }
+                }
                 ++i;
                 return true;
             });
@@ -891,12 +900,18 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
     if (reject_this_request) {
         response.err = ERR_BUSY;
         response.partitions.clear();
+        splitting_replicas.clear();
     }
-    ddebug("send config sync response to %s, err(%s), partitions_count(%d), gc_replicas_count(%d)",
-           request.node.to_string(),
-           response.err.to_string(),
-           (int)response.partitions.size(),
-           (int)response.gc_replicas.size());
+    if (!splitting_replicas.empty()) {
+        response.__set_splitting_replicas(splitting_replicas);
+    }
+    ddebug_f("send config sync response to {}, err({}), partitions_count({}), "
+             "gc_replicas_count({}), splitting_replicas({})",
+             request.node.to_string(),
+             response.err,
+             response.partitions.size(),
+             response.gc_replicas.size(),
+             splitting_replicas.size());
 }
 
 bool server_state::query_configuration_by_gpid(dsn::gpid id,

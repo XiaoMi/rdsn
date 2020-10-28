@@ -125,6 +125,10 @@ private:
     // child handle error while async learn parent states
     void child_handle_async_learn_error();
 
+    // called by `on_config_sync` in `replica_config.cpp`
+    // primary parent start or stop split according to meta_split_status
+    void control_split(const int32_t meta_partition_count, split_status::type meta_split_status);
+
     //
     // helper functions
     //

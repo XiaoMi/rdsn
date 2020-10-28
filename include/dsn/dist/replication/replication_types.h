@@ -1905,12 +1905,13 @@ inline std::ostream &operator<<(std::ostream &out, const configuration_query_by_
 typedef struct _configuration_query_by_node_response__isset
 {
     _configuration_query_by_node_response__isset()
-        : err(false), partitions(false), gc_replicas(false)
+        : err(false), partitions(false), gc_replicas(false), splitting_replicas(false)
     {
     }
     bool err : 1;
     bool partitions : 1;
     bool gc_replicas : 1;
+    bool splitting_replicas : 1;
 } _configuration_query_by_node_response__isset;
 
 class configuration_query_by_node_response
@@ -1926,6 +1927,7 @@ public:
     ::dsn::error_code err;
     std::vector<configuration_update_request> partitions;
     std::vector<replica_info> gc_replicas;
+    std::map<::dsn::gpid, split_status::type> splitting_replicas;
 
     _configuration_query_by_node_response__isset __isset;
 
@@ -1934,6 +1936,8 @@ public:
     void __set_partitions(const std::vector<configuration_update_request> &val);
 
     void __set_gc_replicas(const std::vector<replica_info> &val);
+
+    void __set_splitting_replicas(const std::map<::dsn::gpid, split_status::type> &val);
 
     bool operator==(const configuration_query_by_node_response &rhs) const
     {
@@ -1944,6 +1948,10 @@ public:
         if (__isset.gc_replicas != rhs.__isset.gc_replicas)
             return false;
         else if (__isset.gc_replicas && !(gc_replicas == rhs.gc_replicas))
+            return false;
+        if (__isset.splitting_replicas != rhs.__isset.splitting_replicas)
+            return false;
+        else if (__isset.splitting_replicas && !(splitting_replicas == rhs.splitting_replicas))
             return false;
         return true;
     }

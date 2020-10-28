@@ -268,6 +268,11 @@ struct configuration_query_by_node_response
     1:dsn.error_code err;
     2:list<configuration_update_request> partitions;
     3:optional list<replica_info> gc_replicas;
+
+    // Used for partition split
+    // if replica is splitting (whose split_status is not NOT_SPLIT)
+    // its gpid and split_status will be inserted into this map
+    4:optional map<dsn.gpid, split_status> splitting_replicas;
 }
 
 struct create_app_options
