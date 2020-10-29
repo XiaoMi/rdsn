@@ -1036,7 +1036,7 @@ void replica::on_config_sync(const app_info &info,
         if (nullptr != _primary_states.reconfiguration_task) {
             // already under reconfiguration, skip configuration sync
         } else if (info.partition_count != _app_info.partition_count) {
-            _split_mgr->control_split(info.partition_count, meta_split_status);
+            _split_mgr->primary_parent_handle_split(info.partition_count, meta_split_status);
         }
     } else {
         if (_is_initializing) {

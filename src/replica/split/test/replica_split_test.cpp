@@ -340,13 +340,13 @@ public:
         _parent_replica->tracker()->wait_outstanding_tasks();
     }
 
-    void test_control_split(split_status::type meta_split_status,
-                            split_status::type local_split_status,
-                            int32_t old_partition_version)
+    void test_primary_parent_handle_split(split_status::type meta_split_status,
+                                          split_status::type local_split_status,
+                                          int32_t old_partition_version)
     {
         parent_set_split_status(local_split_status);
         _parent_split_mgr->_partition_version.store(old_partition_version);
-        _parent_split_mgr->control_split(NEW_PARTITION_COUNT, meta_split_status);
+        _parent_split_mgr->primary_parent_handle_split(NEW_PARTITION_COUNT, meta_split_status);
         _parent_replica->tracker()->wait_outstanding_tasks();
     }
 
@@ -723,8 +723,8 @@ TEST_F(replica_split_test, register_child_reply_test)
     }
 }
 
-// control_split unit test
-TEST_F(replica_split_test, primary_control_split_test)
+// primary_parent_handle_split unit test
+TEST_F(replica_split_test, primary_parent_handle_split_test)
 {
     fail::cfg("replica_broadcast_group_check", "return()");
     generate_child();
@@ -734,7 +734,7 @@ TEST_F(replica_split_test, primary_control_split_test)
     // - meta splitting with local not_split(See parent_start_split_tests)
     // - meta splitting with local splitting(See parent_start_split_tests)
     // - TODO(heyuchen): add other split status
-    struct control_split_test
+    struct primary_parent_test
     {
         bool lack_of_secondary;
         split_status::type meta_split_status;
@@ -749,7 +749,7 @@ TEST_F(replica_split_test, primary_control_split_test)
 
     for (auto test : tests) {
         mock_parent_primary_configuration(test.lack_of_secondary);
-        test_control_split(
+        test_primary_parent_handle_split(
             test.meta_split_status, test.old_split_status, test.old_partition_version);
         ASSERT_EQ(parent_get_split_status(), test.expected_split_status);
         // TODO(heyuchen): add other check

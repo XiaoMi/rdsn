@@ -1101,7 +1101,7 @@ void replica_split_manager::child_handle_async_learn_error() // on child partiti
     _replica->_split_states.async_learn_task = nullptr;
 }
 
-void replica_split_manager::control_split(
+void replica_split_manager::primary_parent_handle_split(
     const int32_t meta_partition_count,
     split_status::type meta_split_status) // on primary parent partition
 {

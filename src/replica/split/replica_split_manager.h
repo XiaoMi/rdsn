@@ -127,7 +127,8 @@ private:
 
     // called by `on_config_sync` in `replica_config.cpp`
     // primary parent start or stop split according to meta_split_status
-    void control_split(const int32_t meta_partition_count, split_status::type meta_split_status);
+    void primary_parent_handle_split(const int32_t meta_partition_count,
+                                     split_status::type meta_split_status);
 
     //
     // helper functions
