@@ -244,7 +244,7 @@ TEST_F(meta_split_service_test, on_config_sync_test)
         int32_t expected_count;
     } tests[] = {{false, false, 1}, {true, false, 0}};
 
-    for (auto test : tests) {
+    for (const auto &test : tests) {
         mock_app_partition_split_context();
         if (test.mock_child_registered) {
             mock_child_registered();

@@ -747,7 +747,7 @@ TEST_F(replica_split_test, primary_parent_handle_split_test)
                split_status::NOT_SPLIT,
                split_status::NOT_SPLIT}};
 
-    for (auto test : tests) {
+    for (const auto &test : tests) {
         mock_parent_primary_configuration(test.lack_of_secondary);
         test_primary_parent_handle_split(
             test.meta_split_status, test.old_split_status, test.old_partition_version);
