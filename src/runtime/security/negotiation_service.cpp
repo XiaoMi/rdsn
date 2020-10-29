@@ -22,6 +22,7 @@
 #include <dsn/utility/flags.h>
 #include <dsn/tool-api/zlocks.h>
 #include <dsn/dist/failure_detector/fd.code.definition.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace security {
@@ -68,7 +69,7 @@ void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
     }
 
     if (nullptr == srv_negotiation) {
-        ddebug("negotiation is null for msg: {}", rpc.dsn_request()->rpc_code().to_string());
+        derror_f("negotiation is null for msg: {}", rpc.dsn_request()->rpc_code().to_string());
         return;
     }
     srv_negotiation->handle_request(rpc);
