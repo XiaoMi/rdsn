@@ -18,6 +18,7 @@
 #include "negotiation_service.h"
 #include "negotiation_utils.h"
 #include "server_negotiation.h"
+#include "client_negotiation.h"
 
 #include <dsn/utility/flags.h>
 #include <dsn/tool-api/zlocks.h>
@@ -73,6 +74,24 @@ void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
         return;
     }
     srv_negotiation->handle_request(rpc);
+}
+
+void negotiation_service::on_negotiation_response(error_code err, negotiation_rpc rpc) {
+    dassert(rpc.dsn_request()->io_session->is_client(),
+            "only client session receive negotiation response");
+
+    client_negotiation *cli_negotiation = nullptr;
+    {
+        utils::auto_read_lock l(_lock);
+        cli_negotiation =
+                static_cast<client_negotiation *>(_negotiations[rpc.dsn_request()->io_session].get());
+    }
+
+    if (nullptr == cli_negotiation) {
+        derror_f("negotiation is null for msg: {}", rpc.dsn_request()->rpc_code().to_string());
+        return;
+    }
+    cli_negotiation->handle_response(err, std::move(rpc.response()));
 }
 
 void negotiation_service::on_rpc_connected(rpc_session *session)

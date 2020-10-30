@@ -33,6 +33,7 @@ public:
     static void on_rpc_disconnected(rpc_session *session);
     static bool on_rpc_recv_msg(message_ex *msg);
     static bool on_rpc_send_msg(message_ex *msg);
+    static void on_negotiation_response(error_code err, negotiation_rpc rpc);
 
     void open_service();
 
