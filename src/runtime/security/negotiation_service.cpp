@@ -54,7 +54,7 @@ void negotiation_service::open_service()
 void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
 {
     dassert(!rpc.dsn_request()->io_session->is_client(),
-            "only server session receive negotiation request");
+            "only server session receives negotiation request");
 
     // reply SASL_AUTH_DISABLE if auth is not enable
     if (!security::FLAGS_enable_auth) {
@@ -78,7 +78,7 @@ void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
 
 void negotiation_service::on_negotiation_response(error_code err, negotiation_rpc rpc) {
     dassert(rpc.dsn_request()->io_session->is_client(),
-            "only client session receive negotiation response");
+            "only client session receives negotiation response");
 
     client_negotiation *cli_negotiation = nullptr;
     {
