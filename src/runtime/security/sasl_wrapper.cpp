@@ -39,6 +39,18 @@ sasl_wrapper::~sasl_wrapper()
     }
 }
 
+error_s sasl_wrapper::retrive_user_name(std::string &output)
+{
+    char *username = nullptr;
+    error_s err_s = wrap_error(sasl_getprop(_conn, SASL_USERNAME, (const void **)&username));
+    if (err_s.is_ok()) {
+        output = username;
+        output = output.substr(0, output.find_last_of('@'));
+        output = output.substr(0, output.find_first_of('/'));
+    }
+    return err_s;
+}
+
 error_s sasl_wrapper::wrap_error(int sasl_err)
 {
     error_s ret;

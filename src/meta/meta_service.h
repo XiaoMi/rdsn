@@ -40,6 +40,7 @@
 #include <dsn/cpp/serverlet.h>
 #include <dsn/dist/meta_state_service.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
+#include <runtime/security/access_controller.h>
 
 #include "common/replication_common.h"
 #include "meta_rpc_types.h"
@@ -261,6 +262,8 @@ private:
     perf_counter_wrapper _unalive_nodes_count;
 
     dsn::task_tracker _tracker;
+
+    std::unique_ptr<security::access_controller> _access_controller;
 };
 
 } // namespace replication

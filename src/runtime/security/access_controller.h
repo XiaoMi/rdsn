@@ -17,28 +17,28 @@
 
 #pragma once
 
-#include <dsn/utility/errors.h>
-
-typedef struct sasl_conn sasl_conn_t;
+#include <memory>
+#include <unordered_set>
 
 namespace dsn {
+class message_ex;
 namespace security {
-class sasl_wrapper
+
+class access_controller
 {
 public:
-    virtual ~sasl_wrapper();
+    access_controller();
+    virtual ~access_controller() = 0;
 
-    virtual error_s init() = 0;
-    virtual error_s start(const std::string &mechanism, const blob &input, blob &output) = 0;
-    virtual error_s step(const blob &input, blob &output) = 0;
-    error_s retrive_user_name(/*out*/ std::string &output);
+    virtual void reset(const std::string &acls){};
+    virtual bool allowed(message_ex *msg) = 0;
 
 protected:
-    sasl_wrapper() = default;
-    error_s wrap_error(int sasl_err);
-    sasl_conn_t *_conn = nullptr;
+    bool pre_check(const std::string &user_name);
+
+    std::unordered_set<std::string> _super_users;
 };
 
-std::unique_ptr<sasl_wrapper> create_sasl_wrapper(bool is_client);
+std::unique_ptr<access_controller> create_access_controller(bool is_meta);
 } // namespace security
 } // namespace dsn

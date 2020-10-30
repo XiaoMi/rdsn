@@ -15,30 +15,37 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#pragma once
+#include "access_controller.h"
 
-#include <dsn/utility/errors.h>
-
-typedef struct sasl_conn sasl_conn_t;
+#include <dsn/utility/flags.h>
+#include <dsn/utility/strings.h>
+#include <dsn/utility/smart_pointers.h>
+#include "meta_access_controller.h"
 
 namespace dsn {
 namespace security {
-class sasl_wrapper
+DSN_DEFINE_bool("security", enable_acl, false, "whether enable access controller or not");
+DSN_DEFINE_string("security", super_users, "", "super user for access controller");
+
+access_controller::access_controller() { utils::split_args(FLAGS_super_users, _super_users, ','); }
+
+access_controller::~access_controller() {}
+
+bool access_controller::pre_check(const std::string &user_name)
 {
-public:
-    virtual ~sasl_wrapper();
+    if (!FLAGS_enable_acl || _super_users.find(user_name) != _super_users.end()) {
+        return true;
+    }
+    return false;
+}
 
-    virtual error_s init() = 0;
-    virtual error_s start(const std::string &mechanism, const blob &input, blob &output) = 0;
-    virtual error_s step(const blob &input, blob &output) = 0;
-    error_s retrive_user_name(/*out*/ std::string &output);
+std::unique_ptr<access_controller> create_access_controller(bool is_meta)
+{
+    if (is_meta) {
+        return make_unique<meta_access_controller>();
+    }
 
-protected:
-    sasl_wrapper() = default;
-    error_s wrap_error(int sasl_err);
-    sasl_conn_t *_conn = nullptr;
-};
-
-std::unique_ptr<sasl_wrapper> create_sasl_wrapper(bool is_client);
+    return nullptr;
+}
 } // namespace security
 } // namespace dsn
