@@ -76,7 +76,8 @@ void negotiation_service::on_negotiation_request(negotiation_rpc rpc)
     srv_negotiation->handle_request(rpc);
 }
 
-void negotiation_service::on_negotiation_response(error_code err, negotiation_rpc rpc) {
+void negotiation_service::on_negotiation_response(error_code err, negotiation_rpc rpc)
+{
     dassert(rpc.dsn_request()->io_session->is_client(),
             "only client session receives negotiation response");
 
@@ -84,7 +85,7 @@ void negotiation_service::on_negotiation_response(error_code err, negotiation_rp
     {
         utils::auto_read_lock l(_lock);
         cli_negotiation =
-                static_cast<client_negotiation *>(_negotiations[rpc.dsn_request()->io_session].get());
+            static_cast<client_negotiation *>(_negotiations[rpc.dsn_request()->io_session].get());
     }
 
     if (nullptr == cli_negotiation) {
