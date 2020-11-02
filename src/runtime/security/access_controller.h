@@ -30,7 +30,16 @@ public:
     access_controller();
     virtual ~access_controller() = 0;
 
+    /**
+     * reset the access controller
+     *    acls - the new acls to reset
+     **/
     virtual void reset(const std::string &acls){};
+
+    /**
+     * check if the message received is allowd to do something.
+     *   msg - the message received
+     **/
     virtual bool allowed(message_ex *msg) = 0;
 
 protected:
