@@ -341,8 +341,8 @@ public:
         _child_replica->tracker()->wait_outstanding_tasks();
     }
 
-    group_check_response test_secondary_parent_handle_split(split_status::type meta_split_status,
-                                                            split_status::type local_split_status)
+    group_check_response test_trigger_secondary_parent_split(split_status::type meta_split_status,
+                                                             split_status::type local_split_status)
     {
         _parent_replica->set_partition_status(partition_status::PS_SECONDARY);
         parent_set_split_status(local_split_status);
@@ -357,7 +357,7 @@ public:
         }
 
         group_check_response resp;
-        _parent_split_mgr->secondary_parent_handle_split(req, resp);
+        _parent_split_mgr->trigger_secondary_parent_split(req, resp);
         _parent_replica->tracker()->wait_outstanding_tasks();
 
         return resp;
@@ -735,7 +735,7 @@ TEST_F(replica_split_test, register_child_reply_test)
     }
 }
 
-// secondary_parent_handle_split unit test
+// trigger_secondary_parent_split unit test
 TEST_F(replica_split_test, secondary_handle_split_test)
 {
     generate_child();
@@ -743,7 +743,7 @@ TEST_F(replica_split_test, secondary_handle_split_test)
     // Test cases:
     // - secondary parent update partition_count
     // TODO(heyuchen): add more cases
-    struct secondary_parent_handle_split_test
+    struct trigger_secondary_parent_split_test
     {
         split_status::type meta_split_status;
         split_status::type local_split_status;
@@ -756,7 +756,7 @@ TEST_F(replica_split_test, secondary_handle_split_test)
             mock_parent_split_context(partition_status::PS_SECONDARY);
         }
         auto resp =
-            test_secondary_parent_handle_split(test.meta_split_status, test.local_split_status);
+            test_trigger_secondary_parent_split(test.meta_split_status, test.local_split_status);
         ASSERT_EQ(resp.err, ERR_OK);
         ASSERT_TRUE(is_parent_not_in_split());
         ASSERT_EQ(_parent_split_mgr->get_partition_version(), test.expected_partition_version);

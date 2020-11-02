@@ -127,8 +127,8 @@ private:
 
     // called by `on_group_check` in `replica_check.cpp`
     // secondary parent check whether should start or stop split
-    void secondary_parent_handle_split(const group_check_request &request,
-                                       /*out*/ group_check_response &response);
+    void trigger_secondary_parent_split(const group_check_request &request,
+                                        /*out*/ group_check_response &response);
 
     //
     // helper functions

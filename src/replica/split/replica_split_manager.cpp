@@ -1104,7 +1104,7 @@ void replica_split_manager::child_handle_async_learn_error() // on child partiti
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica_split_manager::secondary_parent_handle_split(
+void replica_split_manager::trigger_secondary_parent_split(
     const group_check_request &request,
     /*out*/ group_check_response &response) // on secondary parent partition
 {
