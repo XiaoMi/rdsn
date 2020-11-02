@@ -17,7 +17,7 @@
 
 #include "client_negotiation.h"
 #include "negotiation_utils.h"
-#include "negotiation_service.h"
+#include "negotiation_manager.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <dsn/dist/fmt_logging.h>
@@ -181,7 +181,7 @@ void client_negotiation::send(negotiation_status::type status, const blob &msg)
 
     negotiation_rpc rpc(std::move(req), RPC_NEGOTIATION);
     rpc.call(_session->remote_address(), nullptr, [rpc](error_code err) mutable {
-        negotiation_service::on_negotiation_response(err, rpc);
+        negotiation_manager::on_negotiation_response(err, rpc);
     });
 }
 
