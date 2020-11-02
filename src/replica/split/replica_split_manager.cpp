@@ -1050,7 +1050,9 @@ void replica_split_manager::on_register_child_on_meta_reply(
     _replica->_primary_states.register_child_task = nullptr;
     _replica->_primary_states.sync_send_write_request = false;
 
-    // TODO(heyuchen): TBD - update parent group partition_count
+    // update primary parent group partition_count
+    update_local_partition_count(_replica->_app_info.partition_count * 2);
+    _replica->broadcast_group_check();
 
     parent_cleanup_split_context();
 }
@@ -1101,7 +1103,8 @@ void replica_split_manager::child_handle_async_learn_error() // on child partiti
     _replica->_split_states.async_learn_task = nullptr;
 }
 
-void replica_split_manager::primary_parent_handle_split(
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_split_manager::trigger_primary_parent_split(
     const int32_t meta_partition_count,
     split_status::type meta_split_status) // on primary parent partition
 {
@@ -1140,6 +1143,21 @@ void replica_split_manager::primary_parent_handle_split(
     }
 
     // TODO(heyuchen): add other split_status check
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_split_manager::trigger_secondary_parent_split(
+    const group_check_request &request,
+    /*out*/ group_check_response &response) // on secondary parent partition
+{
+    if (request.app.partition_count ==
+        _replica->_app_info.partition_count * 2) { // secondary update partition count
+        update_local_partition_count(request.app.partition_count);
+        parent_cleanup_split_context();
+        return;
+    }
+
+    // TODO(heyuchen): add other split_status check, response will be used in future
 }
 
 } // namespace replication
