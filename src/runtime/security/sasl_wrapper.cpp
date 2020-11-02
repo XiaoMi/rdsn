@@ -20,6 +20,7 @@
 #include "sasl_client_wrapper.h"
 
 #include <sasl/sasl.h>
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace security {
@@ -39,8 +40,13 @@ sasl_wrapper::~sasl_wrapper()
     }
 }
 
-error_s sasl_wrapper::retrive_user_name(std::string &output)
+error_s sasl_wrapper::retrive_username(std::string &output)
 {
+    FAIL_POINT_INJECT_F("sasl_wrapper_retrive_username", [](dsn::string_view str) {
+        error_code err = error_code::try_get(str.data(), ERR_UNKNOWN);
+        return error_s::make(err);
+    });
+
     char *username = nullptr;
     error_s err_s = wrap_error(sasl_getprop(_conn, SASL_USERNAME, (const void **)&username));
     if (err_s.is_ok()) {
