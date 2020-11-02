@@ -69,6 +69,16 @@ void negotiation_manager::on_negotiation_request(negotiation_rpc rpc)
             static_cast<server_negotiation *>(_negotiations[rpc.dsn_request()->io_session].get());
     }
 
+    /**
+     * Previously, if one rpc session is disconnected, we should remove the corresponding
+     * negotiation in _negotiations. In multi-thread environment, if thread A receive a negotiation
+     * message, and pass this message to on_negotiation_request, which will find the correspoing
+     * negotiation to deal with this negotiation message.
+     * And before this message is passed to on_negotiation_reques, thread B receive a message which
+     * is illegal to process(for example: get operation), which will produce the rpc_session
+     * disconnected. In the meanwhile, the negotiation is removed. So in on_negotiation_request of
+     * thead A, the corresponding negotiation will be nullptr. So we should add a judgement here.
+     */
     if (nullptr == srv_negotiation) {
         derror_f("negotiation is null for msg: {}", rpc.dsn_request()->rpc_code().to_string());
         return;
@@ -88,6 +98,14 @@ void negotiation_manager::on_negotiation_response(error_code err, negotiation_rp
             static_cast<client_negotiation *>(_negotiations[rpc.dsn_request()->io_session].get());
     }
 
+    /**
+     * If client_negotiation sends a message to server_negotiation, and the server_negotiation find
+     * something is wrong when it receives this message, the connection will be closed by
+     * server_negotiation. On the client side, it will remove the negotiation from _negotiations.
+     * And when the message which is send by client_negotiation is timeout, it will calls the
+     * corresponding callback, which is on_negotiation_response. In this function, it can't find
+     * the negotiation, because it is already removed. So we should add a judgement here.
+     */
     if (nullptr == cli_negotiation) {
         derror_f("negotiation is null for msg: {}", rpc.dsn_request()->rpc_code().to_string());
         return;
