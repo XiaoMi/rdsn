@@ -17,6 +17,8 @@
 
 #include <gtest/gtest.h>
 #include <dsn/utility/flags.h>
+#include <runtime/rpc/network.sim.h>
+#include <dsn/dist/replication.h>
 #include "runtime/security/access_controller.h"
 
 namespace dsn {
@@ -37,6 +39,8 @@ public:
     {
         return _meta_access_controller->pre_check(user_name);
     }
+
+    bool allowed(dsn::message_ex *msg) { return _meta_access_controller->allowed(msg); }
 
     std::unique_ptr<access_controller> _meta_access_controller;
 };
@@ -59,6 +63,34 @@ TEST_F(meta_access_controller_test, pre_check)
     for (const auto &test : tests) {
         FLAGS_enable_acl = test.enable_acl;
         ASSERT_EQ(pre_check(test.user_name), test.result);
+    }
+
+    FLAGS_enable_acl = origin_enable_acl;
+}
+
+TEST_F(meta_access_controller_test, allowed)
+{
+    struct
+    {
+        task_code rpc_code;
+        bool result;
+    } tests[] = {{RPC_CM_LIST_APPS, true},
+                 {RPC_CM_LIST_NODES, true},
+                 {RPC_CM_CLUSTER_INFO, true},
+                 {RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX, true},
+                 {RPC_CM_START_RECOVERY, false}};
+
+    bool origin_enable_acl = FLAGS_enable_acl;
+    FLAGS_enable_acl = true;
+
+    std::unique_ptr<tools::sim_network_provider> sim_net(
+        new tools::sim_network_provider(nullptr, nullptr));
+    auto sim_session = sim_net->create_client_session(rpc_address("localhost", 10086));
+    for (const auto &test : tests) {
+        dsn::message_ptr msg = message_ex::create_request(test.rpc_code);
+        msg->io_session = sim_session;
+
+        ASSERT_EQ(allowed(msg), test.result);
     }
 
     FLAGS_enable_acl = origin_enable_acl;
