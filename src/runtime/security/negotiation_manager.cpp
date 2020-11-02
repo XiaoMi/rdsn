@@ -117,7 +117,9 @@ negotiation *negotiation_manager::get_negotiation(negotiation_rpc rpc)
     utils::auto_read_lock l(_lock);
     auto it = _negotiations.find(rpc.dsn_request()->io_session);
     if (it == _negotiations.end()) {
-        derror_f("negotiation is null for msg: {}", rpc.dsn_request()->rpc_code().to_string());
+        ddebug_f("negotiation was removed for msg: {}, {}",
+                 rpc.dsn_request()->rpc_code().to_string(),
+                 rpc.remote_address().to_string());
         return nullptr;
     }
 
