@@ -15,6 +15,8 @@ defaults:
 
 jobs:
   lint:
+    name: Lint
+    runs-on: ubuntu-latest
     container:
       image: apachepegasus/clang-format-3.9
     steps:
@@ -25,7 +27,7 @@ jobs:
         run: ./scripts/linux/run-clang-format.sh
 
   test:
-    name: test
+    name: Test
     needs: lint
     runs-on: self-hosted
     if: ${{ contains(github.event.pull_request.labels.*.name, 'ready-for-testing') }}
@@ -44,7 +46,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - name: compilation
+      - name: Compilation
         run: ./run.sh build --skip_thirdparty
-      - name: unit-test
+      - name: Unit Testing
         run: ./run.sh test --skip_thirdparty
