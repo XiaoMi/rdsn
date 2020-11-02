@@ -40,7 +40,6 @@
 #include <dsn/cpp/serverlet.h>
 #include <dsn/dist/meta_state_service.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
-#include <runtime/security/access_controller.h>
 
 #include "common/replication_common.h"
 #include "meta_rpc_types.h"
@@ -50,6 +49,9 @@
 #include "block_service/block_service_manager.h"
 
 namespace dsn {
+namespace security {
+class access_controller;
+} // namespace security
 namespace replication {
 
 class server_state;
