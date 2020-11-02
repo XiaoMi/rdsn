@@ -40,6 +40,8 @@ public:
 private:
     negotiation_manager();
     void on_negotiation_request(negotiation_rpc rpc);
+    static negotiation *get_negotiation(negotiation_rpc rpc);
+
     friend class utils::singleton<negotiation_manager>;
     friend class negotiation_manager_test;
 
