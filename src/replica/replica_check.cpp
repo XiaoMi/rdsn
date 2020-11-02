@@ -176,7 +176,7 @@ void replica::on_group_check(const group_check_request &request,
         if (request.last_committed_decree > last_committed_decree()) {
             _prepare_list->commit(request.last_committed_decree, COMMIT_TO_DECREE_HARD);
         }
-        // the group check may trigger split on the secondary.
+        // the group check may trigger starting/canceling/pausing a split on the secondary.
         _split_mgr->trigger_secondary_parent_split(request, response);
         break;
     case partition_status::PS_POTENTIAL_SECONDARY:
