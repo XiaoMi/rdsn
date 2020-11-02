@@ -338,6 +338,7 @@ public:
 
         _parent_split_mgr->on_register_child_on_meta_reply(ERR_OK, req, resp);
         _parent_replica->tracker()->wait_outstanding_tasks();
+        _child_replica->tracker()->wait_outstanding_tasks();
     }
 
     group_check_response test_secondary_parent_handle_split(split_status::type meta_split_status,
