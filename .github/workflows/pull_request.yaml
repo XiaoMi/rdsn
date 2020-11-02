@@ -24,7 +24,7 @@ jobs:
         with:
           fetch-depth: 1
       - name: clang-format
-        run: ./scripts/linux/run-clang-format.sh
+        run: ./scripts/linux/run-clang-format.py --clang-format-executable=clang-format-3.9 -r src include
 
   test:
     name: Test
