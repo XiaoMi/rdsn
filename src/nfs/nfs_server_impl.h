@@ -34,7 +34,7 @@
  */
 #pragma once
 #include <dsn/tool-api/task_tracker.h>
-#include <dsn/perf_counter/perf_counter_wrapper.h>
+#include <dsn/metrics.h>
 
 #include "nfs_server.h"
 #include "nfs_client_impl.h"
@@ -114,8 +114,8 @@ private:
 
     ::dsn::task_ptr _file_close_timer;
 
-    perf_counter_wrapper _recent_copy_data_size;
-    perf_counter_wrapper _recent_copy_fail_count;
+    counter_ptr _recent_copy_data_size;
+    counter_ptr _recent_copy_fail_count;
 
     dsn::task_tracker _tracker;
 };

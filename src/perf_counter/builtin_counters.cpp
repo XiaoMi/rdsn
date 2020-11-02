@@ -4,22 +4,27 @@
 
 #include <dsn/utility/utils.h>
 #include <dsn/c/api_utilities.h>
+#include <dsn/metrics.h>
+#include <dsn/utility/process_utils.h>
+
 #include "builtin_counters.h"
 
 namespace dsn {
 
+METRIC_DEFINE_gauge(server,
+                    memused_virt_mb,
+                    metric_unit::kMegaBytes,
+                    "virtual memory usages in MB");
+
+METRIC_DEFINE_gauge(server,
+                    memused_res_mb,
+                    metric_unit::kMegaBytes,
+                    "physical memory usages in MB");
+
 builtin_counters::builtin_counters()
 {
-    _memused_virt.init_global_counter("replica",
-                                      "server",
-                                      "memused.virt(MB)",
-                                      COUNTER_TYPE_NUMBER,
-                                      "virtual memory usages in MB");
-    _memused_res.init_global_counter("replica",
-                                     "server",
-                                     "memused.res(MB)",
-                                     COUNTER_TYPE_NUMBER,
-                                     "physically memory usages in MB");
+    _memused_res = METRIC_memused_res_mb.instantiate(get_metric_entity_server());
+    _memused_virt = METRIC_memused_virt_mb.instantiate(get_metric_entity_server());
 }
 
 builtin_counters::~builtin_counters() {}
@@ -35,4 +40,4 @@ void builtin_counters::update_counters()
     _memused_res->set(memused_res);
     ddebug("memused_virt = %" PRIu64 " MB, memused_res = %" PRIu64 "MB", memused_virt, memused_res);
 }
-}
+} // namespace dsn

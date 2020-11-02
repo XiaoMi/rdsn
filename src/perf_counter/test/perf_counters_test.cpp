@@ -130,15 +130,6 @@ TEST(perf_counters_test, snapshot)
             counter_keys.emplace(cs.name, cs.type);
         };
 
-    counter_keys.clear();
-    expected = {
-        {"replica*server*memused.virt(MB)", COUNTER_TYPE_NUMBER},
-        {"replica*server*memused.res(MB)", COUNTER_TYPE_NUMBER},
-    };
-    perf_counters::instance().iterate_snapshot(iter);
-    // in the beginning, builtin counters are in counter_list
-    ASSERT_TRUE(check_map_contains(counter_keys, expected));
-
     dsn::perf_counter_wrapper c1;
     c1.init_global_counter("a", "s", "test_counter", COUNTER_TYPE_NUMBER, "");
     dsn::perf_counter_wrapper c2;
@@ -153,8 +144,6 @@ TEST(perf_counters_test, snapshot)
     perf_counters::instance().take_snapshot();
     counter_keys.clear();
     expected = {
-        {"replica*server*memused.virt(MB)", COUNTER_TYPE_NUMBER},
-        {"replica*server*memused.res(MB)", COUNTER_TYPE_NUMBER},
         {"a*s*test_counter", COUNTER_TYPE_NUMBER},
         {"b*s*test_counter", COUNTER_TYPE_VOLATILE_NUMBER},
     };
@@ -174,8 +163,6 @@ TEST(perf_counters_test, snapshot)
     // new counters won't be contained in snapshot if you don't call "take snapshot"
     counter_keys.clear();
     expected = {
-        {"replica*server*memused.virt(MB)", COUNTER_TYPE_NUMBER},
-        {"replica*server*memused.res(MB)", COUNTER_TYPE_NUMBER},
         {"a*s*test_counter", COUNTER_TYPE_NUMBER},
         {"b*s*test_counter", COUNTER_TYPE_VOLATILE_NUMBER},
     };
@@ -187,8 +174,6 @@ TEST(perf_counters_test, snapshot)
     // after taking snapshot, new counters will be contained
     counter_keys.clear();
     expected = {
-        {"replica*server*memused.virt(MB)", COUNTER_TYPE_NUMBER},
-        {"replica*server*memused.res(MB)", COUNTER_TYPE_NUMBER},
         {"a*s*test_counter", COUNTER_TYPE_NUMBER},
         {"b*s*test_counter", COUNTER_TYPE_VOLATILE_NUMBER},
         {"c*s*test_counter", COUNTER_TYPE_RATE},
@@ -207,8 +192,6 @@ TEST(perf_counters_test, snapshot)
     counter_keys.clear();
     perf_counters::instance().iterate_snapshot(iter);
     expected = {
-        {"replica*server*memused.virt(MB)", COUNTER_TYPE_NUMBER},
-        {"replica*server*memused.res(MB)", COUNTER_TYPE_NUMBER},
         {"a*s*test_counter", COUNTER_TYPE_NUMBER},
         {"b*s*test_counter", COUNTER_TYPE_VOLATILE_NUMBER},
         {"c*s*test_counter", COUNTER_TYPE_RATE},
@@ -221,8 +204,6 @@ TEST(perf_counters_test, snapshot)
     counter_keys.clear();
     perf_counters::instance().iterate_snapshot(iter);
     expected = {
-        {"replica*server*memused.virt(MB)", COUNTER_TYPE_NUMBER},
-        {"replica*server*memused.res(MB)", COUNTER_TYPE_NUMBER},
         {"c*s*test_counter", COUNTER_TYPE_RATE},
         {"d*s*test_counter", COUNTER_TYPE_NUMBER_PERCENTILES},
     };
