@@ -165,12 +165,10 @@ static nlohmann::json duplication_entry_to_json(const duplication_entry &ent)
     return internal::duplication_group_registry::instance().get_duplication_group();
 }
 
-/*extern*/ const std::set<uint8_t> &get_distinct_cluster_id_set(){
+/*extern*/ const std::set<uint8_t> &get_distinct_cluster_id_set()
+{
     return internal::duplication_group_registry::instance().get_distinct_cluster_id_set();
 }
-
-
-
 
 } // namespace replication
 } // namespace dsn
