@@ -62,9 +62,9 @@ void negotiation_manager::on_negotiation_request(negotiation_rpc rpc)
         return;
     }
 
-    negotiation *nego = get_negotiation(rpc);
+    std::shared_ptr<negotiation> nego = get_negotiation(rpc);
     if (nullptr != nego) {
-        server_negotiation *srv_negotiation = static_cast<server_negotiation *>(nego);
+        server_negotiation *srv_negotiation = static_cast<server_negotiation *>(nego.get());
         srv_negotiation->handle_request(rpc);
     }
 }
@@ -74,16 +74,16 @@ void negotiation_manager::on_negotiation_response(error_code err, negotiation_rp
     dassert(rpc.dsn_request()->io_session->is_client(),
             "only client session receives negotiation response");
 
-    negotiation *nego = get_negotiation(rpc);
+    std::shared_ptr<negotiation> nego = get_negotiation(rpc);
     if (nullptr != nego) {
-        client_negotiation *cli_negotiation = static_cast<client_negotiation *>(nego);
+        client_negotiation *cli_negotiation = static_cast<client_negotiation *>(nego.get());
         cli_negotiation->handle_response(err, std::move(rpc.response()));
     }
 }
 
 void negotiation_manager::on_rpc_connected(rpc_session *session)
 {
-    std::unique_ptr<negotiation> nego = security::create_negotiation(session->is_client(), session);
+    std::shared_ptr<negotiation> nego = security::create_negotiation(session->is_client(), session);
     nego->start();
     {
         utils::auto_write_lock l(_lock);
@@ -112,7 +112,7 @@ bool negotiation_manager::on_rpc_send_msg(message_ex *msg)
            !msg->io_session->try_pend_message(msg);
 }
 
-negotiation *negotiation_manager::get_negotiation(negotiation_rpc rpc)
+std::shared_ptr<negotiation> negotiation_manager::get_negotiation(negotiation_rpc rpc)
 {
     utils::auto_read_lock l(_lock);
     auto it = _negotiations.find(rpc.dsn_request()->io_session);
@@ -123,7 +123,7 @@ negotiation *negotiation_manager::get_negotiation(negotiation_rpc rpc)
         return nullptr;
     }
 
-    return it->second.get();
+    return it->second;
 }
 
 void init_join_point()
