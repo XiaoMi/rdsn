@@ -1,8 +1,3 @@
-# Developer Notes:
-# This config is for github actions. Before merging your changes of this file,
-# it's recommended to create a PR against the ci-test branch to test if it works
-# as expected.
-
 name: pull_request
 
 on:
