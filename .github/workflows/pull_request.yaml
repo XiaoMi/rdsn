@@ -1,3 +1,9 @@
+# Developer Notes:
+#
+# This config is for github actions. Before merging your changes of this file,
+# it's recommended to create a PR against the ci-test branch to test if it works
+# as expected.
+
 name: pull_request
 
 on:
@@ -15,6 +21,8 @@ defaults:
 
 jobs:
   lint:
+    name: Lint
+    runs-on: ubuntu-latest
     container:
       image: apachepegasus/clang-format-3.9
     steps:
@@ -22,14 +30,13 @@ jobs:
         with:
           fetch-depth: 1
       - name: clang-format
-        run: ./scripts/linux/run-clang-format.sh
+        run: ./scripts/linux/run-clang-format.py --clang-format-executable=clang-format-3.9 -r src include
 
   test:
-    name: test
+    name: Test
     needs: lint
     runs-on: self-hosted
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'ready-for-testing') }}
-    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'ready-for-testing')
     container:
       image: apachepegasus/ci-env
       env:
@@ -39,12 +46,22 @@ jobs:
         # Place ccache compilation intermediate results in host memory, that's shared among containers.
         - /tmp/ccache/pegasus:/tmp/ccache/pegasus
       # Read docs at https://docs.docker.com/storage/tmpfs/ for more details of using tmpfs in docker.
-      options: --mount type=tmpfs,destination=/tmp/ccache/pegasus,tmpfs-size=10737418240 --cap-add=SYS_PTRACE
+      options: --mount type=tmpfs,destination=/tmp/pegasus,tmpfs-size=10737418240 --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - name: compilation
+      - name: Unpack prebuilt third-parties
+        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
+        run: unzip /root/pegasus-thirdparty-output.zip -d ./thirdparty
+      - name: Rebuild third-parties
+        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
+        working-directory: thirdparty
+        run: |
+          mkdir build
+          cmake -DCMAKE_BUILD_TYPE=Release -B build/
+          cmake --build build/ -j $(($(nproc)/2+1))
+      - name: Compilation
         run: ./run.sh build --skip_thirdparty
-      - name: unit-test
+      - name: Unit Testing
         run: ./run.sh test --skip_thirdparty
