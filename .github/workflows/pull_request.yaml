@@ -48,7 +48,7 @@ jobs:
       # Read docs at https://docs.docker.com/storage/tmpfs/ for more details of using tmpfs in docker.
       options: --mount type=tmpfs,destination=/tmp/pegasus,tmpfs-size=10737418240 --cap-add=SYS_PTRACE
     env:
-      REBUILD_THIRDPARTY=${{ contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') }}
+      REBUILD_THIRDPARTY: ${{ contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') }}
     steps:
       - uses: actions/checkout@v2
         with:
