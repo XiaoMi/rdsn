@@ -51,6 +51,8 @@ jobs:
         with:
           fetch-depth: 1
       - name: Compilation
-        run: ./run.sh build --skip_thirdparty
+        run: |
+        unzip ~/pegasus-thirdparty-output.zip -d rdsn/thirdparty
+        ./run.sh build --skip_thirdparty
       - name: Unit Testing
         run: ./run.sh test --skip_thirdparty
