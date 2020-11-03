@@ -36,7 +36,7 @@ jobs:
     name: Test
     needs: lint
     runs-on: self-hosted
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'ready-for-testing') }}
+    if: contains(github.event.pull_request.labels.*.name, 'ready-for-testing')
     container:
       image: apachepegasus/ci-env
       env:
@@ -47,17 +47,15 @@ jobs:
         - /tmp/ccache/pegasus:/tmp/ccache/pegasus
       # Read docs at https://docs.docker.com/storage/tmpfs/ for more details of using tmpfs in docker.
       options: --mount type=tmpfs,destination=/tmp/pegasus,tmpfs-size=10737418240 --cap-add=SYS_PTRACE
-    env:
-      REBUILD_THIRDPARTY: ${{ contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 1
       - name: Unpack prebuilt third-parties
-        if: ${{ !env.REBUILD_THIRDPARTY }}
+        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
         run: unzip /root/pegasus-thirdparty-output.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: ${{ env.REBUILD_THIRDPARTY }}
+        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
         working-directory: thirdparty
         run: |
           echo "$REBUILD_THIRDPARTY"
