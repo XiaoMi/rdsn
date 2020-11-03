@@ -27,7 +27,7 @@ cd $INSTALL_DIR
 
 if [ ! -f zookeeper-3.4.6.tar.gz ]; then
     echo "Downloading zookeeper..."
-    download_url="https://github.com/XiaoMi/pegasus-common/releases/download/deps/zookeeper-3.4.6.tar.gz"
+    download_url="https://pegasus-thirdparties.oss-cn-beijing.aliyuncs.com/zookeeper-3.4.6.tar.gz"
     wget -T 5 -t 1 $download_url
     if [ $? -ne 0 ]; then
         echo "ERROR: download zookeeper failed"

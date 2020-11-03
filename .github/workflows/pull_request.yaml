@@ -58,7 +58,6 @@ jobs:
         if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
         working-directory: thirdparty
         run: |
-          echo "$REBUILD_THIRDPARTY"
           mkdir build
           cmake -DCMAKE_BUILD_TYPE=Release -B build/
           cmake --build build/ -j $(($(nproc)/2+1))
