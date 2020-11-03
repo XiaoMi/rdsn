@@ -1,3 +1,8 @@
+# Developer Notes:
+# This config is for github actions. Before merging your changes of this file,
+# it's recommended to create a PR against the ci-test branch to test if it works
+# as expected.
+
 name: pull_request
 
 on:
@@ -40,7 +45,7 @@ jobs:
         # Place ccache compilation intermediate results in host memory, that's shared among containers.
         - /tmp/ccache/pegasus:/tmp/ccache/pegasus
       # Read docs at https://docs.docker.com/storage/tmpfs/ for more details of using tmpfs in docker.
-      options: --mount type=tmpfs,destination=/tmp/ccache/pegasus,tmpfs-size=10737418240 --cap-add=SYS_PTRACE
+      options: --mount type=tmpfs,destination=/tmp/pegasus,tmpfs-size=10737418240 --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
         with:
