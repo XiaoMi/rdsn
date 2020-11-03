@@ -1,3 +1,8 @@
+# Developer Notes:
+# This config is for github actions. Before merging your changes of this file,
+# it's recommended to create a PR against the ci-test branch to test if it works
+# as expected.
+
 name: pull_request
 
 on:
@@ -47,7 +52,7 @@ jobs:
           fetch-depth: 1
       - name: Compilation
         run: |
-        unzip ~/pegasus-thirdparty-output.zip -d rdsn/thirdparty
-        ./run.sh build --skip_thirdparty
+          unzip ~/pegasus-thirdparty-output.zip -d rdsn/thirdparty
+          ./run.sh build --skip_thirdparty
       - name: Unit Testing
         run: ./run.sh test --skip_thirdparty
