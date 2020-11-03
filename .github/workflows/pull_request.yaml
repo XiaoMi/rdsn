@@ -47,13 +47,23 @@ jobs:
         - /tmp/ccache/pegasus:/tmp/ccache/pegasus
       # Read docs at https://docs.docker.com/storage/tmpfs/ for more details of using tmpfs in docker.
       options: --mount type=tmpfs,destination=/tmp/pegasus,tmpfs-size=10737418240 --cap-add=SYS_PTRACE
+    env:
+      REBUILD_THIRDPARTY=${{ contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - name: Compilation
+      - name: Unpack prebuilt third-parties
+        if: ${{ ! REBUILD_THIRDPARTY }}
+        run: unzip /root/pegasus-thirdparty-output.zip -d ./thirdparty
+      - name: Rebuild third-parties
+        if: ${{ REBUILD_THIRDPARTY }}
+        working-directory: thirdparty
         run: |
-          unzip /root/pegasus-thirdparty-output.zip -d ./thirdparty
-          ./run.sh build --skip_thirdparty
+          mkdir build
+          cmake -DCMAKE_BUILD_TYPE=Release -B build/
+          cmake --build build/ -j $(($(nproc)/2+1))
+      - name: Compilation
+        run: ./run.sh build --skip_thirdparty
       - name: Unit Testing
         run: ./run.sh test --skip_thirdparty
