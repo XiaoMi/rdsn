@@ -60,6 +60,7 @@ jobs:
         if: ${{ env.REBUILD_THIRDPARTY }}
         working-directory: thirdparty
         run: |
+          echo "$REBUILD_THIRDPARTY"
           mkdir build
           cmake -DCMAKE_BUILD_TYPE=Release -B build/
           cmake --build build/ -j $(($(nproc)/2+1))
