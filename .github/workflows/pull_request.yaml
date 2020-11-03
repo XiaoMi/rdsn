@@ -54,10 +54,10 @@ jobs:
         with:
           fetch-depth: 1
       - name: Unpack prebuilt third-parties
-        if: ${{ ! $REBUILD_THIRDPARTY }}
+        if: ${{ env.REBUILD_THIRDPARTY == false }}
         run: unzip /root/pegasus-thirdparty-output.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: ${{ $REBUILD_THIRDPARTY }}
+        if: ${{ env.REBUILD_THIRDPARTY == true }}
         working-directory: thirdparty
         run: |
           mkdir build
