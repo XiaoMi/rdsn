@@ -107,9 +107,11 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
 }
 
 // TODO(jiashuo1)
+// THREAD_POOL_REPLICATION_LONG
 void replica::copy_migration_replica_checkpoint(const migrate_replica_request &req) {}
 
 // TODO(jiashuo1)
+// THREAD_POOL_REPLICATION_LONG
 void replica::update_migration_replica_dir() {}
 } // namespace replication
 } // namespace dsn
