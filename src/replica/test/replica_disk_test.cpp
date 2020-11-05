@@ -3,8 +3,8 @@
 // can be found in the LICENSE file in the root directory of this source tree.
 
 #include <gtest/gtest.h>
-
 #include <dsn/utility/fail_point.h>
+
 #include "replica_test_base.h"
 
 namespace dsn {
@@ -22,6 +22,19 @@ public:
     dsn::app_info app_info_2;
 
 public:
+    // create `dir_nodes_count`(tag_1~tag_5) mock disk:
+    // capacity info
+    // node_disk     disk_capacity  disk_available_mb  disk_available_ratio
+    //  tag_1            100*5             50*1              10%
+    //  tag_2            100*5             50*2              20%
+    //  tag_3            100*5             50*3              30%
+    //  tag_4            100*5             50*4              40%
+    //  tag_5            100*5             50*5              50%
+    //  total            2500              750               30%
+    // replica info, for example, tag_1(other disk same with it)
+    // primary  secondary
+    //   1.0     1.1,1.2
+    //   2.0     2.1,2.2
     void SetUp() override
     {
         generate_mock_app_info();
@@ -34,9 +47,12 @@ public:
         stub->on_disk_stat();
     }
 
-    std::vector<std::shared_ptr<dir_node>> get_fs_manager_nodes()
+    // create empty node disk, tag = tag_0
+    void generate_mock_empty_dir_node()
     {
-        return stub->_fs_manager._dir_nodes;
+        dir_node *node_disk =
+            new dir_node("tag_" + std::to_string(0), "full_dir_" + std::to_string(0));
+        stub->_fs_manager._dir_nodes.emplace_back(node_disk);
     }
 
 private:
@@ -170,6 +186,68 @@ TEST_F(replica_disk_test, on_query_disk_info_one_app)
         ASSERT_TRUE(disk_infos_with_app_1[i].holding_primary_replica_counts.find(app_id_2) ==
                     disk_infos_with_app_1[i].holding_primary_replica_counts.end());
     }
+}
+
+TEST_F(replica_disk_test, migrate_disk_replica_check)
+{
+    dsn::message_ptr fake_request = dsn::message_ex::create_request(RPC_MIGRATE_REPLICA);
+    migrate_replica_request tmp_request;
+    ::dsn::marshall(fake_request, tmp_request);
+
+    dsn::message_ex *recvd_request = fake_request->copy(true, true);
+    auto rpc =
+        rpc_holder<migrate_replica_request, migrate_replica_response>::auto_reply(recvd_request);
+    auto &request = const_cast<migrate_replica_request &>(rpc.request());
+    request.pid = dsn::gpid(app_id_1, 0);
+    request.origin_disk = "tag_1";
+    request.target_disk = "tag_2";
+
+    replica_ptr rep = stub->get_replica(request.pid);
+
+    // check existed task
+    rep->set_disk_replica_migration_status(disk_replica_migration_status::MOVING);
+    stub->on_migrate_replica(rpc);
+    auto &resp = rpc.response();
+    ASSERT_EQ(resp.err, ERR_BUSY);
+
+    // check invalid partition status
+    rep->set_disk_replica_migration_status(disk_replica_migration_status::IDLE);
+    stub->on_migrate_replica(rpc);
+    resp = rpc.response();
+    ASSERT_EQ(resp.err, ERR_INVALID_STATE);
+
+    // create empty disk, tag = tag_0
+    generate_mock_empty_dir_node();
+
+    // check invalid origin disk
+    request.pid = dsn::gpid(app_id_1, 2);
+    request.origin_disk = "tag_100";
+    request.target_disk = "tag_0";
+    stub->on_migrate_replica(rpc);
+    resp = rpc.response();
+    ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
+    // check invalid target disk
+    request.pid = dsn::gpid(app_id_1, 2);
+    request.origin_disk = "tag_1";
+    request.target_disk = "tag_200";
+    stub->on_migrate_replica(rpc);
+    resp = rpc.response();
+    ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
+
+    // check replica doesn't existed origin disk
+    request.pid = dsn::gpid(app_id_1, 2);
+    request.origin_disk = "tag_0";
+    request.target_disk = "tag_6";
+    stub->on_migrate_replica(rpc);
+    resp = rpc.response();
+    ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
+    // check replica has existed on target disk
+    request.pid = dsn::gpid(app_id_1, 2);
+    request.origin_disk = "tag_1";
+    request.target_disk = "tag_2";
+    stub->on_migrate_replica(rpc);
+    resp = rpc.response();
+    ASSERT_EQ(resp.err, ERR_PATH_ALREADY_EXIST);
 }
 
 } // namespace replication

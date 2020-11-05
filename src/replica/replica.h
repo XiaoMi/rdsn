@@ -214,6 +214,11 @@ public:
     // routine for get extra envs from replica
     const std::map<std::string, std::string> &get_replica_extra_envs() const { return _extra_envs; }
 
+    void set_disk_replica_migration_status(const disk_replica_migration_status::type &status)
+    {
+        _disk_replica_migration_status = status;
+    };
+
 protected:
     // this method is marked protected to enable us to mock it in unit tests.
     virtual decree max_gced_decree_no_lock() const;
@@ -388,11 +393,6 @@ private:
     void on_migrate_replica(const migrate_replica_request &req,
                             /*out*/ migrate_replica_response &resp);
 
-    void set_disk_replica_migration_status(const disk_replica_migration_status::type &status)
-    {
-        _disk_replica_migration_status = status;
-    };
-
 private:
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::mutation_queue;
@@ -410,7 +410,6 @@ private:
 
     disk_replica_migration_status::type _disk_replica_migration_status{
         disk_replica_migration_status::IDLE};
-    std::string _disk_replica_migration_info;
 
     bool check_migration_replica_on_disk(const migrate_replica_request &req,
                                          /*out*/ migrate_replica_response &resp);
