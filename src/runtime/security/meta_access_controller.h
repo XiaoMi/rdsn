@@ -32,9 +32,9 @@ public:
     bool allowed(message_ex *msg) override;
 
 private:
-    void register_white_list(const std::string &rpc_code);
+    void register_allowed_list(const std::string &rpc_code);
 
-    std::unordered_set<std::string> _white_list;
+    std::unordered_set<int> _allowed_rpc_code_list;
 };
 } // namespace security
 } // namespace dsn
