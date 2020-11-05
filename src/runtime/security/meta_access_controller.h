@@ -18,6 +18,7 @@
 #pragma once
 
 #include "access_controller.h"
+
 #include <unordered_set>
 
 namespace dsn {
@@ -28,7 +29,7 @@ class meta_access_controller : public access_controller
 {
 public:
     meta_access_controller();
-    bool allowed(message_ex *msg);
+    bool allowed(message_ex *msg) override;
 
 private:
     void register_white_list(const std::string &rpc_code);
