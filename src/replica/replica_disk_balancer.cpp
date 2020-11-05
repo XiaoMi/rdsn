@@ -47,8 +47,6 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
         return false;
     }
 
-    _stub->update_disk_holding_replicas();
-
     bool valid_origin_disk = false;
     bool valid_target_disk = false;
     for (const auto &dir_node : _stub->_fs_manager._dir_nodes) {
