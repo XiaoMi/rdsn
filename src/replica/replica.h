@@ -418,11 +418,6 @@ private:
 
     void update_migration_replica_dir();
 
-    void reset_replica_migration_status()
-    {
-        _disk_replica_migration_status = disk_replica_migration_status::IDLE;
-    }
-
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
     uint64_t _create_time_ms;
