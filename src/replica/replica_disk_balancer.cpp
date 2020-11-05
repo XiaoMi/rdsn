@@ -22,7 +22,6 @@ void replica::on_migrate_replica(const migrate_replica_request &req,
         LPC_REPLICATION_LONG_COMMON, tracker(), [=]() { copy_migration_replica_checkpoint(req); });
 }
 
-// TODO(jiashuo1) need assign replication pool to make sure single thread
 bool replica::check_migration_replica_on_disk(const migrate_replica_request &req,
                                               /*out*/ migrate_replica_response &resp)
 {
@@ -113,8 +112,10 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
     return true;
 }
 
+// TODO(jiashuo1)
 void replica::copy_migration_replica_checkpoint(const migrate_replica_request &req) {}
 
+// TODO(jiashuo1)
 void replica::update_migration_replica_dir() {}
 } // namespace replication
 } // namespace dsn
