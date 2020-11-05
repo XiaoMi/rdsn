@@ -137,12 +137,9 @@ public:
         temp._length = len;
         return temp;
     }
-
     bool operator==(const blob &r) const
     {
-        // not implemented
-        assert(false);
-        return false;
+        return (_buffer == r._buffer && _data == r._data && _length == r._length);
     }
 
     std::string to_string() const
