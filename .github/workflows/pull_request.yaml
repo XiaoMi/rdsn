@@ -36,7 +36,6 @@ jobs:
     name: Test
     needs: lint
     runs-on: self-hosted
-    if: contains(github.event.pull_request.labels.*.name, 'ready-for-testing')
     container:
       image: apachepegasus/ci-env
       env:
