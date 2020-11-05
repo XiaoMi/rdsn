@@ -479,6 +479,21 @@ struct query_disk_info_response
     4:list<disk_info> disk_infos;
 }
 
+// This request is sent from clent to replica_server.
+struct migrate_replica_request 
+{
+    1:dsn.rpc_address node;
+    2:dsn.gpid pid
+    3:string origin_disk;
+    4:string target_disk;
+}
+
+// This response is recieved replica_server.
+struct migrate_replica_response 
+{
+   1:dsn.error_code err;
+}
+
 struct query_app_info_request
 {
     1:dsn.rpc_address meta_server;
@@ -1110,6 +1125,14 @@ enum detect_action
 {
     START,
     STOP
+}
+
+// disk replica migration
+enum disk_replica_migration_status {
+    IDLE,
+    MOVING,
+    MOVED,
+    CLOSED
 }
 
 struct detect_hotkey_request {
