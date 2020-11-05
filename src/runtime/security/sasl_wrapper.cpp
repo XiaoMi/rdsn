@@ -47,6 +47,9 @@ error_s sasl_wrapper::retrive_username(std::string &output)
         return error_s::make(err);
     });
 
+    // retrive username from _conn.
+    // If this is a sasl server, it gets the name of the corresponding sasl client.
+    // But if this is a sasl client, it gets the name of itself
     char *username = nullptr;
     error_s err_s = wrap_error(sasl_getprop(_conn, SASL_USERNAME, (const void **)&username));
     if (err_s.is_ok()) {
