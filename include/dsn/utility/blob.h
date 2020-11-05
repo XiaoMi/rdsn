@@ -137,6 +137,7 @@ public:
         temp._length = len;
         return temp;
     }
+
     bool operator==(const blob &r) const
     {
         return (_buffer == r._buffer && _data == r._data && _length == r._length);
