@@ -1,15 +1,11 @@
 #include "replica.h"
 #include "replica_stub.h"
-#include "backup/cold_backup_context.h"
-#include "bulk_load/replica_bulk_loader.h"
 
-#include <dsn/utility/filesystem.h>
 #include <dsn/dist/fmt_logging.h>
-#include <boost/algorithm/string/replace.hpp>
-#include <dsn/dist/replication/replication_app_base.h>
 
 namespace dsn {
 namespace replication {
+
 // THREAD_POOL_REPLICATION
 void replica::on_migrate_replica(const migrate_replica_request &req,
                                  /*out*/ migrate_replica_response &resp)
@@ -29,8 +25,8 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
     // TODO(jiashuo1) may need manager control migration flow
     if (_disk_replica_migration_status != disk_replica_migration_status::IDLE) {
         dwarn_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                      "partition_status={}), but "
-                      "existed running task(migration_status={})",
+                      "partition_status={}), but replica has existed running "
+                      "task(migration_status={})",
                       req.pid.to_string(),
                       req.origin_disk,
                       req.target_disk,
