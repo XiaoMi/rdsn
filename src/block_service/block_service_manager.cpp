@@ -36,8 +36,8 @@ block_service_manager::block_service_manager()
 block_service_manager::~block_service_manager()
 {
     zauto_write_lock l(_fs_lock);
-    ddebug("close block service manager.");
     _fs_map.clear();
+    ddebug("close block service manager.");
 }
 
 block_filesystem *block_service_manager::get_block_filesystem(const std::string &provider)
