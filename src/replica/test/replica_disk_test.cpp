@@ -34,9 +34,9 @@ public:
     //  tag_5            100*5             50*5              50%
     //  total            2500              750               30%
     // replica info, for example, tag_1(other disk same with it)
-    // primary  secondary
-    //   1.0     1.1,1.2
-    //   2.0     2.1,2.2
+    // primary         secondary
+    //   1.0            1.1,1.2
+    // 2.0,2.1       2.2,2.3,2.4,2.5
     void SetUp() override
     {
         generate_mock_app_info();
@@ -253,7 +253,7 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     auto rpc =
         rpc_holder<migrate_replica_request, migrate_replica_response>::auto_reply(recvd_request);
     auto &request = const_cast<migrate_replica_request &>(rpc.request());
-    request.pid = dsn::gpid(app_id_1, 0);
+    request.pid = dsn::gpid(app_info_1.app_id, 0);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
 
@@ -275,14 +275,14 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     generate_mock_empty_dir_node();
 
     // check invalid origin disk
-    request.pid = dsn::gpid(app_id_1, 2);
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_100";
     request.target_disk = "tag_0";
     stub->on_migrate_replica(rpc);
     resp = rpc.response();
     ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
     // check invalid target disk
-    request.pid = dsn::gpid(app_id_1, 2);
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_200";
     stub->on_migrate_replica(rpc);
@@ -290,14 +290,14 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
 
     // check replica doesn't existed origin disk
-    request.pid = dsn::gpid(app_id_1, 2);
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_0";
     request.target_disk = "tag_6";
     stub->on_migrate_replica(rpc);
     resp = rpc.response();
     ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
     // check replica has existed on target disk
-    request.pid = dsn::gpid(app_id_1, 2);
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
     stub->on_migrate_replica(rpc);
