@@ -26,6 +26,7 @@ class block_service_manager
 {
 public:
     block_service_manager();
+    ~block_service_manager();
     block_filesystem *get_block_filesystem(const std::string &provider);
 
     // download files from remote file system
