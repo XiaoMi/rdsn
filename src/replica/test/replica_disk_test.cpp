@@ -281,8 +281,7 @@ TEST_F(replica_disk_test, on_migrate_replica)
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
     stub->on_migrate_disk_replica(fake_migrate_rpc);
-    auto &resp = fake_migrate_rpc.response();
-    ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
+    ASSERT_EQ(fake_migrate_rpc.response().err, ERR_OBJECT_NOT_FOUND);
 
     // TODO(jiashuo1): replica existed
 }
@@ -359,8 +358,12 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
 
 TEST_F(replica_disk_test, migrate_disk_replica)
 {
+
+    auto &request = const_cast<migrate_replica_request &>(fake_migrate_rpc.request());
+
     // check migration status
-    migrate_disk_replica()
+    request.pid = dsn::gpid(app_info_1.app_id, 1);
+    migrate_disk_replica(fake_migrate_rpc);
 }
 
 } // namespace replication
