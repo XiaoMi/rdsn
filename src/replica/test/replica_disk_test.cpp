@@ -281,7 +281,7 @@ TEST_F(replica_disk_test, on_migrate_replica)
     request.pid = dsn::gpid(app_info_1.app_id, 100);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
-    stub->on_migrate_replica(rpc);
+    stub->on_migrate_disk_replica(rpc);
     auto &resp = rpc.response();
     ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
 
@@ -342,7 +342,7 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
-    stub->on_migrate_replica(rpc);
+    stub->on_migrate_disk_replica(rpc);
     resp = rpc.response();
     ASSERT_EQ(resp.err, ERR_PATH_ALREADY_EXIST);
 

@@ -7,8 +7,8 @@ namespace dsn {
 namespace replication {
 
 // THREAD_POOL_REPLICATION
-void replica::on_migrate_replica(const migrate_replica_request &req,
-                                 /*out*/ migrate_replica_response &resp)
+void replica::on_migrate_disk_replica(const migrate_replica_request &req,
+                                      /*out*/ migrate_replica_response &resp)
 {
     if (!check_migration_replica_on_disk(req, resp)) {
         return;
