@@ -26,25 +26,25 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
     _checker.only_one_thread_access();
     // TODO(jiashuo1) may need manager control migration flow
     if (_disk_replica_migration_status != disk_replica_migration_status::IDLE) {
-        dwarn_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                      "partition_status={}), but replica has existed running "
-                      "task(migration_status={})",
-                      req.pid.to_string(),
-                      req.origin_disk,
-                      req.target_disk,
-                      enum_to_string(status()),
-                      enum_to_string(_disk_replica_migration_status));
+        derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
+                       "partition_status={}), but replica has existed running "
+                       "task(migration_status={})",
+                       req.pid.to_string(),
+                       req.origin_disk,
+                       req.target_disk,
+                       enum_to_string(status()),
+                       enum_to_string(_disk_replica_migration_status));
         resp.err = ERR_BUSY;
         return false;
     }
 
     if (status() != partition_status::type::PS_SECONDARY) {
-        dwarn_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                      "partition_status={}), but replica must be PS_SECONDARY",
-                      req.pid.to_string(),
-                      req.origin_disk,
-                      req.target_disk,
-                      enum_to_string(status()));
+        derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
+                       "partition_status={}), but replica must be PS_SECONDARY",
+                       req.pid.to_string(),
+                       req.origin_disk,
+                       req.target_disk,
+                       enum_to_string(status()));
         resp.err = ERR_INVALID_STATE;
         return false;
     }
@@ -56,12 +56,12 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
             valid_origin_disk = true;
             std::set<gpid> disk_holding_replicas = dir_node->holding_replicas[req.pid.get_app_id()];
             if (disk_holding_replicas.find(req.pid) == disk_holding_replicas.end()) {
-                dwarn_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                              "partition_status={}), but replica doesn't exist on origin disk",
-                              req.pid.to_string(),
-                              req.origin_disk,
-                              req.target_disk,
-                              enum_to_string(status()));
+                derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
+                               "partition_status={}), but replica doesn't exist on origin disk",
+                               req.pid.to_string(),
+                               req.origin_disk,
+                               req.target_disk,
+                               enum_to_string(status()));
                 resp.err = ERR_OBJECT_NOT_FOUND;
                 return false;
             }
@@ -71,12 +71,12 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
             valid_target_disk = true;
             std::set<gpid> disk_holding_replicas = dir_node->holding_replicas[req.pid.get_app_id()];
             if (disk_holding_replicas.find(req.pid) != disk_holding_replicas.end()) {
-                dwarn_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                              "partition_status={}), but replica has existed on target disk",
-                              req.pid.to_string(),
-                              req.origin_disk,
-                              req.target_disk,
-                              enum_to_string(status()));
+                derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
+                               "partition_status={}), but replica has existed on target disk",
+                               req.pid.to_string(),
+                               req.origin_disk,
+                               req.target_disk,
+                               enum_to_string(status()));
                 resp.err = ERR_PATH_ALREADY_EXIST;
                 return false;
             }
@@ -84,12 +84,12 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
     }
 
     if (!valid_origin_disk || !valid_target_disk) {
-        dwarn_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                      "partition_status={}), but disk is not existed",
-                      req.pid.to_string(),
-                      req.origin_disk,
-                      req.target_disk,
-                      enum_to_string(status()));
+        derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
+                       "partition_status={}), but disk is not existed",
+                       req.pid.to_string(),
+                       req.origin_disk,
+                       req.target_disk,
+                       enum_to_string(status()));
         resp.err = ERR_OBJECT_NOT_FOUND;
         return false;
     }
