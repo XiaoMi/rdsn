@@ -198,6 +198,7 @@ void replica::copy_migration_replica_checkpoint(const migrate_replica_request &r
     }
 
     error_code sync_checkpoint_err = _app->sync_checkpoint();
+    derror_replica("201");
     if (sync_checkpoint_err != ERR_OK) {
         derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
                        "partition_status={}), but sync_checkpoint failed({})",
@@ -212,6 +213,7 @@ void replica::copy_migration_replica_checkpoint(const migrate_replica_request &r
 
     error_code copy_checkpoint_err =
         _app->copy_checkpoint_to_dir(tmp_data_dir.c_str(), 0 /*last_decree*/);
+    derror_replica("216");
     if (copy_checkpoint_err != ERR_OK) {
         derror_replica(
             "received disk replica migration(gpid={}, origin={}, target={}, partition_status={}) "

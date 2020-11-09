@@ -1988,7 +1988,9 @@ void replica_stub::open_replica(const app_info &app,
 ::dsn::task_ptr replica_stub::begin_close_replica(replica_ptr r)
 {
     dassert(r->status() == partition_status::PS_ERROR ||
-                r->status() == partition_status::PS_INACTIVE,
+                r->status() == partition_status::PS_INACTIVE ||
+                r->migration_status() == disk_replica_migration_status::MOVED ||
+                r->migration_status() == disk_replica_migration_status::CLOSED,
             "%s: invalid state %s when calling begin_close_replica",
             r->name(),
             enum_to_string(r->status()));

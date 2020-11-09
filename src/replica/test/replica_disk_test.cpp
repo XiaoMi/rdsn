@@ -97,6 +97,12 @@ public:
         rep->set_migration_status(status);
     }
 
+    void set_replica_dir(const dsn::gpid &pid, const std::string &dir) {
+        replica_ptr rep = get_replica(pid);
+        ASSERT_TRUE(rep);
+        rep->_dir = dir;
+    }
+
     void check_migration_replica_on_disk(migrate_replica_rpc &rpc)
     {
         replica_ptr rep = get_replica(rpc.request().pid);
@@ -284,7 +290,6 @@ TEST_F(replica_disk_test, on_migrate_replica)
     stub->on_migrate_disk_replica(fake_migrate_rpc);
     ASSERT_EQ(response.err, ERR_OBJECT_NOT_FOUND);
 
-
     // TODO(jiashuo1): replica existed
 }
 
@@ -355,20 +360,15 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
 TEST_F(replica_disk_test, migrate_disk_replica)
 {
     auto &request = const_cast<migrate_replica_request &>(fake_migrate_rpc.request());
-    auto &response = fake_migrate_rpc.response();
 
-    // check migration status
-    request.pid = dsn::gpid(app_info_1.app_id, 1);
-    migrate_disk_replica(fake_migrate_rpc);
-    ASSERT_EQ(response.err, ERR_INVALID_STATE);
-
+    // create empty disk, tag = tag_0
+    generate_mock_empty_dir_node();
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
+    request.origin_disk = "tag_1";
+    request.target_disk = "tag_0";
+    set_replica_dir(request.pid, fmt::format("./{}/{}.pegasus", request.origin_disk, request.pid.to_string()));
     set_status(request.pid, disk_replica_migration_status::MOVING);
-
-    // check partition status
     migrate_disk_replica(fake_migrate_rpc);
-    ASSERT_EQ(response.err, ERR_INVALID_STATE);
-
-    //
 }
 
 } // namespace replication

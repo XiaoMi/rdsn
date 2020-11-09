@@ -44,7 +44,8 @@ public:
 
     error_code start(int, char **) override { return ERR_NOT_IMPLEMENTED; }
     error_code stop(bool) override { return ERR_NOT_IMPLEMENTED; }
-    error_code sync_checkpoint() override { return ERR_OK; }
+    error_code sync_checkpoint() override {
+        return ERR_OK; }
     error_code async_checkpoint(bool) override { return ERR_NOT_IMPLEMENTED; }
     error_code prepare_get_checkpoint(blob &) override { return ERR_NOT_IMPLEMENTED; }
     error_code get_checkpoint(int64_t, const blob &, learn_state &) override
@@ -58,7 +59,9 @@ public:
     error_code copy_checkpoint_to_dir(const char *checkpoint_dir,
                                       /*output*/ int64_t *last_decree) override
     {
-        *last_decree = _decree;
+        if(last_decree != nullptr) {
+            *last_decree = _decree;
+        }
         return ERR_OK;
     }
     int on_request(message_ex *request) override { return 0; }
@@ -133,6 +136,7 @@ public:
         return _max_gced_decree;
     }
     /// helper functions
+    void set_replica_dir(const std::string &dir) { _dir = dir; }
     void set_replica_config(replica_configuration &config) { _config = config; }
     void set_partition_status(partition_status::type status) { _config.status = status; }
     void set_last_committed_decree(decree d) { _prepare_list->reset(d); }
