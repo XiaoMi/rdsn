@@ -257,16 +257,16 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
 
-    replica_ptr rep = stub->get_replica(request.pid);
+    replica_ptr rep0 = stub->get_replica(request.pid);
 
     // check existed task
-    rep->set_disk_replica_migration_status(disk_replica_migration_status::MOVING);
+    rep0->set_disk_replica_migration_status(disk_replica_migration_status::MOVING);
     stub->on_migrate_replica(rpc);
     auto &resp = rpc.response();
     ASSERT_EQ(resp.err, ERR_BUSY);
 
     // check invalid partition status
-    rep->set_disk_replica_migration_status(disk_replica_migration_status::IDLE);
+    rep0->set_disk_replica_migration_status(disk_replica_migration_status::IDLE);
     stub->on_migrate_replica(rpc);
     resp = rpc.response();
     ASSERT_EQ(resp.err, ERR_INVALID_STATE);
@@ -303,6 +303,17 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     stub->on_migrate_replica(rpc);
     resp = rpc.response();
     ASSERT_EQ(resp.err, ERR_PATH_ALREADY_EXIST);
+
+    // check passed
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
+    request.origin_disk = "tag_1";
+    request.target_disk = "tag_0";
+    replica_ptr rep2 = stub->get_replica(request.pid);
+    ASSERT_EQ(rep2->migration_status(), disk_replica_migration_status::IDLE);
+    stub->on_migrate_replica(rpc);
+    resp = rpc.response();
+    ASSERT_EQ(resp.err, ERR_OK);
+    ASSERT_EQ(rep2->migration_status(), disk_replica_migration_status::MOVING);
 }
 
 } // namespace replication
