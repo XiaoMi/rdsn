@@ -56,9 +56,9 @@ block_filesystem *block_service_manager::get_or_create_block_filesystem(const st
     block_filesystem *fs =
         utils::factory_store<block_filesystem>::create(provider_type, PROVIDER_TYPE_MAIN);
     if (fs == nullptr) {
-        derror("acquire block filesystem failed, provider = %s, provider_type = %s",
-               provider.c_str(),
-               provider_type);
+        derror_f("acquire block filesystem failed, provider = {}, provider_type = {}",
+                 provider,
+                 std::string(provider_type));
         return nullptr;
     }
 
@@ -70,16 +70,16 @@ block_filesystem *block_service_manager::get_or_create_block_filesystem(const st
     dsn::error_code err = fs->initialize(args);
 
     if (dsn::ERR_OK == err) {
-        ddebug("create block filesystem ok for provider(%s)", provider.c_str());
+        ddebug_f("create block filesystem ok for provider {}", provider);
         zauto_write_lock l(_fs_lock);
         _fs_map.emplace(provider, std::unique_ptr<block_filesystem>(fs));
-        return fs;
     } else {
-        derror(
-            "create block file system err(%s) for provider(%s)", err.to_string(), provider.c_str());
-        delete fs;
-        return nullptr;
+        derror_f("create block file system err {} for provider {}",
+                 std::string(err.to_string()),
+                 provider);
+        fs = nullptr;
     }
+    return fs;
 }
 
 static create_file_response create_block_file_sync(const std::string &remote_file_path,
