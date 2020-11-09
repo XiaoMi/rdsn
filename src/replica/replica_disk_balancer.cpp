@@ -126,7 +126,7 @@ void replica::migrate_replica(const migrate_replica_request &req)
     copy_migration_replica_checkpoint(req);
     copy_migration_replica_app_info(req);
 
-    set_disk_replica_migration_status(disk_replica_migration_status::MOVED);
+    set_migration_status(disk_replica_migration_status::MOVED);
     ddebug_replica("received disk replica migration(gpid={}, origin={}, target={}, "
                    "partition_status={}), update status from {}=>{}, ready to close origin "
                    "replica({})",
