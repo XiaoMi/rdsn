@@ -237,8 +237,7 @@ void replica::copy_migration_replica_app_info(const migrate_replica_request &req
     error_code store_info_err = info.store(path.c_str());
     if (store_info_err != ERR_OK) {
         derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                       "partition_status({})) but "
-                       "store info failed({})",
+                       "partition_status({})), but store info failed({})",
                        req.pid.to_string(),
                        req.origin_disk,
                        req.target_disk,
@@ -250,7 +249,7 @@ void replica::copy_migration_replica_app_info(const migrate_replica_request &req
 }
 
 // TODO(jiashuo1)
-// THREAD_POOL_REPLICATION_LONG
+// run in `close_replica` of THREAD_POOL_REPLICATION_LONG
 void replica::update_migration_replica_dir() {}
 } // namespace replication
 } // namespace dsn
