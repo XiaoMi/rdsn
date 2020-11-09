@@ -316,5 +316,9 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     ASSERT_EQ(rep2->migration_status(), disk_replica_migration_status::MOVING);
 }
 
+TEST_F(replica_disk_test, migrate_disk_replica) {
+
+}
+
 } // namespace replication
 } // namespace dsn
