@@ -70,11 +70,18 @@ public:
         rep->set_migration_status(status);
     }
 
-    void check_migration_replica_on_disk(migrate_replica_rpc rpc)
+    void check_migration_replica_on_disk(const migrate_replica_rpc &rpc)
     {
         replica_ptr rep = get_replica(rpc.request().pid);
         ASSERT_TRUE(rep);
         rep->check_migration_replica_on_disk(rpc.request(), rpc.response());
+    }
+
+    void migrate_disk_replica(const migrate_replica_rpc &rpc)
+    {
+        replica_ptr rep = get_replica(rpc.request().pid);
+        ASSERT_TRUE(rep);
+        rep->migrate_disk_replica(rpc.request());
     }
 
 private:
@@ -264,7 +271,7 @@ TEST_F(replica_disk_test, on_query_disk_info_one_app)
     }
 }
 
-/*************************** test `on_migrate_replica` interface *******************/
+/*************************** test `on_migrate_disk_replica` interface *******************/
 // TODO(jiashuo1): test whole process
 TEST_F(replica_disk_test, on_migrate_replica)
 {
@@ -363,7 +370,10 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     ASSERT_EQ(resp.err, ERR_OK);
 }
 
-TEST_F(replica_disk_test, migrate_disk_replica) {}
+TEST_F(replica_disk_test, migrate_disk_replica)
+{
+    // check migration status
+}
 
 } // namespace replication
 } // namespace dsn
