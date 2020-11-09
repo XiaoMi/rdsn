@@ -78,7 +78,7 @@ meta_service::meta_service()
     _unalive_nodes_count.init_app_counter(
         "eon.meta_service", "unalive_nodes", COUNTER_TYPE_NUMBER, "current count of unalive nodes");
 
-    _access_controller = security::create_access_controller(true);
+    _access_controller = security::create_meta_access_controller();
 }
 
 meta_service::~meta_service()

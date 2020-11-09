@@ -49,6 +49,6 @@ protected:
     std::unordered_set<std::string> _super_users;
 };
 
-std::unique_ptr<access_controller> create_access_controller(bool is_meta);
+std::unique_ptr<access_controller> create_meta_access_controller();
 } // namespace security
 } // namespace dsn

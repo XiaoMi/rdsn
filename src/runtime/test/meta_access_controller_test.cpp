@@ -28,7 +28,7 @@ DSN_DECLARE_bool(enable_acl);
 class meta_access_controller_test : public testing::Test
 {
 public:
-    meta_access_controller_test() { _meta_access_controller = create_access_controller(true); }
+    meta_access_controller_test() { _meta_access_controller = create_meta_access_controller(); }
 
     void set_super_user(const std::string &super_user)
     {

@@ -39,13 +39,9 @@ bool access_controller::pre_check(const std::string &user_name)
     return false;
 }
 
-std::unique_ptr<access_controller> create_access_controller(bool is_meta)
+std::unique_ptr<access_controller> create_meta_access_controller()
 {
-    if (is_meta) {
-        return make_unique<meta_access_controller>();
-    }
-
-    return nullptr;
+    return make_unique<meta_access_controller>();
 }
 } // namespace security
 } // namespace dsn
