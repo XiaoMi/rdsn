@@ -17,8 +17,7 @@ void replica::on_migrate_replica(const migrate_replica_request &req,
         return;
     }
 
-    tasking::enqueue(
-        LPC_REPLICATION_LONG_COMMON, tracker(), [=]() { copy_migration_replica(req); });
+    tasking::enqueue(LPC_REPLICATION_LONG_COMMON, tracker(), [=]() { migrate_replica(req); });
 }
 
 bool replica::check_migration_replica_on_disk(const migrate_replica_request &req,
@@ -110,18 +109,43 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
 
 // TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
-void replica::copy_migration_replica(const migrate_replica_request &req)
+void replica::migrate_replica(const migrate_replica_request &req)
 {
     if (_disk_replica_migration_status != disk_replica_migration_status::MOVING) {
-        dwarn_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                      "partition_status={}), but invalid migration_status({})",
-                      req.pid.to_string(),
-                      req.origin_disk,
-                      req.target_disk,
-                      enum_to_string(_disk_replica_migration_status),
-                      enum_to_string(status()));
+        derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
+                       "partition_status={}), but invalid migration_status({})",
+                       req.pid.to_string(),
+                       req.origin_disk,
+                       req.target_disk,
+                       enum_to_string(status()),
+                       enum_to_string(_disk_replica_migration_status));
         reset_replica_migration_status();
         return;
+    }
+
+    copy_migration_replica_checkpoint(req);
+    copy_migration_replica_app_info(req);
+
+    set_disk_replica_migration_status(disk_replica_migration_status::MOVED);
+    ddebug_replica("received disk replica migration(gpid={}, origin={}, target={}, "
+                   "partition_status={}), update status from {}=>{}, ready to close origin "
+                   "replica({})",
+                   req.pid.to_string(),
+                   req.origin_disk,
+                   req.target_disk,
+                   enum_to_string(status()),
+                   enum_to_string(disk_replica_migration_status::MOVING),
+                   enum_to_string(_disk_replica_migration_status),
+                   _dir);
+
+    if (status() != partition_status::type::PS_SECONDARY) {
+        derror_replica("disk replica migration is ready close the origin replica({}) failed coz "
+                       "invalid partition_status({}) ",
+                       _dir,
+                       enum_to_string(status()));
+        reset_replica_migration_status();
+    } else {
+        _stub->begin_close_replica(this);
     }
 }
 
@@ -133,7 +157,7 @@ void replica::copy_migration_replica_checkpoint(const migrate_replica_request &r
     boost::replace_first(replica_dir, req.origin_disk, req.target_disk);
     _disk_replica_migration_target_dir = replica_dir;
     if (utils::filesystem::directory_exists(_disk_replica_migration_target_dir)) {
-        derror_replica("migration target replica dir {} has existed",
+        derror_replica("migration target replica dir({}) has existed",
                        _disk_replica_migration_target_dir);
         reset_replica_migration_status();
         return;
@@ -148,13 +172,13 @@ void replica::copy_migration_replica_checkpoint(const migrate_replica_request &r
         utils::filesystem::path_combine(_disk_replica_migration_target_temp_dir, "/data/rdb/");
 
     if (utils::filesystem::directory_exists(_disk_replica_migration_target_temp_dir)) {
-        dwarn_replica("migration target temp replica dir {} has existed, it will be deleted",
+        dwarn_replica("migration target temp replica dir({}) has existed, it will be deleted",
                       _disk_replica_migration_target_temp_dir);
         utils::filesystem::remove_path(_disk_replica_migration_target_temp_dir);
     }
 
     if (!utils::filesystem::create_directory(tmp_data_dir)) {
-        derror_replica("create migration target temp data dir {} failed", tmp_data_dir);
+        derror_replica("create migration target temp data dir({}) failed", tmp_data_dir);
         reset_replica_migration_status();
         return;
     }
@@ -162,12 +186,12 @@ void replica::copy_migration_replica_checkpoint(const migrate_replica_request &r
     error_code sync_checkpoint_err = _app->sync_checkpoint();
     if (sync_checkpoint_err != ERR_OK) {
         derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                       "partition_status={}), but sync_checkpoint failed, error = {} ",
+                       "partition_status={}), but sync_checkpoint failed({})",
                        req.pid.to_string(),
                        req.origin_disk,
                        req.target_disk,
-                       sync_checkpoint_err.to_string(),
-                       enum_to_string(status()));
+                       enum_to_string(status()),
+                       sync_checkpoint_err.to_string());
         reset_replica_migration_status();
         return;
     }
@@ -181,9 +205,9 @@ void replica::copy_migration_replica_checkpoint(const migrate_replica_request &r
             req.pid.to_string(),
             req.origin_disk,
             req.target_disk,
+            enum_to_string(status()),
             copy_checkpoint_err.to_string(),
-            tmp_data_dir,
-            enum_to_string(status()));
+            tmp_data_dir);
         reset_replica_migration_status();
         utils::filesystem::remove_path(tmp_data_dir);
         return;
@@ -196,12 +220,12 @@ void replica::copy_migration_replica_app_info(const migrate_replica_request &req
     error_code store_init_info_err = init_info.store(_disk_replica_migration_target_temp_dir);
     if (store_init_info_err != ERR_OK) {
         derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                       "partition_status={}), but store init info failed, error = {}",
+                       "partition_status={}), but store init info failed({})",
                        req.pid.to_string(),
                        req.origin_disk,
                        req.target_disk,
-                       store_init_info_err.to_string(),
-                       enum_to_string(status()));
+                       enum_to_string(status()),
+                       store_init_info_err.to_string());
         reset_replica_migration_status();
         return;
     }
@@ -212,14 +236,14 @@ void replica::copy_migration_replica_app_info(const migrate_replica_request &req
     info.store(path.c_str());
     error_code store_info_err = info.store(path.c_str());
     if (store_info_err != ERR_OK) {
-        derror_replica("received disk replica migration(gpid={}, origin={}, target={}) but "
-                       "store info failed, error = {} "
-                       "partition_status = {}",
+        derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
+                       "partition_status({})) but "
+                       "store info failed({})",
                        req.pid.to_string(),
                        req.origin_disk,
                        req.target_disk,
-                       store_info_err.to_string(),
-                       enum_to_string(status()));
+                       enum_to_string(status()),
+                       store_info_err.to_string());
         reset_replica_migration_status();
         return;
     }
