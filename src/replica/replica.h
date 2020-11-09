@@ -214,6 +214,11 @@ public:
     // routine for get extra envs from replica
     const std::map<std::string, std::string> &get_replica_extra_envs() const { return _extra_envs; }
 
+    disk_replica_migration_status::type migration_status() const
+    {
+        return _disk_replica_migration_status;
+    }
+
     void set_disk_replica_migration_status(const disk_replica_migration_status::type &status)
     {
         _disk_replica_migration_status = status;

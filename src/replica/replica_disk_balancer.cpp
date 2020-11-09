@@ -93,6 +93,7 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
     }
 
     set_disk_replica_migration_status(disk_replica_migration_status::MOVING);
+    resp.err = ERR_OK;
     ddebug_replica("received disk replica migration(gpid={}, origin={}, target={}, "
                    "partition_status={}), update status from {}=>{}",
                    req.pid.to_string(),
