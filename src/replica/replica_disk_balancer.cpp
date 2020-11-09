@@ -27,8 +27,7 @@ void replica::on_migrate_disk_replica(const migrate_replica_request &req,
                    enum_to_string(disk_replica_migration_status::IDLE),
                    enum_to_string(_disk_replica_migration_status));
 
-    tasking::enqueue(
-        LPC_REPLICATION_LONG_COMMON, tracker(), [=]() { copy_migration_replica_checkpoint(req); });
+    tasking::enqueue(LPC_REPLICATION_LONG_COMMON, tracker(), [=]() { migrate_disk_replica(req); });
 }
 
 bool replica::check_migration_replica_on_disk(const migrate_replica_request &req,
@@ -124,7 +123,7 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
 
 // TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
-void replica::migrate_replica(const migrate_replica_request &req)
+void replica::migrate_disk_replica(const migrate_replica_request &req)
 {
     if (_disk_replica_migration_status != disk_replica_migration_status::MOVING) {
         derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
@@ -134,7 +133,7 @@ void replica::migrate_replica(const migrate_replica_request &req)
                        req.target_disk,
                        enum_to_string(status()),
                        enum_to_string(_disk_replica_migration_status));
-        reset_replica_migration_status();
+        reset_migration_status();
         return;
     }
 
@@ -158,7 +157,7 @@ void replica::migrate_replica(const migrate_replica_request &req)
                        "invalid partition_status({}) ",
                        _dir,
                        enum_to_string(status()));
-        reset_replica_migration_status();
+        reset_migration_status();
     } else {
         _stub->begin_close_replica(this);
     }
@@ -174,7 +173,7 @@ void replica::copy_migration_replica_checkpoint(const migrate_replica_request &r
     if (utils::filesystem::directory_exists(_disk_replica_migration_target_dir)) {
         derror_replica("migration target replica dir({}) has existed",
                        _disk_replica_migration_target_dir);
-        reset_replica_migration_status();
+        reset_migration_status();
         return;
     }
     std::string data_dir =
@@ -194,7 +193,7 @@ void replica::copy_migration_replica_checkpoint(const migrate_replica_request &r
 
     if (!utils::filesystem::create_directory(tmp_data_dir)) {
         derror_replica("create migration target temp data dir({}) failed", tmp_data_dir);
-        reset_replica_migration_status();
+        reset_migration_status();
         return;
     }
 
@@ -207,7 +206,7 @@ void replica::copy_migration_replica_checkpoint(const migrate_replica_request &r
                        req.target_disk,
                        enum_to_string(status()),
                        sync_checkpoint_err.to_string());
-        reset_replica_migration_status();
+        reset_migration_status();
         return;
     }
 
@@ -223,7 +222,7 @@ void replica::copy_migration_replica_checkpoint(const migrate_replica_request &r
             enum_to_string(status()),
             copy_checkpoint_err.to_string(),
             tmp_data_dir);
-        reset_replica_migration_status();
+        reset_migration_status();
         utils::filesystem::remove_path(tmp_data_dir);
         return;
     }
@@ -241,7 +240,7 @@ void replica::copy_migration_replica_app_info(const migrate_replica_request &req
                        req.target_disk,
                        enum_to_string(status()),
                        store_init_info_err.to_string());
-        reset_replica_migration_status();
+        reset_migration_status();
         return;
     }
 
@@ -258,7 +257,7 @@ void replica::copy_migration_replica_app_info(const migrate_replica_request &req
                        req.target_disk,
                        enum_to_string(status()),
                        store_info_err.to_string());
-        reset_replica_migration_status();
+        reset_migration_status();
         return;
     }
 }

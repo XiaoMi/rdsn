@@ -421,11 +421,11 @@ private:
 
     bool check_migration_replica_on_disk(const migrate_replica_request &req,
                                          /*out*/ migrate_replica_response &resp);
-    void migrate_replica(const migrate_replica_request &req);
+    void migrate_disk_replica(const migrate_replica_request &req);
     void copy_migration_replica_checkpoint(const migrate_replica_request &req);
     void copy_migration_replica_app_info(const migrate_replica_request &req);
 
-    void reset_replica_migration_status()
+    void reset_migration_status()
     {
         _disk_replica_migration_status = disk_replica_migration_status::IDLE;
     }

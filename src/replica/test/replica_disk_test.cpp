@@ -363,9 +363,7 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     ASSERT_EQ(resp.err, ERR_OK);
 }
 
-TEST_F(replica_disk_test, migrate_disk_replica) {
-
-}
+TEST_F(replica_disk_test, migrate_disk_replica) {}
 
 } // namespace replication
 } // namespace dsn
