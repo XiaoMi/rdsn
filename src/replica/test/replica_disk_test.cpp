@@ -314,6 +314,13 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     resp = rpc.response();
     ASSERT_EQ(resp.err, ERR_INVALID_STATE);
 
+    // check same disk
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
+    request.origin_disk = "tag_1";
+    request.target_disk = "tag_1";
+    check_migration_replica_on_disk(rpc);
+    ASSERT_EQ(resp.err, ERR_INVALID_PARAMETERS);
+
     // create empty disk, tag = tag_0
     generate_mock_empty_dir_node();
     // check invalid origin disk
@@ -354,7 +361,6 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     check_migration_replica_on_disk(rpc);
     resp = rpc.response();
     ASSERT_EQ(resp.err, ERR_OK);
-    ASSERT_EQ(get_replica(request.pid)->migration_status(), disk_replica_migration_status::MOVING);
 }
 
 } // namespace replication

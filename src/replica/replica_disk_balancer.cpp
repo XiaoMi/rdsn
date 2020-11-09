@@ -14,6 +14,16 @@ void replica::on_migrate_disk_replica(const migrate_replica_request &req,
         return;
     }
 
+    set_migration_status(disk_replica_migration_status::MOVING);
+    ddebug_replica("received disk replica migration(gpid={}, origin={}, target={}, "
+                   "partition_status={}), update status from {}=>{}",
+                   req.pid.to_string(),
+                   req.origin_disk,
+                   req.target_disk,
+                   enum_to_string(status()),
+                   enum_to_string(disk_replica_migration_status::IDLE),
+                   enum_to_string(_disk_replica_migration_status));
+
     tasking::enqueue(
         LPC_REPLICATION_LONG_COMMON, tracker(), [=]() { copy_migration_replica_checkpoint(req); });
 }
@@ -47,12 +57,24 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
         return false;
     }
 
+    if (req.origin_disk == req.target_disk) {
+        derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
+                       "partition_status={}), but origin disk equal target disk",
+                       req.pid.to_string(),
+                       req.origin_disk,
+                       req.target_disk,
+                       enum_to_string(status()));
+        resp.err = ERR_INVALID_PARAMETERS;
+        return false;
+    }
+
     bool valid_origin_disk = false;
     bool valid_target_disk = false;
     for (const auto &dir_node : _stub->_fs_manager._dir_nodes) {
         if (dir_node->tag == req.origin_disk) {
             valid_origin_disk = true;
-            std::set<gpid> disk_holding_replicas = dir_node->holding_replicas[req.pid.get_app_id()];
+            const std::set<gpid> &disk_holding_replicas =
+                dir_node->holding_replicas[req.pid.get_app_id()];
             if (disk_holding_replicas.find(req.pid) == disk_holding_replicas.end()) {
                 derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
                                "partition_status={}), but replica doesn't exist on origin disk",
@@ -67,7 +89,8 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
 
         if (dir_node->tag == req.target_disk) {
             valid_target_disk = true;
-            std::set<gpid> disk_holding_replicas = dir_node->holding_replicas[req.pid.get_app_id()];
+            const std::set<gpid> &disk_holding_replicas =
+                dir_node->holding_replicas[req.pid.get_app_id()];
             if (disk_holding_replicas.find(req.pid) != disk_holding_replicas.end()) {
                 derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
                                "partition_status={}), but replica has existed on target disk",
@@ -92,16 +115,7 @@ bool replica::check_migration_replica_on_disk(const migrate_replica_request &req
         return false;
     }
 
-    set_migration_status(disk_replica_migration_status::MOVING);
     resp.err = ERR_OK;
-    ddebug_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                   "partition_status={}), update status from {}=>{}",
-                   req.pid.to_string(),
-                   req.origin_disk,
-                   req.target_disk,
-                   enum_to_string(status()),
-                   enum_to_string(disk_replica_migration_status::IDLE),
-                   enum_to_string(_disk_replica_migration_status));
     return true;
 }
 
