@@ -219,7 +219,7 @@ public:
         return _disk_replica_migration_status;
     }
 
-    void set_disk_replica_migration_status(const disk_replica_migration_status::type &status)
+    void set_migration_status(const disk_replica_migration_status::type &status)
     {
         _disk_replica_migration_status = status;
     };
@@ -412,6 +412,7 @@ private:
     friend class replica_backup_manager;
     friend class replica_bulk_loader;
     friend class replica_split_manager;
+    friend class replica_disk_test;
 
     disk_replica_migration_status::type _disk_replica_migration_status{
         disk_replica_migration_status::IDLE};
