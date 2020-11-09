@@ -395,8 +395,8 @@ private:
 
     void on_detect_hotkey(const detect_hotkey_request &req, /*out*/ detect_hotkey_response &resp);
 
-    void on_migrate_replica(const migrate_replica_request &req,
-                            /*out*/ migrate_replica_response &resp);
+    void on_migrate_disk_replica(const migrate_replica_request &req,
+                                 /*out*/ migrate_replica_response &resp);
 
 private:
     friend class ::dsn::replication::test::test_checker;

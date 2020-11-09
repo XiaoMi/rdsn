@@ -215,7 +215,7 @@ public:
 
     // disk rebalaner
     void on_query_disk_info(query_disk_info_rpc rpc);
-    void on_migrate_replica(migrate_replica_rpc rpc);
+    void on_migrate_disk_replica(migrate_replica_rpc rpc);
 
 private:
     enum replica_node_state

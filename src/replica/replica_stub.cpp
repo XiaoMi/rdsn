@@ -1010,14 +1010,14 @@ void replica_stub::on_query_disk_info(query_disk_info_rpc rpc)
     resp.err = ERR_OK;
 }
 
-void replica_stub::on_migrate_replica(migrate_replica_rpc rpc)
+void replica_stub::on_migrate_disk_replica(migrate_replica_rpc rpc)
 {
     const migrate_replica_request &request = rpc.request();
     migrate_replica_response &response = rpc.response();
 
     replica_ptr rep = get_replica(request.pid);
     if (rep != nullptr) {
-        rep->on_migrate_replica(request, response);
+        rep->on_migrate_disk_replica(request, response);
     } else {
         response.err = ERR_OBJECT_NOT_FOUND;
     }
@@ -2096,7 +2096,7 @@ void replica_stub::open_service()
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler_with_rpc_holder(
-        RPC_MIGRATE_REPLICA, "on_migrate_replica", &replica_stub::on_migrate_replica);
+        RPC_MIGRATE_REPLICA, "on_migrate_disk_replica", &replica_stub::on_migrate_disk_replica);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler_with_rpc_holder(RPC_SPLIT_NOTIFY_CATCH_UP,
