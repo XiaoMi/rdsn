@@ -268,14 +268,14 @@ TEST_F(replica_disk_test, on_query_disk_info_one_app)
 TEST_F(replica_disk_test, on_migrate_replica)
 {
     auto &request = const_cast<migrate_replica_request &>(fake_migrate_rpc.request());
+    auto &response = fake_migrate_rpc.response();
 
     // replica not existed
     request.pid = dsn::gpid(app_info_1.app_id, 100);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
     stub->on_migrate_disk_replica(fake_migrate_rpc);
-    auto &resp = fake_migrate_rpc.response();
-    ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
+    ASSERT_EQ(response.err, ERR_OBJECT_NOT_FOUND);
 
     // TODO(jiashuo1): replica existed
 }
@@ -283,30 +283,29 @@ TEST_F(replica_disk_test, on_migrate_replica)
 TEST_F(replica_disk_test, migrate_disk_replica_check)
 {
     auto &request = const_cast<migrate_replica_request &>(fake_migrate_rpc.request());
+    auto &response = fake_migrate_rpc.response();
 
     request.pid = dsn::gpid(app_info_1.app_id, 0);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
 
     // check existed task
-    set_status(fake_migrate_rpc.request().pid, disk_replica_migration_status::MOVING);
+    set_status(request.pid, disk_replica_migration_status::MOVING);
     check_migration_replica_on_disk(fake_migrate_rpc);
-    auto &resp = fake_migrate_rpc.response();
-    ASSERT_EQ(resp.err, ERR_BUSY);
+    ASSERT_EQ(response.err, ERR_BUSY);
     set_status(fake_migrate_rpc.request().pid,
                disk_replica_migration_status::IDLE); // revert IDLE status
 
     // check invalid partition status
     check_migration_replica_on_disk(fake_migrate_rpc);
-    resp = fake_migrate_rpc.response();
-    ASSERT_EQ(resp.err, ERR_INVALID_STATE);
+    ASSERT_EQ(response.err, ERR_INVALID_STATE);
 
     // check same disk
     request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_1";
     check_migration_replica_on_disk(fake_migrate_rpc);
-    ASSERT_EQ(resp.err, ERR_INVALID_PARAMETERS);
+    ASSERT_EQ(response.err, ERR_INVALID_PARAMETERS);
 
     // create empty disk, tag = tag_0
     generate_mock_empty_dir_node();
@@ -315,30 +314,26 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     request.origin_disk = "tag_100";
     request.target_disk = "tag_0";
     check_migration_replica_on_disk(fake_migrate_rpc);
-    resp = fake_migrate_rpc.response();
-    ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
+    ASSERT_EQ(response.err, ERR_OBJECT_NOT_FOUND);
     // check invalid target disk
     request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_200";
     check_migration_replica_on_disk(fake_migrate_rpc);
-    resp = fake_migrate_rpc.response();
-    ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
+    ASSERT_EQ(response.err, ERR_OBJECT_NOT_FOUND);
 
     // check replica doesn't existed origin disk
     request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_0";
     request.target_disk = "tag_6";
     check_migration_replica_on_disk(fake_migrate_rpc);
-    resp = fake_migrate_rpc.response();
-    ASSERT_EQ(resp.err, ERR_OBJECT_NOT_FOUND);
+    ASSERT_EQ(response.err, ERR_OBJECT_NOT_FOUND);
     // check replica has existed on target disk
     request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
     stub->on_migrate_disk_replica(fake_migrate_rpc);
-    resp = fake_migrate_rpc.response();
-    ASSERT_EQ(resp.err, ERR_PATH_ALREADY_EXIST);
+    ASSERT_EQ(response.err, ERR_PATH_ALREADY_EXIST);
 
     // check passed
     request.pid = dsn::gpid(app_info_1.app_id, 2);
@@ -346,8 +341,7 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     request.target_disk = "tag_0";
     ASSERT_EQ(get_replica(request.pid)->migration_status(), disk_replica_migration_status::IDLE);
     check_migration_replica_on_disk(fake_migrate_rpc);
-    resp = fake_migrate_rpc.response();
-    ASSERT_EQ(resp.err, ERR_OK);
+    ASSERT_EQ(response.err, ERR_OK);
 }
 
 } // namespace replication
