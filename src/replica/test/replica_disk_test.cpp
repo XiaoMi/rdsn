@@ -57,27 +57,27 @@ public:
         stub->_fs_manager._dir_nodes.emplace_back(node_disk);
     }
 
-    replica_ptr get_replica(dsn::gpid pid)
+    replica_ptr get_replica(const dsn::gpid &pid) const
     {
         replica_ptr rep = stub->get_replica(pid);
         return rep;
     }
 
-    void set_status(const dsn::gpid pid, const disk_replica_migration_status::type &status)
+    void set_status(const dsn::gpid &pid, const disk_replica_migration_status::type &status)
     {
         replica_ptr rep = get_replica(pid);
         ASSERT_TRUE(rep);
         rep->set_migration_status(status);
     }
 
-    void check_migration_replica_on_disk(const migrate_replica_rpc &rpc)
+    void check_migration_replica_on_disk(migrate_replica_rpc &rpc)
     {
         replica_ptr rep = get_replica(rpc.request().pid);
         ASSERT_TRUE(rep);
         rep->check_migration_replica_on_disk(rpc.request(), rpc.response());
     }
 
-    void migrate_disk_replica(const migrate_replica_rpc &rpc)
+    void migrate_disk_replica(migrate_replica_rpc &rpc)
     {
         replica_ptr rep = get_replica(rpc.request().pid);
         ASSERT_TRUE(rep);
@@ -373,6 +373,7 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
 TEST_F(replica_disk_test, migrate_disk_replica)
 {
     // check migration status
+    migrate_disk_replica()
 }
 
 } // namespace replication
