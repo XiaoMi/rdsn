@@ -35,17 +35,19 @@ block_service_manager::block_service_manager()
 
 block_service_manager::~block_service_manager()
 {
+    ddebug("close block service manager.");
     zauto_write_lock l(_fs_lock);
     _fs_map.clear();
-    ddebug("close block service manager.");
 }
 
-block_filesystem *block_service_manager::get_block_filesystem(const std::string &provider)
+block_filesystem *block_service_manager::get_or_create_block_filesystem(const std::string &provider)
 {
-    zauto_write_lock l(_fs_lock);
-    auto iter = _fs_map.find(provider);
-    if (iter != _fs_map.end()) {
-        return iter->second.get();
+    {
+        zauto_write_lock l(_fs_lock);
+        auto iter = _fs_map.find(provider);
+        if (iter != _fs_map.end()) {
+            return iter->second.get();
+        }
     }
 
     const char *provider_type = dsn_config_get_value_string(
@@ -69,6 +71,7 @@ block_filesystem *block_service_manager::get_block_filesystem(const std::string 
 
     if (dsn::ERR_OK == err) {
         ddebug("create block filesystem ok for provider(%s)", provider.c_str());
+        zauto_write_lock l(_fs_lock);
         _fs_map.emplace(provider, std::unique_ptr<block_filesystem>(fs));
         return fs;
     } else {
