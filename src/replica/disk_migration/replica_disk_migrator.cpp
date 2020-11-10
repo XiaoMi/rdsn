@@ -42,12 +42,8 @@ void replica_disk_migrator::on_migrate_replica(const replica_disk_migrate_reques
     }
 
     set_status(disk_migration_status::MOVING);
-    ddebug_replica("received replica disk migrate request(gpid={}, origin={}, target={}, "
-                   "partition_status={}), update status from {}=>{}",
-                   req.pid.to_string(),
-                   req.origin_disk,
-                   req.target_disk,
-                   enum_to_string(status()),
+    ddebug_replica("received replica disk migrate request({}), update status from {}=>{}",
+                   _request_msg,
                    enum_to_string(disk_migration_status::IDLE),
                    enum_to_string(status()));
 
@@ -60,14 +56,15 @@ bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_r
 {
     _replica->_checker.only_one_thread_access();
 
-    std::string request_msg = fmt::format(
+    _request_msg = fmt::format(
         "gpid={}, origin={}, target={}", req.pid.to_string(), req.origin_disk, req.target_disk);
 
     // TODO(jiashuo1) may need manager control migration flow
     if (status() != disk_migration_status::IDLE) {
         std::string err_msg =
             fmt::format("Existed migrate task({}) is running", enum_to_string(status()));
-        derror_replica("received replica disk migrate request({}), err = {}", request_msg, err_msg);
+        derror_replica(
+            "received replica disk migrate request({}), err = {}", _request_msg, err_msg);
         resp.err = ERR_BUSY;
         resp.hint = err_msg;
         return false;
@@ -76,7 +73,8 @@ bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_r
     if (_replica->status() != partition_status::type::PS_SECONDARY) {
         std::string err_msg =
             fmt::format("Invalid partition status({})", enum_to_string(_replica->status()));
-        derror_replica("received replica disk migrate request({}), err = {}", request_msg, err_msg);
+        derror_replica(
+            "received replica disk migrate request({}), err = {}", _request_msg, err_msg);
         resp.err = ERR_INVALID_STATE;
         resp.hint = err_msg;
         return false;
@@ -85,7 +83,8 @@ bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_r
     if (req.origin_disk == req.target_disk) {
         std::string err_msg = fmt::format(
             "Invalid disk tag(origin({}) equal target({}))", req.origin_disk, req.target_disk);
-        derror_replica("received replica disk migrate request({}), err = {}", request_msg, err_msg);
+        derror_replica(
+            "received replica disk migrate request({}), err = {}", _request_msg, err_msg);
         resp.err = ERR_INVALID_PARAMETERS;
         resp.hint = err_msg;
         return false;
@@ -104,7 +103,7 @@ bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_r
                                 req.pid,
                                 req.origin_disk);
                 derror_replica(
-                    "received replica disk migrate request({}), err = {}", request_msg, err_msg);
+                    "received replica disk migrate request({}), err = {}", _request_msg, err_msg);
                 resp.err = ERR_OBJECT_NOT_FOUND;
                 resp.hint = err_msg;
                 return false;
@@ -121,7 +120,7 @@ bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_r
                                 req.pid,
                                 req.target_disk);
                 derror_replica(
-                    "received replica disk migrate request({}), err = {}", request_msg, err_msg);
+                    "received replica disk migrate request({}), err = {}", _request_msg, err_msg);
                 resp.err = ERR_PATH_ALREADY_EXIST;
                 resp.hint = err_msg;
                 return false;
@@ -134,7 +133,8 @@ bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_r
             fmt::format("Invalid disk tag(origin({}) or target({}) doesn't exist)",
                         req.origin_disk,
                         req.target_disk);
-        derror_replica("received replica disk migrate request({}), err = {}", request_msg, err_msg);
+        derror_replica(
+            "received replica disk migrate request({}), err = {}", _request_msg, err_msg);
         resp.err = ERR_OBJECT_NOT_FOUND;
         resp.hint = err_msg;
         return false;

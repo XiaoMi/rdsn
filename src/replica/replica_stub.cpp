@@ -2097,7 +2097,7 @@ void replica_stub::open_service()
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler_with_rpc_holder(
-        RPC_MIGRATE_REPLICA, "on_disk_migrate_replica", &replica_stub::on_disk_migrate);
+        RPC_MIGRATE_REPLICA, "disk_migrate_replica", &replica_stub::on_disk_migrate);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler_with_rpc_holder(RPC_SPLIT_NOTIFY_CATCH_UP,

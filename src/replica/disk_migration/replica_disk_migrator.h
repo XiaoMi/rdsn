@@ -39,10 +39,6 @@ public:
     void set_status(const disk_migration_status::type &status) { _status = status; }
 
 private:
-private:
-    replica *_replica;
-    replica_stub *_stub;
-
     bool check_disk_migrate_args(const replica_disk_migrate_request &req,
                                  /*out*/ replica_disk_migrate_response &resp);
 
@@ -50,6 +46,11 @@ private:
 
     void update_replica_dir();
 
+private:
+    replica *_replica;
+    replica_stub *_stub;
+
+    std::string _request_msg;
     disk_migration_status::type _status{disk_migration_status::IDLE};
 
     friend class replica;
