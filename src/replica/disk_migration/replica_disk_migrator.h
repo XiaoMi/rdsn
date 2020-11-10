@@ -33,6 +33,8 @@ public:
     void on_migrate_replica(const replica_disk_migrate_request &req,
                             /*out*/ replica_disk_migrate_response &resp);
 
+    void update_replica_dir();
+
     disk_migration_status::type status() const { return _status; }
 
     void set_status(const disk_migration_status::type &status) { _status = status; }
@@ -45,7 +47,6 @@ private:
     void copy_checkpoint(const replica_disk_migrate_request &req);
     void copy_app_info(const replica_disk_migrate_request &req);
 
-    void update_replica_dir();
 
     void reset_status() { _status = disk_migration_status::IDLE; }
 

@@ -160,7 +160,7 @@ void replica_disk_migrator::migrate_replica(const replica_disk_migrate_request &
     copy_checkpoint(req);
     copy_app_info(req);
 
-    set_status(disk_migration_status::MOVED);
+    _status = disk_migration_status::MOVED;
     ddebug_replica("received replica disk migrate request({}), update status from {}=>{}, ready to "
                    "close origin replica({})",
                    _request_msg,
@@ -225,16 +225,13 @@ void replica_disk_migrator::copy_checkpoint(const replica_disk_migrate_request &
 
     error_code copy_checkpoint_err =
         _replica->get_app()->copy_checkpoint_to_dir(tmp_data_dir.c_str(), 0 /*last_decree*/);
-    derror_replica("216");
     if (copy_checkpoint_err != ERR_OK) {
-        derror_replica("disk migration({}) copy_checkpoint_to_dir failed(error={}), the temp "
-                       "target_dir({}) will be deleted",
-                       req.pid.to_string(),
-                       req.origin_disk,
-                       req.target_disk,
-                       enum_to_string(status()),
+        derror_replica("disk migration({}) copy checkpoint to dir({}) failed(error={}), the "
+                       "dir({}) will be deleted",
+                       _request_msg,
+                       tmp_data_dir,
                        copy_checkpoint_err.to_string(),
-                       tmp_data_dir);
+                       _tmp_target_dir);
         reset_status();
         utils::filesystem::remove_path(tmp_data_dir);
         return;
@@ -246,12 +243,8 @@ void replica_disk_migrator::copy_app_info(const replica_disk_migrate_request &re
     replica_init_info init_info = _replica->get_app()->init_info();
     error_code store_init_info_err = init_info.store(_tmp_target_dir);
     if (store_init_info_err != ERR_OK) {
-        derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                       "partition_status={}), but store init info failed({})",
-                       req.pid.to_string(),
-                       req.origin_disk,
-                       req.target_disk,
-                       enum_to_string(status()),
+        derror_replica("disk migration({}) stores app init info failed({})",
+                       _request_msg,
                        store_init_info_err.to_string());
         reset_status();
         return;
@@ -262,12 +255,8 @@ void replica_disk_migrator::copy_app_info(const replica_disk_migrate_request &re
     info.store(path.c_str());
     error_code store_info_err = info.store(path.c_str());
     if (store_info_err != ERR_OK) {
-        derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                       "partition_status({})), but store info failed({})",
-                       req.pid.to_string(),
-                       req.origin_disk,
-                       req.target_disk,
-                       enum_to_string(status()),
+        derror_replica("disk migration({}) stores app info failed({})",
+                       _request_msg,
                        store_info_err.to_string());
         reset_status();
         return;
