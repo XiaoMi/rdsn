@@ -38,6 +38,8 @@ namespace dsn {
 
 DEFINE_CUSTOMIZED_ID(network_header_format, NET_HDR_HTTP)
 
+#define BUFFER_SIZE 4
+
 // Incoming HTTP requests will be parsed into:
 //
 //    msg->header->rpc_name = "RPC_HTTP_SERVICE"
