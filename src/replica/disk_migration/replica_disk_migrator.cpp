@@ -17,7 +17,6 @@
  * under the License.
  */
 
-#include "replica/replica.h"
 #include "replica/replica_stub.h"
 #include "replica_disk_migrator.h"
 
@@ -30,10 +29,7 @@
 namespace dsn {
 namespace replication {
 
-replica_disk_migrator::replica_disk_migrator(replica *r)
-    : replica_base(r), _replica(r), _stub(r->get_replica_stub())
-{
-}
+replica_disk_migrator::replica_disk_migrator(replica *r) : replica_base(r), _replica(r) {}
 
 replica_disk_migrator::~replica_disk_migrator() {}
 
@@ -46,7 +42,7 @@ void replica_disk_migrator::on_migrate_replica(const replica_disk_migrate_reques
         return;
     }
 
-    set_status(disk_migration_status::MOVING);
+    _status = disk_migration_status::MOVING;
     ddebug_replica("received replica disk migrate request({}), update status from {}=>{}",
                    _request_msg,
                    enum_to_string(disk_migration_status::IDLE),
@@ -97,7 +93,7 @@ bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_r
 
     bool valid_origin_disk = false;
     bool valid_target_disk = false;
-    for (const auto &dir_node : _stub->_fs_manager._dir_nodes) {
+    for (const auto &dir_node : _replica->get_replica_stub()->_fs_manager._dir_nodes) {
         if (dir_node->tag == req.origin_disk) {
             valid_origin_disk = true;
             const std::set<gpid> &disk_holding_replicas =
