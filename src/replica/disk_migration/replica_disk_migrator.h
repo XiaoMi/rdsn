@@ -20,7 +20,6 @@
 #pragma once
 
 #include "replica/replica.h"
-#include "replica/replica_stub.h"
 
 namespace dsn {
 namespace replication {
@@ -48,7 +47,6 @@ private:
 
 private:
     replica *_replica;
-    replica_stub *_stub;
 
     std::string _request_msg;
     disk_migration_status::type _status{disk_migration_status::IDLE};
