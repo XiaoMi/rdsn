@@ -468,7 +468,7 @@ struct query_disk_info_request
     2:string          app_name;
 }
 
-// This response is recieved replica_server.
+// This response is from replica_server to client.
 struct query_disk_info_response
 {
     // app not existed will return "ERR_OBJECT_NOT_FOUND", otherwise "ERR_OK"
@@ -478,19 +478,19 @@ struct query_disk_info_response
     4:list<disk_info> disk_infos;
 }
 
-// This request is sent from clent to replica_server.
-struct migrate_replica_request 
+// This request is sent from client to replica_server.
+struct replica_disk_migrate_request
 {
-    1:dsn.rpc_address node;
-    2:dsn.gpid pid
-    3:string origin_disk;
-    4:string target_disk;
+    1:dsn.gpid pid
+    2:string origin_disk;
+    3:string target_disk;
 }
 
-// This response is recieved replica_server.
-struct migrate_replica_response 
+// This response is from replica_server to client.
+struct replica_disk_migrate_response
 {
    1:dsn.error_code err;
+   2:optional string hint;
 }
 
 struct query_app_info_request
@@ -1126,8 +1126,7 @@ enum detect_action
     STOP
 }
 
-// disk replica migration
-enum disk_replica_migration_status {
+enum disk_migration_status {
     IDLE,
     MOVING,
     MOVED,

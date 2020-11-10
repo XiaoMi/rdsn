@@ -127,8 +127,8 @@ private:
     perf_counter_wrapper _counter_max_available_ratio;
 
     friend class replica_stub;
-    friend class replica;
     friend class mock_replica_stub;
+    friend class replica_disk_migrator;
     friend class replica_disk_test;
 };
 } // replication

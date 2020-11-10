@@ -53,7 +53,8 @@ typedef rpc_holder<query_replica_decree_request, query_replica_decree_response>
 typedef rpc_holder<query_replica_info_request, query_replica_info_response> query_replica_info_rpc;
 typedef rpc_holder<replica_configuration, learn_response> copy_checkpoint_rpc;
 typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
-typedef rpc_holder<migrate_replica_request, migrate_replica_response> migrate_replica_rpc;
+typedef rpc_holder<replica_disk_migrate_request, replica_disk_migrate_response>
+    replica_disk_migrate_rpc;
 typedef rpc_holder<query_app_info_request, query_app_info_response> query_app_info_rpc;
 typedef rpc_holder<notify_catch_up_request, notify_cacth_up_response> notify_catch_up_rpc;
 typedef rpc_holder<update_child_group_partition_count_request,
@@ -213,9 +214,8 @@ public:
     // TODO: (Tangyanzhao) add some comments
     void on_detect_hotkey(detect_hotkey_rpc rpc);
 
-    // disk rebalaner
     void on_query_disk_info(query_disk_info_rpc rpc);
-    void on_migrate_disk_replica(migrate_replica_rpc rpc);
+    void on_disk_migrate(replica_disk_migrate_rpc rpc);
 
 private:
     enum replica_node_state
@@ -299,6 +299,7 @@ private:
     friend class replica_http_service;
     friend class replica_bulk_loader;
     friend class replica_split_manager;
+    friend class replica_disk_migrator;
 
     friend class mock_replica_stub;
     friend class duplication_sync_timer;

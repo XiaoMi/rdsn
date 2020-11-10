@@ -212,15 +212,13 @@ const std::map<int, const char *> _detect_action_VALUES_TO_NAMES(
     ::apache::thrift::TEnumIterator(2, _kdetect_actionValues, _kdetect_actionNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
-int _kdisk_replica_migration_statusValues[] = {disk_replica_migration_status::IDLE,
-                                               disk_replica_migration_status::MOVING,
-                                               disk_replica_migration_status::MOVED,
-                                               disk_replica_migration_status::CLOSED};
-const char *_kdisk_replica_migration_statusNames[] = {"IDLE", "MOVING", "MOVED", "CLOSED"};
-const std::map<int, const char *> _disk_replica_migration_status_VALUES_TO_NAMES(
-    ::apache::thrift::TEnumIterator(4,
-                                    _kdisk_replica_migration_statusValues,
-                                    _kdisk_replica_migration_statusNames),
+int _kdisk_migration_statusValues[] = {disk_migration_status::IDLE,
+                                       disk_migration_status::MOVING,
+                                       disk_migration_status::MOVED,
+                                       disk_migration_status::CLOSED};
+const char *_kdisk_migration_statusNames[] = {"IDLE", "MOVING", "MOVED", "CLOSED"};
+const std::map<int, const char *> _disk_migration_status_VALUES_TO_NAMES(
+    ::apache::thrift::TEnumIterator(4, _kdisk_migration_statusValues, _kdisk_migration_statusNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 mutation_header::~mutation_header() throw() {}
@@ -7720,17 +7718,21 @@ void query_disk_info_response::printTo(std::ostream &out) const
     out << ")";
 }
 
-migrate_replica_request::~migrate_replica_request() throw() {}
+replica_disk_migrate_request::~replica_disk_migrate_request() throw() {}
 
-void migrate_replica_request::__set_node(const ::dsn::rpc_address &val) { this->node = val; }
+void replica_disk_migrate_request::__set_pid(const ::dsn::gpid &val) { this->pid = val; }
 
-void migrate_replica_request::__set_pid(const ::dsn::gpid &val) { this->pid = val; }
+void replica_disk_migrate_request::__set_origin_disk(const std::string &val)
+{
+    this->origin_disk = val;
+}
 
-void migrate_replica_request::__set_origin_disk(const std::string &val) { this->origin_disk = val; }
+void replica_disk_migrate_request::__set_target_disk(const std::string &val)
+{
+    this->target_disk = val;
+}
 
-void migrate_replica_request::__set_target_disk(const std::string &val) { this->target_disk = val; }
-
-uint32_t migrate_replica_request::read(::apache::thrift::protocol::TProtocol *iprot)
+uint32_t replica_disk_migrate_request::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
     apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
@@ -7751,21 +7753,13 @@ uint32_t migrate_replica_request::read(::apache::thrift::protocol::TProtocol *ip
         switch (fid) {
         case 1:
             if (ftype == ::apache::thrift::protocol::T_STRUCT) {
-                xfer += this->node.read(iprot);
-                this->__isset.node = true;
-            } else {
-                xfer += iprot->skip(ftype);
-            }
-            break;
-        case 2:
-            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
                 xfer += this->pid.read(iprot);
                 this->__isset.pid = true;
             } else {
                 xfer += iprot->skip(ftype);
             }
             break;
-        case 3:
+        case 2:
             if (ftype == ::apache::thrift::protocol::T_STRING) {
                 xfer += iprot->readString(this->origin_disk);
                 this->__isset.origin_disk = true;
@@ -7773,7 +7767,7 @@ uint32_t migrate_replica_request::read(::apache::thrift::protocol::TProtocol *ip
                 xfer += iprot->skip(ftype);
             }
             break;
-        case 4:
+        case 3:
             if (ftype == ::apache::thrift::protocol::T_STRING) {
                 xfer += iprot->readString(this->target_disk);
                 this->__isset.target_disk = true;
@@ -7793,25 +7787,21 @@ uint32_t migrate_replica_request::read(::apache::thrift::protocol::TProtocol *ip
     return xfer;
 }
 
-uint32_t migrate_replica_request::write(::apache::thrift::protocol::TProtocol *oprot) const
+uint32_t replica_disk_migrate_request::write(::apache::thrift::protocol::TProtocol *oprot) const
 {
     uint32_t xfer = 0;
     apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
-    xfer += oprot->writeStructBegin("migrate_replica_request");
+    xfer += oprot->writeStructBegin("replica_disk_migrate_request");
 
-    xfer += oprot->writeFieldBegin("node", ::apache::thrift::protocol::T_STRUCT, 1);
-    xfer += this->node.write(oprot);
-    xfer += oprot->writeFieldEnd();
-
-    xfer += oprot->writeFieldBegin("pid", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += oprot->writeFieldBegin("pid", ::apache::thrift::protocol::T_STRUCT, 1);
     xfer += this->pid.write(oprot);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("origin_disk", ::apache::thrift::protocol::T_STRING, 3);
+    xfer += oprot->writeFieldBegin("origin_disk", ::apache::thrift::protocol::T_STRING, 2);
     xfer += oprot->writeString(this->origin_disk);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("target_disk", ::apache::thrift::protocol::T_STRING, 4);
+    xfer += oprot->writeFieldBegin("target_disk", ::apache::thrift::protocol::T_STRING, 3);
     xfer += oprot->writeString(this->target_disk);
     xfer += oprot->writeFieldEnd();
 
@@ -7820,57 +7810,53 @@ uint32_t migrate_replica_request::write(::apache::thrift::protocol::TProtocol *o
     return xfer;
 }
 
-void swap(migrate_replica_request &a, migrate_replica_request &b)
+void swap(replica_disk_migrate_request &a, replica_disk_migrate_request &b)
 {
     using ::std::swap;
-    swap(a.node, b.node);
     swap(a.pid, b.pid);
     swap(a.origin_disk, b.origin_disk);
     swap(a.target_disk, b.target_disk);
     swap(a.__isset, b.__isset);
 }
 
-migrate_replica_request::migrate_replica_request(const migrate_replica_request &other323)
+replica_disk_migrate_request::replica_disk_migrate_request(
+    const replica_disk_migrate_request &other323)
 {
-    node = other323.node;
     pid = other323.pid;
     origin_disk = other323.origin_disk;
     target_disk = other323.target_disk;
     __isset = other323.__isset;
 }
-migrate_replica_request::migrate_replica_request(migrate_replica_request &&other324)
+replica_disk_migrate_request::replica_disk_migrate_request(replica_disk_migrate_request &&other324)
 {
-    node = std::move(other324.node);
     pid = std::move(other324.pid);
     origin_disk = std::move(other324.origin_disk);
     target_disk = std::move(other324.target_disk);
     __isset = std::move(other324.__isset);
 }
-migrate_replica_request &migrate_replica_request::operator=(const migrate_replica_request &other325)
+replica_disk_migrate_request &replica_disk_migrate_request::
+operator=(const replica_disk_migrate_request &other325)
 {
-    node = other325.node;
     pid = other325.pid;
     origin_disk = other325.origin_disk;
     target_disk = other325.target_disk;
     __isset = other325.__isset;
     return *this;
 }
-migrate_replica_request &migrate_replica_request::operator=(migrate_replica_request &&other326)
+replica_disk_migrate_request &replica_disk_migrate_request::
+operator=(replica_disk_migrate_request &&other326)
 {
-    node = std::move(other326.node);
     pid = std::move(other326.pid);
     origin_disk = std::move(other326.origin_disk);
     target_disk = std::move(other326.target_disk);
     __isset = std::move(other326.__isset);
     return *this;
 }
-void migrate_replica_request::printTo(std::ostream &out) const
+void replica_disk_migrate_request::printTo(std::ostream &out) const
 {
     using ::apache::thrift::to_string;
-    out << "migrate_replica_request(";
-    out << "node=" << to_string(node);
-    out << ", "
-        << "pid=" << to_string(pid);
+    out << "replica_disk_migrate_request(";
+    out << "pid=" << to_string(pid);
     out << ", "
         << "origin_disk=" << to_string(origin_disk);
     out << ", "
@@ -7878,11 +7864,17 @@ void migrate_replica_request::printTo(std::ostream &out) const
     out << ")";
 }
 
-migrate_replica_response::~migrate_replica_response() throw() {}
+replica_disk_migrate_response::~replica_disk_migrate_response() throw() {}
 
-void migrate_replica_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
+void replica_disk_migrate_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
 
-uint32_t migrate_replica_response::read(::apache::thrift::protocol::TProtocol *iprot)
+void replica_disk_migrate_response::__set_hint(const std::string &val)
+{
+    this->hint = val;
+    __isset.hint = true;
+}
+
+uint32_t replica_disk_migrate_response::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
     apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
@@ -7909,6 +7901,14 @@ uint32_t migrate_replica_response::read(::apache::thrift::protocol::TProtocol *i
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->hint);
+                this->__isset.hint = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -7921,56 +7921,72 @@ uint32_t migrate_replica_response::read(::apache::thrift::protocol::TProtocol *i
     return xfer;
 }
 
-uint32_t migrate_replica_response::write(::apache::thrift::protocol::TProtocol *oprot) const
+uint32_t replica_disk_migrate_response::write(::apache::thrift::protocol::TProtocol *oprot) const
 {
     uint32_t xfer = 0;
     apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
-    xfer += oprot->writeStructBegin("migrate_replica_response");
+    xfer += oprot->writeStructBegin("replica_disk_migrate_response");
 
     xfer += oprot->writeFieldBegin("err", ::apache::thrift::protocol::T_STRUCT, 1);
     xfer += this->err.write(oprot);
     xfer += oprot->writeFieldEnd();
 
+    if (this->__isset.hint) {
+        xfer += oprot->writeFieldBegin("hint", ::apache::thrift::protocol::T_STRING, 2);
+        xfer += oprot->writeString(this->hint);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
 }
 
-void swap(migrate_replica_response &a, migrate_replica_response &b)
+void swap(replica_disk_migrate_response &a, replica_disk_migrate_response &b)
 {
     using ::std::swap;
     swap(a.err, b.err);
+    swap(a.hint, b.hint);
     swap(a.__isset, b.__isset);
 }
 
-migrate_replica_response::migrate_replica_response(const migrate_replica_response &other327)
+replica_disk_migrate_response::replica_disk_migrate_response(
+    const replica_disk_migrate_response &other327)
 {
     err = other327.err;
+    hint = other327.hint;
     __isset = other327.__isset;
 }
-migrate_replica_response::migrate_replica_response(migrate_replica_response &&other328)
+replica_disk_migrate_response::replica_disk_migrate_response(
+    replica_disk_migrate_response &&other328)
 {
     err = std::move(other328.err);
+    hint = std::move(other328.hint);
     __isset = std::move(other328.__isset);
 }
-migrate_replica_response &migrate_replica_response::
-operator=(const migrate_replica_response &other329)
+replica_disk_migrate_response &replica_disk_migrate_response::
+operator=(const replica_disk_migrate_response &other329)
 {
     err = other329.err;
+    hint = other329.hint;
     __isset = other329.__isset;
     return *this;
 }
-migrate_replica_response &migrate_replica_response::operator=(migrate_replica_response &&other330)
+replica_disk_migrate_response &replica_disk_migrate_response::
+operator=(replica_disk_migrate_response &&other330)
 {
     err = std::move(other330.err);
+    hint = std::move(other330.hint);
     __isset = std::move(other330.__isset);
     return *this;
 }
-void migrate_replica_response::printTo(std::ostream &out) const
+void replica_disk_migrate_response::printTo(std::ostream &out) const
 {
     using ::apache::thrift::to_string;
-    out << "migrate_replica_response(";
+    out << "replica_disk_migrate_response(";
     out << "err=" << to_string(err);
+    out << ", "
+        << "hint=";
+    (__isset.hint ? (out << to_string(hint)) : (out << "<null>"));
     out << ")";
 }
 

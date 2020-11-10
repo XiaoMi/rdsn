@@ -44,8 +44,7 @@ public:
 
     error_code start(int, char **) override { return ERR_NOT_IMPLEMENTED; }
     error_code stop(bool) override { return ERR_NOT_IMPLEMENTED; }
-    error_code sync_checkpoint() override {
-        return ERR_OK; }
+    error_code sync_checkpoint() override { return ERR_OK; }
     error_code async_checkpoint(bool) override { return ERR_NOT_IMPLEMENTED; }
     error_code prepare_get_checkpoint(blob &) override { return ERR_NOT_IMPLEMENTED; }
     error_code get_checkpoint(int64_t, const blob &, learn_state &) override
@@ -59,7 +58,7 @@ public:
     error_code copy_checkpoint_to_dir(const char *checkpoint_dir,
                                       /*output*/ int64_t *last_decree) override
     {
-        if(last_decree != nullptr) {
+        if (last_decree != nullptr) {
             *last_decree = _decree;
         }
         return ERR_OK;
