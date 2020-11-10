@@ -41,6 +41,7 @@ replica_disk_migrator::~replica_disk_migrator() {}
 void replica_disk_migrator::on_migrate_replica(const replica_disk_migrate_request &req,
                                                /*out*/ replica_disk_migrate_response &resp)
 {
+    // return false if argument validation failed.
     if (!check_disk_migrate_args(req, resp)) {
         return;
     }
@@ -179,7 +180,7 @@ void replica_disk_migrator::migrate_replica(const replica_disk_migrate_request &
         reset_status();
         return;
     } else {
-        _stub->begin_close_replica(_replica);
+        _replica->_stub->begin_close_replica(_replica);
     }
 }
 
@@ -202,26 +203,25 @@ void replica_disk_migrator::copy_checkpoint(const replica_disk_migrate_request &
     std::string tmp_data_dir = utils::filesystem::path_combine(_tmp_target_dir, "/data/rdb/");
 
     if (utils::filesystem::directory_exists(_tmp_target_dir)) {
-        dwarn_replica("migration target temp replica dir({}) has existed, it will be deleted",
-                      _tmp_target_dir);
+        dwarn_replica(
+            "disk migration({}) target temp replica dir({}) has existed, it will be deleted",
+            _request_msg,
+            _tmp_target_dir);
         utils::filesystem::remove_path(_tmp_target_dir);
     }
 
     if (!utils::filesystem::create_directory(tmp_data_dir)) {
-        derror_replica("create migration target temp data dir({}) failed", tmp_data_dir);
+        derror_replica("disk migration({}) create target temp data dir({}) failed",
+                       _request_msg,
+                       tmp_data_dir);
         reset_status();
         return;
     }
 
     error_code sync_checkpoint_err = _replica->get_app()->sync_checkpoint();
-    derror_replica("201");
     if (sync_checkpoint_err != ERR_OK) {
-        derror_replica("received disk replica migration(gpid={}, origin={}, target={}, "
-                       "partition_status={}), but sync_checkpoint failed({})",
-                       req.pid.to_string(),
-                       req.origin_disk,
-                       req.target_disk,
-                       enum_to_string(status()),
+        derror_replica("disk migration({}) sync_checkpoint failed({})",
+                       _request_msg,
                        sync_checkpoint_err.to_string());
         reset_status();
         return;
@@ -231,15 +231,14 @@ void replica_disk_migrator::copy_checkpoint(const replica_disk_migrate_request &
         _replica->get_app()->copy_checkpoint_to_dir(tmp_data_dir.c_str(), 0 /*last_decree*/);
     derror_replica("216");
     if (copy_checkpoint_err != ERR_OK) {
-        derror_replica(
-            "received disk replica migration(gpid={}, origin={}, target={}, partition_status={}) "
-            "but copy_checkpoint_to_dir failed(error={}), the temp target_dir({}) will be deleted",
-            req.pid.to_string(),
-            req.origin_disk,
-            req.target_disk,
-            enum_to_string(status()),
-            copy_checkpoint_err.to_string(),
-            tmp_data_dir);
+        derror_replica("disk migration({}) copy_checkpoint_to_dir failed(error={}), the temp "
+                       "target_dir({}) will be deleted",
+                       req.pid.to_string(),
+                       req.origin_disk,
+                       req.target_disk,
+                       enum_to_string(status()),
+                       copy_checkpoint_err.to_string(),
+                       tmp_data_dir);
         reset_status();
         utils::filesystem::remove_path(tmp_data_dir);
         return;

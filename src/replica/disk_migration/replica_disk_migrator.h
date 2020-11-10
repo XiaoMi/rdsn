@@ -60,7 +60,6 @@ private:
     disk_migration_status::type _status{disk_migration_status::IDLE};
 
     friend class replica;
-    friend class replica_stub;
     friend class replica_disk_test;
 };
 
