@@ -38,7 +38,8 @@ namespace dsn {
 
 DEFINE_CUSTOMIZED_ID(network_header_format, NET_HDR_HTTP)
 
-#define BUFFER_SIZE 4
+// Number of blobs that a message_ex contains.
+#define HTTP_MSG_BUFFERS_NUM 4
 
 // Incoming HTTP requests will be parsed into:
 //
