@@ -1,11 +1,27 @@
-// Copyright (c) 2017-present, Xiaomi, Inc.  All rights reserved.
-// This source code is licensed under the Apache License Version 2.0, which
-// can be found in the LICENSE file in the root directory of this source tree.
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 
 #include <gtest/gtest.h>
 #include <dsn/utility/fail_point.h>
 
-#include "replica_test_base.h"
+#include "replica/test/replica_test_base.h"
+#include "replica/disk_migration/replica_disk_migrator.h"
 
 namespace dsn {
 namespace replication {
@@ -24,7 +40,7 @@ public:
     int app_id_2_secondary_count_for_disk = 4;
 
     query_disk_info_rpc fake_query_disk_rpc;
-    migrate_replica_rpc fake_migrate_rpc;
+    replica_disk_migrate_rpc fake_migrate_rpc;
 
 public:
     // create `dir_nodes_count`(tag_1~tag_5) mock disk:
@@ -67,12 +83,12 @@ public:
         // create RPC_MIGRATE_REPLICA fake request
         dsn::message_ptr fake_migrate_request =
             dsn::message_ex::create_request(RPC_MIGRATE_REPLICA);
-        migrate_replica_request migrate_request;
+        replica_disk_migrate_request migrate_request;
         ::dsn::marshall(fake_migrate_request, migrate_request);
 
         dsn::message_ex *recvd_migrate_request = fake_migrate_request->copy(true, true);
         fake_migrate_rpc =
-            rpc_holder<migrate_replica_request, migrate_replica_response>::auto_reply(
+            rpc_holder<replica_disk_migrate_request, replica_disk_migrate_response>::auto_reply(
                 recvd_migrate_request);
     }
 
@@ -90,18 +106,18 @@ public:
         return rep;
     }
 
-    void set_status(const dsn::gpid &pid, const disk_replica_migration_status::type &status)
+    void set_status(const dsn::gpid &pid, const disk_migration_status::type &status)
     {
         replica_ptr rep = get_replica(pid);
         ASSERT_TRUE(rep);
-        rep->set_migration_status(status);
+        rep->disk_migrator()->set_status(status);
     }
 
-    void check_migration_replica_on_disk(migrate_replica_rpc &rpc)
+    void check_migration_replica_on_disk(replica_disk_migrate_rpc &rpc)
     {
         replica_ptr rep = get_replica(rpc.request().pid);
         ASSERT_TRUE(rep);
-        rep->check_migration_replica_on_disk(rpc.request(), rpc.response());
+        rep->disk_migrator()->check_disk_migrate_args(rpc.request(), rpc.response());
     }
 
 private:
@@ -267,14 +283,14 @@ TEST_F(replica_disk_test, on_query_disk_info_one_app)
 // TODO(jiashuo1): test whole process
 TEST_F(replica_disk_test, on_migrate_replica)
 {
-    auto &request = const_cast<migrate_replica_request &>(fake_migrate_rpc.request());
+    auto &request = const_cast<replica_disk_migrate_request &>(fake_migrate_rpc.request());
     auto &response = fake_migrate_rpc.response();
 
     // replica not existed
     request.pid = dsn::gpid(app_info_1.app_id, 100);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
-    stub->on_migrate_disk_replica(fake_migrate_rpc);
+    stub->on_disk_migrate(fake_migrate_rpc);
     ASSERT_EQ(response.err, ERR_OBJECT_NOT_FOUND);
 
     // TODO(jiashuo1): replica existed
@@ -282,7 +298,7 @@ TEST_F(replica_disk_test, on_migrate_replica)
 
 TEST_F(replica_disk_test, migrate_disk_replica_check)
 {
-    auto &request = const_cast<migrate_replica_request &>(fake_migrate_rpc.request());
+    auto &request = const_cast<replica_disk_migrate_request &>(fake_migrate_rpc.request());
     auto &response = fake_migrate_rpc.response();
 
     request.pid = dsn::gpid(app_info_1.app_id, 0);
@@ -290,11 +306,10 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     request.target_disk = "tag_2";
 
     // check existed task
-    set_status(request.pid, disk_replica_migration_status::MOVING);
+    set_status(request.pid, disk_migration_status::MOVING);
     check_migration_replica_on_disk(fake_migrate_rpc);
     ASSERT_EQ(response.err, ERR_BUSY);
-    set_status(fake_migrate_rpc.request().pid,
-               disk_replica_migration_status::IDLE); // revert IDLE status
+    set_status(fake_migrate_rpc.request().pid, disk_migration_status::IDLE); // revert IDLE status
 
     // check invalid partition status
     check_migration_replica_on_disk(fake_migrate_rpc);
@@ -332,14 +347,14 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
-    stub->on_migrate_disk_replica(fake_migrate_rpc);
+    stub->on_disk_migrate(fake_migrate_rpc);
     ASSERT_EQ(response.err, ERR_PATH_ALREADY_EXIST);
 
     // check passed
     request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_0";
-    ASSERT_EQ(get_replica(request.pid)->migration_status(), disk_replica_migration_status::IDLE);
+    ASSERT_EQ(get_replica(request.pid)->disk_migrator()->status(), disk_migration_status::IDLE);
     check_migration_replica_on_disk(fake_migrate_rpc);
     ASSERT_EQ(response.err, ERR_OK);
 }

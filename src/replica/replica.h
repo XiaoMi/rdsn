@@ -65,6 +65,7 @@ class replica_duplicator_manager;
 class replica_backup_manager;
 class replica_bulk_loader;
 class replica_split_manager;
+class replica_disk_migrator;
 
 class cold_backup_context;
 typedef dsn::ref_ptr<cold_backup_context> cold_backup_context_ptr;
@@ -207,22 +208,17 @@ public:
     replica_split_manager *get_split_manager() const { return _split_mgr.get(); }
 
     //
+    // Disk migrator
+    //
+    replica_disk_migrator *disk_migrator() const { return _disk_migrator.get(); }
+
+    //
     // Statistics
     //
     void update_commit_qps(int count);
 
     // routine for get extra envs from replica
     const std::map<std::string, std::string> &get_replica_extra_envs() const { return _extra_envs; }
-
-    disk_replica_migration_status::type migration_status() const
-    {
-        return _disk_replica_migration_status;
-    }
-
-    void set_migration_status(const disk_replica_migration_status::type &status)
-    {
-        _disk_replica_migration_status = status;
-    };
 
 protected:
     // this method is marked protected to enable us to mock it in unit tests.
@@ -395,9 +391,6 @@ private:
 
     void on_detect_hotkey(const detect_hotkey_request &req, /*out*/ detect_hotkey_response &resp);
 
-    void on_migrate_disk_replica(const migrate_replica_request &req,
-                                 /*out*/ migrate_replica_response &resp);
-
 private:
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::mutation_queue;
@@ -412,16 +405,7 @@ private:
     friend class replica_backup_manager;
     friend class replica_bulk_loader;
     friend class replica_split_manager;
-    friend class replica_disk_test;
-
-    disk_replica_migration_status::type _disk_replica_migration_status{
-        disk_replica_migration_status::IDLE};
-
-    bool check_migration_replica_on_disk(const migrate_replica_request &req,
-                                         /*out*/ migrate_replica_response &resp);
-    void copy_migration_replica_checkpoint(const migrate_replica_request &req);
-
-    void update_migration_replica_dir();
+    friend class replica_disk_migrator;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -508,6 +492,9 @@ private:
 
     // partition split
     std::unique_ptr<replica_split_manager> _split_mgr;
+
+    // disk migrator
+    std::unique_ptr<replica_disk_migrator> _disk_migrator;
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
