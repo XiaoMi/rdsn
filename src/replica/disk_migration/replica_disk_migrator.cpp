@@ -189,6 +189,7 @@ void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_r
 // THREAD_POOL_REPLICATION_LONG
 bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &req)
 {
+    // replica_dir: /root/origin/gpid.app_type
     std::string replica_dir = _replica->dir();
     // using origin dir init new dir
     boost::replace_first(replica_dir, req.origin_disk, req.target_disk);
@@ -198,14 +199,9 @@ bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &
         return false;
     }
 
-    std::string replica_folder_name =
-        fmt::format("{}.{}", get_gpid(), _replica->get_app_info()->app_type);
-    std::string replica_folder_tmp_name =
-        fmt::format("{}{}", replica_folder_name, kReplicaDirSuffix);
-    boost::replace_first(replica_dir, replica_folder_name, replica_folder_tmp_name);
-    // _target_replica_dir = /root/target/gpid.app_type.disk.balance.tmp/, it will update to
-    // /root/target/gpid.app_type/ finally
-    _target_replica_dir = replica_dir;
+    // _target_replica_dir = /root/target/gpid.app_type.disk.balance.tmp, it will update to
+    // /root/target/gpid.app_type finally
+    _target_replica_dir = fmt::format("{}{}", replica_dir, kReplicaDirSuffix);
     if (utils::filesystem::directory_exists(_target_replica_dir)) {
         dwarn_replica("disk migration(origin={}, target={}) target replica dir({}) has existed, it "
                       "will be deleted",
