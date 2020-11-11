@@ -29,7 +29,7 @@ replica_disk_migrator::replica_disk_migrator(replica *r) : replica_base(r), _rep
 
 replica_disk_migrator::~replica_disk_migrator() = default;
 
-    // THREAD_POOL_REPLICATION
+// THREAD_POOL_REPLICATION
 void replica_disk_migrator::on_migrate_replica(const replica_disk_migrate_request &req,
                                                /*out*/ replica_disk_migrate_response &resp)
 {
