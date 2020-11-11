@@ -47,7 +47,6 @@ private:
 private:
     replica *_replica;
 
-    std::string _request_msg;
     disk_migration_status::type _status{disk_migration_status::IDLE};
 
     friend class replica_disk_test;
