@@ -1989,14 +1989,10 @@ void replica_stub::open_replica(const app_info &app,
 ::dsn::task_ptr replica_stub::begin_close_replica(replica_ptr r)
 {
     dassert(r->status() == partition_status::PS_ERROR ||
-                r->status() == partition_status::PS_INACTIVE ||
-                r->disk_migrator()->status() == disk_migration_status::MOVED ||
-                r->disk_migrator()->status() == disk_migration_status::CLOSED,
-            "%s: invalid state(partition_status={}, disk_migration_status={}) when calling "
-            "begin_close_replica",
+                r->status() == partition_status::PS_INACTIVE,
+            "%s: invalid state %s when calling begin_close_replica",
             r->name(),
-            enum_to_string(r->status()),
-            r->disk_migrator()->status());
+            enum_to_string(r->status()));
 
     gpid id = r->get_gpid();
 
@@ -2096,8 +2092,9 @@ void replica_stub::open_service()
         RPC_QUERY_PN_DECREE, "query_decree", &replica_stub::on_query_decree);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_REPLICA_INFO, "query_replica_info", &replica_stub::on_query_replica_info);
-    register_rpc_handler_with_rpc_holder(
-        RPC_REPLICA_COPY_LAST_CHECKPOINT, "copy_checkpoint", &replica_stub::on_copy_checkpoint);
+    register_rpc_handler_with_rpc_holder(RPC_REPLICA_COPY_LAST_CHECKPOINT,
+                                         "migrate_replica_checkpoint",
+                                         &replica_stub::on_copy_checkpoint);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler_with_rpc_holder(

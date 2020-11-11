@@ -131,7 +131,7 @@ public:
     {
         replica_ptr rep = get_replica(rpc.request().pid);
         ASSERT_TRUE(rep);
-        rep->disk_migrator()->migrate_replica(rpc.request());
+        rep->disk_migrator()->start_disk_migrate_replica(rpc.request());
     }
 
 private:
@@ -293,7 +293,7 @@ TEST_F(replica_disk_test, on_query_disk_info_one_app)
     }
 }
 
-/*************************** test `on_migrate_disk_replica` interface *******************/
+/*************************** test `on_disk_migrate` interface *******************/
 // TODO(jiashuo1): test whole process
 TEST_F(replica_disk_test, on_migrate_replica)
 {

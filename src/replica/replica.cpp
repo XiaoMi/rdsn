@@ -365,9 +365,7 @@ bool replica::verbose_commit_log() const { return _stub->_verbose_commit_log; }
 
 void replica::close()
 {
-    dassert(status() == partition_status::PS_ERROR || status() == partition_status::PS_INACTIVE ||
-                disk_migrator()->status() == disk_migration_status::MOVED ||
-                disk_migrator()->status() == disk_migration_status::CLOSED,
+    dassert(status() == partition_status::PS_ERROR || status() == partition_status::PS_INACTIVE,
             "%s: invalid state %s when calling replica::close",
             name(),
             enum_to_string(status()));
@@ -415,10 +413,6 @@ void replica::close()
         if (err != dsn::ERR_OK) {
             dwarn("%s: close app failed, err = %s", name(), err.to_string());
         }
-    }
-
-    if (disk_migrator()->status() == disk_migration_status::MOVED) {
-        disk_migrator()->update_replica_dir();
     }
 
     _counter_private_log_size.clear();

@@ -48,8 +48,9 @@ void replica_disk_migrator::on_migrate_replica(const replica_disk_migrate_reques
                    enum_to_string(disk_migration_status::IDLE),
                    enum_to_string(status()));
 
-    tasking::enqueue(
-        LPC_REPLICATION_LONG_COMMON, _replica->tracker(), [=]() { migrate_replica(req); });
+    tasking::enqueue(LPC_REPLICATION_LONG_COMMON, _replica->tracker(), [=]() {
+        start_disk_migrate_replica(req);
+    });
 }
 
 bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_request &req,
@@ -147,7 +148,7 @@ bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_r
 
 // TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
-void replica_disk_migrator::migrate_replica(const replica_disk_migrate_request &req)
+void replica_disk_migrator::start_disk_migrate_replica(const replica_disk_migrate_request &req)
 {
     if (status() != disk_migration_status::MOVING) {
         std::string err_msg = fmt::format("Invalid migration status({})", enum_to_string(status()));
@@ -157,47 +158,36 @@ void replica_disk_migrator::migrate_replica(const replica_disk_migrate_request &
         return;
     }
 
-    copy_checkpoint(req);
-    copy_app_info(req);
+    if (init_target_dir(req) && migrate_replica_checkpoint() && migrate_replica_app_info()) {
+        _status = disk_migration_status::MOVED;
+        ddebug_replica(
+            "received replica disk migrate request({}), update status from {}=>{}, ready to "
+            "close origin replica({})",
+            _request_msg,
+            enum_to_string(disk_migration_status::IDLE),
+            enum_to_string(status()),
+            _replica->dir());
 
-    _status = disk_migration_status::MOVED;
-    ddebug_replica("received replica disk migrate request({}), update status from {}=>{}, ready to "
-                   "close origin replica({})",
-                   _request_msg,
-                   enum_to_string(disk_migration_status::IDLE),
-                   enum_to_string(status()),
-                   _replica->dir());
-
-    if (_replica->status() != partition_status::type::PS_SECONDARY) {
-        std::string err_msg =
-            fmt::format("Invalid partition status({})", enum_to_string(_replica->status()));
-        derror_replica(
-            "received replica disk migrate request({}), err = {}", _request_msg, err_msg);
-        reset_status();
-        return;
-    } else {
-        _replica->_stub->begin_close_replica(_replica);
+        close_origin_replica();
     }
 }
 
-void replica_disk_migrator::copy_checkpoint(const replica_disk_migrate_request &req)
+// TODO(jiashuo1)
+// THREAD_POOL_REPLICATION_LONG
+bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &req)
 {
     std::string replica_dir = _replica->dir();
-
     // using origin dir init new dir
     boost::replace_first(replica_dir, req.origin_disk, req.target_disk);
     _target_dir = replica_dir;
     if (utils::filesystem::directory_exists(_target_dir)) {
         derror_replica("migration target replica dir({}) has existed", _target_dir);
         reset_status();
-        return;
+        return false;
     }
-    std::string data_dir = utils::filesystem::path_combine(_target_dir, "/data/rdb/");
 
     // using new dir init new tmp dir
     _tmp_target_dir = utils::filesystem::path_combine(replica_dir, ".disk.balance.tmp");
-    std::string tmp_data_dir = utils::filesystem::path_combine(_tmp_target_dir, "/data/rdb/");
-
     if (utils::filesystem::directory_exists(_tmp_target_dir)) {
         dwarn_replica(
             "disk migration({}) target temp replica dir({}) has existed, it will be deleted",
@@ -206,23 +196,32 @@ void replica_disk_migrator::copy_checkpoint(const replica_disk_migrate_request &
         utils::filesystem::remove_path(_tmp_target_dir);
     }
 
+    std::string tmp_data_dir = utils::filesystem::path_combine(_tmp_target_dir, "/data/rdb/");
     if (!utils::filesystem::create_directory(tmp_data_dir)) {
         derror_replica("disk migration({}) create target temp data dir({}) failed",
                        _request_msg,
                        tmp_data_dir);
         reset_status();
-        return;
+        return false;
     }
 
+    return true;
+}
+
+// TODO(jiashuo1)
+// THREAD_POOL_REPLICATION_LONG
+bool replica_disk_migrator::migrate_replica_checkpoint()
+{
     error_code sync_checkpoint_err = _replica->get_app()->sync_checkpoint();
     if (sync_checkpoint_err != ERR_OK) {
         derror_replica("disk migration({}) sync_checkpoint failed({})",
                        _request_msg,
                        sync_checkpoint_err.to_string());
         reset_status();
-        return;
+        return false;
     }
 
+    std::string tmp_data_dir = utils::filesystem::path_combine(_tmp_target_dir, "/data/rdb/");
     error_code copy_checkpoint_err =
         _replica->get_app()->copy_checkpoint_to_dir(tmp_data_dir.c_str(), 0 /*last_decree*/);
     if (copy_checkpoint_err != ERR_OK) {
@@ -234,11 +233,15 @@ void replica_disk_migrator::copy_checkpoint(const replica_disk_migrate_request &
                        _tmp_target_dir);
         reset_status();
         utils::filesystem::remove_path(tmp_data_dir);
-        return;
+        return false;
     }
+
+    return true;
 }
 
-void replica_disk_migrator::copy_app_info(const replica_disk_migrate_request &req)
+// TODO(jiashuo1)
+// THREAD_POOL_REPLICATION_LONG
+bool replica_disk_migrator::migrate_replica_app_info()
 {
     replica_init_info init_info = _replica->get_app()->init_info();
     error_code store_init_info_err = init_info.store(_tmp_target_dir);
@@ -247,7 +250,7 @@ void replica_disk_migrator::copy_app_info(const replica_disk_migrate_request &re
                        _request_msg,
                        store_init_info_err.to_string());
         reset_status();
-        return;
+        return false;
     }
 
     replica_app_info info(&_replica->_app_info);
@@ -259,9 +262,15 @@ void replica_disk_migrator::copy_app_info(const replica_disk_migrate_request &re
                        _request_msg,
                        store_info_err.to_string());
         reset_status();
-        return;
+        return false;
     }
+
+    return true;
 }
+
+// TODO(jiashuo1)
+// THREAD_POOL_REPLICATION_LONG
+void replica_disk_migrator::close_origin_replica() {}
 
 // TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG

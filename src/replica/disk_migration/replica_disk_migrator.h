@@ -32,8 +32,6 @@ public:
     void on_migrate_replica(const replica_disk_migrate_request &req,
                             /*out*/ replica_disk_migrate_response &resp);
 
-    void update_replica_dir();
-
     disk_migration_status::type status() const { return _status; }
 
     void set_status(const disk_migration_status::type &status) { _status = status; }
@@ -42,10 +40,14 @@ private:
     bool check_disk_migrate_args(const replica_disk_migrate_request &req,
                                  /*out*/ replica_disk_migrate_response &resp);
 
-    void migrate_replica(const replica_disk_migrate_request &req);
-    void copy_checkpoint(const replica_disk_migrate_request &req);
-    void copy_app_info(const replica_disk_migrate_request &req);
+    void start_disk_migrate_replica(const replica_disk_migrate_request &req);
 
+    bool init_target_dir(const replica_disk_migrate_request &req);
+    bool migrate_replica_checkpoint();
+    bool migrate_replica_app_info();
+
+    void close_origin_replica();
+    void update_replica_dir();
 
     void reset_status() { _status = disk_migration_status::IDLE; }
 
@@ -57,6 +59,7 @@ private:
     std::string _tmp_target_dir;
     disk_migration_status::type _status{disk_migration_status::IDLE};
 
+    friend class replica;
     friend class replica_disk_test;
 };
 
