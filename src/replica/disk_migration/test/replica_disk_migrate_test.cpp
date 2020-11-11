@@ -191,7 +191,7 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_run)
     request.target_disk = "tag_empty_1";
     set_replica_dir(request.pid,
                     fmt::format("./{}/{}.replica", request.origin_disk, request.pid.to_string()));
-    utils::filesystem::create_directory(_replica->dir());
+    utils::filesystem::create_directory(get_replica(request.pid)->dir());
 
     init_migration_target_dir(fake_migrate_rpc);
     ASSERT_TRUE(utils::filesystem::directory_exists(
