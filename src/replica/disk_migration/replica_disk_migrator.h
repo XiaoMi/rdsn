@@ -55,8 +55,8 @@ private:
     replica *_replica;
 
     std::string _request_msg;
-    std::string _target_dir;
-    std::string _tmp_target_dir;
+    std::string _target_replica_dir; // /root/gpid.pegasus/
+    std::string _target_data_dir;    // /root/gpid.pegasus/data/rdb
     disk_migration_status::type _status{disk_migration_status::IDLE};
 
     friend class replica;

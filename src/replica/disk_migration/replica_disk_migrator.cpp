@@ -29,6 +29,9 @@
 namespace dsn {
 namespace replication {
 
+std::string kReplicaDirSuffix = ".disk.balance.tmp";
+std::string kDataDirSuffix = "/data/rdb/";
+
 replica_disk_migrator::replica_disk_migrator(replica *r) : replica_base(r), _replica(r) {}
 
 replica_disk_migrator::~replica_disk_migrator() = default;
@@ -178,28 +181,25 @@ bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &
     std::string replica_dir = _replica->dir();
     // using origin dir init new dir
     boost::replace_first(replica_dir, req.origin_disk, req.target_disk);
-    _target_dir = replica_dir;
-    if (utils::filesystem::directory_exists(_target_dir)) {
-        derror_replica("migration target replica dir({}) has existed", _target_dir);
+    if (utils::filesystem::directory_exists(replica_dir)) {
+        derror_replica("migration target replica dir({}) has existed", replica_dir);
         reset_status();
         return false;
     }
 
-    // using new dir init new tmp dir
-    _tmp_target_dir = utils::filesystem::path_combine(replica_dir, ".disk.balance.tmp");
-    if (utils::filesystem::directory_exists(_tmp_target_dir)) {
-        dwarn_replica(
-            "disk migration({}) target temp replica dir({}) has existed, it will be deleted",
-            _request_msg,
-            _tmp_target_dir);
-        utils::filesystem::remove_path(_tmp_target_dir);
+    _target_replica_dir = utils::filesystem::path_combine(replica_dir, kReplicaDirSuffix);
+    if (utils::filesystem::directory_exists(_target_replica_dir)) {
+        dwarn_replica("disk migration({}) target replica dir({}) has existed, it will be deleted",
+                      _request_msg,
+                      _target_replica_dir);
+        utils::filesystem::remove_path(_target_replica_dir);
     }
 
-    std::string tmp_data_dir = utils::filesystem::path_combine(_tmp_target_dir, "/data/rdb/");
-    if (!utils::filesystem::create_directory(tmp_data_dir)) {
+    _target_data_dir = utils::filesystem::path_combine(_target_replica_dir, kDataDirSuffix);
+    if (!utils::filesystem::create_directory(_target_data_dir)) {
         derror_replica("disk migration({}) create target temp data dir({}) failed",
                        _request_msg,
-                       tmp_data_dir);
+                       _target_data_dir);
         reset_status();
         return false;
     }
@@ -220,18 +220,17 @@ bool replica_disk_migrator::migrate_replica_checkpoint()
         return false;
     }
 
-    std::string tmp_data_dir = utils::filesystem::path_combine(_tmp_target_dir, "/data/rdb/");
     error_code copy_checkpoint_err =
-        _replica->get_app()->copy_checkpoint_to_dir(tmp_data_dir.c_str(), 0 /*last_decree*/);
+        _replica->get_app()->copy_checkpoint_to_dir(_target_data_dir.c_str(), 0 /*last_decree*/);
     if (copy_checkpoint_err != ERR_OK) {
         derror_replica("disk migration({}) copy checkpoint to dir({}) failed(error={}), the "
                        "dir({}) will be deleted",
                        _request_msg,
-                       tmp_data_dir,
+                       _target_data_dir,
                        copy_checkpoint_err.to_string(),
-                       _tmp_target_dir);
+                       _target_replica_dir);
         reset_status();
-        utils::filesystem::remove_path(tmp_data_dir);
+        utils::filesystem::remove_path(_target_replica_dir);
         return false;
     }
 
@@ -243,7 +242,7 @@ bool replica_disk_migrator::migrate_replica_checkpoint()
 bool replica_disk_migrator::migrate_replica_app_info()
 {
     replica_init_info init_info = _replica->get_app()->init_info();
-    error_code store_init_info_err = init_info.store(_tmp_target_dir);
+    error_code store_init_info_err = init_info.store(_target_replica_dir);
     if (store_init_info_err != ERR_OK) {
         derror_replica("disk migration({}) stores app init info failed({})",
                        _request_msg,
@@ -253,7 +252,7 @@ bool replica_disk_migrator::migrate_replica_app_info()
     }
 
     replica_app_info info(&_replica->_app_info);
-    std::string path = utils::filesystem::path_combine(_tmp_target_dir, ".app-info");
+    std::string path = utils::filesystem::path_combine(_target_replica_dir, ".app-info");
     info.store(path.c_str());
     error_code store_info_err = info.store(path.c_str());
     if (store_info_err != ERR_OK) {
