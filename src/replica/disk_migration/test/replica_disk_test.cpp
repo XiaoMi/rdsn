@@ -127,11 +127,24 @@ public:
         rep->disk_migrator()->check_disk_migrate_args(rpc.request(), rpc.response());
     }
 
-    void migrate_disk_replica(replica_disk_migrate_rpc &rpc)
+    void init_migration_target_dir(replica_disk_migrate_rpc &rpc)
     {
         replica_ptr rep = get_replica(rpc.request().pid);
         ASSERT_TRUE(rep);
-        rep->disk_migrator()->start_disk_migrate_replica(rpc.request());
+        rep->disk_migrator()->init_target_dir(rpc.request());
+    }
+
+    void migrate_replica_checkpoint(replica_disk_migrate_rpc &rpc)
+    {
+        replica_ptr rep = get_replica(rpc.request().pid);
+        ASSERT_TRUE(rep);
+        rep->disk_migrator()->migrate_replica_checkpoint();
+    }
+
+    void migate_replica_app_info(replica_disk_migrate_rpc &rpc){
+        replica_ptr rep = get_replica(rpc.request().pid);
+        ASSERT_TRUE(rep);
+        rep->disk_migrator()->migrate_replica_checkpoint();
     }
 
 private:
@@ -373,7 +386,7 @@ TEST_F(replica_disk_test, migrate_disk_replica_check)
     ASSERT_EQ(response.err, ERR_OK);
 }
 
-TEST_F(replica_disk_test, migrate_disk_replica)
+TEST_F(replica_disk_test, init_migration_target_dir)
 {
     auto &request = const_cast<replica_disk_migrate_request &>(fake_migrate_rpc.request());
 

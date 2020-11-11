@@ -49,7 +49,7 @@ void replica_disk_migrator::on_migrate_replica(const replica_disk_migrate_reques
                    enum_to_string(status()));
 
     tasking::enqueue(LPC_REPLICATION_LONG_COMMON, _replica->tracker(), [=]() {
-        start_disk_migrate_replica(req);
+        do_disk_migrate_replica(req);
     });
 }
 
@@ -148,7 +148,7 @@ bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_r
 
 // TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
-void replica_disk_migrator::start_disk_migrate_replica(const replica_disk_migrate_request &req)
+void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_request &req)
 {
     if (status() != disk_migration_status::MOVING) {
         std::string err_msg = fmt::format("Invalid migration status({})", enum_to_string(status()));
@@ -164,7 +164,7 @@ void replica_disk_migrator::start_disk_migrate_replica(const replica_disk_migrat
             "received replica disk migrate request({}), update status from {}=>{}, ready to "
             "close origin replica({})",
             _request_msg,
-            enum_to_string(disk_migration_status::IDLE),
+            enum_to_string(disk_migration_status::MOVING),
             enum_to_string(status()),
             _replica->dir());
 

@@ -40,7 +40,7 @@ private:
     bool check_disk_migrate_args(const replica_disk_migrate_request &req,
                                  /*out*/ replica_disk_migrate_response &resp);
 
-    void start_disk_migrate_replica(const replica_disk_migrate_request &req);
+    void do_disk_migrate_replica(const replica_disk_migrate_request &req);
 
     bool init_target_dir(const replica_disk_migrate_request &req);
     bool migrate_replica_checkpoint();
