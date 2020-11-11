@@ -365,10 +365,15 @@ bool replica::verbose_commit_log() const { return _stub->_verbose_commit_log; }
 
 void replica::close()
 {
-    dassert(status() == partition_status::PS_ERROR || status() == partition_status::PS_INACTIVE,
-            "%s: invalid state %s when calling replica::close",
-            name(),
-            enum_to_string(status()));
+    dassert_replica(status() == partition_status::PS_ERROR ||
+                        status() == partition_status::PS_INACTIVE ||
+                        _disk_migrator->status() == disk_migration_status::MOVED ||
+                        _disk_migrator->status() == disk_migration_status::CLOSED,
+                    "invalid state(partition_status={}, migration_status={}) when calling "
+                    "replica close",
+                    name(),
+                    enum_to_string(status()),
+                    enum_to_string(_disk_migrator->status()));
 
     uint64_t start_time = dsn_now_ms();
 
@@ -415,6 +420,10 @@ void replica::close()
         }
     }
 
+    if (disk_migrator()->status() == disk_migration_status::MOVED) {
+        disk_migrator()->update_replica_dir();
+    }
+
     _counter_private_log_size.clear();
 
     // duplication_impl may have ongoing tasks.
@@ -426,6 +435,8 @@ void replica::close()
     _bulk_loader.reset();
 
     _split_mgr.reset();
+
+    _disk_migrator.reset();
 
     ddebug("%s: replica closed, time_used = %" PRIu64 "ms", name(), dsn_now_ms() - start_time);
 }

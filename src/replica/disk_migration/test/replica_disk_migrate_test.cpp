@@ -83,6 +83,12 @@ public:
         rep->disk_migrator()->migrate_replica_app_info(rpc.request());
     }
 
+    dsn::task_ptr close_origin_replica(replica_disk_migrate_rpc &rpc)
+    {
+        replica_ptr rep = get_replica(rpc.request().pid);
+        return rep->disk_migrator()->close_origin_replica(rpc.request());
+    }
+
 private:
     void generate_fake_rpc()
     {
@@ -185,6 +191,7 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_run)
     request.target_disk = "tag_empty_1";
     set_replica_dir(request.pid,
                     fmt::format("./{}/{}.replica", request.origin_disk, request.pid.to_string()));
+    utils::filesystem::create_directory(_replica->dir());
 
     init_migration_target_dir(fake_migrate_rpc);
     ASSERT_TRUE(utils::filesystem::directory_exists(
@@ -207,6 +214,14 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_run)
         utils::filesystem::file_exists(fmt::format("./{}/{}.replica.disk.balance.tmp/.app-info",
                                                    request.target_disk,
                                                    request.pid.to_string())));
+
+    set_status(request.pid, disk_migration_status::MOVED);
+    close_origin_replica(fake_migrate_rpc)->wait();
+    ASSERT_TRUE(utils::filesystem::directory_exists(
+        fmt::format("./{}/{}.replica.ori/", request.origin_disk, request.pid.to_string())));
+    ASSERT_TRUE(utils::filesystem::directory_exists(
+        fmt::format("./{}/{}.replica/", request.target_disk, request.pid.to_string())));
+
 }
 
 } // namespace replication

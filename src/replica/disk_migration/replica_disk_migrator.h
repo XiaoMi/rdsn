@@ -21,7 +21,12 @@
 
 namespace dsn {
 namespace replication {
+
 class replica;
+
+const std::string kReplicaDirSuffix = ".disk.balance.tmp";
+const std::string kOriginReplicaDirSuffix = ".disk.balance.ori";
+const std::string kDataDirSuffix = "/data/rdb/";
 
 class replica_disk_migrator : replica_base
 {
@@ -46,7 +51,7 @@ private:
     bool migrate_replica_checkpoint(const replica_disk_migrate_request &req);
     bool migrate_replica_app_info(const replica_disk_migrate_request &req);
 
-    void close_origin_replica();
+    dsn::task_ptr close_origin_replica(const replica_disk_migrate_request &req);
     void update_replica_dir();
 
     void reset_status() { _status = disk_migration_status::IDLE; }

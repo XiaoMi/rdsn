@@ -43,6 +43,7 @@
 #include "split/replica_split_manager.h"
 #include "disk_migration/replica_disk_migrator.h"
 
+#include <boost/algorithm/string/replace.hpp>
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
@@ -61,6 +62,15 @@
 
 namespace dsn {
 namespace replication {
+
+DSN_DEFINE_int32("replication",
+                 gc_disk_migration_tmp_replica_interval_seconds,
+                 86400 /*1day*/,
+                 "disk migration generate tmp dir gc interval, the folder name suffix is '.tmp' ");
+DSN_DEFINE_int32("replication",
+                 gc_disk_migration_origin_replica_interval_seconds,
+                 604800 /*7day*/,
+                 "disk migration origin dir gc interval, the folder name suffix is '.ori' ");
 
 bool replica_stub::s_not_exit_on_log_failure = false;
 
@@ -493,10 +503,14 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     std::deque<task_ptr> load_tasks;
     uint64_t start_time = dsn_now_ms();
     for (auto &dir : dir_list) {
-        if (dir.length() >= 4 &&
-            (dir.substr(dir.length() - 4) == ".err" || dir.substr(dir.length() - 4) == ".gar" ||
-             dir.substr(dir.length() - 4) == ".bak")) {
-            ddebug("ignore dir %s", dir.c_str());
+        if (dir.length() < 4) {
+            continue;
+        }
+
+        std::string folder_suffix = dir.substr(dir.length() - 4);
+        if (folder_suffix == ".err" || folder_suffix == ".gar" || folder_suffix == ".bak" ||
+            folder_suffix == ".tmp" || folder_suffix == ".ori") {
+            ddebug_f("ignore dir {}", dir);
             continue;
         }
 
@@ -1792,12 +1806,17 @@ void replica_stub::on_disk_stat()
     int garbage_replica_dir_count = 0;
     for (auto &fpath : sub_list) {
         auto name = dsn::utils::filesystem::get_file_name(fpath);
+        if (name.length() < 4) {
+            continue;
+        }
+
+        std::string folder_suffix = name.substr(name.length() - 4);
         // don't delete ".bak" directory because it is backed by administrator.
-        if (name.length() >= 4 && (name.substr(name.length() - 4) == ".err" ||
-                                   name.substr(name.length() - 4) == ".gar")) {
-            if (name.substr(name.length() - 4) == ".err") {
+        if ((folder_suffix == ".err" || folder_suffix == ".gar" || folder_suffix == ".tmp" ||
+             folder_suffix == ".ori")) {
+            if (folder_suffix == ".err") {
                 error_replica_dir_count++;
-            } else {
+            } else if (folder_suffix == ".gar") {
                 garbage_replica_dir_count++;
             }
 
@@ -1809,10 +1828,19 @@ void replica_stub::on_disk_stat()
 
             uint64_t last_write_time = (uint64_t)mt;
             uint64_t current_time_ms = dsn_now_ms();
-            uint64_t interval_seconds = (name.substr(name.length() - 4) == ".err"
-                                             ? _gc_disk_error_replica_interval_seconds
-                                             : _gc_disk_garbage_replica_interval_seconds);
-            if (last_write_time + interval_seconds <= current_time_ms / 1000) {
+            uint64_t remove_interval_seconds = current_time_ms / 1000;
+
+            if (folder_suffix == ".err") {
+                remove_interval_seconds = _gc_disk_error_replica_interval_seconds;
+            } else if (folder_suffix == ".gar") {
+                remove_interval_seconds = _gc_disk_garbage_replica_interval_seconds;
+            } else if (folder_suffix == ".tmp") {
+                remove_interval_seconds = FLAGS_gc_disk_migration_tmp_replica_interval_seconds;
+            } else if (folder_suffix == ".ori") {
+                remove_interval_seconds = FLAGS_gc_disk_migration_origin_replica_interval_seconds;
+            }
+
+            if (last_write_time + remove_interval_seconds <= current_time_ms / 1000) {
                 if (!dsn::utils::filesystem::remove_path(fpath)) {
                     dwarn("gc_disk: failed to delete directory '%s', time_used_ms = %" PRIu64,
                           fpath.c_str(),
@@ -1827,7 +1855,7 @@ void replica_stub::on_disk_stat()
             } else {
                 ddebug("gc_disk: reserve directory '%s', wait_seconds = %" PRIu64,
                        fpath.c_str(),
-                       last_write_time + interval_seconds - current_time_ms / 1000);
+                       last_write_time + remove_interval_seconds - current_time_ms / 1000);
             }
         }
     }
@@ -1927,6 +1955,21 @@ void replica_stub::open_replica(const app_info &app,
                req ? "with" : "without",
                dir.c_str());
         rep = replica::load(this, dir.c_str());
+
+        if (rep == nullptr) {
+            std::string origin_dir = get_replica_dir(
+                fmt::format("{}{}", app.app_type, dsn::replication::kOriginReplicaDirSuffix)
+                    .c_str(),
+                id,
+                false);
+            if (!origin_dir.empty()) {
+                ddebug_f("start revert and load disk migration origin replica data({})",
+                         origin_dir);
+                dsn::utils::filesystem::rename_path(dir, fmt::format("{}.{}", dir, ".gar"));
+                boost::replace_first(origin_dir, ".disk.balance.tmp", "");
+                rep = replica::load(this, origin_dir.c_str());
+            }
+        }
     }
 
     if (rep == nullptr) {
@@ -1988,11 +2031,16 @@ void replica_stub::open_replica(const app_info &app,
 
 ::dsn::task_ptr replica_stub::begin_close_replica(replica_ptr r)
 {
-    dassert(r->status() == partition_status::PS_ERROR ||
-                r->status() == partition_status::PS_INACTIVE,
-            "%s: invalid state %s when calling begin_close_replica",
-            r->name(),
-            enum_to_string(r->status()));
+    dassert_f(r->status() == partition_status::PS_ERROR ||
+                  r->status() == partition_status::PS_INACTIVE ||
+                  r->disk_migrator()->status() == disk_migration_status::MOVED ||
+                  r->disk_migrator()->status() == disk_migration_status::CLOSED,
+              "{}: invalid state(partition_status={}, migration_status={}) when calling "
+              "replica({}) close",
+              name(),
+              enum_to_string(r->status()),
+              enum_to_string(r->disk_migrator()->status()),
+              r->get_gpid());
 
     gpid id = r->get_gpid();
 
