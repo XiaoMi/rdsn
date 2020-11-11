@@ -19,10 +19,9 @@
 
 #pragma once
 
-#include "replica/replica.h"
-
 namespace dsn {
 namespace replication {
+class replica;
 
 class replica_disk_migrator : replica_base
 {
