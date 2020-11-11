@@ -169,7 +169,6 @@ void http_server::serve(message_ex *msg)
             path += '/';
             path += real_args[i];
         }
-        ddebug("hyc: path = %s", path.c_str());
         ret.path = std::move(path);
     }
 
