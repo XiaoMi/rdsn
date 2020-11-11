@@ -127,26 +127,7 @@ public:
         rep->disk_migrator()->check_migration_args(rpc.request(), rpc.response());
     }
 
-    void init_migration_target_dir(replica_disk_migrate_rpc &rpc)
-    {
-        replica_ptr rep = get_replica(rpc.request().pid);
-        ASSERT_TRUE(rep);
-        rep->disk_migrator()->init_target_dir(rpc.request());
-    }
 
-    void migrate_replica_checkpoint(replica_disk_migrate_rpc &rpc)
-    {
-        replica_ptr rep = get_replica(rpc.request().pid);
-        ASSERT_TRUE(rep);
-        rep->disk_migrator()->migrate_replica_checkpoint();
-    }
-
-    void migate_replica_app_info(replica_disk_migrate_rpc &rpc)
-    {
-        replica_ptr rep = get_replica(rpc.request().pid);
-        ASSERT_TRUE(rep);
-        rep->disk_migrator()->migrate_replica_checkpoint();
-    }
 
 private:
     void generate_mock_app_info()
