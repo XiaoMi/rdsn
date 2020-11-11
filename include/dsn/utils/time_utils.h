@@ -40,7 +40,6 @@ static struct tm *get_localtime(uint64_t ts_ms, struct tm *tm_buf)
 
 // get time string, which format is yyyy-MM-dd hh:mm:ss.SSS
 extern void time_ms_to_string(uint64_t ts_ms, char *str);
-extern std::string time_ms_to_string(uint64_t ts_ms);
 
 // get date string with format of 'yyyy-MM-dd' from given timestamp
 inline void time_ms_to_date(uint64_t ts_ms, char *str, int len)
