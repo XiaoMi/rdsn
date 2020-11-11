@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 #include <dsn/utility/fail_point.h>
+#include <dsn/utility/filesystem.h>
 
 #include "replica/test/replica_disk_test_base.h"
 #include "replica/disk_migration/replica_disk_migrator.h"
@@ -72,14 +73,14 @@ public:
     {
         replica_ptr rep = get_replica(rpc.request().pid);
         ASSERT_TRUE(rep);
-        rep->disk_migrator()->migrate_replica_checkpoint();
+        rep->disk_migrator()->migrate_replica_checkpoint(rpc.request());
     }
 
-    void migate_replica_app_info(replica_disk_migrate_rpc &rpc)
+    void migrate_replica_app_info(replica_disk_migrate_rpc &rpc)
     {
         replica_ptr rep = get_replica(rpc.request().pid);
         ASSERT_TRUE(rep);
-        rep->disk_migrator()->migrate_replica_checkpoint();
+        rep->disk_migrator()->migrate_replica_app_info(rpc.request());
     }
 
 private:
@@ -175,17 +176,38 @@ TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
     ASSERT_EQ(response.err, ERR_OK);
 }
 
-        TEST_F(replica_disk_migrate_test, disk_migrate_replica_run)
-        {
-            auto &request = const_cast<replica_disk_migrate_request &>(fake_migrate_rpc.request());
+TEST_F(replica_disk_migrate_test, disk_migrate_replica_run)
+{
+    auto &request = const_cast<replica_disk_migrate_request &>(fake_migrate_rpc.request());
 
-            request.pid = dsn::gpid(app_info_1.app_id, 2);
-            request.origin_disk = "tag_1";
-            request.target_disk = "tag_empty_1";
-            set_replica_dir(request.pid,
-                            fmt::format("./{}/{}.pegasus", request.origin_disk, request.pid.to_string()));
-            init_migration_target_dir(fake_migrate_rpc);
-        }
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
+    request.origin_disk = "tag_1";
+    request.target_disk = "tag_empty_1";
+    set_replica_dir(request.pid,
+                    fmt::format("./{}/{}.replica", request.origin_disk, request.pid.to_string()));
+
+    init_migration_target_dir(fake_migrate_rpc);
+    ASSERT_TRUE(utils::filesystem::directory_exists(
+        fmt::format("./{}/{}.replica.disk.balance.tmp/data/rdb/",
+                    request.target_disk,
+                    request.pid.to_string())));
+
+    migrate_replica_checkpoint(fake_migrate_rpc);
+    ASSERT_TRUE(utils::filesystem::file_exists(
+        fmt::format("./{}/{}.replica.disk.balance.tmp/data/rdb/checkpoint.file",
+                    request.target_disk,
+                    request.pid.to_string())));
+
+    migrate_replica_app_info(fake_migrate_rpc);
+    ASSERT_TRUE(
+        utils::filesystem::file_exists(fmt::format("./{}/{}.replica.disk.balance.tmp/.init-info",
+                                                   request.target_disk,
+                                                   request.pid.to_string())));
+    ASSERT_TRUE(
+        utils::filesystem::file_exists(fmt::format("./{}/{}.replica.disk.balance.tmp/.app-info",
+                                                   request.target_disk,
+                                                   request.pid.to_string())));
+}
 
 } // namespace replication
 } // namespace dsn

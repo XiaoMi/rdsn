@@ -43,8 +43,8 @@ private:
     void do_disk_migrate_replica(const replica_disk_migrate_request &req);
 
     bool init_target_dir(const replica_disk_migrate_request &req);
-    bool migrate_replica_checkpoint();
-    bool migrate_replica_app_info();
+    bool migrate_replica_checkpoint(const replica_disk_migrate_request &req);
+    bool migrate_replica_app_info(const replica_disk_migrate_request &req);
 
     void close_origin_replica();
     void update_replica_dir();
