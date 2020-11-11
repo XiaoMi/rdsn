@@ -37,8 +37,8 @@ public:
     void set_status(const disk_migration_status::type &status) { _status = status; }
 
 private:
-    bool check_disk_migrate_args(const replica_disk_migrate_request &req,
-                                 /*out*/ replica_disk_migrate_response &resp);
+    bool check_migration_args(const replica_disk_migrate_request &req,
+                              /*out*/ replica_disk_migrate_response &resp);
 
     void migrate_replica(const replica_disk_migrate_request &req);
 

@@ -33,7 +33,7 @@ replica_disk_migrator::~replica_disk_migrator() = default;
 void replica_disk_migrator::on_migrate_replica(const replica_disk_migrate_request &req,
                                                /*out*/ replica_disk_migrate_response &resp)
 {
-    if (!check_disk_migrate_args(req, resp)) {
+    if (!check_migration_args(req, resp)) {
         return;
     }
 
@@ -47,8 +47,8 @@ void replica_disk_migrator::on_migrate_replica(const replica_disk_migrate_reques
         LPC_REPLICATION_LONG_COMMON, _replica->tracker(), [=]() { migrate_replica(req); });
 }
 
-bool replica_disk_migrator::check_disk_migrate_args(const replica_disk_migrate_request &req,
-                                                    /*out*/ replica_disk_migrate_response &resp)
+bool replica_disk_migrator::check_migration_args(const replica_disk_migrate_request &req,
+                                                 /*out*/ replica_disk_migrate_response &resp)
 {
     _replica->_checker.only_one_thread_access();
 
