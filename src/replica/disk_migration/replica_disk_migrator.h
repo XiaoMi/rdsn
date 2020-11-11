@@ -40,8 +40,10 @@ private:
     bool check_migration_args(const replica_disk_migrate_request &req,
                               /*out*/ replica_disk_migrate_response &resp);
 
+    // TODO(jiashuo1)
     void migrate_replica(const replica_disk_migrate_request &req);
 
+    // TODO(jiashuo1)
     void update_replica_dir();
 
 private:
@@ -49,7 +51,7 @@ private:
 
     disk_migration_status::type _status{disk_migration_status::IDLE};
 
-    friend class replica_disk_test;
+    friend class replica_disk_migrate_test;
 };
 
 } // namespace replication

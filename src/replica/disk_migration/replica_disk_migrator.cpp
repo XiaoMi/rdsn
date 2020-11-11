@@ -133,11 +133,9 @@ bool replica_disk_migrator::check_migration_args(const replica_disk_migrate_requ
     }
 
     if (!valid_origin_disk || !valid_target_disk) {
-        std::string err_msg =
-            fmt::format("Invalid disk tag(origin({}) or target({}) doesn't exist)",
-                        req.origin_disk,
-                        req.target_disk);
-        derror_replica("received replica disk migrate request({}), err = {}",
+        std::string invalid_disk_tag = !valid_origin_disk ? req.origin_disk : req.target_disk;
+        std::string err_msg = fmt::format("Invalid disk tag({} doesn't exist)", invalid_disk_tag);
+        derror_replica("received replica disk migrate request(origin={}, target={}), err = {}",
                        req.origin_disk,
                        req.target_disk,
                        err_msg);
