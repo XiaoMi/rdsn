@@ -106,6 +106,7 @@ TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
     ASSERT_EQ(response.err, ERR_INVALID_STATE);
 
     // check same disk
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_1";
     check_migration_args(fake_migrate_rpc);
@@ -130,7 +131,7 @@ TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
     // check replica has existed on target disk
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
-    stub->on_disk_migrate(fake_migrate_rpc);
+    check_migration_args(fake_migrate_rpc);
     ASSERT_EQ(response.err, ERR_PATH_ALREADY_EXIST);
 
     // check passed
