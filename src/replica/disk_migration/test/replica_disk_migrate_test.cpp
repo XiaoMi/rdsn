@@ -105,7 +105,6 @@ private:
     }
 };
 
-// TODO(jiashuo1): test whole process
 TEST_F(replica_disk_migrate_test, on_migrate_replica)
 {
     auto &request = const_cast<replica_disk_migrate_request &>(fake_migrate_rpc.request());
@@ -117,8 +116,6 @@ TEST_F(replica_disk_migrate_test, on_migrate_replica)
     request.target_disk = "tag_2";
     stub->on_disk_migrate(fake_migrate_rpc);
     ASSERT_EQ(response.err, ERR_OBJECT_NOT_FOUND);
-
-    // TODO(jiashuo1): replica existed
 }
 
 TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
@@ -141,6 +138,7 @@ TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
     ASSERT_EQ(response.err, ERR_INVALID_STATE);
 
     // check same disk
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_1";
     check_migration_args(fake_migrate_rpc);
@@ -166,7 +164,7 @@ TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
     request.origin_disk = "tag_1";
     request.target_disk = "tag_new";
     generate_mock_dir_node(app_info_1, request.pid, request.target_disk);
-    stub->on_disk_migrate(fake_migrate_rpc);
+    check_migration_args(fake_migrate_rpc);
     ASSERT_EQ(response.err, ERR_PATH_ALREADY_EXIST);
     remove_mock_dir_node(request.target_disk);
 
