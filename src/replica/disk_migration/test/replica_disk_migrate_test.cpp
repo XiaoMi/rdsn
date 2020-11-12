@@ -33,9 +33,7 @@ public:
     replica_disk_migrate_rpc fake_migrate_rpc;
 
 public:
-    void SetUp() override {
-        generate_fake_rpc();
-    }
+    void SetUp() override { generate_fake_rpc(); }
 
     replica_ptr get_replica(const dsn::gpid &pid) const
     {
@@ -177,7 +175,6 @@ TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
     ASSERT_EQ(response.err, ERR_PATH_ALREADY_EXIST);
     remove_mock_dir_node(request.target_disk);
 
-
     // check passed
     request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
@@ -198,18 +195,21 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_run)
                     fmt::format("./{}/{}.replica", request.origin_disk, request.pid.to_string()));
     utils::filesystem::create_directory(get_replica(request.pid)->dir());
 
+    // test init target dir
     init_migration_target_dir(fake_migrate_rpc);
     ASSERT_TRUE(utils::filesystem::directory_exists(
         fmt::format("./{}/{}.replica.disk.balance.tmp/data/rdb/",
                     request.target_disk,
                     request.pid.to_string())));
 
+    // test migrate checkpoint
     migrate_replica_checkpoint(fake_migrate_rpc);
     ASSERT_TRUE(utils::filesystem::file_exists(
         fmt::format("./{}/{}.replica.disk.balance.tmp/data/rdb/checkpoint.file",
                     request.target_disk,
                     request.pid.to_string())));
 
+    // test migrate app info
     migrate_replica_app_info(fake_migrate_rpc);
     ASSERT_TRUE(
         utils::filesystem::file_exists(fmt::format("./{}/{}.replica.disk.balance.tmp/.init-info",
@@ -220,12 +220,41 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_run)
                                                    request.target_disk,
                                                    request.pid.to_string())));
 
+    // test update replica dir
     set_status(request.pid, disk_migration_status::MOVED);
     close_origin_replica(fake_migrate_rpc)->wait();
-    ASSERT_TRUE(utils::filesystem::directory_exists(
-        fmt::format("./{}/{}.replica.ori/", request.origin_disk, request.pid.to_string())));
+    ASSERT_TRUE(utils::filesystem::directory_exists(fmt::format(
+        "./{}/{}.replica.disk.balance.ori", request.origin_disk, request.pid.to_string())));
     ASSERT_TRUE(utils::filesystem::directory_exists(
         fmt::format("./{}/{}.replica/", request.target_disk, request.pid.to_string())));
+    utils::filesystem::remove_path(fmt::format("./{}/", request.target_disk));
+    for (const auto &node_disk : get_dir_nodes()) {
+        if (node_disk->tag == request.origin_disk) {
+            auto gpids = node_disk->holding_replicas[app_info_1.app_id];
+            ASSERT_TRUE(gpids.find(request.pid) == gpids.end());
+            continue;
+        }
+
+        if (node_disk->tag == request.target_disk) {
+            auto gpids = node_disk->holding_replicas[app_info_1.app_id];
+            ASSERT_TRUE(gpids.find(request.pid) != gpids.end());
+            continue;
+        }
+    }
+
+    // test delete gar dir
+    request.pid = dsn::gpid(app_info_1.app_id, 3);
+    set_replica_dir(request.pid,
+                    fmt::format("./{}/{}.replica", request.origin_disk, request.pid.to_string()));
+    init_migration_target_dir(fake_migrate_rpc);
+    FLAGS_gc_disk_migration_origin_replica_interval_seconds = 1;
+    FLAGS_gc_disk_migration_tmp_replica_interval_seconds = 1;
+    sleep(5);
+    update_disk_replica();
+    ASSERT_FALSE(utils::filesystem::directory_exists(fmt::format(
+        "./{}/{}.replica.disk.balance.ori/", request.origin_disk, request.pid.to_string())));
+    ASSERT_FALSE(utils::filesystem::directory_exists(fmt::format(
+        "./{}/{}.replica.disk.balance.tmp/", request.target_disk, request.pid.to_string())));
 }
 
 } // namespace replication

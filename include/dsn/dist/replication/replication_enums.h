@@ -114,6 +114,5 @@ ENUM_BEGIN2(replication::disk_migration_status::type,
 ENUM_REG(replication::disk_migration_status::IDLE)
 ENUM_REG(replication::disk_migration_status::MOVING)
 ENUM_REG(replication::disk_migration_status::MOVED)
-ENUM_REG(replication::disk_migration_status::CLOSED)
 ENUM_END2(replication::disk_migration_status::type, disk_migration_status)
 }

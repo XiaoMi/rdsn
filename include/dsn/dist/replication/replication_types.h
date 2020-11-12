@@ -261,8 +261,7 @@ struct disk_migration_status
     {
         IDLE = 0,
         MOVING = 1,
-        MOVED = 2,
-        CLOSED = 3
+        MOVED = 2
     };
 };
 

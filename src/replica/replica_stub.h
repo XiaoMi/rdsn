@@ -45,6 +45,8 @@
 
 namespace dsn {
 namespace replication {
+DSN_DECLARE_int32(gc_disk_migration_tmp_replica_interval_seconds);
+DSN_DECLARE_int32(gc_disk_migration_origin_replica_interval_seconds);
 
 typedef rpc_holder<group_check_response, learn_notify_response> learn_completion_notification_rpc;
 typedef rpc_holder<group_check_request, group_check_response> group_check_rpc;

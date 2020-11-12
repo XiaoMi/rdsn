@@ -38,15 +38,15 @@ public:
     //  tag_5            100*5             50*5              50%
     //  total            2500              750               30%
     // replica info, for example:
-    //    dir_node                primary/secondary
+    //   dir_node             primary/secondary
     //   tag_empty_1
-    //      tag_1              1.1 | 1.2,1.3
-    //                         2.1,2.2 | 2.3,2.4,2.5,2.6
+    //   tag_1                1.1 | 1.2,1.3
+    //                        2.1,2.2 | 2.3,2.4,2.5,2.6
     //
-    //      tag_2              1.4 | 1.5,1.6
-    //                         2.7,2.8 | 2.9,2.10,2.11,2.12,2.13
-    //      ...
-    //      ...
+    //   tag_2                1.4 | 1.5,1.6
+    //                        2.7,2.8 | 2.9,2.10,2.11,2.12,2.13
+    //            ...
+    //            ...
     replica_disk_test_base()
     {
         generate_mock_app_info();
@@ -62,6 +62,10 @@ public:
         stub->on_disk_stat();
     }
 
+    void update_disk_replica() { stub->on_disk_stat(); }
+
+    std::vector<std::shared_ptr<dir_node>> get_dir_nodes() { return stub->_fs_manager._dir_nodes; }
+
     void generate_mock_dir_node(const app_info &app,
                                 const gpid pid,
                                 const std::string &tag,
@@ -74,13 +78,14 @@ public:
 
     void remove_mock_dir_node(const std::string &tag)
     {
-        for(auto iter = stub->_fs_manager._dir_nodes.begin(); iter != stub->_fs_manager._dir_nodes.end(); iter++) {
-            if((*iter)->tag == tag) {
+        for (auto iter = stub->_fs_manager._dir_nodes.begin();
+             iter != stub->_fs_manager._dir_nodes.end();
+             iter++) {
+            if ((*iter)->tag == tag) {
                 stub->_fs_manager._dir_nodes.erase(iter);
                 break;
             }
         }
-
     }
 
 public:
@@ -116,9 +121,11 @@ private:
     void generate_mock_empty_dir_node(int num)
     {
         while (num > 0) {
-            dir_node *node_disk = new dir_node(fmt::format("tag_empty_{}", num),
-                                               fmt::format("full_dir_empty_{}", num));
+            dir_node *node_disk =
+                new dir_node(fmt::format("tag_empty_{}", num), fmt::format("./tag_empty_{}", num));
             stub->_fs_manager._dir_nodes.emplace_back(node_disk);
+            stub->_options.data_dirs.push_back(node_disk->full_dir);
+            utils::filesystem::create_directory(node_disk->full_dir);
             num--;
         }
     }
@@ -141,10 +148,13 @@ private:
                 static_cast<int>(std::round((double)100 * disk_available_mb / disk_capacity_mb));
             // create one mock dir_node and make sure disk_capacity_mb_ > disk_available_mb_
             dir_node *node_disk = new dir_node("tag_" + std::to_string(count),
-                                               "full_dir_" + std::to_string(count),
+                                               "./tag_" + std::to_string(count),
                                                disk_capacity_mb,
                                                disk_available_mb,
                                                disk_available_ratio);
+
+            stub->_options.data_dirs.push_back(node_disk->full_dir);
+            utils::filesystem::create_directory(node_disk->full_dir);
 
             int app_1_replica_count_per_disk = app_id_1_disk_holding_replica_count;
             while (app_1_replica_count_per_disk-- > 0) {

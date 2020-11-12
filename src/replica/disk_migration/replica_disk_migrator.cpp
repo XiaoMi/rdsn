@@ -330,8 +330,6 @@ void replica_disk_migrator::update_replica_dir()
         return;
     }
 
-    _status = disk_migration_status::CLOSED;
-
     _replica->get_replica_stub()->_fs_manager.remove_replica(get_gpid());
     _replica->get_replica_stub()->_fs_manager.add_replica(get_gpid(), _target_replica_dir);
     _replica->get_replica_stub()->update_disk_holding_replicas();

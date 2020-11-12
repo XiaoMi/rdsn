@@ -1841,6 +1841,7 @@ void replica_stub::on_disk_stat()
             }
 
             if (last_write_time + remove_interval_seconds <= current_time_ms / 1000) {
+                derror_f("remove:{}", fpath);
                 if (!dsn::utils::filesystem::remove_path(fpath)) {
                     dwarn("gc_disk: failed to delete directory '%s', time_used_ms = %" PRIu64,
                           fpath.c_str(),
@@ -1874,6 +1875,8 @@ void replica_stub::on_disk_stat()
                                                  std::shared_ptr<configuration_update_request> req2)
 {
     _replicas_lock.lock_write();
+
+    derror_f(id.to_string());
 
     if (_replicas.find(id) != _replicas.end()) {
         _replicas_lock.unlock_write();
@@ -1946,6 +1949,7 @@ void replica_stub::open_replica(const app_info &app,
     std::string dir = get_replica_dir(app.app_type.c_str(), id, false);
     replica_ptr rep = nullptr;
     if (!dir.empty()) {
+        derror_f("getdir:{}", dir);
         // NOTICE: if partition is DDD, and meta select one replica as primary, it will execute the
         // load-process because of a.b.pegasus is exist, so it will never execute the restore
         // process below
@@ -2033,8 +2037,7 @@ void replica_stub::open_replica(const app_info &app,
 {
     dassert_f(r->status() == partition_status::PS_ERROR ||
                   r->status() == partition_status::PS_INACTIVE ||
-                  r->disk_migrator()->status() == disk_migration_status::MOVED ||
-                  r->disk_migrator()->status() == disk_migration_status::CLOSED,
+                  r->disk_migrator()->status() == disk_migration_status::MOVED,
               "{}: invalid state(partition_status={}, migration_status={}) when calling "
               "replica({}) close",
               name(),

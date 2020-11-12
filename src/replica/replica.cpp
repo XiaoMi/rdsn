@@ -367,8 +367,7 @@ void replica::close()
 {
     dassert_replica(status() == partition_status::PS_ERROR ||
                         status() == partition_status::PS_INACTIVE ||
-                        _disk_migrator->status() == disk_migration_status::MOVED ||
-                        _disk_migrator->status() == disk_migration_status::CLOSED,
+                        _disk_migrator->status() == disk_migration_status::MOVED,
                     "invalid state(partition_status={}, migration_status={}) when calling "
                     "replica close",
                     name(),
@@ -420,8 +419,8 @@ void replica::close()
         }
     }
 
-    if (disk_migrator()->status() == disk_migration_status::MOVED) {
-        disk_migrator()->update_replica_dir();
+    if (_disk_migrator != nullptr && _disk_migrator->status() == disk_migration_status::MOVED) {
+        _disk_migrator->update_replica_dir();
     }
 
     _counter_private_log_size.clear();
