@@ -60,14 +60,17 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
     ASSERT_EQ(disk_infos.size(), 6);
 
     int info_size = disk_infos.size();
+    int app_id_1_partition_index = 1;
+    int app_id_2_partition_index = 1;
     for (int i = 0; i < info_size; i++) {
         if (disk_infos[i].tag == "tag_empty_1") {
             continue;
         }
-        ASSERT_EQ(disk_infos[i].tag, "tag_" + std::to_string(info_size - i));
-        ASSERT_EQ(disk_infos[i].full_dir, "full_dir_" + std::to_string(info_size - i));
+        derror_f(disk_infos[i].tag);
+        ASSERT_EQ(disk_infos[i].tag, "tag_" + std::to_string(i + 1));
+        ASSERT_EQ(disk_infos[i].full_dir, "full_dir_" + std::to_string(i + 1));
         ASSERT_EQ(disk_infos[i].disk_capacity_mb, 500);
-        ASSERT_EQ(disk_infos[i].disk_available_mb, (info_size - i) * 50);
+        ASSERT_EQ(disk_infos[i].disk_available_mb, (i + 1) * 50);
         // `holding_primary_replicas` and `holding_secondary_replicas` is std::map<app_id,
         // std::set<::dsn::gpid>>
         ASSERT_EQ(disk_infos[i].holding_primary_replicas.size(), 2);
@@ -75,7 +78,6 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
 
         // test the gpid of app_id_1
         // test primary
-        int app_id_1_partition_index = 0;
         ASSERT_EQ(disk_infos[i].holding_primary_replicas[app_info_1.app_id].size(),
                   app_id_1_primary_count_for_disk);
         for (std::set<gpid>::iterator it =
@@ -98,7 +100,6 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
 
         // test the gpid of app_id_2
         // test primary
-        int app_id_2_partition_index = 0;
         ASSERT_EQ(disk_infos[i].holding_primary_replicas[app_info_2.app_id].size(),
                   app_id_2_primary_count_for_disk);
         for (std::set<gpid>::iterator it =

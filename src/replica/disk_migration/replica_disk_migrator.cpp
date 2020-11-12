@@ -311,7 +311,7 @@ dsn::task_ptr replica_disk_migrator::close_origin_replica(const replica_disk_mig
 void replica_disk_migrator::update_replica_dir()
 {
     // origin_tmp_dir: /root/origin/gpid.app_type.disk.balance.ori
-    std::string origin_temp_dir = fmt::format("{}{}",_replica->dir(), kOriginReplicaDirSuffix);
+    std::string origin_temp_dir = fmt::format("{}{}", _replica->dir(), kOriginReplicaDirSuffix);
     if (!dsn::utils::filesystem::rename_path(_replica->dir(), origin_temp_dir)) {
         reset_status();
         utils::filesystem::remove_path(_target_replica_dir);
@@ -319,7 +319,8 @@ void replica_disk_migrator::update_replica_dir()
     }
 
     std::string target_temp_dir = _target_replica_dir;
-    // update _target_replica_dir /root/gpid.app_type.disk.balance.tmp/ to /root/target/gpid.app_type/
+    // update _target_replica_dir /root/gpid.app_type.disk.balance.tmp/ to
+    // /root/target/gpid.app_type/
     boost::replace_first(_target_replica_dir, kReplicaDirSuffix, "");
     if (!dsn::utils::filesystem::rename_path(target_temp_dir, _target_replica_dir)) {
         reset_status();
