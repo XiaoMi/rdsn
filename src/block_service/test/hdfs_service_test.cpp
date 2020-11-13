@@ -75,16 +75,9 @@ TEST_F(HDFSClientTest, test_basic_operation)
     generate_test_file(local_test_file.c_str());
     dsn::utils::filesystem::file_size(local_test_file, test_file_size);
 
-    create_file_response cf_resp;
-    ls_response l_resp;
-    upload_response u_resp;
-    download_response d_resp;
-    read_response r_resp;
-    write_response w_resp;
-    remove_path_response rem_resp;
-
     // fisrt clean up all old file in test directory.
     printf("clean up all old files.\n");
+    remove_path_response rem_resp;
     s->remove_path(remove_path_request{"hdfs_client_test", true},
                    LPC_TEST_HDFS,
                    [&rem_resp](const remove_path_response &resp) { rem_resp = resp; },
@@ -94,12 +87,14 @@ TEST_F(HDFSClientTest, test_basic_operation)
 
     // test upload file.
     printf("create and upload: %s.\n", remote_test_file.c_str());
+    create_file_response cf_resp;
     s->create_file(create_file_request{remote_test_file, true},
                    LPC_TEST_HDFS,
                    [&cf_resp](const create_file_response &r) { cf_resp = r; },
                    nullptr)
         ->wait();
     ASSERT_EQ(cf_resp.err, dsn::ERR_OK);
+    upload_response u_resp;
     cf_resp.file_handle
         ->upload(upload_request{local_test_file},
                  LPC_TEST_HDFS,
@@ -110,6 +105,7 @@ TEST_F(HDFSClientTest, test_basic_operation)
     ASSERT_EQ(test_file_size, cf_resp.file_handle->get_size());
 
     // test list directory.
+    ls_response l_resp;
     s->list_dir(ls_request{"hdfs_client_test"},
                 LPC_TEST_HDFS,
                 [&l_resp](const ls_response &resp) { l_resp = resp; },
@@ -121,6 +117,7 @@ TEST_F(HDFSClientTest, test_basic_operation)
     ASSERT_EQ(false, l_resp.entries->at(0).is_directory);
 
     // test download file.
+    download_response d_resp;
     printf("test download %s.\n", remote_test_file.c_str());
     s->create_file(create_file_request{remote_test_file, false},
                    LPC_TEST_HDFS,
@@ -161,6 +158,7 @@ TEST_F(HDFSClientTest, test_basic_operation)
     const char *test_buffer = "write_hello_world_for_test";
     int length = strlen(test_buffer);
     dsn::blob bb(test_buffer, 0, length);
+    write_response w_resp;
     cf_resp.file_handle
         ->write(write_request{bb},
                 LPC_TEST_HDFS,
@@ -171,6 +169,7 @@ TEST_F(HDFSClientTest, test_basic_operation)
     ASSERT_EQ(length, w_resp.written_size);
     ASSERT_EQ(length, cf_resp.file_handle->get_size());
     printf("test read just written contents.\n");
+    read_response r_resp;
     cf_resp.file_handle
         ->read(read_request{0, -1},
                LPC_TEST_HDFS,
