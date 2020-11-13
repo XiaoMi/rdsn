@@ -44,7 +44,7 @@ error_code hdfs_service::initialize(const std::vector<std::string> &args)
     if (args.size() != 2) {
         return ERR_INVALID_PARAMETERS;
     }
-    _hdfs_nn = args[0];
+    _hdfs_name_node = args[0];
     _hdfs_path = args[1];
     _fs = nullptr;
     return create_fs();
@@ -53,14 +53,15 @@ error_code hdfs_service::initialize(const std::vector<std::string> &args)
 error_code hdfs_service::create_fs()
 {
     hdfsBuilder *builder = hdfsNewBuilder();
-    hdfsBuilderSetNameNode(builder, _hdfs_nn.c_str());
+    hdfsBuilderSetNameNode(builder, _hdfs_name_node.c_str());
     _fs = hdfsBuilderConnect(builder);
     if (!_fs) {
-        derror_f(
-            "Fail to connect hdfs name node {}, error: {}.", _hdfs_nn, utils::safe_strerror(errno));
+        derror_f("Fail to connect hdfs name node {}, error: {}.",
+                 _hdfs_name_node,
+                 utils::safe_strerror(errno));
         return ERR_FS_INTERNAL;
     }
-    ddebug_f("Succeed to connect hdfs name node {}.", _hdfs_nn);
+    ddebug_f("Succeed to connect hdfs name node {}.", _hdfs_name_node);
     return ERR_OK;
 }
 

@@ -34,7 +34,7 @@ private:
     std::string get_entry_name(const std::string &hdfs_path);
 
     hdfsFS _fs;
-    std::string _hdfs_nn;
+    std::string _hdfs_name_node;
     std::string _hdfs_path;
 };
 
