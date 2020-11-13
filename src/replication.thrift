@@ -482,6 +482,7 @@ struct query_disk_info_response
 struct replica_disk_migrate_request
 {
     1:dsn.gpid pid
+    // disk tag, for example `ssd1`. `origin_disk` and `target_disk` must be specified in the config of [replication] data_dirs.
     2:string origin_disk;
     3:string target_disk;
 }
