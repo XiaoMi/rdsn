@@ -232,7 +232,7 @@ dsn::error_code replica::find_valid_checkpoint(const configuration_restore_reque
     block_filesystem *fs =
         _stub->_block_service_manager.get_or_create_block_filesystem(req.backup_provider_name);
     if (fs == nullptr) {
-        ddebug_f("{}: get block filesystem by provider {} failed",
+        derror_f("{}: get block filesystem by provider {} failed",
                  std::string(name()),
                  req.backup_provider_name);
         return ERR_CORRUPTION;

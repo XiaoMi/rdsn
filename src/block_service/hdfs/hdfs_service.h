@@ -1,5 +1,4 @@
-#ifndef HDFS_SERVICE_H
-#define HDFS_SERVICE_H
+#pragma once
 
 #include <dsn/dist/block_service.h>
 #include <hdfs/hdfs.h>
@@ -65,7 +64,7 @@ public:
 
 private:
     error_code
-    write_data_in_batches(const char *data, const uint64_t &data_size, uint64_t &written_size);
+    write_data_in_batches(const char *data, const uint64_t data_size, uint64_t &written_size);
     error_code read_data_in_batches(uint64_t start_pos,
                                     int64_t length,
                                     std::string &read_buffer,
@@ -79,4 +78,3 @@ private:
 } // namespace block_service
 } // namespace dist
 } // namespace dsn
-#endif // HDFS_SERVICE_H

@@ -84,7 +84,7 @@ TEST_F(HDFSClientTest, test_basic_operation)
     remove_path_response rem_resp;
 
     // fisrt clean up all old file in test directory.
-    std::cout << "clean up all old files" << std::endl;
+    printf("clean up all old files.\n");
     s->remove_path(remove_path_request{"hdfs_client_test", true},
                    LPC_TEST_HDFS,
                    [&rem_resp](const remove_path_response &resp) { rem_resp = resp; },
@@ -93,7 +93,7 @@ TEST_F(HDFSClientTest, test_basic_operation)
     ASSERT_TRUE(dsn::ERR_OK == rem_resp.err || dsn::ERR_OBJECT_NOT_FOUND == rem_resp.err);
 
     // test upload file.
-    std::cout << "create and upload: " << remote_test_file << std::endl;
+    printf("create and upload: %s.\n", remote_test_file.c_str());
     s->create_file(create_file_request{remote_test_file, true},
                    LPC_TEST_HDFS,
                    [&cf_resp](const create_file_response &r) { cf_resp = r; },
@@ -121,7 +121,7 @@ TEST_F(HDFSClientTest, test_basic_operation)
     ASSERT_EQ(false, l_resp.entries->at(0).is_directory);
 
     // test download file.
-    std::cout << "test download " << remote_test_file << std::endl;
+    printf("test download %s.\n", remote_test_file.c_str());
     s->create_file(create_file_request{remote_test_file, false},
                    LPC_TEST_HDFS,
                    [&cf_resp](const create_file_response &resp) { cf_resp = resp; },
@@ -150,7 +150,7 @@ TEST_F(HDFSClientTest, test_basic_operation)
     ASSERT_EQ(test_file_md5sum, downloaded_file_md5sum);
 
     // test read and write.
-    std::cout << "test read write operation" << std::endl;
+    printf("test read write operation.\n");
     std::string test_write_file = "hdfs_client_test/test_write_file";
     s->create_file(create_file_request{test_write_file, false},
                    LPC_TEST_HDFS,
@@ -170,7 +170,7 @@ TEST_F(HDFSClientTest, test_basic_operation)
     ASSERT_EQ(dsn::ERR_OK, w_resp.err);
     ASSERT_EQ(length, w_resp.written_size);
     ASSERT_EQ(length, cf_resp.file_handle->get_size());
-    std::cout << "test read just written contents" << std::endl;
+    printf("test read just written contents.\n");
     cf_resp.file_handle
         ->read(read_request{0, -1},
                LPC_TEST_HDFS,

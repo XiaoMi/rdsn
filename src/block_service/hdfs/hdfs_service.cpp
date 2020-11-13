@@ -86,7 +86,7 @@ dsn::task_ptr hdfs_service::list_dir(const ls_request &req,
     tsk->set_tracker(tracker);
 
     auto list_dir_background = [this, req, tsk]() {
-        std::string path = ::dsn::utils::filesystem::path_combine(_hdfs_path, req.dir_name);
+        std::string path = dsn::utils::filesystem::path_combine(_hdfs_path, req.dir_name);
         ls_response resp;
 
         if (hdfsExists(_fs, path.c_str()) == -1) {
@@ -135,7 +135,7 @@ dsn::task_ptr hdfs_service::create_file(const create_file_request &req,
 {
     create_file_future_ptr tsk(new create_file_future(code, cb, 0));
     tsk->set_tracker(tracker);
-    std::string hdfs_file = ::dsn::utils::filesystem::path_combine(_hdfs_path, req.file_name);
+    std::string hdfs_file = dsn::utils::filesystem::path_combine(_hdfs_path, req.file_name);
 
     if (req.ignore_metadata) {
         create_file_response resp;
@@ -147,7 +147,6 @@ dsn::task_ptr hdfs_service::create_file(const create_file_request &req,
 
     auto create_file_in_background = [this, req, hdfs_file, tsk]() {
         create_file_response resp;
-        resp.err = ERR_IO_PENDING;
         dsn::ref_ptr<hdfs_file_object> f = new hdfs_file_object(this, hdfs_file);
         resp.err = f->get_file_meta();
         if (resp.err == ERR_OK || resp.err == ERR_OBJECT_NOT_FOUND) {
@@ -171,7 +170,7 @@ dsn::task_ptr hdfs_service::remove_path(const remove_path_request &req,
     tsk->set_tracker(tracker);
 
     auto remove_path_background = [this, req, tsk]() {
-        std::string path = ::dsn::utils::filesystem::path_combine(_hdfs_path, req.path);
+        std::string path = dsn::utils::filesystem::path_combine(_hdfs_path, req.path);
         remove_path_response resp;
 
         // Check if path exists.
@@ -231,7 +230,7 @@ error_code hdfs_file_object::get_file_meta()
 hdfs_file_object::~hdfs_file_object() {}
 
 error_code hdfs_file_object::write_data_in_batches(const char *data,
-                                                   const uint64_t &data_size,
+                                                   const uint64_t data_size,
                                                    uint64_t &written_size)
 {
     written_size = 0;
@@ -289,7 +288,7 @@ dsn::task_ptr hdfs_file_object::write(const write_request &req,
         tsk->enqueue_with(resp);
         release_ref();
     };
-    ::dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, nullptr, std::move(write_background));
+    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, nullptr, std::move(write_background));
     return tsk;
 }
 
