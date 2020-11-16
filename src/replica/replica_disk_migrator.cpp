@@ -194,7 +194,7 @@ bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &
     }
 
     // _target_replica_dir = /root/target_disk_tag/gpid.app_type.disk.balance.tmp, it will update to
-    // /root/target_disk_tag/gpid.app_type finally
+    // /root/target_disk_tag/gpid.app_type in replica_disk_migrator::update_replica_dir finally
     _target_replica_dir = fmt::format("{}{}", replica_dir, kReplicaDirTempSuffix);
     if (utils::filesystem::directory_exists(_target_replica_dir)) {
         dwarn_replica("disk migration(origin={}, target={}) target replica dir({}) has existed, it "
@@ -206,8 +206,8 @@ bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &
     }
 
     //  _target_replica_data_dir = /root/gpid.app_type.disk.balance.tmp/data/rdb, it will update to
-    //  /root/target/gpid.app_type/data/rdb finally
-    _target_data_dir = utils::filesystem::path_combine(_target_replica_dir, kDataDirSuffix);
+    //  /root/target/gpid.app_type/data/rdb in replica_disk_migrator::update_replica_dir finally
+    _target_data_dir = utils::filesystem::path_combine(_target_replica_dir, kDataDirFolder);
     if (!utils::filesystem::create_directory(_target_data_dir)) {
         derror_replica(
             "disk migration(origin={}, target={}) create target temp data dir({}) failed",

@@ -53,7 +53,7 @@ private:
 
 private:
     const std::string kReplicaDirTempSuffix = ".disk.balance.tmp";
-    const std::string kDataDirSuffix = "/data/rdb/";
+    const std::string kDataDirFolder = "data/rdb/";
 
     replica *_replica;
 
