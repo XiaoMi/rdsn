@@ -36,8 +36,6 @@ public:
 private:
     void on_cold_backup(backup_rpc rpc);
 
-    void on_clear_cold_backup(const backup_clear_request &request);
-
 private:
     const replica_stub *_stub;
 };

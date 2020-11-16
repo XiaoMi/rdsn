@@ -28,11 +28,6 @@ replica_backup_server::replica_backup_server(const replica_stub *rs) : _stub(rs)
     dsn_rpc_register_handler(RPC_COLD_BACKUP, "cold_backup", [this](message_ex *msg) {
         on_cold_backup(backup_rpc::auto_reply(msg));
     });
-    dsn_rpc_register_handler(RPC_CLEAR_COLD_BACKUP, "clear_cold_backup", [this](message_ex *msg) {
-        backup_clear_request clear_req;
-        unmarshall(msg, clear_req);
-        on_clear_cold_backup(clear_req);
-    });
 }
 
 void replica_backup_server::on_cold_backup(backup_rpc rpc)
@@ -67,18 +62,6 @@ void replica_backup_server::on_cold_backup(backup_rpc rpc)
                request.policy.policy_name.c_str(),
                request.backup_id);
         response.err = ERR_OBJECT_NOT_FOUND;
-    }
-}
-
-void replica_backup_server::on_clear_cold_backup(const backup_clear_request &request)
-{
-    ddebug_f("receive clear cold backup request: backup({}.{})",
-             request.pid.to_string(),
-             request.policy_name.c_str());
-
-    replica_ptr rep = _stub->get_replica(request.pid);
-    if (rep != nullptr) {
-        rep->get_backup_manager()->on_clear_cold_backup(request);
     }
 }
 

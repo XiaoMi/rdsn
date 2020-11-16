@@ -55,35 +55,6 @@ replica_backup_manager::~replica_backup_manager()
     }
 }
 
-void replica_backup_manager::on_clear_cold_backup(const backup_clear_request &request)
-{
-    _replica->_checker.only_one_thread_access();
-
-    auto find = _replica->_cold_backup_contexts.find(request.policy_name);
-    if (find != _replica->_cold_backup_contexts.end()) {
-        cold_backup_context_ptr backup_context = find->second;
-        if (backup_context->is_checkpointing()) {
-            ddebug_replica(
-                "{}: delay clearing obsoleted cold backup context, cause backup_status == "
-                "ColdBackupCheckpointing",
-                backup_context->name);
-            tasking::enqueue(LPC_REPLICATION_COLD_BACKUP,
-                             &_replica->_tracker,
-                             [this, request]() {
-                                 backup_response response;
-                                 on_clear_cold_backup(request);
-                             },
-                             get_gpid().thread_hash(),
-                             std::chrono::seconds(100));
-            return;
-        }
-
-        _replica->_cold_backup_contexts.erase(request.policy_name);
-    }
-
-    background_clear_backup_checkpoint(request.policy_name);
-}
-
 void replica_backup_manager::start_collect_backup_info()
 {
     if (_collect_info_timer == nullptr) {
