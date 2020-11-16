@@ -157,7 +157,7 @@ void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_r
 {
     if (status() != disk_migration_status::MOVING) {
         std::string err_msg = fmt::format("Invalid migration status({})", enum_to_string(status()));
-        derror_replica("received replica disk migrate request(origin={}, target={}), err = {}",
+        derror_replica("disk migration(origin={}, target={}), err = {}",
                        req.origin_disk,
                        req.target_disk,
                        err_msg);
@@ -167,7 +167,7 @@ void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_r
 
     if (init_target_dir(req) && migrate_replica_checkpoint(req) && migrate_replica_app_info(req)) {
         _status = disk_migration_status::MOVED;
-        ddebug_replica("received replica disk migrate request(origin={}, target={}), update status "
+        ddebug_replica("disk migration(origin={}, target={}), update status "
                        "from {}=>{}, ready to "
                        "close origin replica({})",
                        req.origin_disk,
