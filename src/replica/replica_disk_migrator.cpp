@@ -156,11 +156,10 @@ bool replica_disk_migrator::check_migration_args(const replica_disk_migrate_requ
 void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_request &req)
 {
     if (status() != disk_migration_status::MOVING) {
-        std::string err_msg = fmt::format("Invalid migration status({})", enum_to_string(status()));
-        derror_replica("disk migration(origin={}, target={}), err = {}",
+        derror_replica("disk migration(origin={}, target={}), err = Invalid migration status({})",
                        req.origin_disk,
                        req.target_disk,
-                       err_msg);
+                       enum_to_string(status()));
         reset_status();
         return;
     }
@@ -223,7 +222,7 @@ bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &
 // THREAD_POOL_REPLICATION_LONG
 bool replica_disk_migrator::migrate_replica_checkpoint(const replica_disk_migrate_request &req)
 {
-    error_code sync_checkpoint_err = _replica->get_app()->sync_checkpoint();
+    const auto &sync_checkpoint_err = _replica->get_app()->sync_checkpoint();
     if (sync_checkpoint_err != ERR_OK) {
         derror_replica("disk migration(origin={}, target={}) sync_checkpoint failed({})",
                        req.origin_disk,
@@ -233,7 +232,7 @@ bool replica_disk_migrator::migrate_replica_checkpoint(const replica_disk_migrat
         return false;
     }
 
-    error_code copy_checkpoint_err =
+    const auto &copy_checkpoint_err =
         _replica->get_app()->copy_checkpoint_to_dir(_target_data_dir.c_str(), 0 /*last_decree*/);
     if (copy_checkpoint_err != ERR_OK) {
         derror_replica("disk migration(origin={}, target={}) copy checkpoint to dir({}) "
@@ -255,7 +254,7 @@ bool replica_disk_migrator::migrate_replica_checkpoint(const replica_disk_migrat
 bool replica_disk_migrator::migrate_replica_app_info(const replica_disk_migrate_request &req)
 {
     replica_init_info init_info = _replica->get_app()->init_info();
-    error_code store_init_info_err = init_info.store(_target_replica_dir);
+    const auto &store_init_info_err = init_info.store(_target_replica_dir);
     if (store_init_info_err != ERR_OK) {
         derror_replica("disk migration(origin={}, target={}) stores app init info failed({})",
                        req.origin_disk,
@@ -266,9 +265,9 @@ bool replica_disk_migrator::migrate_replica_app_info(const replica_disk_migrate_
     }
 
     replica_app_info info(&_replica->_app_info);
-    std::string path = utils::filesystem::path_combine(_target_replica_dir, ".app-info");
+    const auto &path = utils::filesystem::path_combine(_target_replica_dir, ".app-info");
     info.store(path.c_str());
-    error_code store_info_err = info.store(path.c_str());
+    const auto &store_info_err = info.store(path.c_str());
     if (store_info_err != ERR_OK) {
         derror_replica("disk migration(origin={}, target={}) stores app info failed({})",
                        req.origin_disk,
