@@ -38,6 +38,7 @@ public:
 private:
     void generate_fake_rpc()
     {
+        // create RPC_QUERY_DISK_INFO fake request
         auto query_request = dsn::make_unique<query_disk_info_request>();
         fake_query_disk_rpc = query_disk_info_rpc(std::move(query_request), RPC_QUERY_DISK_INFO);
     }
@@ -115,7 +116,6 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
 
 TEST_F(replica_disk_test, on_query_disk_info_app_not_existed)
 {
-
     query_disk_info_request &request = *fake_query_disk_rpc.mutable_request();
 
     request.app_name = "not_existed_app";

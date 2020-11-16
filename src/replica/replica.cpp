@@ -33,8 +33,8 @@
 #include "backup/cold_backup_context.h"
 #include "bulk_load/replica_bulk_loader.h"
 #include "split/replica_split_manager.h"
-
 #include "replica_disk_migrator.h"
+
 #include <dsn/utils/latency_tracer.h>
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -43,6 +43,7 @@
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/strings.h>
 #include <dsn/tool-api/rpc_message.h>
+
 namespace dsn {
 namespace replication {
 
@@ -192,8 +193,7 @@ void replica::on_client_read(dsn::message_ex *request)
     _app->on_request(request);
 
     // If the corresponding perf counter exist, count the duration of this operation.
-    // rpc code of request is already checked in message_ex::rpc_code, so it will always be
-    // legal
+    // rpc code of request is already checked in message_ex::rpc_code, so it will always be legal
     if (_counters_table_level_latency[request->rpc_code()] != nullptr) {
         _counters_table_level_latency[request->rpc_code()]->set(dsn_now_ns() - start_time_ns);
     }
