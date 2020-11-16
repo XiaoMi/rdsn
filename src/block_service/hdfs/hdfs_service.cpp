@@ -1,3 +1,20 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 #include "hdfs_service.h"
 
 #include <algorithm>
@@ -124,7 +141,7 @@ dsn::task_ptr hdfs_service::list_dir(const ls_request &req,
         tsk->enqueue_with(resp);
     };
 
-    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, nullptr, list_dir_background);
+    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, tracker, list_dir_background);
     return tsk;
 }
 
@@ -157,7 +174,7 @@ dsn::task_ptr hdfs_service::create_file(const create_file_request &req,
         tsk->enqueue_with(resp);
     };
 
-    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, nullptr, create_file_in_background);
+    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, tracker, create_file_in_background);
     return tsk;
 }
 
@@ -201,7 +218,7 @@ dsn::task_ptr hdfs_service::remove_path(const remove_path_request &req,
         tsk->enqueue_with(resp);
     };
 
-    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, nullptr, remove_path_background);
+    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, tracker, remove_path_background);
     return tsk;
 }
 
@@ -288,7 +305,7 @@ dsn::task_ptr hdfs_file_object::write(const write_request &req,
         tsk->enqueue_with(resp);
         release_ref();
     };
-    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, nullptr, std::move(write_background));
+    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, tracker, std::move(write_background));
     return tsk;
 }
 
@@ -323,7 +340,7 @@ dsn::task_ptr hdfs_file_object::upload(const upload_request &req,
         release_ref();
     };
 
-    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, nullptr, upload_background);
+    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, tracker, upload_background);
     return t;
 }
 
@@ -405,7 +422,7 @@ dsn::task_ptr hdfs_file_object::read(const read_request &req,
         release_ref();
     };
 
-    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, nullptr, std::move(read_func));
+    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, tracker, std::move(read_func));
     return tsk;
 }
 
@@ -446,7 +463,7 @@ dsn::task_ptr hdfs_file_object::download(const download_request &req,
         release_ref();
     };
 
-    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, nullptr, download_background);
+    dsn::tasking::enqueue(LPC_HDFS_SERVICE_CALL, tracker, download_background);
     return t;
 }
 } // namespace block_service
