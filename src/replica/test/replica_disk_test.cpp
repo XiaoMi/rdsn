@@ -25,6 +25,8 @@
 namespace dsn {
 namespace replication {
 
+using query_disk_info_rpc = rpc_holder<query_disk_info_request, query_disk_info_response>;
+
 class replica_disk_test : public replica_disk_test_base
 {
 public:
@@ -37,13 +39,8 @@ private:
     void generate_fake_rpc()
     {
         // create RPC_QUERY_DISK_INFO fake request
-        dsn::message_ptr fake_query_request = dsn::message_ex::create_request(RPC_QUERY_DISK_INFO);
-        query_disk_info_request query_request;
-        ::dsn::marshall(fake_query_request, query_request);
-        dsn::message_ex *recvd_query_request = fake_query_request->copy(true, true);
-        fake_query_disk_rpc =
-            rpc_holder<query_disk_info_request, query_disk_info_response>::auto_reply(
-                recvd_query_request);
+        auto query_request = dsn::make_unique<query_disk_info_request>();
+        fake_query_disk_rpc = query_disk_info_rpc(std::move(query_request), RPC_QUERY_DISK_INFO);
     }
 };
 
@@ -59,7 +56,7 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
     auto &disk_infos = disk_info_response.disk_infos;
     ASSERT_EQ(disk_infos.size(), 6);
 
-    int info_size = disk_infos.size();
+    size_t info_size = disk_infos.size();
     for (int i = 0; i < info_size; i++) {
         if (disk_infos[i].tag == "tag_empty_1") {
             continue;
@@ -78,8 +75,7 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
         int app_id_1_partition_index = 0;
         ASSERT_EQ(disk_infos[i].holding_primary_replicas[app_info_1.app_id].size(),
                   app_id_1_primary_count_for_disk);
-        for (std::set<gpid>::iterator it =
-                 disk_infos[i].holding_primary_replicas[app_info_1.app_id].begin();
+        for (auto it = disk_infos[i].holding_primary_replicas[app_info_1.app_id].begin();
              it != disk_infos[i].holding_primary_replicas[app_info_1.app_id].end();
              it++) {
             ASSERT_EQ(it->get_app_id(), app_info_1.app_id);
@@ -88,8 +84,7 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
         // test secondary
         ASSERT_EQ(disk_infos[i].holding_secondary_replicas[app_info_1.app_id].size(),
                   app_id_1_secondary_count_for_disk);
-        for (std::set<gpid>::iterator it =
-                 disk_infos[i].holding_secondary_replicas[app_info_1.app_id].begin();
+        for (auto it = disk_infos[i].holding_secondary_replicas[app_info_1.app_id].begin();
              it != disk_infos[i].holding_secondary_replicas[app_info_1.app_id].end();
              it++) {
             ASSERT_EQ(it->get_app_id(), app_info_1.app_id);
@@ -101,8 +96,7 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
         int app_id_2_partition_index = 0;
         ASSERT_EQ(disk_infos[i].holding_primary_replicas[app_info_2.app_id].size(),
                   app_id_2_primary_count_for_disk);
-        for (std::set<gpid>::iterator it =
-                 disk_infos[i].holding_primary_replicas[app_info_2.app_id].begin();
+        for (auto it = disk_infos[i].holding_primary_replicas[app_info_2.app_id].begin();
              it != disk_infos[i].holding_primary_replicas[app_info_2.app_id].end();
              it++) {
             ASSERT_EQ(it->get_app_id(), app_info_2.app_id);
@@ -111,8 +105,7 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
         // test secondary
         ASSERT_EQ(disk_infos[i].holding_secondary_replicas[app_info_2.app_id].size(),
                   app_id_2_secondary_count_for_disk);
-        for (std::set<gpid>::iterator it =
-                 disk_infos[i].holding_secondary_replicas[app_info_2.app_id].begin();
+        for (auto it = disk_infos[i].holding_secondary_replicas[app_info_2.app_id].begin();
              it != disk_infos[i].holding_secondary_replicas[app_info_2.app_id].end();
              it++) {
             ASSERT_EQ(it->get_app_id(), app_info_2.app_id);
@@ -123,8 +116,8 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
 
 TEST_F(replica_disk_test, on_query_disk_info_app_not_existed)
 {
-    query_disk_info_request &request =
-        const_cast<query_disk_info_request &>(fake_query_disk_rpc.request());
+    query_disk_info_request &request = *fake_query_disk_rpc.mutable_request();
+
     request.app_name = "not_existed_app";
     stub->on_query_disk_info(fake_query_disk_rpc);
     ASSERT_EQ(fake_query_disk_rpc.response().err, ERR_OBJECT_NOT_FOUND);
@@ -132,14 +125,13 @@ TEST_F(replica_disk_test, on_query_disk_info_app_not_existed)
 
 TEST_F(replica_disk_test, on_query_disk_info_one_app)
 {
-    query_disk_info_request &request =
-        const_cast<query_disk_info_request &>(fake_query_disk_rpc.request());
+    query_disk_info_request &request = *fake_query_disk_rpc.mutable_request();
 
     request.app_name = app_info_1.app_name;
     stub->on_query_disk_info(fake_query_disk_rpc);
 
     auto &disk_infos_with_app_1 = fake_query_disk_rpc.response().disk_infos;
-    int info_size = disk_infos_with_app_1.size();
+    size_t info_size = disk_infos_with_app_1.size();
     for (int i = 0; i < info_size; i++) {
         if (disk_infos_with_app_1[i].tag == "tag_empty_1") {
             continue;
