@@ -482,6 +482,7 @@ struct query_disk_info_response
 struct replica_disk_migrate_request
 {
     1:dsn.gpid pid
+    // disk tag, for example `ssd1`. `origin_disk` and `target_disk` must be specified in the config of [replication] data_dirs.
     2:string origin_disk;
     3:string target_disk;
 }
@@ -494,7 +495,7 @@ struct replica_disk_migrate_response
    // -ERR_BUSY: current replica migration is running
    // -ERR_INVALID_STATE: current replica partition status isn't secondary
    // -ERR_INVALID_PARAMETERS: origin disk is equal with target disk
-   // -ERR_OBJECT_NOT_FOUND: origin or target disk isn't existed, origin disk doesn't exist current replica
+   // -ERR_OBJECT_NOT_FOUND: replica not found, origin or target disk isn't existed, origin disk doesn't exist current replica
    // -ERR_PATH_ALREADY_EXIST: target disk has existed current replica
    1:dsn.error_code err;
    2:optional string hint;

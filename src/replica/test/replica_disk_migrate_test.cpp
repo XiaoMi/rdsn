@@ -19,13 +19,13 @@
 
 #include <gtest/gtest.h>
 #include <dsn/utility/fail_point.h>
-#include <dsn/utility/filesystem.h>
 
 #include "replica/test/replica_disk_test_base.h"
-#include "replica/disk_migration/replica_disk_migrator.h"
+#include "replica/replica_disk_migrator.h"
 
 namespace dsn {
 namespace replication {
+using disk_migrate_rpc = rpc_holder<replica_disk_migrate_request, replica_disk_migrate_response>;
 
 class replica_disk_migrate_test : public replica_disk_test_base
 {
@@ -86,23 +86,16 @@ public:
 private:
     void generate_fake_rpc()
     {
-        // create RPC_MIGRATE_REPLICA fake request
-        dsn::message_ptr fake_migrate_request =
-            dsn::message_ex::create_request(RPC_MIGRATE_REPLICA);
-        replica_disk_migrate_request migrate_request;
-        ::dsn::marshall(fake_migrate_request, migrate_request);
-
-        dsn::message_ex *recvd_migrate_request = fake_migrate_request->copy(true, true);
-        fake_migrate_rpc =
-            rpc_holder<replica_disk_migrate_request, replica_disk_migrate_response>::auto_reply(
-                recvd_migrate_request);
+        // create RPC_REPLICA_DISK_MIGRATE fake request
+        auto migrate_request = dsn::make_unique<replica_disk_migrate_request>();
+        fake_migrate_rpc = disk_migrate_rpc(std::move(migrate_request), RPC_REPLICA_DISK_MIGRATE);
     }
 };
 
 // TODO(jiashuo1): test whole process
 TEST_F(replica_disk_migrate_test, on_migrate_replica)
 {
-    auto &request = const_cast<replica_disk_migrate_request &>(fake_migrate_rpc.request());
+    auto &request = *fake_migrate_rpc.mutable_request();
     auto &response = fake_migrate_rpc.response();
 
     // replica not existed
@@ -117,7 +110,7 @@ TEST_F(replica_disk_migrate_test, on_migrate_replica)
 
 TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
 {
-    auto &request = const_cast<replica_disk_migrate_request &>(fake_migrate_rpc.request());
+    auto &request = *fake_migrate_rpc.mutable_request();
     auto &response = fake_migrate_rpc.response();
 
     request.pid = dsn::gpid(app_info_1.app_id, 0);
@@ -173,7 +166,7 @@ TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
 
 TEST_F(replica_disk_migrate_test, disk_migrate_replica_run)
 {
-    auto &request = const_cast<replica_disk_migrate_request &>(fake_migrate_rpc.request());
+    auto &request = *fake_migrate_rpc.mutable_request();
 
     request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";

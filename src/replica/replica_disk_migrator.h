@@ -23,6 +23,9 @@ namespace dsn {
 namespace replication {
 class replica;
 
+std::string kReplicaDirTempSuffix = ".disk.balance.tmp";
+std::string kDataDirSuffix = "/data/rdb/";
+
 class replica_disk_migrator : replica_base
 {
 public:
@@ -46,7 +49,7 @@ private:
     bool migrate_replica_checkpoint(const replica_disk_migrate_request &req);
     bool migrate_replica_app_info(const replica_disk_migrate_request &req);
 
-    void close_origin_replica();
+    void close_current_replica();
     void update_replica_dir();
 
     void reset_status() { _status = disk_migration_status::IDLE; }
@@ -54,8 +57,8 @@ private:
 private:
     replica *_replica;
 
-    std::string _target_replica_dir; // /root/gpid.pegasus/
-    std::string _target_data_dir;    // /root/gpid.pegasus/data/rdb
+    std::string _target_replica_dir; // /root/ssd_tag/gpid.pegasus/
+    std::string _target_data_dir;    // /root/ssd_tag/gpid.pegasus/data/rdb
     disk_migration_status::type _status{disk_migration_status::IDLE};
 
     friend class replica;

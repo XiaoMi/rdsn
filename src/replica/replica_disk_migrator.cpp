@@ -29,9 +29,6 @@
 namespace dsn {
 namespace replication {
 
-std::string kReplicaDirSuffix = ".disk.balance.tmp";
-std::string kDataDirSuffix = "/data/rdb/";
-
 replica_disk_migrator::replica_disk_migrator(replica *r) : replica_base(r), _replica(r) {}
 
 replica_disk_migrator::~replica_disk_migrator() = default;
@@ -40,7 +37,6 @@ replica_disk_migrator::~replica_disk_migrator() = default;
 void replica_disk_migrator::on_migrate_replica(const replica_disk_migrate_request &req,
                                                /*out*/ replica_disk_migrate_response &resp)
 {
-    // return false if argument validation failed.
     if (!check_migration_args(req, resp)) {
         return;
     }
@@ -156,7 +152,7 @@ bool replica_disk_migrator::check_migration_args(const replica_disk_migrate_requ
     return true;
 }
 
-// TODO(jiashuo1)
+/// TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
 void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_request &req)
 {
@@ -181,7 +177,7 @@ void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_r
                        enum_to_string(status()),
                        _replica->dir());
 
-        close_origin_replica();
+        close_current_replica();
     }
 }
 
@@ -189,7 +185,7 @@ void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_r
 // THREAD_POOL_REPLICATION_LONG
 bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &req)
 {
-    // replica_dir: /root/origin/gpid.app_type
+    // replica_dir: /root/origin_disk_tag/gpid.app_type
     std::string replica_dir = _replica->dir();
     // using origin dir init new dir
     boost::replace_first(replica_dir, req.origin_disk, req.target_disk);
@@ -199,9 +195,9 @@ bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &
         return false;
     }
 
-    // _target_replica_dir = /root/target/gpid.app_type.disk.balance.tmp, it will update to
-    // /root/target/gpid.app_type finally
-    _target_replica_dir = fmt::format("{}{}", replica_dir, kReplicaDirSuffix);
+    // _target_replica_dir = /root/target_disk_tag/gpid.app_type.disk.balance.tmp, it will update to
+    // /root/target_disk_tag/gpid.app_type finally
+    _target_replica_dir = fmt::format("{}{}", replica_dir, kReplicaDirTempSuffix);
     if (utils::filesystem::directory_exists(_target_replica_dir)) {
         dwarn_replica("disk migration(origin={}, target={}) target replica dir({}) has existed, it "
                       "will be deleted",
@@ -293,7 +289,7 @@ bool replica_disk_migrator::migrate_replica_app_info(const replica_disk_migrate_
 
 // TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
-void replica_disk_migrator::close_origin_replica() {}
+void replica_disk_migrator::close_current_replica() {}
 
 // TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG

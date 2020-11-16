@@ -42,6 +42,7 @@
 #include "backup/replica_backup_server.h"
 #include "split/replica_split_manager.h"
 #include "disk_migration/replica_disk_migrator.h"
+#include "replica_disk_migrator.h"
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/utility/filesystem.h>
@@ -58,7 +59,6 @@
 #endif
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/remote_command.h>
-
 namespace dsn {
 namespace replication {
 
@@ -669,7 +669,8 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
 
     // we will mark all replicas inactive not transient unless all logs are complete
     if (!is_log_complete) {
-        derror("logs are not complete for some replicas, which means that shared log is truncated, "
+        derror("logs are not complete for some replicas, which means that shared log is "
+               "truncated, "
                "mark all replicas as inactive");
         for (auto it = rps.begin(); it != rps.end(); ++it) {
             it->second->set_inactive_state_transient(false);
@@ -1406,7 +1407,8 @@ void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
                    _primary_address_str);
             remove_replica_on_meta_server(req.info, req.config);
         } else {
-            ddebug("%s@%s: replica not exists on replica server, which is not primary, just ignore",
+            ddebug("%s@%s: replica not exists on replica server, which is not primary, just "
+                   "ignore",
                    req.config.pid.to_string(),
                    _primary_address_str);
         }
@@ -1602,7 +1604,8 @@ void replica_stub::on_gc()
     std::unordered_map<gpid, gc_info> rs;
     {
         zauto_read_lock l(_replicas_lock);
-        // collect info in lock to prevent the case that the replica is closed in replica::close()
+        // collect info in lock to prevent the case that the replica is closed in
+        // replica::close()
         for (auto &kv : _replicas) {
             const replica_ptr &rep = kv.second;
             gc_info &info = rs[kv.first];
@@ -1623,20 +1626,25 @@ void replica_stub::on_gc()
     // that is, we should be able to trigger memtable flush when necessary.
     //
     // How to trigger memtable flush?
-    //   we add a parameter `is_emergency' in dsn_app_async_checkpoint() function, when set true,
+    //   we add a parameter `is_emergency' in dsn_app_async_checkpoint() function, when set
+    //   true,
     //   the undering
     //   storage system should flush memtable as soon as possiable.
     //
     // When to trigger memtable flush?
-    //   1. Using `[replication].checkpoint_max_interval_hours' option, we can set max interval time
+    //   1. Using `[replication].checkpoint_max_interval_hours' option, we can set max interval
+    //   time
     //   of two
-    //      adjacent checkpoints; If the time interval is arrived, then emergency checkpoint will be
+    //      adjacent checkpoints; If the time interval is arrived, then emergency checkpoint
+    //      will be
     //      triggered.
-    //   2. Using `[replication].log_shared_file_count_limit' option, we can set max file count of
+    //   2. Using `[replication].log_shared_file_count_limit' option, we can set max file count
+    //   of
     //   shared log;
     //      If the limit is exceeded, then emergency checkpoint will be triggered; Instead of
     //      triggering all
-    //      replicas to do checkpoint, we will only trigger a few of necessary replicas which block
+    //      replicas to do checkpoint, we will only trigger a few of necessary replicas which
+    //      block
     //      garbage
     //      collection of the oldest log file.
     //
@@ -1700,7 +1708,8 @@ void replica_stub::on_gc()
                 c++;
             }
             ddebug("gc_shared: trigger emergency checkpoint by log_shared_file_count_limit, "
-                   "file_count_limit = %d, reserved_log_count = %d, prevent_gc_replica_count = %d, "
+                   "file_count_limit = %d, reserved_log_count = %d, prevent_gc_replica_count = "
+                   "%d, "
                    "trigger them to do checkpoint: { %s }",
                    _options.log_shared_file_count_limit,
                    reserved_log_count,
@@ -1918,7 +1927,8 @@ void replica_stub::open_replica(const app_info &app,
     std::string dir = get_replica_dir(app.app_type.c_str(), id, false);
     replica_ptr rep = nullptr;
     if (!dir.empty()) {
-        // NOTICE: if partition is DDD, and meta select one replica as primary, it will execute the
+        // NOTICE: if partition is DDD, and meta select one replica as primary, it will execute
+        // the
         // load-process because of a.b.pegasus is exist, so it will never execute the restore
         // process below
         ddebug("%s@%s: start to load replica %s group check, dir = %s",
@@ -1930,9 +1940,11 @@ void replica_stub::open_replica(const app_info &app,
     }
 
     if (rep == nullptr) {
-        // NOTICE: only new_replica_group's assign_primary will execute this; if server restart when
+        // NOTICE: only new_replica_group's assign_primary will execute this; if server restart
+        // when
         // download restore-data from cold backup media, the a.b.pegasus will move to
-        // a.b.pegasus.timestamp.err when replica-server load all the replicas, so restore-flow will
+        // a.b.pegasus.timestamp.err when replica-server load all the replicas, so restore-flow
+        // will
         // do it again
 
         bool restore_if_necessary =
@@ -2098,7 +2110,8 @@ void replica_stub::open_service()
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler_with_rpc_holder(
-        RPC_MIGRATE_REPLICA, "disk_migrate_replica", &replica_stub::on_disk_migrate);
+        RPC_REPLICA_DISK_MIGRATE, "disk_migrate_replica", &replica_stub::on_disk_migrate);
+
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler_with_rpc_holder(RPC_SPLIT_NOTIFY_CATCH_UP,
@@ -2115,9 +2128,12 @@ void replica_stub::open_service()
 
 void replica_stub::register_ctrl_command()
 {
-    /// In simple_kv test, three replica apps are created, which means that three replica_stubs are
-    /// initialized in simple_kv test. If we don't use std::call_once, these command are registered
-    /// for three times. And in command_manager, one same command is not allowed to be registered
+    /// In simple_kv test, three replica apps are created, which means that three replica_stubs
+    /// are
+    /// initialized in simple_kv test. If we don't use std::call_once, these command are
+    /// registered
+    /// for three times. And in command_manager, one same command is not allowed to be
+    /// registered
     /// more than twice times. That is why we use std::call_once here. Same situation in
     /// failure_detector::register_ctrl_commands and nfs_client_impl::register_cli_commands
     static std::once_flag flag;
@@ -2605,7 +2621,8 @@ void replica_stub::gc_tcmalloc_memory()
         tcmalloc_released_bytes = release_bytes;
         ddebug_f("Memory release started, almost {} bytes will be released", release_bytes);
         while (release_bytes > 0) {
-            // tcmalloc releasing memory will lock page heap, release 1MB at a time to avoid locking
+            // tcmalloc releasing memory will lock page heap, release 1MB at a time to avoid
+            // locking
             // page heap for long time
             ::MallocExtension::instance()->ReleaseToSystem(1024 * 1024);
             release_bytes -= 1024 * 1024;
@@ -2733,7 +2750,8 @@ void replica_stub::on_update_child_group_partition_count(update_child_group_part
 void replica_stub::update_disk_holding_replicas()
 {
     for (const auto &dir_node : _fs_manager._dir_nodes) {
-        // clear the holding_primary_replicas/holding_secondary_replicas and re-calculate it from
+        // clear the holding_primary_replicas/holding_secondary_replicas and re-calculate it
+        // from
         // holding_replicas
         dir_node->holding_primary_replicas.clear();
         dir_node->holding_secondary_replicas.clear();
