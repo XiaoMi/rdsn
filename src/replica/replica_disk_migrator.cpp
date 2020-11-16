@@ -183,7 +183,7 @@ bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &
 {
     // replica_dir: /root/origin_disk_tag/gpid.app_type
     std::string replica_dir = _replica->dir();
-    // using origin dir init new dir
+    // using origin dir to init new dir
     boost::replace_first(replica_dir, req.origin_disk, req.target_disk);
     if (utils::filesystem::directory_exists(replica_dir)) {
         derror_replica("migration target replica dir({}) has existed", replica_dir);
