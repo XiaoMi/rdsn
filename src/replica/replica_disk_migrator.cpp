@@ -152,7 +152,6 @@ bool replica_disk_migrator::check_migration_args(const replica_disk_migrate_requ
     return true;
 }
 
-/// TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
 void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_request &req)
 {
@@ -181,7 +180,6 @@ void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_r
     }
 }
 
-// TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
 bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &req)
 {
@@ -223,7 +221,6 @@ bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &
     return true;
 }
 
-// TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
 bool replica_disk_migrator::migrate_replica_checkpoint(const replica_disk_migrate_request &req)
 {
@@ -256,7 +253,6 @@ bool replica_disk_migrator::migrate_replica_checkpoint(const replica_disk_migrat
     return true;
 }
 
-// TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
 bool replica_disk_migrator::migrate_replica_app_info(const replica_disk_migrate_request &req)
 {
