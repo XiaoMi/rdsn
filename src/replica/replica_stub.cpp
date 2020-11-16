@@ -1925,8 +1925,8 @@ void replica_stub::open_replica(const app_info &app,
     }
 
     if (rep == nullptr) {
-        // NOTICE: only new_replica_group's assign_primary will execute this; if server restart
-        // when download restore-data from cold backup media, the a.b.pegasus will move to
+        // NOTICE: only new_replica_group's assign_primary will execute this; if server restart when
+        // download restore-data from cold backup media, the a.b.pegasus will move to
         // a.b.pegasus.timestamp.err when replica-server load all the replicas, so restore-flow will
         // do it again
 
@@ -2112,6 +2112,8 @@ void replica_stub::register_ctrl_command()
     /// In simple_kv test, three replica apps are created, which means that three replica_stubs are
     /// initialized in simple_kv test. If we don't use std::call_once, these command are registered
     /// for three times. And in command_manager, one same command is not allowed to be registered
+    /// more than twice times. That is why we use std::call_once here. Same situation in
+    /// failure_detector::register_ctrl_commands and nfs_client_impl::register_cli_commands
     static std::once_flag flag;
     std::call_once(flag, [&]() {
         _kill_partition_command = ::dsn::command_manager::instance().register_command(
