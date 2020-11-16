@@ -23,9 +23,6 @@ namespace dsn {
 namespace replication {
 class replica;
 
-std::string kReplicaDirTempSuffix = ".disk.balance.tmp";
-std::string kDataDirSuffix = "/data/rdb/";
-
 class replica_disk_migrator : replica_base
 {
 public:
@@ -55,6 +52,9 @@ private:
     void reset_status() { _status = disk_migration_status::IDLE; }
 
 private:
+    const std::string kReplicaDirTempSuffix = ".disk.balance.tmp";
+    const std::string kDataDirSuffix = "/data/rdb/";
+
     replica *_replica;
 
     std::string _target_replica_dir; // /root/ssd_tag/gpid.pegasus/

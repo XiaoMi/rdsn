@@ -292,7 +292,7 @@ bool replica_disk_migrator::migrate_replica_app_info(const replica_disk_migrate_
 void replica_disk_migrator::close_current_replica() {}
 
 // TODO(jiashuo1)
-// THREAD_POOL_REPLICATION_LONG
+// run in replica::close_replica of THREAD_POOL_REPLICATION_LONG
 void replica_disk_migrator::update_replica_dir() {}
 } // namespace replication
 } // namespace dsn
