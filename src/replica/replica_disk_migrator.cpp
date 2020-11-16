@@ -167,8 +167,7 @@ void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_r
 
     if (init_target_dir(req) && migrate_replica_checkpoint(req) && migrate_replica_app_info(req)) {
         _status = disk_migration_status::MOVED;
-        ddebug_replica("disk migration(origin={}, target={}), update status "
-                       "from {}=>{}, ready to "
+        ddebug_replica("disk migration(origin={}, target={}), update status from {}=>{}, ready to "
                        "close origin replica({})",
                        req.origin_disk,
                        req.target_disk,
@@ -237,14 +236,13 @@ bool replica_disk_migrator::migrate_replica_checkpoint(const replica_disk_migrat
     error_code copy_checkpoint_err =
         _replica->get_app()->copy_checkpoint_to_dir(_target_data_dir.c_str(), 0 /*last_decree*/);
     if (copy_checkpoint_err != ERR_OK) {
-        derror_replica(
-            "disk migration(origin={}, target={}) copy checkpoint to dir({}) failed(error={}), the "
-            "dir({}) will be deleted",
-            req.origin_disk,
-            req.target_disk,
-            _target_data_dir,
-            copy_checkpoint_err.to_string(),
-            _target_replica_dir);
+        derror_replica("disk migration(origin={}, target={}) copy checkpoint to dir({}) "
+                       "failed(error={}), the dir({}) will be deleted",
+                       req.origin_disk,
+                       req.target_disk,
+                       _target_data_dir,
+                       copy_checkpoint_err.to_string(),
+                       _target_replica_dir);
         reset_status();
         utils::filesystem::remove_path(_target_replica_dir);
         return false;
