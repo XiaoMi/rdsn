@@ -16,13 +16,4 @@ set(MY_BINPLACES "")
 
 dsn_add_static_library()
 
-set(LIBS hdfs)
-find_package(JNI)
-if (JNI_FOUND)
-  message (STATUS "JAVA_JVM_LIBRARY=${JAVA_JVM_LIBRARY}")
-  set(LIBS ${LIBS} ${JAVA_JVM_LIBRARY})
-else (JNI_FOUND)
-  message (FATAL_ERROR "JNI is required but not found, please make sure
-    jdk is installed and JAVA_HOME is set.")
-endif (JNI_FOUND)
-target_link_libraries(${MY_PROJ_NAME} PUBLIC ${LIBS})
+target_link_libraries(${MY_PROJ_NAME} PUBLIC hdfs)

@@ -309,6 +309,9 @@ function(dsn_setup_thirdparty_libs)
     find_package(lz4)
     find_package(RocksDB REQUIRED)
 
+    # libhdfs
+    find_package(JNI REQUIRED)
+
     link_directories(${DSN_THIRDPARTY_ROOT}/lib)
     link_directories(${DSN_THIRDPARTY_ROOT}/lib64)
 endfunction(dsn_setup_thirdparty_libs)
