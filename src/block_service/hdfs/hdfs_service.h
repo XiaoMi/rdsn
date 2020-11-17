@@ -46,7 +46,7 @@ public:
                               const remove_path_callback &cb,
                               dsn::task_tracker *tracker) override;
 
-    static std::string get_entry_name(const std::string &hdfs_path);
+    static std::string get_hdfs_entry_name(const std::string &hdfs_path);
 
 private:
     hdfsFS _fs;

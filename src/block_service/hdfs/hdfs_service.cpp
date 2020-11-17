@@ -82,7 +82,7 @@ error_code hdfs_service::create_fs()
     return ERR_OK;
 }
 
-std::string hdfs_service::get_entry_name(const std::string &hdfs_path)
+std::string hdfs_service::get_hdfs_entry_name(const std::string &hdfs_path)
 {
     // get entry name from a hdfs path.
     int i = hdfs_path.length() - 1;
@@ -129,7 +129,7 @@ dsn::task_ptr hdfs_service::list_dir(const ls_request &req,
             } else {
                 for (int i = 0; i < entries; i++) {
                     ls_entry tentry;
-                    tentry.entry_name = get_entry_name(std::string(info[i].mName));
+                    tentry.entry_name = get_hdfs_entry_name(std::string(info[i].mName));
                     tentry.is_directory = (info[i].mKind == kObjectKindDirectory);
                     resp.entries->emplace_back(tentry);
                 }
