@@ -16,4 +16,4 @@ set(MY_BINPLACES "")
 
 dsn_add_static_library()
 
-target_link_libraries(${MY_PROJ_NAME} PUBLIC hdfs)
+target_link_libraries(${MY_PROJ_NAME} PUBLIC hdfs ${JAVA_JVM_LIBRARY})
