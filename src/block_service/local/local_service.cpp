@@ -6,6 +6,7 @@
 #include <dsn/utility/utils.h>
 #include <dsn/utility/strings.h>
 #include <dsn/utility/safe_strerror_posix.h>
+#include <dsn/dist/fmt_logging.h>
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/tool-api/task_tracker.h>
@@ -36,7 +37,7 @@ bool file_metadata_from_json(std::ifstream &fin, file_metadata &fmeta) noexcept
         nlohmann::json::parse(data).get_to(fmeta);
         return true;
     } catch (nlohmann::json::exception &exp) {
-        dwarn("decode meta data from json failed: %s [%s]", exp.what(), data.c_str());
+        dwarn_f("decode meta data from json failed: {} [{}]", exp.what(), data);
         return false;
     }
 }
