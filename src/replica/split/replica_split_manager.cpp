@@ -1106,7 +1106,7 @@ void replica_split_manager::child_handle_async_learn_error() // on child partiti
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica_split_manager::trigger_primary_parent_split(
     const int32_t meta_partition_count,
-    split_status::type meta_split_status) // on primary parent partition
+    const split_status::type meta_split_status) // on primary parent partition
 {
     dcheck_eq_replica(status(), partition_status::PS_PRIMARY);
     dcheck_eq_replica(_replica->_app_info.partition_count * 2, meta_partition_count);
