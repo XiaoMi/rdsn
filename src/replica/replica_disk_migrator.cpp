@@ -24,39 +24,53 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
-#include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace replication {
+
+const std::string replica_disk_migrator::kReplicaDirTempSuffix = ".disk.balance.tmp";
+const std::string replica_disk_migrator::kDataDirFolder = "data/rdb/";
+const std::string replica_disk_migrator::kAppInfo = ".app-info";
 
 replica_disk_migrator::replica_disk_migrator(replica *r) : replica_base(r), _replica(r) {}
 
 replica_disk_migrator::~replica_disk_migrator() = default;
 
-// THREAD_POOL_REPLICATION
-void replica_disk_migrator::on_migrate_replica(const replica_disk_migrate_request &req,
-                                               /*out*/ replica_disk_migrate_response &resp)
+// THREAD_POOL_DEFAULT
+void replica_disk_migrator::on_migrate_replica(replica_disk_migrate_rpc rpc)
 {
-    if (!check_migration_args(req, resp)) {
-        return;
-    }
-
-    _status = disk_migration_status::MOVING;
-    ddebug_replica(
-        "received replica disk migrate request(origin={}, target={}), update status from {}=>{}",
-        req.origin_disk,
-        req.target_disk,
-        enum_to_string(disk_migration_status::IDLE),
-        enum_to_string(status()));
-
     tasking::enqueue(
-        LPC_REPLICATION_LONG_COMMON, _replica->tracker(), [=]() { do_disk_migrate_replica(req); });
+        LPC_REPLICATION_COMMON,
+        _replica->tracker(),
+        [=]() {
+
+            if (!check_migration_args(rpc)) {
+                return;
+            }
+
+            _status = disk_migration_status::MOVING;
+            ddebug_replica(
+                "received replica disk migrate request(origin={}, target={}), update status "
+                "from {}=>{}",
+                rpc.request().origin_disk,
+                rpc.request().target_disk,
+                enum_to_string(disk_migration_status::IDLE),
+                enum_to_string(status()));
+
+            tasking::enqueue(LPC_REPLICATION_LONG_COMMON, _replica->tracker(), [=]() {
+                migrate_replica(rpc.request());
+            });
+        },
+        get_gpid().thread_hash());
 }
 
-bool replica_disk_migrator::check_migration_args(const replica_disk_migrate_request &req,
-                                                 /*out*/ replica_disk_migrate_response &resp)
+bool replica_disk_migrator::check_migration_args(replica_disk_migrate_rpc rpc)
 {
     _replica->_checker.only_one_thread_access();
+
+    const replica_disk_migrate_request &req = rpc.request();
+    replica_disk_migrate_response &resp = rpc.response();
 
     // TODO(jiashuo1) may need manager control migration flow
     if (status() != disk_migration_status::IDLE) {
@@ -153,7 +167,7 @@ bool replica_disk_migrator::check_migration_args(const replica_disk_migrate_requ
 }
 
 // THREAD_POOL_REPLICATION_LONG
-void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_request &req)
+void replica_disk_migrator::migrate_replica(const replica_disk_migrate_request &req)
 {
     if (status() != disk_migration_status::MOVING) {
         derror_replica("disk migration(origin={}, target={}), err = Invalid migration status({})",
@@ -181,6 +195,10 @@ void replica_disk_migrator::do_disk_migrate_replica(const replica_disk_migrate_r
 // THREAD_POOL_REPLICATION_LONG
 bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &req)
 {
+    FAIL_POINT_INJECT_F("init_target_dir", [this](string_view) -> bool {
+        reset_status();
+        return false;
+    });
     // replica_dir: /root/origin_disk_tag/gpid.app_type
     std::string replica_dir = _replica->dir();
     // using origin dir to init new dir
@@ -195,8 +213,8 @@ bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &
     // /root/target_disk_tag/gpid.app_type in replica_disk_migrator::update_replica_dir finally
     _target_replica_dir = fmt::format("{}{}", replica_dir, kReplicaDirTempSuffix);
     if (utils::filesystem::directory_exists(_target_replica_dir)) {
-        dwarn_replica("disk migration(origin={}, target={}) target replica dir({}) has existed, it "
-                      "will be deleted",
+        dwarn_replica("disk migration(origin={}, target={}) target replica dir({}) has existed, "
+                      "delete it now",
                       req.origin_disk,
                       req.target_disk,
                       _target_replica_dir);
@@ -222,6 +240,11 @@ bool replica_disk_migrator::init_target_dir(const replica_disk_migrate_request &
 // THREAD_POOL_REPLICATION_LONG
 bool replica_disk_migrator::migrate_replica_checkpoint(const replica_disk_migrate_request &req)
 {
+    FAIL_POINT_INJECT_F("migrate_replica_checkpoint", [this](string_view) -> bool {
+        reset_status();
+        return false;
+    });
+
     const auto &sync_checkpoint_err = _replica->get_app()->sync_checkpoint();
     if (sync_checkpoint_err != ERR_OK) {
         derror_replica("disk migration(origin={}, target={}) sync_checkpoint failed({})",
@@ -253,6 +276,10 @@ bool replica_disk_migrator::migrate_replica_checkpoint(const replica_disk_migrat
 // THREAD_POOL_REPLICATION_LONG
 bool replica_disk_migrator::migrate_replica_app_info(const replica_disk_migrate_request &req)
 {
+    FAIL_POINT_INJECT_F("migrate_replica_app_info", [this](string_view) -> bool {
+        reset_status();
+        return false;
+    });
     replica_init_info init_info = _replica->get_app()->init_info();
     const auto &store_init_info_err = init_info.store(_target_replica_dir);
     if (store_init_info_err != ERR_OK) {
@@ -265,7 +292,7 @@ bool replica_disk_migrator::migrate_replica_app_info(const replica_disk_migrate_
     }
 
     replica_app_info info(&_replica->_app_info);
-    const auto &path = utils::filesystem::path_combine(_target_replica_dir, ".app-info");
+    const auto &path = utils::filesystem::path_combine(_target_replica_dir, kAppInfo);
     info.store(path.c_str());
     const auto &store_info_err = info.store(path.c_str());
     if (store_info_err != ERR_OK) {

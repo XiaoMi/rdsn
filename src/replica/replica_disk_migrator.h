@@ -29,18 +29,16 @@ public:
     explicit replica_disk_migrator(replica *r);
     ~replica_disk_migrator();
 
-    void on_migrate_replica(const replica_disk_migrate_request &req,
-                            /*out*/ replica_disk_migrate_response &resp);
+    void on_migrate_replica(replica_disk_migrate_rpc rpc);
 
     disk_migration_status::type status() const { return _status; }
 
     void set_status(const disk_migration_status::type &status) { _status = status; }
 
 private:
-    bool check_migration_args(const replica_disk_migrate_request &req,
-                              /*out*/ replica_disk_migrate_response &resp);
+    bool check_migration_args(replica_disk_migrate_rpc rpc);
 
-    void do_disk_migrate_replica(const replica_disk_migrate_request &req);
+    void migrate_replica(const replica_disk_migrate_request &req);
 
     bool init_target_dir(const replica_disk_migrate_request &req);
     bool migrate_replica_checkpoint(const replica_disk_migrate_request &req);
@@ -52,8 +50,9 @@ private:
     void reset_status() { _status = disk_migration_status::IDLE; }
 
 private:
-    const std::string kReplicaDirTempSuffix = ".disk.balance.tmp";
-    const std::string kDataDirFolder = "data/rdb/";
+    const static std::string kReplicaDirTempSuffix;
+    const static std::string kDataDirFolder;
+    const static std::string kAppInfo;
 
     replica *_replica;
 

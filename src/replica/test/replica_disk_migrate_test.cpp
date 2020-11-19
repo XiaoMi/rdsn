@@ -33,6 +33,10 @@ public:
     replica_disk_migrate_rpc fake_migrate_rpc;
 
 public:
+    replica_disk_migrate_test() { fail::setup(); }
+
+    ~replica_disk_migrate_test() { fail::teardown(); }
+
     void SetUp() override { generate_fake_rpc(); }
 
     replica_ptr get_replica(const dsn::gpid &pid) const
@@ -59,7 +63,7 @@ public:
     {
         replica_ptr rep = get_replica(rpc.request().pid);
         ASSERT_TRUE(rep);
-        rep->disk_migrator()->check_migration_args(rpc.request(), rpc.response());
+        rep->disk_migrator()->check_migration_args(fake_migrate_rpc);
     }
 
     void init_migration_target_dir(replica_disk_migrate_rpc &rpc)
@@ -173,28 +177,58 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_run)
     request.target_disk = "tag_empty_1";
     set_replica_dir(request.pid,
                     fmt::format("./{}/{}.replica", request.origin_disk, request.pid.to_string()));
+    set_status(request.pid, disk_migration_status::MOVING);
 
-    init_migration_target_dir(fake_migrate_rpc);
-    ASSERT_TRUE(utils::filesystem::directory_exists(
-        fmt::format("./{}/{}.replica.disk.balance.tmp/data/rdb/",
-                    request.target_disk,
-                    request.pid.to_string())));
+    const std::string kTargetReplicaDir = fmt::format(
+        "./{}/{}.replica.disk.balance.tmp/", request.target_disk, request.pid.to_string());
 
-    migrate_replica_checkpoint(fake_migrate_rpc);
-    ASSERT_TRUE(utils::filesystem::file_exists(
+    const std::string kTargetDataDir = fmt::format(
+        "./{}/{}.replica.disk.balance.tmp/data/rdb/", request.target_disk, request.pid.to_string());
+    const std::string kTargetCheckPointFile =
         fmt::format("./{}/{}.replica.disk.balance.tmp/data/rdb/checkpoint.file",
                     request.target_disk,
-                    request.pid.to_string())));
+                    request.pid.to_string());
+    const std::string kTargetInitInfoFile =
+        fmt::format("./{}/{}.replica.disk.balance.tmp/.init-info",
+                    request.target_disk,
+                    request.pid.to_string());
+    const std::string kTargetAppInfoFile = fmt::format(
+        "./{}/{}.replica.disk.balance.tmp/.app-info", request.target_disk, request.pid.to_string());
+
+    init_migration_target_dir(fake_migrate_rpc);
+    ASSERT_TRUE(utils::filesystem::directory_exists(kTargetDataDir));
+
+    migrate_replica_checkpoint(fake_migrate_rpc);
+    ASSERT_TRUE(utils::filesystem::file_exists(kTargetCheckPointFile));
 
     migrate_replica_app_info(fake_migrate_rpc);
-    ASSERT_TRUE(
-        utils::filesystem::file_exists(fmt::format("./{}/{}.replica.disk.balance.tmp/.init-info",
-                                                   request.target_disk,
-                                                   request.pid.to_string())));
-    ASSERT_TRUE(
-        utils::filesystem::file_exists(fmt::format("./{}/{}.replica.disk.balance.tmp/.app-info",
-                                                   request.target_disk,
-                                                   request.pid.to_string())));
+    ASSERT_TRUE(utils::filesystem::file_exists(kTargetInitInfoFile));
+    ASSERT_TRUE(utils::filesystem::file_exists(kTargetAppInfoFile));
+
+    // remove test tmp path
+    utils::filesystem::remove_path(kTargetReplicaDir);
+
+    fail::cfg("init_target_dir", "return()");
+    fail::cfg("migrate_replica_checkpoint", "return()");
+    fail::cfg("migrate_replica_app_info", "return()");
+
+    const auto repica_ptr = get_replica(request.pid);
+
+    set_status(request.pid, disk_migration_status::MOVING);
+    init_migration_target_dir(fake_migrate_rpc);
+    ASSERT_FALSE(utils::filesystem::directory_exists(kTargetDataDir));
+    ASSERT_EQ(repica_ptr->disk_migrator()->status(), disk_migration_status::IDLE);
+
+    set_status(request.pid, disk_migration_status::MOVING);
+    migrate_replica_checkpoint(fake_migrate_rpc);
+    ASSERT_FALSE(utils::filesystem::file_exists(kTargetCheckPointFile));
+    ASSERT_EQ(repica_ptr->disk_migrator()->status(), disk_migration_status::IDLE);
+
+    set_status(request.pid, disk_migration_status::MOVING);
+    migrate_replica_app_info(fake_migrate_rpc);
+    ASSERT_FALSE(utils::filesystem::file_exists(kTargetInitInfoFile));
+    ASSERT_FALSE(utils::filesystem::file_exists(kTargetAppInfoFile));
+    ASSERT_EQ(repica_ptr->disk_migrator()->status(), disk_migration_status::IDLE);
 }
 
 } // namespace replication

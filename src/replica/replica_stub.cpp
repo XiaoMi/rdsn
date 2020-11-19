@@ -1018,7 +1018,7 @@ void replica_stub::on_disk_migrate(replica_disk_migrate_rpc rpc)
 
     replica_ptr rep = get_replica(request.pid);
     if (rep != nullptr) {
-        rep->disk_migrator()->on_migrate_replica(request, response);
+        rep->disk_migrator()->on_migrate_replica(rpc);
     } else {
         response.err = ERR_OBJECT_NOT_FOUND;
     }
