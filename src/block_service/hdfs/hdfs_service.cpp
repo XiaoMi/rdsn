@@ -52,7 +52,12 @@ hdfs_service::hdfs_service() {}
 hdfs_service::~hdfs_service()
 {
     ddebug("Try to disconnect hdfs.");
-    hdfsDisconnect(_fs);
+    int result = hdfsDisconnect(_fs);
+    if (result == -1) {
+        derror_f("Fail to disconnect from the hdfs file system, error: {}.",
+                 utils::safe_strerror(errno));
+    }
+    // Even if there is an error, the resources associated with the hdfsFS will be freed.
     _fs = nullptr;
 }
 
@@ -63,13 +68,16 @@ error_code hdfs_service::initialize(const std::vector<std::string> &args)
     }
     _hdfs_name_node = args[0];
     _hdfs_path = args[1];
-    _fs = nullptr;
     return create_fs();
 }
 
 error_code hdfs_service::create_fs()
 {
     hdfsBuilder *builder = hdfsNewBuilder();
+    if (!builder) {
+        derror_f("Fail to create an HDFS builder, error: {}.", utils::safe_strerror(errno));
+        return ERR_FS_INTERNAL;
+    }
     hdfsBuilderSetNameNode(builder, _hdfs_name_node.c_str());
     _fs = hdfsBuilderConnect(builder);
     if (!_fs) {
@@ -84,14 +92,9 @@ error_code hdfs_service::create_fs()
 
 std::string hdfs_service::get_hdfs_entry_name(const std::string &hdfs_path)
 {
-    // get entry name from a hdfs path.
-    int i = hdfs_path.length() - 1;
-    for (; i >= 0; --i) {
-        if (hdfs_path[i] == '/') {
-            break;
-        }
-    }
-    return hdfs_path.substr(i + 1);
+    // get exact file name from an hdfs path.
+    int pos = hdfs_path.find_last_of("/");
+    return hdfs_path.substr(pos + 1);
 }
 
 dsn::task_ptr hdfs_service::list_dir(const ls_request &req,
@@ -117,7 +120,11 @@ dsn::task_ptr hdfs_service::list_dir(const ls_request &req,
         if (dir_info == nullptr) {
             derror_f("HDFS get path {} failed.", path);
             resp.err = ERR_FS_INTERNAL;
-        } else if (dir_info->mKind == kObjectKindFile) {
+            tsk->enqueue_with(resp);
+            return;
+        }
+
+        if (dir_info->mKind == kObjectKindFile) {
             derror_f("HDFS list directory failed, {} is not a directory", path);
             resp.err = ERR_INVALID_PARAMETERS;
         } else {
@@ -133,9 +140,9 @@ dsn::task_ptr hdfs_service::list_dir(const ls_request &req,
                     tentry.is_directory = (info[i].mKind == kObjectKindDirectory);
                     resp.entries->emplace_back(tentry);
                 }
+                hdfsFreeFileInfo(info, entries);
                 resp.err = ERR_OK;
             }
-            hdfsFreeFileInfo(info, entries);
         }
         hdfsFreeFileInfo(dir_info, 1);
         tsk->enqueue_with(resp);
@@ -167,6 +174,8 @@ dsn::task_ptr hdfs_service::create_file(const create_file_request &req,
         dsn::ref_ptr<hdfs_file_object> f = new hdfs_file_object(this, hdfs_file);
         resp.err = f->get_file_meta();
         if (resp.err == ERR_OK || resp.err == ERR_OBJECT_NOT_FOUND) {
+            // Just to create a hdfs_file_object locally. The file may not appear on HDFS
+            // immediately after this call.
             resp.err = ERR_OK;
             resp.file_handle = f;
             ddebug_f("create remote file {} succeed", hdfs_file);
@@ -251,9 +260,9 @@ error_code hdfs_file_object::write_data_in_batches(const char *data,
                                                    uint64_t &written_size)
 {
     written_size = 0;
-    hdfsFile writeFile =
+    hdfsFile write_file =
         hdfsOpenFile(_service->get_fs(), file_name().c_str(), O_WRONLY | O_CREAT, 0, 0, 0);
-    if (!writeFile) {
+    if (!write_file) {
         derror_f("Failed to open hdfs file {} for writting, error: {}.",
                  file_name(),
                  utils::safe_strerror(errno));
@@ -263,25 +272,27 @@ error_code hdfs_file_object::write_data_in_batches(const char *data,
     uint64_t write_len = 0;
     while (cur_pos < data_size) {
         write_len = std::min(data_size - cur_pos, FLAGS_hdfs_write_batch_size_bytes);
-        tSize num_written_bytes = hdfsWrite(
-            _service->get_fs(), writeFile, (void *)(data + cur_pos), static_cast<tSize>(write_len));
+        tSize num_written_bytes = hdfsWrite(_service->get_fs(),
+                                            write_file,
+                                            (void *)(data + cur_pos),
+                                            static_cast<tSize>(write_len));
         if (num_written_bytes == -1) {
             derror_f("Failed to write hdfs file {}, error: {}.",
                      file_name(),
                      utils::safe_strerror(errno));
-            hdfsCloseFile(_service->get_fs(), writeFile);
+            hdfsCloseFile(_service->get_fs(), write_file);
             return ERR_FS_INTERNAL;
         }
         cur_pos += num_written_bytes;
     }
-    if (hdfsHFlush(_service->get_fs(), writeFile) != 0) {
+    if (hdfsHFlush(_service->get_fs(), write_file) != 0) {
         derror_f(
             "Failed to flush hdfs file {}, error: {}.", file_name(), utils::safe_strerror(errno));
-        hdfsCloseFile(_service->get_fs(), writeFile);
+        hdfsCloseFile(_service->get_fs(), write_file);
         return ERR_FS_INTERNAL;
     }
     written_size = cur_pos;
-    if (hdfsCloseFile(_service->get_fs(), writeFile) != 0) {
+    if (hdfsCloseFile(_service->get_fs(), write_file) != 0) {
         derror_f(
             "Failed to close hdfs file {}, error: {}", file_name(), utils::safe_strerror(errno));
         return ERR_FS_INTERNAL;
@@ -325,10 +336,10 @@ dsn::task_ptr hdfs_file_object::upload(const upload_request &req,
         if (is.is_open()) {
             int64_t file_sz = 0;
             dsn::utils::filesystem::file_size(req.input_local_name, file_sz);
-            char *buffer = new char[file_sz + 1];
-            is.read(buffer, file_sz);
+            std::unique_ptr<char[]> buffer(new char[file_sz]);
+            is.read(buffer.get(), file_sz);
             is.close();
-            resp.err = write_data_in_batches(buffer, file_sz, resp.uploaded_size);
+            resp.err = write_data_in_batches(buffer.get(), file_sz, resp.uploaded_size);
         } else {
             derror_f("HDFS upload failed: open local file {} failed when upload to {}, error: {}",
                      req.input_local_name,
@@ -358,24 +369,25 @@ error_code hdfs_file_object::read_data_in_batches(uint64_t start_pos,
         }
     }
 
-    hdfsFile readFile = hdfsOpenFile(_service->get_fs(), file_name().c_str(), O_RDONLY, 0, 0, 0);
-    if (!readFile) {
+    hdfsFile read_file = hdfsOpenFile(_service->get_fs(), file_name().c_str(), O_RDONLY, 0, 0, 0);
+    if (!read_file) {
         derror_f("Failed to open hdfs file {} for reading, error: {}.",
                  file_name(),
                  utils::safe_strerror(errno));
         return ERR_FS_INTERNAL;
     }
-    char *buf = new char[_size + 1];
-    char *dst_buf = buf;
+    std::unique_ptr<char[]> raw_buf(new char[_size]);
+    char *dst_buf = raw_buf.get();
 
     // if length = -1, we should read the whole file.
     uint64_t data_length = (length == -1 ? _size : length);
     uint64_t cur_pos = start_pos;
     uint64_t read_size = 0;
+    bool read_success = true;
     while (cur_pos < start_pos + data_length) {
         read_size = std::min(start_pos + data_length - cur_pos, FLAGS_hdfs_read_batch_size_bytes);
         tSize num_read_bytes = hdfsPread(_service->get_fs(),
-                                         readFile,
+                                         read_file,
                                          static_cast<tOffset>(cur_pos),
                                          (void *)dst_buf,
                                          static_cast<tSize>(read_size));
@@ -386,18 +398,21 @@ error_code hdfs_file_object::read_data_in_batches(uint64_t start_pos,
             derror_f("Failed to read hdfs file {}, error: {}.",
                      file_name(),
                      utils::safe_strerror(errno));
-            hdfsCloseFile(_service->get_fs(), readFile);
-            return ERR_FS_INTERNAL;
+            read_success = false;
+            break;
         }
     }
-    read_length = cur_pos - start_pos;
-    read_buffer = std::string(buf, dst_buf - buf);
-    if (hdfsCloseFile(_service->get_fs(), readFile) != 0) {
+    if (hdfsCloseFile(_service->get_fs(), read_file) != 0) {
         derror_f(
             "Failed to close hdfs file {}, error: {}.", file_name(), utils::safe_strerror(errno));
         return ERR_FS_INTERNAL;
     }
-    return ERR_OK;
+    if (read_success) {
+        read_length = cur_pos - start_pos;
+        read_buffer = std::string(raw_buf.get(), dst_buf - raw_buf.get());
+        return ERR_OK;
+    }
+    return ERR_FS_INTERNAL;
 }
 
 dsn::task_ptr hdfs_file_object::read(const read_request &req,
