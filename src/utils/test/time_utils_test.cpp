@@ -94,7 +94,7 @@ TEST(time_utils, time_ms_to_string)
     ASSERT_EQ(std::string(buf), "2020-11-11 18:45:06.136");
 
     memset(buf, 0, sizeof(buf));
-    time_ms_to_string(dsn_now_ms, buf);
+    time_ms_to_string(dsn_now_ms(), buf);
     ASSERT_EQ(strlen(buf), strlen("XXXX-XX-XX XX:XX:XX.XXX"));
 }
 
