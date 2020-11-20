@@ -19,6 +19,7 @@ set(MY_PROJ_LIBS
         dsn.block_service
         dsn.block_service.local
         dsn.block_service.fds
+        dsn.block_service.hdfs
         dsn.failure_detector
         dsn_dist_cmd
         dsn_http
@@ -31,12 +32,13 @@ set(MY_PROJ_LIBS
         PocoNetSSL
         PocoJSON
         crypto
-        gtest)
+        gtest
+        )
 
 set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)
 
 # Extra files that will be installed
-set(MY_BINPLACES clear.sh run.sh config-ddl-test.ini config-test.ini suite1 suite2)
+set(MY_BINPLACES clear.sh run.sh config-test.ini suite1 suite2)
 
 add_definitions(-DDSN_MOCK_TEST)
 dsn_add_test()
