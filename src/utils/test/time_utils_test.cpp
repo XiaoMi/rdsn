@@ -91,7 +91,11 @@ TEST(time_utils, time_ms_to_string)
 {
     char buf[64];
     time_ms_to_string(1605091506136, buf);
-    ASSERT_EQ(std::string(buf), "2020-11-11 18:45:06.136");
+    // time differ between time zones,
+    // the real time 2020-11-11 18:45:06.136 (UTC+8)
+    // so it must be 2020-11-1x xx:45:06.136
+    ASSERT_EQ(std::string(buf).substr(0, 9), "2020-11-1");
+    ASSERT_EQ(std::string(buf).substr(13, 10), ":45:06.136");
 
     memset(buf, 0, sizeof(buf));
     time_ms_to_string(dsn_now_ms(), buf);
