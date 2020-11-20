@@ -45,7 +45,7 @@ std::unique_ptr<access_controller> create_meta_access_controller()
     return make_unique<meta_access_controller>();
 }
 
-std::unique_ptr<access_controller> create_replica_access_controller(std::string name)
+std::unique_ptr<access_controller> create_replica_access_controller(const std::string &name)
 {
     return make_unique<replica_access_controller>(name);
 }

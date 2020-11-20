@@ -51,6 +51,6 @@ protected:
 
 std::unique_ptr<access_controller> create_meta_access_controller();
 
-std::unique_ptr<access_controller> create_replica_access_controller(std::string name);
+std::unique_ptr<access_controller> create_replica_access_controller(const std::string &name);
 } // namespace security
 } // namespace dsn
