@@ -35,9 +35,9 @@ public:
 
     bool allowed(dsn::message_ex *msg) { return _replica_access_controller->allowed(msg); }
 
-    void set_replica_users(std::unordered_set<std::string> replica_users)
+    void set_replica_users(std::unordered_set<std::string> &&replica_users)
     {
-        _replica_access_controller->_super_users.swap(replica_users);
+        _replica_access_controller->_users.swap(replica_users);
     }
 
     std::unique_ptr<replica_access_controller> _replica_access_controller;
@@ -63,8 +63,8 @@ TEST_F(replica_access_controller_test, allowed)
     dsn::message_ptr msg = message_ex::create_request(RPC_CM_LIST_APPS);
     msg->io_session = sim_session;
 
-    for (const auto &test : tests) {
-        set_replica_users(test.replica_users);
+    for (auto &test : tests) {
+        set_replica_users(std::move(test.replica_users));
         sim_session->set_client_username(test.client_user);
 
         ASSERT_EQ(allowed(msg), test.result);
