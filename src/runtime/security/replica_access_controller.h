@@ -32,7 +32,6 @@ private:
     utils::rw_lock_nr _lock; // [
     std::unordered_set<std::string> _users;
     // ]
-    std::string _env_users = "";
     std::string _name;
 
     friend class replica_access_controller_test;
