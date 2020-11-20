@@ -50,8 +50,8 @@ TEST_F(replica_access_controller_test, allowed)
         std::unordered_set<std::string> replica_users;
         std::string client_user;
         bool result;
-    } tests[] = {{{"super_user1", "super_user2"}, "super_user1", true},
-                 {{"super_user1", "super_user2"}, "not_super_user", false},
+    } tests[] = {{{"replica_user1", "replica_user2"}, "replica_user1", true},
+                 {{"replica_user1", "replica_user2"}, "not_replica_user", false},
                  {{}, "user_name", false}};
 
     bool origin_enable_acl = FLAGS_enable_acl;
