@@ -58,13 +58,15 @@ void replica_disk_migrator::on_migrate_replica(replica_disk_migrate_rpc rpc)
                 enum_to_string(disk_migration_status::IDLE),
                 enum_to_string(status()));
 
+            const auto request = rpc.request();
             tasking::enqueue(LPC_REPLICATION_LONG_COMMON, _replica->tracker(), [=]() {
-                migrate_replica(rpc.request());
+                migrate_replica(request);
             });
         },
         get_gpid().thread_hash());
 }
 
+// THREAD_POOL_REPLICATION
 bool replica_disk_migrator::check_migration_args(replica_disk_migrate_rpc rpc)
 {
     _replica->_checker.only_one_thread_access();
@@ -180,7 +182,8 @@ void replica_disk_migrator::migrate_replica(const replica_disk_migrate_request &
 
     if (init_target_dir(req) && migrate_replica_checkpoint(req) && migrate_replica_app_info(req)) {
         _status = disk_migration_status::MOVED;
-        ddebug_replica("disk migration(origin={}, target={}), update status from {}=>{}, ready to "
+        ddebug_replica("disk migration(origin={}, target={}) copy data complete, update status "
+                       "from {}=>{}, ready to "
                        "close origin replica({})",
                        req.origin_disk,
                        req.target_disk,
