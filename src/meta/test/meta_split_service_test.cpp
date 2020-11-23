@@ -103,7 +103,13 @@ public:
         configuration_query_by_node_rpc rpc(std::move(request), RPC_CM_CONFIG_SYNC);
         _ss->on_config_sync(rpc);
         wait_all();
-        return rpc.response().splitting_replicas.size();
+        int32_t splitting_count = 0;
+        for (auto p : rpc.response().partitions) {
+            if (p.__isset.meta_split_status) {
+                ++splitting_count;
+            }
+        }
+        return splitting_count;
     }
 
     void mock_app_partition_split_context()

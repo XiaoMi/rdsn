@@ -234,6 +234,12 @@ struct configuration_update_request
     3:config_type              type = config_type.CT_INVALID;
     4:dsn.rpc_address          node;
     5:dsn.rpc_address          host_node; // deprecated, only used by stateless apps
+
+    // Used for partition split
+    // if replica is splitting (whose split_status is not NOT_SPLIT)
+    // the `meta_split_status` will be set
+    // only used when on_config_sync
+    6:optional split_status    meta_split_status;
 }
 
 // meta server (config mgr) => primary | secondary (downgrade) (w/ new config)
@@ -268,11 +274,6 @@ struct configuration_query_by_node_response
     1:dsn.error_code err;
     2:list<configuration_update_request> partitions;
     3:optional list<replica_info> gc_replicas;
-
-    // Used for partition split
-    // if replica is splitting (whose split_status is not NOT_SPLIT)
-    // its gpid and split_status will be inserted into this map
-    4:optional map<dsn.gpid, split_status> splitting_replicas;
 }
 
 struct create_app_options
