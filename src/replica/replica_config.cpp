@@ -461,7 +461,7 @@ void replica::on_update_configuration_on_meta_server_reply(
             _primary_states.reconfiguration_task = tasking::enqueue(
                 LPC_DELAY_UPDATE_CONFIG,
                 &_tracker,
-                [ this, request, req2 = std::move(req) ]() {
+                [this, request, req2 = std::move(req)]() {
                     rpc_address target(_stub->_failure_detector->get_servers());
                     rpc_response_task_ptr t = rpc::create_rpc_response_task(
                         request,
@@ -576,7 +576,7 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
 void replica::update_allowed_users(const std::map<std::string, std::string> &envs)
 {
     std::string allowed_users;
-    auto iter = envs.find(replica_envs::ALLOWED_USERS);
+    auto iter = envs.find(replica_envs::REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS);
     if (iter != envs.end()) {
         allowed_users = iter->second;
     }
@@ -1065,7 +1065,7 @@ void replica::on_config_sync(const app_info &info, const partition_configuration
             if (config.primary == _stub->_primary_address // dead primary
                 ||
                 config.primary.is_invalid() // primary is dead (otherwise let primary remove this)
-                ) {
+            ) {
                 ddebug("%s: downgrade myself as inactive is not transient, remote_config(%s)",
                        name(),
                        boost::lexical_cast<std::string>(config).c_str());
