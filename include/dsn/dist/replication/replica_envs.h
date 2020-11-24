@@ -54,6 +54,7 @@ public:
     static const std::string MANUAL_COMPACT_PERIODIC_TARGET_LEVEL;
     static const std::string MANUAL_COMPACT_PERIODIC_BOTTOMMOST_LEVEL_COMPACTION;
     static const std::string BUSINESS_INFO;
+    static const std::string ALLOWED_USERS;
 };
 
 } // namespace replication
