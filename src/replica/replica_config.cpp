@@ -1065,7 +1065,7 @@ void replica::on_config_sync(const app_info &info, const partition_configuration
             if (config.primary == _stub->_primary_address // dead primary
                 ||
                 config.primary.is_invalid() // primary is dead (otherwise let primary remove this)
-            ) {
+                ) {
                 ddebug("%s: downgrade myself as inactive is not transient, remote_config(%s)",
                        name(),
                        boost::lexical_cast<std::string>(config).c_str());
