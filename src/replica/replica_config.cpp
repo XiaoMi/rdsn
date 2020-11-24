@@ -461,7 +461,7 @@ void replica::on_update_configuration_on_meta_server_reply(
             _primary_states.reconfiguration_task = tasking::enqueue(
                 LPC_DELAY_UPDATE_CONFIG,
                 &_tracker,
-                [this, request, req2 = std::move(req)]() {
+                [ this, request, req2 = std::move(req) ]() {
                     rpc_address target(_stub->_failure_detector->get_servers());
                     rpc_response_task_ptr t = rpc::create_rpc_response_task(
                         request,
