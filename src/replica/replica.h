@@ -133,7 +133,9 @@ public:
     //    messages and tools from/for meta server
     //
     void on_config_proposal(configuration_update_request &proposal);
-    void on_config_sync(const app_info &info, const partition_configuration &config);
+    void on_config_sync(const app_info &info,
+                        const partition_configuration &config,
+                        split_status::type meta_split_status);
     void on_cold_backup(const backup_request &request, /*out*/ backup_response &response);
 
     //
@@ -410,6 +412,8 @@ private:
     friend class replica_bulk_loader;
     friend class replica_split_manager;
     friend class replica_disk_migrator;
+    friend class replica_disk_test;
+    friend class replica_disk_migrate_test;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
