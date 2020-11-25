@@ -31,6 +31,12 @@ public:
     virtual error_s init() = 0;
     virtual error_s start(const std::string &mechanism, const blob &input, blob &output) = 0;
     virtual error_s step(const blob &input, blob &output) = 0;
+    /**
+     * retrive username from sasl connection.
+     * If this is a sasl server, it gets the name of the corresponding sasl client.
+     * But if this is a sasl client, it gets the name of itself
+     **/
+    error_s retrive_username(/*out*/ std::string &output);
 
 protected:
     sasl_wrapper() = default;

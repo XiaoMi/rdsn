@@ -182,9 +182,9 @@ ExternalProject_Add(fds
         )
 
 ExternalProject_Add(fmt
-        URL ${OSS_URL_PREFIX}/fmt-4.0.0.tar.gz
-        https://codeload.github.com/fmtlib/fmt/tar.gz/4.0.0
-        URL_MD5 c9be9a37bc85493d1116b0af59a25eba
+        URL ${OSS_URL_PREFIX}/fmt-5.3.0.zip
+        https://github.com/fmtlib/fmt/releases/download/5.3.0/fmt-5.3.0.zip
+        URL_MD5 56717619dcd9fa8c470533eb4d7d33aa
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
         -DCMAKE_BUILD_TYPE=release
         -DFMT_TEST=false

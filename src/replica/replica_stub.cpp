@@ -41,7 +41,7 @@
 #include "duplication/duplication_sync_timer.h"
 #include "backup/replica_backup_server.h"
 #include "split/replica_split_manager.h"
-#include "disk_migration/replica_disk_migrator.h"
+#include "replica_disk_migrator.h"
 
 #include <boost/algorithm/string/replace.hpp>
 #include <dsn/cpp/json_helper.h>
@@ -1032,7 +1032,7 @@ void replica_stub::on_disk_migrate(replica_disk_migrate_rpc rpc)
 
     replica_ptr rep = get_replica(request.pid);
     if (rep != nullptr) {
-        rep->disk_migrator()->on_migrate_replica(request, response);
+        rep->disk_migrator()->on_migrate_replica(rpc); // THREAD_POOL_DEFAULT
     } else {
         response.err = ERR_OBJECT_NOT_FOUND;
     }
@@ -1338,10 +1338,10 @@ void replica_stub::on_node_query_reply(error_code err,
             return;
         }
 
-        ddebug("process query node partitions response for resp.err = ERR_OK, "
-               "partitions_count(%d), gc_replicas_count(%d)",
-               (int)resp.partitions.size(),
-               (int)resp.gc_replicas.size());
+        ddebug_f("process query node partitions response for resp.err = ERR_OK, "
+                 "partitions_count({}), gc_replicas_count({})",
+                 resp.partitions.size(),
+                 resp.gc_replicas.size());
 
         replicas rs;
         {
@@ -1411,7 +1411,10 @@ void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
 {
     replica_ptr replica = get_replica(req.config.pid);
     if (replica != nullptr) {
-        replica->on_config_sync(req.info, req.config);
+        replica->on_config_sync(req.info,
+                                req.config,
+                                req.__isset.meta_split_status ? req.meta_split_status
+                                                              : split_status::NOT_SPLIT);
     } else {
         if (req.config.primary == _primary_address) {
             ddebug("%s@%s: replica not exists on replica server, which is primary, remove it "
@@ -1638,21 +1641,16 @@ void replica_stub::on_gc()
     //
     // How to trigger memtable flush?
     //   we add a parameter `is_emergency' in dsn_app_async_checkpoint() function, when set true,
-    //   the undering
-    //   storage system should flush memtable as soon as possiable.
+    //   the undering storage system should flush memtable as soon as possiable.
     //
     // When to trigger memtable flush?
     //   1. Using `[replication].checkpoint_max_interval_hours' option, we can set max interval time
-    //   of two
-    //      adjacent checkpoints; If the time interval is arrived, then emergency checkpoint will be
-    //      triggered.
+    //   of two adjacent checkpoints; If the time interval is arrived, then emergency checkpoint
+    //   will be triggered.
     //   2. Using `[replication].log_shared_file_count_limit' option, we can set max file count of
-    //   shared log;
-    //      If the limit is exceeded, then emergency checkpoint will be triggered; Instead of
-    //      triggering all
-    //      replicas to do checkpoint, we will only trigger a few of necessary replicas which block
-    //      garbage
-    //      collection of the oldest log file.
+    //   shared log; If the limit is exceeded, then emergency checkpoint will be triggered; Instead
+    //   of triggering all replicas to do checkpoint, we will only trigger a few of necessary
+    //   replicas which block garbage collection of the oldest log file.
     //
     if (_log != nullptr) {
         replica_log_info_map gc_condition;
@@ -1960,9 +1958,10 @@ void replica_stub::open_replica(const app_info &app,
                dir.c_str());
         rep = replica::load(this, dir.c_str());
 
+        // if load data failed, re-open the `*.ori` folder which is the origin replica dir
         if (rep == nullptr) {
             std::string origin_dir = get_replica_dir(
-                fmt::format("{}{}", app.app_type, dsn::replication::kOriginReplicaDirSuffix)
+                fmt::format("{}{}", app.app_type, replica_disk_migrator::kReplicaDirOriginSuffix)
                     .c_str(),
                 id,
                 false);
@@ -2149,7 +2148,7 @@ void replica_stub::open_service()
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler_with_rpc_holder(
-        RPC_MIGRATE_REPLICA, "disk_migrate_replica", &replica_stub::on_disk_migrate);
+        RPC_REPLICA_DISK_MIGRATE, "disk_migrate_replica", &replica_stub::on_disk_migrate);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler_with_rpc_holder(RPC_SPLIT_NOTIFY_CATCH_UP,

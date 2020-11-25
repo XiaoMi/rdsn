@@ -37,22 +37,16 @@ public:
     //  tag_4            100*5             50*4              40%
     //  tag_5            100*5             50*5              50%
     //  total            2500              750               30%
-    // replica info, for example:
-    //   dir_node             primary/secondary
-    //   tag_empty_1
-    //   tag_1                1.1 | 1.2,1.3
-    //                        2.1,2.2 | 2.3,2.4,2.5,2.6
-    //
-    //   tag_2                1.4 | 1.5,1.6
-    //                        2.7,2.8 | 2.9,2.10,2.11,2.12,2.13
-    //            ...
-    //            ...
+    // replica info, for example, tag_1(other disk same with it)
+    // primary         secondary
+    //   1.0            1.1,1.2
+    // 2.0,2.1       2.2,2.3,2.4,2.5
     replica_disk_test_base()
     {
         generate_mock_app_info();
 
-        generate_mock_dir_nodes(dir_nodes_count);
         generate_mock_empty_dir_node(empty_dir_nodes_count);
+        generate_mock_dir_nodes(dir_nodes_count);
 
         stub->generate_replicas_base_dir_nodes_for_app(
             app_info_1, app_id_1_primary_count_for_disk, app_id_1_secondary_count_for_disk);
@@ -121,54 +115,43 @@ private:
     void generate_mock_empty_dir_node(int num)
     {
         while (num > 0) {
-            dir_node *node_disk =
-                new dir_node(fmt::format("tag_empty_{}", num), fmt::format("./tag_empty_{}", num));
+            dir_node *node_disk = new dir_node(fmt::format("tag_empty_{}", num),
+                                               fmt::format("full_dir_empty_{}", num));
             stub->_fs_manager._dir_nodes.emplace_back(node_disk);
-            stub->_options.data_dirs.push_back(node_disk->full_dir);
-            utils::filesystem::create_directory(node_disk->full_dir);
             num--;
         }
     }
 
     void generate_mock_dir_nodes(int num)
     {
-        int app_id_1_disk_holding_replica_count =
-            app_id_1_primary_count_for_disk + app_id_1_secondary_count_for_disk;
-        int app_id_2_disk_holding_replica_count =
-            app_id_2_primary_count_for_disk + app_id_2_secondary_count_for_disk;
-
-        int app_id_1_partition_index = 1;
-        int app_id_2_partition_index = 1;
-
         int64_t disk_capacity_mb = num * 100;
-        int count = 0;
-        while (count++ < num) {
-            int64_t disk_available_mb = count * 50;
+        while (num > 0) {
+            int64_t disk_available_mb = num * 50;
             int disk_available_ratio =
                 static_cast<int>(std::round((double)100 * disk_available_mb / disk_capacity_mb));
             // create one mock dir_node and make sure disk_capacity_mb_ > disk_available_mb_
-            dir_node *node_disk = new dir_node("tag_" + std::to_string(count),
-                                               "./tag_" + std::to_string(count),
+            dir_node *node_disk = new dir_node("tag_" + std::to_string(num),
+                                               "full_dir_" + std::to_string(num),
                                                disk_capacity_mb,
                                                disk_available_mb,
                                                disk_available_ratio);
 
-            stub->_options.data_dirs.push_back(node_disk->full_dir);
-            utils::filesystem::create_directory(node_disk->full_dir);
-
-            int app_1_replica_count_per_disk = app_id_1_disk_holding_replica_count;
-            while (app_1_replica_count_per_disk-- > 0) {
+            int app_id_1_disk_holding_replica_count =
+                app_id_1_primary_count_for_disk + app_id_1_secondary_count_for_disk;
+            while (app_id_1_disk_holding_replica_count-- > 0) {
                 node_disk->holding_replicas[app_info_1.app_id].emplace(
-                    gpid(app_info_1.app_id, app_id_1_partition_index++));
+                    gpid(app_info_1.app_id, app_id_1_disk_holding_replica_count));
             }
 
-            int app_2_replica_count_per_disk = app_id_2_disk_holding_replica_count;
-            while (app_2_replica_count_per_disk-- > 0) {
+            int app_id_2_disk_holding_replica_count =
+                app_id_2_primary_count_for_disk + app_id_2_secondary_count_for_disk;
+            while (app_id_2_disk_holding_replica_count-- > 0) {
                 node_disk->holding_replicas[app_info_2.app_id].emplace(
-                    gpid(app_info_2.app_id, app_id_2_partition_index++));
+                    gpid(app_info_2.app_id, app_id_2_disk_holding_replica_count));
             }
 
             stub->_fs_manager._dir_nodes.emplace_back(node_disk);
+            num--;
         }
     }
 };

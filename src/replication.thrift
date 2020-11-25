@@ -234,6 +234,12 @@ struct configuration_update_request
     3:config_type              type = config_type.CT_INVALID;
     4:dsn.rpc_address          node;
     5:dsn.rpc_address          host_node; // deprecated, only used by stateless apps
+
+    // Used for partition split
+    // if replica is splitting (whose split_status is not NOT_SPLIT)
+    // the `meta_split_status` will be set
+    // only used when on_config_sync
+    6:optional split_status    meta_split_status;
 }
 
 // meta server (config mgr) => primary | secondary (downgrade) (w/ new config)
@@ -482,6 +488,7 @@ struct query_disk_info_response
 struct replica_disk_migrate_request
 {
     1:dsn.gpid pid
+    // disk tag, for example `ssd1`. `origin_disk` and `target_disk` must be specified in the config of [replication] data_dirs.
     2:string origin_disk;
     3:string target_disk;
 }
@@ -494,7 +501,7 @@ struct replica_disk_migrate_response
    // -ERR_BUSY: current replica migration is running
    // -ERR_INVALID_STATE: current replica partition status isn't secondary
    // -ERR_INVALID_PARAMETERS: origin disk is equal with target disk
-   // -ERR_OBJECT_NOT_FOUND: origin or target disk isn't existed, origin disk doesn't exist current replica
+   // -ERR_OBJECT_NOT_FOUND: replica not found, origin or target disk isn't existed, origin disk doesn't exist current replica
    // -ERR_PATH_ALREADY_EXIST: target disk has existed current replica
    1:dsn.error_code err;
    2:optional string hint;

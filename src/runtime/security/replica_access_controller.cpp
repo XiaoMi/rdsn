@@ -15,38 +15,31 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include <gtest/gtest.h>
+#include "replica_access_controller.h"
 
-#include <dsn/service_api_cpp.h>
+#include <dsn/tool-api/rpc_message.h>
+#include <dsn/dist/fmt_logging.h>
+#include <dsn/tool-api/network.h>
 
-int g_test_count = 0;
-int g_test_ret = 0;
+namespace dsn {
+namespace security {
+replica_access_controller::replica_access_controller(const std::string &name) { _name = name; }
 
-class gtest_app : public dsn::service_app
+bool replica_access_controller::allowed(message_ex *msg)
 {
-public:
-    gtest_app(const dsn::service_app_info *info) : ::dsn::service_app(info) {}
+    const std::string &user_name = msg->io_session->get_client_username();
+    if (pre_check(user_name)) {
+        return true;
+    }
 
-    dsn::error_code start(const std::vector<std::string> &args) override
     {
-        g_test_ret = RUN_ALL_TESTS();
-        g_test_count = 1;
-        return dsn::ERR_OK;
+        utils::auto_read_lock l(_lock);
+        if (_users.find(user_name) == _users.end()) {
+            ddebug_f("{}: user_name {} doesn't exist in acls map", _name, user_name);
+            return false;
+        }
+        return true;
     }
-
-    dsn::error_code stop(bool) override { return dsn::ERR_OK; }
-};
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-
-    dsn::service_app::register_factory<gtest_app>("replica");
-
-    dsn_run_config("config-test.ini", false);
-    while (g_test_count == 0) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-
-    dsn_exit(g_test_ret);
 }
+} // namespace security
+} // namespace dsn

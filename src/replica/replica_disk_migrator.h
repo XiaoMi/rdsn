@@ -21,12 +21,7 @@
 
 namespace dsn {
 namespace replication {
-
 class replica;
-
-const std::string kReplicaDirSuffix = ".disk.balance.tmp";
-const std::string kOriginReplicaDirSuffix = ".disk.balance.ori";
-const std::string kDataDirSuffix = "/data/rdb/";
 
 class replica_disk_migrator : replica_base
 {
@@ -34,33 +29,37 @@ public:
     explicit replica_disk_migrator(replica *r);
     ~replica_disk_migrator();
 
-    void on_migrate_replica(const replica_disk_migrate_request &req,
-                            /*out*/ replica_disk_migrate_response &resp);
+    void on_migrate_replica(replica_disk_migrate_rpc rpc);
 
     disk_migration_status::type status() const { return _status; }
 
     void set_status(const disk_migration_status::type &status) { _status = status; }
 
 private:
-    bool check_migration_args(const replica_disk_migrate_request &req,
-                              /*out*/ replica_disk_migrate_response &resp);
+    bool check_migration_args(replica_disk_migrate_rpc rpc);
 
-    void do_disk_migrate_replica(const replica_disk_migrate_request &req);
+    void migrate_replica(const replica_disk_migrate_request &req);
 
     bool init_target_dir(const replica_disk_migrate_request &req);
     bool migrate_replica_checkpoint(const replica_disk_migrate_request &req);
     bool migrate_replica_app_info(const replica_disk_migrate_request &req);
 
-    dsn::task_ptr close_origin_replica(const replica_disk_migrate_request &req);
+    dsn::task_ptr close_current_replica(const replica_disk_migrate_request &req);
     void update_replica_dir();
 
     void reset_status() { _status = disk_migration_status::IDLE; }
 
+public:
+    const static std::string kReplicaDirTempSuffix;
+    const static std::string kReplicaDirOriginSuffix;
+    const static std::string kDataDirFolder;
+    const static std::string kAppInfo;
+
 private:
     replica *_replica;
 
-    std::string _target_replica_dir; // /root/gpid.pegasus/
-    std::string _target_data_dir;    // /root/gpid.pegasus/data/rdb
+    std::string _target_replica_dir; // /root/ssd_tag/gpid.pegasus/
+    std::string _target_data_dir;    // /root/ssd_tag/gpid.pegasus/data/rdb
     disk_migration_status::type _status{disk_migration_status::IDLE};
 
     friend class replica;
