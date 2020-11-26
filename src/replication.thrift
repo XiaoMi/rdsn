@@ -180,8 +180,9 @@ struct group_check_request
     // their WALs after this decree.
     5:optional i64          confirmed_decree;
 
-    // Used to deliver child gpid during partition split
-    6:optional dsn.gpid     child_gpid;
+    // Used to deliver child gpid and meta_split_status during partition split
+    6:optional dsn.gpid     child_gpid; 
+    7:optional split_status meta_split_status;
 }
 
 struct group_check_response
