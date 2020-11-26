@@ -27,7 +27,7 @@ class replica_access_controller : public access_controller
 public:
     replica_access_controller(const std::string &name);
     bool allowed(message_ex *msg);
-    void reset(const std::string &users);
+    void update(const std::string &users);
 
 private:
     utils::rw_lock_nr _lock; // [

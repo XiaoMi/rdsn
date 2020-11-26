@@ -42,7 +42,7 @@ bool replica_access_controller::allowed(message_ex *msg)
     }
 }
 
-void replica_access_controller::reset(const std::string &users)
+void replica_access_controller::update(const std::string &users)
 {
     {
         // check to see whether we should update it or not.
