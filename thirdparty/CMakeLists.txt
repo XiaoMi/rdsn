@@ -79,6 +79,17 @@ ExternalProject_Add(gperftools
         BUILD_IN_SOURCE 1
         )
 
+file(MAKE_DIRECTORY ${TP_OUTPUT}/include/hdfs)
+ExternalProject_Add(hadoop
+        URL ${OSS_URL_PREFIX}/hadoop-2.8.4.tar.gz
+        https://archive.apache.org/dist/hadoop/common/hadoop-2.8.4/hadoop-2.8.4.tar.gz
+        URL_MD5 b30b409bb69185003b3babd1504ba224
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND cp -R include/. ${TP_OUTPUT}/include/hdfs && cp -R lib/native/. ${TP_OUTPUT}/lib
+        BUILD_IN_SOURCE 1
+        )
+
 # header-only
 ExternalProject_Add(rapidjson
         URL ${OSS_URL_PREFIX}/rapidjson-1.1.0.tar.gz
@@ -181,6 +192,7 @@ ExternalProject_Add(fds
         BUILD_IN_SOURCE 1
         )
 
+# fmtlib >=6.x requires c++14 support, do not update this library for now
 ExternalProject_Add(fmt
         URL ${OSS_URL_PREFIX}/fmt-5.3.0.zip
         https://github.com/fmtlib/fmt/releases/download/5.3.0/fmt-5.3.0.zip
