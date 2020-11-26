@@ -33,6 +33,11 @@ public:
     int32_t get_partition_version() const { return _partition_version.load(); }
     gpid get_child_gpid() const { return _child_gpid; }
     void set_child_gpid(gpid pid) { _child_gpid = pid; }
+    bool is_splitting() const
+    {
+        return _child_gpid.get_app_id() > 0 && _child_init_ballot > 0 &&
+               _split_status == split_status::SPLITTING;
+    }
 
 private:
     // parent partition start split
@@ -134,6 +139,19 @@ private:
     // secondary parent check whether should start or stop split
     void trigger_secondary_parent_split(const group_check_request &request,
                                         /*out*/ group_check_response &response);
+
+    // parent copy mutations to child during partition split
+    void copy_mutation(mutation_ptr &mu);
+
+    // child add mutation into prepare list and private log
+    // after child copy prepare list, before child replica become active
+    void on_copy_mutation(mutation_ptr &mu);
+
+    // when child copy mutation synchronously, child replica send ack to its parent
+    void ack_parent(dsn::error_code ec, mutation_ptr &mu);
+
+    // when child copy mutation synchronously, parent replica handle child ack
+    void on_copy_mutation_reply(dsn::error_code ec, ballot b, decree d);
 
     //
     // helper functions
