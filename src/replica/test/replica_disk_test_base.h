@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 #include <dsn/utility/fail_point.h>
+#include <dsn/dist/fmt_logging.h>
 
 #include "replica/test/replica_test_base.h"
 
@@ -39,6 +40,7 @@ public:
     //  total            2500              750               30%
     // replica info, for example:
     //   dir_node             primary/secondary
+    //
     //   tag_empty_1
     //   tag_1                1.1 | 1.2,1.3
     //                        2.1,2.2 | 2.3,2.4,2.5,2.6
@@ -49,6 +51,7 @@ public:
     //            ...
     replica_disk_test_base()
     {
+         fail::cfg("mock_dir_node", "return()");
         generate_mock_app_info();
 
         generate_mock_dir_nodes(dir_nodes_count);
@@ -169,6 +172,10 @@ private:
             }
 
             stub->_fs_manager._dir_nodes.emplace_back(node_disk);
+        }
+
+        for (auto node : stub->_fs_manager._dir_nodes) {
+            derror_f("{}",node->disk_capacity_mb);
         }
     }
 };

@@ -37,6 +37,7 @@
 #include <dsn/utility/filesystem.h>
 #include <thread>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace replication {
@@ -74,15 +75,17 @@ unsigned dir_node::remove(const gpid &pid)
     return iter->second.erase(pid);
 }
 
-void dir_node::update_disk_stat()
+bool dir_node::update_disk_stat()
 {
+    fail::cfg("mock_dir_node", "return()");
+    FAIL_POINT_INJECT_F("mock_dir_node", [](string_view) -> bool {return false;});
     dsn::utils::filesystem::disk_space_info info;
     if (dsn::utils::filesystem::get_disk_space_info(full_dir, info)) {
         disk_capacity_mb = info.capacity / 1024 / 1024;
         disk_available_mb = info.available / 1024 / 1024;
         disk_available_ratio = static_cast<int>(
             disk_capacity_mb == 0 ? 0 : std::round(disk_available_mb * 100.0 / disk_capacity_mb));
-        ddebug_f("update disk space succeed: dir = {}, capacity_mb = {}, available_mb = {}, "
+        derror_f("update disk space succeed: dir = {}, capacity_mb = {}, available_mb = {}, "
                  "available_ratio = {}%",
                  full_dir,
                  disk_capacity_mb,
@@ -90,7 +93,9 @@ void dir_node::update_disk_stat()
                  disk_available_ratio);
     } else {
         derror_f("update disk space failed: dir = {}", full_dir);
+        return false;
     }
+    return true;
 }
 
 fs_manager::fs_manager(bool for_test)
@@ -291,7 +296,7 @@ void fs_manager::update_disk_stat()
     _total_available_ratio = static_cast<int>(
         _total_capacity_mb == 0 ? 0 : std::round(_total_available_mb * 100.0 / _total_capacity_mb));
 
-    ddebug_f("update disk space succeed: disk_count = {}, total_capacity_mb = {}, "
+    derror_f("update disk space succeed: disk_count = {}, total_capacity_mb = {}, "
              "total_available_mb = {}, total_available_ratio = {}%, min_available_ratio = {}%, "
              "max_available_ratio = {}%",
              _dir_nodes.size(),
