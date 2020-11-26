@@ -123,7 +123,7 @@ TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
     auto &request = *fake_migrate_rpc.mutable_request();
     auto &response = fake_migrate_rpc.response();
 
-    request.pid = dsn::gpid(app_info_1.app_id, 0);
+    request.pid = dsn::gpid(app_info_1.app_id, 1);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
 
@@ -162,9 +162,11 @@ TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
     ASSERT_EQ(response.err, ERR_OBJECT_NOT_FOUND);
     // check replica has existed on target disk
     request.origin_disk = "tag_1";
-    request.target_disk = "tag_2";
+    request.target_disk = "tag_new";
+    generate_mock_dir_node(app_info_1, request.pid, request.target_disk);
     check_migration_args(fake_migrate_rpc);
     ASSERT_EQ(response.err, ERR_PATH_ALREADY_EXIST);
+    remove_mock_dir_node(request.target_disk);
 
     // check passed
     request.origin_disk = "tag_1";

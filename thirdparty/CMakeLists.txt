@@ -268,9 +268,9 @@ ExternalProject_Add(prometheus-cpp
 
 # header-only
 ExternalProject_Add(nlohmann_json
-        URL ${OSS_URL_PREFIX}/nlohmann_json-3.7.3.zip
-        https://github.com/nlohmann/json/releases/download/v3.7.3/include.zip
-        URL_MD5 7249387593792b565dcb30d87bca0de3
+        URL ${OSS_URL_PREFIX}/nlohmann_json-3.9.1.zip
+        https://github.com/nlohmann/json/releases/download/v3.9.1/include.zip
+        URL_MD5 d2f66c608af689e21d69a33c220e974e
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND cp -R include/nlohmann ${TP_OUTPUT}/include
