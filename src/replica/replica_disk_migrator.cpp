@@ -316,20 +316,18 @@ bool replica_disk_migrator::migrate_replica_app_info(const replica_disk_migrate_
 dsn::task_ptr replica_disk_migrator::close_current_replica(const replica_disk_migrate_request &req)
 {
     if (_replica->status() != partition_status::type::PS_SECONDARY) {
-        std::string err_msg =
-            fmt::format("Invalid partition status({})", enum_to_string(_replica->status()));
-        derror_replica("received replica disk migrate request(origin={}, target={}), err = {}",
+        derror_replica("migrate request(origin={}, target={}), err = Invalid partition status({})",
                        req.origin_disk,
                        req.target_disk,
-                       err_msg);
+                       enum_to_string(_replica->status()));
         reset_status();
+        utils::filesystem::remove_path(_target_replica_dir);
         return nullptr;
     }
 
     return _replica->_stub->begin_close_replica(_replica);
 }
 
-// TODO(jiashuo1)
 // run in replica->close_replica() of THREAD_POOL_REPLICATION_LONG
 void replica_disk_migrator::update_replica_dir()
 {

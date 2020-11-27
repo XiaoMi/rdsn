@@ -160,7 +160,8 @@ private:
                                                disk_available_mb,
                                                disk_available_ratio);
 
-            stub->_options.data_dirs.push_back(node_disk->full_dir);
+            stub->_options.data_dirs.push_back(
+                node_disk->full_dir); // open replica need the options
             utils::filesystem::create_directory(node_disk->full_dir);
 
             int app_1_replica_count_per_disk = app_id_1_disk_holding_replica_count;

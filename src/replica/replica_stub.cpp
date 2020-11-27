@@ -1951,14 +1951,15 @@ void replica_stub::open_replica(const app_info &app,
         // NOTICE: if partition is DDD, and meta select one replica as primary, it will execute the
         // load-process because of a.b.pegasus is exist, so it will never execute the restore
         // process below
-        ddebug("%s@%s: start to load replica %s group check, dir = %s",
-               id.to_string(),
-               _primary_address_str,
-               req ? "with" : "without",
-               dir.c_str());
+        derror_f("%s@%s: start to load replica %s group check, dir = %s",
+                 id.to_string(),
+                 _primary_address_str,
+                 req ? "with" : "without",
+                 dir.c_str());
         rep = replica::load(this, dir.c_str());
 
-        // if load data failed, re-open the `*.ori` folder which is the origin replica dir
+        // if load data failed, re-open the `*.ori` folder which is the origin replica dir of disk
+        // migration
         if (rep == nullptr) {
             std::string origin_dir = get_replica_dir(
                 fmt::format("{}{}", app.app_type, replica_disk_migrator::kReplicaDirOriginSuffix)
@@ -1968,9 +1969,14 @@ void replica_stub::open_replica(const app_info &app,
             if (!origin_dir.empty()) {
                 ddebug_f("start revert and load disk migration origin replica data({})",
                          origin_dir);
-                dsn::utils::filesystem::rename_path(dir, fmt::format("{}.{}", dir, ".gar"));
-                boost::replace_first(origin_dir, ".disk.balance.tmp", "");
-                rep = replica::load(this, origin_dir.c_str());
+                dsn::utils::filesystem::rename_path(dir, fmt::format("{}.{}", dir, "gar"));
+
+                std::string revert_dir = origin_dir;
+                boost::replace_first(revert_dir, ".disk.balance.ori", "");
+                dsn::utils::filesystem::rename_path(origin_dir, revert_dir);
+                rep = replica::load(this, revert_dir.c_str());
+
+                FAIL_POINT_INJECT_F("mock_replica_open", [&](string_view) -> void {});
             }
         }
     }
