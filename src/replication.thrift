@@ -161,10 +161,13 @@ struct learn_notify_response
 // partition split status
 enum split_status
 {
+    // idle state
     NOT_SPLIT,
+    // A replica is splitting into two replicas, original one called parent, new one called child
     SPLITTING,
     PAUSING,
     PAUSED,
+    // After split is successfully cancelled, the state turns into NOT_SPLIT
     CANCELING
 }
 
