@@ -72,7 +72,7 @@ public:
     unsigned replicas_count() const;
     bool has(const dsn::gpid &pid) const;
     unsigned remove(const dsn::gpid &pid);
-    bool update_disk_stat();
+    void update_disk_stat();
 };
 
 class fs_manager

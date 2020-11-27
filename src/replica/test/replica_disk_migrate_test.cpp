@@ -45,6 +45,8 @@ public:
         return rep;
     }
 
+    dsn::task_tracker get_stub_tracker() const { return stub->_tracker; }
+
     void set_status(const dsn::gpid &pid, const disk_migration_status::type &status)
     {
         replica_ptr rep = get_replica(pid);
@@ -102,7 +104,6 @@ private:
     }
 };
 
-// TODO(jiashuo1): test whole process
 TEST_F(replica_disk_migrate_test, on_migrate_replica)
 {
     auto &request = *fake_migrate_rpc.mutable_request();
@@ -116,6 +117,12 @@ TEST_F(replica_disk_migrate_test, on_migrate_replica)
     ASSERT_EQ(response.err, ERR_OBJECT_NOT_FOUND);
 
     // TODO(jiashuo1): replica existed
+    request.pid = dsn::gpid(app_info_1.app_id, 2);
+    request.origin_disk = "tag_1";
+    request.target_disk = "tag_2";
+    stub->on_disk_migrate(fake_migrate_rpc);
+    get_replica(request.pid)->tracker()->wait_outstanding_tasks();
+    ASSERT_EQ(response.err, ERR_OK);
 }
 
 TEST_F(replica_disk_migrate_test, migrate_disk_replica_check)
@@ -249,17 +256,15 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_close)
     const std::string kReplicaOriginDir =
         fmt::format("./{}/{}.replica", request.origin_disk, request.pid.to_string());
     const std::string kReplicaOriginSuffixDir = fmt::format(
-        "./{}/{}.replica.disk.balance.ori/", request.target_disk, request.pid.to_string());
+        "./{}/{}.replica.disk.balance.ori/", request.origin_disk, request.pid.to_string());
     const std::string kReplicaNewDir =
         fmt::format("./{}/{}.replica/", request.target_disk, request.pid.to_string());
 
     set_replica_dir(request.pid, kReplicaOriginDir);
     utils::filesystem::create_directory(get_replica(request.pid)->dir());
     stub->on_disk_migrate(fake_migrate_rpc);
+    sleep(10);
 
-    // test update replica dir
-    set_status(request.pid, disk_migration_status::MOVED);
-    close_current_replica(fake_migrate_rpc)->wait();
     ASSERT_TRUE(utils::filesystem::directory_exists(kReplicaOriginSuffixDir));
     ASSERT_TRUE(utils::filesystem::directory_exists(kReplicaNewDir));
     utils::filesystem::remove_path(fmt::format("./{}/", request.target_disk));

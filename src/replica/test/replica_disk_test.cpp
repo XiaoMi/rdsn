@@ -64,7 +64,7 @@ TEST_F(replica_disk_test, on_query_disk_info_all_app)
             continue;
         }
         ASSERT_EQ(disk_infos[i].tag, "tag_" + std::to_string(i + 1));
-        ASSERT_EQ(disk_infos[i].full_dir, "full_dir_" + std::to_string(i + 1));
+        ASSERT_EQ(disk_infos[i].full_dir, "./tag_" + std::to_string(i + 1));
         ASSERT_EQ(disk_infos[i].disk_capacity_mb, 500);
         ASSERT_EQ(disk_infos[i].disk_available_mb, (i + 1) * 50);
         // `holding_primary_replicas` and `holding_secondary_replicas` is std::map<app_id,

@@ -51,7 +51,9 @@ public:
     //            ...
     replica_disk_test_base()
     {
-         fail::cfg("mock_dir_node", "return()");
+        fail::setup();
+
+        fail::cfg("mock_dir_node", "return()");
         generate_mock_app_info();
 
         generate_mock_dir_nodes(dir_nodes_count);
@@ -64,6 +66,8 @@ public:
             app_info_2, app_id_2_primary_count_for_disk, app_id_2_secondary_count_for_disk);
         stub->on_disk_stat();
     }
+
+    ~replica_disk_test_base() { fail::teardown(); }
 
     void update_disk_replica() { stub->on_disk_stat(); }
 
@@ -172,10 +176,6 @@ private:
             }
 
             stub->_fs_manager._dir_nodes.emplace_back(node_disk);
-        }
-
-        for (auto node : stub->_fs_manager._dir_nodes) {
-            derror_f("{}",node->disk_capacity_mb);
         }
     }
 };
