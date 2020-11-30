@@ -1839,7 +1839,6 @@ void replica_stub::on_disk_stat()
             }
 
             if (last_write_time + remove_interval_seconds <= current_time_ms / 1000) {
-                derror_f("remove:{}", fpath);
                 if (!dsn::utils::filesystem::remove_path(fpath)) {
                     dwarn("gc_disk: failed to delete directory '%s', time_used_ms = %" PRIu64,
                           fpath.c_str(),
