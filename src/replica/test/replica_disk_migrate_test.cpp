@@ -139,7 +139,6 @@ TEST_F(replica_disk_migrate_test, on_migrate_replica)
     stub->on_disk_migrate(fake_migrate_rpc);
     ASSERT_EQ(response.err, ERR_OBJECT_NOT_FOUND);
 
-    // TODO(jiashuo1): replica existed
     request.pid = dsn::gpid(app_info_1.app_id, 2);
     request.origin_disk = "tag_1";
     request.target_disk = "tag_2";
@@ -275,7 +274,7 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_close)
     auto &request = *fake_migrate_rpc.mutable_request();
     request.pid = dsn::gpid(app_info_1.app_id, 2);
 
-    // test the invalid replica status
+    // test invalid replica status
     set_replica_status(request.pid, partition_status::PS_PRIMARY);
     ASSERT_FALSE(close_current_replica(fake_migrate_rpc));
 

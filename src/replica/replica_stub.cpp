@@ -1874,8 +1874,6 @@ void replica_stub::on_disk_stat()
 {
     _replicas_lock.lock_write();
 
-    derror_f(id.to_string());
-
     if (_replicas.find(id) != _replicas.end()) {
         _replicas_lock.unlock_write();
         ddebug("open replica '%s.%s' failed coz replica is already opened",
@@ -1947,15 +1945,14 @@ void replica_stub::open_replica(const app_info &app,
     std::string dir = get_replica_dir(app.app_type.c_str(), id, false);
     replica_ptr rep = nullptr;
     if (!dir.empty()) {
-        derror_f("getdir:{}", dir);
         // NOTICE: if partition is DDD, and meta select one replica as primary, it will execute the
         // load-process because of a.b.pegasus is exist, so it will never execute the restore
         // process below
-        derror_f("%s@%s: start to load replica %s group check, dir = %s",
-                 id.to_string(),
-                 _primary_address_str,
-                 req ? "with" : "without",
-                 dir.c_str());
+        ddebug("%s@%s: start to load replica %s group check, dir = %s",
+               id.to_string(),
+               _primary_address_str,
+               req ? "with" : "without",
+               dir.c_str());
         rep = replica::load(this, dir.c_str());
 
         // if load data failed, re-open the `*.ori` folder which is the origin replica dir of disk
@@ -2148,9 +2145,8 @@ void replica_stub::open_service()
         RPC_QUERY_PN_DECREE, "query_decree", &replica_stub::on_query_decree);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_REPLICA_INFO, "query_replica_info", &replica_stub::on_query_replica_info);
-    register_rpc_handler_with_rpc_holder(RPC_REPLICA_COPY_LAST_CHECKPOINT,
-                                         "migrate_replica_checkpoint",
-                                         &replica_stub::on_copy_checkpoint);
+    register_rpc_handler_with_rpc_holder(
+        RPC_REPLICA_COPY_LAST_CHECKPOINT, "copy_checkpoint", &replica_stub::on_copy_checkpoint);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler_with_rpc_holder(

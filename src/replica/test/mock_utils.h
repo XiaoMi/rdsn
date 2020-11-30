@@ -137,7 +137,6 @@ public:
         return _max_gced_decree;
     }
     /// helper functions
-    void set_replica_dir(const std::string &dir) { _dir = dir; }
     void set_replica_config(replica_configuration &config) { _config = config; }
     void set_partition_status(partition_status::type status) { _config.status = status; }
     void set_last_committed_decree(decree d) { _prepare_list->reset(d); }

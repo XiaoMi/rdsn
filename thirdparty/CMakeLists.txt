@@ -1,12 +1,12 @@
 project(pegasus_thirdparties)
 cmake_minimum_required(VERSION 3.0.2)
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     # require at least gcc 4.8
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.8)
         message(FATAL_ERROR "GCC version must be at least 4.8!")
-    endif()
-endif()
+    endif ()
+endif ()
 
 include(ExternalProject)
 

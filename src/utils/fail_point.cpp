@@ -22,7 +22,6 @@
 //               advances to gcc-4.9.
 #include <boost/regex.hpp>
 #include <dsn/utility/rand.h>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace fail {
