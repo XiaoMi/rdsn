@@ -212,11 +212,13 @@ const std::map<int, const char *> _detect_action_VALUES_TO_NAMES(
     ::apache::thrift::TEnumIterator(2, _kdetect_actionValues, _kdetect_actionNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
-int _kdisk_migration_statusValues[] = {
-    disk_migration_status::IDLE, disk_migration_status::MOVING, disk_migration_status::MOVED};
-const char *_kdisk_migration_statusNames[] = {"IDLE", "MOVING", "MOVED"};
+int _kdisk_migration_statusValues[] = {disk_migration_status::IDLE,
+                                       disk_migration_status::MOVING,
+                                       disk_migration_status::MOVED,
+                                       disk_migration_status::CLOSED};
+const char *_kdisk_migration_statusNames[] = {"IDLE", "MOVING", "MOVED", "CLOSED"};
 const std::map<int, const char *> _disk_migration_status_VALUES_TO_NAMES(
-    ::apache::thrift::TEnumIterator(3, _kdisk_migration_statusValues, _kdisk_migration_statusNames),
+    ::apache::thrift::TEnumIterator(4, _kdisk_migration_statusValues, _kdisk_migration_statusNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 mutation_header::~mutation_header() throw() {}

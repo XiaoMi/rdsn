@@ -374,7 +374,7 @@ void replica::close()
 {
     dassert_replica(status() == partition_status::PS_ERROR ||
                         status() == partition_status::PS_INACTIVE ||
-                        _disk_migrator->status() == disk_migration_status::MOVED,
+                        _disk_migrator->status() >= disk_migration_status::MOVED,
                     "invalid state(partition_status={}, migration_status={}) when calling "
                     "replica close",
                     name(),
@@ -426,8 +426,10 @@ void replica::close()
         }
     }
 
-    if (_disk_migrator != nullptr && _disk_migrator->status() == disk_migration_status::MOVED) {
+    if (_disk_migrator->status() == disk_migration_status::MOVED) {
         _disk_migrator->update_replica_dir();
+    } else if (_disk_migrator->status() == disk_migration_status::CLOSED) {
+        _disk_migrator.reset();
     }
 
     _counter_private_log_size.clear();
@@ -441,8 +443,6 @@ void replica::close()
     _bulk_loader.reset();
 
     _split_mgr.reset();
-
-    _disk_migrator.reset();
 
     ddebug("%s: replica closed, time_used = %" PRIu64 "ms", name(), dsn_now_ms() - start_time);
 }

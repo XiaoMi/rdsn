@@ -2039,7 +2039,7 @@ void replica_stub::open_replica(const app_info &app,
 {
     dassert_f(r->status() == partition_status::PS_ERROR ||
                   r->status() == partition_status::PS_INACTIVE ||
-                  r->disk_migrator()->status() == disk_migration_status::MOVED,
+                  r->disk_migrator()->status() >= disk_migration_status::MOVED,
               "{}: invalid state(partition_status={}, migration_status={}) when calling "
               "replica({}) close",
               name(),

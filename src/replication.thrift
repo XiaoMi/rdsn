@@ -1144,7 +1144,8 @@ enum disk_migration_status
 {
     IDLE,
     MOVING,
-    MOVED
+    MOVED,
+    CLOSED
 }
 
 struct detect_hotkey_request {

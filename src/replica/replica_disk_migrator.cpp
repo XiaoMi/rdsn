@@ -50,14 +50,14 @@ void replica_disk_migrator::on_migrate_replica(replica_disk_migrate_rpc rpc)
                 return;
             }
 
-            _status = disk_migration_status::MOVING;
             ddebug_replica(
                 "received replica disk migrate request(origin={}, target={}), update status "
                 "from {}=>{}",
                 rpc.request().origin_disk,
                 rpc.request().target_disk,
-                enum_to_string(disk_migration_status::IDLE),
-                enum_to_string(status()));
+                enum_to_string(status()),
+                enum_to_string(disk_migration_status::MOVING));
+            _status = disk_migration_status::MOVING;
 
             const auto &request = rpc.request();
             tasking::enqueue(LPC_REPLICATION_LONG_COMMON, _replica->tracker(), [=]() {
@@ -182,15 +182,15 @@ void replica_disk_migrator::migrate_replica(const replica_disk_migrate_request &
     }
 
     if (init_target_dir(req) && migrate_replica_checkpoint(req) && migrate_replica_app_info(req)) {
-        _status = disk_migration_status::MOVED;
         ddebug_replica("disk migration(origin={}, target={}) copy data complete, update status "
                        "from {}=>{}, ready to "
                        "close origin replica({})",
                        req.origin_disk,
                        req.target_disk,
-                       enum_to_string(disk_migration_status::MOVING),
                        enum_to_string(status()),
+                       enum_to_string(disk_migration_status::MOVED),
                        _replica->dir());
+        _status = disk_migration_status::MOVED;
 
         close_current_replica(req);
     }
@@ -354,10 +354,14 @@ void replica_disk_migrator::update_replica_dir()
     _replica->get_replica_stub()->_fs_manager.remove_replica(get_gpid());
     _replica->get_replica_stub()->_fs_manager.add_replica(get_gpid(), _target_replica_dir);
     _replica->get_replica_stub()->update_disk_holding_replicas();
+
     ddebug_replica("disk replica migration move data from origin dir({}) to new dir({}) "
-                   "success",
+                   "success, update status from {}=>{}",
                    _replica->dir(),
-                   _target_replica_dir);
+                   _target_replica_dir,
+                   enum_to_string(status()),
+                   enum_to_string(disk_migration_status::CLOSED));
+    _status = disk_migration_status::CLOSED;
 }
 } // namespace replication
 } // namespace dsn
