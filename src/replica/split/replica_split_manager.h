@@ -38,6 +38,7 @@ public:
         return _child_gpid.get_app_id() > 0 && _child_init_ballot > 0 &&
                _split_status == split_status::SPLITTING;
     }
+    split_status::type get_meta_split_status() { return _meta_split_status; }
 
 private:
     // parent partition start split
@@ -180,6 +181,11 @@ private:
     // in normal cases, _partition_version = partition_count-1
     // when replica reject client read write request, partition_version = -1
     std::atomic<int32_t> _partition_version;
+
+    // Used for primary parent
+    // It will be updated each time when config sync from meta
+    // TODO(heyuchen): clear it when primary parent clean up status
+    split_status::type _meta_split_status{split_status::NOT_SPLIT};
 };
 
 } // namespace replication
