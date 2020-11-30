@@ -1140,7 +1140,8 @@ enum detect_action
     STOP
 }
 
-enum disk_migration_status {
+enum disk_migration_status 
+{
     IDLE,
     MOVING,
     MOVED
