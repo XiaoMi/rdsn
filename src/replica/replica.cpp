@@ -427,6 +427,7 @@ void replica::close()
     }
 
     if (_disk_migrator->status() == disk_migration_status::MOVED) {
+        // this will update disk_migration_status::MOVED->disk_migration_status::CLOSED
         _disk_migrator->update_replica_dir();
     } else if (_disk_migrator->status() == disk_migration_status::CLOSED) {
         _disk_migrator.reset();
