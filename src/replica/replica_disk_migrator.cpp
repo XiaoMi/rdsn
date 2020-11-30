@@ -172,11 +172,11 @@ bool replica_disk_migrator::check_migration_args(replica_disk_migrate_rpc rpc)
 // THREAD_POOL_REPLICATION_LONG
 void replica_disk_migrator::migrate_replica(const replica_disk_migrate_request &req)
 {
-    dassert_f(status() == disk_migration_status::MOVING,
-              "disk migration(origin={}, target={}), err = Invalid migration status({})",
-              req.origin_disk,
-              req.target_disk,
-              enum_to_string(status()));
+    dassert_replica(status() == disk_migration_status::MOVING,
+                    "disk migration(origin={}, target={}), err = Invalid migration status({})",
+                    req.origin_disk,
+                    req.target_disk,
+                    enum_to_string(status()));
 
     if (init_target_dir(req) && migrate_replica_checkpoint(req) && migrate_replica_app_info(req)) {
         _status = disk_migration_status::MOVED;
@@ -308,7 +308,6 @@ bool replica_disk_migrator::migrate_replica_app_info(const replica_disk_migrate_
     return true;
 }
 
-// TODO(jiashuo1)
 // THREAD_POOL_REPLICATION_LONG
 dsn::task_ptr replica_disk_migrator::close_current_replica(const replica_disk_migrate_request &req)
 {
