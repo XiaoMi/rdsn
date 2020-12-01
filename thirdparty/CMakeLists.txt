@@ -81,9 +81,9 @@ ExternalProject_Add(gperftools
 
 file(MAKE_DIRECTORY ${TP_OUTPUT}/include/hdfs)
 ExternalProject_Add(hadoop
-        URL ${OSS_URL_PREFIX}/hadoop-3.1.4.tar.gz
-        https://mirrors.ocf.berkeley.edu/apache/hadoop/common/hadoop-3.1.4/hadoop-3.1.4.tar.gz
-        URL_MD5 bd87b61c8a736c27112d5c8382f8f70e
+        URL ${OSS_URL_PREFIX}/hadoop-2.8.4.tar.gz
+        https://archive.apache.org/dist/hadoop/common/hadoop-2.8.4/hadoop-2.8.4.tar.gz
+        URL_MD5 b30b409bb69185003b3babd1504ba224
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND cp -R include/. ${TP_OUTPUT}/include/hdfs && cp -R lib/native/. ${TP_OUTPUT}/lib
@@ -192,10 +192,11 @@ ExternalProject_Add(fds
         BUILD_IN_SOURCE 1
         )
 
+# fmtlib >=6.x requires c++14 support, do not update this library for now
 ExternalProject_Add(fmt
-        URL ${OSS_URL_PREFIX}/fmt-7.1.2.zip
-        https://github.com/fmtlib/fmt/releases/download/7.1.2/fmt-7.1.2.zip
-        URL_MD5 cd838fb47c92b3221986a2f454331178
+        URL ${OSS_URL_PREFIX}/fmt-5.3.0.zip
+        https://github.com/fmtlib/fmt/releases/download/5.3.0/fmt-5.3.0.zip
+        URL_MD5 56717619dcd9fa8c470533eb4d7d33aa
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
         -DCMAKE_BUILD_TYPE=release
         -DFMT_TEST=false

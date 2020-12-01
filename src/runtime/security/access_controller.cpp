@@ -21,6 +21,7 @@
 #include <dsn/utility/strings.h>
 #include <dsn/utility/smart_pointers.h>
 #include "meta_access_controller.h"
+#include "replica_access_controller.h"
 
 namespace dsn {
 namespace security {
@@ -42,6 +43,11 @@ bool access_controller::pre_check(const std::string &user_name)
 std::unique_ptr<access_controller> create_meta_access_controller()
 {
     return make_unique<meta_access_controller>();
+}
+
+std::unique_ptr<access_controller> create_replica_access_controller(const std::string &name)
+{
+    return make_unique<replica_access_controller>(name);
 }
 } // namespace security
 } // namespace dsn

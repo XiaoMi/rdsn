@@ -33,6 +33,12 @@ public:
     int32_t get_partition_version() const { return _partition_version.load(); }
     gpid get_child_gpid() const { return _child_gpid; }
     void set_child_gpid(gpid pid) { _child_gpid = pid; }
+    bool is_splitting() const
+    {
+        return _child_gpid.get_app_id() > 0 && _child_init_ballot > 0 &&
+               _split_status == split_status::SPLITTING;
+    }
+    split_status::type get_meta_split_status() { return _meta_split_status; }
 
 private:
     // parent partition start split
@@ -125,6 +131,11 @@ private:
     // child handle error while async learn parent states
     void child_handle_async_learn_error();
 
+    // called by `on_config_sync` in `replica_config.cpp`
+    // primary parent start or stop split according to meta_split_status
+    void trigger_primary_parent_split(const int32_t meta_partition_count,
+                                      const split_status::type meta_split_status);
+
     // called by `on_group_check` in `replica_check.cpp`
     // secondary parent check whether should start or stop split
     void trigger_secondary_parent_split(const group_check_request &request,
@@ -157,6 +168,11 @@ private:
     // in normal cases, _partition_version = partition_count-1
     // when replica reject client read write request, partition_version = -1
     std::atomic<int32_t> _partition_version;
+
+    // Used for primary parent
+    // It will be updated each time when config sync from meta
+    // TODO(heyuchen): clear it when primary parent clean up status
+    split_status::type _meta_split_status{split_status::NOT_SPLIT};
 };
 
 } // namespace replication

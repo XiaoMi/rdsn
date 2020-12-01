@@ -1445,7 +1445,8 @@ typedef struct _group_check_request__isset
           config(false),
           last_committed_decree(false),
           confirmed_decree(false),
-          child_gpid(false)
+          child_gpid(false),
+          meta_split_status(false)
     {
     }
     bool app : 1;
@@ -1454,6 +1455,7 @@ typedef struct _group_check_request__isset
     bool last_committed_decree : 1;
     bool confirmed_decree : 1;
     bool child_gpid : 1;
+    bool meta_split_status : 1;
 } _group_check_request__isset;
 
 class group_check_request
@@ -1463,7 +1465,10 @@ public:
     group_check_request(group_check_request &&);
     group_check_request &operator=(const group_check_request &);
     group_check_request &operator=(group_check_request &&);
-    group_check_request() : last_committed_decree(0), confirmed_decree(0) {}
+    group_check_request()
+        : last_committed_decree(0), confirmed_decree(0), meta_split_status((split_status::type)0)
+    {
+    }
 
     virtual ~group_check_request() throw();
     ::dsn::app_info app;
@@ -1472,6 +1477,7 @@ public:
     int64_t last_committed_decree;
     int64_t confirmed_decree;
     ::dsn::gpid child_gpid;
+    split_status::type meta_split_status;
 
     _group_check_request__isset __isset;
 
@@ -1486,6 +1492,8 @@ public:
     void __set_confirmed_decree(const int64_t val);
 
     void __set_child_gpid(const ::dsn::gpid &val);
+
+    void __set_meta_split_status(const split_status::type val);
 
     bool operator==(const group_check_request &rhs) const
     {
@@ -1504,6 +1512,10 @@ public:
         if (__isset.child_gpid != rhs.__isset.child_gpid)
             return false;
         else if (__isset.child_gpid && !(child_gpid == rhs.child_gpid))
+            return false;
+        if (__isset.meta_split_status != rhs.__isset.meta_split_status)
+            return false;
+        else if (__isset.meta_split_status && !(meta_split_status == rhs.meta_split_status))
             return false;
         return true;
     }
@@ -1678,7 +1690,12 @@ inline std::ostream &operator<<(std::ostream &out, const node_info &obj)
 typedef struct _configuration_update_request__isset
 {
     _configuration_update_request__isset()
-        : info(false), config(false), type(true), node(false), host_node(false)
+        : info(false),
+          config(false),
+          type(true),
+          node(false),
+          host_node(false),
+          meta_split_status(false)
     {
     }
     bool info : 1;
@@ -1686,6 +1703,7 @@ typedef struct _configuration_update_request__isset
     bool type : 1;
     bool node : 1;
     bool host_node : 1;
+    bool meta_split_status : 1;
 } _configuration_update_request__isset;
 
 class configuration_update_request
@@ -1695,7 +1713,11 @@ public:
     configuration_update_request(configuration_update_request &&);
     configuration_update_request &operator=(const configuration_update_request &);
     configuration_update_request &operator=(configuration_update_request &&);
-    configuration_update_request() : type((config_type::type)0) { type = (config_type::type)0; }
+    configuration_update_request()
+        : type((config_type::type)0), meta_split_status((split_status::type)0)
+    {
+        type = (config_type::type)0;
+    }
 
     virtual ~configuration_update_request() throw();
     ::dsn::app_info info;
@@ -1703,6 +1725,7 @@ public:
     config_type::type type;
     ::dsn::rpc_address node;
     ::dsn::rpc_address host_node;
+    split_status::type meta_split_status;
 
     _configuration_update_request__isset __isset;
 
@@ -1716,6 +1739,8 @@ public:
 
     void __set_host_node(const ::dsn::rpc_address &val);
 
+    void __set_meta_split_status(const split_status::type val);
+
     bool operator==(const configuration_update_request &rhs) const
     {
         if (!(info == rhs.info))
@@ -1727,6 +1752,10 @@ public:
         if (!(node == rhs.node))
             return false;
         if (!(host_node == rhs.host_node))
+            return false;
+        if (__isset.meta_split_status != rhs.__isset.meta_split_status)
+            return false;
+        else if (__isset.meta_split_status && !(meta_split_status == rhs.meta_split_status))
             return false;
         return true;
     }
