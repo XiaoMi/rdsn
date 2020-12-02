@@ -1204,6 +1204,8 @@ void replica_split_manager::on_copy_mutation(mutation_ptr &mu) // on child parti
         return;
     }
 
+    // It is possible for child has not copied parent prepare list, because parent and child may
+    // execute in different thread. In this case, child should ignore this mutation.
     if (!_replica->_split_states.is_prepare_list_copied) {
         return;
     }
@@ -1232,7 +1234,8 @@ void replica_split_manager::on_copy_mutation(mutation_ptr &mu) // on child parti
         }
         mu->log_task() = _stub->_log->append(
             mu, LPC_WRITE_REPLICATION_LOG, tracker(), nullptr, get_gpid().thread_hash());
-        _replica->_private_log->append(mu, LPC_WRITE_REPLICATION_LOG_COMMON, tracker(), nullptr);
+        _replica->_private_log->append(
+            mu, LPC_WRITE_REPLICATION_LOG_COMMON, tracker(), nullptr, get_gpid().thread_hash());
     } else {
         // TODO(heyuchen): child copy mutation synchronously
     }
