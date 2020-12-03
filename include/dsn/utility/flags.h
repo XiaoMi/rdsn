@@ -52,6 +52,8 @@
         dassert(FLAGS_VALIDATOR_FN_##name(FLAGS_##name), "validation failed: %s", #name);          \
     })
 
+#define DSN_UPDATE(name, val) flag_registry::instance().update_flag(name, val)
+
 namespace dsn {
 
 // An utility class that registers a flag upon initialization.

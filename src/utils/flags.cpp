@@ -55,6 +55,21 @@ public:
     {
     }
 
+    bool update(const char *val)
+    {
+        switch (_type) {
+        case FV_INT32:
+        case FV_INT64:
+        case FV_UINT32:
+        case FV_UINT64:
+        case FV_BOOL:
+        case FV_DOUBLE:
+        case FV_STRING:
+            strcpy(value<char*>(), val);
+            break;
+        }
+    }
+
     void set_validator(validator_fn &validator) { _validator = std::move(validator); }
     const validator_fn &validator() const { return _validator; }
 
@@ -78,6 +93,16 @@ class flag_registry : public utils::singleton<flag_registry>
 {
 public:
     void add_flag(const char *name, flag_data flag) { _flags.emplace(name, flag); }
+
+    bool update_flag(const char *name, const char *val)
+    {
+        auto it = _flags.find(name);
+        if (it == _flags.end()) {
+            return false;
+        }
+
+        return it->second.update(val);
+    }
 
     void add_validator(const char *name, validator_fn &validator)
     {
