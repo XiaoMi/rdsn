@@ -207,10 +207,7 @@ void disk_engine::process_write(aio_task *aio, uint32_t sz)
 
     // no batching
     if (dio->buffer_size == sz) {
-        if (dio->buffer == nullptr) {
-            aio->collapse();
-        }
-        dassert(dio->buffer || dio->write_buffer_vec, "");
+        aio->collapse();
         _provider->submit_aio_task(aio);
     }
 
