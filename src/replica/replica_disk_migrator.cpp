@@ -353,7 +353,7 @@ void replica_disk_migrator::update_replica_dir()
 
     _status = disk_migration_status::CLOSED;
     ddebug_replica("disk replica migration move data from origin dir({}) to new dir({}) "
-                   "success, update status from {}=>{}",
+                   "succeed, update status from {}=>{}",
                    _replica->dir(),
                    _target_replica_dir,
                    enum_to_string(disk_migration_status::MOVED),

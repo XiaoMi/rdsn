@@ -45,8 +45,8 @@
 
 namespace dsn {
 namespace replication {
-DSN_DECLARE_int32(gc_disk_migration_tmp_replica_interval_seconds);
-DSN_DECLARE_int32(gc_disk_migration_origin_replica_interval_seconds);
+DSN_DECLARE_uint64(gc_disk_migration_tmp_replica_interval_seconds);
+DSN_DECLARE_uint64(gc_disk_migration_origin_replica_interval_seconds);
 
 typedef rpc_holder<group_check_response, learn_notify_response> learn_completion_notification_rpc;
 typedef rpc_holder<group_check_request, group_check_response> group_check_rpc;
@@ -275,6 +275,15 @@ private:
 
     void register_ctrl_command();
 
+    void gc_disk_replica_folder();
+
+    bool is_replica_folder_gc_suffix(const std::string &folder_suffix)
+    {
+        return (folder_suffix == kFolderSuffixErr || folder_suffix == kFolderSuffixGar ||
+                folder_suffix == kFolderSuffixBak || folder_suffix == kFolderSuffixTmp ||
+                folder_suffix == kFolderSuffixOri);
+    }
+
     int get_app_id_from_replicas(std::string app_name)
     {
         for (const auto &replica : _replicas) {
@@ -390,6 +399,13 @@ private:
 
     // replica count exectuting bulk load downloading concurrently
     std::atomic_int _bulk_load_downloading_count;
+
+    // the garbage folder suffix, server will check disk folder and deal with them
+    static const std::string kFolderSuffixErr; // replica error dir
+    static const std::string kFolderSuffixGar; // replica closed and assign garbage dir
+    static const std::string kFolderSuffixBak; // replica backup dir
+    static const std::string kFolderSuffixOri; // replica disk migration origin dir
+    static const std::string kFolderSuffixTmp; // replica disk migration temp dir
 
     // performance counters
     perf_counter_wrapper _counter_replicas_count;

@@ -377,7 +377,6 @@ void replica::close()
                         _disk_migrator->status() >= disk_migration_status::MOVED,
                     "invalid state(partition_status={}, migration_status={}) when calling "
                     "replica close",
-                    name(),
                     enum_to_string(status()),
                     enum_to_string(_disk_migrator->status()));
 

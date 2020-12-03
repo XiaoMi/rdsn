@@ -49,13 +49,12 @@ private:
 
     void reset_status() { _status = disk_migration_status::IDLE; }
 
-public:
+private:
     const static std::string kReplicaDirTempSuffix;
     const static std::string kReplicaDirOriginSuffix;
     const static std::string kDataDirFolder;
     const static std::string kAppInfo;
 
-private:
     replica *_replica;
 
     std::string _target_replica_dir; // /root/ssd_tag/gpid.pegasus/
@@ -63,6 +62,7 @@ private:
     disk_migration_status::type _status{disk_migration_status::IDLE};
 
     friend class replica;
+    friend class replica_stub;
     friend class replica_disk_migrate_test;
 };
 

@@ -63,14 +63,20 @@
 namespace dsn {
 namespace replication {
 
-DSN_DEFINE_int32("replication",
-                 gc_disk_migration_tmp_replica_interval_seconds,
-                 86400 /*1day*/,
-                 "disk migration generate tmp dir gc interval, the folder name suffix is '.tmp' ");
-DSN_DEFINE_int32("replication",
-                 gc_disk_migration_origin_replica_interval_seconds,
-                 604800 /*7day*/,
-                 "disk migration origin dir gc interval, the folder name suffix is '.ori' ");
+const std::string replica_stub::kFolderSuffixErr = ".err";
+const std::string replica_stub::kFolderSuffixGar = ".gar";
+const std::string replica_stub::kFolderSuffixBak = ".bak";
+const std::string replica_stub::kFolderSuffixOri = ".ori";
+const std::string replica_stub::kFolderSuffixTmp = ".tmp";
+
+DSN_DEFINE_uint64("replication",
+                  gc_disk_migration_tmp_replica_interval_seconds,
+                  86400 /*1day*/,
+                  "disk migration generate tmp dir gc interval, the folder name suffix is '.tmp' ");
+DSN_DEFINE_uint64("replication",
+                  gc_disk_migration_origin_replica_interval_seconds,
+                  604800 /*7day*/,
+                  "disk migration origin dir gc interval, the folder name suffix is '.ori' ");
 
 bool replica_stub::s_not_exit_on_log_failure = false;
 
@@ -508,8 +514,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
         }
 
         std::string folder_suffix = dir.substr(dir.length() - 4);
-        if (folder_suffix == ".err" || folder_suffix == ".gar" || folder_suffix == ".bak" ||
-            folder_suffix == ".tmp" || folder_suffix == ".ori") {
+        if (is_replica_folder_gc_suffix(folder_suffix)) {
             ddebug_f("ignore dir {}", dir);
             continue;
         }
@@ -1790,76 +1795,7 @@ void replica_stub::on_disk_stat()
     ddebug("start to update disk stat");
     uint64_t start = dsn_now_ns();
 
-    // gc on-disk rps
-    std::vector<std::string> sub_list;
-    for (auto &dir : _options.data_dirs) {
-        std::vector<std::string> tmp_list;
-        if (!dsn::utils::filesystem::get_subdirectories(dir, tmp_list, false)) {
-            dwarn("gc_disk: failed to get subdirectories in %s", dir.c_str());
-            return;
-        }
-        sub_list.insert(sub_list.end(), tmp_list.begin(), tmp_list.end());
-    }
-    int error_replica_dir_count = 0;
-    int garbage_replica_dir_count = 0;
-    for (auto &fpath : sub_list) {
-        auto name = dsn::utils::filesystem::get_file_name(fpath);
-        if (name.length() < 4) {
-            continue;
-        }
-
-        std::string folder_suffix = name.substr(name.length() - 4);
-        // don't delete ".bak" directory because it is backed by administrator.
-        if ((folder_suffix == ".err" || folder_suffix == ".gar" || folder_suffix == ".tmp" ||
-             folder_suffix == ".ori")) {
-            if (folder_suffix == ".err") {
-                error_replica_dir_count++;
-            } else if (folder_suffix == ".gar") {
-                garbage_replica_dir_count++;
-            }
-
-            time_t mt;
-            if (!dsn::utils::filesystem::last_write_time(fpath, mt)) {
-                dwarn("gc_disk: failed to get last write time of %s", fpath.c_str());
-                continue;
-            }
-
-            uint64_t last_write_time = (uint64_t)mt;
-            uint64_t current_time_ms = dsn_now_ms();
-            uint64_t remove_interval_seconds = current_time_ms / 1000;
-
-            if (folder_suffix == ".err") {
-                remove_interval_seconds = _gc_disk_error_replica_interval_seconds;
-            } else if (folder_suffix == ".gar") {
-                remove_interval_seconds = _gc_disk_garbage_replica_interval_seconds;
-            } else if (folder_suffix == ".tmp") {
-                remove_interval_seconds = FLAGS_gc_disk_migration_tmp_replica_interval_seconds;
-            } else if (folder_suffix == ".ori") {
-                remove_interval_seconds = FLAGS_gc_disk_migration_origin_replica_interval_seconds;
-            }
-
-            if (last_write_time + remove_interval_seconds <= current_time_ms / 1000) {
-                if (!dsn::utils::filesystem::remove_path(fpath)) {
-                    dwarn("gc_disk: failed to delete directory '%s', time_used_ms = %" PRIu64,
-                          fpath.c_str(),
-                          dsn_now_ms() - current_time_ms);
-                } else {
-                    dwarn("gc_disk: {replica_dir_op} succeed to delete directory '%s'"
-                          ", time_used_ms = %" PRIu64,
-                          fpath.c_str(),
-                          dsn_now_ms() - current_time_ms);
-                    _counter_replicas_recent_replica_remove_dir_count->increment();
-                }
-            } else {
-                ddebug("gc_disk: reserve directory '%s', wait_seconds = %" PRIu64,
-                       fpath.c_str(),
-                       last_write_time + remove_interval_seconds - current_time_ms / 1000);
-            }
-        }
-    }
-    _counter_replicas_error_replica_dir_count->set(error_replica_dir_count);
-    _counter_replicas_garbage_replica_dir_count->set(garbage_replica_dir_count);
-
+    gc_disk_replica_folder();
     _fs_manager.update_disk_stat();
     update_disk_holding_replicas();
 
@@ -1957,20 +1893,25 @@ void replica_stub::open_replica(const app_info &app,
         // if load data failed, re-open the `*.ori` folder which is the origin replica dir of disk
         // migration
         if (rep == nullptr) {
-            std::string origin_dir = get_replica_dir(
+            std::string origin_tmp_dir = get_replica_dir(
                 fmt::format("{}{}", app.app_type, replica_disk_migrator::kReplicaDirOriginSuffix)
                     .c_str(),
                 id,
                 false);
-            if (!origin_dir.empty()) {
-                ddebug_f("start revert and load disk migration origin replica data({})",
-                         origin_dir);
-                dsn::utils::filesystem::rename_path(dir, fmt::format("{}.{}", dir, "gar"));
+            if (!origin_tmp_dir.empty()) {
+                ddebug_f("mark the dir {} is garbage, start revert and load disk migration origin "
+                         "replica data({})",
+                         dir,
+                         origin_tmp_dir);
+                dsn::utils::filesystem::rename_path(dir,
+                                                    fmt::format("{}{}", dir, kFolderSuffixGar));
 
-                std::string revert_dir = origin_dir;
-                boost::replace_first(revert_dir, ".disk.balance.ori", "");
-                dsn::utils::filesystem::rename_path(origin_dir, revert_dir);
-                rep = replica::load(this, revert_dir.c_str());
+                std::string origin_dir = origin_tmp_dir;
+                // revert the origin replica dir
+                boost::replace_first(
+                    origin_dir, replica_disk_migrator::kReplicaDirOriginSuffix, "");
+                dsn::utils::filesystem::rename_path(origin_tmp_dir, origin_dir);
+                rep = replica::load(this, origin_dir.c_str());
 
                 FAIL_POINT_INJECT_F("mock_replica_open", [&](string_view) -> void {});
             }
@@ -2803,6 +2744,77 @@ void replica_stub::update_disk_holding_replicas()
             }
         }
     }
+}
+
+void replica_stub::gc_disk_replica_folder()
+{
+    std::vector<std::string> sub_list;
+    for (auto &dir : _options.data_dirs) {
+        std::vector<std::string> tmp_list;
+        if (!dsn::utils::filesystem::get_subdirectories(dir, tmp_list, false)) {
+            dwarn("gc_disk: failed to get subdirectories in %s", dir.c_str());
+            return;
+        }
+        sub_list.insert(sub_list.end(), tmp_list.begin(), tmp_list.end());
+    }
+    int error_replica_dir_count = 0;
+    int garbage_replica_dir_count = 0;
+    for (auto &fpath : sub_list) {
+        auto name = dsn::utils::filesystem::get_file_name(fpath);
+        if (name.length() < 4) {
+            continue;
+        }
+
+        std::string folder_suffix = name.substr(name.length() - 4);
+        if (is_replica_folder_gc_suffix(folder_suffix)) {
+            if (folder_suffix == kFolderSuffixErr) {
+                error_replica_dir_count++;
+            } else if (folder_suffix == kFolderSuffixGar) {
+                garbage_replica_dir_count++;
+            }
+
+            time_t mt;
+            if (!dsn::utils::filesystem::last_write_time(fpath, mt)) {
+                dwarn("gc_disk: failed to get last write time of %s", fpath.c_str());
+                continue;
+            }
+
+            auto last_write_time = (uint64_t)mt;
+            uint64_t current_time_ms = dsn_now_ms();
+            uint64_t remove_interval_seconds = current_time_ms / 1000;
+
+            // don't delete ".bak" directory because it is backed by administrator.
+            if (folder_suffix == kFolderSuffixErr) {
+                remove_interval_seconds = _gc_disk_error_replica_interval_seconds;
+            } else if (folder_suffix == kFolderSuffixGar) {
+                remove_interval_seconds = _gc_disk_garbage_replica_interval_seconds;
+            } else if (folder_suffix == kFolderSuffixTmp) {
+                remove_interval_seconds = FLAGS_gc_disk_migration_tmp_replica_interval_seconds;
+            } else if (folder_suffix == kFolderSuffixOri) {
+                remove_interval_seconds = FLAGS_gc_disk_migration_origin_replica_interval_seconds;
+            }
+
+            if (last_write_time + remove_interval_seconds <= current_time_ms / 1000) {
+                if (!dsn::utils::filesystem::remove_path(fpath)) {
+                    dwarn("gc_disk: failed to delete directory '%s', time_used_ms = %" PRIu64,
+                          fpath.c_str(),
+                          dsn_now_ms() - current_time_ms);
+                } else {
+                    dwarn("gc_disk: {replica_dir_op} succeed to delete directory '%s'"
+                          ", time_used_ms = %" PRIu64,
+                          fpath.c_str(),
+                          dsn_now_ms() - current_time_ms);
+                    _counter_replicas_recent_replica_remove_dir_count->increment();
+                }
+            } else {
+                ddebug("gc_disk: reserve directory '%s', wait_seconds = %" PRIu64,
+                       fpath.c_str(),
+                       last_write_time + remove_interval_seconds - current_time_ms / 1000);
+            }
+        }
+    }
+    _counter_replicas_error_replica_dir_count->set(error_replica_dir_count);
+    _counter_replicas_garbage_replica_dir_count->set(garbage_replica_dir_count);
 }
 
 void replica_stub::on_bulk_load(bulk_load_rpc rpc)
