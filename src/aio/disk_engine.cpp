@@ -208,11 +208,7 @@ void disk_engine::process_write(aio_task *aio, uint32_t sz)
     // no batching
     if (dio->buffer_size == sz) {
         if (dio->buffer == nullptr) {
-            if (dio->support_write_vec) {
-                dio->write_buffer_vec = &aio->_unmerged_write_buffers;
-            } else {
-                aio->collapse();
-            }
+            aio->collapse();
         }
         dassert(dio->buffer || dio->write_buffer_vec, "");
         _provider->submit_aio_task(aio);

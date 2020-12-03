@@ -51,8 +51,7 @@ public:
     // filled by apps
     dsn_handle_t file;
     void *buffer;
-    bool support_write_vec; // if the aio provider supports write buffer vector
-    std::vector<dsn_file_buffer_t> *write_buffer_vec; // only used if support_write_vec is true
+    std::vector<dsn_file_buffer_t> *write_buffer_vec;
     uint32_t buffer_size;
     uint64_t file_offset;
 
@@ -64,7 +63,6 @@ public:
     aio_context()
         : file(nullptr),
           buffer(nullptr),
-          support_write_vec(false),
           write_buffer_vec(nullptr),
           buffer_size(0),
           file_offset(0),
