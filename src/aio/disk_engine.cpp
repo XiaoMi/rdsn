@@ -244,7 +244,7 @@ void disk_engine::process_write(aio_task *aio, uint32_t sz)
     }
 }
 
-void disk_engine::complete_io(aio_task *aio, error_code err, uint32_t bytes, int delay_milliseconds)
+void disk_engine::complete_io(aio_task *aio, error_code err, uint32_t bytes)
 {
     if (err != ERR_OK) {
         dinfo("disk operation failure with code %s, err = %s, aio_task_id = %016" PRIx64,
