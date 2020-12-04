@@ -9,6 +9,7 @@
 #include <boost/optional/optional.hpp>
 
 #include <map>
+#include <dsn/utility/string_conv.h>
 
 namespace dsn {
 
@@ -37,6 +38,20 @@ public:
         }                                                                                          \
         break
 
+#define FLAG_DATA_UPDATE_CASE(type, type_enum, suffix)                                             \
+    case type_enum:                                                                                \
+        type tmpval_##type_enum;                                                                   \
+        if (!dsn::buf2##suffix(val, tmpval_##type_enum)) {                                         \
+            return false;                                                                          \
+        }                                                                                          \
+        value<type>() = tmpval_##type_enum;                                                        \
+        break
+
+#define FLAG_DATA_UPDATE_STRING(type_enum)                                                         \
+    case type_enum:                                                                                \
+        strcpy(value<char *>(), val);                                                              \
+        break
+
     void load()
     {
         switch (_type) {
@@ -50,24 +65,37 @@ public:
         }
     }
 
-    flag_data(const char *section, const char *name, const char *desc, value_type type, void *val)
-        : _type(type), _val(val), _section(section), _name(name), _desc(desc)
+    flag_data(const char *section,
+              const char *name,
+              const char *desc,
+              value_type type,
+              void *val,
+              bool value_mutable)
+        : _type(type),
+          _val(val),
+          _section(section),
+          _name(name),
+          _desc(desc),
+          _value_mutable(value_mutable)
     {
     }
 
     bool update(const char *val)
     {
-        switch (_type) {
-        case FV_INT32:
-        case FV_INT64:
-        case FV_UINT32:
-        case FV_UINT64:
-        case FV_BOOL:
-        case FV_DOUBLE:
-        case FV_STRING:
-            strcpy(value<char*>(), val);
-            break;
+        if (!_value_mutable) {
+            return false;
         }
+
+        switch (_type) {
+            FLAG_DATA_UPDATE_CASE(int32_t, FV_INT32, int32);
+            FLAG_DATA_UPDATE_CASE(int64_t, FV_INT64, int64);
+            FLAG_DATA_UPDATE_CASE(uint32_t, FV_UINT32, uint32);
+            FLAG_DATA_UPDATE_CASE(uint64_t, FV_UINT64, uint64);
+            FLAG_DATA_UPDATE_CASE(bool, FV_BOOL, bool);
+            FLAG_DATA_UPDATE_CASE(double, FV_DOUBLE, double);
+            FLAG_DATA_UPDATE_STRING(FV_STRING);
+        }
+        return true;
     }
 
     void set_validator(validator_fn &validator) { _validator = std::move(validator); }
@@ -86,6 +114,7 @@ private:
     const char *_section;
     const char *_name;
     const char *_desc;
+    const bool _value_mutable;
     validator_fn _validator;
 };
 
@@ -132,9 +161,10 @@ private:
 
 #define FLAG_REG_CONSTRUCTOR(type, type_enum)                                                      \
     flag_registerer::flag_registerer(                                                              \
-        const char *section, const char *name, const char *desc, type *val)                        \
+        const char *section, const char *name, const char *desc, type *val, bool value_mutable)    \
     {                                                                                              \
-        flag_registry::instance().add_flag(name, flag_data(section, name, desc, type_enum, val));  \
+        flag_registry::instance().add_flag(                                                        \
+            name, flag_data(section, name, desc, type_enum, val, value_mutable));                  \
     }
 
 FLAG_REG_CONSTRUCTOR(int32_t, FV_INT32);
@@ -151,5 +181,10 @@ flag_validator::flag_validator(const char *name, validator_fn validator)
 }
 
 /*extern*/ void flags_initialize() { flag_registry::instance().load_from_config(); }
+
+/*extern*/ bool flags_update(const char *name, const char *val)
+{
+    return flag_registry::instance().update_flag(name, val);
+}
 
 } // namespace dsn
