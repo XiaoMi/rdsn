@@ -68,7 +68,7 @@ TEST_F(flag_test, update_config)
     res = update_flag("test_not_exist", "test_string");
     ASSERT_EQ(res.code(), ERR_OBJECT_NOT_FOUND);
 
-    // test invalid value
+    // test to update invalid value
     DSN_DEFINE_MUTABLE_int32("flag_test", test_int32_invalid, 5, "");
     res = update_flag("test_int32_invalid", "3ab");
     ASSERT_EQ(res.code(), ERR_INVALID_PARAMETERS);
