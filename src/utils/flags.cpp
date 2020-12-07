@@ -47,8 +47,8 @@ public:
         value<type>() = tmpval_##type_enum;                                                        \
         break
 
-#define FLAG_DATA_UPDATE_STRING(type_enum)                                                         \
-    case type_enum:                                                                                \
+#define FLAG_DATA_UPDATE_STRING()                                                                  \
+    case FV_STRING:                                                                                \
         strcpy(value<char *>(), val);                                                              \
         break
 
@@ -93,7 +93,7 @@ public:
             FLAG_DATA_UPDATE_CASE(uint64_t, FV_UINT64, uint64);
             FLAG_DATA_UPDATE_CASE(bool, FV_BOOL, bool);
             FLAG_DATA_UPDATE_CASE(double, FV_DOUBLE, double);
-            FLAG_DATA_UPDATE_STRING(FV_STRING);
+            FLAG_DATA_UPDATE_STRING();
         }
         return true;
     }
