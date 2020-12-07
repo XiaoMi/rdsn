@@ -7,6 +7,7 @@
 #include <string>
 #include <cstdint>
 #include <functional>
+#include "errors.h"
 
 // Example:
 //    DSN_DEFINE_string("core", filename, "my_file.txt", "The file to read");
@@ -102,6 +103,6 @@ public:
 // Loads all the flags from configuration.
 extern void flags_initialize();
 
-extern bool update_flag(const char *name, const char *val);
+extern error_s update_flag(const char *name, const char *val);
 
 } // namespace dsn

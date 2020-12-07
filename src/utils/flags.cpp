@@ -82,11 +82,10 @@ public:
     {
     }
 
-    error_with<std::string> update(const char *val)
+    error_s update(const char *val)
     {
         if (!_value_mutable) {
-            return error_s::make(ERR_NO_PERMISSION,
-                                 fmt::format("{} is not mutable", _name));
+            return error_s::make(ERR_NO_PERMISSION, fmt::format("{} is not mutable", _name));
         }
 
         switch (_type) {
@@ -98,7 +97,7 @@ public:
             FLAG_DATA_UPDATE_CASE(double, FV_DOUBLE, double);
             FLAG_DATA_UPDATE_STRING();
         }
-        return fmt::format("{} = {}", _name, _val);
+        return error_s::make(ERR_OK);
     }
 
     void set_validator(validator_fn &validator) { _validator = std::move(validator); }
@@ -126,11 +125,11 @@ class flag_registry : public utils::singleton<flag_registry>
 public:
     void add_flag(const char *name, flag_data flag) { _flags.emplace(name, flag); }
 
-    bool update_flag(const char *name, const char *val)
+    error_s update_flag(const char *name, const char *val)
     {
         auto it = _flags.find(name);
         if (it == _flags.end()) {
-            return false;
+            return error_s::make(ERR_OBJECT_NOT_FOUND, fmt::format("{} is not found", name));
         }
         return it->second.update(val);
     }
@@ -184,7 +183,7 @@ flag_validator::flag_validator(const char *name, validator_fn validator)
 
 /*extern*/ void flags_initialize() { flag_registry::instance().load_from_config(); }
 
-/*extern*/ bool update_flag(const char *name, const char *val)
+/*extern*/ error_s update_flag(const char *name, const char *val)
 {
     return flag_registry::instance().update_flag(name, val);
 }

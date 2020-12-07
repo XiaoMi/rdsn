@@ -17,11 +17,24 @@
 
 #include <dsn/http/http_server.h>
 #include <dsn/utility/flags.h>
+#include <dsn/utility/output_utils.h>
 
 namespace dsn {
-void update_config(const http_request &req, http_response &resp) {
-    for (const auto &p : req.query_args) {
-        update_flag(p.first, p.second);
+void update_config(const http_request &req, http_response &resp)
+{
+    if (req.query_args.size() != 1) {
+        resp.status_code = http_status_code::bad_request;
+        return;
     }
+
+    auto iter = req.query_args.begin();
+    auto res = update_flag(iter->first.c_str(), iter->second.c_str());
+
+    utils::table_printer tp;
+    tp.add_row_name_and_data("update_status", res.description());
+    std::ostringstream out;
+    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    resp.body = out.str();
+    resp.status_code = http_status_code::ok;
 }
 } // namespace dsn
