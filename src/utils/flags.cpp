@@ -51,8 +51,7 @@ public:
 
 #define FLAG_DATA_UPDATE_STRING()                                                                  \
     case FV_STRING:                                                                                \
-        strcpy(value<char *>(), val);                                                              \
-        break
+        return error_s::make(ERR_NO_PERMISSION, "string modifications are not supported")
 
     void load()
     {

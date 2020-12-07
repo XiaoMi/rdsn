@@ -55,8 +55,6 @@
     DSN_DEFINE_VARIABLE(double, section, name, val, desc, true)
 #define DSN_DEFINE_MUTABLE_bool(section, name, val, desc)                                          \
     DSN_DEFINE_VARIABLE(bool, section, name, val, desc, true)
-#define DSN_DEFINE_MUTABLE_string(section, name, val, desc)                                        \
-    DSN_DEFINE_VARIABLE(const char *, section, name, val, desc, true)
 
 // Convenience macro for the registration of a flag validator.
 // `validator` must be a std::function<bool(FLAG_TYPE)> and receives the flag value as argument,
