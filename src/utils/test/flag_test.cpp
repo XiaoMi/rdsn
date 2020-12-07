@@ -58,13 +58,21 @@ TEST_F(flag_test, update_config)
     ASSERT_EQ(res.is_ok(), true);
     ASSERT_EQ(FLAGS_test_bool, false);
 
+    // string modifications is not supported
     DSN_DEFINE_string("flag_test", test_string_immutable, "immutable_string", "");
     res = update_flag("test_string_immutable", "update_string");
     ASSERT_EQ(res.code(), ERR_NO_PERMISSION);
     ASSERT_EQ(FLAGS_test_string_immutable, "immutable_string");
 
+    // test config is not exist
     res = update_flag("test_not_exist", "test_string");
     ASSERT_EQ(res.code(), ERR_OBJECT_NOT_FOUND);
+
+    // test invalid value
+    DSN_DEFINE_MUTABLE_int32("flag_test", test_int32_invalid, 5, "");
+    res = update_flag("test_int32_invalid", "3ab");
+    ASSERT_EQ(res.code(), ERR_INVALID_PARAMETERS);
+    ASSERT_EQ(FLAGS_test_int32_invalid, 5);
 }
 } // namespace utils
 } // namespace dsn
