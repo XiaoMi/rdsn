@@ -58,7 +58,7 @@ TEST_F(flag_test, update_config)
     ASSERT_EQ(res.is_ok(), true);
     ASSERT_EQ(FLAGS_test_bool, false);
 
-    // string modifications is not supported
+    // string modifications are not supported
     DSN_DEFINE_string("flag_test", test_string_immutable, "immutable_string", "");
     res = update_flag("test_string_immutable", "update_string");
     ASSERT_EQ(res.code(), ERR_NO_PERMISSION);
