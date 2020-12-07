@@ -5,8 +5,10 @@
 #include <dsn/utility/flags.h>
 #include <dsn/utility/config_api.h>
 #include <dsn/utility/singleton.h>
+#include <dsn/utility/errors.h>
 #include <dsn/c/api_utilities.h>
 #include <boost/optional/optional.hpp>
+#include <fmt/format.h>
 
 #include <map>
 #include <dsn/utility/string_conv.h>
@@ -42,7 +44,7 @@ public:
     case type_enum:                                                                                \
         type tmpval_##type_enum;                                                                   \
         if (!dsn::buf2##suffix(val, tmpval_##type_enum)) {                                         \
-            return false;                                                                          \
+            return error_s::make(ERR_INVALID_PARAMETERS, fmt::format("{} in invalid", val));       \
         }                                                                                          \
         value<type>() = tmpval_##type_enum;                                                        \
         break
@@ -80,10 +82,11 @@ public:
     {
     }
 
-    bool update(const char *val)
+    error_with<std::string> update(const char *val)
     {
         if (!_value_mutable) {
-            return false;
+            return error_s::make(ERR_NO_PERMISSION,
+                                 fmt::format("{} is not mutable", _name));
         }
 
         switch (_type) {
@@ -95,7 +98,7 @@ public:
             FLAG_DATA_UPDATE_CASE(double, FV_DOUBLE, double);
             FLAG_DATA_UPDATE_STRING();
         }
-        return true;
+        return fmt::format("{} = {}", _name, _val);
     }
 
     void set_validator(validator_fn &validator) { _validator = std::move(validator); }
@@ -129,7 +132,6 @@ public:
         if (it == _flags.end()) {
             return false;
         }
-
         return it->second.update(val);
     }
 
@@ -182,7 +184,7 @@ flag_validator::flag_validator(const char *name, validator_fn validator)
 
 /*extern*/ void flags_initialize() { flag_registry::instance().load_from_config(); }
 
-/*extern*/ bool flags_update(const char *name, const char *val)
+/*extern*/ bool update_flag(const char *name, const char *val)
 {
     return flag_registry::instance().update_flag(name, val);
 }

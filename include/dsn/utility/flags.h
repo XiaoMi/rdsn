@@ -102,6 +102,6 @@ public:
 // Loads all the flags from configuration.
 extern void flags_initialize();
 
-extern bool flags_update(const char *name, const char *val);
+extern bool update_flag(const char *name, const char *val);
 
 } // namespace dsn

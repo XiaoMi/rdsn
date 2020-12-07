@@ -15,23 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#pragma once
-
-#include <dsn/cpp/serverlet.h>
 #include <dsn/http/http_server.h>
-#include <dsn/utility/errors.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
-
-// Register basic services for the HTTP server.
-extern void register_builtin_http_calls();
-
-extern void get_perf_counter_handler(const http_request &req, http_response &resp);
-
-extern void get_help_handler(const http_request &req, http_response &resp);
-
-extern void get_recent_start_time_handler(const http_request &req, http_response &resp);
-
-extern void update_config(const http_request &req, http_response &resp);
-
+void update_config(const http_request &req, http_response &resp) {
+    for (const auto &p : req.query_args) {
+        update_flag(p.first, p.second);
+    }
+}
 } // namespace dsn
