@@ -81,9 +81,6 @@ public:
             _ms->_cluster_root + "/backup",
             [](backup_service *bs) { return std::make_shared<policy_context>(bs); });
         _ms->_backup_handler->start();
-        _ms->_backup_handler->backup_option().app_dropped_retry_delay_ms = 500_ms;
-        _ms->_backup_handler->backup_option().request_backup_period_ms = 20_ms;
-        _ms->_backup_handler->backup_option().issue_backup_interval_ms = 1000_ms;
         const std::string policy_root = "/test";
         dsn::error_code ec;
         _ms->_storage

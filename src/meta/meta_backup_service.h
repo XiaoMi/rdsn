@@ -78,11 +78,6 @@ struct backup_info
         backup_id, start_time_ms, end_time_ms, app_ids, app_names, info_status)
 };
 
-// Attention: backup_start_time == 24:00 is represent no limit for start_time, 24:00 is mainly saved
-// for testing
-//
-// current, we don't support accurating to minute, only support accurating to hour, so
-// we just set minute to 0
 struct backup_start_time
 {
     int32_t hour;   // [0 ~24)
@@ -96,58 +91,24 @@ struct backup_start_time
            << std::setfill('0') << std::to_string(minute);
         return ss.str();
     }
-    // NOTICE: this function will modify hour and minute, if time is invalid, this func will set
-    // hour = 24, minute = 0
+    // If time is invalid, return false.
     bool parse_from(const std::string &time)
     {
         if (::sscanf(time.c_str(), "%d:%d", &hour, &minute) != 2) {
             return false;
-        } else {
-            if (hour > 24) {
-                hour = 24;
-                minute = 0;
-                return false;
-            }
-
-            if (hour == 24 && minute != 0) {
-                minute = 0;
-                return false;
-            }
-
-            if (minute >= 60) {
-                hour = 24;
-                minute = 0;
-                return false;
-            }
+        }
+        if (hour < 0 || hour >= 24 || minute < 0 || minute >= 60) {
+            return false;
         }
         return true;
     }
-
-    // return the interval between new_hour:new_min and start_time,
-    // namely new_hour:new_min - start_time;
-    // unit is ms
-    int64_t compute_time_drift_ms(int32_t new_hour, int32_t new_min)
-    {
-        int64_t res = 0;
-        // unit is hour
-        res += (new_hour - hour);
-        // unit is minute
-        res *= 60;
-        res += (new_min - minute);
-        // unit is ms
-        return (res * 60 * 1000);
-    }
-
-    // judge whether we should start backup base current time
     bool should_start_backup(int32_t cur_hour, int32_t cur_min)
     {
-        if (hour == 24) {
-            // erase the restrict of backup_start_time, just for testing
+        if (hour == 24 && minute == 0) {
+            // Only for tests.
             return true;
         }
-        // NOTICE : if you want more precisely, you can use cur_min to implement
-        // now, we just ignore
-        return (cur_hour == hour);
+        return (cur_hour == hour) && (cur_min == minute);
     }
     DEFINE_JSON_SERIALIZATION(hour, minute)
 };
@@ -174,10 +135,10 @@ public:
     backup_start_time start_time;
     policy()
         : app_ids(),
-          backup_interval_seconds(0),
-          backup_history_count_to_keep(6),
+          backup_interval_seconds(-1),
+          backup_history_count_to_keep(3),
           is_disable(false),
-          start_time(24, 0) // default is 24:00, namely no limit
+          start_time(0, 0)
     {
     }
 
@@ -279,6 +240,7 @@ mock_private :
     //  - true, should start backup right now, otherwise don't start backup
     mock_virtual bool should_start_backup_unlocked();
     mock_virtual void continue_current_backup_unlocked();
+    mock_virtual void continue_backup_app_unlocked(int32_t app_id);
 
     mock_virtual void on_backup_reply(dsn::error_code err,
                                       backup_response &&response,
@@ -315,16 +277,6 @@ mock_private :
 class backup_service
 {
 public:
-    struct backup_opt
-    {
-        std::chrono::milliseconds meta_retry_delay_ms;
-        std::chrono::milliseconds block_retry_delay_ms;
-        std::chrono::milliseconds app_dropped_retry_delay_ms;
-        std::chrono::milliseconds reconfiguration_retry_delay_ms;
-        std::chrono::milliseconds request_backup_period_ms; // period that meta send backup command to replica
-        std::chrono::milliseconds issue_backup_interval_ms; // interval that meta try to issue a new backup
-    };
-
     typedef std::function<std::shared_ptr<policy_context>(backup_service *)> policy_factory;
     explicit backup_service(meta_service *meta_svc,
                             const std::string &policy_meta_root,
@@ -332,11 +284,14 @@ public:
                             const policy_factory &factory);
     meta_service *get_meta_service() const { return _meta_svc; }
     server_state *get_state() const { return _state; }
-    backup_opt &backup_option() { return _opt; }
     void start();
 
     const std::string &backup_root() const { return _backup_root; }
     const std::string &policy_root() const { return _policy_meta_root; }
+
+    bool add_backup_app(int32_t app_id);
+    void remove_backup_app(int32_t app_id);
+
     void add_backup_policy(dsn::message_ex* msg);
     void query_backup_policy(query_backup_policy_rpc rpc);
     void modify_backup_policy(configuration_modify_backup_policy_rpc rpc);
@@ -375,17 +330,17 @@ private:
     meta_service *_meta_svc;
     server_state *_state;
 
-    // _lock is only used to lock _policy_states
+    // lock _policy_states and _active_backup_apps.
     zlock _lock;
-    std::map<std::string, std::shared_ptr<policy_context>>
-        _policy_states; // policy_name -> policy_context
+    // policy_name -> policy_context
+    std::map<std::string, std::shared_ptr<policy_context>> _policy_states;
+    std::unordered_set<int32_t> _active_backup_apps;
 
     // the root of policy metas, stored on remote_storage(zookeeper)
     std::string _policy_meta_root;
     // the root of cold backup data, stored on block service
     std::string _backup_root;
 
-    backup_opt _opt;
     std::atomic_bool _in_initialize;
     dsn::task_tracker _tracker;
 };
