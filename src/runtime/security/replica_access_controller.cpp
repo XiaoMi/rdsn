@@ -34,7 +34,7 @@ bool replica_access_controller::allowed(message_ex *msg)
 
     {
         utils::auto_read_lock l(_lock);
-        if (_users.find(user_name) == _users.end()) {
+        if (!_users.empty() && _users.find(user_name) == _users.end()) {
             ddebug_f("{}: user_name {} doesn't exist in acls map", _name, user_name);
             return false;
         }
