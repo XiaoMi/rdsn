@@ -2791,19 +2791,19 @@ void replica_stub::gc_disk_replica_folder()
             if (last_write_time + remove_interval_seconds <= current_time_ms / 1000) {
                 if (!dsn::utils::filesystem::remove_path(fpath)) {
                     dwarn_f("gc_disk: failed to delete directory '{}', time_used_ms = {}",
-                          fpath,
-                          dsn_now_ms() - current_time_ms);
+                            fpath,
+                            dsn_now_ms() - current_time_ms);
                 } else {
                     dwarn_f("gc_disk: {replica_dir_op} succeed to delete directory '{}'"
-                          ", time_used_ms = {}",
-                          fpath,
-                          dsn_now_ms() - current_time_ms);
+                            ", time_used_ms = {}",
+                            fpath,
+                            dsn_now_ms() - current_time_ms);
                     _counter_replicas_recent_replica_remove_dir_count->increment();
                 }
             } else {
                 ddebug_f("gc_disk: reserve directory '{}', wait_seconds = {}",
-                       fpath,
-                       last_write_time + remove_interval_seconds - current_time_ms / 1000);
+                         fpath,
+                         last_write_time + remove_interval_seconds - current_time_ms / 1000);
             }
         }
     }
