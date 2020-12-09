@@ -509,12 +509,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     std::deque<task_ptr> load_tasks;
     uint64_t start_time = dsn_now_ms();
     for (auto &dir : dir_list) {
-        if (dir.length() < 4) {
-            continue;
-        }
-
-        std::string folder_suffix = dir.substr(dir.length() - 4);
-        if (is_replica_folder_gc_suffix(folder_suffix)) {
+        if (dir.length() >= 4 && is_replica_folder_gc_suffix(dir.substr(dir.length() - 4))) {
             ddebug_f("ignore dir {}", dir);
             continue;
         }
@@ -2751,7 +2746,7 @@ void replica_stub::gc_disk_replica_folder()
     for (auto &dir : _options.data_dirs) {
         std::vector<std::string> tmp_list;
         if (!dsn::utils::filesystem::get_subdirectories(dir, tmp_list, false)) {
-            dwarn("gc_disk: failed to get subdirectories in %s", dir.c_str());
+            dwarn_f("gc_disk: failed to get subdirectories in {}", dir);
             return;
         }
         sub_list.insert(sub_list.end(), tmp_list.begin(), tmp_list.end());
@@ -2774,7 +2769,7 @@ void replica_stub::gc_disk_replica_folder()
 
             time_t mt;
             if (!dsn::utils::filesystem::last_write_time(fpath, mt)) {
-                dwarn("gc_disk: failed to get last write time of %s", fpath.c_str());
+                dwarn_f("gc_disk: failed to get last write time of {}", fpath);
                 continue;
             }
 
@@ -2795,19 +2790,19 @@ void replica_stub::gc_disk_replica_folder()
 
             if (last_write_time + remove_interval_seconds <= current_time_ms / 1000) {
                 if (!dsn::utils::filesystem::remove_path(fpath)) {
-                    dwarn("gc_disk: failed to delete directory '%s', time_used_ms = %" PRIu64,
-                          fpath.c_str(),
+                    dwarn_f("gc_disk: failed to delete directory '{}', time_used_ms = {}",
+                          fpath,
                           dsn_now_ms() - current_time_ms);
                 } else {
-                    dwarn("gc_disk: {replica_dir_op} succeed to delete directory '%s'"
-                          ", time_used_ms = %" PRIu64,
-                          fpath.c_str(),
+                    dwarn_f("gc_disk: {replica_dir_op} succeed to delete directory '{}'"
+                          ", time_used_ms = {}",
+                          fpath,
                           dsn_now_ms() - current_time_ms);
                     _counter_replicas_recent_replica_remove_dir_count->increment();
                 }
             } else {
-                ddebug("gc_disk: reserve directory '%s', wait_seconds = %" PRIu64,
-                       fpath.c_str(),
+                ddebug_f("gc_disk: reserve directory '{}', wait_seconds = {}",
+                       fpath,
                        last_write_time + remove_interval_seconds - current_time_ms / 1000);
             }
         }
