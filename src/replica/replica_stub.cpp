@@ -2794,7 +2794,7 @@ void replica_stub::gc_disk_replica_folder()
                             fpath,
                             dsn_now_ms() - current_time_ms);
                 } else {
-                    dwarn_f("gc_disk: {replica_dir_op} succeed to delete directory '{}'"
+                    dwarn_f("gc_disk: replica_dir_op succeed to delete directory '{}'"
                             ", time_used_ms = {}",
                             fpath,
                             dsn_now_ms() - current_time_ms);
