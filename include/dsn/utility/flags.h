@@ -8,6 +8,12 @@
 #include <cstdint>
 #include <functional>
 #include "errors.h"
+#include "utils.h"
+
+enum class flag_tag
+{
+    FT_MUTABLE = 0,
+};
 
 // Example:
 //    DSN_DEFINE_string("core", filename, "my_file.txt", "The file to read");
@@ -24,37 +30,24 @@
 #define DSN_DECLARE_bool(name) DSN_DECLARE_VARIABLE(bool, name)
 #define DSN_DECLARE_string(name) DSN_DECLARE_VARIABLE(const char *, name)
 
-#define DSN_DEFINE_VARIABLE(type, section, name, default_value, desc, value_mutable)               \
+#define DSN_DEFINE_VARIABLE(type, section, name, default_value, desc)                              \
     type FLAGS_##name = default_value;                                                             \
-    static dsn::flag_registerer FLAGS_REG_##name(section, #name, desc, &FLAGS_##name, value_mutable)
+    static dsn::flag_registerer FLAGS_REG_##name(section, #name, desc, &FLAGS_##name)
 
 #define DSN_DEFINE_int32(section, name, val, desc)                                                 \
-    DSN_DEFINE_VARIABLE(int32_t, section, name, val, desc, false)
+    DSN_DEFINE_VARIABLE(int32_t, section, name, val, desc)
 #define DSN_DEFINE_uint32(section, name, val, desc)                                                \
-    DSN_DEFINE_VARIABLE(uint32_t, section, name, val, desc, false)
+    DSN_DEFINE_VARIABLE(uint32_t, section, name, val, desc)
 #define DSN_DEFINE_int64(section, name, val, desc)                                                 \
-    DSN_DEFINE_VARIABLE(int64_t, section, name, val, desc, false)
+    DSN_DEFINE_VARIABLE(int64_t, section, name, val, desc)
 #define DSN_DEFINE_uint64(section, name, val, desc)                                                \
-    DSN_DEFINE_VARIABLE(uint64_t, section, name, val, desc, false)
+    DSN_DEFINE_VARIABLE(uint64_t, section, name, val, desc)
 #define DSN_DEFINE_double(section, name, val, desc)                                                \
-    DSN_DEFINE_VARIABLE(double, section, name, val, desc, false)
+    DSN_DEFINE_VARIABLE(double, section, name, val, desc)
 #define DSN_DEFINE_bool(section, name, val, desc)                                                  \
-    DSN_DEFINE_VARIABLE(bool, section, name, val, desc, false)
+    DSN_DEFINE_VARIABLE(bool, section, name, val, desc)
 #define DSN_DEFINE_string(section, name, val, desc)                                                \
-    DSN_DEFINE_VARIABLE(const char *, section, name, val, desc, false)
-
-#define DSN_DEFINE_MUTABLE_int32(section, name, val, desc)                                         \
-    DSN_DEFINE_VARIABLE(int32_t, section, name, val, desc, true)
-#define DSN_DEFINE_MUTABLE_uint32(section, name, val, desc)                                        \
-    DSN_DEFINE_VARIABLE(uint32_t, section, name, val, desc, true)
-#define DSN_DEFINE_MUTABLE_int64(section, name, val, desc)                                         \
-    DSN_DEFINE_VARIABLE(int64_t, section, name, val, desc, true)
-#define DSN_DEFINE_MUTABLE_uint64(section, name, val, desc)                                        \
-    DSN_DEFINE_VARIABLE(uint64_t, section, name, val, desc, true)
-#define DSN_DEFINE_MUTABLE_double(section, name, val, desc)                                        \
-    DSN_DEFINE_VARIABLE(double, section, name, val, desc, true)
-#define DSN_DEFINE_MUTABLE_bool(section, name, val, desc)                                          \
-    DSN_DEFINE_VARIABLE(bool, section, name, val, desc, true)
+    DSN_DEFINE_VARIABLE(const char *, section, name, val, desc)
 
 // Convenience macro for the registration of a flag validator.
 // `validator` must be a std::function<bool(FLAG_TYPE)> and receives the flag value as argument,
@@ -66,29 +59,23 @@
         dassert(FLAGS_VALIDATOR_FN_##name(FLAGS_##name), "validation failed: %s", #name);          \
     })
 
+#define DSN_TAG_FLAG(name, tag)                                                                    \
+    COMPILE_ASSERT(sizeof(decltype(FLAGS_##name)), exist_##name##_##tag);                          \
+    static dsn::flag_tagger FLAGS_TAGGER_##name##_##tag(#name, flag_tag::tag)
+
 namespace dsn {
 
 // An utility class that registers a flag upon initialization.
 class flag_registerer
 {
 public:
-    flag_registerer(
-        const char *section, const char *name, const char *desc, int32_t *val, bool value_mutable);
-    flag_registerer(
-        const char *section, const char *name, const char *desc, uint32_t *val, bool value_mutable);
-    flag_registerer(
-        const char *section, const char *name, const char *desc, int64_t *val, bool value_mutable);
-    flag_registerer(
-        const char *section, const char *name, const char *desc, uint64_t *val, bool value_mutable);
-    flag_registerer(
-        const char *section, const char *name, const char *desc, double *val, bool value_mutable);
-    flag_registerer(
-        const char *section, const char *name, const char *desc, bool *val, bool value_mutable);
-    flag_registerer(const char *section,
-                    const char *name,
-                    const char *desc,
-                    const char **val,
-                    bool value_mutable);
+    flag_registerer(const char *section, const char *name, const char *desc, int32_t *val);
+    flag_registerer(const char *section, const char *name, const char *desc, uint32_t *val);
+    flag_registerer(const char *section, const char *name, const char *desc, int64_t *val);
+    flag_registerer(const char *section, const char *name, const char *desc, uint64_t *val);
+    flag_registerer(const char *section, const char *name, const char *desc, double *val);
+    flag_registerer(const char *section, const char *name, const char *desc, bool *val);
+    flag_registerer(const char *section, const char *name, const char *desc, const char **val);
 };
 
 // An utility class that registers a validator upon initialization.
@@ -96,6 +83,12 @@ class flag_validator
 {
 public:
     flag_validator(const char *name, std::function<void()>);
+};
+
+class flag_tagger
+{
+public:
+    flag_tagger(const char *name, const flag_tag &tag);
 };
 
 // Loads all the flags from configuration.

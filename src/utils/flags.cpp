@@ -12,6 +12,7 @@
 #include <fmt/format.h>
 
 #include <map>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 
@@ -66,24 +67,14 @@ public:
         }
     }
 
-    flag_data(const char *section,
-              const char *name,
-              const char *desc,
-              value_type type,
-              void *val,
-              bool value_mutable)
-        : _type(type),
-          _val(val),
-          _section(section),
-          _name(name),
-          _desc(desc),
-          _value_mutable(value_mutable)
+    flag_data(const char *section, const char *name, const char *desc, value_type type, void *val)
+        : _type(type), _val(val), _section(section), _name(name), _desc(desc)
     {
     }
 
     error_s update(const char *val)
     {
-        if (!_value_mutable) {
+        if (!has_tag(flag_tag::FT_MUTABLE)) {
             return error_s::make(ERR_NO_PERMISSION, fmt::format("{} is not mutable", _name));
         }
 
@@ -102,6 +93,9 @@ public:
     void set_validator(validator_fn &validator) { _validator = std::move(validator); }
     const validator_fn &validator() const { return _validator; }
 
+    bool has_tag(const flag_tag &tag) const { return _tags.find(tag) != _tags.end(); }
+    bool add_tag(const flag_tag &tag) { return _tags.insert(tag).second; }
+
 private:
     template <typename T>
     T &value()
@@ -115,8 +109,8 @@ private:
     const char *_section;
     const char *_name;
     const char *_desc;
-    const bool _value_mutable;
     validator_fn _validator;
+    std::unordered_set<flag_tag> _tags;
 };
 
 class flag_registry : public utils::singleton<flag_registry>
@@ -151,6 +145,16 @@ public:
         }
     }
 
+    void add_tag(const char *name, const flag_tag &tag)
+    {
+        auto it = _flags.find(name);
+        dassert(it != _flags.end(), "flag \"%s\" does not exist", name);
+        if (!it->second.add_tag(tag)) {
+            // TODO(zlw): enum to string
+            /// ddebug_f("{} was tagged more than once with the tag {}", name, tag);
+        }
+    }
+
 private:
     friend class utils::singleton<flag_registry>;
     flag_registry() = default;
@@ -161,10 +165,9 @@ private:
 
 #define FLAG_REG_CONSTRUCTOR(type, type_enum)                                                      \
     flag_registerer::flag_registerer(                                                              \
-        const char *section, const char *name, const char *desc, type *val, bool value_mutable)    \
+        const char *section, const char *name, const char *desc, type *val)                        \
     {                                                                                              \
-        flag_registry::instance().add_flag(                                                        \
-            name, flag_data(section, name, desc, type_enum, val, value_mutable));                  \
+        flag_registry::instance().add_flag(name, flag_data(section, name, desc, type_enum, val));  \
     }
 
 FLAG_REG_CONSTRUCTOR(int32_t, FV_INT32);
@@ -178,6 +181,11 @@ FLAG_REG_CONSTRUCTOR(const char *, FV_STRING);
 flag_validator::flag_validator(const char *name, validator_fn validator)
 {
     flag_registry::instance().add_validator(name, validator);
+}
+
+flag_tagger::flag_tagger(const char *name, const flag_tag &tag)
+{
+    flag_registry::instance().add_tag(name, tag);
 }
 
 /*extern*/ void flags_initialize() { flag_registry::instance().load_from_config(); }
