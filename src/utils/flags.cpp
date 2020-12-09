@@ -94,7 +94,7 @@ public:
     const validator_fn &validator() const { return _validator; }
 
     bool has_tag(const flag_tag &tag) const { return _tags.find(tag) != _tags.end(); }
-    bool add_tag(const flag_tag &tag) { return _tags.insert(tag).second; }
+    void add_tag(const flag_tag &tag) { _tags.insert(tag); }
 
 private:
     template <typename T>
@@ -149,10 +149,7 @@ public:
     {
         auto it = _flags.find(name);
         dassert(it != _flags.end(), "flag \"%s\" does not exist", name);
-        if (!it->second.add_tag(tag)) {
-            // TODO(zlw): enum to string
-            /// ddebug_f("{} was tagged more than once with the tag {}", name, tag);
-        }
+        it->second.add_tag(tag);
     }
 
 private:

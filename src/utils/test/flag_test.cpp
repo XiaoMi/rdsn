@@ -86,5 +86,10 @@ TEST_F(flag_test, update_config)
     ASSERT_EQ(res.code(), ERR_INVALID_PARAMETERS);
     ASSERT_EQ(FLAGS_test_int32, 3);
 }
+
+TEST_F(flag_test, tag_flag)
+{
+    // TBD(zlw)
+}
 } // namespace utils
 } // namespace dsn
