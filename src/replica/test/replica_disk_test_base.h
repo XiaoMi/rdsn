@@ -53,7 +53,7 @@ public:
     {
         fail::setup();
 
-        fail::cfg("mock_dir_node", "return()");
+        fail::cfg("update_disk_stat", "return()");
         generate_mock_app_info();
 
         generate_mock_dir_nodes(dir_nodes_count);
