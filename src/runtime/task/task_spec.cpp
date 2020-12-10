@@ -265,8 +265,6 @@ bool threadpool_spec::init(/*out*/ std::vector<threadpool_spec> &specs)
     partitioned = false
     queue_aspects = xxx
     worker_aspects = xxx
-    admission_controller_factory_name = xxx
-    admission_controller_arguments = xxx
 
     [threadpool.THREAD_POOL_REPLICATION]
     name = Thr.replication
@@ -276,8 +274,6 @@ bool threadpool_spec::init(/*out*/ std::vector<threadpool_spec> &specs)
     partitioned = false
     queue_aspects = xxx
     worker_aspects = xxx
-    admission_controller_factory_name = xxx
-    admission_controller_arguments = xxx
     */
 
     threadpool_spec default_spec(THREAD_POOL_INVALID);

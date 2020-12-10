@@ -136,8 +136,6 @@ class aio_task;
 class rpc_request_task;
 class rpc_response_task;
 class message_ex;
-class admission_controller;
-typedef void (*task_rejection_handler)(task *, admission_controller *);
 
 std::set<dsn::task_code> &get_storage_rpc_req_codes();
 
