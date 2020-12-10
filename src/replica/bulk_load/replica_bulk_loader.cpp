@@ -384,8 +384,6 @@ error_code replica_bulk_loader::download_sst_files(const std::string &remote_dir
         return ERR_FILE_OPERATION_FAILED;
     }
 
-    //    const std::string remote_dir =
-    //        get_remote_bulk_load_dir(app_name, cluster_name, get_gpid().get_partition_index());
     dist::block_service::block_filesystem *fs =
         _stub->_block_service_manager.get_or_create_block_filesystem(provider_name);
 
