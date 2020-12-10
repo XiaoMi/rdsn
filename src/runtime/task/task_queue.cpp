@@ -97,4 +97,4 @@ void task_queue::enqueue_internal(task *task)
     tls_dsn.last_worker_queue_size = increase_count();
     enqueue(task);
 }
-}
+} // namespace dsn
