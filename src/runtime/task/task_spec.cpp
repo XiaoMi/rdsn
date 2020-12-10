@@ -172,7 +172,6 @@ task_spec::task_spec(int code,
             name,
             DSN_MAX_TASK_CODE_NAME_LENGTH);
 
-    rejection_handler = nullptr;
     rpc_call_channel = RPC_CHANNEL_TCP;
     rpc_timeout_milliseconds = 5 * 1000; // 5 seconds
 }

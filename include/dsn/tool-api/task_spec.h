@@ -191,8 +191,6 @@ public:
     std::vector<int> rpc_request_delays_milliseconds; // see exp_delay for delaying recving
     bool rpc_request_dropped_before_execution_when_timeout;
 
-    task_rejection_handler rejection_handler;
-
     // COMPUTE
     /*!
      @addtogroup tool-api-hooks
