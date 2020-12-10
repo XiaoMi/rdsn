@@ -161,10 +161,13 @@ struct learn_notify_response
 // partition split status
 enum split_status
 {
+    // idle state
     NOT_SPLIT,
+    // A replica is splitting into two replicas, original one called parent, new one called child
     SPLITTING,
     PAUSING,
     PAUSED,
+    // After split is successfully cancelled, the state turns into NOT_SPLIT
     CANCELING
 }
 
@@ -180,8 +183,9 @@ struct group_check_request
     // their WALs after this decree.
     5:optional i64          confirmed_decree;
 
-    // Used to deliver child gpid during partition split
-    6:optional dsn.gpid     child_gpid;
+    // Used to deliver child gpid and meta_split_status during partition split
+    6:optional dsn.gpid     child_gpid; 
+    7:optional split_status meta_split_status;
 }
 
 struct group_check_response
@@ -234,6 +238,12 @@ struct configuration_update_request
     3:config_type              type = config_type.CT_INVALID;
     4:dsn.rpc_address          node;
     5:dsn.rpc_address          host_node; // deprecated, only used by stateless apps
+
+    // Used for partition split
+    // if replica is splitting (whose split_status is not NOT_SPLIT)
+    // the `meta_split_status` will be set
+    // only used when on_config_sync
+    6:optional split_status    meta_split_status;
 }
 
 // meta server (config mgr) => primary | secondary (downgrade) (w/ new config)
@@ -468,7 +478,7 @@ struct query_disk_info_request
     2:string          app_name;
 }
 
-// This response is recieved replica_server.
+// This response is from replica_server to client.
 struct query_disk_info_response
 {
     // app not existed will return "ERR_OBJECT_NOT_FOUND", otherwise "ERR_OK"
@@ -476,6 +486,29 @@ struct query_disk_info_response
     2:i64 total_capacity_mb;
     3:i64 total_available_mb;
     4:list<disk_info> disk_infos;
+}
+
+// This request is sent from client to replica_server.
+struct replica_disk_migrate_request
+{
+    1:dsn.gpid pid
+    // disk tag, for example `ssd1`. `origin_disk` and `target_disk` must be specified in the config of [replication] data_dirs.
+    2:string origin_disk;
+    3:string target_disk;
+}
+
+// This response is from replica_server to client.
+struct replica_disk_migrate_response
+{
+   // Possible error:
+   // -ERR_OK: start do replica disk migrate
+   // -ERR_BUSY: current replica migration is running
+   // -ERR_INVALID_STATE: current replica partition status isn't secondary
+   // -ERR_INVALID_PARAMETERS: origin disk is equal with target disk
+   // -ERR_OBJECT_NOT_FOUND: replica not found, origin or target disk isn't existed, origin disk doesn't exist current replica
+   // -ERR_PATH_ALREADY_EXIST: target disk has existed current replica
+   1:dsn.error_code err;
+   2:optional string hint;
 }
 
 struct query_app_info_request
@@ -1109,6 +1142,13 @@ enum detect_action
 {
     START,
     STOP
+}
+
+enum disk_migration_status {
+    IDLE,
+    MOVING,
+    MOVED,
+    CLOSED
 }
 
 struct detect_hotkey_request {

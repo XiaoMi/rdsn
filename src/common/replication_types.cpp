@@ -212,6 +212,15 @@ const std::map<int, const char *> _detect_action_VALUES_TO_NAMES(
     ::apache::thrift::TEnumIterator(2, _kdetect_actionValues, _kdetect_actionNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
+int _kdisk_migration_statusValues[] = {disk_migration_status::IDLE,
+                                       disk_migration_status::MOVING,
+                                       disk_migration_status::MOVED,
+                                       disk_migration_status::CLOSED};
+const char *_kdisk_migration_statusNames[] = {"IDLE", "MOVING", "MOVED", "CLOSED"};
+const std::map<int, const char *> _disk_migration_status_VALUES_TO_NAMES(
+    ::apache::thrift::TEnumIterator(4, _kdisk_migration_statusValues, _kdisk_migration_statusNames),
+    ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+
 mutation_header::~mutation_header() throw() {}
 
 void mutation_header::__set_pid(const ::dsn::gpid &val) { this->pid = val; }
@@ -2487,6 +2496,12 @@ void group_check_request::__set_child_gpid(const ::dsn::gpid &val)
     __isset.child_gpid = true;
 }
 
+void group_check_request::__set_meta_split_status(const split_status::type val)
+{
+    this->meta_split_status = val;
+    __isset.meta_split_status = true;
+}
+
 uint32_t group_check_request::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -2554,6 +2569,16 @@ uint32_t group_check_request::read(::apache::thrift::protocol::TProtocol *iprot)
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 7:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                int32_t ecast67;
+                xfer += iprot->readI32(ecast67);
+                this->meta_split_status = (split_status::type)ecast67;
+                this->__isset.meta_split_status = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -2598,6 +2623,11 @@ uint32_t group_check_request::write(::apache::thrift::protocol::TProtocol *oprot
         xfer += this->child_gpid.write(oprot);
         xfer += oprot->writeFieldEnd();
     }
+    if (this->__isset.meta_split_status) {
+        xfer += oprot->writeFieldBegin("meta_split_status", ::apache::thrift::protocol::T_I32, 7);
+        xfer += oprot->writeI32((int32_t)this->meta_split_status);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -2612,49 +2642,54 @@ void swap(group_check_request &a, group_check_request &b)
     swap(a.last_committed_decree, b.last_committed_decree);
     swap(a.confirmed_decree, b.confirmed_decree);
     swap(a.child_gpid, b.child_gpid);
+    swap(a.meta_split_status, b.meta_split_status);
     swap(a.__isset, b.__isset);
 }
 
-group_check_request::group_check_request(const group_check_request &other67)
+group_check_request::group_check_request(const group_check_request &other68)
 {
-    app = other67.app;
-    node = other67.node;
-    config = other67.config;
-    last_committed_decree = other67.last_committed_decree;
-    confirmed_decree = other67.confirmed_decree;
-    child_gpid = other67.child_gpid;
-    __isset = other67.__isset;
+    app = other68.app;
+    node = other68.node;
+    config = other68.config;
+    last_committed_decree = other68.last_committed_decree;
+    confirmed_decree = other68.confirmed_decree;
+    child_gpid = other68.child_gpid;
+    meta_split_status = other68.meta_split_status;
+    __isset = other68.__isset;
 }
-group_check_request::group_check_request(group_check_request &&other68)
+group_check_request::group_check_request(group_check_request &&other69)
 {
-    app = std::move(other68.app);
-    node = std::move(other68.node);
-    config = std::move(other68.config);
-    last_committed_decree = std::move(other68.last_committed_decree);
-    confirmed_decree = std::move(other68.confirmed_decree);
-    child_gpid = std::move(other68.child_gpid);
-    __isset = std::move(other68.__isset);
+    app = std::move(other69.app);
+    node = std::move(other69.node);
+    config = std::move(other69.config);
+    last_committed_decree = std::move(other69.last_committed_decree);
+    confirmed_decree = std::move(other69.confirmed_decree);
+    child_gpid = std::move(other69.child_gpid);
+    meta_split_status = std::move(other69.meta_split_status);
+    __isset = std::move(other69.__isset);
 }
-group_check_request &group_check_request::operator=(const group_check_request &other69)
+group_check_request &group_check_request::operator=(const group_check_request &other70)
 {
-    app = other69.app;
-    node = other69.node;
-    config = other69.config;
-    last_committed_decree = other69.last_committed_decree;
-    confirmed_decree = other69.confirmed_decree;
-    child_gpid = other69.child_gpid;
-    __isset = other69.__isset;
+    app = other70.app;
+    node = other70.node;
+    config = other70.config;
+    last_committed_decree = other70.last_committed_decree;
+    confirmed_decree = other70.confirmed_decree;
+    child_gpid = other70.child_gpid;
+    meta_split_status = other70.meta_split_status;
+    __isset = other70.__isset;
     return *this;
 }
-group_check_request &group_check_request::operator=(group_check_request &&other70)
+group_check_request &group_check_request::operator=(group_check_request &&other71)
 {
-    app = std::move(other70.app);
-    node = std::move(other70.node);
-    config = std::move(other70.config);
-    last_committed_decree = std::move(other70.last_committed_decree);
-    confirmed_decree = std::move(other70.confirmed_decree);
-    child_gpid = std::move(other70.child_gpid);
-    __isset = std::move(other70.__isset);
+    app = std::move(other71.app);
+    node = std::move(other71.node);
+    config = std::move(other71.config);
+    last_committed_decree = std::move(other71.last_committed_decree);
+    confirmed_decree = std::move(other71.confirmed_decree);
+    child_gpid = std::move(other71.child_gpid);
+    meta_split_status = std::move(other71.meta_split_status);
+    __isset = std::move(other71.__isset);
     return *this;
 }
 void group_check_request::printTo(std::ostream &out) const
@@ -2674,6 +2709,9 @@ void group_check_request::printTo(std::ostream &out) const
     out << ", "
         << "child_gpid=";
     (__isset.child_gpid ? (out << to_string(child_gpid)) : (out << "<null>"));
+    out << ", "
+        << "meta_split_status=";
+    (__isset.meta_split_status ? (out << to_string(meta_split_status)) : (out << "<null>"));
     out << ")";
 }
 
@@ -2758,9 +2796,9 @@ uint32_t group_check_response::read(::apache::thrift::protocol::TProtocol *iprot
             break;
         case 5:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast71;
-                xfer += iprot->readI32(ecast71);
-                this->learner_status_ = (learner_status::type)ecast71;
+                int32_t ecast72;
+                xfer += iprot->readI32(ecast72);
+                this->learner_status_ = (learner_status::type)ecast72;
                 this->__isset.learner_status_ = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -2848,52 +2886,52 @@ void swap(group_check_response &a, group_check_response &b)
     swap(a.__isset, b.__isset);
 }
 
-group_check_response::group_check_response(const group_check_response &other72)
+group_check_response::group_check_response(const group_check_response &other73)
 {
-    pid = other72.pid;
-    err = other72.err;
-    last_committed_decree_in_app = other72.last_committed_decree_in_app;
-    last_committed_decree_in_prepare_list = other72.last_committed_decree_in_prepare_list;
-    learner_status_ = other72.learner_status_;
-    learner_signature = other72.learner_signature;
-    node = other72.node;
-    __isset = other72.__isset;
+    pid = other73.pid;
+    err = other73.err;
+    last_committed_decree_in_app = other73.last_committed_decree_in_app;
+    last_committed_decree_in_prepare_list = other73.last_committed_decree_in_prepare_list;
+    learner_status_ = other73.learner_status_;
+    learner_signature = other73.learner_signature;
+    node = other73.node;
+    __isset = other73.__isset;
 }
-group_check_response::group_check_response(group_check_response &&other73)
+group_check_response::group_check_response(group_check_response &&other74)
 {
-    pid = std::move(other73.pid);
-    err = std::move(other73.err);
-    last_committed_decree_in_app = std::move(other73.last_committed_decree_in_app);
+    pid = std::move(other74.pid);
+    err = std::move(other74.err);
+    last_committed_decree_in_app = std::move(other74.last_committed_decree_in_app);
     last_committed_decree_in_prepare_list =
-        std::move(other73.last_committed_decree_in_prepare_list);
-    learner_status_ = std::move(other73.learner_status_);
-    learner_signature = std::move(other73.learner_signature);
-    node = std::move(other73.node);
-    __isset = std::move(other73.__isset);
+        std::move(other74.last_committed_decree_in_prepare_list);
+    learner_status_ = std::move(other74.learner_status_);
+    learner_signature = std::move(other74.learner_signature);
+    node = std::move(other74.node);
+    __isset = std::move(other74.__isset);
 }
-group_check_response &group_check_response::operator=(const group_check_response &other74)
+group_check_response &group_check_response::operator=(const group_check_response &other75)
 {
-    pid = other74.pid;
-    err = other74.err;
-    last_committed_decree_in_app = other74.last_committed_decree_in_app;
-    last_committed_decree_in_prepare_list = other74.last_committed_decree_in_prepare_list;
-    learner_status_ = other74.learner_status_;
-    learner_signature = other74.learner_signature;
-    node = other74.node;
-    __isset = other74.__isset;
+    pid = other75.pid;
+    err = other75.err;
+    last_committed_decree_in_app = other75.last_committed_decree_in_app;
+    last_committed_decree_in_prepare_list = other75.last_committed_decree_in_prepare_list;
+    learner_status_ = other75.learner_status_;
+    learner_signature = other75.learner_signature;
+    node = other75.node;
+    __isset = other75.__isset;
     return *this;
 }
-group_check_response &group_check_response::operator=(group_check_response &&other75)
+group_check_response &group_check_response::operator=(group_check_response &&other76)
 {
-    pid = std::move(other75.pid);
-    err = std::move(other75.err);
-    last_committed_decree_in_app = std::move(other75.last_committed_decree_in_app);
+    pid = std::move(other76.pid);
+    err = std::move(other76.err);
+    last_committed_decree_in_app = std::move(other76.last_committed_decree_in_app);
     last_committed_decree_in_prepare_list =
-        std::move(other75.last_committed_decree_in_prepare_list);
-    learner_status_ = std::move(other75.learner_status_);
-    learner_signature = std::move(other75.learner_signature);
-    node = std::move(other75.node);
-    __isset = std::move(other75.__isset);
+        std::move(other76.last_committed_decree_in_prepare_list);
+    learner_status_ = std::move(other76.learner_status_);
+    learner_signature = std::move(other76.learner_signature);
+    node = std::move(other76.node);
+    __isset = std::move(other76.__isset);
     return *this;
 }
 void group_check_response::printTo(std::ostream &out) const
@@ -2944,9 +2982,9 @@ uint32_t node_info::read(::apache::thrift::protocol::TProtocol *iprot)
         switch (fid) {
         case 1:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast76;
-                xfer += iprot->readI32(ecast76);
-                this->status = (node_status::type)ecast76;
+                int32_t ecast77;
+                xfer += iprot->readI32(ecast77);
+                this->status = (node_status::type)ecast77;
                 this->__isset.status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -2999,30 +3037,30 @@ void swap(node_info &a, node_info &b)
     swap(a.__isset, b.__isset);
 }
 
-node_info::node_info(const node_info &other77)
+node_info::node_info(const node_info &other78)
 {
-    status = other77.status;
-    address = other77.address;
-    __isset = other77.__isset;
+    status = other78.status;
+    address = other78.address;
+    __isset = other78.__isset;
 }
-node_info::node_info(node_info &&other78)
+node_info::node_info(node_info &&other79)
 {
-    status = std::move(other78.status);
-    address = std::move(other78.address);
-    __isset = std::move(other78.__isset);
+    status = std::move(other79.status);
+    address = std::move(other79.address);
+    __isset = std::move(other79.__isset);
 }
-node_info &node_info::operator=(const node_info &other79)
+node_info &node_info::operator=(const node_info &other80)
 {
-    status = other79.status;
-    address = other79.address;
-    __isset = other79.__isset;
+    status = other80.status;
+    address = other80.address;
+    __isset = other80.__isset;
     return *this;
 }
-node_info &node_info::operator=(node_info &&other80)
+node_info &node_info::operator=(node_info &&other81)
 {
-    status = std::move(other80.status);
-    address = std::move(other80.address);
-    __isset = std::move(other80.__isset);
+    status = std::move(other81.status);
+    address = std::move(other81.address);
+    __isset = std::move(other81.__isset);
     return *this;
 }
 void node_info::printTo(std::ostream &out) const
@@ -3051,6 +3089,12 @@ void configuration_update_request::__set_node(const ::dsn::rpc_address &val) { t
 void configuration_update_request::__set_host_node(const ::dsn::rpc_address &val)
 {
     this->host_node = val;
+}
+
+void configuration_update_request::__set_meta_split_status(const split_status::type val)
+{
+    this->meta_split_status = val;
+    __isset.meta_split_status = true;
 }
 
 uint32_t configuration_update_request::read(::apache::thrift::protocol::TProtocol *iprot)
@@ -3090,9 +3134,9 @@ uint32_t configuration_update_request::read(::apache::thrift::protocol::TProtoco
             break;
         case 3:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast81;
-                xfer += iprot->readI32(ecast81);
-                this->type = (config_type::type)ecast81;
+                int32_t ecast82;
+                xfer += iprot->readI32(ecast82);
+                this->type = (config_type::type)ecast82;
                 this->__isset.type = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -3110,6 +3154,16 @@ uint32_t configuration_update_request::read(::apache::thrift::protocol::TProtoco
             if (ftype == ::apache::thrift::protocol::T_STRUCT) {
                 xfer += this->host_node.read(iprot);
                 this->__isset.host_node = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 6:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                int32_t ecast83;
+                xfer += iprot->readI32(ecast83);
+                this->meta_split_status = (split_status::type)ecast83;
+                this->__isset.meta_split_status = true;
             } else {
                 xfer += iprot->skip(ftype);
             }
@@ -3152,6 +3206,11 @@ uint32_t configuration_update_request::write(::apache::thrift::protocol::TProtoc
     xfer += this->host_node.write(oprot);
     xfer += oprot->writeFieldEnd();
 
+    if (this->__isset.meta_split_status) {
+        xfer += oprot->writeFieldBegin("meta_split_status", ::apache::thrift::protocol::T_I32, 6);
+        xfer += oprot->writeI32((int32_t)this->meta_split_status);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -3165,48 +3224,53 @@ void swap(configuration_update_request &a, configuration_update_request &b)
     swap(a.type, b.type);
     swap(a.node, b.node);
     swap(a.host_node, b.host_node);
+    swap(a.meta_split_status, b.meta_split_status);
     swap(a.__isset, b.__isset);
 }
 
 configuration_update_request::configuration_update_request(
-    const configuration_update_request &other82)
-{
-    info = other82.info;
-    config = other82.config;
-    type = other82.type;
-    node = other82.node;
-    host_node = other82.host_node;
-    __isset = other82.__isset;
-}
-configuration_update_request::configuration_update_request(configuration_update_request &&other83)
-{
-    info = std::move(other83.info);
-    config = std::move(other83.config);
-    type = std::move(other83.type);
-    node = std::move(other83.node);
-    host_node = std::move(other83.host_node);
-    __isset = std::move(other83.__isset);
-}
-configuration_update_request &configuration_update_request::
-operator=(const configuration_update_request &other84)
+    const configuration_update_request &other84)
 {
     info = other84.info;
     config = other84.config;
     type = other84.type;
     node = other84.node;
     host_node = other84.host_node;
+    meta_split_status = other84.meta_split_status;
     __isset = other84.__isset;
-    return *this;
 }
-configuration_update_request &configuration_update_request::
-operator=(configuration_update_request &&other85)
+configuration_update_request::configuration_update_request(configuration_update_request &&other85)
 {
     info = std::move(other85.info);
     config = std::move(other85.config);
     type = std::move(other85.type);
     node = std::move(other85.node);
     host_node = std::move(other85.host_node);
+    meta_split_status = std::move(other85.meta_split_status);
     __isset = std::move(other85.__isset);
+}
+configuration_update_request &configuration_update_request::
+operator=(const configuration_update_request &other86)
+{
+    info = other86.info;
+    config = other86.config;
+    type = other86.type;
+    node = other86.node;
+    host_node = other86.host_node;
+    meta_split_status = other86.meta_split_status;
+    __isset = other86.__isset;
+    return *this;
+}
+configuration_update_request &configuration_update_request::
+operator=(configuration_update_request &&other87)
+{
+    info = std::move(other87.info);
+    config = std::move(other87.config);
+    type = std::move(other87.type);
+    node = std::move(other87.node);
+    host_node = std::move(other87.host_node);
+    meta_split_status = std::move(other87.meta_split_status);
+    __isset = std::move(other87.__isset);
     return *this;
 }
 void configuration_update_request::printTo(std::ostream &out) const
@@ -3222,6 +3286,9 @@ void configuration_update_request::printTo(std::ostream &out) const
         << "node=" << to_string(node);
     out << ", "
         << "host_node=" << to_string(host_node);
+    out << ", "
+        << "meta_split_status=";
+    (__isset.meta_split_status ? (out << to_string(meta_split_status)) : (out << "<null>"));
     out << ")";
 }
 
@@ -3309,33 +3376,33 @@ void swap(configuration_update_response &a, configuration_update_response &b)
 }
 
 configuration_update_response::configuration_update_response(
-    const configuration_update_response &other86)
-{
-    err = other86.err;
-    config = other86.config;
-    __isset = other86.__isset;
-}
-configuration_update_response::configuration_update_response(
-    configuration_update_response &&other87)
-{
-    err = std::move(other87.err);
-    config = std::move(other87.config);
-    __isset = std::move(other87.__isset);
-}
-configuration_update_response &configuration_update_response::
-operator=(const configuration_update_response &other88)
+    const configuration_update_response &other88)
 {
     err = other88.err;
     config = other88.config;
     __isset = other88.__isset;
-    return *this;
 }
-configuration_update_response &configuration_update_response::
-operator=(configuration_update_response &&other89)
+configuration_update_response::configuration_update_response(
+    configuration_update_response &&other89)
 {
     err = std::move(other89.err);
     config = std::move(other89.config);
     __isset = std::move(other89.__isset);
+}
+configuration_update_response &configuration_update_response::
+operator=(const configuration_update_response &other90)
+{
+    err = other90.err;
+    config = other90.config;
+    __isset = other90.__isset;
+    return *this;
+}
+configuration_update_response &configuration_update_response::
+operator=(configuration_update_response &&other91)
+{
+    err = std::move(other91.err);
+    config = std::move(other91.config);
+    __isset = std::move(other91.__isset);
     return *this;
 }
 void configuration_update_response::printTo(std::ostream &out) const
@@ -3383,16 +3450,16 @@ uint32_t replica_server_info::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
                     this->geo_tags.clear();
-                    uint32_t _size90;
-                    ::apache::thrift::protocol::TType _ktype91;
-                    ::apache::thrift::protocol::TType _vtype92;
-                    xfer += iprot->readMapBegin(_ktype91, _vtype92, _size90);
-                    uint32_t _i94;
-                    for (_i94 = 0; _i94 < _size90; ++_i94) {
-                        std::string _key95;
-                        xfer += iprot->readString(_key95);
-                        std::string &_val96 = this->geo_tags[_key95];
-                        xfer += iprot->readString(_val96);
+                    uint32_t _size92;
+                    ::apache::thrift::protocol::TType _ktype93;
+                    ::apache::thrift::protocol::TType _vtype94;
+                    xfer += iprot->readMapBegin(_ktype93, _vtype94, _size92);
+                    uint32_t _i96;
+                    for (_i96 = 0; _i96 < _size92; ++_i96) {
+                        std::string _key97;
+                        xfer += iprot->readString(_key97);
+                        std::string &_val98 = this->geo_tags[_key97];
+                        xfer += iprot->readString(_val98);
                     }
                     xfer += iprot->readMapEnd();
                 }
@@ -3432,10 +3499,10 @@ uint32_t replica_server_info::write(::apache::thrift::protocol::TProtocol *oprot
         xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING,
                                      ::apache::thrift::protocol::T_STRING,
                                      static_cast<uint32_t>(this->geo_tags.size()));
-        std::map<std::string, std::string>::const_iterator _iter97;
-        for (_iter97 = this->geo_tags.begin(); _iter97 != this->geo_tags.end(); ++_iter97) {
-            xfer += oprot->writeString(_iter97->first);
-            xfer += oprot->writeString(_iter97->second);
+        std::map<std::string, std::string>::const_iterator _iter99;
+        for (_iter99 = this->geo_tags.begin(); _iter99 != this->geo_tags.end(); ++_iter99) {
+            xfer += oprot->writeString(_iter99->first);
+            xfer += oprot->writeString(_iter99->second);
         }
         xfer += oprot->writeMapEnd();
     }
@@ -3458,30 +3525,30 @@ void swap(replica_server_info &a, replica_server_info &b)
     swap(a.__isset, b.__isset);
 }
 
-replica_server_info::replica_server_info(const replica_server_info &other98)
-{
-    geo_tags = other98.geo_tags;
-    total_capacity_mb = other98.total_capacity_mb;
-    __isset = other98.__isset;
-}
-replica_server_info::replica_server_info(replica_server_info &&other99)
-{
-    geo_tags = std::move(other99.geo_tags);
-    total_capacity_mb = std::move(other99.total_capacity_mb);
-    __isset = std::move(other99.__isset);
-}
-replica_server_info &replica_server_info::operator=(const replica_server_info &other100)
+replica_server_info::replica_server_info(const replica_server_info &other100)
 {
     geo_tags = other100.geo_tags;
     total_capacity_mb = other100.total_capacity_mb;
     __isset = other100.__isset;
-    return *this;
 }
-replica_server_info &replica_server_info::operator=(replica_server_info &&other101)
+replica_server_info::replica_server_info(replica_server_info &&other101)
 {
     geo_tags = std::move(other101.geo_tags);
     total_capacity_mb = std::move(other101.total_capacity_mb);
     __isset = std::move(other101.__isset);
+}
+replica_server_info &replica_server_info::operator=(const replica_server_info &other102)
+{
+    geo_tags = other102.geo_tags;
+    total_capacity_mb = other102.total_capacity_mb;
+    __isset = other102.__isset;
+    return *this;
+}
+replica_server_info &replica_server_info::operator=(replica_server_info &&other103)
+{
+    geo_tags = std::move(other103.geo_tags);
+    total_capacity_mb = std::move(other103.total_capacity_mb);
+    __isset = std::move(other103.__isset);
     return *this;
 }
 void replica_server_info::printTo(std::ostream &out) const
@@ -3545,13 +3612,13 @@ uint32_t configuration_query_by_node_request::read(::apache::thrift::protocol::T
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->stored_replicas.clear();
-                    uint32_t _size102;
-                    ::apache::thrift::protocol::TType _etype105;
-                    xfer += iprot->readListBegin(_etype105, _size102);
-                    this->stored_replicas.resize(_size102);
-                    uint32_t _i106;
-                    for (_i106 = 0; _i106 < _size102; ++_i106) {
-                        xfer += this->stored_replicas[_i106].read(iprot);
+                    uint32_t _size104;
+                    ::apache::thrift::protocol::TType _etype107;
+                    xfer += iprot->readListBegin(_etype107, _size104);
+                    this->stored_replicas.resize(_size104);
+                    uint32_t _i108;
+                    for (_i108 = 0; _i108 < _size104; ++_i108) {
+                        xfer += this->stored_replicas[_i108].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -3596,10 +3663,10 @@ configuration_query_by_node_request::write(::apache::thrift::protocol::TProtocol
         {
             xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                           static_cast<uint32_t>(this->stored_replicas.size()));
-            std::vector<replica_info>::const_iterator _iter107;
-            for (_iter107 = this->stored_replicas.begin(); _iter107 != this->stored_replicas.end();
-                 ++_iter107) {
-                xfer += (*_iter107).write(oprot);
+            std::vector<replica_info>::const_iterator _iter109;
+            for (_iter109 = this->stored_replicas.begin(); _iter109 != this->stored_replicas.end();
+                 ++_iter109) {
+                xfer += (*_iter109).write(oprot);
             }
             xfer += oprot->writeListEnd();
         }
@@ -3625,37 +3692,37 @@ void swap(configuration_query_by_node_request &a, configuration_query_by_node_re
 }
 
 configuration_query_by_node_request::configuration_query_by_node_request(
-    const configuration_query_by_node_request &other108)
-{
-    node = other108.node;
-    stored_replicas = other108.stored_replicas;
-    info = other108.info;
-    __isset = other108.__isset;
-}
-configuration_query_by_node_request::configuration_query_by_node_request(
-    configuration_query_by_node_request &&other109)
-{
-    node = std::move(other109.node);
-    stored_replicas = std::move(other109.stored_replicas);
-    info = std::move(other109.info);
-    __isset = std::move(other109.__isset);
-}
-configuration_query_by_node_request &configuration_query_by_node_request::
-operator=(const configuration_query_by_node_request &other110)
+    const configuration_query_by_node_request &other110)
 {
     node = other110.node;
     stored_replicas = other110.stored_replicas;
     info = other110.info;
     __isset = other110.__isset;
-    return *this;
 }
-configuration_query_by_node_request &configuration_query_by_node_request::
-operator=(configuration_query_by_node_request &&other111)
+configuration_query_by_node_request::configuration_query_by_node_request(
+    configuration_query_by_node_request &&other111)
 {
     node = std::move(other111.node);
     stored_replicas = std::move(other111.stored_replicas);
     info = std::move(other111.info);
     __isset = std::move(other111.__isset);
+}
+configuration_query_by_node_request &configuration_query_by_node_request::
+operator=(const configuration_query_by_node_request &other112)
+{
+    node = other112.node;
+    stored_replicas = other112.stored_replicas;
+    info = other112.info;
+    __isset = other112.__isset;
+    return *this;
+}
+configuration_query_by_node_request &configuration_query_by_node_request::
+operator=(configuration_query_by_node_request &&other113)
+{
+    node = std::move(other113.node);
+    stored_replicas = std::move(other113.stored_replicas);
+    info = std::move(other113.info);
+    __isset = std::move(other113.__isset);
     return *this;
 }
 void configuration_query_by_node_request::printTo(std::ostream &out) const
@@ -3722,13 +3789,13 @@ uint32_t configuration_query_by_node_response::read(::apache::thrift::protocol::
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->partitions.clear();
-                    uint32_t _size112;
-                    ::apache::thrift::protocol::TType _etype115;
-                    xfer += iprot->readListBegin(_etype115, _size112);
-                    this->partitions.resize(_size112);
-                    uint32_t _i116;
-                    for (_i116 = 0; _i116 < _size112; ++_i116) {
-                        xfer += this->partitions[_i116].read(iprot);
+                    uint32_t _size114;
+                    ::apache::thrift::protocol::TType _etype117;
+                    xfer += iprot->readListBegin(_etype117, _size114);
+                    this->partitions.resize(_size114);
+                    uint32_t _i118;
+                    for (_i118 = 0; _i118 < _size114; ++_i118) {
+                        xfer += this->partitions[_i118].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -3741,13 +3808,13 @@ uint32_t configuration_query_by_node_response::read(::apache::thrift::protocol::
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->gc_replicas.clear();
-                    uint32_t _size117;
-                    ::apache::thrift::protocol::TType _etype120;
-                    xfer += iprot->readListBegin(_etype120, _size117);
-                    this->gc_replicas.resize(_size117);
-                    uint32_t _i121;
-                    for (_i121 = 0; _i121 < _size117; ++_i121) {
-                        xfer += this->gc_replicas[_i121].read(iprot);
+                    uint32_t _size119;
+                    ::apache::thrift::protocol::TType _etype122;
+                    xfer += iprot->readListBegin(_etype122, _size119);
+                    this->gc_replicas.resize(_size119);
+                    uint32_t _i123;
+                    for (_i123 = 0; _i123 < _size119; ++_i123) {
+                        xfer += this->gc_replicas[_i123].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -3783,9 +3850,9 @@ configuration_query_by_node_response::write(::apache::thrift::protocol::TProtoco
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->partitions.size()));
-        std::vector<configuration_update_request>::const_iterator _iter122;
-        for (_iter122 = this->partitions.begin(); _iter122 != this->partitions.end(); ++_iter122) {
-            xfer += (*_iter122).write(oprot);
+        std::vector<configuration_update_request>::const_iterator _iter124;
+        for (_iter124 = this->partitions.begin(); _iter124 != this->partitions.end(); ++_iter124) {
+            xfer += (*_iter124).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -3796,10 +3863,10 @@ configuration_query_by_node_response::write(::apache::thrift::protocol::TProtoco
         {
             xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                           static_cast<uint32_t>(this->gc_replicas.size()));
-            std::vector<replica_info>::const_iterator _iter123;
-            for (_iter123 = this->gc_replicas.begin(); _iter123 != this->gc_replicas.end();
-                 ++_iter123) {
-                xfer += (*_iter123).write(oprot);
+            std::vector<replica_info>::const_iterator _iter125;
+            for (_iter125 = this->gc_replicas.begin(); _iter125 != this->gc_replicas.end();
+                 ++_iter125) {
+                xfer += (*_iter125).write(oprot);
             }
             xfer += oprot->writeListEnd();
         }
@@ -3820,37 +3887,37 @@ void swap(configuration_query_by_node_response &a, configuration_query_by_node_r
 }
 
 configuration_query_by_node_response::configuration_query_by_node_response(
-    const configuration_query_by_node_response &other124)
-{
-    err = other124.err;
-    partitions = other124.partitions;
-    gc_replicas = other124.gc_replicas;
-    __isset = other124.__isset;
-}
-configuration_query_by_node_response::configuration_query_by_node_response(
-    configuration_query_by_node_response &&other125)
-{
-    err = std::move(other125.err);
-    partitions = std::move(other125.partitions);
-    gc_replicas = std::move(other125.gc_replicas);
-    __isset = std::move(other125.__isset);
-}
-configuration_query_by_node_response &configuration_query_by_node_response::
-operator=(const configuration_query_by_node_response &other126)
+    const configuration_query_by_node_response &other126)
 {
     err = other126.err;
     partitions = other126.partitions;
     gc_replicas = other126.gc_replicas;
     __isset = other126.__isset;
-    return *this;
 }
-configuration_query_by_node_response &configuration_query_by_node_response::
-operator=(configuration_query_by_node_response &&other127)
+configuration_query_by_node_response::configuration_query_by_node_response(
+    configuration_query_by_node_response &&other127)
 {
     err = std::move(other127.err);
     partitions = std::move(other127.partitions);
     gc_replicas = std::move(other127.gc_replicas);
     __isset = std::move(other127.__isset);
+}
+configuration_query_by_node_response &configuration_query_by_node_response::
+operator=(const configuration_query_by_node_response &other128)
+{
+    err = other128.err;
+    partitions = other128.partitions;
+    gc_replicas = other128.gc_replicas;
+    __isset = other128.__isset;
+    return *this;
+}
+configuration_query_by_node_response &configuration_query_by_node_response::
+operator=(configuration_query_by_node_response &&other129)
+{
+    err = std::move(other129.err);
+    partitions = std::move(other129.partitions);
+    gc_replicas = std::move(other129.gc_replicas);
+    __isset = std::move(other129.__isset);
     return *this;
 }
 void configuration_query_by_node_response::printTo(std::ostream &out) const
@@ -3946,16 +4013,16 @@ uint32_t create_app_options::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
                     this->envs.clear();
-                    uint32_t _size128;
-                    ::apache::thrift::protocol::TType _ktype129;
-                    ::apache::thrift::protocol::TType _vtype130;
-                    xfer += iprot->readMapBegin(_ktype129, _vtype130, _size128);
-                    uint32_t _i132;
-                    for (_i132 = 0; _i132 < _size128; ++_i132) {
-                        std::string _key133;
-                        xfer += iprot->readString(_key133);
-                        std::string &_val134 = this->envs[_key133];
-                        xfer += iprot->readString(_val134);
+                    uint32_t _size130;
+                    ::apache::thrift::protocol::TType _ktype131;
+                    ::apache::thrift::protocol::TType _vtype132;
+                    xfer += iprot->readMapBegin(_ktype131, _vtype132, _size130);
+                    uint32_t _i134;
+                    for (_i134 = 0; _i134 < _size130; ++_i134) {
+                        std::string _key135;
+                        xfer += iprot->readString(_key135);
+                        std::string &_val136 = this->envs[_key135];
+                        xfer += iprot->readString(_val136);
                     }
                     xfer += iprot->readMapEnd();
                 }
@@ -4007,10 +4074,10 @@ uint32_t create_app_options::write(::apache::thrift::protocol::TProtocol *oprot)
         xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING,
                                      ::apache::thrift::protocol::T_STRING,
                                      static_cast<uint32_t>(this->envs.size()));
-        std::map<std::string, std::string>::const_iterator _iter135;
-        for (_iter135 = this->envs.begin(); _iter135 != this->envs.end(); ++_iter135) {
-            xfer += oprot->writeString(_iter135->first);
-            xfer += oprot->writeString(_iter135->second);
+        std::map<std::string, std::string>::const_iterator _iter137;
+        for (_iter137 = this->envs.begin(); _iter137 != this->envs.end(); ++_iter137) {
+            xfer += oprot->writeString(_iter137->first);
+            xfer += oprot->writeString(_iter137->second);
         }
         xfer += oprot->writeMapEnd();
     }
@@ -4033,27 +4100,7 @@ void swap(create_app_options &a, create_app_options &b)
     swap(a.__isset, b.__isset);
 }
 
-create_app_options::create_app_options(const create_app_options &other136)
-{
-    partition_count = other136.partition_count;
-    replica_count = other136.replica_count;
-    success_if_exist = other136.success_if_exist;
-    app_type = other136.app_type;
-    is_stateful = other136.is_stateful;
-    envs = other136.envs;
-    __isset = other136.__isset;
-}
-create_app_options::create_app_options(create_app_options &&other137)
-{
-    partition_count = std::move(other137.partition_count);
-    replica_count = std::move(other137.replica_count);
-    success_if_exist = std::move(other137.success_if_exist);
-    app_type = std::move(other137.app_type);
-    is_stateful = std::move(other137.is_stateful);
-    envs = std::move(other137.envs);
-    __isset = std::move(other137.__isset);
-}
-create_app_options &create_app_options::operator=(const create_app_options &other138)
+create_app_options::create_app_options(const create_app_options &other138)
 {
     partition_count = other138.partition_count;
     replica_count = other138.replica_count;
@@ -4062,9 +4109,8 @@ create_app_options &create_app_options::operator=(const create_app_options &othe
     is_stateful = other138.is_stateful;
     envs = other138.envs;
     __isset = other138.__isset;
-    return *this;
 }
-create_app_options &create_app_options::operator=(create_app_options &&other139)
+create_app_options::create_app_options(create_app_options &&other139)
 {
     partition_count = std::move(other139.partition_count);
     replica_count = std::move(other139.replica_count);
@@ -4073,6 +4119,27 @@ create_app_options &create_app_options::operator=(create_app_options &&other139)
     is_stateful = std::move(other139.is_stateful);
     envs = std::move(other139.envs);
     __isset = std::move(other139.__isset);
+}
+create_app_options &create_app_options::operator=(const create_app_options &other140)
+{
+    partition_count = other140.partition_count;
+    replica_count = other140.replica_count;
+    success_if_exist = other140.success_if_exist;
+    app_type = other140.app_type;
+    is_stateful = other140.is_stateful;
+    envs = other140.envs;
+    __isset = other140.__isset;
+    return *this;
+}
+create_app_options &create_app_options::operator=(create_app_options &&other141)
+{
+    partition_count = std::move(other141.partition_count);
+    replica_count = std::move(other141.replica_count);
+    success_if_exist = std::move(other141.success_if_exist);
+    app_type = std::move(other141.app_type);
+    is_stateful = std::move(other141.is_stateful);
+    envs = std::move(other141.envs);
+    __isset = std::move(other141.__isset);
     return *this;
 }
 void create_app_options::printTo(std::ostream &out) const
@@ -4180,33 +4247,33 @@ void swap(configuration_create_app_request &a, configuration_create_app_request 
 }
 
 configuration_create_app_request::configuration_create_app_request(
-    const configuration_create_app_request &other140)
-{
-    app_name = other140.app_name;
-    options = other140.options;
-    __isset = other140.__isset;
-}
-configuration_create_app_request::configuration_create_app_request(
-    configuration_create_app_request &&other141)
-{
-    app_name = std::move(other141.app_name);
-    options = std::move(other141.options);
-    __isset = std::move(other141.__isset);
-}
-configuration_create_app_request &configuration_create_app_request::
-operator=(const configuration_create_app_request &other142)
+    const configuration_create_app_request &other142)
 {
     app_name = other142.app_name;
     options = other142.options;
     __isset = other142.__isset;
-    return *this;
 }
-configuration_create_app_request &configuration_create_app_request::
-operator=(configuration_create_app_request &&other143)
+configuration_create_app_request::configuration_create_app_request(
+    configuration_create_app_request &&other143)
 {
     app_name = std::move(other143.app_name);
     options = std::move(other143.options);
     __isset = std::move(other143.__isset);
+}
+configuration_create_app_request &configuration_create_app_request::
+operator=(const configuration_create_app_request &other144)
+{
+    app_name = other144.app_name;
+    options = other144.options;
+    __isset = other144.__isset;
+    return *this;
+}
+configuration_create_app_request &configuration_create_app_request::
+operator=(configuration_create_app_request &&other145)
+{
+    app_name = std::move(other145.app_name);
+    options = std::move(other145.options);
+    __isset = std::move(other145.__isset);
     return *this;
 }
 void configuration_create_app_request::printTo(std::ostream &out) const
@@ -4307,30 +4374,30 @@ void swap(drop_app_options &a, drop_app_options &b)
     swap(a.__isset, b.__isset);
 }
 
-drop_app_options::drop_app_options(const drop_app_options &other144)
-{
-    success_if_not_exist = other144.success_if_not_exist;
-    reserve_seconds = other144.reserve_seconds;
-    __isset = other144.__isset;
-}
-drop_app_options::drop_app_options(drop_app_options &&other145)
-{
-    success_if_not_exist = std::move(other145.success_if_not_exist);
-    reserve_seconds = std::move(other145.reserve_seconds);
-    __isset = std::move(other145.__isset);
-}
-drop_app_options &drop_app_options::operator=(const drop_app_options &other146)
+drop_app_options::drop_app_options(const drop_app_options &other146)
 {
     success_if_not_exist = other146.success_if_not_exist;
     reserve_seconds = other146.reserve_seconds;
     __isset = other146.__isset;
-    return *this;
 }
-drop_app_options &drop_app_options::operator=(drop_app_options &&other147)
+drop_app_options::drop_app_options(drop_app_options &&other147)
 {
     success_if_not_exist = std::move(other147.success_if_not_exist);
     reserve_seconds = std::move(other147.reserve_seconds);
     __isset = std::move(other147.__isset);
+}
+drop_app_options &drop_app_options::operator=(const drop_app_options &other148)
+{
+    success_if_not_exist = other148.success_if_not_exist;
+    reserve_seconds = other148.reserve_seconds;
+    __isset = other148.__isset;
+    return *this;
+}
+drop_app_options &drop_app_options::operator=(drop_app_options &&other149)
+{
+    success_if_not_exist = std::move(other149.success_if_not_exist);
+    reserve_seconds = std::move(other149.reserve_seconds);
+    __isset = std::move(other149.__isset);
     return *this;
 }
 void drop_app_options::printTo(std::ostream &out) const
@@ -4431,33 +4498,33 @@ void swap(configuration_drop_app_request &a, configuration_drop_app_request &b)
 }
 
 configuration_drop_app_request::configuration_drop_app_request(
-    const configuration_drop_app_request &other148)
-{
-    app_name = other148.app_name;
-    options = other148.options;
-    __isset = other148.__isset;
-}
-configuration_drop_app_request::configuration_drop_app_request(
-    configuration_drop_app_request &&other149)
-{
-    app_name = std::move(other149.app_name);
-    options = std::move(other149.options);
-    __isset = std::move(other149.__isset);
-}
-configuration_drop_app_request &configuration_drop_app_request::
-operator=(const configuration_drop_app_request &other150)
+    const configuration_drop_app_request &other150)
 {
     app_name = other150.app_name;
     options = other150.options;
     __isset = other150.__isset;
-    return *this;
 }
-configuration_drop_app_request &configuration_drop_app_request::
-operator=(configuration_drop_app_request &&other151)
+configuration_drop_app_request::configuration_drop_app_request(
+    configuration_drop_app_request &&other151)
 {
     app_name = std::move(other151.app_name);
     options = std::move(other151.options);
     __isset = std::move(other151.__isset);
+}
+configuration_drop_app_request &configuration_drop_app_request::
+operator=(const configuration_drop_app_request &other152)
+{
+    app_name = other152.app_name;
+    options = other152.options;
+    __isset = other152.__isset;
+    return *this;
+}
+configuration_drop_app_request &configuration_drop_app_request::
+operator=(configuration_drop_app_request &&other153)
+{
+    app_name = std::move(other153.app_name);
+    options = std::move(other153.options);
+    __isset = std::move(other153.__isset);
     return *this;
 }
 void configuration_drop_app_request::printTo(std::ostream &out) const
@@ -4498,9 +4565,9 @@ uint32_t configuration_list_apps_request::read(::apache::thrift::protocol::TProt
         switch (fid) {
         case 1:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast152;
-                xfer += iprot->readI32(ecast152);
-                this->status = (::dsn::app_status::type)ecast152;
+                int32_t ecast154;
+                xfer += iprot->readI32(ecast154);
+                this->status = (::dsn::app_status::type)ecast154;
                 this->__isset.status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -4541,29 +4608,29 @@ void swap(configuration_list_apps_request &a, configuration_list_apps_request &b
 }
 
 configuration_list_apps_request::configuration_list_apps_request(
-    const configuration_list_apps_request &other153)
-{
-    status = other153.status;
-    __isset = other153.__isset;
-}
-configuration_list_apps_request::configuration_list_apps_request(
-    configuration_list_apps_request &&other154)
-{
-    status = std::move(other154.status);
-    __isset = std::move(other154.__isset);
-}
-configuration_list_apps_request &configuration_list_apps_request::
-operator=(const configuration_list_apps_request &other155)
+    const configuration_list_apps_request &other155)
 {
     status = other155.status;
     __isset = other155.__isset;
-    return *this;
 }
-configuration_list_apps_request &configuration_list_apps_request::
-operator=(configuration_list_apps_request &&other156)
+configuration_list_apps_request::configuration_list_apps_request(
+    configuration_list_apps_request &&other156)
 {
     status = std::move(other156.status);
     __isset = std::move(other156.__isset);
+}
+configuration_list_apps_request &configuration_list_apps_request::
+operator=(const configuration_list_apps_request &other157)
+{
+    status = other157.status;
+    __isset = other157.__isset;
+    return *this;
+}
+configuration_list_apps_request &configuration_list_apps_request::
+operator=(configuration_list_apps_request &&other158)
+{
+    status = std::move(other158.status);
+    __isset = std::move(other158.__isset);
     return *this;
 }
 void configuration_list_apps_request::printTo(std::ostream &out) const
@@ -4602,9 +4669,9 @@ uint32_t configuration_list_nodes_request::read(::apache::thrift::protocol::TPro
         switch (fid) {
         case 1:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast157;
-                xfer += iprot->readI32(ecast157);
-                this->status = (node_status::type)ecast157;
+                int32_t ecast159;
+                xfer += iprot->readI32(ecast159);
+                this->status = (node_status::type)ecast159;
                 this->__isset.status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -4645,29 +4712,29 @@ void swap(configuration_list_nodes_request &a, configuration_list_nodes_request 
 }
 
 configuration_list_nodes_request::configuration_list_nodes_request(
-    const configuration_list_nodes_request &other158)
-{
-    status = other158.status;
-    __isset = other158.__isset;
-}
-configuration_list_nodes_request::configuration_list_nodes_request(
-    configuration_list_nodes_request &&other159)
-{
-    status = std::move(other159.status);
-    __isset = std::move(other159.__isset);
-}
-configuration_list_nodes_request &configuration_list_nodes_request::
-operator=(const configuration_list_nodes_request &other160)
+    const configuration_list_nodes_request &other160)
 {
     status = other160.status;
     __isset = other160.__isset;
-    return *this;
 }
-configuration_list_nodes_request &configuration_list_nodes_request::
-operator=(configuration_list_nodes_request &&other161)
+configuration_list_nodes_request::configuration_list_nodes_request(
+    configuration_list_nodes_request &&other161)
 {
     status = std::move(other161.status);
     __isset = std::move(other161.__isset);
+}
+configuration_list_nodes_request &configuration_list_nodes_request::
+operator=(const configuration_list_nodes_request &other162)
+{
+    status = other162.status;
+    __isset = other162.__isset;
+    return *this;
+}
+configuration_list_nodes_request &configuration_list_nodes_request::
+operator=(configuration_list_nodes_request &&other163)
+{
+    status = std::move(other163.status);
+    __isset = std::move(other163.__isset);
     return *this;
 }
 void configuration_list_nodes_request::printTo(std::ostream &out) const
@@ -4727,25 +4794,25 @@ void swap(configuration_cluster_info_request &a, configuration_cluster_info_requ
 }
 
 configuration_cluster_info_request::configuration_cluster_info_request(
-    const configuration_cluster_info_request &other162)
-{
-    (void)other162;
-}
-configuration_cluster_info_request::configuration_cluster_info_request(
-    configuration_cluster_info_request &&other163)
-{
-    (void)other163;
-}
-configuration_cluster_info_request &configuration_cluster_info_request::
-operator=(const configuration_cluster_info_request &other164)
+    const configuration_cluster_info_request &other164)
 {
     (void)other164;
+}
+configuration_cluster_info_request::configuration_cluster_info_request(
+    configuration_cluster_info_request &&other165)
+{
+    (void)other165;
+}
+configuration_cluster_info_request &configuration_cluster_info_request::
+operator=(const configuration_cluster_info_request &other166)
+{
+    (void)other166;
     return *this;
 }
 configuration_cluster_info_request &configuration_cluster_info_request::
-operator=(configuration_cluster_info_request &&other165)
+operator=(configuration_cluster_info_request &&other167)
 {
-    (void)other165;
+    (void)other167;
     return *this;
 }
 void configuration_cluster_info_request::printTo(std::ostream &out) const
@@ -4839,33 +4906,33 @@ void swap(configuration_recall_app_request &a, configuration_recall_app_request 
 }
 
 configuration_recall_app_request::configuration_recall_app_request(
-    const configuration_recall_app_request &other166)
-{
-    app_id = other166.app_id;
-    new_app_name = other166.new_app_name;
-    __isset = other166.__isset;
-}
-configuration_recall_app_request::configuration_recall_app_request(
-    configuration_recall_app_request &&other167)
-{
-    app_id = std::move(other167.app_id);
-    new_app_name = std::move(other167.new_app_name);
-    __isset = std::move(other167.__isset);
-}
-configuration_recall_app_request &configuration_recall_app_request::
-operator=(const configuration_recall_app_request &other168)
+    const configuration_recall_app_request &other168)
 {
     app_id = other168.app_id;
     new_app_name = other168.new_app_name;
     __isset = other168.__isset;
-    return *this;
 }
-configuration_recall_app_request &configuration_recall_app_request::
-operator=(configuration_recall_app_request &&other169)
+configuration_recall_app_request::configuration_recall_app_request(
+    configuration_recall_app_request &&other169)
 {
     app_id = std::move(other169.app_id);
     new_app_name = std::move(other169.new_app_name);
     __isset = std::move(other169.__isset);
+}
+configuration_recall_app_request &configuration_recall_app_request::
+operator=(const configuration_recall_app_request &other170)
+{
+    app_id = other170.app_id;
+    new_app_name = other170.new_app_name;
+    __isset = other170.__isset;
+    return *this;
+}
+configuration_recall_app_request &configuration_recall_app_request::
+operator=(configuration_recall_app_request &&other171)
+{
+    app_id = std::move(other171.app_id);
+    new_app_name = std::move(other171.new_app_name);
+    __isset = std::move(other171.__isset);
     return *this;
 }
 void configuration_recall_app_request::printTo(std::ostream &out) const
@@ -4960,33 +5027,33 @@ void swap(configuration_create_app_response &a, configuration_create_app_respons
 }
 
 configuration_create_app_response::configuration_create_app_response(
-    const configuration_create_app_response &other170)
-{
-    err = other170.err;
-    appid = other170.appid;
-    __isset = other170.__isset;
-}
-configuration_create_app_response::configuration_create_app_response(
-    configuration_create_app_response &&other171)
-{
-    err = std::move(other171.err);
-    appid = std::move(other171.appid);
-    __isset = std::move(other171.__isset);
-}
-configuration_create_app_response &configuration_create_app_response::
-operator=(const configuration_create_app_response &other172)
+    const configuration_create_app_response &other172)
 {
     err = other172.err;
     appid = other172.appid;
     __isset = other172.__isset;
-    return *this;
 }
-configuration_create_app_response &configuration_create_app_response::
-operator=(configuration_create_app_response &&other173)
+configuration_create_app_response::configuration_create_app_response(
+    configuration_create_app_response &&other173)
 {
     err = std::move(other173.err);
     appid = std::move(other173.appid);
     __isset = std::move(other173.__isset);
+}
+configuration_create_app_response &configuration_create_app_response::
+operator=(const configuration_create_app_response &other174)
+{
+    err = other174.err;
+    appid = other174.appid;
+    __isset = other174.__isset;
+    return *this;
+}
+configuration_create_app_response &configuration_create_app_response::
+operator=(configuration_create_app_response &&other175)
+{
+    err = std::move(other175.err);
+    appid = std::move(other175.appid);
+    __isset = std::move(other175.__isset);
     return *this;
 }
 void configuration_create_app_response::printTo(std::ostream &out) const
@@ -5027,9 +5094,9 @@ uint32_t configuration_meta_control_request::read(::apache::thrift::protocol::TP
         switch (fid) {
         case 1:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast174;
-                xfer += iprot->readI32(ecast174);
-                this->level = (meta_function_level::type)ecast174;
+                int32_t ecast176;
+                xfer += iprot->readI32(ecast176);
+                this->level = (meta_function_level::type)ecast176;
                 this->__isset.level = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -5071,29 +5138,29 @@ void swap(configuration_meta_control_request &a, configuration_meta_control_requ
 }
 
 configuration_meta_control_request::configuration_meta_control_request(
-    const configuration_meta_control_request &other175)
-{
-    level = other175.level;
-    __isset = other175.__isset;
-}
-configuration_meta_control_request::configuration_meta_control_request(
-    configuration_meta_control_request &&other176)
-{
-    level = std::move(other176.level);
-    __isset = std::move(other176.__isset);
-}
-configuration_meta_control_request &configuration_meta_control_request::
-operator=(const configuration_meta_control_request &other177)
+    const configuration_meta_control_request &other177)
 {
     level = other177.level;
     __isset = other177.__isset;
-    return *this;
 }
-configuration_meta_control_request &configuration_meta_control_request::
-operator=(configuration_meta_control_request &&other178)
+configuration_meta_control_request::configuration_meta_control_request(
+    configuration_meta_control_request &&other178)
 {
     level = std::move(other178.level);
     __isset = std::move(other178.__isset);
+}
+configuration_meta_control_request &configuration_meta_control_request::
+operator=(const configuration_meta_control_request &other179)
+{
+    level = other179.level;
+    __isset = other179.__isset;
+    return *this;
+}
+configuration_meta_control_request &configuration_meta_control_request::
+operator=(configuration_meta_control_request &&other180)
+{
+    level = std::move(other180.level);
+    __isset = std::move(other180.__isset);
     return *this;
 }
 void configuration_meta_control_request::printTo(std::ostream &out) const
@@ -5145,9 +5212,9 @@ uint32_t configuration_meta_control_response::read(::apache::thrift::protocol::T
             break;
         case 2:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast179;
-                xfer += iprot->readI32(ecast179);
-                this->old_level = (meta_function_level::type)ecast179;
+                int32_t ecast181;
+                xfer += iprot->readI32(ecast181);
+                this->old_level = (meta_function_level::type)ecast181;
                 this->__isset.old_level = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -5194,33 +5261,33 @@ void swap(configuration_meta_control_response &a, configuration_meta_control_res
 }
 
 configuration_meta_control_response::configuration_meta_control_response(
-    const configuration_meta_control_response &other180)
-{
-    err = other180.err;
-    old_level = other180.old_level;
-    __isset = other180.__isset;
-}
-configuration_meta_control_response::configuration_meta_control_response(
-    configuration_meta_control_response &&other181)
-{
-    err = std::move(other181.err);
-    old_level = std::move(other181.old_level);
-    __isset = std::move(other181.__isset);
-}
-configuration_meta_control_response &configuration_meta_control_response::
-operator=(const configuration_meta_control_response &other182)
+    const configuration_meta_control_response &other182)
 {
     err = other182.err;
     old_level = other182.old_level;
     __isset = other182.__isset;
-    return *this;
 }
-configuration_meta_control_response &configuration_meta_control_response::
-operator=(configuration_meta_control_response &&other183)
+configuration_meta_control_response::configuration_meta_control_response(
+    configuration_meta_control_response &&other183)
 {
     err = std::move(other183.err);
     old_level = std::move(other183.old_level);
     __isset = std::move(other183.__isset);
+}
+configuration_meta_control_response &configuration_meta_control_response::
+operator=(const configuration_meta_control_response &other184)
+{
+    err = other184.err;
+    old_level = other184.old_level;
+    __isset = other184.__isset;
+    return *this;
+}
+configuration_meta_control_response &configuration_meta_control_response::
+operator=(configuration_meta_control_response &&other185)
+{
+    err = std::move(other185.err);
+    old_level = std::move(other185.old_level);
+    __isset = std::move(other185.__isset);
     return *this;
 }
 void configuration_meta_control_response::printTo(std::ostream &out) const
@@ -5281,9 +5348,9 @@ uint32_t configuration_proposal_action::read(::apache::thrift::protocol::TProtoc
             break;
         case 3:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast184;
-                xfer += iprot->readI32(ecast184);
-                this->type = (config_type::type)ecast184;
+                int32_t ecast186;
+                xfer += iprot->readI32(ecast186);
+                this->type = (config_type::type)ecast186;
                 this->__isset.type = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -5334,37 +5401,37 @@ void swap(configuration_proposal_action &a, configuration_proposal_action &b)
 }
 
 configuration_proposal_action::configuration_proposal_action(
-    const configuration_proposal_action &other185)
-{
-    target = other185.target;
-    node = other185.node;
-    type = other185.type;
-    __isset = other185.__isset;
-}
-configuration_proposal_action::configuration_proposal_action(
-    configuration_proposal_action &&other186)
-{
-    target = std::move(other186.target);
-    node = std::move(other186.node);
-    type = std::move(other186.type);
-    __isset = std::move(other186.__isset);
-}
-configuration_proposal_action &configuration_proposal_action::
-operator=(const configuration_proposal_action &other187)
+    const configuration_proposal_action &other187)
 {
     target = other187.target;
     node = other187.node;
     type = other187.type;
     __isset = other187.__isset;
-    return *this;
 }
-configuration_proposal_action &configuration_proposal_action::
-operator=(configuration_proposal_action &&other188)
+configuration_proposal_action::configuration_proposal_action(
+    configuration_proposal_action &&other188)
 {
     target = std::move(other188.target);
     node = std::move(other188.node);
     type = std::move(other188.type);
     __isset = std::move(other188.__isset);
+}
+configuration_proposal_action &configuration_proposal_action::
+operator=(const configuration_proposal_action &other189)
+{
+    target = other189.target;
+    node = other189.node;
+    type = other189.type;
+    __isset = other189.__isset;
+    return *this;
+}
+configuration_proposal_action &configuration_proposal_action::
+operator=(configuration_proposal_action &&other190)
+{
+    target = std::move(other190.target);
+    node = std::move(other190.node);
+    type = std::move(other190.type);
+    __isset = std::move(other190.__isset);
     return *this;
 }
 void configuration_proposal_action::printTo(std::ostream &out) const
@@ -5432,13 +5499,13 @@ uint32_t configuration_balancer_request::read(::apache::thrift::protocol::TProto
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->action_list.clear();
-                    uint32_t _size189;
-                    ::apache::thrift::protocol::TType _etype192;
-                    xfer += iprot->readListBegin(_etype192, _size189);
-                    this->action_list.resize(_size189);
-                    uint32_t _i193;
-                    for (_i193 = 0; _i193 < _size189; ++_i193) {
-                        xfer += this->action_list[_i193].read(iprot);
+                    uint32_t _size191;
+                    ::apache::thrift::protocol::TType _etype194;
+                    xfer += iprot->readListBegin(_etype194, _size191);
+                    this->action_list.resize(_size191);
+                    uint32_t _i195;
+                    for (_i195 = 0; _i195 < _size191; ++_i195) {
+                        xfer += this->action_list[_i195].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -5457,9 +5524,9 @@ uint32_t configuration_balancer_request::read(::apache::thrift::protocol::TProto
             break;
         case 4:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast194;
-                xfer += iprot->readI32(ecast194);
-                this->balance_type = (balancer_request_type::type)ecast194;
+                int32_t ecast196;
+                xfer += iprot->readI32(ecast196);
+                this->balance_type = (balancer_request_type::type)ecast196;
                 this->__isset.balance_type = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -5491,10 +5558,10 @@ uint32_t configuration_balancer_request::write(::apache::thrift::protocol::TProt
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->action_list.size()));
-        std::vector<configuration_proposal_action>::const_iterator _iter195;
-        for (_iter195 = this->action_list.begin(); _iter195 != this->action_list.end();
-             ++_iter195) {
-            xfer += (*_iter195).write(oprot);
+        std::vector<configuration_proposal_action>::const_iterator _iter197;
+        for (_iter197 = this->action_list.begin(); _iter197 != this->action_list.end();
+             ++_iter197) {
+            xfer += (*_iter197).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -5526,41 +5593,41 @@ void swap(configuration_balancer_request &a, configuration_balancer_request &b)
 }
 
 configuration_balancer_request::configuration_balancer_request(
-    const configuration_balancer_request &other196)
-{
-    gpid = other196.gpid;
-    action_list = other196.action_list;
-    force = other196.force;
-    balance_type = other196.balance_type;
-    __isset = other196.__isset;
-}
-configuration_balancer_request::configuration_balancer_request(
-    configuration_balancer_request &&other197)
-{
-    gpid = std::move(other197.gpid);
-    action_list = std::move(other197.action_list);
-    force = std::move(other197.force);
-    balance_type = std::move(other197.balance_type);
-    __isset = std::move(other197.__isset);
-}
-configuration_balancer_request &configuration_balancer_request::
-operator=(const configuration_balancer_request &other198)
+    const configuration_balancer_request &other198)
 {
     gpid = other198.gpid;
     action_list = other198.action_list;
     force = other198.force;
     balance_type = other198.balance_type;
     __isset = other198.__isset;
-    return *this;
 }
-configuration_balancer_request &configuration_balancer_request::
-operator=(configuration_balancer_request &&other199)
+configuration_balancer_request::configuration_balancer_request(
+    configuration_balancer_request &&other199)
 {
     gpid = std::move(other199.gpid);
     action_list = std::move(other199.action_list);
     force = std::move(other199.force);
     balance_type = std::move(other199.balance_type);
     __isset = std::move(other199.__isset);
+}
+configuration_balancer_request &configuration_balancer_request::
+operator=(const configuration_balancer_request &other200)
+{
+    gpid = other200.gpid;
+    action_list = other200.action_list;
+    force = other200.force;
+    balance_type = other200.balance_type;
+    __isset = other200.__isset;
+    return *this;
+}
+configuration_balancer_request &configuration_balancer_request::
+operator=(configuration_balancer_request &&other201)
+{
+    gpid = std::move(other201.gpid);
+    action_list = std::move(other201.action_list);
+    force = std::move(other201.force);
+    balance_type = std::move(other201.balance_type);
+    __isset = std::move(other201.__isset);
     return *this;
 }
 void configuration_balancer_request::printTo(std::ostream &out) const
@@ -5645,29 +5712,29 @@ void swap(configuration_balancer_response &a, configuration_balancer_response &b
 }
 
 configuration_balancer_response::configuration_balancer_response(
-    const configuration_balancer_response &other200)
-{
-    err = other200.err;
-    __isset = other200.__isset;
-}
-configuration_balancer_response::configuration_balancer_response(
-    configuration_balancer_response &&other201)
-{
-    err = std::move(other201.err);
-    __isset = std::move(other201.__isset);
-}
-configuration_balancer_response &configuration_balancer_response::
-operator=(const configuration_balancer_response &other202)
+    const configuration_balancer_response &other202)
 {
     err = other202.err;
     __isset = other202.__isset;
-    return *this;
 }
-configuration_balancer_response &configuration_balancer_response::
-operator=(configuration_balancer_response &&other203)
+configuration_balancer_response::configuration_balancer_response(
+    configuration_balancer_response &&other203)
 {
     err = std::move(other203.err);
     __isset = std::move(other203.__isset);
+}
+configuration_balancer_response &configuration_balancer_response::
+operator=(const configuration_balancer_response &other204)
+{
+    err = other204.err;
+    __isset = other204.__isset;
+    return *this;
+}
+configuration_balancer_response &configuration_balancer_response::
+operator=(configuration_balancer_response &&other205)
+{
+    err = std::move(other205.err);
+    __isset = std::move(other205.__isset);
     return *this;
 }
 void configuration_balancer_response::printTo(std::ostream &out) const
@@ -5744,29 +5811,29 @@ void swap(configuration_drop_app_response &a, configuration_drop_app_response &b
 }
 
 configuration_drop_app_response::configuration_drop_app_response(
-    const configuration_drop_app_response &other204)
-{
-    err = other204.err;
-    __isset = other204.__isset;
-}
-configuration_drop_app_response::configuration_drop_app_response(
-    configuration_drop_app_response &&other205)
-{
-    err = std::move(other205.err);
-    __isset = std::move(other205.__isset);
-}
-configuration_drop_app_response &configuration_drop_app_response::
-operator=(const configuration_drop_app_response &other206)
+    const configuration_drop_app_response &other206)
 {
     err = other206.err;
     __isset = other206.__isset;
-    return *this;
 }
-configuration_drop_app_response &configuration_drop_app_response::
-operator=(configuration_drop_app_response &&other207)
+configuration_drop_app_response::configuration_drop_app_response(
+    configuration_drop_app_response &&other207)
 {
     err = std::move(other207.err);
     __isset = std::move(other207.__isset);
+}
+configuration_drop_app_response &configuration_drop_app_response::
+operator=(const configuration_drop_app_response &other208)
+{
+    err = other208.err;
+    __isset = other208.__isset;
+    return *this;
+}
+configuration_drop_app_response &configuration_drop_app_response::
+operator=(configuration_drop_app_response &&other209)
+{
+    err = std::move(other209.err);
+    __isset = std::move(other209.__isset);
     return *this;
 }
 void configuration_drop_app_response::printTo(std::ostream &out) const
@@ -5817,13 +5884,13 @@ uint32_t configuration_list_apps_response::read(::apache::thrift::protocol::TPro
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->infos.clear();
-                    uint32_t _size208;
-                    ::apache::thrift::protocol::TType _etype211;
-                    xfer += iprot->readListBegin(_etype211, _size208);
-                    this->infos.resize(_size208);
-                    uint32_t _i212;
-                    for (_i212 = 0; _i212 < _size208; ++_i212) {
-                        xfer += this->infos[_i212].read(iprot);
+                    uint32_t _size210;
+                    ::apache::thrift::protocol::TType _etype213;
+                    xfer += iprot->readListBegin(_etype213, _size210);
+                    this->infos.resize(_size210);
+                    uint32_t _i214;
+                    for (_i214 = 0; _i214 < _size210; ++_i214) {
+                        xfer += this->infos[_i214].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -5858,9 +5925,9 @@ uint32_t configuration_list_apps_response::write(::apache::thrift::protocol::TPr
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->infos.size()));
-        std::vector<::dsn::app_info>::const_iterator _iter213;
-        for (_iter213 = this->infos.begin(); _iter213 != this->infos.end(); ++_iter213) {
-            xfer += (*_iter213).write(oprot);
+        std::vector<::dsn::app_info>::const_iterator _iter215;
+        for (_iter215 = this->infos.begin(); _iter215 != this->infos.end(); ++_iter215) {
+            xfer += (*_iter215).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -5880,33 +5947,33 @@ void swap(configuration_list_apps_response &a, configuration_list_apps_response 
 }
 
 configuration_list_apps_response::configuration_list_apps_response(
-    const configuration_list_apps_response &other214)
-{
-    err = other214.err;
-    infos = other214.infos;
-    __isset = other214.__isset;
-}
-configuration_list_apps_response::configuration_list_apps_response(
-    configuration_list_apps_response &&other215)
-{
-    err = std::move(other215.err);
-    infos = std::move(other215.infos);
-    __isset = std::move(other215.__isset);
-}
-configuration_list_apps_response &configuration_list_apps_response::
-operator=(const configuration_list_apps_response &other216)
+    const configuration_list_apps_response &other216)
 {
     err = other216.err;
     infos = other216.infos;
     __isset = other216.__isset;
-    return *this;
 }
-configuration_list_apps_response &configuration_list_apps_response::
-operator=(configuration_list_apps_response &&other217)
+configuration_list_apps_response::configuration_list_apps_response(
+    configuration_list_apps_response &&other217)
 {
     err = std::move(other217.err);
     infos = std::move(other217.infos);
     __isset = std::move(other217.__isset);
+}
+configuration_list_apps_response &configuration_list_apps_response::
+operator=(const configuration_list_apps_response &other218)
+{
+    err = other218.err;
+    infos = other218.infos;
+    __isset = other218.__isset;
+    return *this;
+}
+configuration_list_apps_response &configuration_list_apps_response::
+operator=(configuration_list_apps_response &&other219)
+{
+    err = std::move(other219.err);
+    infos = std::move(other219.infos);
+    __isset = std::move(other219.__isset);
     return *this;
 }
 void configuration_list_apps_response::printTo(std::ostream &out) const
@@ -5959,13 +6026,13 @@ uint32_t configuration_list_nodes_response::read(::apache::thrift::protocol::TPr
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->infos.clear();
-                    uint32_t _size218;
-                    ::apache::thrift::protocol::TType _etype221;
-                    xfer += iprot->readListBegin(_etype221, _size218);
-                    this->infos.resize(_size218);
-                    uint32_t _i222;
-                    for (_i222 = 0; _i222 < _size218; ++_i222) {
-                        xfer += this->infos[_i222].read(iprot);
+                    uint32_t _size220;
+                    ::apache::thrift::protocol::TType _etype223;
+                    xfer += iprot->readListBegin(_etype223, _size220);
+                    this->infos.resize(_size220);
+                    uint32_t _i224;
+                    for (_i224 = 0; _i224 < _size220; ++_i224) {
+                        xfer += this->infos[_i224].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -6001,9 +6068,9 @@ configuration_list_nodes_response::write(::apache::thrift::protocol::TProtocol *
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->infos.size()));
-        std::vector<node_info>::const_iterator _iter223;
-        for (_iter223 = this->infos.begin(); _iter223 != this->infos.end(); ++_iter223) {
-            xfer += (*_iter223).write(oprot);
+        std::vector<node_info>::const_iterator _iter225;
+        for (_iter225 = this->infos.begin(); _iter225 != this->infos.end(); ++_iter225) {
+            xfer += (*_iter225).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -6023,33 +6090,33 @@ void swap(configuration_list_nodes_response &a, configuration_list_nodes_respons
 }
 
 configuration_list_nodes_response::configuration_list_nodes_response(
-    const configuration_list_nodes_response &other224)
-{
-    err = other224.err;
-    infos = other224.infos;
-    __isset = other224.__isset;
-}
-configuration_list_nodes_response::configuration_list_nodes_response(
-    configuration_list_nodes_response &&other225)
-{
-    err = std::move(other225.err);
-    infos = std::move(other225.infos);
-    __isset = std::move(other225.__isset);
-}
-configuration_list_nodes_response &configuration_list_nodes_response::
-operator=(const configuration_list_nodes_response &other226)
+    const configuration_list_nodes_response &other226)
 {
     err = other226.err;
     infos = other226.infos;
     __isset = other226.__isset;
-    return *this;
 }
-configuration_list_nodes_response &configuration_list_nodes_response::
-operator=(configuration_list_nodes_response &&other227)
+configuration_list_nodes_response::configuration_list_nodes_response(
+    configuration_list_nodes_response &&other227)
 {
     err = std::move(other227.err);
     infos = std::move(other227.infos);
     __isset = std::move(other227.__isset);
+}
+configuration_list_nodes_response &configuration_list_nodes_response::
+operator=(const configuration_list_nodes_response &other228)
+{
+    err = other228.err;
+    infos = other228.infos;
+    __isset = other228.__isset;
+    return *this;
+}
+configuration_list_nodes_response &configuration_list_nodes_response::
+operator=(configuration_list_nodes_response &&other229)
+{
+    err = std::move(other229.err);
+    infos = std::move(other229.infos);
+    __isset = std::move(other229.__isset);
     return *this;
 }
 void configuration_list_nodes_response::printTo(std::ostream &out) const
@@ -6110,13 +6177,13 @@ uint32_t configuration_cluster_info_response::read(::apache::thrift::protocol::T
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->keys.clear();
-                    uint32_t _size228;
-                    ::apache::thrift::protocol::TType _etype231;
-                    xfer += iprot->readListBegin(_etype231, _size228);
-                    this->keys.resize(_size228);
-                    uint32_t _i232;
-                    for (_i232 = 0; _i232 < _size228; ++_i232) {
-                        xfer += iprot->readString(this->keys[_i232]);
+                    uint32_t _size230;
+                    ::apache::thrift::protocol::TType _etype233;
+                    xfer += iprot->readListBegin(_etype233, _size230);
+                    this->keys.resize(_size230);
+                    uint32_t _i234;
+                    for (_i234 = 0; _i234 < _size230; ++_i234) {
+                        xfer += iprot->readString(this->keys[_i234]);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -6129,13 +6196,13 @@ uint32_t configuration_cluster_info_response::read(::apache::thrift::protocol::T
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->values.clear();
-                    uint32_t _size233;
-                    ::apache::thrift::protocol::TType _etype236;
-                    xfer += iprot->readListBegin(_etype236, _size233);
-                    this->values.resize(_size233);
-                    uint32_t _i237;
-                    for (_i237 = 0; _i237 < _size233; ++_i237) {
-                        xfer += iprot->readString(this->values[_i237]);
+                    uint32_t _size235;
+                    ::apache::thrift::protocol::TType _etype238;
+                    xfer += iprot->readListBegin(_etype238, _size235);
+                    this->values.resize(_size235);
+                    uint32_t _i239;
+                    for (_i239 = 0; _i239 < _size235; ++_i239) {
+                        xfer += iprot->readString(this->values[_i239]);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -6171,9 +6238,9 @@ configuration_cluster_info_response::write(::apache::thrift::protocol::TProtocol
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING,
                                       static_cast<uint32_t>(this->keys.size()));
-        std::vector<std::string>::const_iterator _iter238;
-        for (_iter238 = this->keys.begin(); _iter238 != this->keys.end(); ++_iter238) {
-            xfer += oprot->writeString((*_iter238));
+        std::vector<std::string>::const_iterator _iter240;
+        for (_iter240 = this->keys.begin(); _iter240 != this->keys.end(); ++_iter240) {
+            xfer += oprot->writeString((*_iter240));
         }
         xfer += oprot->writeListEnd();
     }
@@ -6183,9 +6250,9 @@ configuration_cluster_info_response::write(::apache::thrift::protocol::TProtocol
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING,
                                       static_cast<uint32_t>(this->values.size()));
-        std::vector<std::string>::const_iterator _iter239;
-        for (_iter239 = this->values.begin(); _iter239 != this->values.end(); ++_iter239) {
-            xfer += oprot->writeString((*_iter239));
+        std::vector<std::string>::const_iterator _iter241;
+        for (_iter241 = this->values.begin(); _iter241 != this->values.end(); ++_iter241) {
+            xfer += oprot->writeString((*_iter241));
         }
         xfer += oprot->writeListEnd();
     }
@@ -6206,37 +6273,37 @@ void swap(configuration_cluster_info_response &a, configuration_cluster_info_res
 }
 
 configuration_cluster_info_response::configuration_cluster_info_response(
-    const configuration_cluster_info_response &other240)
-{
-    err = other240.err;
-    keys = other240.keys;
-    values = other240.values;
-    __isset = other240.__isset;
-}
-configuration_cluster_info_response::configuration_cluster_info_response(
-    configuration_cluster_info_response &&other241)
-{
-    err = std::move(other241.err);
-    keys = std::move(other241.keys);
-    values = std::move(other241.values);
-    __isset = std::move(other241.__isset);
-}
-configuration_cluster_info_response &configuration_cluster_info_response::
-operator=(const configuration_cluster_info_response &other242)
+    const configuration_cluster_info_response &other242)
 {
     err = other242.err;
     keys = other242.keys;
     values = other242.values;
     __isset = other242.__isset;
-    return *this;
 }
-configuration_cluster_info_response &configuration_cluster_info_response::
-operator=(configuration_cluster_info_response &&other243)
+configuration_cluster_info_response::configuration_cluster_info_response(
+    configuration_cluster_info_response &&other243)
 {
     err = std::move(other243.err);
     keys = std::move(other243.keys);
     values = std::move(other243.values);
     __isset = std::move(other243.__isset);
+}
+configuration_cluster_info_response &configuration_cluster_info_response::
+operator=(const configuration_cluster_info_response &other244)
+{
+    err = other244.err;
+    keys = other244.keys;
+    values = other244.values;
+    __isset = other244.__isset;
+    return *this;
+}
+configuration_cluster_info_response &configuration_cluster_info_response::
+operator=(configuration_cluster_info_response &&other245)
+{
+    err = std::move(other245.err);
+    keys = std::move(other245.keys);
+    values = std::move(other245.values);
+    __isset = std::move(other245.__isset);
     return *this;
 }
 void configuration_cluster_info_response::printTo(std::ostream &out) const
@@ -6333,33 +6400,33 @@ void swap(configuration_recall_app_response &a, configuration_recall_app_respons
 }
 
 configuration_recall_app_response::configuration_recall_app_response(
-    const configuration_recall_app_response &other244)
-{
-    err = other244.err;
-    info = other244.info;
-    __isset = other244.__isset;
-}
-configuration_recall_app_response::configuration_recall_app_response(
-    configuration_recall_app_response &&other245)
-{
-    err = std::move(other245.err);
-    info = std::move(other245.info);
-    __isset = std::move(other245.__isset);
-}
-configuration_recall_app_response &configuration_recall_app_response::
-operator=(const configuration_recall_app_response &other246)
+    const configuration_recall_app_response &other246)
 {
     err = other246.err;
     info = other246.info;
     __isset = other246.__isset;
-    return *this;
 }
-configuration_recall_app_response &configuration_recall_app_response::
-operator=(configuration_recall_app_response &&other247)
+configuration_recall_app_response::configuration_recall_app_response(
+    configuration_recall_app_response &&other247)
 {
     err = std::move(other247.err);
     info = std::move(other247.info);
     __isset = std::move(other247.__isset);
+}
+configuration_recall_app_response &configuration_recall_app_response::
+operator=(const configuration_recall_app_response &other248)
+{
+    err = other248.err;
+    info = other248.info;
+    __isset = other248.__isset;
+    return *this;
+}
+configuration_recall_app_response &configuration_recall_app_response::
+operator=(configuration_recall_app_response &&other249)
+{
+    err = std::move(other249.err);
+    info = std::move(other249.info);
+    __isset = std::move(other249.__isset);
     return *this;
 }
 void configuration_recall_app_response::printTo(std::ostream &out) const
@@ -6453,32 +6520,32 @@ void swap(query_replica_decree_request &a, query_replica_decree_request &b)
 }
 
 query_replica_decree_request::query_replica_decree_request(
-    const query_replica_decree_request &other248)
-{
-    pid = other248.pid;
-    node = other248.node;
-    __isset = other248.__isset;
-}
-query_replica_decree_request::query_replica_decree_request(query_replica_decree_request &&other249)
-{
-    pid = std::move(other249.pid);
-    node = std::move(other249.node);
-    __isset = std::move(other249.__isset);
-}
-query_replica_decree_request &query_replica_decree_request::
-operator=(const query_replica_decree_request &other250)
+    const query_replica_decree_request &other250)
 {
     pid = other250.pid;
     node = other250.node;
     __isset = other250.__isset;
-    return *this;
 }
-query_replica_decree_request &query_replica_decree_request::
-operator=(query_replica_decree_request &&other251)
+query_replica_decree_request::query_replica_decree_request(query_replica_decree_request &&other251)
 {
     pid = std::move(other251.pid);
     node = std::move(other251.node);
     __isset = std::move(other251.__isset);
+}
+query_replica_decree_request &query_replica_decree_request::
+operator=(const query_replica_decree_request &other252)
+{
+    pid = other252.pid;
+    node = other252.node;
+    __isset = other252.__isset;
+    return *this;
+}
+query_replica_decree_request &query_replica_decree_request::
+operator=(query_replica_decree_request &&other253)
+{
+    pid = std::move(other253.pid);
+    node = std::move(other253.node);
+    __isset = std::move(other253.__isset);
     return *this;
 }
 void query_replica_decree_request::printTo(std::ostream &out) const
@@ -6575,33 +6642,33 @@ void swap(query_replica_decree_response &a, query_replica_decree_response &b)
 }
 
 query_replica_decree_response::query_replica_decree_response(
-    const query_replica_decree_response &other252)
-{
-    err = other252.err;
-    last_decree = other252.last_decree;
-    __isset = other252.__isset;
-}
-query_replica_decree_response::query_replica_decree_response(
-    query_replica_decree_response &&other253)
-{
-    err = std::move(other253.err);
-    last_decree = std::move(other253.last_decree);
-    __isset = std::move(other253.__isset);
-}
-query_replica_decree_response &query_replica_decree_response::
-operator=(const query_replica_decree_response &other254)
+    const query_replica_decree_response &other254)
 {
     err = other254.err;
     last_decree = other254.last_decree;
     __isset = other254.__isset;
-    return *this;
 }
-query_replica_decree_response &query_replica_decree_response::
-operator=(query_replica_decree_response &&other255)
+query_replica_decree_response::query_replica_decree_response(
+    query_replica_decree_response &&other255)
 {
     err = std::move(other255.err);
     last_decree = std::move(other255.last_decree);
     __isset = std::move(other255.__isset);
+}
+query_replica_decree_response &query_replica_decree_response::
+operator=(const query_replica_decree_response &other256)
+{
+    err = other256.err;
+    last_decree = other256.last_decree;
+    __isset = other256.__isset;
+    return *this;
+}
+query_replica_decree_response &query_replica_decree_response::
+operator=(query_replica_decree_response &&other257)
+{
+    err = std::move(other257.err);
+    last_decree = std::move(other257.last_decree);
+    __isset = std::move(other257.__isset);
     return *this;
 }
 void query_replica_decree_response::printTo(std::ostream &out) const
@@ -6675,9 +6742,9 @@ uint32_t replica_info::read(::apache::thrift::protocol::TProtocol *iprot)
             break;
         case 3:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast256;
-                xfer += iprot->readI32(ecast256);
-                this->status = (partition_status::type)ecast256;
+                int32_t ecast258;
+                xfer += iprot->readI32(ecast258);
+                this->status = (partition_status::type)ecast258;
                 this->__isset.status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -6792,31 +6859,7 @@ void swap(replica_info &a, replica_info &b)
     swap(a.__isset, b.__isset);
 }
 
-replica_info::replica_info(const replica_info &other257)
-{
-    pid = other257.pid;
-    ballot = other257.ballot;
-    status = other257.status;
-    last_committed_decree = other257.last_committed_decree;
-    last_prepared_decree = other257.last_prepared_decree;
-    last_durable_decree = other257.last_durable_decree;
-    app_type = other257.app_type;
-    disk_tag = other257.disk_tag;
-    __isset = other257.__isset;
-}
-replica_info::replica_info(replica_info &&other258)
-{
-    pid = std::move(other258.pid);
-    ballot = std::move(other258.ballot);
-    status = std::move(other258.status);
-    last_committed_decree = std::move(other258.last_committed_decree);
-    last_prepared_decree = std::move(other258.last_prepared_decree);
-    last_durable_decree = std::move(other258.last_durable_decree);
-    app_type = std::move(other258.app_type);
-    disk_tag = std::move(other258.disk_tag);
-    __isset = std::move(other258.__isset);
-}
-replica_info &replica_info::operator=(const replica_info &other259)
+replica_info::replica_info(const replica_info &other259)
 {
     pid = other259.pid;
     ballot = other259.ballot;
@@ -6827,9 +6870,8 @@ replica_info &replica_info::operator=(const replica_info &other259)
     app_type = other259.app_type;
     disk_tag = other259.disk_tag;
     __isset = other259.__isset;
-    return *this;
 }
-replica_info &replica_info::operator=(replica_info &&other260)
+replica_info::replica_info(replica_info &&other260)
 {
     pid = std::move(other260.pid);
     ballot = std::move(other260.ballot);
@@ -6840,6 +6882,31 @@ replica_info &replica_info::operator=(replica_info &&other260)
     app_type = std::move(other260.app_type);
     disk_tag = std::move(other260.disk_tag);
     __isset = std::move(other260.__isset);
+}
+replica_info &replica_info::operator=(const replica_info &other261)
+{
+    pid = other261.pid;
+    ballot = other261.ballot;
+    status = other261.status;
+    last_committed_decree = other261.last_committed_decree;
+    last_prepared_decree = other261.last_prepared_decree;
+    last_durable_decree = other261.last_durable_decree;
+    app_type = other261.app_type;
+    disk_tag = other261.disk_tag;
+    __isset = other261.__isset;
+    return *this;
+}
+replica_info &replica_info::operator=(replica_info &&other262)
+{
+    pid = std::move(other262.pid);
+    ballot = std::move(other262.ballot);
+    status = std::move(other262.status);
+    last_committed_decree = std::move(other262.last_committed_decree);
+    last_prepared_decree = std::move(other262.last_prepared_decree);
+    last_durable_decree = std::move(other262.last_durable_decree);
+    app_type = std::move(other262.app_type);
+    disk_tag = std::move(other262.disk_tag);
+    __isset = std::move(other262.__isset);
     return *this;
 }
 void replica_info::printTo(std::ostream &out) const
@@ -6929,28 +6996,28 @@ void swap(query_replica_info_request &a, query_replica_info_request &b)
     swap(a.__isset, b.__isset);
 }
 
-query_replica_info_request::query_replica_info_request(const query_replica_info_request &other261)
-{
-    node = other261.node;
-    __isset = other261.__isset;
-}
-query_replica_info_request::query_replica_info_request(query_replica_info_request &&other262)
-{
-    node = std::move(other262.node);
-    __isset = std::move(other262.__isset);
-}
-query_replica_info_request &query_replica_info_request::
-operator=(const query_replica_info_request &other263)
+query_replica_info_request::query_replica_info_request(const query_replica_info_request &other263)
 {
     node = other263.node;
     __isset = other263.__isset;
-    return *this;
 }
-query_replica_info_request &query_replica_info_request::
-operator=(query_replica_info_request &&other264)
+query_replica_info_request::query_replica_info_request(query_replica_info_request &&other264)
 {
     node = std::move(other264.node);
     __isset = std::move(other264.__isset);
+}
+query_replica_info_request &query_replica_info_request::
+operator=(const query_replica_info_request &other265)
+{
+    node = other265.node;
+    __isset = other265.__isset;
+    return *this;
+}
+query_replica_info_request &query_replica_info_request::
+operator=(query_replica_info_request &&other266)
+{
+    node = std::move(other266.node);
+    __isset = std::move(other266.__isset);
     return *this;
 }
 void query_replica_info_request::printTo(std::ostream &out) const
@@ -7001,13 +7068,13 @@ uint32_t query_replica_info_response::read(::apache::thrift::protocol::TProtocol
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->replicas.clear();
-                    uint32_t _size265;
-                    ::apache::thrift::protocol::TType _etype268;
-                    xfer += iprot->readListBegin(_etype268, _size265);
-                    this->replicas.resize(_size265);
-                    uint32_t _i269;
-                    for (_i269 = 0; _i269 < _size265; ++_i269) {
-                        xfer += this->replicas[_i269].read(iprot);
+                    uint32_t _size267;
+                    ::apache::thrift::protocol::TType _etype270;
+                    xfer += iprot->readListBegin(_etype270, _size267);
+                    this->replicas.resize(_size267);
+                    uint32_t _i271;
+                    for (_i271 = 0; _i271 < _size267; ++_i271) {
+                        xfer += this->replicas[_i271].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -7042,9 +7109,9 @@ uint32_t query_replica_info_response::write(::apache::thrift::protocol::TProtoco
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->replicas.size()));
-        std::vector<replica_info>::const_iterator _iter270;
-        for (_iter270 = this->replicas.begin(); _iter270 != this->replicas.end(); ++_iter270) {
-            xfer += (*_iter270).write(oprot);
+        std::vector<replica_info>::const_iterator _iter272;
+        for (_iter272 = this->replicas.begin(); _iter272 != this->replicas.end(); ++_iter272) {
+            xfer += (*_iter272).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -7064,32 +7131,32 @@ void swap(query_replica_info_response &a, query_replica_info_response &b)
 }
 
 query_replica_info_response::query_replica_info_response(
-    const query_replica_info_response &other271)
-{
-    err = other271.err;
-    replicas = other271.replicas;
-    __isset = other271.__isset;
-}
-query_replica_info_response::query_replica_info_response(query_replica_info_response &&other272)
-{
-    err = std::move(other272.err);
-    replicas = std::move(other272.replicas);
-    __isset = std::move(other272.__isset);
-}
-query_replica_info_response &query_replica_info_response::
-operator=(const query_replica_info_response &other273)
+    const query_replica_info_response &other273)
 {
     err = other273.err;
     replicas = other273.replicas;
     __isset = other273.__isset;
-    return *this;
 }
-query_replica_info_response &query_replica_info_response::
-operator=(query_replica_info_response &&other274)
+query_replica_info_response::query_replica_info_response(query_replica_info_response &&other274)
 {
     err = std::move(other274.err);
     replicas = std::move(other274.replicas);
     __isset = std::move(other274.__isset);
+}
+query_replica_info_response &query_replica_info_response::
+operator=(const query_replica_info_response &other275)
+{
+    err = other275.err;
+    replicas = other275.replicas;
+    __isset = other275.__isset;
+    return *this;
+}
+query_replica_info_response &query_replica_info_response::
+operator=(query_replica_info_response &&other276)
+{
+    err = std::move(other276.err);
+    replicas = std::move(other276.replicas);
+    __isset = std::move(other276.__isset);
     return *this;
 }
 void query_replica_info_response::printTo(std::ostream &out) const
@@ -7178,25 +7245,25 @@ uint32_t disk_info::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
                     this->holding_primary_replicas.clear();
-                    uint32_t _size275;
-                    ::apache::thrift::protocol::TType _ktype276;
-                    ::apache::thrift::protocol::TType _vtype277;
-                    xfer += iprot->readMapBegin(_ktype276, _vtype277, _size275);
-                    uint32_t _i279;
-                    for (_i279 = 0; _i279 < _size275; ++_i279) {
-                        int32_t _key280;
-                        xfer += iprot->readI32(_key280);
-                        std::set<::dsn::gpid> &_val281 = this->holding_primary_replicas[_key280];
+                    uint32_t _size277;
+                    ::apache::thrift::protocol::TType _ktype278;
+                    ::apache::thrift::protocol::TType _vtype279;
+                    xfer += iprot->readMapBegin(_ktype278, _vtype279, _size277);
+                    uint32_t _i281;
+                    for (_i281 = 0; _i281 < _size277; ++_i281) {
+                        int32_t _key282;
+                        xfer += iprot->readI32(_key282);
+                        std::set<::dsn::gpid> &_val283 = this->holding_primary_replicas[_key282];
                         {
-                            _val281.clear();
-                            uint32_t _size282;
-                            ::apache::thrift::protocol::TType _etype285;
-                            xfer += iprot->readSetBegin(_etype285, _size282);
-                            uint32_t _i286;
-                            for (_i286 = 0; _i286 < _size282; ++_i286) {
-                                ::dsn::gpid _elem287;
-                                xfer += _elem287.read(iprot);
-                                _val281.insert(_elem287);
+                            _val283.clear();
+                            uint32_t _size284;
+                            ::apache::thrift::protocol::TType _etype287;
+                            xfer += iprot->readSetBegin(_etype287, _size284);
+                            uint32_t _i288;
+                            for (_i288 = 0; _i288 < _size284; ++_i288) {
+                                ::dsn::gpid _elem289;
+                                xfer += _elem289.read(iprot);
+                                _val283.insert(_elem289);
                             }
                             xfer += iprot->readSetEnd();
                         }
@@ -7212,25 +7279,25 @@ uint32_t disk_info::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
                     this->holding_secondary_replicas.clear();
-                    uint32_t _size288;
-                    ::apache::thrift::protocol::TType _ktype289;
-                    ::apache::thrift::protocol::TType _vtype290;
-                    xfer += iprot->readMapBegin(_ktype289, _vtype290, _size288);
-                    uint32_t _i292;
-                    for (_i292 = 0; _i292 < _size288; ++_i292) {
-                        int32_t _key293;
-                        xfer += iprot->readI32(_key293);
-                        std::set<::dsn::gpid> &_val294 = this->holding_secondary_replicas[_key293];
+                    uint32_t _size290;
+                    ::apache::thrift::protocol::TType _ktype291;
+                    ::apache::thrift::protocol::TType _vtype292;
+                    xfer += iprot->readMapBegin(_ktype291, _vtype292, _size290);
+                    uint32_t _i294;
+                    for (_i294 = 0; _i294 < _size290; ++_i294) {
+                        int32_t _key295;
+                        xfer += iprot->readI32(_key295);
+                        std::set<::dsn::gpid> &_val296 = this->holding_secondary_replicas[_key295];
                         {
-                            _val294.clear();
-                            uint32_t _size295;
-                            ::apache::thrift::protocol::TType _etype298;
-                            xfer += iprot->readSetBegin(_etype298, _size295);
-                            uint32_t _i299;
-                            for (_i299 = 0; _i299 < _size295; ++_i299) {
-                                ::dsn::gpid _elem300;
-                                xfer += _elem300.read(iprot);
-                                _val294.insert(_elem300);
+                            _val296.clear();
+                            uint32_t _size297;
+                            ::apache::thrift::protocol::TType _etype300;
+                            xfer += iprot->readSetBegin(_etype300, _size297);
+                            uint32_t _i301;
+                            for (_i301 = 0; _i301 < _size297; ++_i301) {
+                                ::dsn::gpid _elem302;
+                                xfer += _elem302.read(iprot);
+                                _val296.insert(_elem302);
                             }
                             xfer += iprot->readSetEnd();
                         }
@@ -7282,18 +7349,18 @@ uint32_t disk_info::write(::apache::thrift::protocol::TProtocol *oprot) const
         xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_I32,
                                      ::apache::thrift::protocol::T_SET,
                                      static_cast<uint32_t>(this->holding_primary_replicas.size()));
-        std::map<int32_t, std::set<::dsn::gpid>>::const_iterator _iter301;
-        for (_iter301 = this->holding_primary_replicas.begin();
-             _iter301 != this->holding_primary_replicas.end();
-             ++_iter301) {
-            xfer += oprot->writeI32(_iter301->first);
+        std::map<int32_t, std::set<::dsn::gpid>>::const_iterator _iter303;
+        for (_iter303 = this->holding_primary_replicas.begin();
+             _iter303 != this->holding_primary_replicas.end();
+             ++_iter303) {
+            xfer += oprot->writeI32(_iter303->first);
             {
                 xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRUCT,
-                                             static_cast<uint32_t>(_iter301->second.size()));
-                std::set<::dsn::gpid>::const_iterator _iter302;
-                for (_iter302 = _iter301->second.begin(); _iter302 != _iter301->second.end();
-                     ++_iter302) {
-                    xfer += (*_iter302).write(oprot);
+                                             static_cast<uint32_t>(_iter303->second.size()));
+                std::set<::dsn::gpid>::const_iterator _iter304;
+                for (_iter304 = _iter303->second.begin(); _iter304 != _iter303->second.end();
+                     ++_iter304) {
+                    xfer += (*_iter304).write(oprot);
                 }
                 xfer += oprot->writeSetEnd();
             }
@@ -7309,18 +7376,18 @@ uint32_t disk_info::write(::apache::thrift::protocol::TProtocol *oprot) const
             oprot->writeMapBegin(::apache::thrift::protocol::T_I32,
                                  ::apache::thrift::protocol::T_SET,
                                  static_cast<uint32_t>(this->holding_secondary_replicas.size()));
-        std::map<int32_t, std::set<::dsn::gpid>>::const_iterator _iter303;
-        for (_iter303 = this->holding_secondary_replicas.begin();
-             _iter303 != this->holding_secondary_replicas.end();
-             ++_iter303) {
-            xfer += oprot->writeI32(_iter303->first);
+        std::map<int32_t, std::set<::dsn::gpid>>::const_iterator _iter305;
+        for (_iter305 = this->holding_secondary_replicas.begin();
+             _iter305 != this->holding_secondary_replicas.end();
+             ++_iter305) {
+            xfer += oprot->writeI32(_iter305->first);
             {
                 xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRUCT,
-                                             static_cast<uint32_t>(_iter303->second.size()));
-                std::set<::dsn::gpid>::const_iterator _iter304;
-                for (_iter304 = _iter303->second.begin(); _iter304 != _iter303->second.end();
-                     ++_iter304) {
-                    xfer += (*_iter304).write(oprot);
+                                             static_cast<uint32_t>(_iter305->second.size()));
+                std::set<::dsn::gpid>::const_iterator _iter306;
+                for (_iter306 = _iter305->second.begin(); _iter306 != _iter305->second.end();
+                     ++_iter306) {
+                    xfer += (*_iter306).write(oprot);
                 }
                 xfer += oprot->writeSetEnd();
             }
@@ -7346,27 +7413,7 @@ void swap(disk_info &a, disk_info &b)
     swap(a.__isset, b.__isset);
 }
 
-disk_info::disk_info(const disk_info &other305)
-{
-    tag = other305.tag;
-    full_dir = other305.full_dir;
-    disk_capacity_mb = other305.disk_capacity_mb;
-    disk_available_mb = other305.disk_available_mb;
-    holding_primary_replicas = other305.holding_primary_replicas;
-    holding_secondary_replicas = other305.holding_secondary_replicas;
-    __isset = other305.__isset;
-}
-disk_info::disk_info(disk_info &&other306)
-{
-    tag = std::move(other306.tag);
-    full_dir = std::move(other306.full_dir);
-    disk_capacity_mb = std::move(other306.disk_capacity_mb);
-    disk_available_mb = std::move(other306.disk_available_mb);
-    holding_primary_replicas = std::move(other306.holding_primary_replicas);
-    holding_secondary_replicas = std::move(other306.holding_secondary_replicas);
-    __isset = std::move(other306.__isset);
-}
-disk_info &disk_info::operator=(const disk_info &other307)
+disk_info::disk_info(const disk_info &other307)
 {
     tag = other307.tag;
     full_dir = other307.full_dir;
@@ -7375,9 +7422,8 @@ disk_info &disk_info::operator=(const disk_info &other307)
     holding_primary_replicas = other307.holding_primary_replicas;
     holding_secondary_replicas = other307.holding_secondary_replicas;
     __isset = other307.__isset;
-    return *this;
 }
-disk_info &disk_info::operator=(disk_info &&other308)
+disk_info::disk_info(disk_info &&other308)
 {
     tag = std::move(other308.tag);
     full_dir = std::move(other308.full_dir);
@@ -7386,6 +7432,27 @@ disk_info &disk_info::operator=(disk_info &&other308)
     holding_primary_replicas = std::move(other308.holding_primary_replicas);
     holding_secondary_replicas = std::move(other308.holding_secondary_replicas);
     __isset = std::move(other308.__isset);
+}
+disk_info &disk_info::operator=(const disk_info &other309)
+{
+    tag = other309.tag;
+    full_dir = other309.full_dir;
+    disk_capacity_mb = other309.disk_capacity_mb;
+    disk_available_mb = other309.disk_available_mb;
+    holding_primary_replicas = other309.holding_primary_replicas;
+    holding_secondary_replicas = other309.holding_secondary_replicas;
+    __isset = other309.__isset;
+    return *this;
+}
+disk_info &disk_info::operator=(disk_info &&other310)
+{
+    tag = std::move(other310.tag);
+    full_dir = std::move(other310.full_dir);
+    disk_capacity_mb = std::move(other310.disk_capacity_mb);
+    disk_available_mb = std::move(other310.disk_available_mb);
+    holding_primary_replicas = std::move(other310.holding_primary_replicas);
+    holding_secondary_replicas = std::move(other310.holding_secondary_replicas);
+    __isset = std::move(other310.__isset);
     return *this;
 }
 void disk_info::printTo(std::ostream &out) const
@@ -7486,30 +7553,30 @@ void swap(query_disk_info_request &a, query_disk_info_request &b)
     swap(a.__isset, b.__isset);
 }
 
-query_disk_info_request::query_disk_info_request(const query_disk_info_request &other309)
-{
-    node = other309.node;
-    app_name = other309.app_name;
-    __isset = other309.__isset;
-}
-query_disk_info_request::query_disk_info_request(query_disk_info_request &&other310)
-{
-    node = std::move(other310.node);
-    app_name = std::move(other310.app_name);
-    __isset = std::move(other310.__isset);
-}
-query_disk_info_request &query_disk_info_request::operator=(const query_disk_info_request &other311)
+query_disk_info_request::query_disk_info_request(const query_disk_info_request &other311)
 {
     node = other311.node;
     app_name = other311.app_name;
     __isset = other311.__isset;
-    return *this;
 }
-query_disk_info_request &query_disk_info_request::operator=(query_disk_info_request &&other312)
+query_disk_info_request::query_disk_info_request(query_disk_info_request &&other312)
 {
     node = std::move(other312.node);
     app_name = std::move(other312.app_name);
     __isset = std::move(other312.__isset);
+}
+query_disk_info_request &query_disk_info_request::operator=(const query_disk_info_request &other313)
+{
+    node = other313.node;
+    app_name = other313.app_name;
+    __isset = other313.__isset;
+    return *this;
+}
+query_disk_info_request &query_disk_info_request::operator=(query_disk_info_request &&other314)
+{
+    node = std::move(other314.node);
+    app_name = std::move(other314.app_name);
+    __isset = std::move(other314.__isset);
     return *this;
 }
 void query_disk_info_request::printTo(std::ostream &out) const
@@ -7588,13 +7655,13 @@ uint32_t query_disk_info_response::read(::apache::thrift::protocol::TProtocol *i
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->disk_infos.clear();
-                    uint32_t _size313;
-                    ::apache::thrift::protocol::TType _etype316;
-                    xfer += iprot->readListBegin(_etype316, _size313);
-                    this->disk_infos.resize(_size313);
-                    uint32_t _i317;
-                    for (_i317 = 0; _i317 < _size313; ++_i317) {
-                        xfer += this->disk_infos[_i317].read(iprot);
+                    uint32_t _size315;
+                    ::apache::thrift::protocol::TType _etype318;
+                    xfer += iprot->readListBegin(_etype318, _size315);
+                    this->disk_infos.resize(_size315);
+                    uint32_t _i319;
+                    for (_i319 = 0; _i319 < _size315; ++_i319) {
+                        xfer += this->disk_infos[_i319].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -7637,9 +7704,9 @@ uint32_t query_disk_info_response::write(::apache::thrift::protocol::TProtocol *
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->disk_infos.size()));
-        std::vector<disk_info>::const_iterator _iter318;
-        for (_iter318 = this->disk_infos.begin(); _iter318 != this->disk_infos.end(); ++_iter318) {
-            xfer += (*_iter318).write(oprot);
+        std::vector<disk_info>::const_iterator _iter320;
+        for (_iter320 = this->disk_infos.begin(); _iter320 != this->disk_infos.end(); ++_iter320) {
+            xfer += (*_iter320).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -7660,39 +7727,39 @@ void swap(query_disk_info_response &a, query_disk_info_response &b)
     swap(a.__isset, b.__isset);
 }
 
-query_disk_info_response::query_disk_info_response(const query_disk_info_response &other319)
-{
-    err = other319.err;
-    total_capacity_mb = other319.total_capacity_mb;
-    total_available_mb = other319.total_available_mb;
-    disk_infos = other319.disk_infos;
-    __isset = other319.__isset;
-}
-query_disk_info_response::query_disk_info_response(query_disk_info_response &&other320)
-{
-    err = std::move(other320.err);
-    total_capacity_mb = std::move(other320.total_capacity_mb);
-    total_available_mb = std::move(other320.total_available_mb);
-    disk_infos = std::move(other320.disk_infos);
-    __isset = std::move(other320.__isset);
-}
-query_disk_info_response &query_disk_info_response::
-operator=(const query_disk_info_response &other321)
+query_disk_info_response::query_disk_info_response(const query_disk_info_response &other321)
 {
     err = other321.err;
     total_capacity_mb = other321.total_capacity_mb;
     total_available_mb = other321.total_available_mb;
     disk_infos = other321.disk_infos;
     __isset = other321.__isset;
-    return *this;
 }
-query_disk_info_response &query_disk_info_response::operator=(query_disk_info_response &&other322)
+query_disk_info_response::query_disk_info_response(query_disk_info_response &&other322)
 {
     err = std::move(other322.err);
     total_capacity_mb = std::move(other322.total_capacity_mb);
     total_available_mb = std::move(other322.total_available_mb);
     disk_infos = std::move(other322.disk_infos);
     __isset = std::move(other322.__isset);
+}
+query_disk_info_response &query_disk_info_response::
+operator=(const query_disk_info_response &other323)
+{
+    err = other323.err;
+    total_capacity_mb = other323.total_capacity_mb;
+    total_available_mb = other323.total_available_mb;
+    disk_infos = other323.disk_infos;
+    __isset = other323.__isset;
+    return *this;
+}
+query_disk_info_response &query_disk_info_response::operator=(query_disk_info_response &&other324)
+{
+    err = std::move(other324.err);
+    total_capacity_mb = std::move(other324.total_capacity_mb);
+    total_available_mb = std::move(other324.total_available_mb);
+    disk_infos = std::move(other324.disk_infos);
+    __isset = std::move(other324.__isset);
     return *this;
 }
 void query_disk_info_response::printTo(std::ostream &out) const
@@ -7706,6 +7773,278 @@ void query_disk_info_response::printTo(std::ostream &out) const
         << "total_available_mb=" << to_string(total_available_mb);
     out << ", "
         << "disk_infos=" << to_string(disk_infos);
+    out << ")";
+}
+
+replica_disk_migrate_request::~replica_disk_migrate_request() throw() {}
+
+void replica_disk_migrate_request::__set_pid(const ::dsn::gpid &val) { this->pid = val; }
+
+void replica_disk_migrate_request::__set_origin_disk(const std::string &val)
+{
+    this->origin_disk = val;
+}
+
+void replica_disk_migrate_request::__set_target_disk(const std::string &val)
+{
+    this->target_disk = val;
+}
+
+uint32_t replica_disk_migrate_request::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->pid.read(iprot);
+                this->__isset.pid = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->origin_disk);
+                this->__isset.origin_disk = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 3:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->target_disk);
+                this->__isset.target_disk = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t replica_disk_migrate_request::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("replica_disk_migrate_request");
+
+    xfer += oprot->writeFieldBegin("pid", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->pid.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("origin_disk", ::apache::thrift::protocol::T_STRING, 2);
+    xfer += oprot->writeString(this->origin_disk);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("target_disk", ::apache::thrift::protocol::T_STRING, 3);
+    xfer += oprot->writeString(this->target_disk);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(replica_disk_migrate_request &a, replica_disk_migrate_request &b)
+{
+    using ::std::swap;
+    swap(a.pid, b.pid);
+    swap(a.origin_disk, b.origin_disk);
+    swap(a.target_disk, b.target_disk);
+    swap(a.__isset, b.__isset);
+}
+
+replica_disk_migrate_request::replica_disk_migrate_request(
+    const replica_disk_migrate_request &other325)
+{
+    pid = other325.pid;
+    origin_disk = other325.origin_disk;
+    target_disk = other325.target_disk;
+    __isset = other325.__isset;
+}
+replica_disk_migrate_request::replica_disk_migrate_request(replica_disk_migrate_request &&other326)
+{
+    pid = std::move(other326.pid);
+    origin_disk = std::move(other326.origin_disk);
+    target_disk = std::move(other326.target_disk);
+    __isset = std::move(other326.__isset);
+}
+replica_disk_migrate_request &replica_disk_migrate_request::
+operator=(const replica_disk_migrate_request &other327)
+{
+    pid = other327.pid;
+    origin_disk = other327.origin_disk;
+    target_disk = other327.target_disk;
+    __isset = other327.__isset;
+    return *this;
+}
+replica_disk_migrate_request &replica_disk_migrate_request::
+operator=(replica_disk_migrate_request &&other328)
+{
+    pid = std::move(other328.pid);
+    origin_disk = std::move(other328.origin_disk);
+    target_disk = std::move(other328.target_disk);
+    __isset = std::move(other328.__isset);
+    return *this;
+}
+void replica_disk_migrate_request::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "replica_disk_migrate_request(";
+    out << "pid=" << to_string(pid);
+    out << ", "
+        << "origin_disk=" << to_string(origin_disk);
+    out << ", "
+        << "target_disk=" << to_string(target_disk);
+    out << ")";
+}
+
+replica_disk_migrate_response::~replica_disk_migrate_response() throw() {}
+
+void replica_disk_migrate_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
+
+void replica_disk_migrate_response::__set_hint(const std::string &val)
+{
+    this->hint = val;
+    __isset.hint = true;
+}
+
+uint32_t replica_disk_migrate_response::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->err.read(iprot);
+                this->__isset.err = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->hint);
+                this->__isset.hint = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t replica_disk_migrate_response::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("replica_disk_migrate_response");
+
+    xfer += oprot->writeFieldBegin("err", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->err.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    if (this->__isset.hint) {
+        xfer += oprot->writeFieldBegin("hint", ::apache::thrift::protocol::T_STRING, 2);
+        xfer += oprot->writeString(this->hint);
+        xfer += oprot->writeFieldEnd();
+    }
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(replica_disk_migrate_response &a, replica_disk_migrate_response &b)
+{
+    using ::std::swap;
+    swap(a.err, b.err);
+    swap(a.hint, b.hint);
+    swap(a.__isset, b.__isset);
+}
+
+replica_disk_migrate_response::replica_disk_migrate_response(
+    const replica_disk_migrate_response &other329)
+{
+    err = other329.err;
+    hint = other329.hint;
+    __isset = other329.__isset;
+}
+replica_disk_migrate_response::replica_disk_migrate_response(
+    replica_disk_migrate_response &&other330)
+{
+    err = std::move(other330.err);
+    hint = std::move(other330.hint);
+    __isset = std::move(other330.__isset);
+}
+replica_disk_migrate_response &replica_disk_migrate_response::
+operator=(const replica_disk_migrate_response &other331)
+{
+    err = other331.err;
+    hint = other331.hint;
+    __isset = other331.__isset;
+    return *this;
+}
+replica_disk_migrate_response &replica_disk_migrate_response::
+operator=(replica_disk_migrate_response &&other332)
+{
+    err = std::move(other332.err);
+    hint = std::move(other332.hint);
+    __isset = std::move(other332.__isset);
+    return *this;
+}
+void replica_disk_migrate_response::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "replica_disk_migrate_response(";
+    out << "err=" << to_string(err);
+    out << ", "
+        << "hint=";
+    (__isset.hint ? (out << to_string(hint)) : (out << "<null>"));
     out << ")";
 }
 
@@ -7777,26 +8116,26 @@ void swap(query_app_info_request &a, query_app_info_request &b)
     swap(a.__isset, b.__isset);
 }
 
-query_app_info_request::query_app_info_request(const query_app_info_request &other323)
+query_app_info_request::query_app_info_request(const query_app_info_request &other333)
 {
-    meta_server = other323.meta_server;
-    __isset = other323.__isset;
+    meta_server = other333.meta_server;
+    __isset = other333.__isset;
 }
-query_app_info_request::query_app_info_request(query_app_info_request &&other324)
+query_app_info_request::query_app_info_request(query_app_info_request &&other334)
 {
-    meta_server = std::move(other324.meta_server);
-    __isset = std::move(other324.__isset);
+    meta_server = std::move(other334.meta_server);
+    __isset = std::move(other334.__isset);
 }
-query_app_info_request &query_app_info_request::operator=(const query_app_info_request &other325)
+query_app_info_request &query_app_info_request::operator=(const query_app_info_request &other335)
 {
-    meta_server = other325.meta_server;
-    __isset = other325.__isset;
+    meta_server = other335.meta_server;
+    __isset = other335.__isset;
     return *this;
 }
-query_app_info_request &query_app_info_request::operator=(query_app_info_request &&other326)
+query_app_info_request &query_app_info_request::operator=(query_app_info_request &&other336)
 {
-    meta_server = std::move(other326.meta_server);
-    __isset = std::move(other326.__isset);
+    meta_server = std::move(other336.meta_server);
+    __isset = std::move(other336.__isset);
     return *this;
 }
 void query_app_info_request::printTo(std::ostream &out) const
@@ -7847,13 +8186,13 @@ uint32_t query_app_info_response::read(::apache::thrift::protocol::TProtocol *ip
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->apps.clear();
-                    uint32_t _size327;
-                    ::apache::thrift::protocol::TType _etype330;
-                    xfer += iprot->readListBegin(_etype330, _size327);
-                    this->apps.resize(_size327);
-                    uint32_t _i331;
-                    for (_i331 = 0; _i331 < _size327; ++_i331) {
-                        xfer += this->apps[_i331].read(iprot);
+                    uint32_t _size337;
+                    ::apache::thrift::protocol::TType _etype340;
+                    xfer += iprot->readListBegin(_etype340, _size337);
+                    this->apps.resize(_size337);
+                    uint32_t _i341;
+                    for (_i341 = 0; _i341 < _size337; ++_i341) {
+                        xfer += this->apps[_i341].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -7888,9 +8227,9 @@ uint32_t query_app_info_response::write(::apache::thrift::protocol::TProtocol *o
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->apps.size()));
-        std::vector<::dsn::app_info>::const_iterator _iter332;
-        for (_iter332 = this->apps.begin(); _iter332 != this->apps.end(); ++_iter332) {
-            xfer += (*_iter332).write(oprot);
+        std::vector<::dsn::app_info>::const_iterator _iter342;
+        for (_iter342 = this->apps.begin(); _iter342 != this->apps.end(); ++_iter342) {
+            xfer += (*_iter342).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -7909,30 +8248,30 @@ void swap(query_app_info_response &a, query_app_info_response &b)
     swap(a.__isset, b.__isset);
 }
 
-query_app_info_response::query_app_info_response(const query_app_info_response &other333)
+query_app_info_response::query_app_info_response(const query_app_info_response &other343)
 {
-    err = other333.err;
-    apps = other333.apps;
-    __isset = other333.__isset;
+    err = other343.err;
+    apps = other343.apps;
+    __isset = other343.__isset;
 }
-query_app_info_response::query_app_info_response(query_app_info_response &&other334)
+query_app_info_response::query_app_info_response(query_app_info_response &&other344)
 {
-    err = std::move(other334.err);
-    apps = std::move(other334.apps);
-    __isset = std::move(other334.__isset);
+    err = std::move(other344.err);
+    apps = std::move(other344.apps);
+    __isset = std::move(other344.__isset);
 }
-query_app_info_response &query_app_info_response::operator=(const query_app_info_response &other335)
+query_app_info_response &query_app_info_response::operator=(const query_app_info_response &other345)
 {
-    err = other335.err;
-    apps = other335.apps;
-    __isset = other335.__isset;
+    err = other345.err;
+    apps = other345.apps;
+    __isset = other345.__isset;
     return *this;
 }
-query_app_info_response &query_app_info_response::operator=(query_app_info_response &&other336)
+query_app_info_response &query_app_info_response::operator=(query_app_info_response &&other346)
 {
-    err = std::move(other336.err);
-    apps = std::move(other336.apps);
-    __isset = std::move(other336.__isset);
+    err = std::move(other346.err);
+    apps = std::move(other346.apps);
+    __isset = std::move(other346.__isset);
     return *this;
 }
 void query_app_info_response::printTo(std::ostream &out) const
@@ -7985,13 +8324,13 @@ uint32_t configuration_recovery_request::read(::apache::thrift::protocol::TProto
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->recovery_set.clear();
-                    uint32_t _size337;
-                    ::apache::thrift::protocol::TType _etype340;
-                    xfer += iprot->readListBegin(_etype340, _size337);
-                    this->recovery_set.resize(_size337);
-                    uint32_t _i341;
-                    for (_i341 = 0; _i341 < _size337; ++_i341) {
-                        xfer += this->recovery_set[_i341].read(iprot);
+                    uint32_t _size347;
+                    ::apache::thrift::protocol::TType _etype350;
+                    xfer += iprot->readListBegin(_etype350, _size347);
+                    this->recovery_set.resize(_size347);
+                    uint32_t _i351;
+                    for (_i351 = 0; _i351 < _size347; ++_i351) {
+                        xfer += this->recovery_set[_i351].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -8038,10 +8377,10 @@ uint32_t configuration_recovery_request::write(::apache::thrift::protocol::TProt
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->recovery_set.size()));
-        std::vector<::dsn::rpc_address>::const_iterator _iter342;
-        for (_iter342 = this->recovery_set.begin(); _iter342 != this->recovery_set.end();
-             ++_iter342) {
-            xfer += (*_iter342).write(oprot);
+        std::vector<::dsn::rpc_address>::const_iterator _iter352;
+        for (_iter352 = this->recovery_set.begin(); _iter352 != this->recovery_set.end();
+             ++_iter352) {
+            xfer += (*_iter352).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -8070,37 +8409,37 @@ void swap(configuration_recovery_request &a, configuration_recovery_request &b)
 }
 
 configuration_recovery_request::configuration_recovery_request(
-    const configuration_recovery_request &other343)
+    const configuration_recovery_request &other353)
 {
-    recovery_set = other343.recovery_set;
-    skip_bad_nodes = other343.skip_bad_nodes;
-    skip_lost_partitions = other343.skip_lost_partitions;
-    __isset = other343.__isset;
+    recovery_set = other353.recovery_set;
+    skip_bad_nodes = other353.skip_bad_nodes;
+    skip_lost_partitions = other353.skip_lost_partitions;
+    __isset = other353.__isset;
 }
 configuration_recovery_request::configuration_recovery_request(
-    configuration_recovery_request &&other344)
+    configuration_recovery_request &&other354)
 {
-    recovery_set = std::move(other344.recovery_set);
-    skip_bad_nodes = std::move(other344.skip_bad_nodes);
-    skip_lost_partitions = std::move(other344.skip_lost_partitions);
-    __isset = std::move(other344.__isset);
+    recovery_set = std::move(other354.recovery_set);
+    skip_bad_nodes = std::move(other354.skip_bad_nodes);
+    skip_lost_partitions = std::move(other354.skip_lost_partitions);
+    __isset = std::move(other354.__isset);
 }
 configuration_recovery_request &configuration_recovery_request::
-operator=(const configuration_recovery_request &other345)
+operator=(const configuration_recovery_request &other355)
 {
-    recovery_set = other345.recovery_set;
-    skip_bad_nodes = other345.skip_bad_nodes;
-    skip_lost_partitions = other345.skip_lost_partitions;
-    __isset = other345.__isset;
+    recovery_set = other355.recovery_set;
+    skip_bad_nodes = other355.skip_bad_nodes;
+    skip_lost_partitions = other355.skip_lost_partitions;
+    __isset = other355.__isset;
     return *this;
 }
 configuration_recovery_request &configuration_recovery_request::
-operator=(configuration_recovery_request &&other346)
+operator=(configuration_recovery_request &&other356)
 {
-    recovery_set = std::move(other346.recovery_set);
-    skip_bad_nodes = std::move(other346.skip_bad_nodes);
-    skip_lost_partitions = std::move(other346.skip_lost_partitions);
-    __isset = std::move(other346.__isset);
+    recovery_set = std::move(other356.recovery_set);
+    skip_bad_nodes = std::move(other356.skip_bad_nodes);
+    skip_lost_partitions = std::move(other356.skip_lost_partitions);
+    __isset = std::move(other356.__isset);
     return *this;
 }
 void configuration_recovery_request::printTo(std::ostream &out) const
@@ -8199,33 +8538,33 @@ void swap(configuration_recovery_response &a, configuration_recovery_response &b
 }
 
 configuration_recovery_response::configuration_recovery_response(
-    const configuration_recovery_response &other347)
+    const configuration_recovery_response &other357)
 {
-    err = other347.err;
-    hint_message = other347.hint_message;
-    __isset = other347.__isset;
+    err = other357.err;
+    hint_message = other357.hint_message;
+    __isset = other357.__isset;
 }
 configuration_recovery_response::configuration_recovery_response(
-    configuration_recovery_response &&other348)
+    configuration_recovery_response &&other358)
 {
-    err = std::move(other348.err);
-    hint_message = std::move(other348.hint_message);
-    __isset = std::move(other348.__isset);
+    err = std::move(other358.err);
+    hint_message = std::move(other358.hint_message);
+    __isset = std::move(other358.__isset);
 }
 configuration_recovery_response &configuration_recovery_response::
-operator=(const configuration_recovery_response &other349)
+operator=(const configuration_recovery_response &other359)
 {
-    err = other349.err;
-    hint_message = other349.hint_message;
-    __isset = other349.__isset;
+    err = other359.err;
+    hint_message = other359.hint_message;
+    __isset = other359.__isset;
     return *this;
 }
 configuration_recovery_response &configuration_recovery_response::
-operator=(configuration_recovery_response &&other350)
+operator=(configuration_recovery_response &&other360)
 {
-    err = std::move(other350.err);
-    hint_message = std::move(other350.hint_message);
-    __isset = std::move(other350.__isset);
+    err = std::move(other360.err);
+    hint_message = std::move(other360.hint_message);
+    __isset = std::move(other360.__isset);
     return *this;
 }
 void configuration_recovery_response::printTo(std::ostream &out) const
@@ -8321,30 +8660,30 @@ void swap(policy_info &a, policy_info &b)
     swap(a.__isset, b.__isset);
 }
 
-policy_info::policy_info(const policy_info &other351)
+policy_info::policy_info(const policy_info &other361)
 {
-    policy_name = other351.policy_name;
-    backup_provider_type = other351.backup_provider_type;
-    __isset = other351.__isset;
+    policy_name = other361.policy_name;
+    backup_provider_type = other361.backup_provider_type;
+    __isset = other361.__isset;
 }
-policy_info::policy_info(policy_info &&other352)
+policy_info::policy_info(policy_info &&other362)
 {
-    policy_name = std::move(other352.policy_name);
-    backup_provider_type = std::move(other352.backup_provider_type);
-    __isset = std::move(other352.__isset);
+    policy_name = std::move(other362.policy_name);
+    backup_provider_type = std::move(other362.backup_provider_type);
+    __isset = std::move(other362.__isset);
 }
-policy_info &policy_info::operator=(const policy_info &other353)
+policy_info &policy_info::operator=(const policy_info &other363)
 {
-    policy_name = other353.policy_name;
-    backup_provider_type = other353.backup_provider_type;
-    __isset = other353.__isset;
+    policy_name = other363.policy_name;
+    backup_provider_type = other363.backup_provider_type;
+    __isset = other363.__isset;
     return *this;
 }
-policy_info &policy_info::operator=(policy_info &&other354)
+policy_info &policy_info::operator=(policy_info &&other364)
 {
-    policy_name = std::move(other354.policy_name);
-    backup_provider_type = std::move(other354.backup_provider_type);
-    __isset = std::move(other354.__isset);
+    policy_name = std::move(other364.policy_name);
+    backup_provider_type = std::move(other364.backup_provider_type);
+    __isset = std::move(other364.__isset);
     return *this;
 }
 void policy_info::printTo(std::ostream &out) const
@@ -8543,57 +8882,57 @@ void swap(configuration_restore_request &a, configuration_restore_request &b)
 }
 
 configuration_restore_request::configuration_restore_request(
-    const configuration_restore_request &other355)
+    const configuration_restore_request &other365)
 {
-    cluster_name = other355.cluster_name;
-    policy_name = other355.policy_name;
-    time_stamp = other355.time_stamp;
-    app_name = other355.app_name;
-    app_id = other355.app_id;
-    new_app_name = other355.new_app_name;
-    backup_provider_name = other355.backup_provider_name;
-    skip_bad_partition = other355.skip_bad_partition;
-    __isset = other355.__isset;
+    cluster_name = other365.cluster_name;
+    policy_name = other365.policy_name;
+    time_stamp = other365.time_stamp;
+    app_name = other365.app_name;
+    app_id = other365.app_id;
+    new_app_name = other365.new_app_name;
+    backup_provider_name = other365.backup_provider_name;
+    skip_bad_partition = other365.skip_bad_partition;
+    __isset = other365.__isset;
 }
 configuration_restore_request::configuration_restore_request(
-    configuration_restore_request &&other356)
+    configuration_restore_request &&other366)
 {
-    cluster_name = std::move(other356.cluster_name);
-    policy_name = std::move(other356.policy_name);
-    time_stamp = std::move(other356.time_stamp);
-    app_name = std::move(other356.app_name);
-    app_id = std::move(other356.app_id);
-    new_app_name = std::move(other356.new_app_name);
-    backup_provider_name = std::move(other356.backup_provider_name);
-    skip_bad_partition = std::move(other356.skip_bad_partition);
-    __isset = std::move(other356.__isset);
+    cluster_name = std::move(other366.cluster_name);
+    policy_name = std::move(other366.policy_name);
+    time_stamp = std::move(other366.time_stamp);
+    app_name = std::move(other366.app_name);
+    app_id = std::move(other366.app_id);
+    new_app_name = std::move(other366.new_app_name);
+    backup_provider_name = std::move(other366.backup_provider_name);
+    skip_bad_partition = std::move(other366.skip_bad_partition);
+    __isset = std::move(other366.__isset);
 }
 configuration_restore_request &configuration_restore_request::
-operator=(const configuration_restore_request &other357)
+operator=(const configuration_restore_request &other367)
 {
-    cluster_name = other357.cluster_name;
-    policy_name = other357.policy_name;
-    time_stamp = other357.time_stamp;
-    app_name = other357.app_name;
-    app_id = other357.app_id;
-    new_app_name = other357.new_app_name;
-    backup_provider_name = other357.backup_provider_name;
-    skip_bad_partition = other357.skip_bad_partition;
-    __isset = other357.__isset;
+    cluster_name = other367.cluster_name;
+    policy_name = other367.policy_name;
+    time_stamp = other367.time_stamp;
+    app_name = other367.app_name;
+    app_id = other367.app_id;
+    new_app_name = other367.new_app_name;
+    backup_provider_name = other367.backup_provider_name;
+    skip_bad_partition = other367.skip_bad_partition;
+    __isset = other367.__isset;
     return *this;
 }
 configuration_restore_request &configuration_restore_request::
-operator=(configuration_restore_request &&other358)
+operator=(configuration_restore_request &&other368)
 {
-    cluster_name = std::move(other358.cluster_name);
-    policy_name = std::move(other358.policy_name);
-    time_stamp = std::move(other358.time_stamp);
-    app_name = std::move(other358.app_name);
-    app_id = std::move(other358.app_id);
-    new_app_name = std::move(other358.new_app_name);
-    backup_provider_name = std::move(other358.backup_provider_name);
-    skip_bad_partition = std::move(other358.skip_bad_partition);
-    __isset = std::move(other358.__isset);
+    cluster_name = std::move(other368.cluster_name);
+    policy_name = std::move(other368.policy_name);
+    time_stamp = std::move(other368.time_stamp);
+    app_name = std::move(other368.app_name);
+    app_id = std::move(other368.app_id);
+    new_app_name = std::move(other368.new_app_name);
+    backup_provider_name = std::move(other368.backup_provider_name);
+    skip_bad_partition = std::move(other368.skip_bad_partition);
+    __isset = std::move(other368.__isset);
     return *this;
 }
 void configuration_restore_request::printTo(std::ostream &out) const
@@ -8728,38 +9067,38 @@ void swap(backup_request &a, backup_request &b)
     swap(a.__isset, b.__isset);
 }
 
-backup_request::backup_request(const backup_request &other359)
+backup_request::backup_request(const backup_request &other369)
 {
-    pid = other359.pid;
-    policy = other359.policy;
-    app_name = other359.app_name;
-    backup_id = other359.backup_id;
-    __isset = other359.__isset;
+    pid = other369.pid;
+    policy = other369.policy;
+    app_name = other369.app_name;
+    backup_id = other369.backup_id;
+    __isset = other369.__isset;
 }
-backup_request::backup_request(backup_request &&other360)
+backup_request::backup_request(backup_request &&other370)
 {
-    pid = std::move(other360.pid);
-    policy = std::move(other360.policy);
-    app_name = std::move(other360.app_name);
-    backup_id = std::move(other360.backup_id);
-    __isset = std::move(other360.__isset);
+    pid = std::move(other370.pid);
+    policy = std::move(other370.policy);
+    app_name = std::move(other370.app_name);
+    backup_id = std::move(other370.backup_id);
+    __isset = std::move(other370.__isset);
 }
-backup_request &backup_request::operator=(const backup_request &other361)
+backup_request &backup_request::operator=(const backup_request &other371)
 {
-    pid = other361.pid;
-    policy = other361.policy;
-    app_name = other361.app_name;
-    backup_id = other361.backup_id;
-    __isset = other361.__isset;
+    pid = other371.pid;
+    policy = other371.policy;
+    app_name = other371.app_name;
+    backup_id = other371.backup_id;
+    __isset = other371.__isset;
     return *this;
 }
-backup_request &backup_request::operator=(backup_request &&other362)
+backup_request &backup_request::operator=(backup_request &&other372)
 {
-    pid = std::move(other362.pid);
-    policy = std::move(other362.policy);
-    app_name = std::move(other362.app_name);
-    backup_id = std::move(other362.backup_id);
-    __isset = std::move(other362.__isset);
+    pid = std::move(other372.pid);
+    policy = std::move(other372.policy);
+    app_name = std::move(other372.app_name);
+    backup_id = std::move(other372.backup_id);
+    __isset = std::move(other372.__isset);
     return *this;
 }
 void backup_request::printTo(std::ostream &out) const
@@ -8919,46 +9258,46 @@ void swap(backup_response &a, backup_response &b)
     swap(a.__isset, b.__isset);
 }
 
-backup_response::backup_response(const backup_response &other363)
+backup_response::backup_response(const backup_response &other373)
 {
-    err = other363.err;
-    pid = other363.pid;
-    progress = other363.progress;
-    policy_name = other363.policy_name;
-    backup_id = other363.backup_id;
-    checkpoint_total_size = other363.checkpoint_total_size;
-    __isset = other363.__isset;
+    err = other373.err;
+    pid = other373.pid;
+    progress = other373.progress;
+    policy_name = other373.policy_name;
+    backup_id = other373.backup_id;
+    checkpoint_total_size = other373.checkpoint_total_size;
+    __isset = other373.__isset;
 }
-backup_response::backup_response(backup_response &&other364)
+backup_response::backup_response(backup_response &&other374)
 {
-    err = std::move(other364.err);
-    pid = std::move(other364.pid);
-    progress = std::move(other364.progress);
-    policy_name = std::move(other364.policy_name);
-    backup_id = std::move(other364.backup_id);
-    checkpoint_total_size = std::move(other364.checkpoint_total_size);
-    __isset = std::move(other364.__isset);
+    err = std::move(other374.err);
+    pid = std::move(other374.pid);
+    progress = std::move(other374.progress);
+    policy_name = std::move(other374.policy_name);
+    backup_id = std::move(other374.backup_id);
+    checkpoint_total_size = std::move(other374.checkpoint_total_size);
+    __isset = std::move(other374.__isset);
 }
-backup_response &backup_response::operator=(const backup_response &other365)
+backup_response &backup_response::operator=(const backup_response &other375)
 {
-    err = other365.err;
-    pid = other365.pid;
-    progress = other365.progress;
-    policy_name = other365.policy_name;
-    backup_id = other365.backup_id;
-    checkpoint_total_size = other365.checkpoint_total_size;
-    __isset = other365.__isset;
+    err = other375.err;
+    pid = other375.pid;
+    progress = other375.progress;
+    policy_name = other375.policy_name;
+    backup_id = other375.backup_id;
+    checkpoint_total_size = other375.checkpoint_total_size;
+    __isset = other375.__isset;
     return *this;
 }
-backup_response &backup_response::operator=(backup_response &&other366)
+backup_response &backup_response::operator=(backup_response &&other376)
 {
-    err = std::move(other366.err);
-    pid = std::move(other366.pid);
-    progress = std::move(other366.progress);
-    policy_name = std::move(other366.policy_name);
-    backup_id = std::move(other366.backup_id);
-    checkpoint_total_size = std::move(other366.checkpoint_total_size);
-    __isset = std::move(other366.__isset);
+    err = std::move(other376.err);
+    pid = std::move(other376.pid);
+    progress = std::move(other376.progress);
+    policy_name = std::move(other376.policy_name);
+    backup_id = std::move(other376.backup_id);
+    checkpoint_total_size = std::move(other376.checkpoint_total_size);
+    __isset = std::move(other376.__isset);
     return *this;
 }
 void backup_response::printTo(std::ostream &out) const
@@ -9059,30 +9398,30 @@ void swap(backup_clear_request &a, backup_clear_request &b)
     swap(a.__isset, b.__isset);
 }
 
-backup_clear_request::backup_clear_request(const backup_clear_request &other367)
+backup_clear_request::backup_clear_request(const backup_clear_request &other377)
 {
-    pid = other367.pid;
-    policy_name = other367.policy_name;
-    __isset = other367.__isset;
+    pid = other377.pid;
+    policy_name = other377.policy_name;
+    __isset = other377.__isset;
 }
-backup_clear_request::backup_clear_request(backup_clear_request &&other368)
+backup_clear_request::backup_clear_request(backup_clear_request &&other378)
 {
-    pid = std::move(other368.pid);
-    policy_name = std::move(other368.policy_name);
-    __isset = std::move(other368.__isset);
+    pid = std::move(other378.pid);
+    policy_name = std::move(other378.policy_name);
+    __isset = std::move(other378.__isset);
 }
-backup_clear_request &backup_clear_request::operator=(const backup_clear_request &other369)
+backup_clear_request &backup_clear_request::operator=(const backup_clear_request &other379)
 {
-    pid = other369.pid;
-    policy_name = other369.policy_name;
-    __isset = other369.__isset;
+    pid = other379.pid;
+    policy_name = other379.policy_name;
+    __isset = other379.__isset;
     return *this;
 }
-backup_clear_request &backup_clear_request::operator=(backup_clear_request &&other370)
+backup_clear_request &backup_clear_request::operator=(backup_clear_request &&other380)
 {
-    pid = std::move(other370.pid);
-    policy_name = std::move(other370.policy_name);
-    __isset = std::move(other370.__isset);
+    pid = std::move(other380.pid);
+    policy_name = std::move(other380.policy_name);
+    __isset = std::move(other380.__isset);
     return *this;
 }
 void backup_clear_request::printTo(std::ostream &out) const
@@ -9172,13 +9511,13 @@ configuration_modify_backup_policy_request::read(::apache::thrift::protocol::TPr
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->add_appids.clear();
-                    uint32_t _size371;
-                    ::apache::thrift::protocol::TType _etype374;
-                    xfer += iprot->readListBegin(_etype374, _size371);
-                    this->add_appids.resize(_size371);
-                    uint32_t _i375;
-                    for (_i375 = 0; _i375 < _size371; ++_i375) {
-                        xfer += iprot->readI32(this->add_appids[_i375]);
+                    uint32_t _size381;
+                    ::apache::thrift::protocol::TType _etype384;
+                    xfer += iprot->readListBegin(_etype384, _size381);
+                    this->add_appids.resize(_size381);
+                    uint32_t _i385;
+                    for (_i385 = 0; _i385 < _size381; ++_i385) {
+                        xfer += iprot->readI32(this->add_appids[_i385]);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -9191,13 +9530,13 @@ configuration_modify_backup_policy_request::read(::apache::thrift::protocol::TPr
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->removal_appids.clear();
-                    uint32_t _size376;
-                    ::apache::thrift::protocol::TType _etype379;
-                    xfer += iprot->readListBegin(_etype379, _size376);
-                    this->removal_appids.resize(_size376);
-                    uint32_t _i380;
-                    for (_i380 = 0; _i380 < _size376; ++_i380) {
-                        xfer += iprot->readI32(this->removal_appids[_i380]);
+                    uint32_t _size386;
+                    ::apache::thrift::protocol::TType _etype389;
+                    xfer += iprot->readListBegin(_etype389, _size386);
+                    this->removal_appids.resize(_size386);
+                    uint32_t _i390;
+                    for (_i390 = 0; _i390 < _size386; ++_i390) {
+                        xfer += iprot->readI32(this->removal_appids[_i390]);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -9266,10 +9605,10 @@ uint32_t configuration_modify_backup_policy_request::write(
         {
             xfer += oprot->writeListBegin(::apache::thrift::protocol::T_I32,
                                           static_cast<uint32_t>(this->add_appids.size()));
-            std::vector<int32_t>::const_iterator _iter381;
-            for (_iter381 = this->add_appids.begin(); _iter381 != this->add_appids.end();
-                 ++_iter381) {
-                xfer += oprot->writeI32((*_iter381));
+            std::vector<int32_t>::const_iterator _iter391;
+            for (_iter391 = this->add_appids.begin(); _iter391 != this->add_appids.end();
+                 ++_iter391) {
+                xfer += oprot->writeI32((*_iter391));
             }
             xfer += oprot->writeListEnd();
         }
@@ -9280,10 +9619,10 @@ uint32_t configuration_modify_backup_policy_request::write(
         {
             xfer += oprot->writeListBegin(::apache::thrift::protocol::T_I32,
                                           static_cast<uint32_t>(this->removal_appids.size()));
-            std::vector<int32_t>::const_iterator _iter382;
-            for (_iter382 = this->removal_appids.begin(); _iter382 != this->removal_appids.end();
-                 ++_iter382) {
-                xfer += oprot->writeI32((*_iter382));
+            std::vector<int32_t>::const_iterator _iter392;
+            for (_iter392 = this->removal_appids.begin(); _iter392 != this->removal_appids.end();
+                 ++_iter392) {
+                xfer += oprot->writeI32((*_iter392));
             }
             xfer += oprot->writeListEnd();
         }
@@ -9331,53 +9670,53 @@ void swap(configuration_modify_backup_policy_request &a,
 }
 
 configuration_modify_backup_policy_request::configuration_modify_backup_policy_request(
-    const configuration_modify_backup_policy_request &other383)
+    const configuration_modify_backup_policy_request &other393)
 {
-    policy_name = other383.policy_name;
-    add_appids = other383.add_appids;
-    removal_appids = other383.removal_appids;
-    new_backup_interval_sec = other383.new_backup_interval_sec;
-    backup_history_count_to_keep = other383.backup_history_count_to_keep;
-    is_disable = other383.is_disable;
-    start_time = other383.start_time;
-    __isset = other383.__isset;
+    policy_name = other393.policy_name;
+    add_appids = other393.add_appids;
+    removal_appids = other393.removal_appids;
+    new_backup_interval_sec = other393.new_backup_interval_sec;
+    backup_history_count_to_keep = other393.backup_history_count_to_keep;
+    is_disable = other393.is_disable;
+    start_time = other393.start_time;
+    __isset = other393.__isset;
 }
 configuration_modify_backup_policy_request::configuration_modify_backup_policy_request(
-    configuration_modify_backup_policy_request &&other384)
+    configuration_modify_backup_policy_request &&other394)
 {
-    policy_name = std::move(other384.policy_name);
-    add_appids = std::move(other384.add_appids);
-    removal_appids = std::move(other384.removal_appids);
-    new_backup_interval_sec = std::move(other384.new_backup_interval_sec);
-    backup_history_count_to_keep = std::move(other384.backup_history_count_to_keep);
-    is_disable = std::move(other384.is_disable);
-    start_time = std::move(other384.start_time);
-    __isset = std::move(other384.__isset);
+    policy_name = std::move(other394.policy_name);
+    add_appids = std::move(other394.add_appids);
+    removal_appids = std::move(other394.removal_appids);
+    new_backup_interval_sec = std::move(other394.new_backup_interval_sec);
+    backup_history_count_to_keep = std::move(other394.backup_history_count_to_keep);
+    is_disable = std::move(other394.is_disable);
+    start_time = std::move(other394.start_time);
+    __isset = std::move(other394.__isset);
 }
 configuration_modify_backup_policy_request &configuration_modify_backup_policy_request::
-operator=(const configuration_modify_backup_policy_request &other385)
+operator=(const configuration_modify_backup_policy_request &other395)
 {
-    policy_name = other385.policy_name;
-    add_appids = other385.add_appids;
-    removal_appids = other385.removal_appids;
-    new_backup_interval_sec = other385.new_backup_interval_sec;
-    backup_history_count_to_keep = other385.backup_history_count_to_keep;
-    is_disable = other385.is_disable;
-    start_time = other385.start_time;
-    __isset = other385.__isset;
+    policy_name = other395.policy_name;
+    add_appids = other395.add_appids;
+    removal_appids = other395.removal_appids;
+    new_backup_interval_sec = other395.new_backup_interval_sec;
+    backup_history_count_to_keep = other395.backup_history_count_to_keep;
+    is_disable = other395.is_disable;
+    start_time = other395.start_time;
+    __isset = other395.__isset;
     return *this;
 }
 configuration_modify_backup_policy_request &configuration_modify_backup_policy_request::
-operator=(configuration_modify_backup_policy_request &&other386)
+operator=(configuration_modify_backup_policy_request &&other396)
 {
-    policy_name = std::move(other386.policy_name);
-    add_appids = std::move(other386.add_appids);
-    removal_appids = std::move(other386.removal_appids);
-    new_backup_interval_sec = std::move(other386.new_backup_interval_sec);
-    backup_history_count_to_keep = std::move(other386.backup_history_count_to_keep);
-    is_disable = std::move(other386.is_disable);
-    start_time = std::move(other386.start_time);
-    __isset = std::move(other386.__isset);
+    policy_name = std::move(other396.policy_name);
+    add_appids = std::move(other396.add_appids);
+    removal_appids = std::move(other396.removal_appids);
+    new_backup_interval_sec = std::move(other396.new_backup_interval_sec);
+    backup_history_count_to_keep = std::move(other396.backup_history_count_to_keep);
+    is_disable = std::move(other396.is_disable);
+    start_time = std::move(other396.start_time);
+    __isset = std::move(other396.__isset);
     return *this;
 }
 void configuration_modify_backup_policy_request::printTo(std::ostream &out) const
@@ -9500,33 +9839,33 @@ void swap(configuration_modify_backup_policy_response &a,
 }
 
 configuration_modify_backup_policy_response::configuration_modify_backup_policy_response(
-    const configuration_modify_backup_policy_response &other387)
+    const configuration_modify_backup_policy_response &other397)
 {
-    err = other387.err;
-    hint_message = other387.hint_message;
-    __isset = other387.__isset;
+    err = other397.err;
+    hint_message = other397.hint_message;
+    __isset = other397.__isset;
 }
 configuration_modify_backup_policy_response::configuration_modify_backup_policy_response(
-    configuration_modify_backup_policy_response &&other388)
+    configuration_modify_backup_policy_response &&other398)
 {
-    err = std::move(other388.err);
-    hint_message = std::move(other388.hint_message);
-    __isset = std::move(other388.__isset);
+    err = std::move(other398.err);
+    hint_message = std::move(other398.hint_message);
+    __isset = std::move(other398.__isset);
 }
 configuration_modify_backup_policy_response &configuration_modify_backup_policy_response::
-operator=(const configuration_modify_backup_policy_response &other389)
+operator=(const configuration_modify_backup_policy_response &other399)
 {
-    err = other389.err;
-    hint_message = other389.hint_message;
-    __isset = other389.__isset;
+    err = other399.err;
+    hint_message = other399.hint_message;
+    __isset = other399.__isset;
     return *this;
 }
 configuration_modify_backup_policy_response &configuration_modify_backup_policy_response::
-operator=(configuration_modify_backup_policy_response &&other390)
+operator=(configuration_modify_backup_policy_response &&other400)
 {
-    err = std::move(other390.err);
-    hint_message = std::move(other390.hint_message);
-    __isset = std::move(other390.__isset);
+    err = std::move(other400.err);
+    hint_message = std::move(other400.hint_message);
+    __isset = std::move(other400.__isset);
     return *this;
 }
 void configuration_modify_backup_policy_response::printTo(std::ostream &out) const
@@ -9610,13 +9949,13 @@ uint32_t configuration_add_backup_policy_request::read(::apache::thrift::protoco
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->app_ids.clear();
-                    uint32_t _size391;
-                    ::apache::thrift::protocol::TType _etype394;
-                    xfer += iprot->readListBegin(_etype394, _size391);
-                    this->app_ids.resize(_size391);
-                    uint32_t _i395;
-                    for (_i395 = 0; _i395 < _size391; ++_i395) {
-                        xfer += iprot->readI32(this->app_ids[_i395]);
+                    uint32_t _size401;
+                    ::apache::thrift::protocol::TType _etype404;
+                    xfer += iprot->readListBegin(_etype404, _size401);
+                    this->app_ids.resize(_size401);
+                    uint32_t _i405;
+                    for (_i405 = 0; _i405 < _size401; ++_i405) {
+                        xfer += iprot->readI32(this->app_ids[_i405]);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -9680,9 +10019,9 @@ configuration_add_backup_policy_request::write(::apache::thrift::protocol::TProt
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_I32,
                                       static_cast<uint32_t>(this->app_ids.size()));
-        std::vector<int32_t>::const_iterator _iter396;
-        for (_iter396 = this->app_ids.begin(); _iter396 != this->app_ids.end(); ++_iter396) {
-            xfer += oprot->writeI32((*_iter396));
+        std::vector<int32_t>::const_iterator _iter406;
+        for (_iter406 = this->app_ids.begin(); _iter406 != this->app_ids.end(); ++_iter406) {
+            xfer += oprot->writeI32((*_iter406));
         }
         xfer += oprot->writeListEnd();
     }
@@ -9719,49 +10058,49 @@ void swap(configuration_add_backup_policy_request &a, configuration_add_backup_p
 }
 
 configuration_add_backup_policy_request::configuration_add_backup_policy_request(
-    const configuration_add_backup_policy_request &other397)
+    const configuration_add_backup_policy_request &other407)
 {
-    backup_provider_type = other397.backup_provider_type;
-    policy_name = other397.policy_name;
-    app_ids = other397.app_ids;
-    backup_interval_seconds = other397.backup_interval_seconds;
-    backup_history_count_to_keep = other397.backup_history_count_to_keep;
-    start_time = other397.start_time;
-    __isset = other397.__isset;
+    backup_provider_type = other407.backup_provider_type;
+    policy_name = other407.policy_name;
+    app_ids = other407.app_ids;
+    backup_interval_seconds = other407.backup_interval_seconds;
+    backup_history_count_to_keep = other407.backup_history_count_to_keep;
+    start_time = other407.start_time;
+    __isset = other407.__isset;
 }
 configuration_add_backup_policy_request::configuration_add_backup_policy_request(
-    configuration_add_backup_policy_request &&other398)
+    configuration_add_backup_policy_request &&other408)
 {
-    backup_provider_type = std::move(other398.backup_provider_type);
-    policy_name = std::move(other398.policy_name);
-    app_ids = std::move(other398.app_ids);
-    backup_interval_seconds = std::move(other398.backup_interval_seconds);
-    backup_history_count_to_keep = std::move(other398.backup_history_count_to_keep);
-    start_time = std::move(other398.start_time);
-    __isset = std::move(other398.__isset);
+    backup_provider_type = std::move(other408.backup_provider_type);
+    policy_name = std::move(other408.policy_name);
+    app_ids = std::move(other408.app_ids);
+    backup_interval_seconds = std::move(other408.backup_interval_seconds);
+    backup_history_count_to_keep = std::move(other408.backup_history_count_to_keep);
+    start_time = std::move(other408.start_time);
+    __isset = std::move(other408.__isset);
 }
 configuration_add_backup_policy_request &configuration_add_backup_policy_request::
-operator=(const configuration_add_backup_policy_request &other399)
+operator=(const configuration_add_backup_policy_request &other409)
 {
-    backup_provider_type = other399.backup_provider_type;
-    policy_name = other399.policy_name;
-    app_ids = other399.app_ids;
-    backup_interval_seconds = other399.backup_interval_seconds;
-    backup_history_count_to_keep = other399.backup_history_count_to_keep;
-    start_time = other399.start_time;
-    __isset = other399.__isset;
+    backup_provider_type = other409.backup_provider_type;
+    policy_name = other409.policy_name;
+    app_ids = other409.app_ids;
+    backup_interval_seconds = other409.backup_interval_seconds;
+    backup_history_count_to_keep = other409.backup_history_count_to_keep;
+    start_time = other409.start_time;
+    __isset = other409.__isset;
     return *this;
 }
 configuration_add_backup_policy_request &configuration_add_backup_policy_request::
-operator=(configuration_add_backup_policy_request &&other400)
+operator=(configuration_add_backup_policy_request &&other410)
 {
-    backup_provider_type = std::move(other400.backup_provider_type);
-    policy_name = std::move(other400.policy_name);
-    app_ids = std::move(other400.app_ids);
-    backup_interval_seconds = std::move(other400.backup_interval_seconds);
-    backup_history_count_to_keep = std::move(other400.backup_history_count_to_keep);
-    start_time = std::move(other400.start_time);
-    __isset = std::move(other400.__isset);
+    backup_provider_type = std::move(other410.backup_provider_type);
+    policy_name = std::move(other410.policy_name);
+    app_ids = std::move(other410.app_ids);
+    backup_interval_seconds = std::move(other410.backup_interval_seconds);
+    backup_history_count_to_keep = std::move(other410.backup_history_count_to_keep);
+    start_time = std::move(other410.start_time);
+    __isset = std::move(other410.__isset);
     return *this;
 }
 void configuration_add_backup_policy_request::printTo(std::ostream &out) const
@@ -9871,33 +10210,33 @@ void swap(configuration_add_backup_policy_response &a, configuration_add_backup_
 }
 
 configuration_add_backup_policy_response::configuration_add_backup_policy_response(
-    const configuration_add_backup_policy_response &other401)
+    const configuration_add_backup_policy_response &other411)
 {
-    err = other401.err;
-    hint_message = other401.hint_message;
-    __isset = other401.__isset;
+    err = other411.err;
+    hint_message = other411.hint_message;
+    __isset = other411.__isset;
 }
 configuration_add_backup_policy_response::configuration_add_backup_policy_response(
-    configuration_add_backup_policy_response &&other402)
+    configuration_add_backup_policy_response &&other412)
 {
-    err = std::move(other402.err);
-    hint_message = std::move(other402.hint_message);
-    __isset = std::move(other402.__isset);
+    err = std::move(other412.err);
+    hint_message = std::move(other412.hint_message);
+    __isset = std::move(other412.__isset);
 }
 configuration_add_backup_policy_response &configuration_add_backup_policy_response::
-operator=(const configuration_add_backup_policy_response &other403)
+operator=(const configuration_add_backup_policy_response &other413)
 {
-    err = other403.err;
-    hint_message = other403.hint_message;
-    __isset = other403.__isset;
+    err = other413.err;
+    hint_message = other413.hint_message;
+    __isset = other413.__isset;
     return *this;
 }
 configuration_add_backup_policy_response &configuration_add_backup_policy_response::
-operator=(configuration_add_backup_policy_response &&other404)
+operator=(configuration_add_backup_policy_response &&other414)
 {
-    err = std::move(other404.err);
-    hint_message = std::move(other404.hint_message);
-    __isset = std::move(other404.__isset);
+    err = std::move(other414.err);
+    hint_message = std::move(other414.hint_message);
+    __isset = std::move(other414.__isset);
     return *this;
 }
 void configuration_add_backup_policy_response::printTo(std::ostream &out) const
@@ -9982,14 +10321,14 @@ uint32_t policy_entry::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_SET) {
                 {
                     this->app_ids.clear();
-                    uint32_t _size405;
-                    ::apache::thrift::protocol::TType _etype408;
-                    xfer += iprot->readSetBegin(_etype408, _size405);
-                    uint32_t _i409;
-                    for (_i409 = 0; _i409 < _size405; ++_i409) {
-                        int32_t _elem410;
-                        xfer += iprot->readI32(_elem410);
-                        this->app_ids.insert(_elem410);
+                    uint32_t _size415;
+                    ::apache::thrift::protocol::TType _etype418;
+                    xfer += iprot->readSetBegin(_etype418, _size415);
+                    uint32_t _i419;
+                    for (_i419 = 0; _i419 < _size415; ++_i419) {
+                        int32_t _elem420;
+                        xfer += iprot->readI32(_elem420);
+                        this->app_ids.insert(_elem420);
                     }
                     xfer += iprot->readSetEnd();
                 }
@@ -10057,9 +10396,9 @@ uint32_t policy_entry::write(::apache::thrift::protocol::TProtocol *oprot) const
     {
         xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I32,
                                      static_cast<uint32_t>(this->app_ids.size()));
-        std::set<int32_t>::const_iterator _iter411;
-        for (_iter411 = this->app_ids.begin(); _iter411 != this->app_ids.end(); ++_iter411) {
-            xfer += oprot->writeI32((*_iter411));
+        std::set<int32_t>::const_iterator _iter421;
+        for (_iter421 = this->app_ids.begin(); _iter421 != this->app_ids.end(); ++_iter421) {
+            xfer += oprot->writeI32((*_iter421));
         }
         xfer += oprot->writeSetEnd();
     }
@@ -10096,50 +10435,50 @@ void swap(policy_entry &a, policy_entry &b)
     swap(a.__isset, b.__isset);
 }
 
-policy_entry::policy_entry(const policy_entry &other412)
+policy_entry::policy_entry(const policy_entry &other422)
 {
-    policy_name = other412.policy_name;
-    backup_provider_type = other412.backup_provider_type;
-    backup_interval_seconds = other412.backup_interval_seconds;
-    app_ids = other412.app_ids;
-    backup_history_count_to_keep = other412.backup_history_count_to_keep;
-    start_time = other412.start_time;
-    is_disable = other412.is_disable;
-    __isset = other412.__isset;
+    policy_name = other422.policy_name;
+    backup_provider_type = other422.backup_provider_type;
+    backup_interval_seconds = other422.backup_interval_seconds;
+    app_ids = other422.app_ids;
+    backup_history_count_to_keep = other422.backup_history_count_to_keep;
+    start_time = other422.start_time;
+    is_disable = other422.is_disable;
+    __isset = other422.__isset;
 }
-policy_entry::policy_entry(policy_entry &&other413)
+policy_entry::policy_entry(policy_entry &&other423)
 {
-    policy_name = std::move(other413.policy_name);
-    backup_provider_type = std::move(other413.backup_provider_type);
-    backup_interval_seconds = std::move(other413.backup_interval_seconds);
-    app_ids = std::move(other413.app_ids);
-    backup_history_count_to_keep = std::move(other413.backup_history_count_to_keep);
-    start_time = std::move(other413.start_time);
-    is_disable = std::move(other413.is_disable);
-    __isset = std::move(other413.__isset);
+    policy_name = std::move(other423.policy_name);
+    backup_provider_type = std::move(other423.backup_provider_type);
+    backup_interval_seconds = std::move(other423.backup_interval_seconds);
+    app_ids = std::move(other423.app_ids);
+    backup_history_count_to_keep = std::move(other423.backup_history_count_to_keep);
+    start_time = std::move(other423.start_time);
+    is_disable = std::move(other423.is_disable);
+    __isset = std::move(other423.__isset);
 }
-policy_entry &policy_entry::operator=(const policy_entry &other414)
+policy_entry &policy_entry::operator=(const policy_entry &other424)
 {
-    policy_name = other414.policy_name;
-    backup_provider_type = other414.backup_provider_type;
-    backup_interval_seconds = other414.backup_interval_seconds;
-    app_ids = other414.app_ids;
-    backup_history_count_to_keep = other414.backup_history_count_to_keep;
-    start_time = other414.start_time;
-    is_disable = other414.is_disable;
-    __isset = other414.__isset;
+    policy_name = other424.policy_name;
+    backup_provider_type = other424.backup_provider_type;
+    backup_interval_seconds = other424.backup_interval_seconds;
+    app_ids = other424.app_ids;
+    backup_history_count_to_keep = other424.backup_history_count_to_keep;
+    start_time = other424.start_time;
+    is_disable = other424.is_disable;
+    __isset = other424.__isset;
     return *this;
 }
-policy_entry &policy_entry::operator=(policy_entry &&other415)
+policy_entry &policy_entry::operator=(policy_entry &&other425)
 {
-    policy_name = std::move(other415.policy_name);
-    backup_provider_type = std::move(other415.backup_provider_type);
-    backup_interval_seconds = std::move(other415.backup_interval_seconds);
-    app_ids = std::move(other415.app_ids);
-    backup_history_count_to_keep = std::move(other415.backup_history_count_to_keep);
-    start_time = std::move(other415.start_time);
-    is_disable = std::move(other415.is_disable);
-    __isset = std::move(other415.__isset);
+    policy_name = std::move(other425.policy_name);
+    backup_provider_type = std::move(other425.backup_provider_type);
+    backup_interval_seconds = std::move(other425.backup_interval_seconds);
+    app_ids = std::move(other425.app_ids);
+    backup_history_count_to_keep = std::move(other425.backup_history_count_to_keep);
+    start_time = std::move(other425.start_time);
+    is_disable = std::move(other425.is_disable);
+    __isset = std::move(other425.__isset);
     return *this;
 }
 void policy_entry::printTo(std::ostream &out) const
@@ -10219,14 +10558,14 @@ uint32_t backup_entry::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_SET) {
                 {
                     this->app_ids.clear();
-                    uint32_t _size416;
-                    ::apache::thrift::protocol::TType _etype419;
-                    xfer += iprot->readSetBegin(_etype419, _size416);
-                    uint32_t _i420;
-                    for (_i420 = 0; _i420 < _size416; ++_i420) {
-                        int32_t _elem421;
-                        xfer += iprot->readI32(_elem421);
-                        this->app_ids.insert(_elem421);
+                    uint32_t _size426;
+                    ::apache::thrift::protocol::TType _etype429;
+                    xfer += iprot->readSetBegin(_etype429, _size426);
+                    uint32_t _i430;
+                    for (_i430 = 0; _i430 < _size426; ++_i430) {
+                        int32_t _elem431;
+                        xfer += iprot->readI32(_elem431);
+                        this->app_ids.insert(_elem431);
                     }
                     xfer += iprot->readSetEnd();
                 }
@@ -10269,9 +10608,9 @@ uint32_t backup_entry::write(::apache::thrift::protocol::TProtocol *oprot) const
     {
         xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I32,
                                      static_cast<uint32_t>(this->app_ids.size()));
-        std::set<int32_t>::const_iterator _iter422;
-        for (_iter422 = this->app_ids.begin(); _iter422 != this->app_ids.end(); ++_iter422) {
-            xfer += oprot->writeI32((*_iter422));
+        std::set<int32_t>::const_iterator _iter432;
+        for (_iter432 = this->app_ids.begin(); _iter432 != this->app_ids.end(); ++_iter432) {
+            xfer += oprot->writeI32((*_iter432));
         }
         xfer += oprot->writeSetEnd();
     }
@@ -10292,38 +10631,38 @@ void swap(backup_entry &a, backup_entry &b)
     swap(a.__isset, b.__isset);
 }
 
-backup_entry::backup_entry(const backup_entry &other423)
+backup_entry::backup_entry(const backup_entry &other433)
 {
-    backup_id = other423.backup_id;
-    start_time_ms = other423.start_time_ms;
-    end_time_ms = other423.end_time_ms;
-    app_ids = other423.app_ids;
-    __isset = other423.__isset;
+    backup_id = other433.backup_id;
+    start_time_ms = other433.start_time_ms;
+    end_time_ms = other433.end_time_ms;
+    app_ids = other433.app_ids;
+    __isset = other433.__isset;
 }
-backup_entry::backup_entry(backup_entry &&other424)
+backup_entry::backup_entry(backup_entry &&other434)
 {
-    backup_id = std::move(other424.backup_id);
-    start_time_ms = std::move(other424.start_time_ms);
-    end_time_ms = std::move(other424.end_time_ms);
-    app_ids = std::move(other424.app_ids);
-    __isset = std::move(other424.__isset);
+    backup_id = std::move(other434.backup_id);
+    start_time_ms = std::move(other434.start_time_ms);
+    end_time_ms = std::move(other434.end_time_ms);
+    app_ids = std::move(other434.app_ids);
+    __isset = std::move(other434.__isset);
 }
-backup_entry &backup_entry::operator=(const backup_entry &other425)
+backup_entry &backup_entry::operator=(const backup_entry &other435)
 {
-    backup_id = other425.backup_id;
-    start_time_ms = other425.start_time_ms;
-    end_time_ms = other425.end_time_ms;
-    app_ids = other425.app_ids;
-    __isset = other425.__isset;
+    backup_id = other435.backup_id;
+    start_time_ms = other435.start_time_ms;
+    end_time_ms = other435.end_time_ms;
+    app_ids = other435.app_ids;
+    __isset = other435.__isset;
     return *this;
 }
-backup_entry &backup_entry::operator=(backup_entry &&other426)
+backup_entry &backup_entry::operator=(backup_entry &&other436)
 {
-    backup_id = std::move(other426.backup_id);
-    start_time_ms = std::move(other426.start_time_ms);
-    end_time_ms = std::move(other426.end_time_ms);
-    app_ids = std::move(other426.app_ids);
-    __isset = std::move(other426.__isset);
+    backup_id = std::move(other436.backup_id);
+    start_time_ms = std::move(other436.start_time_ms);
+    end_time_ms = std::move(other436.end_time_ms);
+    app_ids = std::move(other436.app_ids);
+    __isset = std::move(other436.__isset);
     return *this;
 }
 void backup_entry::printTo(std::ostream &out) const
@@ -10377,13 +10716,13 @@ configuration_query_backup_policy_request::read(::apache::thrift::protocol::TPro
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->policy_names.clear();
-                    uint32_t _size427;
-                    ::apache::thrift::protocol::TType _etype430;
-                    xfer += iprot->readListBegin(_etype430, _size427);
-                    this->policy_names.resize(_size427);
-                    uint32_t _i431;
-                    for (_i431 = 0; _i431 < _size427; ++_i431) {
-                        xfer += iprot->readString(this->policy_names[_i431]);
+                    uint32_t _size437;
+                    ::apache::thrift::protocol::TType _etype440;
+                    xfer += iprot->readListBegin(_etype440, _size437);
+                    this->policy_names.resize(_size437);
+                    uint32_t _i441;
+                    for (_i441 = 0; _i441 < _size437; ++_i441) {
+                        xfer += iprot->readString(this->policy_names[_i441]);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -10423,10 +10762,10 @@ configuration_query_backup_policy_request::write(::apache::thrift::protocol::TPr
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING,
                                       static_cast<uint32_t>(this->policy_names.size()));
-        std::vector<std::string>::const_iterator _iter432;
-        for (_iter432 = this->policy_names.begin(); _iter432 != this->policy_names.end();
-             ++_iter432) {
-            xfer += oprot->writeString((*_iter432));
+        std::vector<std::string>::const_iterator _iter442;
+        for (_iter442 = this->policy_names.begin(); _iter442 != this->policy_names.end();
+             ++_iter442) {
+            xfer += oprot->writeString((*_iter442));
         }
         xfer += oprot->writeListEnd();
     }
@@ -10451,33 +10790,33 @@ void swap(configuration_query_backup_policy_request &a,
 }
 
 configuration_query_backup_policy_request::configuration_query_backup_policy_request(
-    const configuration_query_backup_policy_request &other433)
+    const configuration_query_backup_policy_request &other443)
 {
-    policy_names = other433.policy_names;
-    backup_info_count = other433.backup_info_count;
-    __isset = other433.__isset;
+    policy_names = other443.policy_names;
+    backup_info_count = other443.backup_info_count;
+    __isset = other443.__isset;
 }
 configuration_query_backup_policy_request::configuration_query_backup_policy_request(
-    configuration_query_backup_policy_request &&other434)
+    configuration_query_backup_policy_request &&other444)
 {
-    policy_names = std::move(other434.policy_names);
-    backup_info_count = std::move(other434.backup_info_count);
-    __isset = std::move(other434.__isset);
+    policy_names = std::move(other444.policy_names);
+    backup_info_count = std::move(other444.backup_info_count);
+    __isset = std::move(other444.__isset);
 }
 configuration_query_backup_policy_request &configuration_query_backup_policy_request::
-operator=(const configuration_query_backup_policy_request &other435)
+operator=(const configuration_query_backup_policy_request &other445)
 {
-    policy_names = other435.policy_names;
-    backup_info_count = other435.backup_info_count;
-    __isset = other435.__isset;
+    policy_names = other445.policy_names;
+    backup_info_count = other445.backup_info_count;
+    __isset = other445.__isset;
     return *this;
 }
 configuration_query_backup_policy_request &configuration_query_backup_policy_request::
-operator=(configuration_query_backup_policy_request &&other436)
+operator=(configuration_query_backup_policy_request &&other446)
 {
-    policy_names = std::move(other436.policy_names);
-    backup_info_count = std::move(other436.backup_info_count);
-    __isset = std::move(other436.__isset);
+    policy_names = std::move(other446.policy_names);
+    backup_info_count = std::move(other446.backup_info_count);
+    __isset = std::move(other446.__isset);
     return *this;
 }
 void configuration_query_backup_policy_request::printTo(std::ostream &out) const
@@ -10546,13 +10885,13 @@ configuration_query_backup_policy_response::read(::apache::thrift::protocol::TPr
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->policys.clear();
-                    uint32_t _size437;
-                    ::apache::thrift::protocol::TType _etype440;
-                    xfer += iprot->readListBegin(_etype440, _size437);
-                    this->policys.resize(_size437);
-                    uint32_t _i441;
-                    for (_i441 = 0; _i441 < _size437; ++_i441) {
-                        xfer += this->policys[_i441].read(iprot);
+                    uint32_t _size447;
+                    ::apache::thrift::protocol::TType _etype450;
+                    xfer += iprot->readListBegin(_etype450, _size447);
+                    this->policys.resize(_size447);
+                    uint32_t _i451;
+                    for (_i451 = 0; _i451 < _size447; ++_i451) {
+                        xfer += this->policys[_i451].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -10565,21 +10904,21 @@ configuration_query_backup_policy_response::read(::apache::thrift::protocol::TPr
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->backup_infos.clear();
-                    uint32_t _size442;
-                    ::apache::thrift::protocol::TType _etype445;
-                    xfer += iprot->readListBegin(_etype445, _size442);
-                    this->backup_infos.resize(_size442);
-                    uint32_t _i446;
-                    for (_i446 = 0; _i446 < _size442; ++_i446) {
+                    uint32_t _size452;
+                    ::apache::thrift::protocol::TType _etype455;
+                    xfer += iprot->readListBegin(_etype455, _size452);
+                    this->backup_infos.resize(_size452);
+                    uint32_t _i456;
+                    for (_i456 = 0; _i456 < _size452; ++_i456) {
                         {
-                            this->backup_infos[_i446].clear();
-                            uint32_t _size447;
-                            ::apache::thrift::protocol::TType _etype450;
-                            xfer += iprot->readListBegin(_etype450, _size447);
-                            this->backup_infos[_i446].resize(_size447);
-                            uint32_t _i451;
-                            for (_i451 = 0; _i451 < _size447; ++_i451) {
-                                xfer += this->backup_infos[_i446][_i451].read(iprot);
+                            this->backup_infos[_i456].clear();
+                            uint32_t _size457;
+                            ::apache::thrift::protocol::TType _etype460;
+                            xfer += iprot->readListBegin(_etype460, _size457);
+                            this->backup_infos[_i456].resize(_size457);
+                            uint32_t _i461;
+                            for (_i461 = 0; _i461 < _size457; ++_i461) {
+                                xfer += this->backup_infos[_i456][_i461].read(iprot);
                             }
                             xfer += iprot->readListEnd();
                         }
@@ -10626,9 +10965,9 @@ uint32_t configuration_query_backup_policy_response::write(
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->policys.size()));
-        std::vector<policy_entry>::const_iterator _iter452;
-        for (_iter452 = this->policys.begin(); _iter452 != this->policys.end(); ++_iter452) {
-            xfer += (*_iter452).write(oprot);
+        std::vector<policy_entry>::const_iterator _iter462;
+        for (_iter462 = this->policys.begin(); _iter462 != this->policys.end(); ++_iter462) {
+            xfer += (*_iter462).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -10638,15 +10977,15 @@ uint32_t configuration_query_backup_policy_response::write(
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_LIST,
                                       static_cast<uint32_t>(this->backup_infos.size()));
-        std::vector<std::vector<backup_entry>>::const_iterator _iter453;
-        for (_iter453 = this->backup_infos.begin(); _iter453 != this->backup_infos.end();
-             ++_iter453) {
+        std::vector<std::vector<backup_entry>>::const_iterator _iter463;
+        for (_iter463 = this->backup_infos.begin(); _iter463 != this->backup_infos.end();
+             ++_iter463) {
             {
                 xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
-                                              static_cast<uint32_t>((*_iter453).size()));
-                std::vector<backup_entry>::const_iterator _iter454;
-                for (_iter454 = (*_iter453).begin(); _iter454 != (*_iter453).end(); ++_iter454) {
-                    xfer += (*_iter454).write(oprot);
+                                              static_cast<uint32_t>((*_iter463).size()));
+                std::vector<backup_entry>::const_iterator _iter464;
+                for (_iter464 = (*_iter463).begin(); _iter464 != (*_iter463).end(); ++_iter464) {
+                    xfer += (*_iter464).write(oprot);
                 }
                 xfer += oprot->writeListEnd();
             }
@@ -10677,41 +11016,41 @@ void swap(configuration_query_backup_policy_response &a,
 }
 
 configuration_query_backup_policy_response::configuration_query_backup_policy_response(
-    const configuration_query_backup_policy_response &other455)
+    const configuration_query_backup_policy_response &other465)
 {
-    err = other455.err;
-    policys = other455.policys;
-    backup_infos = other455.backup_infos;
-    hint_msg = other455.hint_msg;
-    __isset = other455.__isset;
+    err = other465.err;
+    policys = other465.policys;
+    backup_infos = other465.backup_infos;
+    hint_msg = other465.hint_msg;
+    __isset = other465.__isset;
 }
 configuration_query_backup_policy_response::configuration_query_backup_policy_response(
-    configuration_query_backup_policy_response &&other456)
+    configuration_query_backup_policy_response &&other466)
 {
-    err = std::move(other456.err);
-    policys = std::move(other456.policys);
-    backup_infos = std::move(other456.backup_infos);
-    hint_msg = std::move(other456.hint_msg);
-    __isset = std::move(other456.__isset);
+    err = std::move(other466.err);
+    policys = std::move(other466.policys);
+    backup_infos = std::move(other466.backup_infos);
+    hint_msg = std::move(other466.hint_msg);
+    __isset = std::move(other466.__isset);
 }
 configuration_query_backup_policy_response &configuration_query_backup_policy_response::
-operator=(const configuration_query_backup_policy_response &other457)
+operator=(const configuration_query_backup_policy_response &other467)
 {
-    err = other457.err;
-    policys = other457.policys;
-    backup_infos = other457.backup_infos;
-    hint_msg = other457.hint_msg;
-    __isset = other457.__isset;
+    err = other467.err;
+    policys = other467.policys;
+    backup_infos = other467.backup_infos;
+    hint_msg = other467.hint_msg;
+    __isset = other467.__isset;
     return *this;
 }
 configuration_query_backup_policy_response &configuration_query_backup_policy_response::
-operator=(configuration_query_backup_policy_response &&other458)
+operator=(configuration_query_backup_policy_response &&other468)
 {
-    err = std::move(other458.err);
-    policys = std::move(other458.policys);
-    backup_infos = std::move(other458.backup_infos);
-    hint_msg = std::move(other458.hint_msg);
-    __isset = std::move(other458.__isset);
+    err = std::move(other468.err);
+    policys = std::move(other468.policys);
+    backup_infos = std::move(other468.backup_infos);
+    hint_msg = std::move(other468.hint_msg);
+    __isset = std::move(other468.__isset);
     return *this;
 }
 void configuration_query_backup_policy_response::printTo(std::ostream &out) const
@@ -10859,41 +11198,41 @@ void swap(configuration_report_restore_status_request &a,
 }
 
 configuration_report_restore_status_request::configuration_report_restore_status_request(
-    const configuration_report_restore_status_request &other459)
+    const configuration_report_restore_status_request &other469)
 {
-    pid = other459.pid;
-    restore_status = other459.restore_status;
-    progress = other459.progress;
-    reason = other459.reason;
-    __isset = other459.__isset;
+    pid = other469.pid;
+    restore_status = other469.restore_status;
+    progress = other469.progress;
+    reason = other469.reason;
+    __isset = other469.__isset;
 }
 configuration_report_restore_status_request::configuration_report_restore_status_request(
-    configuration_report_restore_status_request &&other460)
+    configuration_report_restore_status_request &&other470)
 {
-    pid = std::move(other460.pid);
-    restore_status = std::move(other460.restore_status);
-    progress = std::move(other460.progress);
-    reason = std::move(other460.reason);
-    __isset = std::move(other460.__isset);
+    pid = std::move(other470.pid);
+    restore_status = std::move(other470.restore_status);
+    progress = std::move(other470.progress);
+    reason = std::move(other470.reason);
+    __isset = std::move(other470.__isset);
 }
 configuration_report_restore_status_request &configuration_report_restore_status_request::
-operator=(const configuration_report_restore_status_request &other461)
+operator=(const configuration_report_restore_status_request &other471)
 {
-    pid = other461.pid;
-    restore_status = other461.restore_status;
-    progress = other461.progress;
-    reason = other461.reason;
-    __isset = other461.__isset;
+    pid = other471.pid;
+    restore_status = other471.restore_status;
+    progress = other471.progress;
+    reason = other471.reason;
+    __isset = other471.__isset;
     return *this;
 }
 configuration_report_restore_status_request &configuration_report_restore_status_request::
-operator=(configuration_report_restore_status_request &&other462)
+operator=(configuration_report_restore_status_request &&other472)
 {
-    pid = std::move(other462.pid);
-    restore_status = std::move(other462.restore_status);
-    progress = std::move(other462.progress);
-    reason = std::move(other462.reason);
-    __isset = std::move(other462.__isset);
+    pid = std::move(other472.pid);
+    restore_status = std::move(other472.restore_status);
+    progress = std::move(other472.progress);
+    reason = std::move(other472.reason);
+    __isset = std::move(other472.__isset);
     return *this;
 }
 void configuration_report_restore_status_request::printTo(std::ostream &out) const
@@ -10986,29 +11325,29 @@ void swap(configuration_report_restore_status_response &a,
 }
 
 configuration_report_restore_status_response::configuration_report_restore_status_response(
-    const configuration_report_restore_status_response &other463)
+    const configuration_report_restore_status_response &other473)
 {
-    err = other463.err;
-    __isset = other463.__isset;
+    err = other473.err;
+    __isset = other473.__isset;
 }
 configuration_report_restore_status_response::configuration_report_restore_status_response(
-    configuration_report_restore_status_response &&other464)
+    configuration_report_restore_status_response &&other474)
 {
-    err = std::move(other464.err);
-    __isset = std::move(other464.__isset);
+    err = std::move(other474.err);
+    __isset = std::move(other474.__isset);
 }
 configuration_report_restore_status_response &configuration_report_restore_status_response::
-operator=(const configuration_report_restore_status_response &other465)
+operator=(const configuration_report_restore_status_response &other475)
 {
-    err = other465.err;
-    __isset = other465.__isset;
+    err = other475.err;
+    __isset = other475.__isset;
     return *this;
 }
 configuration_report_restore_status_response &configuration_report_restore_status_response::
-operator=(configuration_report_restore_status_response &&other466)
+operator=(configuration_report_restore_status_response &&other476)
 {
-    err = std::move(other466.err);
-    __isset = std::move(other466.__isset);
+    err = std::move(other476.err);
+    __isset = std::move(other476.__isset);
     return *this;
 }
 void configuration_report_restore_status_response::printTo(std::ostream &out) const
@@ -11089,29 +11428,29 @@ void swap(configuration_query_restore_request &a, configuration_query_restore_re
 }
 
 configuration_query_restore_request::configuration_query_restore_request(
-    const configuration_query_restore_request &other467)
+    const configuration_query_restore_request &other477)
 {
-    restore_app_id = other467.restore_app_id;
-    __isset = other467.__isset;
+    restore_app_id = other477.restore_app_id;
+    __isset = other477.__isset;
 }
 configuration_query_restore_request::configuration_query_restore_request(
-    configuration_query_restore_request &&other468)
+    configuration_query_restore_request &&other478)
 {
-    restore_app_id = std::move(other468.restore_app_id);
-    __isset = std::move(other468.__isset);
+    restore_app_id = std::move(other478.restore_app_id);
+    __isset = std::move(other478.__isset);
 }
 configuration_query_restore_request &configuration_query_restore_request::
-operator=(const configuration_query_restore_request &other469)
+operator=(const configuration_query_restore_request &other479)
 {
-    restore_app_id = other469.restore_app_id;
-    __isset = other469.__isset;
+    restore_app_id = other479.restore_app_id;
+    __isset = other479.__isset;
     return *this;
 }
 configuration_query_restore_request &configuration_query_restore_request::
-operator=(configuration_query_restore_request &&other470)
+operator=(configuration_query_restore_request &&other480)
 {
-    restore_app_id = std::move(other470.restore_app_id);
-    __isset = std::move(other470.__isset);
+    restore_app_id = std::move(other480.restore_app_id);
+    __isset = std::move(other480.__isset);
     return *this;
 }
 void configuration_query_restore_request::printTo(std::ostream &out) const
@@ -11171,13 +11510,13 @@ uint32_t configuration_query_restore_response::read(::apache::thrift::protocol::
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->restore_status.clear();
-                    uint32_t _size471;
-                    ::apache::thrift::protocol::TType _etype474;
-                    xfer += iprot->readListBegin(_etype474, _size471);
-                    this->restore_status.resize(_size471);
-                    uint32_t _i475;
-                    for (_i475 = 0; _i475 < _size471; ++_i475) {
-                        xfer += this->restore_status[_i475].read(iprot);
+                    uint32_t _size481;
+                    ::apache::thrift::protocol::TType _etype484;
+                    xfer += iprot->readListBegin(_etype484, _size481);
+                    this->restore_status.resize(_size481);
+                    uint32_t _i485;
+                    for (_i485 = 0; _i485 < _size481; ++_i485) {
+                        xfer += this->restore_status[_i485].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -11190,13 +11529,13 @@ uint32_t configuration_query_restore_response::read(::apache::thrift::protocol::
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->restore_progress.clear();
-                    uint32_t _size476;
-                    ::apache::thrift::protocol::TType _etype479;
-                    xfer += iprot->readListBegin(_etype479, _size476);
-                    this->restore_progress.resize(_size476);
-                    uint32_t _i480;
-                    for (_i480 = 0; _i480 < _size476; ++_i480) {
-                        xfer += iprot->readI32(this->restore_progress[_i480]);
+                    uint32_t _size486;
+                    ::apache::thrift::protocol::TType _etype489;
+                    xfer += iprot->readListBegin(_etype489, _size486);
+                    this->restore_progress.resize(_size486);
+                    uint32_t _i490;
+                    for (_i490 = 0; _i490 < _size486; ++_i490) {
+                        xfer += iprot->readI32(this->restore_progress[_i490]);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -11232,10 +11571,10 @@ configuration_query_restore_response::write(::apache::thrift::protocol::TProtoco
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->restore_status.size()));
-        std::vector<::dsn::error_code>::const_iterator _iter481;
-        for (_iter481 = this->restore_status.begin(); _iter481 != this->restore_status.end();
-             ++_iter481) {
-            xfer += (*_iter481).write(oprot);
+        std::vector<::dsn::error_code>::const_iterator _iter491;
+        for (_iter491 = this->restore_status.begin(); _iter491 != this->restore_status.end();
+             ++_iter491) {
+            xfer += (*_iter491).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -11245,10 +11584,10 @@ configuration_query_restore_response::write(::apache::thrift::protocol::TProtoco
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_I32,
                                       static_cast<uint32_t>(this->restore_progress.size()));
-        std::vector<int32_t>::const_iterator _iter482;
-        for (_iter482 = this->restore_progress.begin(); _iter482 != this->restore_progress.end();
-             ++_iter482) {
-            xfer += oprot->writeI32((*_iter482));
+        std::vector<int32_t>::const_iterator _iter492;
+        for (_iter492 = this->restore_progress.begin(); _iter492 != this->restore_progress.end();
+             ++_iter492) {
+            xfer += oprot->writeI32((*_iter492));
         }
         xfer += oprot->writeListEnd();
     }
@@ -11269,37 +11608,37 @@ void swap(configuration_query_restore_response &a, configuration_query_restore_r
 }
 
 configuration_query_restore_response::configuration_query_restore_response(
-    const configuration_query_restore_response &other483)
+    const configuration_query_restore_response &other493)
 {
-    err = other483.err;
-    restore_status = other483.restore_status;
-    restore_progress = other483.restore_progress;
-    __isset = other483.__isset;
+    err = other493.err;
+    restore_status = other493.restore_status;
+    restore_progress = other493.restore_progress;
+    __isset = other493.__isset;
 }
 configuration_query_restore_response::configuration_query_restore_response(
-    configuration_query_restore_response &&other484)
+    configuration_query_restore_response &&other494)
 {
-    err = std::move(other484.err);
-    restore_status = std::move(other484.restore_status);
-    restore_progress = std::move(other484.restore_progress);
-    __isset = std::move(other484.__isset);
+    err = std::move(other494.err);
+    restore_status = std::move(other494.restore_status);
+    restore_progress = std::move(other494.restore_progress);
+    __isset = std::move(other494.__isset);
 }
 configuration_query_restore_response &configuration_query_restore_response::
-operator=(const configuration_query_restore_response &other485)
+operator=(const configuration_query_restore_response &other495)
 {
-    err = other485.err;
-    restore_status = other485.restore_status;
-    restore_progress = other485.restore_progress;
-    __isset = other485.__isset;
+    err = other495.err;
+    restore_status = other495.restore_status;
+    restore_progress = other495.restore_progress;
+    __isset = other495.__isset;
     return *this;
 }
 configuration_query_restore_response &configuration_query_restore_response::
-operator=(configuration_query_restore_response &&other486)
+operator=(configuration_query_restore_response &&other496)
 {
-    err = std::move(other486.err);
-    restore_status = std::move(other486.restore_status);
-    restore_progress = std::move(other486.restore_progress);
-    __isset = std::move(other486.__isset);
+    err = std::move(other496.err);
+    restore_status = std::move(other496.restore_status);
+    restore_progress = std::move(other496.restore_progress);
+    __isset = std::move(other496.__isset);
     return *this;
 }
 void configuration_query_restore_response::printTo(std::ostream &out) const
@@ -11409,34 +11748,34 @@ void swap(file_meta &a, file_meta &b)
     swap(a.__isset, b.__isset);
 }
 
-file_meta::file_meta(const file_meta &other487)
+file_meta::file_meta(const file_meta &other497)
 {
-    name = other487.name;
-    size = other487.size;
-    md5 = other487.md5;
-    __isset = other487.__isset;
+    name = other497.name;
+    size = other497.size;
+    md5 = other497.md5;
+    __isset = other497.__isset;
 }
-file_meta::file_meta(file_meta &&other488)
+file_meta::file_meta(file_meta &&other498)
 {
-    name = std::move(other488.name);
-    size = std::move(other488.size);
-    md5 = std::move(other488.md5);
-    __isset = std::move(other488.__isset);
+    name = std::move(other498.name);
+    size = std::move(other498.size);
+    md5 = std::move(other498.md5);
+    __isset = std::move(other498.__isset);
 }
-file_meta &file_meta::operator=(const file_meta &other489)
+file_meta &file_meta::operator=(const file_meta &other499)
 {
-    name = other489.name;
-    size = other489.size;
-    md5 = other489.md5;
-    __isset = other489.__isset;
+    name = other499.name;
+    size = other499.size;
+    md5 = other499.md5;
+    __isset = other499.__isset;
     return *this;
 }
-file_meta &file_meta::operator=(file_meta &&other490)
+file_meta &file_meta::operator=(file_meta &&other500)
 {
-    name = std::move(other490.name);
-    size = std::move(other490.size);
-    md5 = std::move(other490.md5);
-    __isset = std::move(other490.__isset);
+    name = std::move(other500.name);
+    size = std::move(other500.size);
+    md5 = std::move(other500.md5);
+    __isset = std::move(other500.__isset);
     return *this;
 }
 void file_meta::printTo(std::ostream &out) const
@@ -11510,9 +11849,9 @@ uint32_t configuration_update_app_env_request::read(::apache::thrift::protocol::
             break;
         case 2:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast491;
-                xfer += iprot->readI32(ecast491);
-                this->op = (app_env_operation::type)ecast491;
+                int32_t ecast501;
+                xfer += iprot->readI32(ecast501);
+                this->op = (app_env_operation::type)ecast501;
                 this->__isset.op = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -11522,13 +11861,13 @@ uint32_t configuration_update_app_env_request::read(::apache::thrift::protocol::
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->keys.clear();
-                    uint32_t _size492;
-                    ::apache::thrift::protocol::TType _etype495;
-                    xfer += iprot->readListBegin(_etype495, _size492);
-                    this->keys.resize(_size492);
-                    uint32_t _i496;
-                    for (_i496 = 0; _i496 < _size492; ++_i496) {
-                        xfer += iprot->readString(this->keys[_i496]);
+                    uint32_t _size502;
+                    ::apache::thrift::protocol::TType _etype505;
+                    xfer += iprot->readListBegin(_etype505, _size502);
+                    this->keys.resize(_size502);
+                    uint32_t _i506;
+                    for (_i506 = 0; _i506 < _size502; ++_i506) {
+                        xfer += iprot->readString(this->keys[_i506]);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -11541,13 +11880,13 @@ uint32_t configuration_update_app_env_request::read(::apache::thrift::protocol::
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->values.clear();
-                    uint32_t _size497;
-                    ::apache::thrift::protocol::TType _etype500;
-                    xfer += iprot->readListBegin(_etype500, _size497);
-                    this->values.resize(_size497);
-                    uint32_t _i501;
-                    for (_i501 = 0; _i501 < _size497; ++_i501) {
-                        xfer += iprot->readString(this->values[_i501]);
+                    uint32_t _size507;
+                    ::apache::thrift::protocol::TType _etype510;
+                    xfer += iprot->readListBegin(_etype510, _size507);
+                    this->values.resize(_size507);
+                    uint32_t _i511;
+                    for (_i511 = 0; _i511 < _size507; ++_i511) {
+                        xfer += iprot->readString(this->values[_i511]);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -11596,9 +11935,9 @@ configuration_update_app_env_request::write(::apache::thrift::protocol::TProtoco
         {
             xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING,
                                           static_cast<uint32_t>(this->keys.size()));
-            std::vector<std::string>::const_iterator _iter502;
-            for (_iter502 = this->keys.begin(); _iter502 != this->keys.end(); ++_iter502) {
-                xfer += oprot->writeString((*_iter502));
+            std::vector<std::string>::const_iterator _iter512;
+            for (_iter512 = this->keys.begin(); _iter512 != this->keys.end(); ++_iter512) {
+                xfer += oprot->writeString((*_iter512));
             }
             xfer += oprot->writeListEnd();
         }
@@ -11609,9 +11948,9 @@ configuration_update_app_env_request::write(::apache::thrift::protocol::TProtoco
         {
             xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING,
                                           static_cast<uint32_t>(this->values.size()));
-            std::vector<std::string>::const_iterator _iter503;
-            for (_iter503 = this->values.begin(); _iter503 != this->values.end(); ++_iter503) {
-                xfer += oprot->writeString((*_iter503));
+            std::vector<std::string>::const_iterator _iter513;
+            for (_iter513 = this->values.begin(); _iter513 != this->values.end(); ++_iter513) {
+                xfer += oprot->writeString((*_iter513));
             }
             xfer += oprot->writeListEnd();
         }
@@ -11639,45 +11978,45 @@ void swap(configuration_update_app_env_request &a, configuration_update_app_env_
 }
 
 configuration_update_app_env_request::configuration_update_app_env_request(
-    const configuration_update_app_env_request &other504)
+    const configuration_update_app_env_request &other514)
 {
-    app_name = other504.app_name;
-    op = other504.op;
-    keys = other504.keys;
-    values = other504.values;
-    clear_prefix = other504.clear_prefix;
-    __isset = other504.__isset;
+    app_name = other514.app_name;
+    op = other514.op;
+    keys = other514.keys;
+    values = other514.values;
+    clear_prefix = other514.clear_prefix;
+    __isset = other514.__isset;
 }
 configuration_update_app_env_request::configuration_update_app_env_request(
-    configuration_update_app_env_request &&other505)
+    configuration_update_app_env_request &&other515)
 {
-    app_name = std::move(other505.app_name);
-    op = std::move(other505.op);
-    keys = std::move(other505.keys);
-    values = std::move(other505.values);
-    clear_prefix = std::move(other505.clear_prefix);
-    __isset = std::move(other505.__isset);
+    app_name = std::move(other515.app_name);
+    op = std::move(other515.op);
+    keys = std::move(other515.keys);
+    values = std::move(other515.values);
+    clear_prefix = std::move(other515.clear_prefix);
+    __isset = std::move(other515.__isset);
 }
 configuration_update_app_env_request &configuration_update_app_env_request::
-operator=(const configuration_update_app_env_request &other506)
+operator=(const configuration_update_app_env_request &other516)
 {
-    app_name = other506.app_name;
-    op = other506.op;
-    keys = other506.keys;
-    values = other506.values;
-    clear_prefix = other506.clear_prefix;
-    __isset = other506.__isset;
+    app_name = other516.app_name;
+    op = other516.op;
+    keys = other516.keys;
+    values = other516.values;
+    clear_prefix = other516.clear_prefix;
+    __isset = other516.__isset;
     return *this;
 }
 configuration_update_app_env_request &configuration_update_app_env_request::
-operator=(configuration_update_app_env_request &&other507)
+operator=(configuration_update_app_env_request &&other517)
 {
-    app_name = std::move(other507.app_name);
-    op = std::move(other507.op);
-    keys = std::move(other507.keys);
-    values = std::move(other507.values);
-    clear_prefix = std::move(other507.clear_prefix);
-    __isset = std::move(other507.__isset);
+    app_name = std::move(other517.app_name);
+    op = std::move(other517.op);
+    keys = std::move(other517.keys);
+    values = std::move(other517.values);
+    clear_prefix = std::move(other517.clear_prefix);
+    __isset = std::move(other517.__isset);
     return *this;
 }
 void configuration_update_app_env_request::printTo(std::ostream &out) const
@@ -11787,33 +12126,33 @@ void swap(configuration_update_app_env_response &a, configuration_update_app_env
 }
 
 configuration_update_app_env_response::configuration_update_app_env_response(
-    const configuration_update_app_env_response &other508)
+    const configuration_update_app_env_response &other518)
 {
-    err = other508.err;
-    hint_message = other508.hint_message;
-    __isset = other508.__isset;
+    err = other518.err;
+    hint_message = other518.hint_message;
+    __isset = other518.__isset;
 }
 configuration_update_app_env_response::configuration_update_app_env_response(
-    configuration_update_app_env_response &&other509)
+    configuration_update_app_env_response &&other519)
 {
-    err = std::move(other509.err);
-    hint_message = std::move(other509.hint_message);
-    __isset = std::move(other509.__isset);
+    err = std::move(other519.err);
+    hint_message = std::move(other519.hint_message);
+    __isset = std::move(other519.__isset);
 }
 configuration_update_app_env_response &configuration_update_app_env_response::
-operator=(const configuration_update_app_env_response &other510)
+operator=(const configuration_update_app_env_response &other520)
 {
-    err = other510.err;
-    hint_message = other510.hint_message;
-    __isset = other510.__isset;
+    err = other520.err;
+    hint_message = other520.hint_message;
+    __isset = other520.__isset;
     return *this;
 }
 configuration_update_app_env_response &configuration_update_app_env_response::
-operator=(configuration_update_app_env_response &&other511)
+operator=(configuration_update_app_env_response &&other521)
 {
-    err = std::move(other511.err);
-    hint_message = std::move(other511.hint_message);
-    __isset = std::move(other511.__isset);
+    err = std::move(other521.err);
+    hint_message = std::move(other521.hint_message);
+    __isset = std::move(other521.__isset);
     return *this;
 }
 void configuration_update_app_env_response::printTo(std::ostream &out) const
@@ -11924,34 +12263,34 @@ void swap(duplication_add_request &a, duplication_add_request &b)
     swap(a.__isset, b.__isset);
 }
 
-duplication_add_request::duplication_add_request(const duplication_add_request &other512)
+duplication_add_request::duplication_add_request(const duplication_add_request &other522)
 {
-    app_name = other512.app_name;
-    remote_cluster_name = other512.remote_cluster_name;
-    freezed = other512.freezed;
-    __isset = other512.__isset;
+    app_name = other522.app_name;
+    remote_cluster_name = other522.remote_cluster_name;
+    freezed = other522.freezed;
+    __isset = other522.__isset;
 }
-duplication_add_request::duplication_add_request(duplication_add_request &&other513)
+duplication_add_request::duplication_add_request(duplication_add_request &&other523)
 {
-    app_name = std::move(other513.app_name);
-    remote_cluster_name = std::move(other513.remote_cluster_name);
-    freezed = std::move(other513.freezed);
-    __isset = std::move(other513.__isset);
+    app_name = std::move(other523.app_name);
+    remote_cluster_name = std::move(other523.remote_cluster_name);
+    freezed = std::move(other523.freezed);
+    __isset = std::move(other523.__isset);
 }
-duplication_add_request &duplication_add_request::operator=(const duplication_add_request &other514)
+duplication_add_request &duplication_add_request::operator=(const duplication_add_request &other524)
 {
-    app_name = other514.app_name;
-    remote_cluster_name = other514.remote_cluster_name;
-    freezed = other514.freezed;
-    __isset = other514.__isset;
+    app_name = other524.app_name;
+    remote_cluster_name = other524.remote_cluster_name;
+    freezed = other524.freezed;
+    __isset = other524.__isset;
     return *this;
 }
-duplication_add_request &duplication_add_request::operator=(duplication_add_request &&other515)
+duplication_add_request &duplication_add_request::operator=(duplication_add_request &&other525)
 {
-    app_name = std::move(other515.app_name);
-    remote_cluster_name = std::move(other515.remote_cluster_name);
-    freezed = std::move(other515.freezed);
-    __isset = std::move(other515.__isset);
+    app_name = std::move(other525.app_name);
+    remote_cluster_name = std::move(other525.remote_cluster_name);
+    freezed = std::move(other525.freezed);
+    __isset = std::move(other525.__isset);
     return *this;
 }
 void duplication_add_request::printTo(std::ostream &out) const
@@ -12081,39 +12420,39 @@ void swap(duplication_add_response &a, duplication_add_response &b)
     swap(a.__isset, b.__isset);
 }
 
-duplication_add_response::duplication_add_response(const duplication_add_response &other516)
+duplication_add_response::duplication_add_response(const duplication_add_response &other526)
 {
-    err = other516.err;
-    appid = other516.appid;
-    dupid = other516.dupid;
-    hint = other516.hint;
-    __isset = other516.__isset;
+    err = other526.err;
+    appid = other526.appid;
+    dupid = other526.dupid;
+    hint = other526.hint;
+    __isset = other526.__isset;
 }
-duplication_add_response::duplication_add_response(duplication_add_response &&other517)
+duplication_add_response::duplication_add_response(duplication_add_response &&other527)
 {
-    err = std::move(other517.err);
-    appid = std::move(other517.appid);
-    dupid = std::move(other517.dupid);
-    hint = std::move(other517.hint);
-    __isset = std::move(other517.__isset);
+    err = std::move(other527.err);
+    appid = std::move(other527.appid);
+    dupid = std::move(other527.dupid);
+    hint = std::move(other527.hint);
+    __isset = std::move(other527.__isset);
 }
 duplication_add_response &duplication_add_response::
-operator=(const duplication_add_response &other518)
+operator=(const duplication_add_response &other528)
 {
-    err = other518.err;
-    appid = other518.appid;
-    dupid = other518.dupid;
-    hint = other518.hint;
-    __isset = other518.__isset;
+    err = other528.err;
+    appid = other528.appid;
+    dupid = other528.dupid;
+    hint = other528.hint;
+    __isset = other528.__isset;
     return *this;
 }
-duplication_add_response &duplication_add_response::operator=(duplication_add_response &&other519)
+duplication_add_response &duplication_add_response::operator=(duplication_add_response &&other529)
 {
-    err = std::move(other519.err);
-    appid = std::move(other519.appid);
-    dupid = std::move(other519.dupid);
-    hint = std::move(other519.hint);
-    __isset = std::move(other519.__isset);
+    err = std::move(other529.err);
+    appid = std::move(other529.appid);
+    dupid = std::move(other529.dupid);
+    hint = std::move(other529.hint);
+    __isset = std::move(other529.__isset);
     return *this;
 }
 void duplication_add_response::printTo(std::ostream &out) const
@@ -12186,9 +12525,9 @@ uint32_t duplication_modify_request::read(::apache::thrift::protocol::TProtocol 
             break;
         case 3:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast520;
-                xfer += iprot->readI32(ecast520);
-                this->status = (duplication_status::type)ecast520;
+                int32_t ecast530;
+                xfer += iprot->readI32(ecast530);
+                this->status = (duplication_status::type)ecast530;
                 this->__isset.status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -12196,9 +12535,9 @@ uint32_t duplication_modify_request::read(::apache::thrift::protocol::TProtocol 
             break;
         case 4:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast521;
-                xfer += iprot->readI32(ecast521);
-                this->fail_mode = (duplication_fail_mode::type)ecast521;
+                int32_t ecast531;
+                xfer += iprot->readI32(ecast531);
+                this->fail_mode = (duplication_fail_mode::type)ecast531;
                 this->__isset.fail_mode = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -12255,40 +12594,40 @@ void swap(duplication_modify_request &a, duplication_modify_request &b)
     swap(a.__isset, b.__isset);
 }
 
-duplication_modify_request::duplication_modify_request(const duplication_modify_request &other522)
+duplication_modify_request::duplication_modify_request(const duplication_modify_request &other532)
 {
-    app_name = other522.app_name;
-    dupid = other522.dupid;
-    status = other522.status;
-    fail_mode = other522.fail_mode;
-    __isset = other522.__isset;
+    app_name = other532.app_name;
+    dupid = other532.dupid;
+    status = other532.status;
+    fail_mode = other532.fail_mode;
+    __isset = other532.__isset;
 }
-duplication_modify_request::duplication_modify_request(duplication_modify_request &&other523)
+duplication_modify_request::duplication_modify_request(duplication_modify_request &&other533)
 {
-    app_name = std::move(other523.app_name);
-    dupid = std::move(other523.dupid);
-    status = std::move(other523.status);
-    fail_mode = std::move(other523.fail_mode);
-    __isset = std::move(other523.__isset);
+    app_name = std::move(other533.app_name);
+    dupid = std::move(other533.dupid);
+    status = std::move(other533.status);
+    fail_mode = std::move(other533.fail_mode);
+    __isset = std::move(other533.__isset);
 }
 duplication_modify_request &duplication_modify_request::
-operator=(const duplication_modify_request &other524)
+operator=(const duplication_modify_request &other534)
 {
-    app_name = other524.app_name;
-    dupid = other524.dupid;
-    status = other524.status;
-    fail_mode = other524.fail_mode;
-    __isset = other524.__isset;
+    app_name = other534.app_name;
+    dupid = other534.dupid;
+    status = other534.status;
+    fail_mode = other534.fail_mode;
+    __isset = other534.__isset;
     return *this;
 }
 duplication_modify_request &duplication_modify_request::
-operator=(duplication_modify_request &&other525)
+operator=(duplication_modify_request &&other535)
 {
-    app_name = std::move(other525.app_name);
-    dupid = std::move(other525.dupid);
-    status = std::move(other525.status);
-    fail_mode = std::move(other525.fail_mode);
-    __isset = std::move(other525.__isset);
+    app_name = std::move(other535.app_name);
+    dupid = std::move(other535.dupid);
+    status = std::move(other535.status);
+    fail_mode = std::move(other535.fail_mode);
+    __isset = std::move(other535.__isset);
     return *this;
 }
 void duplication_modify_request::printTo(std::ostream &out) const
@@ -12388,32 +12727,32 @@ void swap(duplication_modify_response &a, duplication_modify_response &b)
 }
 
 duplication_modify_response::duplication_modify_response(
-    const duplication_modify_response &other526)
+    const duplication_modify_response &other536)
 {
-    err = other526.err;
-    appid = other526.appid;
-    __isset = other526.__isset;
+    err = other536.err;
+    appid = other536.appid;
+    __isset = other536.__isset;
 }
-duplication_modify_response::duplication_modify_response(duplication_modify_response &&other527)
+duplication_modify_response::duplication_modify_response(duplication_modify_response &&other537)
 {
-    err = std::move(other527.err);
-    appid = std::move(other527.appid);
-    __isset = std::move(other527.__isset);
+    err = std::move(other537.err);
+    appid = std::move(other537.appid);
+    __isset = std::move(other537.__isset);
 }
 duplication_modify_response &duplication_modify_response::
-operator=(const duplication_modify_response &other528)
+operator=(const duplication_modify_response &other538)
 {
-    err = other528.err;
-    appid = other528.appid;
-    __isset = other528.__isset;
+    err = other538.err;
+    appid = other538.appid;
+    __isset = other538.__isset;
     return *this;
 }
 duplication_modify_response &duplication_modify_response::
-operator=(duplication_modify_response &&other529)
+operator=(duplication_modify_response &&other539)
 {
-    err = std::move(other529.err);
-    appid = std::move(other529.appid);
-    __isset = std::move(other529.__isset);
+    err = std::move(other539.err);
+    appid = std::move(other539.appid);
+    __isset = std::move(other539.__isset);
     return *this;
 }
 void duplication_modify_response::printTo(std::ostream &out) const
@@ -12477,9 +12816,9 @@ uint32_t duplication_entry::read(::apache::thrift::protocol::TProtocol *iprot)
             break;
         case 2:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast530;
-                xfer += iprot->readI32(ecast530);
-                this->status = (duplication_status::type)ecast530;
+                int32_t ecast540;
+                xfer += iprot->readI32(ecast540);
+                this->status = (duplication_status::type)ecast540;
                 this->__isset.status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -12505,16 +12844,16 @@ uint32_t duplication_entry::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
                     this->progress.clear();
-                    uint32_t _size531;
-                    ::apache::thrift::protocol::TType _ktype532;
-                    ::apache::thrift::protocol::TType _vtype533;
-                    xfer += iprot->readMapBegin(_ktype532, _vtype533, _size531);
-                    uint32_t _i535;
-                    for (_i535 = 0; _i535 < _size531; ++_i535) {
-                        int32_t _key536;
-                        xfer += iprot->readI32(_key536);
-                        int64_t &_val537 = this->progress[_key536];
-                        xfer += iprot->readI64(_val537);
+                    uint32_t _size541;
+                    ::apache::thrift::protocol::TType _ktype542;
+                    ::apache::thrift::protocol::TType _vtype543;
+                    xfer += iprot->readMapBegin(_ktype542, _vtype543, _size541);
+                    uint32_t _i545;
+                    for (_i545 = 0; _i545 < _size541; ++_i545) {
+                        int32_t _key546;
+                        xfer += iprot->readI32(_key546);
+                        int64_t &_val547 = this->progress[_key546];
+                        xfer += iprot->readI64(_val547);
                     }
                     xfer += iprot->readMapEnd();
                 }
@@ -12525,9 +12864,9 @@ uint32_t duplication_entry::read(::apache::thrift::protocol::TProtocol *iprot)
             break;
         case 7:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast538;
-                xfer += iprot->readI32(ecast538);
-                this->fail_mode = (duplication_fail_mode::type)ecast538;
+                int32_t ecast548;
+                xfer += iprot->readI32(ecast548);
+                this->fail_mode = (duplication_fail_mode::type)ecast548;
                 this->__isset.fail_mode = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -12573,10 +12912,10 @@ uint32_t duplication_entry::write(::apache::thrift::protocol::TProtocol *oprot) 
             xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_I32,
                                          ::apache::thrift::protocol::T_I64,
                                          static_cast<uint32_t>(this->progress.size()));
-            std::map<int32_t, int64_t>::const_iterator _iter539;
-            for (_iter539 = this->progress.begin(); _iter539 != this->progress.end(); ++_iter539) {
-                xfer += oprot->writeI32(_iter539->first);
-                xfer += oprot->writeI64(_iter539->second);
+            std::map<int32_t, int64_t>::const_iterator _iter549;
+            for (_iter549 = this->progress.begin(); _iter549 != this->progress.end(); ++_iter549) {
+                xfer += oprot->writeI32(_iter549->first);
+                xfer += oprot->writeI64(_iter549->second);
             }
             xfer += oprot->writeMapEnd();
         }
@@ -12604,46 +12943,46 @@ void swap(duplication_entry &a, duplication_entry &b)
     swap(a.__isset, b.__isset);
 }
 
-duplication_entry::duplication_entry(const duplication_entry &other540)
+duplication_entry::duplication_entry(const duplication_entry &other550)
 {
-    dupid = other540.dupid;
-    status = other540.status;
-    remote = other540.remote;
-    create_ts = other540.create_ts;
-    progress = other540.progress;
-    fail_mode = other540.fail_mode;
-    __isset = other540.__isset;
+    dupid = other550.dupid;
+    status = other550.status;
+    remote = other550.remote;
+    create_ts = other550.create_ts;
+    progress = other550.progress;
+    fail_mode = other550.fail_mode;
+    __isset = other550.__isset;
 }
-duplication_entry::duplication_entry(duplication_entry &&other541)
+duplication_entry::duplication_entry(duplication_entry &&other551)
 {
-    dupid = std::move(other541.dupid);
-    status = std::move(other541.status);
-    remote = std::move(other541.remote);
-    create_ts = std::move(other541.create_ts);
-    progress = std::move(other541.progress);
-    fail_mode = std::move(other541.fail_mode);
-    __isset = std::move(other541.__isset);
+    dupid = std::move(other551.dupid);
+    status = std::move(other551.status);
+    remote = std::move(other551.remote);
+    create_ts = std::move(other551.create_ts);
+    progress = std::move(other551.progress);
+    fail_mode = std::move(other551.fail_mode);
+    __isset = std::move(other551.__isset);
 }
-duplication_entry &duplication_entry::operator=(const duplication_entry &other542)
+duplication_entry &duplication_entry::operator=(const duplication_entry &other552)
 {
-    dupid = other542.dupid;
-    status = other542.status;
-    remote = other542.remote;
-    create_ts = other542.create_ts;
-    progress = other542.progress;
-    fail_mode = other542.fail_mode;
-    __isset = other542.__isset;
+    dupid = other552.dupid;
+    status = other552.status;
+    remote = other552.remote;
+    create_ts = other552.create_ts;
+    progress = other552.progress;
+    fail_mode = other552.fail_mode;
+    __isset = other552.__isset;
     return *this;
 }
-duplication_entry &duplication_entry::operator=(duplication_entry &&other543)
+duplication_entry &duplication_entry::operator=(duplication_entry &&other553)
 {
-    dupid = std::move(other543.dupid);
-    status = std::move(other543.status);
-    remote = std::move(other543.remote);
-    create_ts = std::move(other543.create_ts);
-    progress = std::move(other543.progress);
-    fail_mode = std::move(other543.fail_mode);
-    __isset = std::move(other543.__isset);
+    dupid = std::move(other553.dupid);
+    status = std::move(other553.status);
+    remote = std::move(other553.remote);
+    create_ts = std::move(other553.create_ts);
+    progress = std::move(other553.progress);
+    fail_mode = std::move(other553.fail_mode);
+    __isset = std::move(other553.__isset);
     return *this;
 }
 void duplication_entry::printTo(std::ostream &out) const
@@ -12731,28 +13070,28 @@ void swap(duplication_query_request &a, duplication_query_request &b)
     swap(a.__isset, b.__isset);
 }
 
-duplication_query_request::duplication_query_request(const duplication_query_request &other544)
+duplication_query_request::duplication_query_request(const duplication_query_request &other554)
 {
-    app_name = other544.app_name;
-    __isset = other544.__isset;
+    app_name = other554.app_name;
+    __isset = other554.__isset;
 }
-duplication_query_request::duplication_query_request(duplication_query_request &&other545)
+duplication_query_request::duplication_query_request(duplication_query_request &&other555)
 {
-    app_name = std::move(other545.app_name);
-    __isset = std::move(other545.__isset);
+    app_name = std::move(other555.app_name);
+    __isset = std::move(other555.__isset);
 }
 duplication_query_request &duplication_query_request::
-operator=(const duplication_query_request &other546)
+operator=(const duplication_query_request &other556)
 {
-    app_name = other546.app_name;
-    __isset = other546.__isset;
+    app_name = other556.app_name;
+    __isset = other556.__isset;
     return *this;
 }
 duplication_query_request &duplication_query_request::
-operator=(duplication_query_request &&other547)
+operator=(duplication_query_request &&other557)
 {
-    app_name = std::move(other547.app_name);
-    __isset = std::move(other547.__isset);
+    app_name = std::move(other557.app_name);
+    __isset = std::move(other557.__isset);
     return *this;
 }
 void duplication_query_request::printTo(std::ostream &out) const
@@ -12813,13 +13152,13 @@ uint32_t duplication_query_response::read(::apache::thrift::protocol::TProtocol 
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->entry_list.clear();
-                    uint32_t _size548;
-                    ::apache::thrift::protocol::TType _etype551;
-                    xfer += iprot->readListBegin(_etype551, _size548);
-                    this->entry_list.resize(_size548);
-                    uint32_t _i552;
-                    for (_i552 = 0; _i552 < _size548; ++_i552) {
-                        xfer += this->entry_list[_i552].read(iprot);
+                    uint32_t _size558;
+                    ::apache::thrift::protocol::TType _etype561;
+                    xfer += iprot->readListBegin(_etype561, _size558);
+                    this->entry_list.resize(_size558);
+                    uint32_t _i562;
+                    for (_i562 = 0; _i562 < _size558; ++_i562) {
+                        xfer += this->entry_list[_i562].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -12858,9 +13197,9 @@ uint32_t duplication_query_response::write(::apache::thrift::protocol::TProtocol
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->entry_list.size()));
-        std::vector<duplication_entry>::const_iterator _iter553;
-        for (_iter553 = this->entry_list.begin(); _iter553 != this->entry_list.end(); ++_iter553) {
-            xfer += (*_iter553).write(oprot);
+        std::vector<duplication_entry>::const_iterator _iter563;
+        for (_iter563 = this->entry_list.begin(); _iter563 != this->entry_list.end(); ++_iter563) {
+            xfer += (*_iter563).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -12880,36 +13219,36 @@ void swap(duplication_query_response &a, duplication_query_response &b)
     swap(a.__isset, b.__isset);
 }
 
-duplication_query_response::duplication_query_response(const duplication_query_response &other554)
+duplication_query_response::duplication_query_response(const duplication_query_response &other564)
 {
-    err = other554.err;
-    appid = other554.appid;
-    entry_list = other554.entry_list;
-    __isset = other554.__isset;
+    err = other564.err;
+    appid = other564.appid;
+    entry_list = other564.entry_list;
+    __isset = other564.__isset;
 }
-duplication_query_response::duplication_query_response(duplication_query_response &&other555)
+duplication_query_response::duplication_query_response(duplication_query_response &&other565)
 {
-    err = std::move(other555.err);
-    appid = std::move(other555.appid);
-    entry_list = std::move(other555.entry_list);
-    __isset = std::move(other555.__isset);
+    err = std::move(other565.err);
+    appid = std::move(other565.appid);
+    entry_list = std::move(other565.entry_list);
+    __isset = std::move(other565.__isset);
 }
 duplication_query_response &duplication_query_response::
-operator=(const duplication_query_response &other556)
+operator=(const duplication_query_response &other566)
 {
-    err = other556.err;
-    appid = other556.appid;
-    entry_list = other556.entry_list;
-    __isset = other556.__isset;
+    err = other566.err;
+    appid = other566.appid;
+    entry_list = other566.entry_list;
+    __isset = other566.__isset;
     return *this;
 }
 duplication_query_response &duplication_query_response::
-operator=(duplication_query_response &&other557)
+operator=(duplication_query_response &&other567)
 {
-    err = std::move(other557.err);
-    appid = std::move(other557.appid);
-    entry_list = std::move(other557.entry_list);
-    __isset = std::move(other557.__isset);
+    err = std::move(other567.err);
+    appid = std::move(other567.appid);
+    entry_list = std::move(other567.entry_list);
+    __isset = std::move(other567.__isset);
     return *this;
 }
 void duplication_query_response::printTo(std::ostream &out) const
@@ -13007,32 +13346,32 @@ void swap(duplication_confirm_entry &a, duplication_confirm_entry &b)
     swap(a.__isset, b.__isset);
 }
 
-duplication_confirm_entry::duplication_confirm_entry(const duplication_confirm_entry &other558)
+duplication_confirm_entry::duplication_confirm_entry(const duplication_confirm_entry &other568)
 {
-    dupid = other558.dupid;
-    confirmed_decree = other558.confirmed_decree;
-    __isset = other558.__isset;
+    dupid = other568.dupid;
+    confirmed_decree = other568.confirmed_decree;
+    __isset = other568.__isset;
 }
-duplication_confirm_entry::duplication_confirm_entry(duplication_confirm_entry &&other559)
+duplication_confirm_entry::duplication_confirm_entry(duplication_confirm_entry &&other569)
 {
-    dupid = std::move(other559.dupid);
-    confirmed_decree = std::move(other559.confirmed_decree);
-    __isset = std::move(other559.__isset);
+    dupid = std::move(other569.dupid);
+    confirmed_decree = std::move(other569.confirmed_decree);
+    __isset = std::move(other569.__isset);
 }
 duplication_confirm_entry &duplication_confirm_entry::
-operator=(const duplication_confirm_entry &other560)
+operator=(const duplication_confirm_entry &other570)
 {
-    dupid = other560.dupid;
-    confirmed_decree = other560.confirmed_decree;
-    __isset = other560.__isset;
+    dupid = other570.dupid;
+    confirmed_decree = other570.confirmed_decree;
+    __isset = other570.__isset;
     return *this;
 }
 duplication_confirm_entry &duplication_confirm_entry::
-operator=(duplication_confirm_entry &&other561)
+operator=(duplication_confirm_entry &&other571)
 {
-    dupid = std::move(other561.dupid);
-    confirmed_decree = std::move(other561.confirmed_decree);
-    __isset = std::move(other561.__isset);
+    dupid = std::move(other571.dupid);
+    confirmed_decree = std::move(other571.confirmed_decree);
+    __isset = std::move(other571.__isset);
     return *this;
 }
 void duplication_confirm_entry::printTo(std::ostream &out) const
@@ -13086,25 +13425,25 @@ uint32_t duplication_sync_request::read(::apache::thrift::protocol::TProtocol *i
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
                     this->confirm_list.clear();
-                    uint32_t _size562;
-                    ::apache::thrift::protocol::TType _ktype563;
-                    ::apache::thrift::protocol::TType _vtype564;
-                    xfer += iprot->readMapBegin(_ktype563, _vtype564, _size562);
-                    uint32_t _i566;
-                    for (_i566 = 0; _i566 < _size562; ++_i566) {
-                        ::dsn::gpid _key567;
-                        xfer += _key567.read(iprot);
-                        std::vector<duplication_confirm_entry> &_val568 =
-                            this->confirm_list[_key567];
+                    uint32_t _size572;
+                    ::apache::thrift::protocol::TType _ktype573;
+                    ::apache::thrift::protocol::TType _vtype574;
+                    xfer += iprot->readMapBegin(_ktype573, _vtype574, _size572);
+                    uint32_t _i576;
+                    for (_i576 = 0; _i576 < _size572; ++_i576) {
+                        ::dsn::gpid _key577;
+                        xfer += _key577.read(iprot);
+                        std::vector<duplication_confirm_entry> &_val578 =
+                            this->confirm_list[_key577];
                         {
-                            _val568.clear();
-                            uint32_t _size569;
-                            ::apache::thrift::protocol::TType _etype572;
-                            xfer += iprot->readListBegin(_etype572, _size569);
-                            _val568.resize(_size569);
-                            uint32_t _i573;
-                            for (_i573 = 0; _i573 < _size569; ++_i573) {
-                                xfer += _val568[_i573].read(iprot);
+                            _val578.clear();
+                            uint32_t _size579;
+                            ::apache::thrift::protocol::TType _etype582;
+                            xfer += iprot->readListBegin(_etype582, _size579);
+                            _val578.resize(_size579);
+                            uint32_t _i583;
+                            for (_i583 = 0; _i583 < _size579; ++_i583) {
+                                xfer += _val578[_i583].read(iprot);
                             }
                             xfer += iprot->readListEnd();
                         }
@@ -13143,17 +13482,17 @@ uint32_t duplication_sync_request::write(::apache::thrift::protocol::TProtocol *
         xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRUCT,
                                      ::apache::thrift::protocol::T_LIST,
                                      static_cast<uint32_t>(this->confirm_list.size()));
-        std::map<::dsn::gpid, std::vector<duplication_confirm_entry>>::const_iterator _iter574;
-        for (_iter574 = this->confirm_list.begin(); _iter574 != this->confirm_list.end();
-             ++_iter574) {
-            xfer += _iter574->first.write(oprot);
+        std::map<::dsn::gpid, std::vector<duplication_confirm_entry>>::const_iterator _iter584;
+        for (_iter584 = this->confirm_list.begin(); _iter584 != this->confirm_list.end();
+             ++_iter584) {
+            xfer += _iter584->first.write(oprot);
             {
                 xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
-                                              static_cast<uint32_t>(_iter574->second.size()));
-                std::vector<duplication_confirm_entry>::const_iterator _iter575;
-                for (_iter575 = _iter574->second.begin(); _iter575 != _iter574->second.end();
-                     ++_iter575) {
-                    xfer += (*_iter575).write(oprot);
+                                              static_cast<uint32_t>(_iter584->second.size()));
+                std::vector<duplication_confirm_entry>::const_iterator _iter585;
+                for (_iter585 = _iter584->second.begin(); _iter585 != _iter584->second.end();
+                     ++_iter585) {
+                    xfer += (*_iter585).write(oprot);
                 }
                 xfer += oprot->writeListEnd();
             }
@@ -13175,31 +13514,31 @@ void swap(duplication_sync_request &a, duplication_sync_request &b)
     swap(a.__isset, b.__isset);
 }
 
-duplication_sync_request::duplication_sync_request(const duplication_sync_request &other576)
+duplication_sync_request::duplication_sync_request(const duplication_sync_request &other586)
 {
-    node = other576.node;
-    confirm_list = other576.confirm_list;
-    __isset = other576.__isset;
+    node = other586.node;
+    confirm_list = other586.confirm_list;
+    __isset = other586.__isset;
 }
-duplication_sync_request::duplication_sync_request(duplication_sync_request &&other577)
+duplication_sync_request::duplication_sync_request(duplication_sync_request &&other587)
 {
-    node = std::move(other577.node);
-    confirm_list = std::move(other577.confirm_list);
-    __isset = std::move(other577.__isset);
+    node = std::move(other587.node);
+    confirm_list = std::move(other587.confirm_list);
+    __isset = std::move(other587.__isset);
 }
 duplication_sync_request &duplication_sync_request::
-operator=(const duplication_sync_request &other578)
+operator=(const duplication_sync_request &other588)
 {
-    node = other578.node;
-    confirm_list = other578.confirm_list;
-    __isset = other578.__isset;
+    node = other588.node;
+    confirm_list = other588.confirm_list;
+    __isset = other588.__isset;
     return *this;
 }
-duplication_sync_request &duplication_sync_request::operator=(duplication_sync_request &&other579)
+duplication_sync_request &duplication_sync_request::operator=(duplication_sync_request &&other589)
 {
-    node = std::move(other579.node);
-    confirm_list = std::move(other579.confirm_list);
-    __isset = std::move(other579.__isset);
+    node = std::move(other589.node);
+    confirm_list = std::move(other589.confirm_list);
+    __isset = std::move(other589.__isset);
     return *this;
 }
 void duplication_sync_request::printTo(std::ostream &out) const
@@ -13253,27 +13592,27 @@ uint32_t duplication_sync_response::read(::apache::thrift::protocol::TProtocol *
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
                     this->dup_map.clear();
-                    uint32_t _size580;
-                    ::apache::thrift::protocol::TType _ktype581;
-                    ::apache::thrift::protocol::TType _vtype582;
-                    xfer += iprot->readMapBegin(_ktype581, _vtype582, _size580);
-                    uint32_t _i584;
-                    for (_i584 = 0; _i584 < _size580; ++_i584) {
-                        int32_t _key585;
-                        xfer += iprot->readI32(_key585);
-                        std::map<int32_t, duplication_entry> &_val586 = this->dup_map[_key585];
+                    uint32_t _size590;
+                    ::apache::thrift::protocol::TType _ktype591;
+                    ::apache::thrift::protocol::TType _vtype592;
+                    xfer += iprot->readMapBegin(_ktype591, _vtype592, _size590);
+                    uint32_t _i594;
+                    for (_i594 = 0; _i594 < _size590; ++_i594) {
+                        int32_t _key595;
+                        xfer += iprot->readI32(_key595);
+                        std::map<int32_t, duplication_entry> &_val596 = this->dup_map[_key595];
                         {
-                            _val586.clear();
-                            uint32_t _size587;
-                            ::apache::thrift::protocol::TType _ktype588;
-                            ::apache::thrift::protocol::TType _vtype589;
-                            xfer += iprot->readMapBegin(_ktype588, _vtype589, _size587);
-                            uint32_t _i591;
-                            for (_i591 = 0; _i591 < _size587; ++_i591) {
-                                int32_t _key592;
-                                xfer += iprot->readI32(_key592);
-                                duplication_entry &_val593 = _val586[_key592];
-                                xfer += _val593.read(iprot);
+                            _val596.clear();
+                            uint32_t _size597;
+                            ::apache::thrift::protocol::TType _ktype598;
+                            ::apache::thrift::protocol::TType _vtype599;
+                            xfer += iprot->readMapBegin(_ktype598, _vtype599, _size597);
+                            uint32_t _i601;
+                            for (_i601 = 0; _i601 < _size597; ++_i601) {
+                                int32_t _key602;
+                                xfer += iprot->readI32(_key602);
+                                duplication_entry &_val603 = _val596[_key602];
+                                xfer += _val603.read(iprot);
                             }
                             xfer += iprot->readMapEnd();
                         }
@@ -13312,18 +13651,18 @@ uint32_t duplication_sync_response::write(::apache::thrift::protocol::TProtocol 
         xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_I32,
                                      ::apache::thrift::protocol::T_MAP,
                                      static_cast<uint32_t>(this->dup_map.size()));
-        std::map<int32_t, std::map<int32_t, duplication_entry>>::const_iterator _iter594;
-        for (_iter594 = this->dup_map.begin(); _iter594 != this->dup_map.end(); ++_iter594) {
-            xfer += oprot->writeI32(_iter594->first);
+        std::map<int32_t, std::map<int32_t, duplication_entry>>::const_iterator _iter604;
+        for (_iter604 = this->dup_map.begin(); _iter604 != this->dup_map.end(); ++_iter604) {
+            xfer += oprot->writeI32(_iter604->first);
             {
                 xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_I32,
                                              ::apache::thrift::protocol::T_STRUCT,
-                                             static_cast<uint32_t>(_iter594->second.size()));
-                std::map<int32_t, duplication_entry>::const_iterator _iter595;
-                for (_iter595 = _iter594->second.begin(); _iter595 != _iter594->second.end();
-                     ++_iter595) {
-                    xfer += oprot->writeI32(_iter595->first);
-                    xfer += _iter595->second.write(oprot);
+                                             static_cast<uint32_t>(_iter604->second.size()));
+                std::map<int32_t, duplication_entry>::const_iterator _iter605;
+                for (_iter605 = _iter604->second.begin(); _iter605 != _iter604->second.end();
+                     ++_iter605) {
+                    xfer += oprot->writeI32(_iter605->first);
+                    xfer += _iter605->second.write(oprot);
                 }
                 xfer += oprot->writeMapEnd();
             }
@@ -13345,32 +13684,32 @@ void swap(duplication_sync_response &a, duplication_sync_response &b)
     swap(a.__isset, b.__isset);
 }
 
-duplication_sync_response::duplication_sync_response(const duplication_sync_response &other596)
+duplication_sync_response::duplication_sync_response(const duplication_sync_response &other606)
 {
-    err = other596.err;
-    dup_map = other596.dup_map;
-    __isset = other596.__isset;
+    err = other606.err;
+    dup_map = other606.dup_map;
+    __isset = other606.__isset;
 }
-duplication_sync_response::duplication_sync_response(duplication_sync_response &&other597)
+duplication_sync_response::duplication_sync_response(duplication_sync_response &&other607)
 {
-    err = std::move(other597.err);
-    dup_map = std::move(other597.dup_map);
-    __isset = std::move(other597.__isset);
+    err = std::move(other607.err);
+    dup_map = std::move(other607.dup_map);
+    __isset = std::move(other607.__isset);
 }
 duplication_sync_response &duplication_sync_response::
-operator=(const duplication_sync_response &other598)
+operator=(const duplication_sync_response &other608)
 {
-    err = other598.err;
-    dup_map = other598.dup_map;
-    __isset = other598.__isset;
+    err = other608.err;
+    dup_map = other608.dup_map;
+    __isset = other608.__isset;
     return *this;
 }
 duplication_sync_response &duplication_sync_response::
-operator=(duplication_sync_response &&other599)
+operator=(duplication_sync_response &&other609)
 {
-    err = std::move(other599.err);
-    dup_map = std::move(other599.dup_map);
-    __isset = std::move(other599.__isset);
+    err = std::move(other609.err);
+    dup_map = std::move(other609.dup_map);
+    __isset = std::move(other609.__isset);
     return *this;
 }
 void duplication_sync_response::printTo(std::ostream &out) const
@@ -13448,26 +13787,26 @@ void swap(ddd_diagnose_request &a, ddd_diagnose_request &b)
     swap(a.__isset, b.__isset);
 }
 
-ddd_diagnose_request::ddd_diagnose_request(const ddd_diagnose_request &other600)
+ddd_diagnose_request::ddd_diagnose_request(const ddd_diagnose_request &other610)
 {
-    pid = other600.pid;
-    __isset = other600.__isset;
+    pid = other610.pid;
+    __isset = other610.__isset;
 }
-ddd_diagnose_request::ddd_diagnose_request(ddd_diagnose_request &&other601)
+ddd_diagnose_request::ddd_diagnose_request(ddd_diagnose_request &&other611)
 {
-    pid = std::move(other601.pid);
-    __isset = std::move(other601.__isset);
+    pid = std::move(other611.pid);
+    __isset = std::move(other611.__isset);
 }
-ddd_diagnose_request &ddd_diagnose_request::operator=(const ddd_diagnose_request &other602)
+ddd_diagnose_request &ddd_diagnose_request::operator=(const ddd_diagnose_request &other612)
 {
-    pid = other602.pid;
-    __isset = other602.__isset;
+    pid = other612.pid;
+    __isset = other612.__isset;
     return *this;
 }
-ddd_diagnose_request &ddd_diagnose_request::operator=(ddd_diagnose_request &&other603)
+ddd_diagnose_request &ddd_diagnose_request::operator=(ddd_diagnose_request &&other613)
 {
-    pid = std::move(other603.pid);
-    __isset = std::move(other603.__isset);
+    pid = std::move(other613.pid);
+    __isset = std::move(other613.__isset);
     return *this;
 }
 void ddd_diagnose_request::printTo(std::ostream &out) const
@@ -13639,50 +13978,50 @@ void swap(ddd_node_info &a, ddd_node_info &b)
     swap(a.__isset, b.__isset);
 }
 
-ddd_node_info::ddd_node_info(const ddd_node_info &other604)
+ddd_node_info::ddd_node_info(const ddd_node_info &other614)
 {
-    node = other604.node;
-    drop_time_ms = other604.drop_time_ms;
-    is_alive = other604.is_alive;
-    is_collected = other604.is_collected;
-    ballot = other604.ballot;
-    last_committed_decree = other604.last_committed_decree;
-    last_prepared_decree = other604.last_prepared_decree;
-    __isset = other604.__isset;
+    node = other614.node;
+    drop_time_ms = other614.drop_time_ms;
+    is_alive = other614.is_alive;
+    is_collected = other614.is_collected;
+    ballot = other614.ballot;
+    last_committed_decree = other614.last_committed_decree;
+    last_prepared_decree = other614.last_prepared_decree;
+    __isset = other614.__isset;
 }
-ddd_node_info::ddd_node_info(ddd_node_info &&other605)
+ddd_node_info::ddd_node_info(ddd_node_info &&other615)
 {
-    node = std::move(other605.node);
-    drop_time_ms = std::move(other605.drop_time_ms);
-    is_alive = std::move(other605.is_alive);
-    is_collected = std::move(other605.is_collected);
-    ballot = std::move(other605.ballot);
-    last_committed_decree = std::move(other605.last_committed_decree);
-    last_prepared_decree = std::move(other605.last_prepared_decree);
-    __isset = std::move(other605.__isset);
+    node = std::move(other615.node);
+    drop_time_ms = std::move(other615.drop_time_ms);
+    is_alive = std::move(other615.is_alive);
+    is_collected = std::move(other615.is_collected);
+    ballot = std::move(other615.ballot);
+    last_committed_decree = std::move(other615.last_committed_decree);
+    last_prepared_decree = std::move(other615.last_prepared_decree);
+    __isset = std::move(other615.__isset);
 }
-ddd_node_info &ddd_node_info::operator=(const ddd_node_info &other606)
+ddd_node_info &ddd_node_info::operator=(const ddd_node_info &other616)
 {
-    node = other606.node;
-    drop_time_ms = other606.drop_time_ms;
-    is_alive = other606.is_alive;
-    is_collected = other606.is_collected;
-    ballot = other606.ballot;
-    last_committed_decree = other606.last_committed_decree;
-    last_prepared_decree = other606.last_prepared_decree;
-    __isset = other606.__isset;
+    node = other616.node;
+    drop_time_ms = other616.drop_time_ms;
+    is_alive = other616.is_alive;
+    is_collected = other616.is_collected;
+    ballot = other616.ballot;
+    last_committed_decree = other616.last_committed_decree;
+    last_prepared_decree = other616.last_prepared_decree;
+    __isset = other616.__isset;
     return *this;
 }
-ddd_node_info &ddd_node_info::operator=(ddd_node_info &&other607)
+ddd_node_info &ddd_node_info::operator=(ddd_node_info &&other617)
 {
-    node = std::move(other607.node);
-    drop_time_ms = std::move(other607.drop_time_ms);
-    is_alive = std::move(other607.is_alive);
-    is_collected = std::move(other607.is_collected);
-    ballot = std::move(other607.ballot);
-    last_committed_decree = std::move(other607.last_committed_decree);
-    last_prepared_decree = std::move(other607.last_prepared_decree);
-    __isset = std::move(other607.__isset);
+    node = std::move(other617.node);
+    drop_time_ms = std::move(other617.drop_time_ms);
+    is_alive = std::move(other617.is_alive);
+    is_collected = std::move(other617.is_collected);
+    ballot = std::move(other617.ballot);
+    last_committed_decree = std::move(other617.last_committed_decree);
+    last_prepared_decree = std::move(other617.last_prepared_decree);
+    __isset = std::move(other617.__isset);
     return *this;
 }
 void ddd_node_info::printTo(std::ostream &out) const
@@ -13750,13 +14089,13 @@ uint32_t ddd_partition_info::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->dropped.clear();
-                    uint32_t _size608;
-                    ::apache::thrift::protocol::TType _etype611;
-                    xfer += iprot->readListBegin(_etype611, _size608);
-                    this->dropped.resize(_size608);
-                    uint32_t _i612;
-                    for (_i612 = 0; _i612 < _size608; ++_i612) {
-                        xfer += this->dropped[_i612].read(iprot);
+                    uint32_t _size618;
+                    ::apache::thrift::protocol::TType _etype621;
+                    xfer += iprot->readListBegin(_etype621, _size618);
+                    this->dropped.resize(_size618);
+                    uint32_t _i622;
+                    for (_i622 = 0; _i622 < _size618; ++_i622) {
+                        xfer += this->dropped[_i622].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -13799,9 +14138,9 @@ uint32_t ddd_partition_info::write(::apache::thrift::protocol::TProtocol *oprot)
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->dropped.size()));
-        std::vector<ddd_node_info>::const_iterator _iter613;
-        for (_iter613 = this->dropped.begin(); _iter613 != this->dropped.end(); ++_iter613) {
-            xfer += (*_iter613).write(oprot);
+        std::vector<ddd_node_info>::const_iterator _iter623;
+        for (_iter623 = this->dropped.begin(); _iter623 != this->dropped.end(); ++_iter623) {
+            xfer += (*_iter623).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -13825,34 +14164,34 @@ void swap(ddd_partition_info &a, ddd_partition_info &b)
     swap(a.__isset, b.__isset);
 }
 
-ddd_partition_info::ddd_partition_info(const ddd_partition_info &other614)
+ddd_partition_info::ddd_partition_info(const ddd_partition_info &other624)
 {
-    config = other614.config;
-    dropped = other614.dropped;
-    reason = other614.reason;
-    __isset = other614.__isset;
+    config = other624.config;
+    dropped = other624.dropped;
+    reason = other624.reason;
+    __isset = other624.__isset;
 }
-ddd_partition_info::ddd_partition_info(ddd_partition_info &&other615)
+ddd_partition_info::ddd_partition_info(ddd_partition_info &&other625)
 {
-    config = std::move(other615.config);
-    dropped = std::move(other615.dropped);
-    reason = std::move(other615.reason);
-    __isset = std::move(other615.__isset);
+    config = std::move(other625.config);
+    dropped = std::move(other625.dropped);
+    reason = std::move(other625.reason);
+    __isset = std::move(other625.__isset);
 }
-ddd_partition_info &ddd_partition_info::operator=(const ddd_partition_info &other616)
+ddd_partition_info &ddd_partition_info::operator=(const ddd_partition_info &other626)
 {
-    config = other616.config;
-    dropped = other616.dropped;
-    reason = other616.reason;
-    __isset = other616.__isset;
+    config = other626.config;
+    dropped = other626.dropped;
+    reason = other626.reason;
+    __isset = other626.__isset;
     return *this;
 }
-ddd_partition_info &ddd_partition_info::operator=(ddd_partition_info &&other617)
+ddd_partition_info &ddd_partition_info::operator=(ddd_partition_info &&other627)
 {
-    config = std::move(other617.config);
-    dropped = std::move(other617.dropped);
-    reason = std::move(other617.reason);
-    __isset = std::move(other617.__isset);
+    config = std::move(other627.config);
+    dropped = std::move(other627.dropped);
+    reason = std::move(other627.reason);
+    __isset = std::move(other627.__isset);
     return *this;
 }
 void ddd_partition_info::printTo(std::ostream &out) const
@@ -13907,13 +14246,13 @@ uint32_t ddd_diagnose_response::read(::apache::thrift::protocol::TProtocol *ipro
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->partitions.clear();
-                    uint32_t _size618;
-                    ::apache::thrift::protocol::TType _etype621;
-                    xfer += iprot->readListBegin(_etype621, _size618);
-                    this->partitions.resize(_size618);
-                    uint32_t _i622;
-                    for (_i622 = 0; _i622 < _size618; ++_i622) {
-                        xfer += this->partitions[_i622].read(iprot);
+                    uint32_t _size628;
+                    ::apache::thrift::protocol::TType _etype631;
+                    xfer += iprot->readListBegin(_etype631, _size628);
+                    this->partitions.resize(_size628);
+                    uint32_t _i632;
+                    for (_i632 = 0; _i632 < _size628; ++_i632) {
+                        xfer += this->partitions[_i632].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -13948,9 +14287,9 @@ uint32_t ddd_diagnose_response::write(::apache::thrift::protocol::TProtocol *opr
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->partitions.size()));
-        std::vector<ddd_partition_info>::const_iterator _iter623;
-        for (_iter623 = this->partitions.begin(); _iter623 != this->partitions.end(); ++_iter623) {
-            xfer += (*_iter623).write(oprot);
+        std::vector<ddd_partition_info>::const_iterator _iter633;
+        for (_iter633 = this->partitions.begin(); _iter633 != this->partitions.end(); ++_iter633) {
+            xfer += (*_iter633).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -13969,30 +14308,30 @@ void swap(ddd_diagnose_response &a, ddd_diagnose_response &b)
     swap(a.__isset, b.__isset);
 }
 
-ddd_diagnose_response::ddd_diagnose_response(const ddd_diagnose_response &other624)
+ddd_diagnose_response::ddd_diagnose_response(const ddd_diagnose_response &other634)
 {
-    err = other624.err;
-    partitions = other624.partitions;
-    __isset = other624.__isset;
+    err = other634.err;
+    partitions = other634.partitions;
+    __isset = other634.__isset;
 }
-ddd_diagnose_response::ddd_diagnose_response(ddd_diagnose_response &&other625)
+ddd_diagnose_response::ddd_diagnose_response(ddd_diagnose_response &&other635)
 {
-    err = std::move(other625.err);
-    partitions = std::move(other625.partitions);
-    __isset = std::move(other625.__isset);
+    err = std::move(other635.err);
+    partitions = std::move(other635.partitions);
+    __isset = std::move(other635.__isset);
 }
-ddd_diagnose_response &ddd_diagnose_response::operator=(const ddd_diagnose_response &other626)
+ddd_diagnose_response &ddd_diagnose_response::operator=(const ddd_diagnose_response &other636)
 {
-    err = other626.err;
-    partitions = other626.partitions;
-    __isset = other626.__isset;
+    err = other636.err;
+    partitions = other636.partitions;
+    __isset = other636.__isset;
     return *this;
 }
-ddd_diagnose_response &ddd_diagnose_response::operator=(ddd_diagnose_response &&other627)
+ddd_diagnose_response &ddd_diagnose_response::operator=(ddd_diagnose_response &&other637)
 {
-    err = std::move(other627.err);
-    partitions = std::move(other627.partitions);
-    __isset = std::move(other627.__isset);
+    err = std::move(other637.err);
+    partitions = std::move(other637.partitions);
+    __isset = std::move(other637.__isset);
     return *this;
 }
 void ddd_diagnose_response::printTo(std::ostream &out) const
@@ -14089,33 +14428,33 @@ void swap(start_partition_split_request &a, start_partition_split_request &b)
 }
 
 start_partition_split_request::start_partition_split_request(
-    const start_partition_split_request &other628)
+    const start_partition_split_request &other638)
 {
-    app_name = other628.app_name;
-    new_partition_count = other628.new_partition_count;
-    __isset = other628.__isset;
+    app_name = other638.app_name;
+    new_partition_count = other638.new_partition_count;
+    __isset = other638.__isset;
 }
 start_partition_split_request::start_partition_split_request(
-    start_partition_split_request &&other629)
+    start_partition_split_request &&other639)
 {
-    app_name = std::move(other629.app_name);
-    new_partition_count = std::move(other629.new_partition_count);
-    __isset = std::move(other629.__isset);
+    app_name = std::move(other639.app_name);
+    new_partition_count = std::move(other639.new_partition_count);
+    __isset = std::move(other639.__isset);
 }
 start_partition_split_request &start_partition_split_request::
-operator=(const start_partition_split_request &other630)
+operator=(const start_partition_split_request &other640)
 {
-    app_name = other630.app_name;
-    new_partition_count = other630.new_partition_count;
-    __isset = other630.__isset;
+    app_name = other640.app_name;
+    new_partition_count = other640.new_partition_count;
+    __isset = other640.__isset;
     return *this;
 }
 start_partition_split_request &start_partition_split_request::
-operator=(start_partition_split_request &&other631)
+operator=(start_partition_split_request &&other641)
 {
-    app_name = std::move(other631.app_name);
-    new_partition_count = std::move(other631.new_partition_count);
-    __isset = std::move(other631.__isset);
+    app_name = std::move(other641.app_name);
+    new_partition_count = std::move(other641.new_partition_count);
+    __isset = std::move(other641.__isset);
     return *this;
 }
 void start_partition_split_request::printTo(std::ostream &out) const
@@ -14212,33 +14551,33 @@ void swap(start_partition_split_response &a, start_partition_split_response &b)
 }
 
 start_partition_split_response::start_partition_split_response(
-    const start_partition_split_response &other632)
+    const start_partition_split_response &other642)
 {
-    err = other632.err;
-    hint_msg = other632.hint_msg;
-    __isset = other632.__isset;
+    err = other642.err;
+    hint_msg = other642.hint_msg;
+    __isset = other642.__isset;
 }
 start_partition_split_response::start_partition_split_response(
-    start_partition_split_response &&other633)
+    start_partition_split_response &&other643)
 {
-    err = std::move(other633.err);
-    hint_msg = std::move(other633.hint_msg);
-    __isset = std::move(other633.__isset);
+    err = std::move(other643.err);
+    hint_msg = std::move(other643.hint_msg);
+    __isset = std::move(other643.__isset);
 }
 start_partition_split_response &start_partition_split_response::
-operator=(const start_partition_split_response &other634)
+operator=(const start_partition_split_response &other644)
 {
-    err = other634.err;
-    hint_msg = other634.hint_msg;
-    __isset = other634.__isset;
+    err = other644.err;
+    hint_msg = other644.hint_msg;
+    __isset = other644.__isset;
     return *this;
 }
 start_partition_split_response &start_partition_split_response::
-operator=(start_partition_split_response &&other635)
+operator=(start_partition_split_response &&other645)
 {
-    err = std::move(other635.err);
-    hint_msg = std::move(other635.hint_msg);
-    __isset = std::move(other635.__isset);
+    err = std::move(other645.err);
+    hint_msg = std::move(other645.hint_msg);
+    __isset = std::move(other645.__isset);
     return *this;
 }
 void start_partition_split_response::printTo(std::ostream &out) const
@@ -14364,38 +14703,38 @@ void swap(notify_catch_up_request &a, notify_catch_up_request &b)
     swap(a.__isset, b.__isset);
 }
 
-notify_catch_up_request::notify_catch_up_request(const notify_catch_up_request &other636)
+notify_catch_up_request::notify_catch_up_request(const notify_catch_up_request &other646)
 {
-    parent_gpid = other636.parent_gpid;
-    child_gpid = other636.child_gpid;
-    child_ballot = other636.child_ballot;
-    child_address = other636.child_address;
-    __isset = other636.__isset;
+    parent_gpid = other646.parent_gpid;
+    child_gpid = other646.child_gpid;
+    child_ballot = other646.child_ballot;
+    child_address = other646.child_address;
+    __isset = other646.__isset;
 }
-notify_catch_up_request::notify_catch_up_request(notify_catch_up_request &&other637)
+notify_catch_up_request::notify_catch_up_request(notify_catch_up_request &&other647)
 {
-    parent_gpid = std::move(other637.parent_gpid);
-    child_gpid = std::move(other637.child_gpid);
-    child_ballot = std::move(other637.child_ballot);
-    child_address = std::move(other637.child_address);
-    __isset = std::move(other637.__isset);
+    parent_gpid = std::move(other647.parent_gpid);
+    child_gpid = std::move(other647.child_gpid);
+    child_ballot = std::move(other647.child_ballot);
+    child_address = std::move(other647.child_address);
+    __isset = std::move(other647.__isset);
 }
-notify_catch_up_request &notify_catch_up_request::operator=(const notify_catch_up_request &other638)
+notify_catch_up_request &notify_catch_up_request::operator=(const notify_catch_up_request &other648)
 {
-    parent_gpid = other638.parent_gpid;
-    child_gpid = other638.child_gpid;
-    child_ballot = other638.child_ballot;
-    child_address = other638.child_address;
-    __isset = other638.__isset;
+    parent_gpid = other648.parent_gpid;
+    child_gpid = other648.child_gpid;
+    child_ballot = other648.child_ballot;
+    child_address = other648.child_address;
+    __isset = other648.__isset;
     return *this;
 }
-notify_catch_up_request &notify_catch_up_request::operator=(notify_catch_up_request &&other639)
+notify_catch_up_request &notify_catch_up_request::operator=(notify_catch_up_request &&other649)
 {
-    parent_gpid = std::move(other639.parent_gpid);
-    child_gpid = std::move(other639.child_gpid);
-    child_ballot = std::move(other639.child_ballot);
-    child_address = std::move(other639.child_address);
-    __isset = std::move(other639.__isset);
+    parent_gpid = std::move(other649.parent_gpid);
+    child_gpid = std::move(other649.child_gpid);
+    child_ballot = std::move(other649.child_ballot);
+    child_address = std::move(other649.child_address);
+    __isset = std::move(other649.__isset);
     return *this;
 }
 void notify_catch_up_request::printTo(std::ostream &out) const
@@ -14477,27 +14816,27 @@ void swap(notify_cacth_up_response &a, notify_cacth_up_response &b)
     swap(a.__isset, b.__isset);
 }
 
-notify_cacth_up_response::notify_cacth_up_response(const notify_cacth_up_response &other640)
+notify_cacth_up_response::notify_cacth_up_response(const notify_cacth_up_response &other650)
 {
-    err = other640.err;
-    __isset = other640.__isset;
+    err = other650.err;
+    __isset = other650.__isset;
 }
-notify_cacth_up_response::notify_cacth_up_response(notify_cacth_up_response &&other641)
+notify_cacth_up_response::notify_cacth_up_response(notify_cacth_up_response &&other651)
 {
-    err = std::move(other641.err);
-    __isset = std::move(other641.__isset);
+    err = std::move(other651.err);
+    __isset = std::move(other651.__isset);
 }
 notify_cacth_up_response &notify_cacth_up_response::
-operator=(const notify_cacth_up_response &other642)
+operator=(const notify_cacth_up_response &other652)
 {
-    err = other642.err;
-    __isset = other642.__isset;
+    err = other652.err;
+    __isset = other652.__isset;
     return *this;
 }
-notify_cacth_up_response &notify_cacth_up_response::operator=(notify_cacth_up_response &&other643)
+notify_cacth_up_response &notify_cacth_up_response::operator=(notify_cacth_up_response &&other653)
 {
-    err = std::move(other643.err);
-    __isset = std::move(other643.__isset);
+    err = std::move(other653.err);
+    __isset = std::move(other653.__isset);
     return *this;
 }
 void notify_cacth_up_response::printTo(std::ostream &out) const
@@ -14634,41 +14973,41 @@ void swap(update_child_group_partition_count_request &a,
 }
 
 update_child_group_partition_count_request::update_child_group_partition_count_request(
-    const update_child_group_partition_count_request &other644)
+    const update_child_group_partition_count_request &other654)
 {
-    target_address = other644.target_address;
-    new_partition_count = other644.new_partition_count;
-    child_pid = other644.child_pid;
-    ballot = other644.ballot;
-    __isset = other644.__isset;
+    target_address = other654.target_address;
+    new_partition_count = other654.new_partition_count;
+    child_pid = other654.child_pid;
+    ballot = other654.ballot;
+    __isset = other654.__isset;
 }
 update_child_group_partition_count_request::update_child_group_partition_count_request(
-    update_child_group_partition_count_request &&other645)
+    update_child_group_partition_count_request &&other655)
 {
-    target_address = std::move(other645.target_address);
-    new_partition_count = std::move(other645.new_partition_count);
-    child_pid = std::move(other645.child_pid);
-    ballot = std::move(other645.ballot);
-    __isset = std::move(other645.__isset);
+    target_address = std::move(other655.target_address);
+    new_partition_count = std::move(other655.new_partition_count);
+    child_pid = std::move(other655.child_pid);
+    ballot = std::move(other655.ballot);
+    __isset = std::move(other655.__isset);
 }
 update_child_group_partition_count_request &update_child_group_partition_count_request::
-operator=(const update_child_group_partition_count_request &other646)
+operator=(const update_child_group_partition_count_request &other656)
 {
-    target_address = other646.target_address;
-    new_partition_count = other646.new_partition_count;
-    child_pid = other646.child_pid;
-    ballot = other646.ballot;
-    __isset = other646.__isset;
+    target_address = other656.target_address;
+    new_partition_count = other656.new_partition_count;
+    child_pid = other656.child_pid;
+    ballot = other656.ballot;
+    __isset = other656.__isset;
     return *this;
 }
 update_child_group_partition_count_request &update_child_group_partition_count_request::
-operator=(update_child_group_partition_count_request &&other647)
+operator=(update_child_group_partition_count_request &&other657)
 {
-    target_address = std::move(other647.target_address);
-    new_partition_count = std::move(other647.new_partition_count);
-    child_pid = std::move(other647.child_pid);
-    ballot = std::move(other647.ballot);
-    __isset = std::move(other647.__isset);
+    target_address = std::move(other657.target_address);
+    new_partition_count = std::move(other657.new_partition_count);
+    child_pid = std::move(other657.child_pid);
+    ballot = std::move(other657.ballot);
+    __isset = std::move(other657.__isset);
     return *this;
 }
 void update_child_group_partition_count_request::printTo(std::ostream &out) const
@@ -14759,29 +15098,29 @@ void swap(update_child_group_partition_count_response &a,
 }
 
 update_child_group_partition_count_response::update_child_group_partition_count_response(
-    const update_child_group_partition_count_response &other648)
+    const update_child_group_partition_count_response &other658)
 {
-    err = other648.err;
-    __isset = other648.__isset;
+    err = other658.err;
+    __isset = other658.__isset;
 }
 update_child_group_partition_count_response::update_child_group_partition_count_response(
-    update_child_group_partition_count_response &&other649)
+    update_child_group_partition_count_response &&other659)
 {
-    err = std::move(other649.err);
-    __isset = std::move(other649.__isset);
+    err = std::move(other659.err);
+    __isset = std::move(other659.__isset);
 }
 update_child_group_partition_count_response &update_child_group_partition_count_response::
-operator=(const update_child_group_partition_count_response &other650)
+operator=(const update_child_group_partition_count_response &other660)
 {
-    err = other650.err;
-    __isset = other650.__isset;
+    err = other660.err;
+    __isset = other660.__isset;
     return *this;
 }
 update_child_group_partition_count_response &update_child_group_partition_count_response::
-operator=(update_child_group_partition_count_response &&other651)
+operator=(update_child_group_partition_count_response &&other661)
 {
-    err = std::move(other651.err);
-    __isset = std::move(other651.__isset);
+    err = std::move(other661.err);
+    __isset = std::move(other661.__isset);
     return *this;
 }
 void update_child_group_partition_count_response::printTo(std::ostream &out) const
@@ -14911,38 +15250,38 @@ void swap(register_child_request &a, register_child_request &b)
     swap(a.__isset, b.__isset);
 }
 
-register_child_request::register_child_request(const register_child_request &other652)
+register_child_request::register_child_request(const register_child_request &other662)
 {
-    app = other652.app;
-    parent_config = other652.parent_config;
-    child_config = other652.child_config;
-    primary_address = other652.primary_address;
-    __isset = other652.__isset;
+    app = other662.app;
+    parent_config = other662.parent_config;
+    child_config = other662.child_config;
+    primary_address = other662.primary_address;
+    __isset = other662.__isset;
 }
-register_child_request::register_child_request(register_child_request &&other653)
+register_child_request::register_child_request(register_child_request &&other663)
 {
-    app = std::move(other653.app);
-    parent_config = std::move(other653.parent_config);
-    child_config = std::move(other653.child_config);
-    primary_address = std::move(other653.primary_address);
-    __isset = std::move(other653.__isset);
+    app = std::move(other663.app);
+    parent_config = std::move(other663.parent_config);
+    child_config = std::move(other663.child_config);
+    primary_address = std::move(other663.primary_address);
+    __isset = std::move(other663.__isset);
 }
-register_child_request &register_child_request::operator=(const register_child_request &other654)
+register_child_request &register_child_request::operator=(const register_child_request &other664)
 {
-    app = other654.app;
-    parent_config = other654.parent_config;
-    child_config = other654.child_config;
-    primary_address = other654.primary_address;
-    __isset = other654.__isset;
+    app = other664.app;
+    parent_config = other664.parent_config;
+    child_config = other664.child_config;
+    primary_address = other664.primary_address;
+    __isset = other664.__isset;
     return *this;
 }
-register_child_request &register_child_request::operator=(register_child_request &&other655)
+register_child_request &register_child_request::operator=(register_child_request &&other665)
 {
-    app = std::move(other655.app);
-    parent_config = std::move(other655.parent_config);
-    child_config = std::move(other655.child_config);
-    primary_address = std::move(other655.primary_address);
-    __isset = std::move(other655.__isset);
+    app = std::move(other665.app);
+    parent_config = std::move(other665.parent_config);
+    child_config = std::move(other665.child_config);
+    primary_address = std::move(other665.primary_address);
+    __isset = std::move(other665.__isset);
     return *this;
 }
 void register_child_request::printTo(std::ostream &out) const
@@ -15075,38 +15414,38 @@ void swap(register_child_response &a, register_child_response &b)
     swap(a.__isset, b.__isset);
 }
 
-register_child_response::register_child_response(const register_child_response &other656)
+register_child_response::register_child_response(const register_child_response &other666)
 {
-    err = other656.err;
-    app = other656.app;
-    parent_config = other656.parent_config;
-    child_config = other656.child_config;
-    __isset = other656.__isset;
+    err = other666.err;
+    app = other666.app;
+    parent_config = other666.parent_config;
+    child_config = other666.child_config;
+    __isset = other666.__isset;
 }
-register_child_response::register_child_response(register_child_response &&other657)
+register_child_response::register_child_response(register_child_response &&other667)
 {
-    err = std::move(other657.err);
-    app = std::move(other657.app);
-    parent_config = std::move(other657.parent_config);
-    child_config = std::move(other657.child_config);
-    __isset = std::move(other657.__isset);
+    err = std::move(other667.err);
+    app = std::move(other667.app);
+    parent_config = std::move(other667.parent_config);
+    child_config = std::move(other667.child_config);
+    __isset = std::move(other667.__isset);
 }
-register_child_response &register_child_response::operator=(const register_child_response &other658)
+register_child_response &register_child_response::operator=(const register_child_response &other668)
 {
-    err = other658.err;
-    app = other658.app;
-    parent_config = other658.parent_config;
-    child_config = other658.child_config;
-    __isset = other658.__isset;
+    err = other668.err;
+    app = other668.app;
+    parent_config = other668.parent_config;
+    child_config = other668.child_config;
+    __isset = other668.__isset;
     return *this;
 }
-register_child_response &register_child_response::operator=(register_child_response &&other659)
+register_child_response &register_child_response::operator=(register_child_response &&other669)
 {
-    err = std::move(other659.err);
-    app = std::move(other659.app);
-    parent_config = std::move(other659.parent_config);
-    child_config = std::move(other659.child_config);
-    __isset = std::move(other659.__isset);
+    err = std::move(other669.err);
+    app = std::move(other669.app);
+    parent_config = std::move(other669.parent_config);
+    child_config = std::move(other669.child_config);
+    __isset = std::move(other669.__isset);
     return *this;
 }
 void register_child_response::printTo(std::ostream &out) const
@@ -15152,13 +15491,13 @@ uint32_t bulk_load_metadata::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->files.clear();
-                    uint32_t _size660;
-                    ::apache::thrift::protocol::TType _etype663;
-                    xfer += iprot->readListBegin(_etype663, _size660);
-                    this->files.resize(_size660);
-                    uint32_t _i664;
-                    for (_i664 = 0; _i664 < _size660; ++_i664) {
-                        xfer += this->files[_i664].read(iprot);
+                    uint32_t _size670;
+                    ::apache::thrift::protocol::TType _etype673;
+                    xfer += iprot->readListBegin(_etype673, _size670);
+                    this->files.resize(_size670);
+                    uint32_t _i674;
+                    for (_i674 = 0; _i674 < _size670; ++_i674) {
+                        xfer += this->files[_i674].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -15197,9 +15536,9 @@ uint32_t bulk_load_metadata::write(::apache::thrift::protocol::TProtocol *oprot)
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->files.size()));
-        std::vector<file_meta>::const_iterator _iter665;
-        for (_iter665 = this->files.begin(); _iter665 != this->files.end(); ++_iter665) {
-            xfer += (*_iter665).write(oprot);
+        std::vector<file_meta>::const_iterator _iter675;
+        for (_iter675 = this->files.begin(); _iter675 != this->files.end(); ++_iter675) {
+            xfer += (*_iter675).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -15222,30 +15561,30 @@ void swap(bulk_load_metadata &a, bulk_load_metadata &b)
     swap(a.__isset, b.__isset);
 }
 
-bulk_load_metadata::bulk_load_metadata(const bulk_load_metadata &other666)
+bulk_load_metadata::bulk_load_metadata(const bulk_load_metadata &other676)
 {
-    files = other666.files;
-    file_total_size = other666.file_total_size;
-    __isset = other666.__isset;
+    files = other676.files;
+    file_total_size = other676.file_total_size;
+    __isset = other676.__isset;
 }
-bulk_load_metadata::bulk_load_metadata(bulk_load_metadata &&other667)
+bulk_load_metadata::bulk_load_metadata(bulk_load_metadata &&other677)
 {
-    files = std::move(other667.files);
-    file_total_size = std::move(other667.file_total_size);
-    __isset = std::move(other667.__isset);
+    files = std::move(other677.files);
+    file_total_size = std::move(other677.file_total_size);
+    __isset = std::move(other677.__isset);
 }
-bulk_load_metadata &bulk_load_metadata::operator=(const bulk_load_metadata &other668)
+bulk_load_metadata &bulk_load_metadata::operator=(const bulk_load_metadata &other678)
 {
-    files = other668.files;
-    file_total_size = other668.file_total_size;
-    __isset = other668.__isset;
+    files = other678.files;
+    file_total_size = other678.file_total_size;
+    __isset = other678.__isset;
     return *this;
 }
-bulk_load_metadata &bulk_load_metadata::operator=(bulk_load_metadata &&other669)
+bulk_load_metadata &bulk_load_metadata::operator=(bulk_load_metadata &&other679)
 {
-    files = std::move(other669.files);
-    file_total_size = std::move(other669.file_total_size);
-    __isset = std::move(other669.__isset);
+    files = std::move(other679.files);
+    file_total_size = std::move(other679.file_total_size);
+    __isset = std::move(other679.__isset);
     return *this;
 }
 void bulk_load_metadata::printTo(std::ostream &out) const
@@ -15359,34 +15698,34 @@ void swap(start_bulk_load_request &a, start_bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-start_bulk_load_request::start_bulk_load_request(const start_bulk_load_request &other670)
+start_bulk_load_request::start_bulk_load_request(const start_bulk_load_request &other680)
 {
-    app_name = other670.app_name;
-    cluster_name = other670.cluster_name;
-    file_provider_type = other670.file_provider_type;
-    __isset = other670.__isset;
+    app_name = other680.app_name;
+    cluster_name = other680.cluster_name;
+    file_provider_type = other680.file_provider_type;
+    __isset = other680.__isset;
 }
-start_bulk_load_request::start_bulk_load_request(start_bulk_load_request &&other671)
+start_bulk_load_request::start_bulk_load_request(start_bulk_load_request &&other681)
 {
-    app_name = std::move(other671.app_name);
-    cluster_name = std::move(other671.cluster_name);
-    file_provider_type = std::move(other671.file_provider_type);
-    __isset = std::move(other671.__isset);
+    app_name = std::move(other681.app_name);
+    cluster_name = std::move(other681.cluster_name);
+    file_provider_type = std::move(other681.file_provider_type);
+    __isset = std::move(other681.__isset);
 }
-start_bulk_load_request &start_bulk_load_request::operator=(const start_bulk_load_request &other672)
+start_bulk_load_request &start_bulk_load_request::operator=(const start_bulk_load_request &other682)
 {
-    app_name = other672.app_name;
-    cluster_name = other672.cluster_name;
-    file_provider_type = other672.file_provider_type;
-    __isset = other672.__isset;
+    app_name = other682.app_name;
+    cluster_name = other682.cluster_name;
+    file_provider_type = other682.file_provider_type;
+    __isset = other682.__isset;
     return *this;
 }
-start_bulk_load_request &start_bulk_load_request::operator=(start_bulk_load_request &&other673)
+start_bulk_load_request &start_bulk_load_request::operator=(start_bulk_load_request &&other683)
 {
-    app_name = std::move(other673.app_name);
-    cluster_name = std::move(other673.cluster_name);
-    file_provider_type = std::move(other673.file_provider_type);
-    __isset = std::move(other673.__isset);
+    app_name = std::move(other683.app_name);
+    cluster_name = std::move(other683.cluster_name);
+    file_provider_type = std::move(other683.file_provider_type);
+    __isset = std::move(other683.__isset);
     return *this;
 }
 void start_bulk_load_request::printTo(std::ostream &out) const
@@ -15481,31 +15820,31 @@ void swap(start_bulk_load_response &a, start_bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-start_bulk_load_response::start_bulk_load_response(const start_bulk_load_response &other674)
+start_bulk_load_response::start_bulk_load_response(const start_bulk_load_response &other684)
 {
-    err = other674.err;
-    hint_msg = other674.hint_msg;
-    __isset = other674.__isset;
+    err = other684.err;
+    hint_msg = other684.hint_msg;
+    __isset = other684.__isset;
 }
-start_bulk_load_response::start_bulk_load_response(start_bulk_load_response &&other675)
+start_bulk_load_response::start_bulk_load_response(start_bulk_load_response &&other685)
 {
-    err = std::move(other675.err);
-    hint_msg = std::move(other675.hint_msg);
-    __isset = std::move(other675.__isset);
+    err = std::move(other685.err);
+    hint_msg = std::move(other685.hint_msg);
+    __isset = std::move(other685.__isset);
 }
 start_bulk_load_response &start_bulk_load_response::
-operator=(const start_bulk_load_response &other676)
+operator=(const start_bulk_load_response &other686)
 {
-    err = other676.err;
-    hint_msg = other676.hint_msg;
-    __isset = other676.__isset;
+    err = other686.err;
+    hint_msg = other686.hint_msg;
+    __isset = other686.__isset;
     return *this;
 }
-start_bulk_load_response &start_bulk_load_response::operator=(start_bulk_load_response &&other677)
+start_bulk_load_response &start_bulk_load_response::operator=(start_bulk_load_response &&other687)
 {
-    err = std::move(other677.err);
-    hint_msg = std::move(other677.hint_msg);
-    __isset = std::move(other677.__isset);
+    err = std::move(other687.err);
+    hint_msg = std::move(other687.hint_msg);
+    __isset = std::move(other687.__isset);
     return *this;
 }
 void start_bulk_load_response::printTo(std::ostream &out) const
@@ -15587,9 +15926,9 @@ uint32_t partition_bulk_load_state::read(::apache::thrift::protocol::TProtocol *
             break;
         case 3:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast678;
-                xfer += iprot->readI32(ecast678);
-                this->ingest_status = (ingestion_status::type)ecast678;
+                int32_t ecast688;
+                xfer += iprot->readI32(ecast688);
+                this->ingest_status = (ingestion_status::type)ecast688;
                 this->__isset.ingest_status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -15670,44 +16009,44 @@ void swap(partition_bulk_load_state &a, partition_bulk_load_state &b)
     swap(a.__isset, b.__isset);
 }
 
-partition_bulk_load_state::partition_bulk_load_state(const partition_bulk_load_state &other679)
+partition_bulk_load_state::partition_bulk_load_state(const partition_bulk_load_state &other689)
 {
-    download_progress = other679.download_progress;
-    download_status = other679.download_status;
-    ingest_status = other679.ingest_status;
-    is_cleaned_up = other679.is_cleaned_up;
-    is_paused = other679.is_paused;
-    __isset = other679.__isset;
+    download_progress = other689.download_progress;
+    download_status = other689.download_status;
+    ingest_status = other689.ingest_status;
+    is_cleaned_up = other689.is_cleaned_up;
+    is_paused = other689.is_paused;
+    __isset = other689.__isset;
 }
-partition_bulk_load_state::partition_bulk_load_state(partition_bulk_load_state &&other680)
+partition_bulk_load_state::partition_bulk_load_state(partition_bulk_load_state &&other690)
 {
-    download_progress = std::move(other680.download_progress);
-    download_status = std::move(other680.download_status);
-    ingest_status = std::move(other680.ingest_status);
-    is_cleaned_up = std::move(other680.is_cleaned_up);
-    is_paused = std::move(other680.is_paused);
-    __isset = std::move(other680.__isset);
+    download_progress = std::move(other690.download_progress);
+    download_status = std::move(other690.download_status);
+    ingest_status = std::move(other690.ingest_status);
+    is_cleaned_up = std::move(other690.is_cleaned_up);
+    is_paused = std::move(other690.is_paused);
+    __isset = std::move(other690.__isset);
 }
 partition_bulk_load_state &partition_bulk_load_state::
-operator=(const partition_bulk_load_state &other681)
+operator=(const partition_bulk_load_state &other691)
 {
-    download_progress = other681.download_progress;
-    download_status = other681.download_status;
-    ingest_status = other681.ingest_status;
-    is_cleaned_up = other681.is_cleaned_up;
-    is_paused = other681.is_paused;
-    __isset = other681.__isset;
+    download_progress = other691.download_progress;
+    download_status = other691.download_status;
+    ingest_status = other691.ingest_status;
+    is_cleaned_up = other691.is_cleaned_up;
+    is_paused = other691.is_paused;
+    __isset = other691.__isset;
     return *this;
 }
 partition_bulk_load_state &partition_bulk_load_state::
-operator=(partition_bulk_load_state &&other682)
+operator=(partition_bulk_load_state &&other692)
 {
-    download_progress = std::move(other682.download_progress);
-    download_status = std::move(other682.download_status);
-    ingest_status = std::move(other682.ingest_status);
-    is_cleaned_up = std::move(other682.is_cleaned_up);
-    is_paused = std::move(other682.is_paused);
-    __isset = std::move(other682.__isset);
+    download_progress = std::move(other692.download_progress);
+    download_status = std::move(other692.download_status);
+    ingest_status = std::move(other692.ingest_status);
+    is_cleaned_up = std::move(other692.is_cleaned_up);
+    is_paused = std::move(other692.is_paused);
+    __isset = std::move(other692.__isset);
     return *this;
 }
 void partition_bulk_load_state::printTo(std::ostream &out) const
@@ -15830,9 +16169,9 @@ uint32_t bulk_load_request::read(::apache::thrift::protocol::TProtocol *iprot)
             break;
         case 7:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast683;
-                xfer += iprot->readI32(ecast683);
-                this->meta_bulk_load_status = (bulk_load_status::type)ecast683;
+                int32_t ecast693;
+                xfer += iprot->readI32(ecast693);
+                this->meta_bulk_load_status = (bulk_load_status::type)ecast693;
                 this->__isset.meta_bulk_load_status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -15916,54 +16255,54 @@ void swap(bulk_load_request &a, bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-bulk_load_request::bulk_load_request(const bulk_load_request &other684)
+bulk_load_request::bulk_load_request(const bulk_load_request &other694)
 {
-    pid = other684.pid;
-    app_name = other684.app_name;
-    primary_addr = other684.primary_addr;
-    remote_provider_name = other684.remote_provider_name;
-    cluster_name = other684.cluster_name;
-    ballot = other684.ballot;
-    meta_bulk_load_status = other684.meta_bulk_load_status;
-    query_bulk_load_metadata = other684.query_bulk_load_metadata;
-    __isset = other684.__isset;
+    pid = other694.pid;
+    app_name = other694.app_name;
+    primary_addr = other694.primary_addr;
+    remote_provider_name = other694.remote_provider_name;
+    cluster_name = other694.cluster_name;
+    ballot = other694.ballot;
+    meta_bulk_load_status = other694.meta_bulk_load_status;
+    query_bulk_load_metadata = other694.query_bulk_load_metadata;
+    __isset = other694.__isset;
 }
-bulk_load_request::bulk_load_request(bulk_load_request &&other685)
+bulk_load_request::bulk_load_request(bulk_load_request &&other695)
 {
-    pid = std::move(other685.pid);
-    app_name = std::move(other685.app_name);
-    primary_addr = std::move(other685.primary_addr);
-    remote_provider_name = std::move(other685.remote_provider_name);
-    cluster_name = std::move(other685.cluster_name);
-    ballot = std::move(other685.ballot);
-    meta_bulk_load_status = std::move(other685.meta_bulk_load_status);
-    query_bulk_load_metadata = std::move(other685.query_bulk_load_metadata);
-    __isset = std::move(other685.__isset);
+    pid = std::move(other695.pid);
+    app_name = std::move(other695.app_name);
+    primary_addr = std::move(other695.primary_addr);
+    remote_provider_name = std::move(other695.remote_provider_name);
+    cluster_name = std::move(other695.cluster_name);
+    ballot = std::move(other695.ballot);
+    meta_bulk_load_status = std::move(other695.meta_bulk_load_status);
+    query_bulk_load_metadata = std::move(other695.query_bulk_load_metadata);
+    __isset = std::move(other695.__isset);
 }
-bulk_load_request &bulk_load_request::operator=(const bulk_load_request &other686)
+bulk_load_request &bulk_load_request::operator=(const bulk_load_request &other696)
 {
-    pid = other686.pid;
-    app_name = other686.app_name;
-    primary_addr = other686.primary_addr;
-    remote_provider_name = other686.remote_provider_name;
-    cluster_name = other686.cluster_name;
-    ballot = other686.ballot;
-    meta_bulk_load_status = other686.meta_bulk_load_status;
-    query_bulk_load_metadata = other686.query_bulk_load_metadata;
-    __isset = other686.__isset;
+    pid = other696.pid;
+    app_name = other696.app_name;
+    primary_addr = other696.primary_addr;
+    remote_provider_name = other696.remote_provider_name;
+    cluster_name = other696.cluster_name;
+    ballot = other696.ballot;
+    meta_bulk_load_status = other696.meta_bulk_load_status;
+    query_bulk_load_metadata = other696.query_bulk_load_metadata;
+    __isset = other696.__isset;
     return *this;
 }
-bulk_load_request &bulk_load_request::operator=(bulk_load_request &&other687)
+bulk_load_request &bulk_load_request::operator=(bulk_load_request &&other697)
 {
-    pid = std::move(other687.pid);
-    app_name = std::move(other687.app_name);
-    primary_addr = std::move(other687.primary_addr);
-    remote_provider_name = std::move(other687.remote_provider_name);
-    cluster_name = std::move(other687.cluster_name);
-    ballot = std::move(other687.ballot);
-    meta_bulk_load_status = std::move(other687.meta_bulk_load_status);
-    query_bulk_load_metadata = std::move(other687.query_bulk_load_metadata);
-    __isset = std::move(other687.__isset);
+    pid = std::move(other697.pid);
+    app_name = std::move(other697.app_name);
+    primary_addr = std::move(other697.primary_addr);
+    remote_provider_name = std::move(other697.remote_provider_name);
+    cluster_name = std::move(other697.cluster_name);
+    ballot = std::move(other697.ballot);
+    meta_bulk_load_status = std::move(other697.meta_bulk_load_status);
+    query_bulk_load_metadata = std::move(other697.query_bulk_load_metadata);
+    __isset = std::move(other697.__isset);
     return *this;
 }
 void bulk_load_request::printTo(std::ostream &out) const
@@ -16082,9 +16421,9 @@ uint32_t bulk_load_response::read(::apache::thrift::protocol::TProtocol *iprot)
             break;
         case 4:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast688;
-                xfer += iprot->readI32(ecast688);
-                this->primary_bulk_load_status = (bulk_load_status::type)ecast688;
+                int32_t ecast698;
+                xfer += iprot->readI32(ecast698);
+                this->primary_bulk_load_status = (bulk_load_status::type)ecast698;
                 this->__isset.primary_bulk_load_status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -16094,16 +16433,16 @@ uint32_t bulk_load_response::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
                     this->group_bulk_load_state.clear();
-                    uint32_t _size689;
-                    ::apache::thrift::protocol::TType _ktype690;
-                    ::apache::thrift::protocol::TType _vtype691;
-                    xfer += iprot->readMapBegin(_ktype690, _vtype691, _size689);
-                    uint32_t _i693;
-                    for (_i693 = 0; _i693 < _size689; ++_i693) {
-                        ::dsn::rpc_address _key694;
-                        xfer += _key694.read(iprot);
-                        partition_bulk_load_state &_val695 = this->group_bulk_load_state[_key694];
-                        xfer += _val695.read(iprot);
+                    uint32_t _size699;
+                    ::apache::thrift::protocol::TType _ktype700;
+                    ::apache::thrift::protocol::TType _vtype701;
+                    xfer += iprot->readMapBegin(_ktype700, _vtype701, _size699);
+                    uint32_t _i703;
+                    for (_i703 = 0; _i703 < _size699; ++_i703) {
+                        ::dsn::rpc_address _key704;
+                        xfer += _key704.read(iprot);
+                        partition_bulk_load_state &_val705 = this->group_bulk_load_state[_key704];
+                        xfer += _val705.read(iprot);
                     }
                     xfer += iprot->readMapEnd();
                 }
@@ -16192,12 +16531,12 @@ uint32_t bulk_load_response::write(::apache::thrift::protocol::TProtocol *oprot)
         xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRUCT,
                                      ::apache::thrift::protocol::T_STRUCT,
                                      static_cast<uint32_t>(this->group_bulk_load_state.size()));
-        std::map<::dsn::rpc_address, partition_bulk_load_state>::const_iterator _iter696;
-        for (_iter696 = this->group_bulk_load_state.begin();
-             _iter696 != this->group_bulk_load_state.end();
-             ++_iter696) {
-            xfer += _iter696->first.write(oprot);
-            xfer += _iter696->second.write(oprot);
+        std::map<::dsn::rpc_address, partition_bulk_load_state>::const_iterator _iter706;
+        for (_iter706 = this->group_bulk_load_state.begin();
+             _iter706 != this->group_bulk_load_state.end();
+             ++_iter706) {
+            xfer += _iter706->first.write(oprot);
+            xfer += _iter706->second.write(oprot);
         }
         xfer += oprot->writeMapEnd();
     }
@@ -16253,64 +16592,64 @@ void swap(bulk_load_response &a, bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-bulk_load_response::bulk_load_response(const bulk_load_response &other697)
+bulk_load_response::bulk_load_response(const bulk_load_response &other707)
 {
-    err = other697.err;
-    pid = other697.pid;
-    app_name = other697.app_name;
-    primary_bulk_load_status = other697.primary_bulk_load_status;
-    group_bulk_load_state = other697.group_bulk_load_state;
-    metadata = other697.metadata;
-    total_download_progress = other697.total_download_progress;
-    is_group_ingestion_finished = other697.is_group_ingestion_finished;
-    is_group_bulk_load_context_cleaned_up = other697.is_group_bulk_load_context_cleaned_up;
-    is_group_bulk_load_paused = other697.is_group_bulk_load_paused;
-    __isset = other697.__isset;
+    err = other707.err;
+    pid = other707.pid;
+    app_name = other707.app_name;
+    primary_bulk_load_status = other707.primary_bulk_load_status;
+    group_bulk_load_state = other707.group_bulk_load_state;
+    metadata = other707.metadata;
+    total_download_progress = other707.total_download_progress;
+    is_group_ingestion_finished = other707.is_group_ingestion_finished;
+    is_group_bulk_load_context_cleaned_up = other707.is_group_bulk_load_context_cleaned_up;
+    is_group_bulk_load_paused = other707.is_group_bulk_load_paused;
+    __isset = other707.__isset;
 }
-bulk_load_response::bulk_load_response(bulk_load_response &&other698)
+bulk_load_response::bulk_load_response(bulk_load_response &&other708)
 {
-    err = std::move(other698.err);
-    pid = std::move(other698.pid);
-    app_name = std::move(other698.app_name);
-    primary_bulk_load_status = std::move(other698.primary_bulk_load_status);
-    group_bulk_load_state = std::move(other698.group_bulk_load_state);
-    metadata = std::move(other698.metadata);
-    total_download_progress = std::move(other698.total_download_progress);
-    is_group_ingestion_finished = std::move(other698.is_group_ingestion_finished);
+    err = std::move(other708.err);
+    pid = std::move(other708.pid);
+    app_name = std::move(other708.app_name);
+    primary_bulk_load_status = std::move(other708.primary_bulk_load_status);
+    group_bulk_load_state = std::move(other708.group_bulk_load_state);
+    metadata = std::move(other708.metadata);
+    total_download_progress = std::move(other708.total_download_progress);
+    is_group_ingestion_finished = std::move(other708.is_group_ingestion_finished);
     is_group_bulk_load_context_cleaned_up =
-        std::move(other698.is_group_bulk_load_context_cleaned_up);
-    is_group_bulk_load_paused = std::move(other698.is_group_bulk_load_paused);
-    __isset = std::move(other698.__isset);
+        std::move(other708.is_group_bulk_load_context_cleaned_up);
+    is_group_bulk_load_paused = std::move(other708.is_group_bulk_load_paused);
+    __isset = std::move(other708.__isset);
 }
-bulk_load_response &bulk_load_response::operator=(const bulk_load_response &other699)
+bulk_load_response &bulk_load_response::operator=(const bulk_load_response &other709)
 {
-    err = other699.err;
-    pid = other699.pid;
-    app_name = other699.app_name;
-    primary_bulk_load_status = other699.primary_bulk_load_status;
-    group_bulk_load_state = other699.group_bulk_load_state;
-    metadata = other699.metadata;
-    total_download_progress = other699.total_download_progress;
-    is_group_ingestion_finished = other699.is_group_ingestion_finished;
-    is_group_bulk_load_context_cleaned_up = other699.is_group_bulk_load_context_cleaned_up;
-    is_group_bulk_load_paused = other699.is_group_bulk_load_paused;
-    __isset = other699.__isset;
+    err = other709.err;
+    pid = other709.pid;
+    app_name = other709.app_name;
+    primary_bulk_load_status = other709.primary_bulk_load_status;
+    group_bulk_load_state = other709.group_bulk_load_state;
+    metadata = other709.metadata;
+    total_download_progress = other709.total_download_progress;
+    is_group_ingestion_finished = other709.is_group_ingestion_finished;
+    is_group_bulk_load_context_cleaned_up = other709.is_group_bulk_load_context_cleaned_up;
+    is_group_bulk_load_paused = other709.is_group_bulk_load_paused;
+    __isset = other709.__isset;
     return *this;
 }
-bulk_load_response &bulk_load_response::operator=(bulk_load_response &&other700)
+bulk_load_response &bulk_load_response::operator=(bulk_load_response &&other710)
 {
-    err = std::move(other700.err);
-    pid = std::move(other700.pid);
-    app_name = std::move(other700.app_name);
-    primary_bulk_load_status = std::move(other700.primary_bulk_load_status);
-    group_bulk_load_state = std::move(other700.group_bulk_load_state);
-    metadata = std::move(other700.metadata);
-    total_download_progress = std::move(other700.total_download_progress);
-    is_group_ingestion_finished = std::move(other700.is_group_ingestion_finished);
+    err = std::move(other710.err);
+    pid = std::move(other710.pid);
+    app_name = std::move(other710.app_name);
+    primary_bulk_load_status = std::move(other710.primary_bulk_load_status);
+    group_bulk_load_state = std::move(other710.group_bulk_load_state);
+    metadata = std::move(other710.metadata);
+    total_download_progress = std::move(other710.total_download_progress);
+    is_group_ingestion_finished = std::move(other710.is_group_ingestion_finished);
     is_group_bulk_load_context_cleaned_up =
-        std::move(other700.is_group_bulk_load_context_cleaned_up);
-    is_group_bulk_load_paused = std::move(other700.is_group_bulk_load_paused);
-    __isset = std::move(other700.__isset);
+        std::move(other710.is_group_bulk_load_context_cleaned_up);
+    is_group_bulk_load_paused = std::move(other710.is_group_bulk_load_paused);
+    __isset = std::move(other710.__isset);
     return *this;
 }
 void bulk_load_response::printTo(std::ostream &out) const
@@ -16436,9 +16775,9 @@ uint32_t group_bulk_load_request::read(::apache::thrift::protocol::TProtocol *ip
             break;
         case 6:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast701;
-                xfer += iprot->readI32(ecast701);
-                this->meta_bulk_load_status = (bulk_load_status::type)ecast701;
+                int32_t ecast711;
+                xfer += iprot->readI32(ecast711);
+                this->meta_bulk_load_status = (bulk_load_status::type)ecast711;
                 this->__isset.meta_bulk_load_status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -16503,46 +16842,46 @@ void swap(group_bulk_load_request &a, group_bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-group_bulk_load_request::group_bulk_load_request(const group_bulk_load_request &other702)
+group_bulk_load_request::group_bulk_load_request(const group_bulk_load_request &other712)
 {
-    app_name = other702.app_name;
-    target_address = other702.target_address;
-    config = other702.config;
-    provider_name = other702.provider_name;
-    cluster_name = other702.cluster_name;
-    meta_bulk_load_status = other702.meta_bulk_load_status;
-    __isset = other702.__isset;
+    app_name = other712.app_name;
+    target_address = other712.target_address;
+    config = other712.config;
+    provider_name = other712.provider_name;
+    cluster_name = other712.cluster_name;
+    meta_bulk_load_status = other712.meta_bulk_load_status;
+    __isset = other712.__isset;
 }
-group_bulk_load_request::group_bulk_load_request(group_bulk_load_request &&other703)
+group_bulk_load_request::group_bulk_load_request(group_bulk_load_request &&other713)
 {
-    app_name = std::move(other703.app_name);
-    target_address = std::move(other703.target_address);
-    config = std::move(other703.config);
-    provider_name = std::move(other703.provider_name);
-    cluster_name = std::move(other703.cluster_name);
-    meta_bulk_load_status = std::move(other703.meta_bulk_load_status);
-    __isset = std::move(other703.__isset);
+    app_name = std::move(other713.app_name);
+    target_address = std::move(other713.target_address);
+    config = std::move(other713.config);
+    provider_name = std::move(other713.provider_name);
+    cluster_name = std::move(other713.cluster_name);
+    meta_bulk_load_status = std::move(other713.meta_bulk_load_status);
+    __isset = std::move(other713.__isset);
 }
-group_bulk_load_request &group_bulk_load_request::operator=(const group_bulk_load_request &other704)
+group_bulk_load_request &group_bulk_load_request::operator=(const group_bulk_load_request &other714)
 {
-    app_name = other704.app_name;
-    target_address = other704.target_address;
-    config = other704.config;
-    provider_name = other704.provider_name;
-    cluster_name = other704.cluster_name;
-    meta_bulk_load_status = other704.meta_bulk_load_status;
-    __isset = other704.__isset;
+    app_name = other714.app_name;
+    target_address = other714.target_address;
+    config = other714.config;
+    provider_name = other714.provider_name;
+    cluster_name = other714.cluster_name;
+    meta_bulk_load_status = other714.meta_bulk_load_status;
+    __isset = other714.__isset;
     return *this;
 }
-group_bulk_load_request &group_bulk_load_request::operator=(group_bulk_load_request &&other705)
+group_bulk_load_request &group_bulk_load_request::operator=(group_bulk_load_request &&other715)
 {
-    app_name = std::move(other705.app_name);
-    target_address = std::move(other705.target_address);
-    config = std::move(other705.config);
-    provider_name = std::move(other705.provider_name);
-    cluster_name = std::move(other705.cluster_name);
-    meta_bulk_load_status = std::move(other705.meta_bulk_load_status);
-    __isset = std::move(other705.__isset);
+    app_name = std::move(other715.app_name);
+    target_address = std::move(other715.target_address);
+    config = std::move(other715.config);
+    provider_name = std::move(other715.provider_name);
+    cluster_name = std::move(other715.cluster_name);
+    meta_bulk_load_status = std::move(other715.meta_bulk_load_status);
+    __isset = std::move(other715.__isset);
     return *this;
 }
 void group_bulk_load_request::printTo(std::ostream &out) const
@@ -16606,9 +16945,9 @@ uint32_t group_bulk_load_response::read(::apache::thrift::protocol::TProtocol *i
             break;
         case 2:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast706;
-                xfer += iprot->readI32(ecast706);
-                this->status = (bulk_load_status::type)ecast706;
+                int32_t ecast716;
+                xfer += iprot->readI32(ecast716);
+                this->status = (bulk_load_status::type)ecast716;
                 this->__isset.status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -16666,35 +17005,35 @@ void swap(group_bulk_load_response &a, group_bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-group_bulk_load_response::group_bulk_load_response(const group_bulk_load_response &other707)
+group_bulk_load_response::group_bulk_load_response(const group_bulk_load_response &other717)
 {
-    err = other707.err;
-    status = other707.status;
-    bulk_load_state = other707.bulk_load_state;
-    __isset = other707.__isset;
+    err = other717.err;
+    status = other717.status;
+    bulk_load_state = other717.bulk_load_state;
+    __isset = other717.__isset;
 }
-group_bulk_load_response::group_bulk_load_response(group_bulk_load_response &&other708)
+group_bulk_load_response::group_bulk_load_response(group_bulk_load_response &&other718)
 {
-    err = std::move(other708.err);
-    status = std::move(other708.status);
-    bulk_load_state = std::move(other708.bulk_load_state);
-    __isset = std::move(other708.__isset);
+    err = std::move(other718.err);
+    status = std::move(other718.status);
+    bulk_load_state = std::move(other718.bulk_load_state);
+    __isset = std::move(other718.__isset);
 }
 group_bulk_load_response &group_bulk_load_response::
-operator=(const group_bulk_load_response &other709)
+operator=(const group_bulk_load_response &other719)
 {
-    err = other709.err;
-    status = other709.status;
-    bulk_load_state = other709.bulk_load_state;
-    __isset = other709.__isset;
+    err = other719.err;
+    status = other719.status;
+    bulk_load_state = other719.bulk_load_state;
+    __isset = other719.__isset;
     return *this;
 }
-group_bulk_load_response &group_bulk_load_response::operator=(group_bulk_load_response &&other710)
+group_bulk_load_response &group_bulk_load_response::operator=(group_bulk_load_response &&other720)
 {
-    err = std::move(other710.err);
-    status = std::move(other710.status);
-    bulk_load_state = std::move(other710.bulk_load_state);
-    __isset = std::move(other710.__isset);
+    err = std::move(other720.err);
+    status = std::move(other720.status);
+    bulk_load_state = std::move(other720.bulk_load_state);
+    __isset = std::move(other720.__isset);
     return *this;
 }
 void group_bulk_load_response::printTo(std::ostream &out) const
@@ -16789,30 +17128,30 @@ void swap(ingestion_request &a, ingestion_request &b)
     swap(a.__isset, b.__isset);
 }
 
-ingestion_request::ingestion_request(const ingestion_request &other711)
+ingestion_request::ingestion_request(const ingestion_request &other721)
 {
-    app_name = other711.app_name;
-    metadata = other711.metadata;
-    __isset = other711.__isset;
+    app_name = other721.app_name;
+    metadata = other721.metadata;
+    __isset = other721.__isset;
 }
-ingestion_request::ingestion_request(ingestion_request &&other712)
+ingestion_request::ingestion_request(ingestion_request &&other722)
 {
-    app_name = std::move(other712.app_name);
-    metadata = std::move(other712.metadata);
-    __isset = std::move(other712.__isset);
+    app_name = std::move(other722.app_name);
+    metadata = std::move(other722.metadata);
+    __isset = std::move(other722.__isset);
 }
-ingestion_request &ingestion_request::operator=(const ingestion_request &other713)
+ingestion_request &ingestion_request::operator=(const ingestion_request &other723)
 {
-    app_name = other713.app_name;
-    metadata = other713.metadata;
-    __isset = other713.__isset;
+    app_name = other723.app_name;
+    metadata = other723.metadata;
+    __isset = other723.__isset;
     return *this;
 }
-ingestion_request &ingestion_request::operator=(ingestion_request &&other714)
+ingestion_request &ingestion_request::operator=(ingestion_request &&other724)
 {
-    app_name = std::move(other714.app_name);
-    metadata = std::move(other714.metadata);
-    __isset = std::move(other714.__isset);
+    app_name = std::move(other724.app_name);
+    metadata = std::move(other724.metadata);
+    __isset = std::move(other724.__isset);
     return *this;
 }
 void ingestion_request::printTo(std::ostream &out) const
@@ -16905,30 +17244,30 @@ void swap(ingestion_response &a, ingestion_response &b)
     swap(a.__isset, b.__isset);
 }
 
-ingestion_response::ingestion_response(const ingestion_response &other715)
+ingestion_response::ingestion_response(const ingestion_response &other725)
 {
-    err = other715.err;
-    rocksdb_error = other715.rocksdb_error;
-    __isset = other715.__isset;
+    err = other725.err;
+    rocksdb_error = other725.rocksdb_error;
+    __isset = other725.__isset;
 }
-ingestion_response::ingestion_response(ingestion_response &&other716)
+ingestion_response::ingestion_response(ingestion_response &&other726)
 {
-    err = std::move(other716.err);
-    rocksdb_error = std::move(other716.rocksdb_error);
-    __isset = std::move(other716.__isset);
+    err = std::move(other726.err);
+    rocksdb_error = std::move(other726.rocksdb_error);
+    __isset = std::move(other726.__isset);
 }
-ingestion_response &ingestion_response::operator=(const ingestion_response &other717)
+ingestion_response &ingestion_response::operator=(const ingestion_response &other727)
 {
-    err = other717.err;
-    rocksdb_error = other717.rocksdb_error;
-    __isset = other717.__isset;
+    err = other727.err;
+    rocksdb_error = other727.rocksdb_error;
+    __isset = other727.__isset;
     return *this;
 }
-ingestion_response &ingestion_response::operator=(ingestion_response &&other718)
+ingestion_response &ingestion_response::operator=(ingestion_response &&other728)
 {
-    err = std::move(other718.err);
-    rocksdb_error = std::move(other718.rocksdb_error);
-    __isset = std::move(other718.__isset);
+    err = std::move(other728.err);
+    rocksdb_error = std::move(other728.rocksdb_error);
+    __isset = std::move(other728.__isset);
     return *this;
 }
 void ingestion_response::printTo(std::ostream &out) const
@@ -16979,9 +17318,9 @@ uint32_t control_bulk_load_request::read(::apache::thrift::protocol::TProtocol *
             break;
         case 2:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast719;
-                xfer += iprot->readI32(ecast719);
-                this->type = (bulk_load_control_type::type)ecast719;
+                int32_t ecast729;
+                xfer += iprot->readI32(ecast729);
+                this->type = (bulk_load_control_type::type)ecast729;
                 this->__isset.type = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -17026,32 +17365,32 @@ void swap(control_bulk_load_request &a, control_bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-control_bulk_load_request::control_bulk_load_request(const control_bulk_load_request &other720)
+control_bulk_load_request::control_bulk_load_request(const control_bulk_load_request &other730)
 {
-    app_name = other720.app_name;
-    type = other720.type;
-    __isset = other720.__isset;
+    app_name = other730.app_name;
+    type = other730.type;
+    __isset = other730.__isset;
 }
-control_bulk_load_request::control_bulk_load_request(control_bulk_load_request &&other721)
+control_bulk_load_request::control_bulk_load_request(control_bulk_load_request &&other731)
 {
-    app_name = std::move(other721.app_name);
-    type = std::move(other721.type);
-    __isset = std::move(other721.__isset);
+    app_name = std::move(other731.app_name);
+    type = std::move(other731.type);
+    __isset = std::move(other731.__isset);
 }
 control_bulk_load_request &control_bulk_load_request::
-operator=(const control_bulk_load_request &other722)
+operator=(const control_bulk_load_request &other732)
 {
-    app_name = other722.app_name;
-    type = other722.type;
-    __isset = other722.__isset;
+    app_name = other732.app_name;
+    type = other732.type;
+    __isset = other732.__isset;
     return *this;
 }
 control_bulk_load_request &control_bulk_load_request::
-operator=(control_bulk_load_request &&other723)
+operator=(control_bulk_load_request &&other733)
 {
-    app_name = std::move(other723.app_name);
-    type = std::move(other723.type);
-    __isset = std::move(other723.__isset);
+    app_name = std::move(other733.app_name);
+    type = std::move(other733.type);
+    __isset = std::move(other733.__isset);
     return *this;
 }
 void control_bulk_load_request::printTo(std::ostream &out) const
@@ -17149,32 +17488,32 @@ void swap(control_bulk_load_response &a, control_bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-control_bulk_load_response::control_bulk_load_response(const control_bulk_load_response &other724)
+control_bulk_load_response::control_bulk_load_response(const control_bulk_load_response &other734)
 {
-    err = other724.err;
-    hint_msg = other724.hint_msg;
-    __isset = other724.__isset;
+    err = other734.err;
+    hint_msg = other734.hint_msg;
+    __isset = other734.__isset;
 }
-control_bulk_load_response::control_bulk_load_response(control_bulk_load_response &&other725)
+control_bulk_load_response::control_bulk_load_response(control_bulk_load_response &&other735)
 {
-    err = std::move(other725.err);
-    hint_msg = std::move(other725.hint_msg);
-    __isset = std::move(other725.__isset);
+    err = std::move(other735.err);
+    hint_msg = std::move(other735.hint_msg);
+    __isset = std::move(other735.__isset);
 }
 control_bulk_load_response &control_bulk_load_response::
-operator=(const control_bulk_load_response &other726)
+operator=(const control_bulk_load_response &other736)
 {
-    err = other726.err;
-    hint_msg = other726.hint_msg;
-    __isset = other726.__isset;
+    err = other736.err;
+    hint_msg = other736.hint_msg;
+    __isset = other736.__isset;
     return *this;
 }
 control_bulk_load_response &control_bulk_load_response::
-operator=(control_bulk_load_response &&other727)
+operator=(control_bulk_load_response &&other737)
 {
-    err = std::move(other727.err);
-    hint_msg = std::move(other727.hint_msg);
-    __isset = std::move(other727.__isset);
+    err = std::move(other737.err);
+    hint_msg = std::move(other737.hint_msg);
+    __isset = std::move(other737.__isset);
     return *this;
 }
 void control_bulk_load_response::printTo(std::ostream &out) const
@@ -17253,26 +17592,26 @@ void swap(query_bulk_load_request &a, query_bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-query_bulk_load_request::query_bulk_load_request(const query_bulk_load_request &other728)
+query_bulk_load_request::query_bulk_load_request(const query_bulk_load_request &other738)
 {
-    app_name = other728.app_name;
-    __isset = other728.__isset;
+    app_name = other738.app_name;
+    __isset = other738.__isset;
 }
-query_bulk_load_request::query_bulk_load_request(query_bulk_load_request &&other729)
+query_bulk_load_request::query_bulk_load_request(query_bulk_load_request &&other739)
 {
-    app_name = std::move(other729.app_name);
-    __isset = std::move(other729.__isset);
+    app_name = std::move(other739.app_name);
+    __isset = std::move(other739.__isset);
 }
-query_bulk_load_request &query_bulk_load_request::operator=(const query_bulk_load_request &other730)
+query_bulk_load_request &query_bulk_load_request::operator=(const query_bulk_load_request &other740)
 {
-    app_name = other730.app_name;
-    __isset = other730.__isset;
+    app_name = other740.app_name;
+    __isset = other740.__isset;
     return *this;
 }
-query_bulk_load_request &query_bulk_load_request::operator=(query_bulk_load_request &&other731)
+query_bulk_load_request &query_bulk_load_request::operator=(query_bulk_load_request &&other741)
 {
-    app_name = std::move(other731.app_name);
-    __isset = std::move(other731.__isset);
+    app_name = std::move(other741.app_name);
+    __isset = std::move(other741.__isset);
     return *this;
 }
 void query_bulk_load_request::printTo(std::ostream &out) const
@@ -17354,9 +17693,9 @@ uint32_t query_bulk_load_response::read(::apache::thrift::protocol::TProtocol *i
             break;
         case 3:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast732;
-                xfer += iprot->readI32(ecast732);
-                this->app_status = (bulk_load_status::type)ecast732;
+                int32_t ecast742;
+                xfer += iprot->readI32(ecast742);
+                this->app_status = (bulk_load_status::type)ecast742;
                 this->__isset.app_status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -17366,15 +17705,15 @@ uint32_t query_bulk_load_response::read(::apache::thrift::protocol::TProtocol *i
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->partitions_status.clear();
-                    uint32_t _size733;
-                    ::apache::thrift::protocol::TType _etype736;
-                    xfer += iprot->readListBegin(_etype736, _size733);
-                    this->partitions_status.resize(_size733);
-                    uint32_t _i737;
-                    for (_i737 = 0; _i737 < _size733; ++_i737) {
-                        int32_t ecast738;
-                        xfer += iprot->readI32(ecast738);
-                        this->partitions_status[_i737] = (bulk_load_status::type)ecast738;
+                    uint32_t _size743;
+                    ::apache::thrift::protocol::TType _etype746;
+                    xfer += iprot->readListBegin(_etype746, _size743);
+                    this->partitions_status.resize(_size743);
+                    uint32_t _i747;
+                    for (_i747 = 0; _i747 < _size743; ++_i747) {
+                        int32_t ecast748;
+                        xfer += iprot->readI32(ecast748);
+                        this->partitions_status[_i747] = (bulk_load_status::type)ecast748;
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -17395,25 +17734,25 @@ uint32_t query_bulk_load_response::read(::apache::thrift::protocol::TProtocol *i
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->bulk_load_states.clear();
-                    uint32_t _size739;
-                    ::apache::thrift::protocol::TType _etype742;
-                    xfer += iprot->readListBegin(_etype742, _size739);
-                    this->bulk_load_states.resize(_size739);
-                    uint32_t _i743;
-                    for (_i743 = 0; _i743 < _size739; ++_i743) {
+                    uint32_t _size749;
+                    ::apache::thrift::protocol::TType _etype752;
+                    xfer += iprot->readListBegin(_etype752, _size749);
+                    this->bulk_load_states.resize(_size749);
+                    uint32_t _i753;
+                    for (_i753 = 0; _i753 < _size749; ++_i753) {
                         {
-                            this->bulk_load_states[_i743].clear();
-                            uint32_t _size744;
-                            ::apache::thrift::protocol::TType _ktype745;
-                            ::apache::thrift::protocol::TType _vtype746;
-                            xfer += iprot->readMapBegin(_ktype745, _vtype746, _size744);
-                            uint32_t _i748;
-                            for (_i748 = 0; _i748 < _size744; ++_i748) {
-                                ::dsn::rpc_address _key749;
-                                xfer += _key749.read(iprot);
-                                partition_bulk_load_state &_val750 =
-                                    this->bulk_load_states[_i743][_key749];
-                                xfer += _val750.read(iprot);
+                            this->bulk_load_states[_i753].clear();
+                            uint32_t _size754;
+                            ::apache::thrift::protocol::TType _ktype755;
+                            ::apache::thrift::protocol::TType _vtype756;
+                            xfer += iprot->readMapBegin(_ktype755, _vtype756, _size754);
+                            uint32_t _i758;
+                            for (_i758 = 0; _i758 < _size754; ++_i758) {
+                                ::dsn::rpc_address _key759;
+                                xfer += _key759.read(iprot);
+                                partition_bulk_load_state &_val760 =
+                                    this->bulk_load_states[_i753][_key759];
+                                xfer += _val760.read(iprot);
                             }
                             xfer += iprot->readMapEnd();
                         }
@@ -17467,10 +17806,10 @@ uint32_t query_bulk_load_response::write(::apache::thrift::protocol::TProtocol *
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_I32,
                                       static_cast<uint32_t>(this->partitions_status.size()));
-        std::vector<bulk_load_status::type>::const_iterator _iter751;
-        for (_iter751 = this->partitions_status.begin(); _iter751 != this->partitions_status.end();
-             ++_iter751) {
-            xfer += oprot->writeI32((int32_t)(*_iter751));
+        std::vector<bulk_load_status::type>::const_iterator _iter761;
+        for (_iter761 = this->partitions_status.begin(); _iter761 != this->partitions_status.end();
+             ++_iter761) {
+            xfer += oprot->writeI32((int32_t)(*_iter761));
         }
         xfer += oprot->writeListEnd();
     }
@@ -17485,17 +17824,17 @@ uint32_t query_bulk_load_response::write(::apache::thrift::protocol::TProtocol *
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_MAP,
                                       static_cast<uint32_t>(this->bulk_load_states.size()));
         std::vector<std::map<::dsn::rpc_address, partition_bulk_load_state>>::const_iterator
-            _iter752;
-        for (_iter752 = this->bulk_load_states.begin(); _iter752 != this->bulk_load_states.end();
-             ++_iter752) {
+            _iter762;
+        for (_iter762 = this->bulk_load_states.begin(); _iter762 != this->bulk_load_states.end();
+             ++_iter762) {
             {
                 xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRUCT,
                                              ::apache::thrift::protocol::T_STRUCT,
-                                             static_cast<uint32_t>((*_iter752).size()));
-                std::map<::dsn::rpc_address, partition_bulk_load_state>::const_iterator _iter753;
-                for (_iter753 = (*_iter752).begin(); _iter753 != (*_iter752).end(); ++_iter753) {
-                    xfer += _iter753->first.write(oprot);
-                    xfer += _iter753->second.write(oprot);
+                                             static_cast<uint32_t>((*_iter762).size()));
+                std::map<::dsn::rpc_address, partition_bulk_load_state>::const_iterator _iter763;
+                for (_iter763 = (*_iter762).begin(); _iter763 != (*_iter762).end(); ++_iter763) {
+                    xfer += _iter763->first.write(oprot);
+                    xfer += _iter763->second.write(oprot);
                 }
                 xfer += oprot->writeMapEnd();
             }
@@ -17527,51 +17866,51 @@ void swap(query_bulk_load_response &a, query_bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-query_bulk_load_response::query_bulk_load_response(const query_bulk_load_response &other754)
+query_bulk_load_response::query_bulk_load_response(const query_bulk_load_response &other764)
 {
-    err = other754.err;
-    app_name = other754.app_name;
-    app_status = other754.app_status;
-    partitions_status = other754.partitions_status;
-    max_replica_count = other754.max_replica_count;
-    bulk_load_states = other754.bulk_load_states;
-    hint_msg = other754.hint_msg;
-    __isset = other754.__isset;
+    err = other764.err;
+    app_name = other764.app_name;
+    app_status = other764.app_status;
+    partitions_status = other764.partitions_status;
+    max_replica_count = other764.max_replica_count;
+    bulk_load_states = other764.bulk_load_states;
+    hint_msg = other764.hint_msg;
+    __isset = other764.__isset;
 }
-query_bulk_load_response::query_bulk_load_response(query_bulk_load_response &&other755)
+query_bulk_load_response::query_bulk_load_response(query_bulk_load_response &&other765)
 {
-    err = std::move(other755.err);
-    app_name = std::move(other755.app_name);
-    app_status = std::move(other755.app_status);
-    partitions_status = std::move(other755.partitions_status);
-    max_replica_count = std::move(other755.max_replica_count);
-    bulk_load_states = std::move(other755.bulk_load_states);
-    hint_msg = std::move(other755.hint_msg);
-    __isset = std::move(other755.__isset);
+    err = std::move(other765.err);
+    app_name = std::move(other765.app_name);
+    app_status = std::move(other765.app_status);
+    partitions_status = std::move(other765.partitions_status);
+    max_replica_count = std::move(other765.max_replica_count);
+    bulk_load_states = std::move(other765.bulk_load_states);
+    hint_msg = std::move(other765.hint_msg);
+    __isset = std::move(other765.__isset);
 }
 query_bulk_load_response &query_bulk_load_response::
-operator=(const query_bulk_load_response &other756)
+operator=(const query_bulk_load_response &other766)
 {
-    err = other756.err;
-    app_name = other756.app_name;
-    app_status = other756.app_status;
-    partitions_status = other756.partitions_status;
-    max_replica_count = other756.max_replica_count;
-    bulk_load_states = other756.bulk_load_states;
-    hint_msg = other756.hint_msg;
-    __isset = other756.__isset;
+    err = other766.err;
+    app_name = other766.app_name;
+    app_status = other766.app_status;
+    partitions_status = other766.partitions_status;
+    max_replica_count = other766.max_replica_count;
+    bulk_load_states = other766.bulk_load_states;
+    hint_msg = other766.hint_msg;
+    __isset = other766.__isset;
     return *this;
 }
-query_bulk_load_response &query_bulk_load_response::operator=(query_bulk_load_response &&other757)
+query_bulk_load_response &query_bulk_load_response::operator=(query_bulk_load_response &&other767)
 {
-    err = std::move(other757.err);
-    app_name = std::move(other757.app_name);
-    app_status = std::move(other757.app_status);
-    partitions_status = std::move(other757.partitions_status);
-    max_replica_count = std::move(other757.max_replica_count);
-    bulk_load_states = std::move(other757.bulk_load_states);
-    hint_msg = std::move(other757.hint_msg);
-    __isset = std::move(other757.__isset);
+    err = std::move(other767.err);
+    app_name = std::move(other767.app_name);
+    app_status = std::move(other767.app_status);
+    partitions_status = std::move(other767.partitions_status);
+    max_replica_count = std::move(other767.max_replica_count);
+    bulk_load_states = std::move(other767.bulk_load_states);
+    hint_msg = std::move(other767.hint_msg);
+    __isset = std::move(other767.__isset);
     return *this;
 }
 void query_bulk_load_response::printTo(std::ostream &out) const
@@ -17624,9 +17963,9 @@ uint32_t detect_hotkey_request::read(::apache::thrift::protocol::TProtocol *ipro
         switch (fid) {
         case 1:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast758;
-                xfer += iprot->readI32(ecast758);
-                this->type = (hotkey_type::type)ecast758;
+                int32_t ecast768;
+                xfer += iprot->readI32(ecast768);
+                this->type = (hotkey_type::type)ecast768;
                 this->__isset.type = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -17634,9 +17973,9 @@ uint32_t detect_hotkey_request::read(::apache::thrift::protocol::TProtocol *ipro
             break;
         case 2:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast759;
-                xfer += iprot->readI32(ecast759);
-                this->action = (detect_action::type)ecast759;
+                int32_t ecast769;
+                xfer += iprot->readI32(ecast769);
+                this->action = (detect_action::type)ecast769;
                 this->__isset.action = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -17694,34 +18033,34 @@ void swap(detect_hotkey_request &a, detect_hotkey_request &b)
     swap(a.__isset, b.__isset);
 }
 
-detect_hotkey_request::detect_hotkey_request(const detect_hotkey_request &other760)
+detect_hotkey_request::detect_hotkey_request(const detect_hotkey_request &other770)
 {
-    type = other760.type;
-    action = other760.action;
-    pid = other760.pid;
-    __isset = other760.__isset;
+    type = other770.type;
+    action = other770.action;
+    pid = other770.pid;
+    __isset = other770.__isset;
 }
-detect_hotkey_request::detect_hotkey_request(detect_hotkey_request &&other761)
+detect_hotkey_request::detect_hotkey_request(detect_hotkey_request &&other771)
 {
-    type = std::move(other761.type);
-    action = std::move(other761.action);
-    pid = std::move(other761.pid);
-    __isset = std::move(other761.__isset);
+    type = std::move(other771.type);
+    action = std::move(other771.action);
+    pid = std::move(other771.pid);
+    __isset = std::move(other771.__isset);
 }
-detect_hotkey_request &detect_hotkey_request::operator=(const detect_hotkey_request &other762)
+detect_hotkey_request &detect_hotkey_request::operator=(const detect_hotkey_request &other772)
 {
-    type = other762.type;
-    action = other762.action;
-    pid = other762.pid;
-    __isset = other762.__isset;
+    type = other772.type;
+    action = other772.action;
+    pid = other772.pid;
+    __isset = other772.__isset;
     return *this;
 }
-detect_hotkey_request &detect_hotkey_request::operator=(detect_hotkey_request &&other763)
+detect_hotkey_request &detect_hotkey_request::operator=(detect_hotkey_request &&other773)
 {
-    type = std::move(other763.type);
-    action = std::move(other763.action);
-    pid = std::move(other763.pid);
-    __isset = std::move(other763.__isset);
+    type = std::move(other773.type);
+    action = std::move(other773.action);
+    pid = std::move(other773.pid);
+    __isset = std::move(other773.__isset);
     return *this;
 }
 void detect_hotkey_request::printTo(std::ostream &out) const
@@ -17821,30 +18160,30 @@ void swap(detect_hotkey_response &a, detect_hotkey_response &b)
     swap(a.__isset, b.__isset);
 }
 
-detect_hotkey_response::detect_hotkey_response(const detect_hotkey_response &other764)
+detect_hotkey_response::detect_hotkey_response(const detect_hotkey_response &other774)
 {
-    err = other764.err;
-    err_hint = other764.err_hint;
-    __isset = other764.__isset;
+    err = other774.err;
+    err_hint = other774.err_hint;
+    __isset = other774.__isset;
 }
-detect_hotkey_response::detect_hotkey_response(detect_hotkey_response &&other765)
+detect_hotkey_response::detect_hotkey_response(detect_hotkey_response &&other775)
 {
-    err = std::move(other765.err);
-    err_hint = std::move(other765.err_hint);
-    __isset = std::move(other765.__isset);
+    err = std::move(other775.err);
+    err_hint = std::move(other775.err_hint);
+    __isset = std::move(other775.__isset);
 }
-detect_hotkey_response &detect_hotkey_response::operator=(const detect_hotkey_response &other766)
+detect_hotkey_response &detect_hotkey_response::operator=(const detect_hotkey_response &other776)
 {
-    err = other766.err;
-    err_hint = other766.err_hint;
-    __isset = other766.__isset;
+    err = other776.err;
+    err_hint = other776.err_hint;
+    __isset = other776.__isset;
     return *this;
 }
-detect_hotkey_response &detect_hotkey_response::operator=(detect_hotkey_response &&other767)
+detect_hotkey_response &detect_hotkey_response::operator=(detect_hotkey_response &&other777)
 {
-    err = std::move(other767.err);
-    err_hint = std::move(other767.err_hint);
-    __isset = std::move(other767.__isset);
+    err = std::move(other777.err);
+    err_hint = std::move(other777.err_hint);
+    __isset = std::move(other777.__isset);
     return *this;
 }
 void detect_hotkey_response::printTo(std::ostream &out) const
