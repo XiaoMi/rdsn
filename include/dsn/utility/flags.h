@@ -59,9 +59,11 @@ enum class flag_tag
         dassert(FLAGS_VALIDATOR_FN_##name(FLAGS_##name), "validation failed: %s", #name);          \
     })
 
-#define DSN_TAG_FLAG(name, tag)                                                                    \
+#define DSN_TAG_VARIABLE(name, tag)                                                                \
     COMPILE_ASSERT(sizeof(decltype(FLAGS_##name)), exist_##name##_##tag);                          \
     static dsn::flag_tagger FLAGS_TAGGER_##name##_##tag(#name, flag_tag::tag)
+
+#define DSN_HAS_TAG(name, tag) has_tag(#name, flag_tag::tag)
 
 namespace dsn {
 
@@ -96,4 +98,5 @@ extern void flags_initialize();
 
 extern error_s update_flag(const char *name, const char *val);
 
+extern error_with<bool> has_tag(const char *name, const flag_tag &tag);
 } // namespace dsn

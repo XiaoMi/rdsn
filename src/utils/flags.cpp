@@ -12,7 +12,6 @@
 #include <fmt/format.h>
 
 #include <map>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 
@@ -93,8 +92,8 @@ public:
     void set_validator(validator_fn &validator) { _validator = std::move(validator); }
     const validator_fn &validator() const { return _validator; }
 
-    bool has_tag(const flag_tag &tag) const { return _tags.find(tag) != _tags.end(); }
     void add_tag(const flag_tag &tag) { _tags.insert(tag); }
+    bool has_tag(const flag_tag &tag) const { return _tags.find(tag) != _tags.end(); }
 
 private:
     template <typename T>
@@ -152,6 +151,15 @@ public:
         it->second.add_tag(tag);
     }
 
+    error_with<bool> has_tag(const char *name, const flag_tag &tag) const
+    {
+        auto it = _flags.find(name);
+        if (it == _flags.end()) {
+            return error_s::make(ERR_OBJECT_NOT_FOUND, fmt::format("{} is not found", name));
+        }
+        return it->second.has_tag(tag);
+    }
+
 private:
     friend class utils::singleton<flag_registry>;
     flag_registry() = default;
@@ -190,6 +198,11 @@ flag_tagger::flag_tagger(const char *name, const flag_tag &tag)
 /*extern*/ error_s update_flag(const char *name, const char *val)
 {
     return flag_registry::instance().update_flag(name, val);
+}
+
+/*extern*/ error_with<bool> has_tag(const char *name, const flag_tag &tag)
+{
+    return flag_registry::instance().has_tag(name, tag);
 }
 
 } // namespace dsn

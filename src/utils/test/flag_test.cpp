@@ -20,57 +20,52 @@
 
 namespace dsn {
 namespace utils {
-class flag_test : public testing::Test
-{
-public:
-    void SetUp() override { flags_initialize(); }
-};
 
 DSN_DEFINE_int32("flag_test", test_int32, 5, "");
-DSN_TAG_FLAG(test_int32, FT_MUTABLE);
+DSN_TAG_VARIABLE(test_int32, FT_MUTABLE);
 
 DSN_DEFINE_uint32("flag_test", test_uint32, 5, "");
-DSN_TAG_FLAG(test_uint32, FT_MUTABLE);
+DSN_TAG_VARIABLE(test_uint32, FT_MUTABLE);
 
 DSN_DEFINE_int64("flag_test", test_int64, 5, "");
-DSN_TAG_FLAG(test_int64, FT_MUTABLE);
+DSN_TAG_VARIABLE(test_int64, FT_MUTABLE);
 
 DSN_DEFINE_uint64("flag_test", test_uint64, 5, "");
-DSN_TAG_FLAG(test_uint64, FT_MUTABLE);
+DSN_TAG_VARIABLE(test_uint64, FT_MUTABLE);
 
 DSN_DEFINE_double("flag_test", test_double, 5.0, "");
-DSN_TAG_FLAG(test_double, FT_MUTABLE);
+DSN_TAG_VARIABLE(test_double, FT_MUTABLE);
 
 DSN_DEFINE_bool("flag_test", test_bool, true, "");
-DSN_TAG_FLAG(test_bool, FT_MUTABLE);
+DSN_TAG_VARIABLE(test_bool, FT_MUTABLE);
 
 DSN_DEFINE_string("flag_test", test_string_immutable, "immutable_string", "");
 
-TEST_F(flag_test, update_config)
+TEST(flag_test, update_config)
 {
     auto res = update_flag("test_int32", "3");
-    ASSERT_EQ(res.is_ok(), true);
+    ASSERT_TRUE(res.is_ok());
     ASSERT_EQ(FLAGS_test_int32, 3);
 
     res = update_flag("test_uint32", "3");
-    ASSERT_EQ(res.is_ok(), true);
+    ASSERT_TRUE(res.is_ok());
     ASSERT_EQ(FLAGS_test_uint32, 3);
 
     res = update_flag("test_int64", "3");
-    ASSERT_EQ(res.is_ok(), true);
+    ASSERT_TRUE(res.is_ok());
     ASSERT_EQ(FLAGS_test_int64, 3);
 
     res = update_flag("test_uint64", "3");
-    ASSERT_EQ(res.is_ok(), true);
+    ASSERT_TRUE(res.is_ok());
     ASSERT_EQ(FLAGS_test_uint64, 3);
 
     res = update_flag("test_double", "3.0");
-    ASSERT_EQ(res.is_ok(), true);
+    ASSERT_TRUE(res.is_ok());
     ASSERT_EQ(FLAGS_test_double, 3.0);
 
     res = update_flag("test_bool", "false");
-    ASSERT_EQ(res.is_ok(), true);
-    ASSERT_EQ(FLAGS_test_bool, false);
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_FALSE(FLAGS_test_bool);
 
     // string modifications are not supported
     res = update_flag("test_string_immutable", "update_string");
@@ -87,9 +82,27 @@ TEST_F(flag_test, update_config)
     ASSERT_EQ(FLAGS_test_int32, 3);
 }
 
-TEST_F(flag_test, tag_flag)
+DSN_DEFINE_int32("flag_test", has_tag, 5, "");
+DSN_TAG_VARIABLE(has_tag, FT_MUTABLE);
+
+DSN_DEFINE_int32("flag_test", no_tag, 5, "");
+
+TEST(flag_test, tag_flag)
 {
-    // TBD(zlw)
+    // has tag
+    auto res = DSN_HAS_TAG(has_tag, FT_MUTABLE);
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_TRUE(res.get_value());
+
+    // doesn't has tag
+    res = DSN_HAS_TAG(no_tag, FT_MUTABLE);
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_FALSE(res.get_value());
+
+    // flag is not exist
+    res = DSN_HAS_TAG(no_flag, FT_MUTABLE);
+    ASSERT_FALSE(res.is_ok());
+    ASSERT_EQ(res.get_error().code(), ERR_OBJECT_NOT_FOUND);
 }
 } // namespace utils
 } // namespace dsn
