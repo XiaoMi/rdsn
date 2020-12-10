@@ -218,20 +218,20 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_run)
     set_migration_status(request.pid, disk_migration_status::MOVING);
 
     const std::string kTargetReplicaDir = fmt::format(
-        "./{}/{}.replica.disk.balance.tmp/", request.target_disk, request.pid.to_string());
+        "./{}/{}.replica.disk.migrate.tmp/", request.target_disk, request.pid.to_string());
 
     const std::string kTargetDataDir = fmt::format(
-        "./{}/{}.replica.disk.balance.tmp/data/rdb/", request.target_disk, request.pid.to_string());
+        "./{}/{}.replica.disk.migrate.tmp/data/rdb/", request.target_disk, request.pid.to_string());
     const std::string kTargetCheckPointFile =
-        fmt::format("./{}/{}.replica.disk.balance.tmp/data/rdb/checkpoint.file",
+        fmt::format("./{}/{}.replica.disk.migrate.tmp/data/rdb/checkpoint.file",
                     request.target_disk,
                     request.pid.to_string());
     const std::string kTargetInitInfoFile =
-        fmt::format("./{}/{}.replica.disk.balance.tmp/.init-info",
+        fmt::format("./{}/{}.replica.disk.migrate.tmp/.init-info",
                     request.target_disk,
                     request.pid.to_string());
     const std::string kTargetAppInfoFile = fmt::format(
-        "./{}/{}.replica.disk.balance.tmp/.app-info", request.target_disk, request.pid.to_string());
+        "./{}/{}.replica.disk.migrate.tmp/.app-info", request.target_disk, request.pid.to_string());
 
     init_migration_target_dir(fake_migrate_rpc);
     ASSERT_TRUE(utils::filesystem::directory_exists(kTargetDataDir));
@@ -294,9 +294,9 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_update)
     const std::string kReplicaOriginDir =
         fmt::format("./{}/{}.replica", request.origin_disk, request.pid.to_string());
     const std::string kReplicaNewTempDir = fmt::format(
-        "./{}/{}.replica.disk.balance.tmp/", request.target_disk, request.pid.to_string());
+        "./{}/{}.replica.disk.migrate.tmp/", request.target_disk, request.pid.to_string());
     const std::string kReplicaOriginSuffixDir = fmt::format(
-        "./{}/{}.replica.disk.balance.ori/", request.origin_disk, request.pid.to_string());
+        "./{}/{}.replica.disk.migrate.ori/", request.origin_disk, request.pid.to_string());
     const std::string kReplicaNewDir =
         fmt::format("./{}/{}.replica/", request.target_disk, request.pid.to_string());
 
@@ -347,7 +347,7 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_open)
 
     remove_mock_dir_node(request.origin_disk);
     const std::string kReplicaOriginSuffixDir = fmt::format(
-        "./{}/{}.replica.disk.balance.ori/", request.origin_disk, request.pid.to_string());
+        "./{}/{}.replica.disk.migrate.ori/", request.origin_disk, request.pid.to_string());
     const std::string kReplicaNewDir =
         fmt::format("./{}/{}.replica/", request.target_disk, request.pid.to_string());
     utils::filesystem::create_directory(kReplicaOriginSuffixDir);
@@ -383,9 +383,9 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_delete)
     sleep(5);
     update_disk_replica();
     ASSERT_FALSE(utils::filesystem::directory_exists(fmt::format(
-        "./{}/{}.replica.disk.balance.ori/", request.origin_disk, request.pid.to_string())));
+        "./{}/{}.replica.disk.migrate.ori/", request.origin_disk, request.pid.to_string())));
     ASSERT_FALSE(utils::filesystem::directory_exists(fmt::format(
-        "./{}/{}.replica.disk.balance.tmp/", request.target_disk, request.pid.to_string())));
+        "./{}/{}.replica.disk.migrate.tmp/", request.target_disk, request.pid.to_string())));
 }
 
 } // namespace replication

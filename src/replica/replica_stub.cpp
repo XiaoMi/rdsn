@@ -509,7 +509,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     std::deque<task_ptr> load_tasks;
     uint64_t start_time = dsn_now_ms();
     for (auto &dir : dir_list) {
-        if (dir.length() >= 4 && is_replica_folder_gc_suffix(dir.substr(dir.length() - 4))) {
+        if (is_removable_folder(dir) {
             ddebug_f("ignore dir {}", dir);
             continue;
         }
@@ -518,30 +518,30 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
             LPC_REPLICATION_INIT_LOAD,
             &_tracker,
             [this, dir, &rps, &rps_lock] {
-                ddebug("process dir %s", dir.c_str());
+            ddebug("process dir %s", dir.c_str());
 
-                auto r = replica::load(this, dir.c_str());
-                if (r != nullptr) {
-                    ddebug("%s@%s: load replica '%s' success, <durable, commit> = <%" PRId64
-                           ", %" PRId64 ">, last_prepared_decree = %" PRId64,
-                           r->get_gpid().to_string(),
-                           dsn_primary_address().to_string(),
-                           dir.c_str(),
-                           r->last_durable_decree(),
-                           r->last_committed_decree(),
-                           r->last_prepared_decree());
+            auto r = replica::load(this, dir.c_str());
+            if (r != nullptr) {
+                ddebug("%s@%s: load replica '%s' success, <durable, commit> = <%" PRId64
+                       ", %" PRId64 ">, last_prepared_decree = %" PRId64,
+                       r->get_gpid().to_string(),
+                       dsn_primary_address().to_string(),
+                       dir.c_str(),
+                       r->last_durable_decree(),
+                       r->last_committed_decree(),
+                       r->last_prepared_decree());
 
-                    utils::auto_lock<utils::ex_lock> l(rps_lock);
+                utils::auto_lock<utils::ex_lock> l(rps_lock);
 
-                    if (rps.find(r->get_gpid()) != rps.end()) {
-                        dassert(false,
-                                "conflict replica dir: %s <--> %s",
-                                r->dir().c_str(),
-                                rps[r->get_gpid()]->dir().c_str());
-                    }
-
-                    rps[r->get_gpid()] = r;
+                if (rps.find(r->get_gpid()) != rps.end()) {
+                    dassert(false,
+                            "conflict replica dir: %s <--> %s",
+                            r->dir().c_str(),
+                            rps[r->get_gpid()]->dir().c_str());
                 }
+
+                rps[r->get_gpid()] = r;
+            }
             },
             load_tasks.size()));
         load_tasks.back()->enqueue();
@@ -1790,7 +1790,7 @@ void replica_stub::on_disk_stat()
     ddebug("start to update disk stat");
     uint64_t start = dsn_now_ns();
 
-    gc_disk_replica_folder();
+    disk_remove_useless_dirs();
     _fs_manager.update_disk_stat();
     update_disk_holding_replicas();
 
@@ -2740,7 +2740,7 @@ void replica_stub::update_disk_holding_replicas()
     }
 }
 
-void replica_stub::gc_disk_replica_folder()
+void replica_stub::disk_remove_useless_dirs()
 {
     std::vector<std::string> sub_list;
     for (auto &dir : _options.data_dirs) {
@@ -2760,7 +2760,7 @@ void replica_stub::gc_disk_replica_folder()
         }
 
         std::string folder_suffix = name.substr(name.length() - 4);
-        if (is_replica_folder_gc_suffix(folder_suffix)) {
+        if (is_removable_folder(name)) {
             if (folder_suffix == kFolderSuffixErr) {
                 error_replica_dir_count++;
             } else if (folder_suffix == kFolderSuffixGar) {

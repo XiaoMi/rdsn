@@ -275,10 +275,14 @@ private:
 
     void register_ctrl_command();
 
-    void gc_disk_replica_folder();
+    void disk_remove_useless_dirs();
 
-    bool is_replica_folder_gc_suffix(const std::string &folder_suffix)
+    bool is_removable_folder(const std::string &dir)
     {
+        if (dir.length() < 4) {
+            return false;
+        }
+        const std::string folder_suffix = dir.substr(dir.length() - 4);
         return (folder_suffix == kFolderSuffixErr || folder_suffix == kFolderSuffixGar ||
                 folder_suffix == kFolderSuffixBak || folder_suffix == kFolderSuffixTmp ||
                 folder_suffix == kFolderSuffixOri);

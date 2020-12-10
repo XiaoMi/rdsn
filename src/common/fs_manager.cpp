@@ -77,7 +77,7 @@ unsigned dir_node::remove(const gpid &pid)
 
 void dir_node::update_disk_stat()
 {
-    FAIL_POINT_INJECT_F("mock_dir_node", [](string_view) -> void { return; });
+    FAIL_POINT_INJECT_F("update_disk_stat", [](string_view) {});
     dsn::utils::filesystem::disk_space_info info;
     if (dsn::utils::filesystem::get_disk_space_info(full_dir, info)) {
         disk_capacity_mb = info.capacity / 1024 / 1024;
