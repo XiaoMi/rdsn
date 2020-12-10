@@ -509,7 +509,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     std::deque<task_ptr> load_tasks;
     uint64_t start_time = dsn_now_ms();
     for (auto &dir : dir_list) {
-        if (is_removable_folder(dir) {
+        if (is_removable_folder(dir)) {
             ddebug_f("ignore dir {}", dir);
             continue;
         }
@@ -518,30 +518,30 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
             LPC_REPLICATION_INIT_LOAD,
             &_tracker,
             [this, dir, &rps, &rps_lock] {
-            ddebug("process dir %s", dir.c_str());
+                ddebug("process dir %s", dir.c_str());
 
-            auto r = replica::load(this, dir.c_str());
-            if (r != nullptr) {
-                ddebug("%s@%s: load replica '%s' success, <durable, commit> = <%" PRId64
-                       ", %" PRId64 ">, last_prepared_decree = %" PRId64,
-                       r->get_gpid().to_string(),
-                       dsn_primary_address().to_string(),
-                       dir.c_str(),
-                       r->last_durable_decree(),
-                       r->last_committed_decree(),
-                       r->last_prepared_decree());
+                auto r = replica::load(this, dir.c_str());
+                if (r != nullptr) {
+                    ddebug("%s@%s: load replica '%s' success, <durable, commit> = <%" PRId64
+                           ", %" PRId64 ">, last_prepared_decree = %" PRId64,
+                           r->get_gpid().to_string(),
+                           dsn_primary_address().to_string(),
+                           dir.c_str(),
+                           r->last_durable_decree(),
+                           r->last_committed_decree(),
+                           r->last_prepared_decree());
 
-                utils::auto_lock<utils::ex_lock> l(rps_lock);
+                    utils::auto_lock<utils::ex_lock> l(rps_lock);
 
-                if (rps.find(r->get_gpid()) != rps.end()) {
-                    dassert(false,
-                            "conflict replica dir: %s <--> %s",
-                            r->dir().c_str(),
-                            rps[r->get_gpid()]->dir().c_str());
+                    if (rps.find(r->get_gpid()) != rps.end()) {
+                        dassert(false,
+                                "conflict replica dir: %s <--> %s",
+                                r->dir().c_str(),
+                                rps[r->get_gpid()]->dir().c_str());
+                    }
+
+                    rps[r->get_gpid()] = r;
                 }
-
-                rps[r->get_gpid()] = r;
-            }
             },
             load_tasks.size()));
         load_tasks.back()->enqueue();
