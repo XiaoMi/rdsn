@@ -12,7 +12,7 @@
 
 enum class flag_tag
 {
-    FT_MUTABLE = 0,
+    FT_MUTABLE = 0, /** flag data is mutable */
 };
 
 // Example:
