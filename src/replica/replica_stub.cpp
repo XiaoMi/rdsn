@@ -216,23 +216,26 @@ void replica_stub::install_perf_counters()
         "replicas.recent.replica.remove.dir.count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "replica directory remove count in the recent period");
-    _counter_replicas_error_replica_dir_count.init_app_counter("eon.replica_stub",
-                                                               "replicas.error.replica.dir.count",
-                                                               COUNTER_TYPE_NUMBER,
-                                                               "error replica directory count");
+    _counter_replicas_error_replica_dir_count.init_app_counter(
+        "eon.replica_stub",
+        "replicas.error.replica.dir.count",
+        COUNTER_TYPE_NUMBER,
+        "error replica directory(*.err) count");
     _counter_replicas_garbage_replica_dir_count.init_app_counter(
         "eon.replica_stub",
         "replicas.garbage.replica.dir.count",
         COUNTER_TYPE_NUMBER,
-        "garbage replica directory count");
-    _counter_replicas_tmp_replica_dir_count.init_app_counter("eon.replica_stub",
-                                                             "replicas.tmp.replica.dir.count",
-                                                             COUNTER_TYPE_NUMBER,
-                                                             "error replica directory count");
-    _counter_replicas_origin_replica_dir_count.init_app_counter("eon.replica_stub",
-                                                                "replicas.origin.replica.dir.count",
-                                                                COUNTER_TYPE_NUMBER,
-                                                                "garbage replica directory count");
+        "garbage replica directory(*.gar) count");
+    _counter_replicas_tmp_replica_dir_count.init_app_counter(
+        "eon.replica_stub",
+        "replicas.tmp.replica.dir.count",
+        COUNTER_TYPE_NUMBER,
+        "disk migration tmp replica directory(*.tmp) count");
+    _counter_replicas_origin_replica_dir_count.init_app_counter(
+        "eon.replica_stub",
+        "replicas.origin.replica.dir.count",
+        COUNTER_TYPE_NUMBER,
+        "disk migration origin replica directory(.ori) count");
 
     _counter_replicas_recent_group_check_fail_count.init_app_counter(
         "eon.replica_stub",
