@@ -1,16 +1,27 @@
-//
-// Created by mi on 20-12-11.
-//
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 #pragma once
 
 #include <vector>
 #include <dsn/utility/errors.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 
-#ifndef DSN_DISK_CLEANER_H
-#define DSN_DISK_CLEANER_H
-
-#endif // DSN_DISK_CLEANER_H
 namespace dsn {
 namespace replication {
 DSN_DECLARE_uint64(gc_disk_error_replica_interval_seconds);
@@ -18,10 +29,10 @@ DSN_DECLARE_uint64(gc_disk_garbage_replica_interval_seconds);
 DSN_DECLARE_uint64(gc_disk_migration_tmp_replica_interval_seconds);
 DSN_DECLARE_uint64(gc_disk_migration_origin_replica_interval_seconds);
 
-// the garbage folder suffix, server will check disk folder and deal with them
+// the invalid folder suffix, server will check disk folder and deal with them
 extern const std::string kFolderSuffixErr; // replica error dir
 extern const std::string kFolderSuffixGar; // replica closed and assign garbage dir
-extern const std::string kFolderSuffixBak; // replica backup dir
+extern const std::string kFolderSuffixBak; // replica backup dir which can be restored
 extern const std::string kFolderSuffixOri; // replica disk migration origin dir
 extern const std::string kFolderSuffixTmp; // replica disk migration temp dir
 
