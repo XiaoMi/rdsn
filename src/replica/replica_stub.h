@@ -45,8 +45,6 @@
 
 namespace dsn {
 namespace replication {
-DSN_DECLARE_uint64(gc_disk_migration_tmp_replica_interval_seconds);
-DSN_DECLARE_uint64(gc_disk_migration_origin_replica_interval_seconds);
 
 typedef rpc_holder<group_check_response, learn_notify_response> learn_completion_notification_rpc;
 typedef rpc_holder<group_check_request, group_check_response> group_check_rpc;
@@ -275,19 +273,6 @@ private:
 
     void register_ctrl_command();
 
-    void disk_remove_useless_dirs();
-
-    bool is_removable_folder(const std::string &dir)
-    {
-        if (dir.length() < 4) {
-            return false;
-        }
-        const std::string folder_suffix = dir.substr(dir.length() - 4);
-        return (folder_suffix == kFolderSuffixErr || folder_suffix == kFolderSuffixGar ||
-                folder_suffix == kFolderSuffixBak || folder_suffix == kFolderSuffixTmp ||
-                folder_suffix == kFolderSuffixOri);
-    }
-
     int get_app_id_from_replicas(std::string app_name)
     {
         for (const auto &replica : _replicas) {
@@ -368,7 +353,6 @@ private:
     dsn_handle_t _trigger_chkpt_command;
     dsn_handle_t _query_compact_command;
     dsn_handle_t _query_app_envs_command;
-    dsn_handle_t _useless_dir_reserve_seconds_command;
 #ifdef DSN_ENABLE_GPERF
     dsn_handle_t _release_tcmalloc_memory_command;
     dsn_handle_t _max_reserved_memory_percentage_command;
@@ -378,8 +362,6 @@ private:
     bool _deny_client;
     bool _verbose_client_log;
     bool _verbose_commit_log;
-    int32_t _gc_disk_error_replica_interval_seconds;
-    int32_t _gc_disk_garbage_replica_interval_seconds;
     bool _release_tcmalloc_memory;
     int32_t _mem_release_max_reserved_mem_percentage;
     int32_t _max_concurrent_bulk_load_downloading_count;
@@ -403,13 +385,6 @@ private:
 
     // replica count exectuting bulk load downloading concurrently
     std::atomic_int _bulk_load_downloading_count;
-
-    // the garbage folder suffix, server will check disk folder and deal with them
-    static const std::string kFolderSuffixErr; // replica error dir
-    static const std::string kFolderSuffixGar; // replica closed and assign garbage dir
-    static const std::string kFolderSuffixBak; // replica backup dir
-    static const std::string kFolderSuffixOri; // replica disk migration origin dir
-    static const std::string kFolderSuffixTmp; // replica disk migration temp dir
 
     // performance counters
     perf_counter_wrapper _counter_replicas_count;
@@ -438,6 +413,8 @@ private:
     perf_counter_wrapper _counter_replicas_recent_replica_remove_dir_count;
     perf_counter_wrapper _counter_replicas_error_replica_dir_count;
     perf_counter_wrapper _counter_replicas_garbage_replica_dir_count;
+    perf_counter_wrapper _counter_replicas_tmp_replica_dir_count;
+    perf_counter_wrapper _counter_replicas_origin_replica_dir_count;
 
     perf_counter_wrapper _counter_replicas_recent_group_check_fail_count;
 

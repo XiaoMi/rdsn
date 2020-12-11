@@ -367,26 +367,5 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_open)
     utils::filesystem::remove_path(kReplicaGarDir);
 }
 
-TEST_F(replica_disk_migrate_test, disk_migrate_replica_delete)
-{
-    auto &request = *fake_migrate_rpc.mutable_request();
-    request.pid = dsn::gpid(app_info_1.app_id, 3);
-    request.origin_disk = "tag_1";
-    request.target_disk = "tag_empty_1";
-    set_replica_dir(request.pid,
-                    fmt::format("./{}/{}.replica", request.origin_disk, request.pid.to_string()));
-
-    utils::filesystem::create_directory(get_replica(request.pid)->dir());
-    init_migration_target_dir(fake_migrate_rpc);
-    FLAGS_gc_disk_migration_origin_replica_interval_seconds = 1;
-    FLAGS_gc_disk_migration_tmp_replica_interval_seconds = 1;
-    sleep(5);
-    update_disk_replica();
-    ASSERT_FALSE(utils::filesystem::directory_exists(fmt::format(
-        "./{}/{}.replica.disk.migrate.ori/", request.origin_disk, request.pid.to_string())));
-    ASSERT_FALSE(utils::filesystem::directory_exists(fmt::format(
-        "./{}/{}.replica.disk.migrate.tmp/", request.target_disk, request.pid.to_string())));
-}
-
 } // namespace replication
 } // namespace dsn

@@ -42,6 +42,7 @@
 #include "backup/replica_backup_server.h"
 #include "split/replica_split_manager.h"
 #include "replica_disk_migrator.h"
+#include "disk_cleaner.h"
 
 #include <boost/algorithm/string/replace.hpp>
 #include <dsn/cpp/json_helper.h>
@@ -63,21 +64,6 @@
 namespace dsn {
 namespace replication {
 
-const std::string replica_stub::kFolderSuffixErr = ".err";
-const std::string replica_stub::kFolderSuffixGar = ".gar";
-const std::string replica_stub::kFolderSuffixBak = ".bak";
-const std::string replica_stub::kFolderSuffixOri = ".ori";
-const std::string replica_stub::kFolderSuffixTmp = ".tmp";
-
-DSN_DEFINE_uint64("replication",
-                  gc_disk_migration_tmp_replica_interval_seconds,
-                  86400 /*1day*/,
-                  "disk migration generate tmp dir gc interval, the folder name suffix is '.tmp' ");
-DSN_DEFINE_uint64("replication",
-                  gc_disk_migration_origin_replica_interval_seconds,
-                  604800 /*7day*/,
-                  "disk migration origin dir gc interval, the folder name suffix is '.ori' ");
-
 bool replica_stub::s_not_exit_on_log_failure = false;
 
 replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
@@ -90,13 +76,10 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _trigger_chkpt_command(nullptr),
       _query_compact_command(nullptr),
       _query_app_envs_command(nullptr),
-      _useless_dir_reserve_seconds_command(nullptr),
       _max_concurrent_bulk_load_downloading_count_command(nullptr),
       _deny_client(false),
       _verbose_client_log(false),
       _verbose_commit_log(false),
-      _gc_disk_error_replica_interval_seconds(3600),
-      _gc_disk_garbage_replica_interval_seconds(3600),
       _release_tcmalloc_memory(false),
       _mem_release_max_reserved_mem_percentage(10),
       _max_concurrent_bulk_load_downloading_count(5),
@@ -242,6 +225,14 @@ void replica_stub::install_perf_counters()
         "replicas.garbage.replica.dir.count",
         COUNTER_TYPE_NUMBER,
         "garbage replica directory count");
+    _counter_replicas_tmp_replica_dir_count.init_app_counter("eon.replica_stub",
+                                                             "replicas.tmp.replica.dir.count",
+                                                             COUNTER_TYPE_NUMBER,
+                                                             "error replica directory count");
+    _counter_replicas_origin_replica_dir_count.init_app_counter("eon.replica_stub",
+                                                                "replicas.origin.replica.dir.count",
+                                                                COUNTER_TYPE_NUMBER,
+                                                                "garbage replica directory count");
 
     _counter_replicas_recent_group_check_fail_count.init_app_counter(
         "eon.replica_stub",
@@ -438,8 +429,6 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     _deny_client = _options.deny_client_on_start;
     _verbose_client_log = _options.verbose_client_log_on_start;
     _verbose_commit_log = _options.verbose_commit_log_on_start;
-    _gc_disk_error_replica_interval_seconds = _options.gc_disk_error_replica_interval_seconds;
-    _gc_disk_garbage_replica_interval_seconds = _options.gc_disk_garbage_replica_interval_seconds;
     _release_tcmalloc_memory = _options.mem_release_enabled;
     _mem_release_max_reserved_mem_percentage = _options.mem_release_max_reserved_mem_percentage;
     _max_concurrent_bulk_load_downloading_count =
@@ -509,7 +498,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     std::deque<task_ptr> load_tasks;
     uint64_t start_time = dsn_now_ms();
     for (auto &dir : dir_list) {
-        if (is_removable_folder(dir)) {
+        if (dsn::replication::is_data_dir_invalid(dir)) {
             ddebug_f("ignore dir {}", dir);
             continue;
         }
@@ -1789,10 +1778,17 @@ void replica_stub::on_disk_stat()
 {
     ddebug("start to update disk stat");
     uint64_t start = dsn_now_ns();
+    disk_cleaning_report report{};
 
-    disk_remove_useless_dirs();
+    dsn::replication::disk_remove_useless_dirs(_options.data_dirs, report);
     _fs_manager.update_disk_stat();
     update_disk_holding_replicas();
+
+    _counter_replicas_error_replica_dir_count->set(report.error_replica_count);
+    _counter_replicas_garbage_replica_dir_count->set(report.garbage_replica_count);
+    _counter_replicas_tmp_replica_dir_count->set(report.disk_migrate_tmp_count);
+    _counter_replicas_origin_replica_dir_count->set(report.disk_migrate_origin_count);
+    _counter_replicas_recent_replica_remove_dir_count->add(report.remove_dir_count);
 
     ddebug("finish to update disk stat, time_used_ns = %" PRIu64, dsn_now_ns() - start);
 }
@@ -2192,37 +2188,6 @@ void replica_stub::register_ctrl_command()
                 });
             });
 
-        _useless_dir_reserve_seconds_command = dsn::command_manager::instance().register_command(
-            {"replica.useless-dir-reserve-seconds"},
-            "useless-dir-reserve-seconds [num | DEFAULT]",
-            "control gc_disk_error_replica_interval_seconds and "
-            "gc_disk_garbage_replica_interval_seconds",
-            [this](const std::vector<std::string> &args) {
-                std::string result("OK");
-                if (args.empty()) {
-                    result = "error_dir_reserve_seconds=" +
-                             std::to_string(_gc_disk_error_replica_interval_seconds) +
-                             ",garbage_dir_reserve_seconds=" +
-                             std::to_string(_gc_disk_garbage_replica_interval_seconds);
-                } else {
-                    if (args[0] == "DEFAULT") {
-                        _gc_disk_error_replica_interval_seconds =
-                            _options.gc_disk_error_replica_interval_seconds;
-                        _gc_disk_garbage_replica_interval_seconds =
-                            _options.gc_disk_garbage_replica_interval_seconds;
-                    } else {
-                        int32_t seconds = 0;
-                        if (!dsn::buf2int32(args[0], seconds) || seconds < 0) {
-                            result = std::string("ERR: invalid arguments");
-                        } else {
-                            _gc_disk_error_replica_interval_seconds = seconds;
-                            _gc_disk_garbage_replica_interval_seconds = seconds;
-                        }
-                    }
-                }
-                return result;
-            });
-
 #ifdef DSN_ENABLE_GPERF
         _release_tcmalloc_memory_command = ::dsn::command_manager::instance().register_command(
             {"replica.release-tcmalloc-memory"},
@@ -2412,7 +2377,6 @@ void replica_stub::close()
     dsn::command_manager::instance().deregister_command(_trigger_chkpt_command);
     dsn::command_manager::instance().deregister_command(_query_compact_command);
     dsn::command_manager::instance().deregister_command(_query_app_envs_command);
-    dsn::command_manager::instance().deregister_command(_useless_dir_reserve_seconds_command);
 #ifdef DSN_ENABLE_GPERF
     dsn::command_manager::instance().deregister_command(_release_tcmalloc_memory_command);
     dsn::command_manager::instance().deregister_command(_max_reserved_memory_percentage_command);
@@ -2427,7 +2391,6 @@ void replica_stub::close()
     _trigger_chkpt_command = nullptr;
     _query_compact_command = nullptr;
     _query_app_envs_command = nullptr;
-    _useless_dir_reserve_seconds_command = nullptr;
 #ifdef DSN_ENABLE_GPERF
     _release_tcmalloc_memory_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
@@ -2738,77 +2701,6 @@ void replica_stub::update_disk_holding_replicas()
             }
         }
     }
-}
-
-void replica_stub::disk_remove_useless_dirs()
-{
-    std::vector<std::string> sub_list;
-    for (auto &dir : _options.data_dirs) {
-        std::vector<std::string> tmp_list;
-        if (!dsn::utils::filesystem::get_subdirectories(dir, tmp_list, false)) {
-            dwarn_f("gc_disk: failed to get subdirectories in {}", dir);
-            return;
-        }
-        sub_list.insert(sub_list.end(), tmp_list.begin(), tmp_list.end());
-    }
-    int error_replica_dir_count = 0;
-    int garbage_replica_dir_count = 0;
-    for (auto &fpath : sub_list) {
-        auto name = dsn::utils::filesystem::get_file_name(fpath);
-        if (name.length() < 4) {
-            continue;
-        }
-
-        std::string folder_suffix = name.substr(name.length() - 4);
-        if (is_removable_folder(name)) {
-            if (folder_suffix == kFolderSuffixErr) {
-                error_replica_dir_count++;
-            } else if (folder_suffix == kFolderSuffixGar) {
-                garbage_replica_dir_count++;
-            }
-
-            time_t mt;
-            if (!dsn::utils::filesystem::last_write_time(fpath, mt)) {
-                dwarn_f("gc_disk: failed to get last write time of {}", fpath);
-                continue;
-            }
-
-            auto last_write_time = (uint64_t)mt;
-            uint64_t current_time_ms = dsn_now_ms();
-            uint64_t remove_interval_seconds = current_time_ms / 1000;
-
-            // don't delete ".bak" directory because it is backed by administrator.
-            if (folder_suffix == kFolderSuffixErr) {
-                remove_interval_seconds = _gc_disk_error_replica_interval_seconds;
-            } else if (folder_suffix == kFolderSuffixGar) {
-                remove_interval_seconds = _gc_disk_garbage_replica_interval_seconds;
-            } else if (folder_suffix == kFolderSuffixTmp) {
-                remove_interval_seconds = FLAGS_gc_disk_migration_tmp_replica_interval_seconds;
-            } else if (folder_suffix == kFolderSuffixOri) {
-                remove_interval_seconds = FLAGS_gc_disk_migration_origin_replica_interval_seconds;
-            }
-
-            if (last_write_time + remove_interval_seconds <= current_time_ms / 1000) {
-                if (!dsn::utils::filesystem::remove_path(fpath)) {
-                    dwarn_f("gc_disk: failed to delete directory '{}', time_used_ms = {}",
-                            fpath,
-                            dsn_now_ms() - current_time_ms);
-                } else {
-                    dwarn_f("gc_disk: replica_dir_op succeed to delete directory '{}'"
-                            ", time_used_ms = {}",
-                            fpath,
-                            dsn_now_ms() - current_time_ms);
-                    _counter_replicas_recent_replica_remove_dir_count->increment();
-                }
-            } else {
-                ddebug_f("gc_disk: reserve directory '{}', wait_seconds = {}",
-                         fpath,
-                         last_write_time + remove_interval_seconds - current_time_ms / 1000);
-            }
-        }
-    }
-    _counter_replicas_error_replica_dir_count->set(error_replica_dir_count);
-    _counter_replicas_garbage_replica_dir_count->set(garbage_replica_dir_count);
 }
 
 void replica_stub::on_bulk_load(bulk_load_rpc rpc)
