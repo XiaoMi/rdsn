@@ -57,6 +57,9 @@
 #include "utils/throttling_controller.h"
 
 namespace dsn {
+namespace security {
+class access_controller;
+} // namespace security
 namespace replication {
 
 class replication_app_base;
@@ -65,6 +68,7 @@ class replica_duplicator_manager;
 class replica_backup_manager;
 class replica_bulk_loader;
 class replica_split_manager;
+class replica_disk_migrator;
 
 class cold_backup_context;
 typedef dsn::ref_ptr<cold_backup_context> cold_backup_context_ptr;
@@ -123,12 +127,16 @@ public:
     void update_throttle_env_internal(const std::map<std::string, std::string> &envs,
                                       const std::string &key,
                                       throttling_controller &cntl);
+    // update allowed users for access controller
+    void update_ac_allowed_users(const std::map<std::string, std::string> &envs);
 
     //
     //    messages and tools from/for meta server
     //
     void on_config_proposal(configuration_update_request &proposal);
-    void on_config_sync(const app_info &info, const partition_configuration &config);
+    void on_config_sync(const app_info &info,
+                        const partition_configuration &config,
+                        split_status::type meta_split_status);
     void on_cold_backup(const backup_request &request, /*out*/ backup_response &response);
 
     //
@@ -205,6 +213,11 @@ public:
     // Partition Split
     //
     replica_split_manager *get_split_manager() const { return _split_mgr.get(); }
+
+    //
+    // Disk migrator
+    //
+    replica_disk_migrator *disk_migrator() const { return _disk_migrator.get(); }
 
     //
     // Statistics
@@ -399,6 +412,9 @@ private:
     friend class replica_backup_manager;
     friend class replica_bulk_loader;
     friend class replica_split_manager;
+    friend class replica_disk_migrator;
+    friend class replica_disk_test;
+    friend class replica_disk_migrate_test;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -486,6 +502,9 @@ private:
     // partition split
     std::unique_ptr<replica_split_manager> _split_mgr;
 
+    // disk migrator
+    std::unique_ptr<replica_disk_migrator> _disk_migrator;
+
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
     perf_counter_wrapper _counter_recent_write_throttling_delay_count;
@@ -497,6 +516,8 @@ private:
     dsn::task_tracker _tracker;
     // the thread access checker
     dsn::thread_access_checker _checker;
+
+    std::unique_ptr<security::access_controller> _access_controller;
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
 } // namespace replication

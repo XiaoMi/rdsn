@@ -33,6 +33,8 @@
 #include "backup/cold_backup_context.h"
 #include "bulk_load/replica_bulk_loader.h"
 #include "split/replica_split_manager.h"
+#include "replica_disk_migrator.h"
+#include "runtime/security/access_controller.h"
 
 #include <dsn/utils/latency_tracer.h>
 #include <dsn/cpp/json_helper.h>
@@ -74,6 +76,7 @@ replica::replica(
     _config.pid = gpid;
     _bulk_loader = make_unique<replica_bulk_loader>(this);
     _split_mgr = make_unique<replica_split_manager>(this);
+    _disk_migrator = make_unique<replica_disk_migrator>(this);
 
     std::string counter_str = fmt::format("private.log.size(MB)@{}", gpid);
     _counter_private_log_size.init_app_counter(
@@ -103,6 +106,8 @@ replica::replica(
         _extra_envs.insert(
             std::make_pair(backup_restore_constant::FORCE_RESTORE, std::string("true")));
     }
+
+    _access_controller = security::create_replica_access_controller(name());
 }
 
 void replica::update_last_checkpoint_generate_time()
@@ -159,6 +164,10 @@ replica::~replica(void)
 
 void replica::on_client_read(dsn::message_ex *request)
 {
+    if (!_access_controller->allowed(request)) {
+        response_client_read(request, ERR_ACL_DENY);
+    }
+
     if (status() == partition_status::PS_INACTIVE ||
         status() == partition_status::PS_POTENTIAL_SECONDARY) {
         response_client_read(request, ERR_INVALID_STATE);

@@ -1104,6 +1104,50 @@ void replica_split_manager::child_handle_async_learn_error() // on child partiti
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
+void replica_split_manager::trigger_primary_parent_split(
+    const int32_t meta_partition_count,
+    const split_status::type meta_split_status) // on primary parent partition
+{
+    dcheck_eq_replica(status(), partition_status::PS_PRIMARY);
+    dcheck_eq_replica(_replica->_app_info.partition_count * 2, meta_partition_count);
+    ddebug_replica("app({}) partition count changed, local({}) VS meta({}), split_status local({}) "
+                   "VS meta({})",
+                   _replica->_app_info.app_name,
+                   _replica->_app_info.partition_count,
+                   meta_partition_count,
+                   enum_to_string(_split_status),
+                   enum_to_string(meta_split_status));
+
+    _meta_split_status = meta_split_status;
+    if (meta_split_status == split_status::SPLITTING) {
+        if (!_replica->_primary_states.learners.empty() ||
+            _replica->_primary_states.membership.secondaries.size() + 1 <
+                _replica->_primary_states.membership.max_replica_count) {
+            dwarn_replica(
+                "there are {} learners or not have enough secondaries(count is {}), wait for "
+                "next round",
+                _replica->_primary_states.learners.size(),
+                _replica->_primary_states.membership.secondaries.size());
+            return;
+        }
+
+        group_check_request add_child_request;
+        add_child_request.app = _replica->_app_info;
+        _replica->_primary_states.get_replica_config(status(), add_child_request.config);
+        auto child_gpid =
+            gpid(get_gpid().get_app_id(),
+                 get_gpid().get_partition_index() + _replica->_app_info.partition_count);
+        add_child_request.__set_child_gpid(child_gpid);
+        parent_start_split(add_child_request);
+        // broadcast group check request to secondaries to start split
+        _replica->broadcast_group_check();
+        return;
+    }
+
+    // TODO(heyuchen): add other split_status check
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica_split_manager::trigger_secondary_parent_split(
     const group_check_request &request,
     /*out*/ group_check_response &response) // on secondary parent partition
@@ -1115,7 +1159,102 @@ void replica_split_manager::trigger_secondary_parent_split(
         return;
     }
 
+    if (!request.__isset.meta_split_status) {
+        return;
+    }
+
+    if (request.meta_split_status == split_status::SPLITTING &&
+        request.__isset.child_gpid) { // secondary create child replica
+        parent_start_split(request);
+        return;
+    }
+
     // TODO(heyuchen): add other split_status check, response will be used in future
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_split_manager::copy_mutation(mutation_ptr &mu) // on parent partition
+{
+    dassert_replica(_child_gpid.get_app_id() > 0, "child_gpid({}) is invalid", _child_gpid);
+
+    // TODO(hyc): if copy mutation synchronously, add flags
+
+    mutation_ptr new_mu = mutation::copy_no_reply(mu);
+    error_code ec = _stub->split_replica_exec(
+        LPC_PARTITION_SPLIT,
+        _child_gpid,
+        std::bind(&replica_split_manager::on_copy_mutation, std::placeholders::_1, new_mu));
+    if (ec != ERR_OK) {
+        parent_cleanup_split_context();
+    }
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_split_manager::on_copy_mutation(mutation_ptr &mu) // on child partition
+{
+    if (status() != partition_status::PS_PARTITION_SPLIT) {
+        derror_replica(
+            "wrong status({}), ignore this mutation({})", enum_to_string(status()), mu->name());
+        _stub->split_replica_error_handler(
+            _replica->_split_states.parent_gpid, [mu](replica_split_manager *split_mgr) {
+                split_mgr->parent_cleanup_split_context();
+                split_mgr->on_copy_mutation_reply(
+                    ERR_OK, mu->data.header.ballot, mu->data.header.decree);
+            });
+        return;
+    }
+
+    // It is possible for child has not copied parent prepare list, because parent and child may
+    // execute in different thread. In this case, child should ignore this mutation.
+    if (!_replica->_split_states.is_prepare_list_copied) {
+        return;
+    }
+
+    if (mu->data.header.ballot > get_ballot()) {
+        derror_replica("ballot changed, mutation ballot({}) vs local ballot({}), ignore copy this "
+                       "mutation({})",
+                       mu->data.header.ballot,
+                       get_ballot(),
+                       mu->name());
+        _stub->split_replica_error_handler(
+            _replica->_split_states.parent_gpid, [mu](replica_split_manager *split_mgr) {
+                split_mgr->parent_cleanup_split_context();
+                split_mgr->on_copy_mutation_reply(
+                    ERR_OK, mu->data.header.ballot, mu->data.header.decree);
+            });
+        child_handle_split_error("on_copy_mutation failed because ballot changed");
+        return;
+    }
+
+    mu->data.header.pid = get_gpid();
+    _replica->_prepare_list->prepare(mu, partition_status::PS_SECONDARY);
+    if (!mu->is_sync_to_child()) { // child copy mutation asynchronously
+        if (!mu->is_logged()) {
+            mu->set_logged();
+        }
+        mu->log_task() = _stub->_log->append(
+            mu, LPC_WRITE_REPLICATION_LOG, tracker(), nullptr, get_gpid().thread_hash());
+        _replica->_private_log->append(
+            mu, LPC_WRITE_REPLICATION_LOG_COMMON, tracker(), nullptr, get_gpid().thread_hash());
+    } else {
+        // TODO(heyuchen): child copy mutation synchronously
+    }
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_split_manager::ack_parent(error_code ec, mutation_ptr &mu) // on child partition
+{
+    // TODO(heyuchen): when child copy mutation synchronously, child replica send ack to its parent
+    // TBD
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica_split_manager::on_copy_mutation_reply(error_code ec,
+                                                   ballot b,
+                                                   decree d) // on parent partition
+{
+    // TODO(heyuchen): when child copy mutation synchronously, parent replica handle child ack
+    // TBD
 }
 
 } // namespace replication

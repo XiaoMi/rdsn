@@ -21,20 +21,21 @@ TEST(http_server, parse_url)
         std::string path;
     } tests[] = {
         {"http://127.0.0.1:34601", ERR_OK, ""},
-        {"http://127.0.0.1:34601/", ERR_OK, "/"},
-        {"http://127.0.0.1:34601///", ERR_OK, "///"},
-        {"http://127.0.0.1:34601/threads", ERR_OK, "/threads"},
-        {"http://127.0.0.1:34601/threads/?detail", ERR_OK, "/threads/"},
-        {"http://127.0.0.1:34601//pprof/heap/", ERR_OK, "//pprof/heap/"},
-        {"http://127.0.0.1:34601//pprof///heap?detailed=true", ERR_OK, "//pprof///heap"},
-        {"http://127.0.0.1:34601/pprof/heap/arg/", ERR_OK, "/pprof/heap/arg/"},
-        {"http://127.0.0.1:34601/pprof///heap///arg/", ERR_OK, "/pprof///heap///arg/"},
+        {"http://127.0.0.1:34601/", ERR_OK, ""},
+        {"http://127.0.0.1:34601///", ERR_OK, ""},
+        {"http://127.0.0.1:34601/threads", ERR_OK, "threads"},
+        {"http://127.0.0.1:34601/threads/?detail", ERR_OK, "threads"},
+        {"http://127.0.0.1:34601//pprof/heap/", ERR_OK, "pprof/heap"},
+        {"http://127.0.0.1:34601//pprof///heap?detailed=true", ERR_OK, "pprof/heap"},
+        {"http://127.0.0.1:34601/pprof/heap/arg/", ERR_OK, "pprof/heap/arg"},
+        {"http://127.0.0.1:34601/pprof///heap///arg/", ERR_OK, "pprof/heap/arg"},
     };
 
     for (auto tt : tests) {
         ref_ptr<message_ex> m = message_ex::create_receive_message_with_standalone_header(
             blob::create_from_bytes(std::string("POST")));
         m->buffers.emplace_back(blob::create_from_bytes(std::string(tt.url)));
+        m->buffers.resize(HTTP_MSG_BUFFERS_NUM);
 
         auto res = http_request::parse(m.get());
         if (res.is_ok()) {
@@ -136,7 +137,7 @@ public:
             ASSERT_EQ(msg->hdr_format, NET_HDR_HTTP);
             ASSERT_EQ(msg->header->hdr_type, http_method::HTTP_METHOD_GET);
             ASSERT_EQ(msg->header->context.u.is_request, 1);
-            ASSERT_EQ(msg->buffers.size(), 4);
+            ASSERT_EQ(msg->buffers.size(), HTTP_MSG_BUFFERS_NUM);
             ASSERT_EQ(msg->buffers[2].size(), 1); // url
 
             // ensure states are reset
@@ -177,7 +178,7 @@ TEST_F(http_message_parser_test, parse_request)
     ASSERT_EQ(msg->hdr_format, NET_HDR_HTTP);
     ASSERT_EQ(msg->header->hdr_type, http_method::HTTP_METHOD_POST);
     ASSERT_EQ(msg->header->context.u.is_request, 1);
-    ASSERT_EQ(msg->buffers.size(), 4);
+    ASSERT_EQ(msg->buffers.size(), HTTP_MSG_BUFFERS_NUM);
     ASSERT_EQ(msg->buffers[1].to_string(), "Message Body sdfsdf"); // body
     ASSERT_EQ(                                                     // url
         msg->buffers[2].to_string(),
@@ -228,7 +229,7 @@ TEST_F(http_message_parser_test, eof)
     ASSERT_EQ(msg->hdr_format, NET_HDR_HTTP);
     ASSERT_EQ(msg->header->hdr_type, http_method::HTTP_METHOD_GET);
     ASSERT_EQ(msg->header->context.u.is_request, 1);
-    ASSERT_EQ(msg->buffers.size(), 4);
+    ASSERT_EQ(msg->buffers.size(), HTTP_MSG_BUFFERS_NUM);
     ASSERT_EQ(msg->buffers[1].to_string(), ""); // body
     ASSERT_EQ(                                  // url
         msg->buffers[2].to_string(),
@@ -259,7 +260,7 @@ TEST_F(http_message_parser_test, parse_long_url)
     ASSERT_EQ(msg->hdr_format, NET_HDR_HTTP);
     ASSERT_EQ(msg->header->hdr_type, http_method::HTTP_METHOD_GET);
     ASSERT_EQ(msg->header->context.u.is_request, 1);
-    ASSERT_EQ(msg->buffers.size(), 4);
+    ASSERT_EQ(msg->buffers.size(), HTTP_MSG_BUFFERS_NUM);
     ASSERT_EQ(msg->buffers[2].size(), 4097); // url
 }
 
@@ -291,6 +292,7 @@ TEST_F(http_message_parser_test, parse_query_params)
         ref_ptr<message_ex> m = message_ex::create_receive_message_with_standalone_header(
             blob::create_from_bytes(std::string("POST")));
         m->buffers.emplace_back(blob::create_from_bytes(std::string(tt.url)));
+        m->buffers.resize(HTTP_MSG_BUFFERS_NUM);
 
         auto res = http_request::parse(m.get());
         if (res.is_ok()) {

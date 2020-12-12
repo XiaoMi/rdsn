@@ -39,6 +39,8 @@
 #include "mutation_log.h"
 #include "replica_stub.h"
 #include "bulk_load/replica_bulk_loader.h"
+#include "runtime/security/access_controller.h"
+#include "split/replica_split_manager.h"
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/fail_point.h>
@@ -568,6 +570,19 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
     }
 
     update_throttle_envs(envs);
+
+    update_ac_allowed_users(envs);
+}
+
+void replica::update_ac_allowed_users(const std::map<std::string, std::string> &envs)
+{
+    std::string allowed_users;
+    auto iter = envs.find(replica_envs::REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS);
+    if (iter != envs.end()) {
+        allowed_users = iter->second;
+    }
+
+    _access_controller->update(allowed_users);
 }
 
 void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
@@ -1019,7 +1034,9 @@ bool replica::update_local_configuration_with_no_ballot_change(partition_status:
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-void replica::on_config_sync(const app_info &info, const partition_configuration &config)
+void replica::on_config_sync(const app_info &info,
+                             const partition_configuration &config,
+                             split_status::type meta_split_status)
 {
     dinfo_replica("configuration sync");
     // no outdated update
@@ -1029,9 +1046,12 @@ void replica::on_config_sync(const app_info &info, const partition_configuration
     update_app_envs(info.envs);
     _duplicating = info.duplicating;
 
-    if (status() == partition_status::PS_PRIMARY ||
-        nullptr != _primary_states.reconfiguration_task) {
-        // nothing to do as primary always holds the truth
+    if (status() == partition_status::PS_PRIMARY) {
+        if (nullptr != _primary_states.reconfiguration_task) {
+            // already under reconfiguration, skip configuration sync
+        } else if (info.partition_count != _app_info.partition_count) {
+            _split_mgr->trigger_primary_parent_split(info.partition_count, meta_split_status);
+        }
     } else {
         if (_is_initializing) {
             // in initializing, when replica still primary, need to inc ballot
