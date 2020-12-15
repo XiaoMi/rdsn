@@ -72,7 +72,7 @@ TEST(flag_test, update_config)
     ASSERT_EQ(res.code(), ERR_NO_PERMISSION);
     ASSERT_EQ(strcmp(FLAGS_test_string_immutable, "immutable_string"), 0);
 
-    // test config is not exist
+    // test flag is not exist
     res = update_flag("test_not_exist", "test_string");
     ASSERT_EQ(res.code(), ERR_OBJECT_NOT_FOUND);
 
