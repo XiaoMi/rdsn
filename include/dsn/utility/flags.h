@@ -63,8 +63,6 @@ enum class flag_tag
     COMPILE_ASSERT(sizeof(decltype(FLAGS_##name)), exist_##name##_##tag);                          \
     static dsn::flag_tagger FLAGS_TAGGER_##name##_##tag(#name, flag_tag::tag)
 
-#define DSN_HAS_TAG(name, tag) has_tag(#name, flag_tag::tag)
-
 namespace dsn {
 
 // An utility class that registers a flag upon initialization.

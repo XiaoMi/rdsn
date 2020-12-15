@@ -90,17 +90,17 @@ DSN_DEFINE_int32("flag_test", no_tag, 5, "");
 TEST(flag_test, tag_flag)
 {
     // has tag
-    auto res = DSN_HAS_TAG(has_tag, FT_MUTABLE);
+    auto res = has_tag("has_tag", flag_tag::FT_MUTABLE);
     ASSERT_TRUE(res.is_ok());
     ASSERT_TRUE(res.get_value());
 
     // doesn't has tag
-    res = DSN_HAS_TAG(no_tag, FT_MUTABLE);
+    res = has_tag("no_tag", flag_tag::FT_MUTABLE);
     ASSERT_TRUE(res.is_ok());
     ASSERT_FALSE(res.get_value());
 
     // flag is not exist
-    res = DSN_HAS_TAG(no_flag, FT_MUTABLE);
+    res = has_tag("no_flag", flag_tag::FT_MUTABLE);
     ASSERT_FALSE(res.is_ok());
     ASSERT_EQ(res.get_error().code(), ERR_OBJECT_NOT_FOUND);
 }
