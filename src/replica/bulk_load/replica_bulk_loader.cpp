@@ -412,10 +412,6 @@ error_code replica_bulk_loader::download_sst_files(const std::string &remote_dir
                 uint64_t f_size = 0;
                 error_code ec = _stub->_block_service_manager.download_file(
                     remote_dir, local_dir, f_meta.name, fs, f_size);
-                if (ec == ERR_OK && f_size == 0) {
-                    // file has already been downloaded
-                    f_size = f_meta.size;
-                }
                 const std::string &file_name =
                     utils::filesystem::path_combine(local_dir, f_meta.name);
                 if (ec == ERR_OK &&
