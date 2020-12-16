@@ -26,7 +26,7 @@ public:
     {
     }
 
-    virtual uint64_t get_size() { return static_cast<uint64_t>(size); }
+    virtual uint64_t get_size() { return size; }
 
     virtual const std::string &get_md5sum() { return md5; }
 
@@ -89,6 +89,10 @@ public:
                                    const download_callback &cb,
                                    dsn::task_tracker *tracker = nullptr)
     {
+        download_response resp;
+        resp.err = ERR_OK;
+        resp.downloaded_size = size;
+        cb(resp);
         return task_ptr();
     }
 
@@ -116,7 +120,7 @@ public:
     void clear_context() { context = blob(); }
 
 public:
-    int64_t size;
+    uint64_t size;
     std::string md5;
     blob context;
     bool enable_write_fail;
