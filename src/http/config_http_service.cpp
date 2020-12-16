@@ -28,7 +28,7 @@ void update_config(const http_request &req, http_response &resp)
     }
 
     auto iter = req.query_args.begin();
-    auto res = update_flag(iter->first.c_str(), iter->second.c_str());
+    auto res = update_flag(iter->first, iter->second);
 
     utils::table_printer tp;
     tp.add_row_name_and_data("update_status", res.description());

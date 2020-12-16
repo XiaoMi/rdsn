@@ -71,7 +71,7 @@ public:
     {
     }
 
-    error_s update(const char *val)
+    error_s update(const std::string &val)
     {
         if (!has_tag(flag_tag::FT_MUTABLE)) {
             return error_s::make(ERR_NO_PERMISSION, fmt::format("{} is not mutable", _name));
@@ -117,7 +117,7 @@ class flag_registry : public utils::singleton<flag_registry>
 public:
     void add_flag(const char *name, flag_data flag) { _flags.emplace(name, flag); }
 
-    error_s update_flag(const char *name, const char *val)
+    error_s update_flag(const std::string &name, const std::string &val)
     {
         auto it = _flags.find(name);
         if (it == _flags.end()) {
@@ -151,11 +151,11 @@ public:
         it->second.add_tag(tag);
     }
 
-    error_with<bool> has_tag(const char *name, const flag_tag &tag) const
+    bool has_tag(const std::string &name, const flag_tag &tag) const
     {
         auto it = _flags.find(name);
         if (it == _flags.end()) {
-            return error_s::make(ERR_OBJECT_NOT_FOUND, fmt::format("{} is not found", name));
+            return false;
         }
         return it->second.has_tag(tag);
     }
@@ -195,12 +195,12 @@ flag_tagger::flag_tagger(const char *name, const flag_tag &tag)
 
 /*extern*/ void flags_initialize() { flag_registry::instance().load_from_config(); }
 
-/*extern*/ error_s update_flag(const char *name, const char *val)
+/*extern*/ error_s update_flag(const std::string &name, const std::string &val)
 {
     return flag_registry::instance().update_flag(name, val);
 }
 
-/*extern*/ error_with<bool> has_tag(const char *name, const flag_tag &tag)
+/*extern*/ bool has_tag(const std::string &name, const flag_tag &tag)
 {
     return flag_registry::instance().has_tag(name, tag);
 }

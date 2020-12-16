@@ -94,7 +94,9 @@ public:
 // Loads all the flags from configuration.
 extern void flags_initialize();
 
-extern error_s update_flag(const char *name, const char *val);
+// update the specified flag to val
+extern error_s update_flag(const std::string &name, const std::string &val);
 
-extern error_with<bool> has_tag(const char *name, const flag_tag &tag);
+// determine if the tag is exist for the specified flag
+extern bool has_tag(const std::string &name, const flag_tag &tag);
 } // namespace dsn

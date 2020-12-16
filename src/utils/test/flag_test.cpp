@@ -91,18 +91,15 @@ TEST(flag_test, tag_flag)
 {
     // has tag
     auto res = has_tag("has_tag", flag_tag::FT_MUTABLE);
-    ASSERT_TRUE(res.is_ok());
-    ASSERT_TRUE(res.get_value());
+    ASSERT_TRUE(res);
 
     // doesn't has tag
     res = has_tag("no_tag", flag_tag::FT_MUTABLE);
-    ASSERT_TRUE(res.is_ok());
-    ASSERT_FALSE(res.get_value());
+    ASSERT_FALSE(res);
 
     // flag is not exist
     res = has_tag("no_flag", flag_tag::FT_MUTABLE);
-    ASSERT_FALSE(res.is_ok());
-    ASSERT_EQ(res.get_error().code(), ERR_OBJECT_NOT_FOUND);
+    ASSERT_FALSE(res);
 }
 } // namespace utils
 } // namespace dsn
