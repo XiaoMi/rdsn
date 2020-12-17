@@ -63,8 +63,6 @@ function usage_build()
     fi
 
     echo "   --enable_rocksdb_portable      build a portable rocksdb binary"
-    echo "   --enable_rocksdb_force_sse42   force building rocksdb binary with SSE4.2,"
-    echo "                                  even when portable is enabled"
 }
 function run_build()
 {
@@ -87,7 +85,6 @@ function run_build()
     SANITIZER=""
     TEST_MODULE=""
     ROCKSDB_PORTABLE=OFF
-    ROCKSDB_FORCE_SSE42=OFF
     while [[ $# > 0 ]]; do
         key="$1"
         case $key in
@@ -162,9 +159,6 @@ function run_build()
             --enable_rocksdb_portable)
                 ROCKSDB_PORTABLE=ON
                 ;;
-            --enable_rocksdb_force_sse42)
-                ROCKSDB_FORCE_SSE42=ON
-                ;;
             *)
                 echo "ERROR: unknown option \"$key\""
                 echo
@@ -193,7 +187,7 @@ function run_build()
         mkdir -p build
         pushd build
         cmake .. -DCMAKE_C_COMPILER=$C_COMPILER -DCMAKE_CXX_COMPILER=$CXX_COMPILER -DCMAKE_BUILD_TYPE=Release \
-        -DROCKSDB_PORTABLE=${ROCKSDB_PORTABLE} -DROCKSDB_FORCE_SSE42=${ROCKSDB_FORCE_SSE42}
+        -DROCKSDB_PORTABLE=${ROCKSDB_PORTABLE}
         make -j$JOB_NUM
         exit_if_fail $?
         popd

@@ -293,7 +293,6 @@ ExternalProject_Add(s2geometry
         )
 
 option(ROCKSDB_PORTABLE "build a portable binary" OFF)
-option(ROCKSDB_FORCE_SSE42 "force building with SSE4.2, even when PORTABLE=ON" OFF)
 
 ExternalProject_Add(rocksdb
         URL ${OSS_URL_PREFIX}/pegasus-rocksdb-6.6.4-compatible.zip
@@ -310,7 +309,6 @@ ExternalProject_Add(rocksdb
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DPORTABLE=${ROCKSDB_PORTABLE}
-        -DFORCE_SSE42=${ROCKSDB_FORCE_SSE42}
         )
 
 # kerberos
