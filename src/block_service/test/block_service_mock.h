@@ -26,7 +26,7 @@ public:
     {
     }
 
-    virtual uint64_t get_size() { return size; }
+    virtual uint64_t get_size() { return static_cast<uint64_t>(size); }
 
     virtual const std::string &get_md5sum() { return md5; }
 
@@ -120,7 +120,7 @@ public:
     void clear_context() { context = blob(); }
 
 public:
-    uint64_t size;
+    int64_t size;
     std::string md5;
     blob context;
     bool enable_write_fail;
