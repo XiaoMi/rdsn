@@ -44,6 +44,7 @@ negotiation_map negotiation_manager::_negotiations;
 utils::rw_lock_nr negotiation_manager::_lock;
 
 negotiation_manager::negotiation_manager() : serverlet("negotiation_manager") {}
+
 void negotiation_manager::open_service()
 {
     register_rpc_handler_with_rpc_holder(
