@@ -4,6 +4,7 @@
 
 #include <nlohmann/json.hpp>
 #include <fmt/format.h>
+#include <dsn/utility/output_utils.h>
 #include "replica_http_service.h"
 #include "duplication/duplication_sync_timer.h"
 
@@ -53,6 +54,47 @@ void replica_http_service::query_duplication_handler(const http_request &req, ht
     }
     resp.status_code = http_status_code::ok;
     resp.body = json.dump();
+}
+
+void replica_http_service::query_compaction_handler(const http_request &req, http_response &resp)
+{
+    auto it = req.query_args.find("app_id");
+    if (it == req.query_args.end()) {
+        resp.body = "app_id should not be empty";
+        resp.status_code = http_status_code::bad_request;
+        return;
+    }
+
+    int32_t app_id = -1;
+    if (!buf2int32(it->second, app_id) || app_id < 0) {
+        resp.body = fmt::format("invalid app_id={}", it->second);
+        resp.status_code = http_status_code::bad_request;
+        return;
+    }
+
+    std::unordered_map<gpid, manual_compaction_status> partition_compaction_status;
+    _stub->query_app_compact_status(app_id, partition_compaction_status);
+
+    int32_t running_count = 0;
+    int32_t queue_count = 0;
+    int32_t finish_count = 0;
+    for (const auto &kv : partition_compaction_status) {
+        if (kv.second == CompactionRunning) {
+            running_count++;
+        } else if (kv.second == CompactionQueue) {
+            queue_count++;
+        } else if (kv.second == CompactionFinish) {
+            finish_count++;
+        }
+    }
+    dsn::utils::table_printer tp("status");
+    tp.add_row_name_and_data(manual_compaction_status_to_string(CompactionRunning), running_count);
+    tp.add_row_name_and_data(manual_compaction_status_to_string(CompactionQueue), queue_count);
+    tp.add_row_name_and_data(manual_compaction_status_to_string(CompactionFinish), finish_count);
+    std::ostringstream out;
+    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    resp.body = out.str();
+    resp.status_code = http_status_code::ok;
 }
 
 } // namespace replication

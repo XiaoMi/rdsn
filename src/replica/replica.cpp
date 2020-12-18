@@ -443,6 +443,33 @@ std::string replica::query_compact_state() const
     return _app->query_compact_state();
 }
 
+const char *manual_compaction_status_to_string(manual_compaction_status status)
+{
+    switch (status) {
+    case CompactionFinish:
+        return "CompactionFinish";
+    case CompactionRunning:
+        return "CompactionRunning";
+    case CompactionQueue:
+        return "CompactionQueue";
+    default:
+        dassert(false, "");
+    }
+    return "wrongCompactionStatus";
+}
+
+manual_compaction_status replica::get_compact_status() const
+{
+    std::string compact_state = query_compact_state();
+    if (compact_state.find("recent start at") != std::string::npos) {
+        return CompactionRunning;
+    } else if (compact_state.find("recent enqueue at") != std::string::npos) {
+        return CompactionQueue;
+    } else {
+        return CompactionFinish;
+    }
+}
+
 // Replicas on the server which serves for the same table will share the same perf-counter.
 // For example counter `table.level.RPC_RRDB_RRDB_MULTI_PUT.latency(ns)@test_table` is shared by
 // all the replicas for `test_table`.
