@@ -214,6 +214,15 @@ public:
         return resp.body;
     }
 
+    http_response test_start_compaction(std::string req_body_json)
+    {
+        http_request req;
+        http_response resp;
+        req.body = blob::create_from_bytes(std::move(req_body_json));
+        _mhs->start_compaction_handler(req, resp);
+        return resp;
+    }
+
     void mock_bulk_load_context(const bulk_load_status::type &status)
     {
         auto app = find_app(APP_NAME);
@@ -298,6 +307,50 @@ TEST_F(meta_bulk_load_http_test, query_bulk_load_request)
     }
 
     drop_app(NOT_BULK_LOAD);
+}
+
+TEST_F(meta_bulk_load_http_test, start_compaction_test)
+{
+    struct start_compaction_test
+    {
+        std::string request_json;
+        http_status_code expected_code;
+        std::string expected_response_json;
+    } tests[] = {
+        {"{\"app_name\":\"test_bulk_load\",\"type\":\"once\",\"target_level\":-1,\"bottommost_"
+         "level_compaction\":\"skip\",\"max_concurrent_running_count\":\"0\"}",
+         http_status_code::bad_request,
+         "invalid request structure"},
+
+        {"{\"app_name\":\"test_bulk_load\",\"type\":\"wrong\",\"target_level\":-1,\"bottommost_"
+         "level_compaction\":\"skip\",\"max_concurrent_running_count\":0,\"trigger_time\":\"\"}",
+         http_status_code::bad_request,
+         "type should ony be once or periodic"},
+
+        {"{\"app_name\":\"test_bulk_load\",\"type\":\"once\",\"target_level\":-3,\"bottommost_"
+         "level_compaction\":\"skip\",\"max_concurrent_running_count\":0,\"trigger_time\":\"\"}",
+         http_status_code::bad_request,
+         "target_level should be greater than -1"},
+
+        {"{\"app_name\":\"test_bulk_load\",\"type\":\"once\",\"target_level\":-1,\"bottommost_"
+         "level_compaction\":\"wrong\",\"max_concurrent_running_count\":0,\"trigger_time\":\"\"}",
+         http_status_code::bad_request,
+         "bottommost_level_compaction should ony be skip or force"},
+        {"{\"app_name\":\"test_bulk_load\",\"type\":\"once\",\"target_level\":-1,\"bottommost_"
+         "level_compaction\":\"skip\",\"max_concurrent_running_count\":-2,\"trigger_time\":\"\"}",
+         http_status_code::bad_request,
+         "max_running_count should be greater than 0"},
+
+        {"{\"app_name\":\"test_bulk_load\",\"type\":\"once\",\"target_level\":-1,\"bottommost_"
+         "level_compaction\":\"skip\",\"max_concurrent_running_count\":0,\"trigger_time\":\"\"}",
+         http_status_code::ok,
+         "{\"error\":\"ERR_OK\",\"hint_message\":\"\"}\n"}};
+
+    for (const auto &test : tests) {
+        http_response resp = test_start_compaction(test.request_json);
+        ASSERT_EQ(resp.status_code, test.expected_code);
+        ASSERT_EQ(resp.body, test.expected_response_json);
+    }
 }
 
 } // namespace replication
