@@ -51,7 +51,7 @@ public:
 
 #define FLAG_DATA_UPDATE_STRING()                                                                  \
     case FV_STRING:                                                                                \
-        return error_s::make(ERR_NO_PERMISSION, "string modifications are not supported")
+        return error_s::make(ERR_INVALID_PARAMETERS, "string modifications are not supported")
 
     void load()
     {
@@ -74,7 +74,7 @@ public:
     error_s update(const std::string &val)
     {
         if (!has_tag(flag_tag::FT_MUTABLE)) {
-            return error_s::make(ERR_NO_PERMISSION, fmt::format("{} is not mutable", _name));
+            return error_s::make(ERR_INVALID_PARAMETERS, fmt::format("{} is not mutable", _name));
         }
 
         switch (_type) {

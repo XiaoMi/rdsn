@@ -69,7 +69,7 @@ TEST(flag_test, update_config)
 
     // string modifications are not supported
     res = update_flag("test_string_immutable", "update_string");
-    ASSERT_EQ(res.code(), ERR_NO_PERMISSION);
+    ASSERT_EQ(res.code(), ERR_INVALID_PARAMETERS);
     ASSERT_EQ(strcmp(FLAGS_test_string_immutable, "immutable_string"), 0);
 
     // test flag is not exist
