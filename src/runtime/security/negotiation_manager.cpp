@@ -81,6 +81,7 @@ void negotiation_manager::on_negotiation_response(error_code err, negotiation_rp
     }
 }
 
+
 void negotiation_manager::on_rpc_connected(rpc_session *session)
 {
     std::shared_ptr<negotiation> nego = security::create_negotiation(session->is_client(), session);
