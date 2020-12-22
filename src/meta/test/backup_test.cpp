@@ -320,8 +320,8 @@ void meta_service_test_app::policy_context_test()
             mp.continue_current_backup_unlocked();
         }
 
-        // new backup will be issued 5s later.
-        ASSERT_TRUE(mp.notifier_issue_new_backup_unlocked().wait_for(20000));
+        // new backup will be issued.
+        ASSERT_TRUE(mp.notifier_issue_new_backup_unlocked().wait_for(10000));
 
         {
             zauto_lock l(mp._lock);
@@ -375,7 +375,6 @@ void meta_service_test_app::policy_context_test()
             zauto_lock l(mp._lock);
             // as new backup is captured and abandoned, so we can check the current backup
             ASSERT_EQ(1, mp._backup_history.size());
-            // the first backup's id is 1
             ASSERT_LE(cur_start_time_ms, mp._backup_history.begin()->first);
             const backup_info &history = mp._backup_history.begin()->second;
             ASSERT_NE(0, history.start_time_ms);
@@ -437,6 +436,33 @@ void meta_service_test_app::policy_context_test()
         std::string cur_backup_sig =
             test_policy_name + std::string("@") + std::to_string(bi.backup_id);
         ASSERT_EQ(cur_backup_sig, mp._backup_sig);
+    }
+
+    {
+        // we will not start to backup app when it is being backed up now.
+        int64_t cur_start_time_ms = static_cast<int64_t>(dsn_now_ms());
+        mp._backup_history.clear();
+        mp._cur_backup.backup_id = 0;
+        mp.reset_records();
+        // reset policy
+        policy test_policy = mp.get_policy();
+        test_policy.app_ids = {1};
+        mp.set_policy(test_policy);
+        // app 1 is being backed up
+        ASSERT_TRUE(s->_backup_handler->add_backup_app(1));
+        {
+            zauto_lock l(mp._lock);
+            mp.issue_new_backup_unlocked();
+        }
+
+        ASSERT_FALSE(mp.notifier_start_backup_app_meta_unlocked().wait_for(5000));
+
+        {
+            zauto_lock l(mp._lock);
+            ASSERT_LE(cur_start_time_ms, mp._cur_backup.backup_id);
+            ASSERT_EQ(0, mp.counter_start_backup_app_meta_unlocked());
+            ASSERT_EQ(1, mp._progress.unfinished_apps);
+        }
     }
 
     {
@@ -542,9 +568,8 @@ void meta_service_test_app::backup_service_test()
         });
     backup_service *backup_svc = meta_svc->_backup_handler.get();
 
-    // first testing start_create_policy_meta_root()
+    // test start_create_policy_meta_root()
     {
-        std::cout << "testing start_create_policy_meta_root()..." << std::endl;
         bool flag = false;
         dsn::task_ptr task_test =
             tasking::create_task(LPC_DEFAULT_CALLBACK, nullptr, [&flag]() { flag = true; });
@@ -556,9 +581,8 @@ void meta_service_test_app::backup_service_test()
         ASSERT_TRUE(flag);
     }
 
-    // testing add_backup_policy()
+    // test add_backup_policy()
     {
-        std::cout << "add_backup_policy()..." << std::endl;
         // create a fake add_backup_policy_request
         configuration_add_backup_policy_request req;
         req.backup_provider_type = std::string("local_service");
@@ -566,7 +590,7 @@ void meta_service_test_app::backup_service_test()
         req.app_ids = {1, 2, 3};
         req.backup_interval_seconds = 24 * 60 * 60;
 
-        // case1: backup policy don't contain invalid app_id
+        // case1: backup policy does not contain valid app_id
         // result: backup policy will not be added, and return ERR_INVALID_PARAMETERS
         {
             configuration_add_backup_policy_response resp;
@@ -594,9 +618,10 @@ void meta_service_test_app::backup_service_test()
                                    req);
             fake_wait_rpc(r, resp);
 
-            std::string hint_message = fmt::format(
-                "backup interval must be greater than cold_backup_checkpoint_reserve_minutes={}",
-                meta_svc->get_options().cold_backup_checkpoint_reserve_minutes);
+            std::string hint_message =
+                fmt::format("backup interval must be greater than "
+                            "cold_backup_checkpoint_reserve_minutes={}",
+                            meta_svc->get_options().cold_backup_checkpoint_reserve_minutes);
             ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
             ASSERT_EQ(hint_message, resp.hint_message);
             req.backup_interval_seconds = old_backup_interval_seconds;
@@ -621,12 +646,28 @@ void meta_service_test_app::backup_service_test()
                 static_cast<mock_policy *>(backup_svc->_policy_states.at(test_policy_name).get());
             ASSERT_EQ(1, ptr->counter_start());
         }
+
+        // case4: backup policy contains an invalid app_id
+        // result: backup policy will not be added, and return ERR_INVALID_PARAMETERS
+        {
+            server_state *state = meta_svc->get_server_state();
+            state->_all_apps.erase(3);
+            configuration_add_backup_policy_response resp;
+            auto r = fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,
+                                   LPC_DEFAULT_CALLBACK,
+                                   backup_svc,
+                                   &backup_service::add_backup_policy,
+                                   req);
+            fake_wait_rpc(r, resp);
+            ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
+            std::string hint_message = "invalid app 3";
+            ASSERT_EQ(hint_message, resp.hint_message);
+        }
     }
 
-    // testing sync_policies_from_remote_storage()
-    // only have one backup policy on remote storage
+    // test sync_policies_from_remote_storage()
+    // only one backup policy on remote storage
     {
-        std::cout << "tesing sync_policies_from_remote_storage()..." << std::endl;
         backup_svc->_policy_states.clear();
         ASSERT_TRUE(backup_svc->_policy_states.empty());
         error_code err = backup_svc->sync_policies_from_remote_storage();
