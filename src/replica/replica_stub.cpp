@@ -717,12 +717,11 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
         if (now_time_ms < dsn::utils::process_start_millis() + delay_time_ms) {
             uint64_t delay = dsn::utils::process_start_millis() + delay_time_ms - now_time_ms;
             ddebug("delay for %" PRIu64 "ms to make failure detector timeout", delay);
-            tasking::enqueue(
-                LPC_REPLICA_SERVER_DELAY_START,
-                &_tracker,
-                [this]() { this->initialize_start(); },
-                0,
-                std::chrono::milliseconds(delay));
+            tasking::enqueue(LPC_REPLICA_SERVER_DELAY_START,
+                             &_tracker,
+                             [this]() { this->initialize_start(); },
+                             0,
+                             std::chrono::milliseconds(delay));
         } else {
             initialize_start();
         }
@@ -735,16 +734,16 @@ void replica_stub::initialize_start()
 {
     // start timer for configuration sync
     if (!_options.config_sync_disabled) {
-        _config_sync_timer_task = tasking::enqueue_timer(
-            LPC_QUERY_CONFIGURATION_ALL,
-            &_tracker,
-            [this]() {
-                zauto_lock l(_state_lock);
-                this->query_configuration_by_node();
-            },
-            std::chrono::milliseconds(_options.config_sync_interval_ms),
-            0,
-            std::chrono::milliseconds(_options.config_sync_interval_ms));
+        _config_sync_timer_task =
+            tasking::enqueue_timer(LPC_QUERY_CONFIGURATION_ALL,
+                                   &_tracker,
+                                   [this]() {
+                                       zauto_lock l(_state_lock);
+                                       this->query_configuration_by_node();
+                                   },
+                                   std::chrono::milliseconds(_options.config_sync_interval_ms),
+                                   0,
+                                   std::chrono::milliseconds(_options.config_sync_interval_ms));
     }
 
 #ifdef DSN_ENABLE_GPERF
@@ -1309,16 +1308,15 @@ void replica_stub::on_node_query_reply(error_code err,
             int delay_ms = 500;
             ddebug("resend query node partitions request after %d ms for resp.err = ERR_BUSY",
                    delay_ms);
-            _config_query_task = tasking::enqueue(
-                LPC_QUERY_CONFIGURATION_ALL,
-                &_tracker,
-                [this]() {
-                    zauto_lock l(_state_lock);
-                    _config_query_task = nullptr;
-                    this->query_configuration_by_node();
-                },
-                0,
-                std::chrono::milliseconds(delay_ms));
+            _config_query_task = tasking::enqueue(LPC_QUERY_CONFIGURATION_ALL,
+                                                  &_tracker,
+                                                  [this]() {
+                                                      zauto_lock l(_state_lock);
+                                                      _config_query_task = nullptr;
+                                                      this->query_configuration_by_node();
+                                                  },
+                                                  0,
+                                                  std::chrono::milliseconds(delay_ms));
             return;
         }
         if (resp.err != ERR_OK) {
@@ -1542,12 +1540,11 @@ void replica_stub::init_gc_for_test()
 {
     dassert(_options.gc_disabled, "");
 
-    _gc_timer_task = tasking::enqueue(
-        LPC_GARBAGE_COLLECT_LOGS_AND_REPLICAS,
-        &_tracker,
-        [this] { on_gc(); },
-        0,
-        std::chrono::milliseconds(_options.gc_interval_ms));
+    _gc_timer_task = tasking::enqueue(LPC_GARBAGE_COLLECT_LOGS_AND_REPLICAS,
+                                      &_tracker,
+                                      [this] { on_gc(); },
+                                      0,
+                                      std::chrono::milliseconds(_options.gc_interval_ms));
 }
 
 void replica_stub::on_gc_replica(replica_stub_ptr this_, gpid id)
@@ -2013,12 +2010,11 @@ void replica_stub::open_replica(const app_info &app,
         app_info a_info = *(r->get_app_info());
         replica_info r_info;
         get_replica_info(r_info, r);
-        task_ptr task = tasking::enqueue(
-            LPC_CLOSE_REPLICA,
-            &_tracker,
-            [=]() { close_replica(r); },
-            0,
-            std::chrono::milliseconds(delay_ms));
+        task_ptr task = tasking::enqueue(LPC_CLOSE_REPLICA,
+                                         &_tracker,
+                                         [=]() { close_replica(r); },
+                                         0,
+                                         std::chrono::milliseconds(delay_ms));
         _closing_replicas[id] = std::make_tuple(task, r, std::move(a_info), std::move(r_info));
         _counter_replicas_closing_count->increment();
         return task;
@@ -2365,21 +2361,20 @@ replica_stub::exec_command_on_replica(const std::vector<std::string> &args,
     std::map<gpid, std::pair<partition_status::type, std::string>> results; // id => status,result
     for (auto &kv : choosed_rs) {
         replica_ptr rep = kv.second;
-        task_ptr tsk = tasking::enqueue(
-            LPC_EXEC_COMMAND_ON_REPLICA,
-            rep->tracker(),
-            [rep, &func, &results_lock, &results]() {
-                partition_status::type status = rep->status();
-                if (status != partition_status::PS_PRIMARY &&
-                    status != partition_status::PS_SECONDARY)
-                    return;
-                std::string result = func(rep);
-                ::dsn::zauto_lock l(results_lock);
-                auto &value = results[rep->get_gpid()];
-                value.first = status;
-                value.second = result;
-            },
-            rep->get_gpid().thread_hash());
+        task_ptr tsk = tasking::enqueue(LPC_EXEC_COMMAND_ON_REPLICA,
+                                        rep->tracker(),
+                                        [rep, &func, &results_lock, &results]() {
+                                            partition_status::type status = rep->status();
+                                            if (status != partition_status::PS_PRIMARY &&
+                                                status != partition_status::PS_SECONDARY)
+                                                return;
+                                            std::string result = func(rep);
+                                            ::dsn::zauto_lock l(results_lock);
+                                            auto &value = results[rep->get_gpid()];
+                                            value.first = status;
+                                            value.second = result;
+                                        },
+                                        rep->get_gpid().thread_hash());
         tasks.emplace_back(std::move(tsk));
     }
 
@@ -2696,11 +2691,10 @@ replica_stub::split_replica_exec(dsn::task_code code, gpid pid, local_execution 
     FAIL_POINT_INJECT_F("replica_stub_split_replica_exec", [](dsn::string_view) { return ERR_OK; });
     replica_ptr replica = pid.get_app_id() == 0 ? nullptr : get_replica(pid);
     if (replica && handler) {
-        tasking::enqueue(
-            code,
-            replica.get()->tracker(),
-            [handler, replica]() { handler(replica->get_split_manager()); },
-            pid.thread_hash());
+        tasking::enqueue(code,
+                         replica.get()->tracker(),
+                         [handler, replica]() { handler(replica->get_split_manager()); },
+                         pid.thread_hash());
         return ERR_OK;
     }
     dwarn_f("replica({}) is invalid", pid);
