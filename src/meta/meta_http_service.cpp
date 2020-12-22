@@ -706,7 +706,7 @@ void meta_http_service::start_compaction_handler(const http_request &req, http_r
         return;
     }
 
-    // validate paramters
+    // validate parameters
     manual_compaction_info info;
     bool ret = json::json_forwarder<manual_compaction_info>::decode(req.body, info);
     if (!ret) {
@@ -765,7 +765,7 @@ void meta_http_service::start_compaction_handler(const http_request &req, http_r
         keys.emplace_back(replica_envs::MANUAL_COMPACT_MAX_CONCURRENT_RUNNING_COUNT);
         values.emplace_back(std::to_string(info.max_concurrent_running_count));
     }
-    update_app_env_handler(info.app_name, keys, values, resp);
+    update_app_env(info.app_name, keys, values, resp);
 }
 
 bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
@@ -791,10 +791,10 @@ bool meta_http_service::redirect_if_not_primary(const http_request &req, http_re
     return false;
 }
 
-void meta_http_service::update_app_env_handler(const std::string &app_name,
-                                               const std::vector<std::string> &keys,
-                                               const std::vector<std::string> &values,
-                                               http_response &resp)
+void meta_http_service::update_app_env(const std::string &app_name,
+                                       const std::vector<std::string> &keys,
+                                       const std::vector<std::string> &values,
+                                       http_response &resp)
 {
     configuration_update_app_env_request request;
     request.app_name = app_name;

@@ -118,10 +118,10 @@ private:
     // set redirect location if current server is not primary
     bool redirect_if_not_primary(const http_request &req, http_response &resp);
 
-    void update_app_env_handler(const std::string &app_name,
-                                const std::vector<std::string> &keys,
-                                const std::vector<std::string> &values,
-                                http_response &resp);
+    void update_app_env(const std::string &app_name,
+                        const std::vector<std::string> &keys,
+                        const std::vector<std::string> &values,
+                        http_response &resp);
 
     meta_service *_service;
 };
