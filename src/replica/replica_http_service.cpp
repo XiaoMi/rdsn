@@ -79,18 +79,18 @@ void replica_http_service::query_compaction_handler(const http_request &req, htt
     int32_t queue_count = 0;
     int32_t finish_count = 0;
     for (const auto &kv : partition_compaction_status) {
-        if (kv.second == CompactionRunning) {
+        if (kv.second == RUNNING) {
             running_count++;
-        } else if (kv.second == CompactionQueue) {
+        } else if (kv.second == QUEUE) {
             queue_count++;
-        } else if (kv.second == CompactionFinish) {
+        } else if (kv.second == FINISH) {
             finish_count++;
         }
     }
     dsn::utils::table_printer tp("status");
-    tp.add_row_name_and_data(manual_compaction_status_to_string(CompactionRunning), running_count);
-    tp.add_row_name_and_data(manual_compaction_status_to_string(CompactionQueue), queue_count);
-    tp.add_row_name_and_data(manual_compaction_status_to_string(CompactionFinish), finish_count);
+    tp.add_row_name_and_data(manual_compaction_status_to_string(RUNNING), running_count);
+    tp.add_row_name_and_data(manual_compaction_status_to_string(QUEUE), queue_count);
+    tp.add_row_name_and_data(manual_compaction_status_to_string(FINISH), finish_count);
     std::ostringstream out;
     tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
     resp.body = out.str();

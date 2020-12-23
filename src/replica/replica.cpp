@@ -446,27 +446,36 @@ std::string replica::query_compact_state() const
 const char *manual_compaction_status_to_string(manual_compaction_status status)
 {
     switch (status) {
-    case CompactionFinish:
+    case FINISH:
         return "CompactionFinish";
-    case CompactionRunning:
+    case RUNNING:
         return "CompactionRunning";
-    case CompactionQueue:
+    case QUEUE:
         return "CompactionQueue";
     default:
         dassert(false, "");
+        __builtin_unreachable();
     }
-    return "wrongCompactionStatus";
 }
 
 manual_compaction_status replica::get_compact_status() const
 {
     std::string compact_state = query_compact_state();
+    // query_compact_state will return a message like:
+    // Case1. last finish at [-]
+    // - partition is not manual compaction
+    // Case2. last finish at [timestamp], last used {time_used} ms
+    // - partition manual compaction finished
+    // Case3. last finish at [-], recent enqueue at [timestamp]
+    // - partition is in manual compaction queue
+    // Case4. last finish at [-], recent enqueue at [timestamp], recent start at [timestamp]
+    // - partition is running manual compaction
     if (compact_state.find("recent start at") != std::string::npos) {
-        return CompactionRunning;
+        return RUNNING;
     } else if (compact_state.find("recent enqueue at") != std::string::npos) {
-        return CompactionQueue;
+        return QUEUE;
     } else {
-        return CompactionFinish;
+        return FINISH;
     }
 }
 
