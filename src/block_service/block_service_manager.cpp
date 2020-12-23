@@ -133,11 +133,11 @@ error_code block_service_manager::download_file(const std::string &remote_dir,
 
     const std::string local_file_name = utils::filesystem::path_combine(local_dir, file_name);
     if (utils::filesystem::file_exists(local_file_name)) {
-        std::string current_md5;
-        error_code e = utils::filesystem::md5sum(local_file_name, current_md5);
+        int64_t local_file_size;
+        bool flag = utils::filesystem::file_size(local_file_name, local_file_size);
         // local file exists
-        if (e == ERR_OK && current_md5 == bf->get_md5sum()) {
-            download_file_size = bf->get_size();
+        if (flag && local_file_size == bf->get_size()) {
+            download_file_size = local_file_size;
             ddebug_f("local file({}) has been downloaded, file_size = {}",
                      local_file_name,
                      download_file_size);
@@ -145,16 +145,16 @@ error_code block_service_manager::download_file(const std::string &remote_dir,
         }
         // local file has same file name with remote file, but there are different
         // remove local file and download it from remote file provider
-        if (e != ERR_OK) {
-            dwarn_f("calculate file({}) md5 failed, should remove and redownload it",
+        if (!flag) {
+            dwarn_f("calculate file({}) size failed, should remove and redownload it",
                     local_file_name);
         } else {
-            dwarn_f("local file({}) is different from remote file({}), md5: local({}) VS "
+            dwarn_f("local file({}) is different from remote file({}), size: local({}) VS "
                     "remote({}), should remove and redownload it",
                     local_file_name,
                     bf->file_name(),
-                    current_md5,
-                    bf->get_md5sum());
+                    local_file_size,
+                    bf->get_size());
         }
         if (!utils::filesystem::remove_path(local_file_name)) {
             derror_f("failed to remove file({})", local_file_name);
