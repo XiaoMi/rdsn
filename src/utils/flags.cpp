@@ -12,6 +12,7 @@
 #include <fmt/format.h>
 
 #include <map>
+#include <dsn/utility/output_utils.h>
 
 namespace dsn {
 
@@ -95,6 +96,8 @@ public:
     void add_tag(const flag_tag &tag) { _tags.insert(tag); }
     bool has_tag(const flag_tag &tag) const { return _tags.find(tag) != _tags.end(); }
 
+    std::string description() const { return _desc; }
+
 private:
     template <typename T>
     T &value()
@@ -160,6 +163,18 @@ public:
         return it->second.has_tag(tag);
     }
 
+    std::string list_all_flags() const
+    {
+        utils::table_printer tp;
+        for (const auto &flag : _flags) {
+            tp.add_row_name_and_data(flag.first, flag.second.description());
+        }
+
+        std::ostringstream out;
+        tp.output(out, utils::table_printer::output_format::kJsonCompact);
+        return out.str();
+    }
+
 private:
     friend class utils::singleton<flag_registry>;
     flag_registry() = default;
@@ -204,5 +219,7 @@ flag_tagger::flag_tagger(const char *name, const flag_tag &tag)
 {
     return flag_registry::instance().has_tag(name, tag);
 }
+
+/*extern*/ std::string list_all_flags() { return flag_registry::instance().list_all_flags(); }
 
 } // namespace dsn
