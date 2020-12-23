@@ -491,7 +491,7 @@ void meta_service_test_app::policy_context_test()
         int64_t oneday_sec = 1 * 24 * 60 * 60;
         mp._policy.start_time.hour = hour;
         mp._policy.start_time.minute = 0;
-        mp._policy.backup_interval_seconds = oneday_sec; // oneday
+        mp._policy.backup_interval_seconds = oneday_sec;
         mp._backup_history.clear();
 
         backup_info info;
@@ -512,21 +512,21 @@ void meta_service_test_app::policy_context_test()
 
         {
             // first backup & cur_time.hour != start_time.hour
-            mp._policy.start_time.hour = hour + 100; // invalid time
+            mp._policy.start_time.hour = hour + 100;
             ASSERT_FALSE(mp.should_start_backup_unlocked());
-            mp._policy.start_time.hour = (hour + 1) % 24; // valid, but not reach
+            mp._policy.start_time.hour = (hour + 1) % 24;
             ASSERT_FALSE(mp.should_start_backup_unlocked());
-            mp._policy.start_time.hour = hour - 1; // time passed(also, include -1)
+            mp._policy.start_time.hour = hour - 1;
             ASSERT_FALSE(mp.should_start_backup_unlocked());
         }
 
         {
             // first backup & cur_time.min != start_time.minute
-            mp._policy.start_time.minute = min + 100; // invalid time
+            mp._policy.start_time.minute = min + 100;
             ASSERT_FALSE(mp.should_start_backup_unlocked());
-            mp._policy.start_time.minute = (min + 1) % 60; // valid, but not reach
+            mp._policy.start_time.minute = (min + 1) % 60;
             ASSERT_FALSE(mp.should_start_backup_unlocked());
-            mp._policy.start_time.minute = min - 1; // time passed(also, include -1)
+            mp._policy.start_time.minute = min - 1;
             ASSERT_FALSE(mp.should_start_backup_unlocked());
         }
 
@@ -590,7 +590,7 @@ void meta_service_test_app::backup_service_test()
         req.app_ids = {1, 2, 3};
         req.backup_interval_seconds = 24 * 60 * 60;
 
-        // case1: backup policy does not contain valid app_id
+        // case1: all app in the backup policy is invalid
         // result: backup policy will not be added, and return ERR_INVALID_PARAMETERS
         {
             configuration_add_backup_policy_response resp;
@@ -627,7 +627,7 @@ void meta_service_test_app::backup_service_test()
             req.backup_interval_seconds = old_backup_interval_seconds;
         }
 
-        // case3: backup policy's all app_id is valid
+        // case3: all app in the backup policy is valid
         // result: add backup policy succeed
         {
             configuration_add_backup_policy_response resp;
@@ -647,7 +647,7 @@ void meta_service_test_app::backup_service_test()
             ASSERT_EQ(1, ptr->counter_start());
         }
 
-        // case4: backup policy contains an invalid app_id
+        // case4: backup policy contains an invalid app
         // result: backup policy will not be added, and return ERR_INVALID_PARAMETERS
         {
             server_state *state = meta_svc->get_server_state();
@@ -666,7 +666,6 @@ void meta_service_test_app::backup_service_test()
     }
 
     // test sync_policies_from_remote_storage()
-    // only one backup policy on remote storage
     {
         backup_svc->_policy_states.clear();
         ASSERT_TRUE(backup_svc->_policy_states.empty());
