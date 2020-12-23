@@ -709,6 +709,7 @@ void meta_http_service::start_compaction_handler(const http_request &req, http_r
     // validate parameters
     manual_compaction_info info;
     bool ret = json::json_forwarder<manual_compaction_info>::decode(req.body, info);
+
     if (!ret) {
         resp.body = "invalid request structure";
         resp.status_code = http_status_code::bad_request;
@@ -720,23 +721,23 @@ void meta_http_service::start_compaction_handler(const http_request &req, http_r
         return;
     }
     if (info.type.empty() || (info.type != "once" && info.type != "periodic")) {
-        resp.body = "type should ony be once or periodic";
+        resp.body = "type should ony be 'once' or 'periodic'";
         resp.status_code = http_status_code::bad_request;
         return;
     }
     if (info.target_level < -1) {
-        resp.body = "target_level should be greater than -1";
+        resp.body = "target_level should be >= -1";
         resp.status_code = http_status_code::bad_request;
         return;
     }
     if (info.bottommost_level_compaction.empty() || (info.bottommost_level_compaction != "skip" &&
                                                      info.bottommost_level_compaction != "force")) {
-        resp.body = "bottommost_level_compaction should ony be skip or force";
+        resp.body = "bottommost_level_compaction should ony be 'skip' or 'force'";
         resp.status_code = http_status_code::bad_request;
         return;
     }
     if (info.max_concurrent_running_count < 0) {
-        resp.body = "max_running_count should be greater than 0";
+        resp.body = "max_running_count should be >= 0";
         resp.status_code = http_status_code::bad_request;
         return;
     }

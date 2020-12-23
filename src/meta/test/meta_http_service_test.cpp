@@ -2,6 +2,7 @@
 // This source code is licensed under the Apache License Version 2.0, which
 // can be found in the LICENSE file in the root directory of this source tree.
 
+#include <iostream>
 #include <gtest/gtest.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/http/http_server.h>
@@ -317,32 +318,22 @@ TEST_F(meta_bulk_load_http_test, start_compaction_test)
         http_status_code expected_code;
         std::string expected_response_json;
     } tests[] = {
-        {"{\"app_name\":\"test_bulk_load\",\"type\":\"once\",\"target_level\":-1,\"bottommost_"
-         "level_compaction\":\"skip\",\"max_concurrent_running_count\":\"0\"}",
+        {R"({"app_name":"test_bulk_load","type":"once","target_level":-1,"bottommost_level_compaction":"skip","max_concurrent_running_count":"0"})",
          http_status_code::bad_request,
          "invalid request structure"},
-
-        {"{\"app_name\":\"test_bulk_load\",\"type\":\"wrong\",\"target_level\":-1,\"bottommost_"
-         "level_compaction\":\"skip\",\"max_concurrent_running_count\":0,\"trigger_time\":\"\"}",
+        {R"({"app_name":"test_bulk_load","type":"wrong","target_level":-1,"bottommost_level_compaction":"skip","max_concurrent_running_count":0,"trigger_time":""})",
          http_status_code::bad_request,
-         "type should ony be once or periodic"},
-
-        {"{\"app_name\":\"test_bulk_load\",\"type\":\"once\",\"target_level\":-3,\"bottommost_"
-         "level_compaction\":\"skip\",\"max_concurrent_running_count\":0,\"trigger_time\":\"\"}",
+         "type should ony be 'once' or 'periodic'"},
+        {R"({"app_name":"test_bulk_load","type":"once","target_level":-3,"bottommost_level_compaction":"skip","max_concurrent_running_count":0,"trigger_time":""})",
          http_status_code::bad_request,
-         "target_level should be greater than -1"},
-
-        {"{\"app_name\":\"test_bulk_load\",\"type\":\"once\",\"target_level\":-1,\"bottommost_"
-         "level_compaction\":\"wrong\",\"max_concurrent_running_count\":0,\"trigger_time\":\"\"}",
+         "target_level should be >= -1"},
+        {R"({"app_name":"test_bulk_load","type":"once","target_level":-1,"bottommost_level_compaction":"wrong","max_concurrent_running_count":0,"trigger_time":""})",
          http_status_code::bad_request,
-         "bottommost_level_compaction should ony be skip or force"},
-        {"{\"app_name\":\"test_bulk_load\",\"type\":\"once\",\"target_level\":-1,\"bottommost_"
-         "level_compaction\":\"skip\",\"max_concurrent_running_count\":-2,\"trigger_time\":\"\"}",
+         "bottommost_level_compaction should ony be 'skip' or 'force'"},
+        {R"({"app_name":"test_bulk_load","type":"once","target_level":-1,"bottommost_level_compaction":"skip","max_concurrent_running_count":-2,"trigger_time":""})",
          http_status_code::bad_request,
-         "max_running_count should be greater than 0"},
-
-        {"{\"app_name\":\"test_bulk_load\",\"type\":\"once\",\"target_level\":-1,\"bottommost_"
-         "level_compaction\":\"skip\",\"max_concurrent_running_count\":0,\"trigger_time\":\"\"}",
+         "max_running_count should be >= 0"},
+        {R"({"app_name":"test_bulk_load","type":"once","target_level":-1,"bottommost_level_compaction":"skip","max_concurrent_running_count":0,"trigger_time":""})",
          http_status_code::ok,
          "{\"error\":\"ERR_OK\",\"hint_message\":\"\"}\n"}};
 
