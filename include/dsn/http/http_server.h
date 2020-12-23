@@ -111,7 +111,6 @@ extern void register_http_service(http_service *svc);
 
 inline bool is_http_message(dsn::task_code code)
 {
-    return false;
-    // return code == RPC_HTTP_SERVICE || code == RPC_HTTP_SERVICE_ACK;
+    return code == RPC_HTTP_SERVICE || code == RPC_HTTP_SERVICE_ACK;
 }
 } // namespace dsn
