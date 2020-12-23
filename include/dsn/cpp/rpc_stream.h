@@ -70,10 +70,11 @@ typedef ::dsn::ref_ptr<rpc_read_stream> rpc_read_stream_ptr;
 
 // rpc_write_stream is a bridge between binary_writer and rpc_message, with which you can
 // easily store data to rpc_message's buffer in binary_writer's manner.
-class rpc_write_stream : public binary_writer
+class rpc_write_stream final : public binary_writer
 {
 public:
-    rpc_write_stream(message_ex *msg)
+    // Creates a stream that's typically used to construct a response message.
+    explicit rpc_write_stream(message_ex *msg)
         : _msg(msg), _last_write_next_committed(true), _last_write_next_total_size(0)
     {
     }
@@ -92,16 +93,16 @@ public:
         }
     }
 
-    virtual ~rpc_write_stream() { flush(); }
+    ~rpc_write_stream() override { flush(); }
 
-    virtual void flush() override
+    void flush() override
     {
         binary_writer::flush();
         commit_buffer();
     }
 
 private:
-    virtual void create_new_buffer(size_t size, /*out*/ blob &bb) override
+    void create_new_buffer(size_t size, /*out*/ blob &bb) override
     {
         commit_buffer();
 

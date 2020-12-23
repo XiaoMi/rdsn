@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #pragma once
 
 #include <atomic>
@@ -41,7 +32,6 @@
 #include <dsn/utility/dlib.h>
 #include <dsn/utility/blob.h>
 #include <dsn/utility/link.h>
-#include <dsn/utility/callocator.h>
 #include <dsn/utility/link.h>
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/tool-api/rpc_address.h>
@@ -123,9 +113,9 @@ typedef struct message_header
     ~message_header() = default;
 } message_header;
 
-class message_ex : public ref_counter,
-                   public extensible_object<message_ex, 4>,
-                   public transient_object
+// NOTE: The creation of message_ex is critical to performance. We now rely on
+// gperftools/tcmalloc to manage its memory, which has optimzation for small objects.
+class message_ex : public ref_counter, public extensible_object<message_ex, 4>
 {
 public:
     message_header *header;

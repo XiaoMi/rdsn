@@ -42,6 +42,7 @@
 #include <dsn/utils/time_utils.h>
 #include <dsn/utility/errors.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/transient_memory.h>
 
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
