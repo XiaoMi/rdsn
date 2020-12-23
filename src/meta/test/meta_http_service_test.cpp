@@ -260,24 +260,24 @@ TEST_F(meta_bulk_load_http_test, start_bulk_load_request)
         http_status_code expected_code;
         std::string expected_response_json;
     } tests[] = {
-        {"{\"app\":\"test_bulk_load\",\"cluster_name\":\"onebox\", "
-         "\"file_provider_type\":\"local_service\", \"remote_root_path\":\"bulk_load_root\"}",
+        {R"({"app":"test_bulk_load","cluster_name":"onebox","file_provider_type":"local_service","remote_root_path":"bulk_load_root"})",
          http_status_code::bad_request,
          "invalid request structure"},
-        {"{\"app_name\":\"test_bulk_load\",\"cluster_name\":\"onebox\", "
-         "\"file_provider_type\":\"\", \"remote_root_path\":\"bulk_load_root\"}",
+        {R"({"app_name":"test_bulk_load","cluster_name":"onebox","file_provider_type":"","remote_root_path":"bulk_load_root"})",
          http_status_code::bad_request,
          "file_provider_type should not be empty"},
-        {"{\"app_name\":\"test_bulk_load\",\"cluster_name\":\"onebox\", "
-         "\"file_provider_type\":\"local_service\", \"remote_root_path\":\"bulk_load_root\"}",
+        {R"({"app_name":"test_bulk_load","cluster_name":"onebox","file_provider_type":"local_service","remote_root_path":"bulk_load_root"})",
          http_status_code::ok,
-         "{\"error\":\"ERR_OK\",\"hint_msg\":\"\"}\n"},
+         R"({"error":"ERR_OK","hint_msg":""})"},
     };
-
     for (const auto &test : tests) {
         http_response resp = test_start_bulk_load(test.request_json);
         ASSERT_EQ(resp.status_code, test.expected_code);
-        ASSERT_EQ(resp.body, test.expected_response_json);
+        std::string expected_json = test.expected_response_json;
+        if (test.expected_code == http_status_code::ok) {
+            expected_json += "\n";
+        }
+        ASSERT_EQ(resp.body, expected_json);
     }
     fail::teardown();
 }
@@ -294,17 +294,15 @@ TEST_F(meta_bulk_load_http_test, query_bulk_load_request)
     {
         std::string app_name;
         std::string expected_json;
-    } tests[] = {{APP_NAME,
-                  "{\"error\":\"ERR_OK\",\"app_status\":\"replication::bulk_load_status::"
-                  "BLS_DOWNLOADING\"}\n"},
-                 {NOT_BULK_LOAD,
-                  "{\"error\":\"ERR_INVALID_STATE\",\"app_status\":\"replication::"
-                  "bulk_load_status::BLS_INVALID\"}\n"},
-                 {NOT_FOUND,
-                  "{\"error\":\"ERR_APP_NOT_EXIST\",\"app_status\":\"replication::bulk_"
-                  "load_status::BLS_INVALID\"}\n"}};
+    } tests[] = {
+        {APP_NAME,
+         R"({"error":"ERR_OK","app_status":"replication::bulk_load_status::BLS_DOWNLOADING"})"},
+        {NOT_BULK_LOAD,
+         R"({"error":"ERR_INVALID_STATE","app_status":"replication::bulk_load_status::BLS_INVALID"})"},
+        {NOT_FOUND,
+         R"({"error":"ERR_APP_NOT_EXIST","app_status":"replication::bulk_load_status::BLS_INVALID"})"}};
     for (const auto &test : tests) {
-        ASSERT_EQ(test_query_bulk_load(test.app_name), test.expected_json);
+        ASSERT_EQ(test_query_bulk_load(test.app_name), test.expected_json + "\n");
     }
 
     drop_app(NOT_BULK_LOAD);
@@ -335,12 +333,16 @@ TEST_F(meta_bulk_load_http_test, start_compaction_test)
          "max_running_count should be >= 0"},
         {R"({"app_name":"test_bulk_load","type":"once","target_level":-1,"bottommost_level_compaction":"skip","max_concurrent_running_count":0,"trigger_time":""})",
          http_status_code::ok,
-         "{\"error\":\"ERR_OK\",\"hint_message\":\"\"}\n"}};
+         R"({"error":"ERR_OK","hint_message":""})"}};
 
     for (const auto &test : tests) {
         http_response resp = test_start_compaction(test.request_json);
         ASSERT_EQ(resp.status_code, test.expected_code);
-        ASSERT_EQ(resp.body, test.expected_response_json);
+        std::string expected_json = test.expected_response_json;
+        if (test.expected_code == http_status_code::ok) {
+            expected_json += "\n";
+        }
+        ASSERT_EQ(resp.body, expected_json);
     }
 }
 
