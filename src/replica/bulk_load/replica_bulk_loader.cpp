@@ -391,7 +391,7 @@ error_code replica_bulk_loader::download_sst_files(const std::string &remote_dir
     uint64_t file_size = 0;
     error_code err = _stub->_block_service_manager.download_file(
         remote_dir, local_dir, bulk_load_constant::BULK_LOAD_METADATA, fs, file_size);
-    if (err != ERR_OK && err != ERR_DOWNLOADED) {
+    if (err != ERR_OK && err != ERR_PATH_ALREADY_EXIST) {
         derror_replica("download bulk load metadata file failed, error = {}", err.to_string());
         return err;
     }
@@ -414,7 +414,7 @@ error_code replica_bulk_loader::download_sst_files(const std::string &remote_dir
                     remote_dir, local_dir, f_meta.name, fs, f_size);
                 const std::string &file_name =
                     utils::filesystem::path_combine(local_dir, f_meta.name);
-                if (ec == ERR_DOWNLOADED) {
+                if (ec == ERR_PATH_ALREADY_EXIST) {
                     f_size = f_meta.size;
                 }
                 if (ec == ERR_OK &&

@@ -122,7 +122,7 @@ error_code block_service_manager::download_file(const std::string &remote_dir,
     const std::string local_file_name = utils::filesystem::path_combine(local_dir, file_name);
     if (utils::filesystem::file_exists(local_file_name)) {
         ddebug_f("local file({}) exists", local_file_name);
-        return ERR_DOWNLOADED;
+        return ERR_PATH_ALREADY_EXIST;
     }
 
     task_tracker tracker;

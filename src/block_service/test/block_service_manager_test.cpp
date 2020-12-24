@@ -81,7 +81,7 @@ TEST_F(block_service_manager_test, do_download_same_name_file)
     create_local_file(FILE_NAME);
     create_remote_file(FILE_NAME, 2333, "md5_not_match");
     uint64_t download_size = 0;
-    ASSERT_EQ(test_download_file(download_size), ERR_DOWNLOADED);
+    ASSERT_EQ(test_download_file(download_size), ERR_PATH_ALREADY_EXIST);
     ASSERT_EQ(download_size, 0);
 }
 
@@ -90,7 +90,7 @@ TEST_F(block_service_manager_test, do_download_file_exist)
     create_local_file(FILE_NAME);
     create_remote_file(FILE_NAME, _file_meta.size, _file_meta.md5);
     uint64_t download_size = 0;
-    ASSERT_EQ(test_download_file(download_size), ERR_DOWNLOADED);
+    ASSERT_EQ(test_download_file(download_size), ERR_PATH_ALREADY_EXIST);
     ASSERT_EQ(download_size, 0);
 }
 
