@@ -214,6 +214,15 @@ public:
         return resp.body;
     }
 
+    http_response test_update_scenario(std::string req_body_json)
+    {
+        http_request req;
+        http_response resp;
+        req.body = blob::create_from_bytes(std::move(req_body_json));
+        _mhs->update_scenario_handler(req, resp);
+        return resp;
+    }
+
     void mock_bulk_load_context(const bulk_load_status::type &status)
     {
         auto app = find_app(APP_NAME);
@@ -298,6 +307,34 @@ TEST_F(meta_bulk_load_http_test, query_bulk_load_request)
     }
 
     drop_app(NOT_BULK_LOAD);
+}
+
+TEST_F(meta_bulk_load_http_test, update_scenario_test)
+{
+    struct update_scenario_test
+    {
+        std::string request_json;
+        http_status_code expected_code;
+        std::string expected_response_json;
+    } tests[] = {{R"({"app":"test_bulk_load","scenario":"normal"})",
+                  http_status_code::bad_request,
+                  "invalid request structure"},
+                 {R"({"app_name":"test_bulk_load","scenario":"wrong"})",
+                  http_status_code::bad_request,
+                  "scenario should ony be 'normal' or 'bulk_load'"},
+                 {R"({"app_name":"test_bulk_load","scenario":"bulk_load"})",
+                  http_status_code::ok,
+                  R"({"error":"ERR_OK","hint_message":""})"}};
+
+    for (const auto &test : tests) {
+        http_response resp = test_update_scenario(test.request_json);
+        ASSERT_EQ(resp.status_code, test.expected_code);
+        std::string expected_json = test.expected_response_json;
+        if (test.expected_code == http_status_code::ok) {
+            expected_json += "\n";
+        }
+        ASSERT_EQ(resp.body, expected_json);
+    }
 }
 
 } // namespace replication

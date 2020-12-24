@@ -15,6 +15,13 @@ namespace replication {
 NON_MEMBER_JSON_SERIALIZATION(
     start_bulk_load_request, app_name, cluster_name, file_provider_type, remote_root_path)
 
+struct usage_scenario_info
+{
+    std::string app_name;
+    std::string scenario; // normal or bulk_load
+    DEFINE_JSON_SERIALIZATION(app_name, scenario)
+};
+
 class meta_service;
 class meta_http_service : public http_service
 {
@@ -76,6 +83,13 @@ public:
                                    std::placeholders::_1,
                                    std::placeholders::_2),
                          "ip:port/meta/query_bulk_load?name=temp");
+        // request body should be usage_scenario_info
+        register_handler("app/usage_scenario",
+                         std::bind(&meta_http_service::update_scenario_handler,
+                                   this,
+                                   std::placeholders::_1,
+                                   std::placeholders::_2),
+                         "ip:port/meta/app/usage_scenario");
     }
 
     std::string path() const override { return "meta"; }
@@ -89,10 +103,16 @@ public:
     void query_duplication_handler(const http_request &req, http_response &resp);
     void start_bulk_load_handler(const http_request &req, http_response &resp);
     void query_bulk_load_handler(const http_request &req, http_response &resp);
+    void update_scenario_handler(const http_request &req, http_response &resp);
 
 private:
     // set redirect location if current server is not primary
     bool redirect_if_not_primary(const http_request &req, http_response &resp);
+
+    void update_app_env(const std::string &app_name,
+                        const std::vector<std::string> &keys,
+                        const std::vector<std::string> &values,
+                        http_response &resp);
 
     meta_service *_service;
 };

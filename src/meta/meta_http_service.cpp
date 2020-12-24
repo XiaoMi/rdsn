@@ -6,6 +6,7 @@
 
 #include <dsn/c/api_layer1.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
+#include <dsn/dist/replication/replica_envs.h>
 #include <dsn/dist/replication/replication_types.h>
 #include <dsn/dist/replication/duplication_common.h>
 #include <dsn/utility/config_api.h>
@@ -699,6 +700,39 @@ void meta_http_service::query_bulk_load_handler(const http_request &req, http_re
     resp.status_code = http_status_code::ok;
 }
 
+void meta_http_service::update_scenario_handler(const http_request &req, http_response &resp)
+{
+    if (!redirect_if_not_primary(req, resp)) {
+        return;
+    }
+
+    // validate paramters
+    usage_scenario_info info;
+    bool ret = json::json_forwarder<usage_scenario_info>::decode(req.body, info);
+    if (!ret) {
+        resp.body = "invalid request structure";
+        resp.status_code = http_status_code::bad_request;
+        return;
+    }
+    if (info.app_name.empty()) {
+        resp.body = "app_name should not be empty";
+        resp.status_code = http_status_code::bad_request;
+        return;
+    }
+    if (info.scenario.empty() || (info.scenario != "bulk_load" && info.scenario != "normal")) {
+        resp.body = "scenario should ony be 'normal' or 'bulk_load'";
+        resp.status_code = http_status_code::bad_request;
+        return;
+    }
+
+    // create configuration_update_app_env_request
+    std::vector<std::string> keys;
+    std::vector<std::string> values;
+    keys.emplace_back(replica_envs::ROCKSDB_USAGE_SCENARIO);
+    values.emplace_back(info.scenario);
+    update_app_env(info.app_name, keys, values, resp);
+}
+
 bool meta_http_service::redirect_if_not_primary(const http_request &req, http_response &resp)
 {
 #ifdef DSN_MOCK_TEST
@@ -720,6 +754,32 @@ bool meta_http_service::redirect_if_not_primary(const http_request &req, http_re
                         resp.location.end()); // remove final '\0'
     resp.status_code = http_status_code::temporary_redirect;
     return false;
+}
+
+void meta_http_service::update_app_env(const std::string &app_name,
+                                       const std::vector<std::string> &keys,
+                                       const std::vector<std::string> &values,
+                                       http_response &resp)
+{
+    configuration_update_app_env_request request;
+    request.app_name = app_name;
+    request.op = app_env_operation::APP_ENV_OP_SET;
+    request.__set_keys(keys);
+    request.__set_values(values);
+
+    auto rpc_req = dsn::make_unique<configuration_update_app_env_request>(request);
+    update_app_env_rpc rpc(std::move(rpc_req), LPC_META_STATE_NORMAL);
+    _service->_state->set_app_envs(rpc);
+
+    auto rpc_resp = rpc.response();
+    // output as json format
+    dsn::utils::table_printer tp;
+    tp.add_row_name_and_data("error", rpc_resp.err.to_string());
+    tp.add_row_name_and_data("hint_message", rpc_resp.hint_message);
+    std::ostringstream out;
+    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    resp.body = out.str();
+    resp.status_code = http_status_code::ok;
 }
 
 } // namespace replication
