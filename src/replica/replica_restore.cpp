@@ -118,6 +118,9 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                 uint64_t f_size = 0;
                 error_code download_err = _stub->_block_service_manager.download_file(
                     remote_chkpt_dir, local_chkpt_dir, f_meta.name, fs, f_size);
+                if (download_err == ERR_DOWNLOADED) {
+                    f_size = f_meta.size;
+                }
                 const std::string file_name =
                     utils::filesystem::path_combine(local_chkpt_dir, f_meta.name);
                 if (download_err == ERR_OK &&
@@ -167,7 +170,7 @@ error_code replica::get_backup_metadata(block_filesystem *fs,
                                                     cold_backup_constant::BACKUP_METADATA,
                                                     fs,
                                                     download_file_size);
-    if (err != ERR_OK) {
+    if (err != ERR_OK && err != ERR_DOWNLOADED) {
         derror_replica("download backup_metadata failed, file({}), reason({})",
                        utils::filesystem::path_combine(remote_chkpt_dir,
                                                        cold_backup_constant::BACKUP_METADATA),
