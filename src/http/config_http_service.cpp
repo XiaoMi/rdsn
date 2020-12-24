@@ -40,7 +40,7 @@ void update_config(const http_request &req, http_response &resp)
 
 void list_all_configs(const http_request &req, http_response &resp)
 {
-    if (req.query_args.size() != 0) {
+    if (!req.query_args.empty()) {
         resp.status_code = http_status_code::bad_request;
         return;
     }
