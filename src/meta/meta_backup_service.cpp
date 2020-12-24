@@ -423,7 +423,7 @@ void policy_context::start_backup_partition_unlocked(gpid pid)
         _backup_service->get_state()->lock_read(l);
         const app_state *app = _backup_service->get_state()->get_app(pid.get_app_id()).get();
 
-        if (app == nullptr || app->status == app_status::AS_DROPPED) {
+        if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
             // skip backup app this time
             dwarn_f("{}: app {} is not available, just ignore this app.",
                     _backup_sig,
