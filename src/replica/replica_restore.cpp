@@ -118,14 +118,15 @@ error_code replica::download_checkpoint(const configuration_restore_request &req
                 uint64_t f_size = 0;
                 error_code download_err = _stub->_block_service_manager.download_file(
                     remote_chkpt_dir, local_chkpt_dir, f_meta.name, fs, f_size);
-                if (download_err == ERR_PATH_ALREADY_EXIST) {
-                    f_size = f_meta.size;
-                }
                 const std::string file_name =
                     utils::filesystem::path_combine(local_chkpt_dir, f_meta.name);
-                if (download_err == ERR_OK &&
-                    !utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
-                    download_err = ERR_CORRUPTION;
+                if (download_err == ERR_OK || download_err == ERR_PATH_ALREADY_EXIST) {
+                    if (!utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
+                        download_err = ERR_CORRUPTION;
+                    } else if (download_err == ERR_PATH_ALREADY_EXIST) {
+                        download_err = ERR_OK;
+                        f_size = f_meta.size;
+                    }
                 }
 
                 if (download_err != ERR_OK) {
