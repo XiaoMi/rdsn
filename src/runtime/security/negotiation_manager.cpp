@@ -24,6 +24,7 @@
 #include <dsn/tool-api/zlocks.h>
 #include <dsn/dist/failure_detector/fd.code.definition.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/http/http_server.h>
 
 namespace dsn {
 namespace security {
@@ -38,7 +39,8 @@ inline bool is_negotiation_message(dsn::task_code code)
 // in_white_list returns if the rpc code can be allowed to bypass negotiation.
 inline bool in_white_list(task_code code)
 {
-    return is_negotiation_message(code) || fd::is_failure_detector_message(code);
+    return is_negotiation_message(code) || fd::is_failure_detector_message(code) ||
+           is_http_message(code);
 }
 
 /*static*/ negotiation_map negotiation_manager::_negotiations;
