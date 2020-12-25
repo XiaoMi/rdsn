@@ -80,9 +80,9 @@ class test_checker;
 
 enum manual_compaction_status
 {
-    FINISH = 0,
-    RUNNING,
-    QUEUE
+    kFinish = 0,
+    kRunning,
+    kQueue
 };
 const char *manual_compaction_status_to_string(manual_compaction_status status);
 
@@ -409,6 +409,8 @@ private:
     void init_table_level_latency_counters();
 
     void on_detect_hotkey(const detect_hotkey_request &req, /*out*/ detect_hotkey_response &resp);
+
+    uint32_t query_data_version() const;
 
 private:
     friend class ::dsn::replication::test::test_checker;

@@ -2808,6 +2808,26 @@ void replica_stub::on_detect_hotkey(detect_hotkey_rpc rpc)
     }
 }
 
+error_code replica_stub::query_app_data_version(int32_t app_id, /*out*/ uint32_t &data_version)
+{
+    replica_ptr rep = nullptr;
+    zauto_read_lock l(_replicas_lock);
+    for (const auto &kv : _replicas) {
+        if (kv.first.get_app_id() == app_id) {
+            rep = kv.second;
+            break;
+        }
+    }
+    if (rep == nullptr) {
+        dwarn_f("app({}) is not found", app_id);
+        return ERR_OBJECT_NOT_FOUND;
+    }
+
+    data_version = rep->query_data_version();
+    ddebug_f("app({}) data_version={}", app_id, data_version);
+    return ERR_OK;
+}
+
 void replica_stub::query_app_compact_status(
     int32_t app_id, std::unordered_map<gpid, manual_compaction_status> &status)
 {

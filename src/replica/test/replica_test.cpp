@@ -83,6 +83,40 @@ TEST_F(replica_test, backup_request_qps)
     ASSERT_GT(get_table_level_backup_request_qps(), 0);
 }
 
+TEST_F(replica_test, query_data_version_test)
+{
+    replica_http_service http_svc(stub.get());
+    struct query_data_version_test
+    {
+        std::string app_id;
+        http_status_code expected_code;
+        std::string expected_response_json;
+
+    } tests[] = {{"", http_status_code::bad_request, "app_id should not be empty"},
+                 {"wrong", http_status_code::bad_request, "invalid app_id=wrong"},
+                 {"2",
+                  http_status_code::ok,
+                  R"({"error":"ERR_OK","data_version":"1"})"},
+                 {"4",
+                  http_status_code::ok,
+                  R"({"error":"ERR_OBJECT_NOT_FOUND","data_version":"0"})"}};
+
+    for (const auto &test : tests) {
+        http_request req;
+        http_response resp;
+        if (!test.app_id.empty()) {
+            req.query_args["app_id"] = test.app_id;
+        }
+        http_svc.query_app_data_version_handler(req, resp);
+        ASSERT_EQ(resp.status_code, test.expected_code);
+        std::string expected_json = test.expected_response_json;
+        if (test.expected_code == http_status_code::ok) {
+            expected_json += "\n";
+        }
+        ASSERT_EQ(resp.body, expected_json);
+    }
+}
+
 TEST_F(replica_test, query_compaction_test)
 {
     replica_http_service http_svc(stub.get());

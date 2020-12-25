@@ -446,11 +446,11 @@ std::string replica::query_compact_state() const
 const char *manual_compaction_status_to_string(manual_compaction_status status)
 {
     switch (status) {
-    case FINISH:
+    case kFinish:
         return "CompactionFinish";
-    case RUNNING:
+    case kRunning:
         return "CompactionRunning";
-    case QUEUE:
+    case kQueue:
         return "CompactionQueue";
     default:
         dassert(false, "");
@@ -471,11 +471,11 @@ manual_compaction_status replica::get_compact_status() const
     // Case4. last finish at [-], recent enqueue at [timestamp], recent start at [timestamp]
     // - partition is running manual compaction
     if (compact_state.find("recent start at") != std::string::npos) {
-        return RUNNING;
+        return kRunning;
     } else if (compact_state.find("recent enqueue at") != std::string::npos) {
-        return QUEUE;
+        return kQueue;
     } else {
-        return FINISH;
+        return kFinish;
     }
 }
 
@@ -508,6 +508,12 @@ void replica::init_table_level_latency_counters()
 void replica::on_detect_hotkey(const detect_hotkey_request &req, detect_hotkey_response &resp)
 {
     _app->on_detect_hotkey(req, resp);
+}
+
+uint32_t replica::query_data_version() const
+{
+    dassert_replica(_app != nullptr, "");
+    return _app->query_data_version();
 }
 
 } // namespace replication
