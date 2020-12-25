@@ -91,7 +91,6 @@ TEST_F(replica_test, query_data_version_test)
         std::string app_id;
         http_status_code expected_code;
         std::string expected_response_json;
-
     } tests[] = {{"", http_status_code::bad_request, "app_id should not be empty"},
                  {"wrong", http_status_code::bad_request, "invalid app_id=wrong"},
                  {"2",
@@ -100,7 +99,6 @@ TEST_F(replica_test, query_data_version_test)
                  {"4",
                   http_status_code::ok,
                   R"({"error":"ERR_OBJECT_NOT_FOUND","data_version":"0"})"}};
-
     for (const auto &test : tests) {
         http_request req;
         http_response resp;
