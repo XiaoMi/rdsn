@@ -401,6 +401,7 @@ private:
     void update_restore_progress(uint64_t f_size);
 
     // Used for remote command
+    // TODO: remove this interface and only expose the http interface
     std::string query_compact_state() const;
 
     // Used for http interface
