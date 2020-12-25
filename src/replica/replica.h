@@ -402,6 +402,7 @@ private:
 
     // Used for remote command
     // TODO: remove this interface and only expose the http interface
+    // now this remote commend will be used by `scripts/pegasus_manual_compact.sh`
     std::string query_compact_state() const;
 
     // Used for http interface

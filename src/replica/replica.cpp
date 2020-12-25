@@ -453,7 +453,7 @@ const char *manual_compaction_status_to_string(manual_compaction_status status)
     case kQueue:
         return "CompactionQueue";
     default:
-        dassert(false, "");
+        dassert(false, "invalid status({})", status);
         __builtin_unreachable();
     }
 }
