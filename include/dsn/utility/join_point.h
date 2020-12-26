@@ -89,6 +89,7 @@ public:
 
     explicit join_point(const char *name) : BaseType(name) {}
 
+    // Execute the hooks sequentially.
     R execute(Args... args, R default_return_value)
     {
         R ret = default_return_value;
@@ -110,6 +111,7 @@ public:
 
     explicit join_point(const char *name) : BaseType(name) {}
 
+    // Execute the hooks sequentially.
     void execute(Args... args)
     {
         for (auto &func : BaseType::_advice_entries) {
