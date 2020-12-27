@@ -45,7 +45,7 @@ TEST_F(join_point_test, add_pure_functions)
     jp.put_native(advice1);
     jp.execute();
 
-    ASSERT_EQ(jp.name(), "test");
+    ASSERT_STREQ(jp.name(), "test");
 }
 
 TEST_F(join_point_test, adding_order)
