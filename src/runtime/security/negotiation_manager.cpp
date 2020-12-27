@@ -102,14 +102,25 @@ void negotiation_manager::on_rpc_disconnected(rpc_session *session)
     }
 }
 
+// `on_rpc_recv_msg` and `on_rpc_recv_msg` will be called by both server and client session
+// For server sessioin, it can receive message if mandatory_auth is false
+// Because mandatory_auth is a server-side config only, so it doesn't have the same effect for
+// client session
 bool negotiation_manager::on_rpc_recv_msg(message_ex *msg)
 {
-    return !FLAGS_mandatory_auth || in_white_list(msg->rpc_code()) ||
-           msg->io_session->is_negotiation_succeed();
+    if (!msg->io_session->is_client() && !FLAGS_mandatory_auth) {
+        return true;
+    }
+
+    return in_white_list(msg->rpc_code()) || msg->io_session->is_negotiation_succeed();
 }
 
 bool negotiation_manager::on_rpc_send_msg(message_ex *msg)
 {
+    if (!msg->io_session->is_client() && !FLAGS_mandatory_auth) {
+        return true;
+    }
+
     // if try_pend_message return true, it means the msg is pended to the resend message queue
     return in_white_list(msg->rpc_code()) || !msg->io_session->try_pend_message(msg);
 }
