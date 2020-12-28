@@ -289,8 +289,9 @@ private:
         return 0;
     }
 
-    void query_app_data_version(int32_t app_id,
-                                /*out*/ std::unordered_map<int32_t, uint32_t> &version_map);
+    void query_app_data_version(
+        int32_t app_id,
+        /*pidx => data_version*/ std::unordered_map<int32_t, uint32_t> &version_map);
 
 #ifdef DSN_ENABLE_GPERF
     // Try to release tcmalloc memory back to operating system

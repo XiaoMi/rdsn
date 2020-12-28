@@ -2808,8 +2808,8 @@ void replica_stub::on_detect_hotkey(detect_hotkey_rpc rpc)
     }
 }
 
-void replica_stub::query_app_data_version(int32_t app_id,
-                                          std::unordered_map<int32_t, uint32_t> &version_map)
+void replica_stub::query_app_data_version(
+    int32_t app_id, /*pidx => data_version*/ std::unordered_map<int32_t, uint32_t> &version_map)
 {
     zauto_read_lock l(_replicas_lock);
     for (const auto &kv : _replicas) {
@@ -2818,7 +2818,6 @@ void replica_stub::query_app_data_version(int32_t app_id,
             if (rep != nullptr) {
                 uint32_t data_version = rep->query_data_version();
                 version_map[kv.first.get_partition_index()] = data_version;
-                ddebug_f("partition[{}] data_version = {}", kv.first, data_version);
             }
         }
     }
