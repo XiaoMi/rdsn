@@ -66,7 +66,7 @@ struct hash<flag_tag>
 #define DSN_DEFINE_validator(name, validator)                                                      \
     static auto FLAGS_VALIDATOR_FN_##name = validator;                                             \
     static const dsn::flag_validator FLAGS_VALIDATOR_##name(                                       \
-        #name, []() { return FLAGS_VALIDATOR_FN_##name(FLAGS_##name); })
+        #name, []() -> bool { return FLAGS_VALIDATOR_FN_##name(FLAGS_##name); })
 
 #define DSN_TAG_VARIABLE(name, tag)                                                                \
     COMPILE_ASSERT(sizeof(decltype(FLAGS_##name)), exist_##name##_##tag);                          \
