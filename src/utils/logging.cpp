@@ -45,9 +45,7 @@ using namespace tools;
 DSN_REGISTER_COMPONENT_PROVIDER(screen_logger, "dsn::tools::screen_logger");
 DSN_REGISTER_COMPONENT_PROVIDER(simple_logger, "dsn::tools::simple_logger");
 
-std::function<std::string()> log_prefixed_message_func = []() -> std::string {
-    return ": ";
-};
+std::function<std::string()> log_prefixed_message_func = []() -> std::string { return ": "; };
 
 void set_log_prefixed_message_func(std::function<std::string()> func)
 {
