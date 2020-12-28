@@ -28,6 +28,16 @@ enum value_type
     FV_MAX_INDEX = 6,
 };
 
+ENUM_BEGIN(value_type, FV_MAX_INDEX)
+ENUM_REG(FV_BOOL)
+ENUM_REG(FV_INT32)
+ENUM_REG(FV_UINT32)
+ENUM_REG(FV_INT64)
+ENUM_REG(FV_UINT64)
+ENUM_REG(FV_DOUBLE)
+ENUM_REG(FV_STRING)
+ENUM_END(value_type)
+
 using validator_fn = std::function<void()>;
 
 class flag_data
@@ -96,13 +106,99 @@ public:
     void add_tag(const flag_tag &tag) { _tags.insert(tag); }
     bool has_tag(const flag_tag &tag) const { return _tags.find(tag) != _tags.end(); }
 
-    std::string description() const { return _desc; }
+    std::string to_json() const
+    {
+        utils::table_printer tp;
+        tp.add_row_name_and_data("name", _name);
+        tp.add_row_name_and_data("section", _section);
+        tp.add_row_name_and_data("type", _type);
+        tp.add_row_name_and_data("tags", tags_str());
+        tp.add_row_name_and_data("description", _desc);
+        switch (_type) {
+        case FV_BOOL:
+            tp.add_row_name_and_data("value", value<bool>());
+            break;
+        case FV_INT32:
+            tp.add_row_name_and_data("value", value<int32_t>());
+            break;
+        case FV_UINT32:
+            tp.add_row_name_and_data("value", value<uint32_t>());
+            break;
+        case FV_INT64:
+            tp.add_row_name_and_data("value", value<int64_t>());
+            break;
+        case FV_UINT64:
+            tp.add_row_name_and_data("value", value<uint64_t>());
+            break;
+        case FV_DOUBLE:
+            tp.add_row_name_and_data("value", value<double>());
+            break;
+        case FV_STRING:
+            tp.add_row_name_and_data("value", value<const char *>());
+            break;
+        }
+        /**
+        tp.add_title("name");
+        tp.add_column("section");
+        tp.add_column("type");
+        tp.add_column("tags");
+        tp.add_column("description");
+        tp.add_column("value");
+
+        tp.add_row(_name);
+        tp.append_data(_section);
+        tp.append_data(enum_to_string(_type));
+        tp.append_data(tags_str());
+        tp.append_data(_desc);
+        switch (_type) {
+            case FV_BOOL:
+                tp.append_data(value<bool>());
+                break;
+            case FV_INT32:
+                tp.append_data(value<int32_t>());
+                break;
+            case FV_UINT32:
+                tp.append_data(value<uint32_t>());
+                break;
+            case FV_INT64:
+                tp.append_data(value<int64_t>());
+                break;
+            case FV_UINT64:
+                tp.append_data(value<uint64_t>());
+                break;
+            case FV_DOUBLE:
+                tp.append_data(value<double>());
+                break;
+            case FV_STRING:
+                tp.append_data(value<const char *>());
+                break;
+            }
+            */
+
+        std::ostringstream out;
+        tp.output(out, utils::table_printer::output_format::kJsonCompact);
+        return out.str();
+    }
 
 private:
     template <typename T>
-    T &value()
+    T &value() const
     {
         return *reinterpret_cast<T *>(_val);
+    }
+
+    std::string tags_str() const
+    {
+        std::string tags_str;
+        for (const auto &tag : _tags) {
+            tags_str += enum_to_string(tag);
+            tags_str += ",";
+        }
+        if (!tags_str.empty()) {
+            tags_str.pop_back();
+        }
+
+        return tags_str;
     }
 
 private:
@@ -167,7 +263,7 @@ public:
     {
         utils::table_printer tp;
         for (const auto &flag : _flags) {
-            tp.add_row_name_and_data(flag.first, flag.second.description());
+            tp.add_row_name_and_data(flag.first, flag.second.to_json());
         }
 
         std::ostringstream out;
