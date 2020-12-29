@@ -109,4 +109,7 @@ extern error_s update_flag(const std::string &name, const std::string &val);
 
 // determine if the tag is exist for the specified flag
 extern bool has_tag(const std::string &name, const flag_tag &tag);
+
+// get the json string of a specified flag
+extern error_with<std::string> get_flag_str(const std::string &flag_name);
 } // namespace dsn
