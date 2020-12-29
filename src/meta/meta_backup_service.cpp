@@ -365,37 +365,31 @@ bool policy_context::update_partition_progress_unlocked(gpid pid,
 {
     int32_t &local_progress = _progress.partition_progress[pid];
     if (local_progress == cold_backup_constant::PROGRESS_FINISHED) {
-        dwarn_f("{}: partition({}.{}) backup is finished, ignore the backup response from {} ",
+        dwarn_f("{}: backup of partition {} has been finished, ignore the backup response from {} ",
                 _backup_sig,
-                pid.get_app_id(),
-                pid.get_partition_index(),
+                pid.to_string(),
                 source.to_string());
         return true;
     }
 
     if (progress < local_progress) {
         dwarn_f("{}: local backup progress {} is larger than progress {} from server {} for "
-                "partition({}.{}), perhaps it's primary has changed",
+                "partition {}, perhaps it's primary has changed",
                 _backup_sig,
                 local_progress,
                 progress,
                 source.to_string(),
-                pid.get_app_id(),
-                pid.get_partition_index());
+                pid.to_string());
     }
 
     local_progress = progress;
-    dinfo_f("{}: update partition({}.{})'s progress to {}.",
-            _backup_sig,
-            pid.get_app_id(),
-            pid.get_partition_index(),
-            progress);
+    dinfo_f(
+        "{}: update partition {} backup progress to {}.", _backup_sig, pid.to_string(), progress);
     if (local_progress == cold_backup_constant::PROGRESS_FINISHED) {
-        ddebug_f("{}: finish backup for partition({}.{}), the app has {} unfinished backup "
+        ddebug_f("{}: finish backup for partition {}, the app has {} unfinished backup "
                  "partition now.",
                  _backup_sig,
-                 pid.get_app_id(),
-                 pid.get_partition_index(),
+                 pid.to_string(),
                  _progress.unfinished_partitions_per_app[pid.get_app_id()]);
 
         // update the progress-chain: partition => app => current_backup_instance
@@ -478,6 +472,10 @@ void policy_context::on_backup_reply(error_code err,
                                      gpid pid,
                                      const rpc_address &primary)
 {
+    ddebug_f("{}: receive backup response for partition {} from server {}.",
+             _backup_sig,
+             pid.to_string(),
+             primary.to_string());
     if (err == dsn::ERR_OK && response.err == dsn::ERR_OK) {
         dassert(response.policy_name == _policy.policy_name,
                 "policy name(%s vs %s) don't match, pid(%d.%d), replica_server(%s)",
