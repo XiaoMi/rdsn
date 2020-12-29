@@ -45,7 +45,7 @@ public:
             return error_s::make(ERR_INVALID_PARAMETERS, fmt::format("{} is invalid", val));       \
         }                                                                                          \
         value<type>() = tmpval_##type_enum;                                                        \
-        if (!_validator()) {                                                                       \
+        if (_validator && !_validator()) {                                                         \
             value<type>() = old_val;                                                               \
             return error_s::make(ERR_INVALID_PARAMETERS, "value validation failed");               \
         }                                                                                          \
