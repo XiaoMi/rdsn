@@ -293,9 +293,8 @@ void policy_context::write_backup_info_unlocked(const backup_info &b_info,
 
     dist::block_service::create_file_request create_file_req;
     create_file_req.ignore_metadata = true;
-    create_file_req.file_name = utils::filesystem::path_combine(
-        cold_backup::get_backup_path(_backup_service->backup_root(), b_info.backup_id),
-        cold_backup_constant::BACKUP_INFO);
+    create_file_req.file_name =
+        cold_backup::get_backup_info_file(_backup_service->backup_root(), b_info.backup_id);
     // here we can use synchronous way coz create_file with ignored metadata is very fast
     _block_service
         ->create_file(create_file_req,
