@@ -1,0 +1,2 @@
+ccache /bin/ar qc libdsn_replication_common.a  CMakeFiles/dsn_replication_common.dir/backup_utils.cpp.o CMakeFiles/dsn_replication_common.dir/duplication_common.cpp.o CMakeFiles/dsn_replication_common.dir/fs_manager.cpp.o CMakeFiles/dsn_replication_common.dir/replication_common.cpp.o CMakeFiles/dsn_replication_common.dir/replication_types.cpp.o
+ccache /bin/ranlib libdsn_replication_common.a

@@ -1,0 +1,2 @@
+ccache /bin/ar qc libdsn.replication.zookeeper_provider.a  CMakeFiles/dsn.replication.zookeeper_provider.dir/distributed_lock_service_zookeeper.cpp.o CMakeFiles/dsn.replication.zookeeper_provider.dir/lock_struct.cpp.o CMakeFiles/dsn.replication.zookeeper_provider.dir/zookeeper_error.cpp.o CMakeFiles/dsn.replication.zookeeper_provider.dir/zookeeper_session.cpp.o CMakeFiles/dsn.replication.zookeeper_provider.dir/zookeeper_session_mgr.cpp.o
+ccache /bin/ranlib libdsn.replication.zookeeper_provider.a

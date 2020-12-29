@@ -1,0 +1,2 @@
+ccache /bin/ar qc libdsn_client.a  CMakeFiles/dsn_client.dir/partition_resolver.cpp.o CMakeFiles/dsn_client.dir/partition_resolver_manager.cpp.o CMakeFiles/dsn_client.dir/partition_resolver_simple.cpp.o CMakeFiles/dsn_client.dir/replication_ddl_client.cpp.o
+ccache /bin/ranlib libdsn_client.a
