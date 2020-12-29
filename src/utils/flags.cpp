@@ -108,34 +108,25 @@ public:
 
     std::string to_json() const
     {
+#define TABLE_PRINTER_ADD_VALUE(type, type_enum)                                                   \
+    case type_enum:                                                                                \
+        tp.add_row_name_and_data("value", value<type>());                                          \
+        break;
+
         utils::table_printer tp;
         tp.add_row_name_and_data("name", _name);
         tp.add_row_name_and_data("section", _section);
-        tp.add_row_name_and_data("type", _type);
+        tp.add_row_name_and_data("type", enum_to_string(_type));
         tp.add_row_name_and_data("tags", tags_str());
         tp.add_row_name_and_data("description", _desc);
         switch (_type) {
-        case FV_BOOL:
-            tp.add_row_name_and_data("value", value<bool>());
-            break;
-        case FV_INT32:
-            tp.add_row_name_and_data("value", value<int32_t>());
-            break;
-        case FV_UINT32:
-            tp.add_row_name_and_data("value", value<uint32_t>());
-            break;
-        case FV_INT64:
-            tp.add_row_name_and_data("value", value<int64_t>());
-            break;
-        case FV_UINT64:
-            tp.add_row_name_and_data("value", value<uint64_t>());
-            break;
-        case FV_DOUBLE:
-            tp.add_row_name_and_data("value", value<double>());
-            break;
-        case FV_STRING:
-            tp.add_row_name_and_data("value", value<const char *>());
-            break;
+            TABLE_PRINTER_ADD_VALUE(bool, FV_BOOL);
+            TABLE_PRINTER_ADD_VALUE(int32_t, FV_INT32);
+            TABLE_PRINTER_ADD_VALUE(uint32_t, FV_UINT32);
+            TABLE_PRINTER_ADD_VALUE(int64_t, FV_INT64);
+            TABLE_PRINTER_ADD_VALUE(uint64_t, FV_UINT64);
+            TABLE_PRINTER_ADD_VALUE(double, FV_DOUBLE);
+            TABLE_PRINTER_ADD_VALUE(const char *, FV_STRING);
         }
 
         std::ostringstream out;
