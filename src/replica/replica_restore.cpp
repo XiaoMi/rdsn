@@ -218,10 +218,7 @@ void replica::clear_restore_useless_files(const std::string &local_chkpt_dir,
 dsn::error_code replica::find_valid_checkpoint(const configuration_restore_request &req,
                                                std::string &remote_chkpt_dir)
 {
-    ddebug_f("{}: start to find valid checkpoint of app {}, backup_id {}",
-             name(),
-             req.app_id,
-             req.time_stamp);
+    ddebug_f("{}: start to find valid checkpoint of backup_id {}", name(), req.time_stamp);
 
     // we should base on old gpid to combine the path on cold backup media
     dsn::gpid old_gpid;
