@@ -1,11 +1,28 @@
-#include <gtest/gtest.h>
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 #include <dsn/service_api_cpp.h>
 #include <dsn/utils/time_utils.h>
+#include <gtest/gtest.h>
 
 #include "meta/meta_backup_service.h"
 #include "meta/meta_service.h"
-#include "meta_service_test_app.h"
 #include "meta/test/misc/misc.h"
+#include "meta_service_test_app.h"
 
 namespace dsn {
 namespace replication {
@@ -650,9 +667,8 @@ void meta_service_test_app::backup_service_test()
         });
     backup_service *backup_svc = meta_svc->_backup_handler.get();
 
-    // first testing start_create_policy_meta_root()
+    // test start_create_policy_meta_root()
     {
-        std::cout << "testing start_create_policy_meta_root()..." << std::endl;
         bool flag = false;
         dsn::task_ptr task_test =
             tasking::create_task(LPC_DEFAULT_CALLBACK, nullptr, [&flag]() { flag = true; });
@@ -664,10 +680,8 @@ void meta_service_test_app::backup_service_test()
         ASSERT_TRUE(flag);
     }
 
-    // testing add_backup_policy()
+    // test add_backup_policy()
     {
-        std::cout << "add_backup_policy()..." << std::endl;
-        // create a fake add_backup_policy_request
         configuration_add_backup_policy_request req;
         req.backup_provider_type = std::string("local_service");
         req.policy_name = test_policy_name;
@@ -684,7 +698,10 @@ void meta_service_test_app::backup_service_test()
                                    &backup_service::add_backup_policy,
                                    req);
             fake_wait_rpc(r, resp);
-            ASSERT_TRUE(resp.err == ERR_INVALID_PARAMETERS);
+            ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
+            // hint message contains the first invalid app id
+            std::string hint_message = "invalid app 1";
+            ASSERT_EQ(hint_message, resp.hint_message);
         }
 
         // case2: backup policy interval time < checkpoint reserve time
@@ -705,8 +722,8 @@ void meta_service_test_app::backup_service_test()
             std::string hint_message = fmt::format(
                 "backup interval must be greater than cold_backup_checkpoint_reserve_minutes={}",
                 meta_svc->get_options().cold_backup_checkpoint_reserve_minutes);
-            ASSERT_TRUE(resp.err == ERR_INVALID_PARAMETERS);
-            ASSERT_TRUE(resp.hint_message == hint_message);
+            ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
+            ASSERT_EQ(hint_message, resp.hint_message);
             req.backup_interval_seconds = old_backup_interval_seconds;
         }
 
@@ -722,7 +739,10 @@ void meta_service_test_app::backup_service_test()
                                    &backup_service::add_backup_policy,
                                    req);
             fake_wait_rpc(r, resp);
-            ASSERT_TRUE(resp.err == ERR_INVALID_PARAMETERS);
+            ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
+            // hint message contains the first invalid app id
+            std::string hint_message = "invalid app 2";
+            ASSERT_EQ(hint_message, resp.hint_message);
         }
 
         // case4: backup policy only contains valid app_id
@@ -738,10 +758,10 @@ void meta_service_test_app::backup_service_test()
                                    &backup_service::add_backup_policy,
                                    req);
             fake_wait_rpc(r, resp);
-            ASSERT_TRUE(resp.err == ERR_OK);
+            ASSERT_EQ(ERR_OK, resp.err);
             mock_policy *ptr =
                 static_cast<mock_policy *>(backup_svc->_policy_states.at(test_policy_name).get());
-            ASSERT_TRUE(ptr->counter_start() == 1);
+            ASSERT_EQ(1, ptr->counter_start());
         }
     }
 
