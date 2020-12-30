@@ -95,10 +95,8 @@ TEST_F(replica_test, query_data_version_test)
                  {"wrong", http_status_code::bad_request, "invalid app_id=wrong"},
                  {"2",
                   http_status_code::ok,
-                  R"({"error":"ERR_OK","data_version":"1"})"},
-                 {"4",
-                  http_status_code::ok,
-                  R"({"error":"ERR_OBJECT_NOT_FOUND","data_version":"0"})"}};
+                  R"({"1":{"pidx":"1","data_version":"1"}})"},
+                 {"4", http_status_code::not_found, "app_id=4 not found"}};
     for (const auto &test : tests) {
         http_request req;
         http_response resp;
@@ -106,6 +104,39 @@ TEST_F(replica_test, query_data_version_test)
             req.query_args["app_id"] = test.app_id;
         }
         http_svc.query_app_data_version_handler(req, resp);
+        ASSERT_EQ(resp.status_code, test.expected_code);
+        std::string expected_json = test.expected_response_json;
+        if (test.expected_code == http_status_code::ok) {
+            expected_json += "\n";
+        }
+        ASSERT_EQ(resp.body, expected_json);
+    }
+}
+
+TEST_F(replica_test, query_compaction_test)
+{
+    replica_http_service http_svc(stub.get());
+    struct query_compaction_test
+    {
+        std::string app_id;
+        http_status_code expected_code;
+        std::string expected_response_json;
+    } tests[] = {
+        {"", http_status_code::bad_request, "app_id should not be empty"},
+        {"xxx", http_status_code::bad_request, "invalid app_id=xxx"},
+        {"2",
+         http_status_code::ok,
+         R"({"status":{"CompactionRunning":"0","CompactionQueue":"0","CompactionFinish":"1"}})"},
+        {"4",
+         http_status_code::ok,
+         R"({"status":{"CompactionRunning":"0","CompactionQueue":"0","CompactionFinish":"0"}})"}};
+    for (const auto &test : tests) {
+        http_request req;
+        http_response resp;
+        if (!test.app_id.empty()) {
+            req.query_args["app_id"] = test.app_id;
+        }
+        http_svc.query_compaction_handler(req, resp);
         ASSERT_EQ(resp.status_code, test.expected_code);
         std::string expected_json = test.expected_response_json;
         if (test.expected_code == http_status_code::ok) {

@@ -9,6 +9,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif ()
 
 include(ExternalProject)
+include(CheckCXXCompilerFlag)
 
 set(TP_DIR ${PROJECT_SOURCE_DIR})
 set(TP_OUTPUT ${PROJECT_SOURCE_DIR}/output)
@@ -128,11 +129,15 @@ ExternalProject_Add(thrift
         DEPENDS boost
         )
 
+check_cxx_compiler_flag(-Wformat-overflow COMPILER_SUPPORTS_FORMAT_OVERFLOW)
+if (COMPILER_SUPPORTS_FORMAT_OVERFLOW)
+    set(ZOOKEEPER_CFLAGS -Wno-error=format-overflow)
+endif ()
 ExternalProject_Add(zookeeper
         URL ${OSS_URL_PREFIX}/zookeeper-3.4.10.tar.gz
         http://ftp.jaist.ac.jp/pub/apache/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz
         URL_MD5 e4cf1b1593ca870bf1c7a75188f09678
-        CONFIGURE_COMMAND cd src/c && CFLAGS=-Wno-error=format ./configure --enable-static=yes --enable-shared=no --prefix=${TP_OUTPUT} --with-pic=yes
+        CONFIGURE_COMMAND cd src/c && CFLAGS=${ZOOKEEPER_CFLAGS} ./configure --enable-static=yes --enable-shared=no --prefix=${TP_OUTPUT} --with-pic=yes
         BUILD_COMMAND cd src/c && make
         INSTALL_COMMAND cd src/c && make install
         BUILD_IN_SOURCE 1
@@ -292,6 +297,8 @@ ExternalProject_Add(s2geometry
         DEPENDS googletest
         )
 
+option(ROCKSDB_PORTABLE "build a portable binary" OFF)
+
 ExternalProject_Add(rocksdb
         URL ${OSS_URL_PREFIX}/pegasus-rocksdb-6.6.4-compatible.zip
         https://github.com/XiaoMi/pegasus-rocksdb/archive/v6.6.4-compatible.zip
@@ -306,6 +313,7 @@ ExternalProject_Add(rocksdb
         -DUSE_RTTI=ON
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+        -DPORTABLE=${ROCKSDB_PORTABLE}
         )
 
 # kerberos
