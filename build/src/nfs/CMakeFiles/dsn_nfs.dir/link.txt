@@ -1,2 +1,0 @@
-ccache /bin/ar qc libdsn_nfs.a  CMakeFiles/dsn_nfs.dir/nfs_client_impl.cpp.o CMakeFiles/dsn_nfs.dir/nfs_node.cpp.o CMakeFiles/dsn_nfs.dir/nfs_node_impl.cpp.o CMakeFiles/dsn_nfs.dir/nfs_server_impl.cpp.o CMakeFiles/dsn_nfs.dir/nfs_types.cpp.o
-ccache /bin/ranlib libdsn_nfs.a

@@ -1,2 +1,0 @@
-ccache /bin/ar qc libdsn_dist_cmd.a  CMakeFiles/dsn_dist_cmd.dir/command_types.cpp.o CMakeFiles/dsn_dist_cmd.dir/remote_command.cpp.o
-ccache /bin/ranlib libdsn_dist_cmd.a
