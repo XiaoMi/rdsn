@@ -430,10 +430,9 @@ void policy_context::start_backup_partition_unlocked(gpid pid)
         partition_primary = app->partitions[pid.get_partition_index()].primary;
     }
     if (partition_primary.is_invalid()) {
-        dwarn_f("{}: partition({}.{}) doesn't have a primary now, retry to backup it later",
+        dwarn_f("{}: partition {} doesn't have a primary now, retry to backup it later",
                 _backup_sig,
-                pid.get_app_id(),
-                pid.get_partition_index());
+                pid.to_string());
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
                          &_tracker,
                          [this, pid]() {
@@ -459,10 +458,9 @@ void policy_context::start_backup_partition_unlocked(gpid pid)
         [this, pid, partition_primary](error_code err, backup_response &&response) {
             on_backup_reply(err, std::move(response), pid, partition_primary);
         });
-    ddebug_f("{}: send backup command to replica server, partition({}.{}), target_addr = {}",
+    ddebug_f("{}: send backup command to partition {}, target_addr = {}",
              _backup_sig,
-             pid.get_app_id(),
-             pid.get_partition_index(),
+             pid.to_string(),
              partition_primary.to_string());
     _backup_service->get_meta_service()->send_request(request, partition_primary, rpc_callback);
 }
@@ -501,11 +499,10 @@ void policy_context::on_backup_reply(error_code err,
                 pid.get_partition_index());
 
         if (response.backup_id < _cur_backup.backup_id) {
-            dwarn_f("{}: got a backup response of partition({}.{}) from server {}, whose backup id "
+            dwarn_f("{}: got a backup response of partition {} from server {}, whose backup id "
                     "{} is smaller than current backup id {},  maybe it is a stale message",
                     _backup_sig,
-                    pid.get_app_id(),
-                    pid.get_partition_index(),
+                    pid.to_string(),
                     primary.to_string(),
                     response.backup_id,
                     _cur_backup.backup_id);
@@ -518,14 +515,12 @@ void policy_context::on_backup_reply(error_code err,
             }
         }
     } else {
-        dwarn_f(
-            "{}: backup got error for partition({}.{}) from {}, rpc error {}, response error {}",
-            _backup_sig.c_str(),
-            pid.get_app_id(),
-            pid.get_partition_index(),
-            primary.to_string(),
-            err.to_string(),
-            response.err.to_string());
+        dwarn_f("{}: backup got error for partition {} from {}, rpc error {}, response error {}",
+                _backup_sig.c_str(),
+                pid.to_string(),
+                primary.to_string(),
+                err.to_string(),
+                response.err.to_string());
     }
 
     // retry to backup the partition.
