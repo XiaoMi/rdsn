@@ -24,6 +24,7 @@
 #include <dsn/tool-api/zlocks.h>
 #include <dsn/dist/failure_detector/fd.code.definition.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/http/http_server.h>
 
 namespace dsn {
 namespace security {
@@ -35,13 +36,15 @@ inline bool is_negotiation_message(dsn::task_code code)
     return code == RPC_NEGOTIATION || code == RPC_NEGOTIATION_ACK;
 }
 
+// in_white_list returns if the rpc code can be allowed to bypass negotiation.
 inline bool in_white_list(task_code code)
 {
-    return is_negotiation_message(code) || fd::is_failure_detector_message(code);
+    return is_negotiation_message(code) || fd::is_failure_detector_message(code) ||
+           is_http_message(code);
 }
 
-negotiation_map negotiation_manager::_negotiations;
-utils::rw_lock_nr negotiation_manager::_lock;
+/*static*/ negotiation_map negotiation_manager::_negotiations;
+/*static*/ utils::rw_lock_nr negotiation_manager::_lock;
 
 negotiation_manager::negotiation_manager() : serverlet("negotiation_manager") {}
 
@@ -64,7 +67,7 @@ void negotiation_manager::on_negotiation_request(negotiation_rpc rpc)
 
     std::shared_ptr<negotiation> nego = get_negotiation(rpc);
     if (nullptr != nego) {
-        server_negotiation *srv_negotiation = static_cast<server_negotiation *>(nego.get());
+        auto srv_negotiation = static_cast<server_negotiation *>(nego.get());
         srv_negotiation->handle_request(rpc);
     }
 }
@@ -76,7 +79,7 @@ void negotiation_manager::on_negotiation_response(error_code err, negotiation_rp
 
     std::shared_ptr<negotiation> nego = get_negotiation(rpc);
     if (nullptr != nego) {
-        client_negotiation *cli_negotiation = static_cast<client_negotiation *>(nego.get());
+        auto cli_negotiation = static_cast<client_negotiation *>(nego.get());
         cli_negotiation->handle_response(err, std::move(rpc.response()));
     }
 }
@@ -99,17 +102,29 @@ void negotiation_manager::on_rpc_disconnected(rpc_session *session)
     }
 }
 
+// `on_rpc_send_msg` and `on_rpc_recv_msg` will be called by both server and client session.
+// For server session, it can bypass negotiation if mandatory_auth is false.
+// mandatory_auth is a server-side config only, it doesn't have the same effect for
+// client session.
 bool negotiation_manager::on_rpc_recv_msg(message_ex *msg)
 {
-    return !FLAGS_mandatory_auth || in_white_list(msg->rpc_code()) ||
-           msg->io_session->is_negotiation_succeed();
+    if (!msg->io_session->is_client() && !FLAGS_mandatory_auth) {
+        // if this is server_session and mandatory_auth is turned off.
+        return true;
+    }
+
+    return dsn_likely(msg->io_session->is_negotiation_succeed()) || in_white_list(msg->rpc_code());
 }
 
 bool negotiation_manager::on_rpc_send_msg(message_ex *msg)
 {
+    if (!msg->io_session->is_client() && !FLAGS_mandatory_auth) {
+        // if this is server_session and mandatory_auth is turned off.
+        return true;
+    }
+
     // if try_pend_message return true, it means the msg is pended to the resend message queue
-    return !FLAGS_mandatory_auth || in_white_list(msg->rpc_code()) ||
-           !msg->io_session->try_pend_message(msg);
+    return in_white_list(msg->rpc_code()) || !msg->io_session->try_pend_message(msg);
 }
 
 std::shared_ptr<negotiation> negotiation_manager::get_negotiation(negotiation_rpc rpc)

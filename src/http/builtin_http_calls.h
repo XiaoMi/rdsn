@@ -32,4 +32,6 @@ extern void get_help_handler(const http_request &req, http_response &resp);
 
 extern void get_recent_start_time_handler(const http_request &req, http_response &resp);
 
+extern void update_config(const http_request &req, http_response &resp);
+
 } // namespace dsn

@@ -1011,9 +1011,10 @@ struct bulk_load_metadata
 // client -> meta, start bulk load
 struct start_bulk_load_request
 {
-    1:string        app_name;
-    2:string        cluster_name;
-    3:string        file_provider_type;
+    1:string    app_name;
+    2:string    cluster_name;
+    3:string    file_provider_type;
+    4:string    remote_root_path;
 }
 
 struct start_bulk_load_response
@@ -1052,6 +1053,7 @@ struct bulk_load_request
     6:i64               ballot;
     7:bulk_load_status  meta_bulk_load_status;
     8:bool              query_bulk_load_metadata;
+    9:string            remote_root_path;
 }
 
 struct bulk_load_response
@@ -1084,6 +1086,7 @@ struct group_bulk_load_request
     4:string                        provider_name;
     5:string                        cluster_name;
     6:bulk_load_status              meta_bulk_load_status;
+    7:string                        remote_root_path;
 }
 
 struct group_bulk_load_response
@@ -1173,7 +1176,8 @@ enum hotkey_type
 enum detect_action
 {
     START,
-    STOP
+    STOP,
+    QUERY
 }
 
 enum disk_migration_status {
@@ -1196,6 +1200,7 @@ struct detect_hotkey_response {
     // - ERR_SERVICE_ALREADY_EXIST: hotkey detection is running now
     1: dsn.error_code err;
     2: optional string err_hint;
+    3: optional string hotkey_result;
 }
 
 /*

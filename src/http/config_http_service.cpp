@@ -15,34 +15,26 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#pragma once
-
-#include "negotiation.h"
+#include <dsn/http/http_server.h>
+#include <dsn/utility/flags.h>
+#include <dsn/utility/output_utils.h>
 
 namespace dsn {
-namespace security {
-
-// client_negotiation negotiates a session on client side.
-class client_negotiation : public negotiation
+void update_config(const http_request &req, http_response &resp)
 {
-public:
-    explicit client_negotiation(rpc_session_ptr session);
+    if (req.query_args.size() != 1) {
+        resp.status_code = http_status_code::bad_request;
+        return;
+    }
 
-    void start() override;
-    void handle_response(error_code err, const negotiation_response &&response);
+    auto iter = req.query_args.begin();
+    auto res = update_flag(iter->first, iter->second);
 
-private:
-    void on_recv_mechanisms(const negotiation_response &resp);
-    void on_mechanism_selected(const negotiation_response &resp);
-    void on_challenge(const negotiation_response &resp);
-
-    void list_mechanisms();
-    void select_mechanism(const std::string &mechanism);
-    void send(negotiation_status::type status, const blob &msg = blob());
-    void succ_negotiation();
-
-    friend class client_negotiation_test;
-};
-
-} // namespace security
+    utils::table_printer tp;
+    tp.add_row_name_and_data("update_status", res.description());
+    std::ostringstream out;
+    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+    resp.body = out.str();
+    resp.status_code = http_status_code::ok;
+}
 } // namespace dsn

@@ -27,7 +27,6 @@
 
 namespace dsn {
 namespace security {
-DSN_DECLARE_bool(mandatory_auth);
 extern const std::set<std::string> supported_mechanisms;
 
 client_negotiation::client_negotiation(rpc_session_ptr session) : negotiation(session)
@@ -50,12 +49,20 @@ void client_negotiation::list_mechanisms()
 void client_negotiation::handle_response(error_code err, const negotiation_response &&response)
 {
     if (err != ERR_OK) {
-        fail_negotiation();
+        // ERR_HANDLER_NOT_FOUND means server is old version, which doesn't support authentication
+        if (ERR_HANDLER_NOT_FOUND == err) {
+            ddebug_f("{}: treat negotiation succeed because server is old version, which doesn't "
+                     "support authentication",
+                     _name);
+            succ_negotiation();
+        } else {
+            fail_negotiation();
+        }
         return;
     }
 
-    // make the negotiation succeed if server doesn't enable auth and the auth is not mandantory
-    if (negotiation_status::type::SASL_AUTH_DISABLE == response.status && !FLAGS_mandatory_auth) {
+    // make the negotiation succeed if server doesn't enable auth
+    if (negotiation_status::type::SASL_AUTH_DISABLE == response.status) {
         ddebug_f("{}: treat negotiation succeed as server doesn't enable it", _name);
         succ_negotiation();
         return;
