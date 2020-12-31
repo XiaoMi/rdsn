@@ -80,7 +80,7 @@ namespace dsn {
 
     register_http_call("config")
         .with_callback([](const http_request &req, http_response &resp) { get_config(req, resp); })
-        .with_help("get the details of a config");
+        .with_help("get the details of a specified config");
 
     register_http_call("configs")
         .with_callback(
