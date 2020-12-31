@@ -120,5 +120,75 @@ TEST(flag_test, tag_flag)
     res = has_tag("no_flag", flag_tag::FT_MUTABLE);
     ASSERT_FALSE(res);
 }
+
+DSN_DEFINE_int32("flag_test", get_flag_int32, 5, "test get_flag_int32");
+DSN_TAG_VARIABLE(get_flag_int32, FT_MUTABLE);
+DSN_DEFINE_uint32("flag_test", get_flag_uint32, 5, "test get_flag_uint32");
+DSN_TAG_VARIABLE(get_flag_uint32, FT_MUTABLE);
+DSN_DEFINE_int64("flag_test", get_flag_int64, 5, "test get_flag_int64");
+DSN_TAG_VARIABLE(get_flag_int64, FT_MUTABLE);
+DSN_DEFINE_uint64("flag_test", get_flag_uint64, 5, "test get_flag_uint64");
+DSN_TAG_VARIABLE(get_flag_uint64, FT_MUTABLE);
+DSN_DEFINE_double("flag_test", get_flag_double, 5.12, "test get_flag_double");
+DSN_TAG_VARIABLE(get_flag_double, FT_MUTABLE);
+DSN_DEFINE_bool("flag_test", get_flag_bool, true, "test get_flag_bool");
+DSN_TAG_VARIABLE(get_flag_bool, FT_MUTABLE);
+DSN_DEFINE_string("flag_test", get_flag_string, "flag_string", "test get_flag_string");
+DSN_TAG_VARIABLE(get_flag_string, FT_MUTABLE);
+
+TEST(flag_test, get_config)
+{
+    auto res = get_flag_str("get_flag_not_exist");
+    ASSERT_EQ(res.get_error().code(), ERR_OBJECT_NOT_FOUND);
+
+    res = get_flag_str("get_flag_int32");
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(
+        res.get_value(),
+        "{\"name\":\"get_flag_int32\",\"section\":\"flag_test\",\"type\":\"FV_INT32\",\"tags\":"
+        "\"flag_tag::FT_MUTABLE\",\"description\":\"test get_flag_int32\",\"value\":\"5\"}\n");
+
+    res = get_flag_str("get_flag_uint32");
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(
+        res.get_value(),
+        "{\"name\":\"get_flag_uint32\",\"section\":\"flag_test\",\"type\":\"FV_UINT32\",\"tags\":"
+        "\"flag_tag::FT_MUTABLE\",\"description\":\"test get_flag_uint32\",\"value\":\"5\"}\n");
+
+    res = get_flag_str("get_flag_int64");
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(
+        res.get_value(),
+        "{\"name\":\"get_flag_int64\",\"section\":\"flag_test\",\"type\":\"FV_INT64\",\"tags\":"
+        "\"flag_tag::FT_MUTABLE\",\"description\":\"test get_flag_int64\",\"value\":\"5\"}\n");
+
+    res = get_flag_str("get_flag_uint64");
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(
+        res.get_value(),
+        "{\"name\":\"get_flag_uint64\",\"section\":\"flag_test\",\"type\":\"FV_UINT64\",\"tags\":"
+        "\"flag_tag::FT_MUTABLE\",\"description\":\"test get_flag_uint64\",\"value\":\"5\"}\n");
+
+    res = get_flag_str("get_flag_double");
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(
+        res.get_value(),
+        "{\"name\":\"get_flag_double\",\"section\":\"flag_test\",\"type\":\"FV_DOUBLE\",\"tags\":"
+        "\"flag_tag::FT_MUTABLE\",\"description\":\"test get_flag_double\",\"value\":\"5.12\"}\n");
+
+    res = get_flag_str("get_flag_bool");
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(
+        res.get_value(),
+        "{\"name\":\"get_flag_bool\",\"section\":\"flag_test\",\"type\":\"FV_BOOL\",\"tags\":"
+        "\"flag_tag::FT_MUTABLE\",\"description\":\"test get_flag_bool\",\"value\":\"true\"}\n");
+
+    res = get_flag_str("get_flag_string");
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(res.get_value(),
+              "{\"name\":\"get_flag_string\",\"section\":\"flag_test\",\"type\":\"FV_STRING\","
+              "\"tags\":\"flag_tag::FT_MUTABLE\",\"description\":\"test "
+              "get_flag_string\",\"value\":\"flag_string\"}\n");
+}
 } // namespace utils
 } // namespace dsn
