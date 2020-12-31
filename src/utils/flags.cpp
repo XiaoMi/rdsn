@@ -9,9 +9,10 @@
 #include <dsn/utility/string_conv.h>
 #include <dsn/c/api_utilities.h>
 #include <boost/optional/optional.hpp>
-#include <fmt/format.h>
+#include <dsn/dist/fmt_logging.h>
 
 #include <map>
+#include <dsn/utility/output_utils.h>
 
 namespace dsn {
 
@@ -27,7 +28,15 @@ enum value_type
     FV_MAX_INDEX = 6,
 };
 
-using validator_fn = std::function<void()>;
+ENUM_BEGIN(value_type, FV_MAX_INDEX)
+ENUM_REG(FV_BOOL)
+ENUM_REG(FV_INT32)
+ENUM_REG(FV_UINT32)
+ENUM_REG(FV_INT64)
+ENUM_REG(FV_UINT64)
+ENUM_REG(FV_DOUBLE)
+ENUM_REG(FV_STRING)
+ENUM_END(value_type)
 
 class flag_data
 {
@@ -36,18 +45,22 @@ public:
     case type_enum:                                                                                \
         value<type>() = dsn_config_get_value_##suffix(_section, _name, value<type>(), _desc);      \
         if (_validator) {                                                                          \
-            _validator();                                                                          \
+            dassert_f(_validator(), "validation failed: {}", _name);                               \
         }                                                                                          \
         break
 
 #define FLAG_DATA_UPDATE_CASE(type, type_enum, suffix)                                             \
-    case type_enum:                                                                                \
-        type tmpval_##type_enum;                                                                   \
+    case type_enum: {                                                                              \
+        type old_val = value<type>(), tmpval_##type_enum;                                          \
         if (!dsn::buf2##suffix(val, tmpval_##type_enum)) {                                         \
-            return error_s::make(ERR_INVALID_PARAMETERS, fmt::format("{} in invalid", val));       \
+            return error_s::make(ERR_INVALID_PARAMETERS, fmt::format("{} is invalid", val));       \
         }                                                                                          \
         value<type>() = tmpval_##type_enum;                                                        \
-        break
+        if (_validator && !_validator()) {                                                         \
+            value<type>() = old_val;                                                               \
+            return error_s::make(ERR_INVALID_PARAMETERS, "value validation failed");               \
+        }                                                                                          \
+    } break
 
 #define FLAG_DATA_UPDATE_STRING()                                                                  \
     case FV_STRING:                                                                                \
@@ -95,11 +108,53 @@ public:
     void add_tag(const flag_tag &tag) { _tags.insert(tag); }
     bool has_tag(const flag_tag &tag) const { return _tags.find(tag) != _tags.end(); }
 
+    std::string to_json() const
+    {
+#define TABLE_PRINTER_ADD_VALUE(type, type_enum)                                                   \
+    case type_enum:                                                                                \
+        tp.add_row_name_and_data("value", value<type>());                                          \
+        break;
+
+        utils::table_printer tp;
+        tp.add_row_name_and_data("name", _name);
+        tp.add_row_name_and_data("section", _section);
+        tp.add_row_name_and_data("type", enum_to_string(_type));
+        tp.add_row_name_and_data("tags", tags_str());
+        tp.add_row_name_and_data("description", _desc);
+        switch (_type) {
+            TABLE_PRINTER_ADD_VALUE(bool, FV_BOOL);
+            TABLE_PRINTER_ADD_VALUE(int32_t, FV_INT32);
+            TABLE_PRINTER_ADD_VALUE(uint32_t, FV_UINT32);
+            TABLE_PRINTER_ADD_VALUE(int64_t, FV_INT64);
+            TABLE_PRINTER_ADD_VALUE(uint64_t, FV_UINT64);
+            TABLE_PRINTER_ADD_VALUE(double, FV_DOUBLE);
+            TABLE_PRINTER_ADD_VALUE(const char *, FV_STRING);
+        }
+
+        std::ostringstream out;
+        tp.output(out, utils::table_printer::output_format::kJsonCompact);
+        return out.str();
+    }
+
 private:
     template <typename T>
-    T &value()
+    T &value() const
     {
         return *reinterpret_cast<T *>(_val);
+    }
+
+    std::string tags_str() const
+    {
+        std::string tags_str;
+        for (const auto &tag : _tags) {
+            tags_str += enum_to_string(tag);
+            tags_str += ",";
+        }
+        if (!tags_str.empty()) {
+            tags_str.pop_back();
+        }
+
+        return tags_str;
     }
 
 private:
@@ -160,14 +215,25 @@ public:
         return it->second.has_tag(tag);
     }
 
-    error_with<std::string> get_flag_str(const std::string &name) const
-    {
+    error_with<std::string> get_flag_str(const std::string &name) const {
         const auto iter = _flags.find(name);
         if (iter == _flags.end()) {
             return error_s::make(ERR_OBJECT_NOT_FOUND, fmt::format("{} is not found", name));
         }
 
         return iter->second.to_json();
+    }
+
+    std::string list_all_flags() const
+    {
+        utils::table_printer tp;
+        for (const auto &flag : _flags) {
+            tp.add_row_name_and_data(flag.first, flag.second.to_json());
+        }
+
+        std::ostringstream out;
+        tp.output(out, utils::table_printer::output_format::kJsonCompact);
+        return out.str();
     }
 
 private:
@@ -219,4 +285,7 @@ flag_tagger::flag_tagger(const char *name, const flag_tag &tag)
 {
     return flag_registry::instance().get_flag_str(flag_name);
 }
+
+/*extern*/ std::string list_all_flags() { return flag_registry::instance().list_all_flags(); }
+
 } // namespace dsn

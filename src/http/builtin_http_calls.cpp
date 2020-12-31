@@ -81,6 +81,11 @@ namespace dsn {
     register_http_call("config")
         .with_callback([](const http_request &req, http_response &resp) { get_config(req, resp); })
         .with_help("get the value of a config");
+
+    register_http_call("configs")
+        .with_callback(
+            [](const http_request &req, http_response &resp) { list_all_configs(req, resp); })
+        .with_help("list all configs");
 }
 
 } // namespace dsn

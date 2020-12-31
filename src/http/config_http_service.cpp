@@ -38,8 +38,18 @@ void update_config(const http_request &req, http_response &resp)
     resp.status_code = http_status_code::ok;
 }
 
-void get_config(const http_request &req, http_response &resp)
+void list_all_configs(const http_request &req, http_response &resp)
 {
+    if (!req.query_args.empty()) {
+        resp.status_code = http_status_code::bad_request;
+        return;
+    }
+
+    resp.body = list_all_flags();
+    resp.status_code = http_status_code::ok;
+}
+
+void get_config(const http_request &req, http_response &resp) {
     std::string config_name;
     for (const auto &p : req.query_args) {
         if ("name" == p.first) {

@@ -8,12 +8,18 @@
 #include <cstdint>
 #include <functional>
 #include "errors.h"
+#include "enum_helper.h"
 #include "utils.h"
 
 enum class flag_tag
 {
     FT_MUTABLE = 0, /** flag data is mutable */
+    FV_MAX_INDEX = 0,
 };
+
+ENUM_BEGIN(flag_tag, flag_tag::FV_MAX_INDEX)
+ENUM_REG(flag_tag::FT_MUTABLE)
+ENUM_END(flag_tag)
 
 // support std::hash with enum types is implemented since gcc 6.1
 // so we should define hash for flag_tag to compatible with gcc < 6.1
@@ -65,9 +71,8 @@ struct hash<flag_tag>
 // The program corrupts if the validation failed.
 #define DSN_DEFINE_validator(name, validator)                                                      \
     static auto FLAGS_VALIDATOR_FN_##name = validator;                                             \
-    static const dsn::flag_validator FLAGS_VALIDATOR_##name(#name, []() {                          \
-        dassert(FLAGS_VALIDATOR_FN_##name(FLAGS_##name), "validation failed: %s", #name);          \
-    })
+    static const dsn::flag_validator FLAGS_VALIDATOR_##name(                                       \
+        #name, []() -> bool { return FLAGS_VALIDATOR_FN_##name(FLAGS_##name); })
 
 #define DSN_TAG_VARIABLE(name, tag)                                                                \
     COMPILE_ASSERT(sizeof(decltype(FLAGS_##name)), exist_##name##_##tag);                          \
@@ -89,10 +94,11 @@ public:
 };
 
 // An utility class that registers a validator upon initialization.
+using validator_fn = std::function<bool()>;
 class flag_validator
 {
 public:
-    flag_validator(const char *name, std::function<void()>);
+    flag_validator(const char *name, validator_fn);
 };
 
 class flag_tagger
@@ -109,6 +115,9 @@ extern error_s update_flag(const std::string &name, const std::string &val);
 
 // determine if the tag is exist for the specified flag
 extern bool has_tag(const std::string &name, const flag_tag &tag);
+
+// list all the flags
+extern std::string list_all_flags();
 
 // get the json string of a specified flag
 extern error_with<std::string> get_flag_str(const std::string &flag_name);
