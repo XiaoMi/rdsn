@@ -43,7 +43,7 @@ DSN_DEFINE_uint64("replication",
                   "hdfs read batch size, the default value is 64MB");
 DSN_TAG_VARIABLE(hdfs_read_batch_size_bytes, FT_MUTABLE);
 
-DSN_DEFINE_uint32("replication", hdfs_read_limit_rate, 100, "hdfs read limit(MB/s)");
+DSN_DEFINE_uint32("replication", hdfs_read_limit_rate, 200, "hdfs read limit(MB/s)");
 DSN_TAG_VARIABLE(hdfs_read_limit_rate, FT_MUTABLE);
 
 DSN_DEFINE_uint64("replication",
