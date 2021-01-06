@@ -390,9 +390,11 @@ error_code hdfs_file_object::read_data_in_batches(uint64_t start_pos,
     uint64_t read_size = 0;
     bool read_success = true;
     while (cur_pos < start_pos + data_length) {
-        auto rate = FLAGS_hdfs_read_limit_rate << 20;
+        const uint64_t rate = FLAGS_hdfs_read_limit_rate << 20;
         read_size = std::min(start_pos + data_length - cur_pos, FLAGS_hdfs_read_batch_size_bytes);
-        _service->_read_token_bucket->consumeWithBorrowAndWait(read_size, rate, 2 * rate);
+        // burst size should not be less than consume size
+        _service->_read_token_bucket->consumeWithBorrowAndWait(
+            read_size, rate, std::max(2 * rate, read_size));
 
         tSize num_read_bytes = hdfsPread(_service->get_fs(),
                                          read_file,
