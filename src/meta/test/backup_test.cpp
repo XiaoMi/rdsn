@@ -548,7 +548,6 @@ TEST_F(policy_context_test, test_app_dropped_during_backup)
 // test should_start_backup_unlock()
 TEST_F(policy_context_test, test_should_start_backup)
 {
-    std::cout << "test should_start_backup_unlock()" << std::endl;
     uint64_t now = dsn_now_ms();
     int32_t hour = 0, min = 0, sec = 0;
     ::dsn::utils::time_ms_to_date_time(now, hour, min, sec);
