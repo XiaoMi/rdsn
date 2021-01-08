@@ -1,6 +1,6 @@
 include(${CMAKE_CURRENT_LIST_DIR}/compiler_info.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR};${CMAKE_MODULE_PATH}) # TODO: move all Find*.cmake into cmake/
-
+a
 # Always generate the compilation database file (compile_commands.json) for use
 # with various development tools, such as IWYU and Vim's YouCompleteMe plugin.
 # See http://clang.llvm.org/docs/JSONCompilationDatabase.html
