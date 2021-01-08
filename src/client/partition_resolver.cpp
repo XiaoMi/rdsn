@@ -49,8 +49,9 @@ void partition_resolver::call_task(const rpc_response_task_ptr &t)
 
     rpc_response_handler old_callback;
     t->fetch_current_handler(old_callback);
-    auto new_callback = [this, deadline_ms, oc = std::move(old_callback)](
-                            dsn::error_code err, dsn::message_ex *req, dsn::message_ex *resp) {
+    auto new_callback = [ this, deadline_ms, oc = std::move(old_callback) ](
+        dsn::error_code err, dsn::message_ex * req, dsn::message_ex * resp)
+    {
         if (req->header->gpid.value() != 0 && err != ERR_OK && err != ERR_HANDLER_NOT_FOUND &&
             err != ERR_APP_NOT_EXIST && err != ERR_OPERATION_DISABLED && err != ERR_BUSY) {
             on_access_failure(req->header->gpid.get_partition_index(), err);
