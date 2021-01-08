@@ -227,21 +227,12 @@ protected:
         _policy.app_names[3] = "app3";
         _policy.app_names[4] = "app4";
         _policy.app_names[6] = "app6";
-
         _mp._backup_service = _service->_backup_handler.get();
         _mp.set_policy(policy(_policy));
-    }
 
-    void TearDown() override
-    {
-        // clear the remote state
-        dsn::error_code ec;
         _service->_storage
-            ->delete_node(policy_root,
-                          true,
-                          TASK_CODE_EXEC_INLINED,
-                          [&ec](dsn::error_code err) { ec = err; },
-                          nullptr)
+            ->create_node(
+                policy_dir, dsn::TASK_CODE_EXEC_INLINED, [&ec](dsn::error_code err) { ec = err; })
             ->wait();
         ASSERT_EQ(dsn::ERR_OK, ec);
     }
