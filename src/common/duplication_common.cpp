@@ -54,7 +54,8 @@ DSN_DEFINE_string("replication", cluster_name, "", "name of this cluster");
     return it->second;
 }
 
-/*extern*/ const char *get_current_cluster_name() {
+/*extern*/ const char *get_current_cluster_name()
+{
     dassert(strlen(FLAGS_cluster_name) != 0, "cluster_name is not set");
     return FLAGS_cluster_name;
 }
