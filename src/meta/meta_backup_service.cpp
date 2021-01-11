@@ -796,6 +796,12 @@ std::vector<backup_info> policy_context::get_backup_infos(int cnt)
     return ret;
 }
 
+bool policy_context::has_backup_history()
+{
+    zauto_lock l(_lock);
+    return _backup_history.size() > 0;
+}
+
 bool policy_context::is_under_backuping()
 {
     zauto_lock l(_lock);
@@ -1403,19 +1409,11 @@ void backup_service::modify_backup_policy(configuration_modify_backup_policy_rpc
         auto iter = _policy_states.find(request.policy_name);
         if (iter == _policy_states.end()) {
             response.err = ERR_INVALID_PARAMETERS;
+            response.hint_message = fmt::format("couldn't find policy {}.", request.policy_name);
             context_ptr = nullptr;
-        } else {
-            context_ptr = iter->second;
+            return;
         }
-    }
-    if (context_ptr == nullptr) {
-        return;
-    }
-
-    if (request.__isset.start_time) {
-        response.err = ERR_INVALID_PARAMETERS;
-        response.hint_message = "shouldn't modify start_time of the backup policy.";
-        return;
+        context_ptr = iter->second;
     }
 
     policy cur_policy = context_ptr->get_policy();
@@ -1514,6 +1512,31 @@ void backup_service::modify_backup_policy(configuration_modify_backup_policy_rpc
             cur_policy.backup_history_count_to_keep = request.backup_history_count_to_keep;
             have_modify_policy = true;
         }
+    }
+
+    if (request.__isset.start_time) {
+        if (context_ptr->has_backup_history() || context_ptr->is_under_backuping()) {
+            response.err = ERR_INVALID_PARAMETERS;
+            response.hint_message =
+                fmt::format("backup of policy {} has already started, shouldn't modify start_time.",
+                            cur_policy.policy_name);
+            return;
+        }
+        backup_start_time t_start_time;
+        if (!t_start_time.parse_from(request.start_time)) {
+            response.err = ERR_INVALID_PARAMETERS;
+            response.hint_message =
+                fmt::format("invalid start_time: {}, policy shouldn't be modified.",
+                            request.start_time,
+                            cur_policy.policy_name);
+            return;
+        }
+        ddebug("%s: policy change start_time from (%s) to (%s)",
+               cur_policy.policy_name.c_str(),
+               cur_policy.start_time.to_string().c_str(),
+               t_start_time.to_string().c_str());
+        cur_policy.start_time = t_start_time;
+        have_modify_policy = true;
     }
 
     if (have_modify_policy) {

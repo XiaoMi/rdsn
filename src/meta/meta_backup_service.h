@@ -194,6 +194,7 @@ public:
     void add_backup_history(const backup_info &info);
     std::vector<backup_info> get_backup_infos(int cnt);
     bool is_under_backuping();
+    bool has_backup_history();
     mock_virtual void start();
     // function above will called be others, before call these function, should lock the _lock of
     // policy_context, otherwise maybe lead deadlock
