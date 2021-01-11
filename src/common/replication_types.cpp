@@ -158,8 +158,8 @@ const std::map<int, const char *> _duplication_fail_mode_VALUES_TO_NAMES(
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 int _ksplit_control_typeValues[] = {
-    split_control_type::PSC_PAUSE, split_control_type::PSC_RESTART, split_control_type::PSC_CANCEL};
-const char *_ksplit_control_typeNames[] = {"PSC_PAUSE", "PSC_RESTART", "PSC_CANCEL"};
+    split_control_type::PAUSE, split_control_type::RESTART, split_control_type::CANCEL};
+const char *_ksplit_control_typeNames[] = {"PAUSE", "RESTART", "CANCEL"};
 const std::map<int, const char *> _split_control_type_VALUES_TO_NAMES(
     ::apache::thrift::TEnumIterator(3, _ksplit_control_typeValues, _ksplit_control_typeNames),
     ::apache::thrift::TEnumIterator(-1, NULL, NULL));

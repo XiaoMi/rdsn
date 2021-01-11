@@ -316,8 +316,8 @@ void meta_split_service::control_partition_split(control_split_rpc rpc)
         return;
     }
 
-    if (req.parent_pidx >= 0 && (control_type == split_control_type::PSC_PAUSE ||
-                                 control_type == split_control_type::PSC_RESTART)) {
+    if (req.parent_pidx >= 0 && (control_type == split_control_type::PAUSE ||
+                                 control_type == split_control_type::RESTART)) {
         do_control_single(std::move(app), std::move(rpc));
     } else {
         do_control_all(std::move(app), std::move(rpc));
@@ -344,8 +344,8 @@ void meta_split_service::do_control_single(std::shared_ptr<app_state> app, contr
 
     auto iter = app->helpers->split_states.status.find(parent_pidx);
     if (iter == app->helpers->split_states.status.end()) {
-        response.err = control_type == split_control_type::PSC_PAUSE ? ERR_CHILD_REGISTERED
-                                                                     : ERR_INVALID_STATE;
+        response.err =
+            control_type == split_control_type::PAUSE ? ERR_CHILD_REGISTERED : ERR_INVALID_STATE;
         response.__set_hint_msg(fmt::format("partition[{}] is not splitting", parent_pidx));
         derror_f("{} split for app({}) failed, {}",
                  control_type_str(control_type),
@@ -354,48 +354,26 @@ void meta_split_service::do_control_single(std::shared_ptr<app_state> app, contr
         return;
     }
 
-    if (control_type == split_control_type::PSC_PAUSE) { // pause
-        if (iter->second == split_status::CANCELING) {
-            response.err = ERR_INVALID_STATE;
-            response.__set_hint_msg(fmt::format("partition[{}] is canceling", parent_pidx));
-            derror_f("{} split for app({}) failed, {}",
-                     control_type_str(control_type),
-                     app_name,
-                     response.hint_msg);
-            return;
-        }
-
-        if (iter->second == split_status::PAUSING || iter->second == split_status::PAUSED) {
-            dwarn_f("duplicated pause request for app({}), partition[{}]", app_name, parent_pidx);
-            response.err = ERR_OK;
-            return;
-        }
-
-        iter->second = split_status::PAUSING;
+    split_status::type old_status =
+        control_type == split_control_type::PAUSE ? split_status::SPLITTING : split_status::PAUSED;
+    split_status::type target_status =
+        control_type == split_control_type::PAUSE ? split_status::PAUSING : split_status::SPLITTING;
+    if (iter->second == old_status) {
+        iter->second = target_status;
         response.err = ERR_OK;
-        ddebug_f("app({}) partition[{}] pausing split succeed", app_name, parent_pidx);
-    } else { // restart
-        if (iter->second == split_status::SPLITTING) {
-            dwarn_f("duplicated restart request for app({}) partition[{}]", app_name, parent_pidx);
-            response.err == ERR_OK;
-            return;
-        }
-
-        if (iter->second != split_status::PAUSED) {
-            response.err = ERR_INVALID_STATE;
-            response.__set_hint_msg(fmt::format("partition[{}] has wrong status({})",
-                                                parent_pidx,
-                                                dsn::enum_to_string(iter->second)));
-            derror_f("{} split for app({}) failed, {}",
-                     control_type_str(control_type),
-                     app_name,
-                     response.hint_msg);
-            return;
-        }
-
-        iter->second = split_status::SPLITTING;
-        response.err = ERR_OK;
-        ddebug_f("app({}) partition[{}] restart split succeed", app_name, parent_pidx);
+        ddebug_f("app({}) partition[{}] {} split succeed",
+                 app_name,
+                 parent_pidx,
+                 control_type_str(control_type));
+    } else {
+        response.err = ERR_INVALID_STATE;
+        response.__set_hint_msg(fmt::format("partition[{}] wrong split_status({})",
+                                            parent_pidx,
+                                            dsn::enum_to_string(iter->second)));
+        derror_f("{} split for app({}) failed, {}",
+                 control_type_str(control_type),
+                 app_name,
+                 response.hint_msg);
     }
 }
 
@@ -405,7 +383,7 @@ void meta_split_service::do_control_all(std::shared_ptr<app_state> app, control_
     const auto &control_type = req.control_type;
     auto &response = rpc.response();
 
-    if (control_type == split_control_type::PSC_CANCEL) {
+    if (control_type == split_control_type::CANCEL) {
         if (req.old_partition_count != app->partition_count / 2) {
             response.err = ERR_INVALID_PARAMETERS;
             response.__set_hint_msg(
@@ -435,12 +413,10 @@ void meta_split_service::do_control_all(std::shared_ptr<app_state> app, control_
         return;
     }
 
-    split_status::type old_status = control_type == split_control_type::PSC_PAUSE
-                                        ? split_status::SPLITTING
-                                        : split_status::PAUSED;
-    split_status::type target_status = control_type == split_control_type::PSC_PAUSE
-                                           ? split_status::PAUSING
-                                           : split_status::SPLITTING;
+    split_status::type old_status =
+        control_type == split_control_type::PAUSE ? split_status::SPLITTING : split_status::PAUSED;
+    split_status::type target_status =
+        control_type == split_control_type::PAUSE ? split_status::PAUSING : split_status::SPLITTING;
     for (auto &kv : app->helpers->split_states.status) {
         if (kv.second == old_status) {
             kv.second = target_status;

@@ -342,58 +342,58 @@ TEST_F(meta_split_service_test, pause_or_restart_single_partition_test)
         split_status::type expected_status;
     } tests[] = {{NEW_PARTITION_COUNT,
                   split_status::SPLITTING,
-                  split_control_type::PSC_PAUSE,
+                  split_control_type::PAUSE,
                   ERR_INVALID_PARAMETERS,
                   split_status::SPLITTING},
                  {PARENT_INDEX,
                   split_status::NOT_SPLIT,
-                  split_control_type::PSC_PAUSE,
+                  split_control_type::PAUSE,
                   ERR_CHILD_REGISTERED,
                   split_status::NOT_SPLIT},
                  {PARENT_INDEX,
                   split_status::PAUSING,
-                  split_control_type::PSC_PAUSE,
-                  ERR_OK,
+                  split_control_type::PAUSE,
+                  ERR_INVALID_STATE,
                   split_status::PAUSING},
                  {PARENT_INDEX,
                   split_status::PAUSED,
-                  split_control_type::PSC_PAUSE,
-                  ERR_OK,
+                  split_control_type::PAUSE,
+                  ERR_INVALID_STATE,
                   split_status::PAUSED},
                  {PARENT_INDEX,
                   split_status::CANCELING,
-                  split_control_type::PSC_PAUSE,
+                  split_control_type::PAUSE,
                   ERR_INVALID_STATE,
                   split_status::CANCELING},
                  {PARENT_INDEX,
                   split_status::SPLITTING,
-                  split_control_type::PSC_PAUSE,
+                  split_control_type::PAUSE,
                   ERR_OK,
                   split_status::PAUSING},
                  {PARENT_INDEX,
                   split_status::NOT_SPLIT,
-                  split_control_type::PSC_RESTART,
+                  split_control_type::RESTART,
                   ERR_INVALID_STATE,
                   split_status::NOT_SPLIT},
                  {PARENT_INDEX,
                   split_status::PAUSING,
-                  split_control_type::PSC_RESTART,
+                  split_control_type::RESTART,
                   ERR_INVALID_STATE,
                   split_status::PAUSING},
                  {PARENT_INDEX,
                   split_status::PAUSED,
-                  split_control_type::PSC_RESTART,
+                  split_control_type::RESTART,
                   ERR_OK,
                   split_status::SPLITTING},
                  {PARENT_INDEX,
                   split_status::CANCELING,
-                  split_control_type::PSC_RESTART,
+                  split_control_type::RESTART,
                   ERR_INVALID_STATE,
                   split_status::CANCELING},
                  {PARENT_INDEX,
                   split_status::SPLITTING,
-                  split_control_type::PSC_RESTART,
-                  ERR_OK,
+                  split_control_type::RESTART,
+                  ERR_INVALID_STATE,
                   split_status::SPLITTING}};
 
     for (auto test : tests) {
@@ -425,15 +425,15 @@ TEST_F(meta_split_service_test, pause_or_restart_multi_partitions_test)
         std::string app_name;
         split_control_type::type control_type;
         error_code expected_err;
-    } tests[] = {{false, "table_not_exist", split_control_type::PSC_PAUSE, ERR_APP_NOT_EXIST},
-                 {false, NAME, split_control_type::PSC_RESTART, ERR_INVALID_STATE},
-                 {true, NAME, split_control_type::PSC_PAUSE, ERR_OK},
-                 {true, NAME, split_control_type::PSC_RESTART, ERR_OK}};
+    } tests[] = {{false, "table_not_exist", split_control_type::PAUSE, ERR_APP_NOT_EXIST},
+                 {false, NAME, split_control_type::RESTART, ERR_INVALID_STATE},
+                 {true, NAME, split_control_type::PAUSE, ERR_OK},
+                 {true, NAME, split_control_type::RESTART, ERR_OK}};
 
     for (auto test : tests) {
         if (test.mock_split_context) {
             mock_app_partition_split_context();
-            if (test.control_type == split_control_type::PSC_RESTART) {
+            if (test.control_type == split_control_type::RESTART) {
                 mock_split_states(split_status::PAUSED, -1);
             }
         }
@@ -441,7 +441,7 @@ TEST_F(meta_split_service_test, pause_or_restart_multi_partitions_test)
             control_partition_split(test.app_name, test.control_type, -1, PARTITION_COUNT);
         ASSERT_EQ(ec, test.expected_err);
         if (test.expected_err == ERR_OK) {
-            split_status::type expected_status = test.control_type == split_control_type::PSC_PAUSE
+            split_status::type expected_status = test.control_type == split_control_type::PAUSE
                                                      ? split_status::PAUSING
                                                      : split_status::SPLITTING;
             ASSERT_TRUE(check_split_status(expected_status, -1));
@@ -474,9 +474,9 @@ TEST_F(meta_split_service_test, cancel_split_test)
             mock_child_registered();
         }
 
-        ASSERT_EQ(control_partition_split(
-                      NAME, split_control_type::PSC_CANCEL, -1, test.old_partition_count),
-                  test.expected_err);
+        ASSERT_EQ(
+            control_partition_split(NAME, split_control_type::CANCEL, -1, test.old_partition_count),
+            test.expected_err);
         if (test.check_status) {
             auto app = find_app(NAME);
             ASSERT_EQ(app->partition_count, NEW_PARTITION_COUNT);

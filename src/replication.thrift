@@ -892,9 +892,9 @@ struct start_partition_split_response
 
 enum split_control_type
 {
-    PSC_PAUSE,
-    PSC_RESTART,
-    PSC_CANCEL
+    PAUSE,
+    RESTART,
+    CANCEL
 }
 
 // client to meta server to control partition split
@@ -915,7 +915,7 @@ struct control_split_response
     // Possible errors:
     // - ERR_APP_NOT_EXIST: app not exist
     // - ERR_APP_DROPPED: app has been dropped
-    // - ERR_INVALID_STATE: app or partition is not splitting
+    // - ERR_INVALID_STATE: wrong partition split_status
     // - ERR_INVALID_PARAMETERS: invalid parent_pidx or old_partition_count
     // - ERR_CHILD_REGISTERED: child partition has been registered, pause partition split or cancel split failed
     1:dsn.error_code    err;

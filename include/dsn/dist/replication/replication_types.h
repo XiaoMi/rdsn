@@ -193,9 +193,9 @@ struct split_control_type
 {
     enum type
     {
-        PSC_PAUSE = 0,
-        PSC_RESTART = 1,
-        PSC_CANCEL = 2
+        PAUSE = 0,
+        RESTART = 1,
+        CANCEL = 2
     };
 };
 

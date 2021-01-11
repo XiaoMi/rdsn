@@ -60,11 +60,11 @@ private:
     static const std::string control_type_str(split_control_type::type type)
     {
         std::string str = "";
-        if (type == split_control_type::PSC_PAUSE) {
+        if (type == split_control_type::PAUSE) {
             str = "pause";
-        } else if (type == split_control_type::PSC_RESTART) {
+        } else if (type == split_control_type::RESTART) {
             str = "restart";
-        } else if (type == split_control_type::PSC_CANCEL) {
+        } else if (type == split_control_type::CANCEL) {
             str = "cancel";
         }
         return str;

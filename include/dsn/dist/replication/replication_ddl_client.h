@@ -195,6 +195,12 @@ public:
     // partition split
     error_with<start_partition_split_response> start_partition_split(const std::string &app_name,
                                                                      int partition_count);
+    error_with<control_split_response> pause_partition_split(const std::string &app_name,
+                                                             const int32_t parent_pidx);
+    error_with<control_split_response> restart_partition_split(const std::string &app_name,
+                                                               const int32_t parent_pidx);
+    error_with<control_split_response> cancel_partition_split(const std::string &app_name,
+                                                              const int32_t old_partition_count);
     error_with<control_split_response>
     control_partition_split(const std::string &app_name,
                             split_control_type::type control_type,

@@ -1605,6 +1605,27 @@ replication_ddl_client::start_partition_split(const std::string &app_name, int n
 }
 
 error_with<control_split_response>
+replication_ddl_client::pause_partition_split(const std::string &app_name,
+                                              const int32_t parent_pidx)
+{
+    return control_partition_split(app_name, split_control_type::PAUSE, parent_pidx, 0);
+}
+
+error_with<control_split_response>
+replication_ddl_client::restart_partition_split(const std::string &app_name,
+                                                const int32_t parent_pidx)
+{
+    return control_partition_split(app_name, split_control_type::RESTART, parent_pidx, 0);
+}
+
+error_with<control_split_response>
+replication_ddl_client::cancel_partition_split(const std::string &app_name,
+                                               const int32_t old_partition_count)
+{
+    return control_partition_split(app_name, split_control_type::CANCEL, -1, old_partition_count);
+}
+
+error_with<control_split_response>
 replication_ddl_client::control_partition_split(const std::string &app_name,
                                                 split_control_type::type control_type,
                                                 const int32_t parent_pidx,
