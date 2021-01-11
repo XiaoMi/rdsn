@@ -1526,7 +1526,7 @@ void backup_service::modify_backup_policy(configuration_modify_backup_policy_rpc
         if (!t_start_time.parse_from(request.start_time)) {
             response.err = ERR_INVALID_PARAMETERS;
             response.hint_message =
-                fmt::format("invalid start_time: {}, policy shouldn't be modified.",
+                fmt::format("invalid start_time: {}, policy {} shouldn't be modified.",
                             request.start_time,
                             cur_policy.policy_name);
             return;
