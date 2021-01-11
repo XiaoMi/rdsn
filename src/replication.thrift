@@ -903,10 +903,11 @@ struct control_split_request
 {
     1:string                app_name;
     2:split_control_type    control_type
-    // for pause, parent_pidx > 0, pause specific partition, parent_pidx = -1, pause all splitting partition
-    // for restart, parent_pidx > 0, restart specific partition, parent_pidx = -1, restart all paused partition
+    // for pause, parent_pidx >= 0, pause specific partition, parent_pidx = -1, pause all splitting partition
+    // for restart, parent_pidx >= 0, restart specific partition, parent_pidx = -1, restart all paused partition
     // for cancel, parent_pidx will always be -1
     3:i32                   parent_pidx;
+    // only used for cancel
     4:optional i32          old_partition_count;
 }
 
