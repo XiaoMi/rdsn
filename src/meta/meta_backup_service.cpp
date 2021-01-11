@@ -647,55 +647,16 @@ void policy_context::continue_current_backup_unlocked()
 bool policy_context::should_start_backup_unlocked()
 {
     uint64_t now = dsn_now_ms();
-    uint64_t recent_backup_start_time_ms = 0;
-    if (!_backup_history.empty()) {
-        recent_backup_start_time_ms = _backup_history.rbegin()->second.start_time_ms;
-    }
-
-    // the true start time of recent backup have drifted away with the origin start time of
-    // policy,
-    // so we should take the drift into consideration; if user change the start time of the
-    // policy,
-    // we just think the change of start time as drift
-    int32_t hour = 0, min = 0, sec = 0;
-    if (recent_backup_start_time_ms == 0) {
-        //  the first time to backup, just consider the start time
-        ::dsn::utils::time_ms_to_date_time(now, hour, min, sec);
+    if (_backup_history.empty()) {
+        // The first time to backup, just consider the start time
+        int32_t hour = 0, min = 0, sec = 0;
+        dsn::utils::time_ms_to_date_time(now, hour, min, sec);
         return _policy.start_time.should_start_backup(hour, min);
-    } else {
-        uint64_t next_backup_time_ms =
-            recent_backup_start_time_ms + _policy.backup_interval_seconds * 1000;
-        if (_policy.start_time.hour != 24) {
-            // user have specify the time point to start backup, so we should take the the
-            // time-drift into consideration
-
-            // compute the time-drift
-            ::dsn::utils::time_ms_to_date_time(recent_backup_start_time_ms, hour, min, sec);
-            int64_t time_dirft_ms = _policy.start_time.compute_time_drift_ms(hour, min);
-
-            if (time_dirft_ms >= 0) {
-                // hour:min(the true start time) >= policy.start_time :
-                //      1, user move up the start time of policy, such as 20:00 to 2:00, we just
-                //      think this case as time drift
-                //      2, the true start time of backup is delayed, compared the origin start time
-                //      of policy, we should process this case
-                //      3, the true start time of backup is the same with the origin start time of
-                //      policy
-                next_backup_time_ms -= time_dirft_ms;
-            } else {
-                // hour:min(the true start time) < policy.start_time:
-                //      1, user delay the start time of policy, such as 2:00 to 23:00
-                //
-                // these case has already been handled, we do nothing
-            }
-        }
-        if (next_backup_time_ms <= now) {
-            ::dsn::utils::time_ms_to_date_time(now, hour, min, sec);
-            return _policy.start_time.should_start_backup(hour, min);
-        } else {
-            return false;
-        }
     }
+    uint64_t recent_backup_start_time_ms = _backup_history.rbegin()->second.start_time_ms;
+    uint64_t next_backup_time_ms =
+        recent_backup_start_time_ms + _policy.backup_interval_seconds * 1000;
+    return now >= next_backup_time_ms;
 }
 
 void policy_context::issue_new_backup_unlocked()
@@ -716,6 +677,9 @@ void policy_context::issue_new_backup_unlocked()
     }
 
     if (!should_start_backup_unlocked()) {
+        ddebug_f("{}: it's not the right time to start backup now, retry to issue new backup 1 "
+                 "second later.",
+                 _policy.policy_name);
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
                          &_tracker,
                          [this]() {
@@ -723,10 +687,7 @@ void policy_context::issue_new_backup_unlocked()
                              issue_new_backup_unlocked();
                          },
                          0,
-                         _backup_service->backup_option().issue_backup_interval_ms);
-        ddebug("%s: start issue new backup %" PRId64 "ms later",
-               _policy.policy_name.c_str(),
-               _backup_service->backup_option().issue_backup_interval_ms.count());
+                         std::chrono::seconds(1));
         return;
     }
 
@@ -1254,11 +1215,20 @@ void backup_service::add_backup_policy(dsn::message_ex *msg)
     std::shared_ptr<policy_context> policy_context_ptr = _factory(this);
     dassert(policy_context_ptr != nullptr, "invalid policy_context");
     policy p;
+    if (!p.start_time.parse_from(request.start_time)) {
+        derror_f("invalid start time: {}, policy {} shouldn't be added.",
+                 request.start_time,
+                 request.policy_name);
+        response.err = ERR_INVALID_PARAMETERS;
+        response.hint_message = "invalid start time: " + request.start_time;
+        _meta_svc->reply_data(msg, response);
+        msg->release_ref();
+        return;
+    }
     p.policy_name = request.policy_name;
     p.backup_provider_type = request.backup_provider_type;
     p.backup_interval_seconds = request.backup_interval_seconds;
     p.backup_history_count_to_keep = request.backup_history_count_to_keep;
-    p.start_time.parse_from(request.start_time);
     p.app_ids = app_ids;
     p.app_names = app_names;
     policy_context_ptr->set_policy(std::move(p));
@@ -1441,6 +1411,13 @@ void backup_service::modify_backup_policy(configuration_modify_backup_policy_rpc
     if (context_ptr == nullptr) {
         return;
     }
+
+    if (request.__isset.start_time) {
+        response.err = ERR_INVALID_PARAMETERS;
+        response.hint_message = "shouldn't modify start_time of the backup policy.";
+        return;
+    }
+
     policy cur_policy = context_ptr->get_policy();
 
     bool is_under_backup = context_ptr->is_under_backuping();
@@ -1535,18 +1512,6 @@ void backup_service::modify_backup_policy(configuration_modify_backup_policy_rpc
                    cur_policy.backup_history_count_to_keep,
                    request.backup_history_count_to_keep);
             cur_policy.backup_history_count_to_keep = request.backup_history_count_to_keep;
-            have_modify_policy = true;
-        }
-    }
-
-    if (request.__isset.start_time) {
-        backup_start_time t_start_time;
-        if (t_start_time.parse_from(request.start_time)) {
-            ddebug("%s: policy change start_time from (%s) to (%s)",
-                   cur_policy.policy_name.c_str(),
-                   cur_policy.start_time.to_string().c_str(),
-                   t_start_time.to_string().c_str());
-            cur_policy.start_time = t_start_time;
             have_modify_policy = true;
         }
     }

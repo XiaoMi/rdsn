@@ -540,110 +540,58 @@ TEST_F(policy_context_test, test_app_dropped_during_backup)
 TEST_F(policy_context_test, test_should_start_backup)
 {
     uint64_t now = dsn_now_ms();
-    int32_t hour = 0, min = 0, sec = 0;
-    ::dsn::utils::time_ms_to_date_time(now, hour, min, sec);
-    while (min == 59) {
-        std::this_thread::sleep_for(std::chrono::minutes(1));
-        now = dsn_now_ms();
-        ::dsn::utils::time_ms_to_date_time(now, hour, min, sec);
-    }
+    int32_t cur_hour = 0, cur_min = 0, cur_sec = 0;
+    dsn::utils::time_ms_to_date_time(now, cur_hour, cur_min, cur_sec);
 
     int64_t oneday_sec = 1 * 24 * 60 * 60;
-    _mp._policy.start_time.hour = hour;
-    _mp._policy.start_time.minute = 0;
-    _mp._policy.backup_interval_seconds = oneday_sec; // oneday
+    _mp._policy.backup_interval_seconds = oneday_sec;
     _mp._backup_history.clear();
-
     backup_info info;
 
-    {
-        std::cout << "first backup & no limit to start_time" << std::endl;
-        _mp._policy.start_time.hour = 24;
-        ASSERT_TRUE(_mp.should_start_backup_unlocked());
-    }
+    // first backup & no limit to start_time
+    _mp._policy.start_time.hour = 24;
+    _mp._policy.start_time.minute = 0;
+    ASSERT_TRUE(_mp.should_start_backup_unlocked());
 
-    {
-        std::cout << "first backup & cur_time.hour == start_time.hour" << std::endl;
-        _mp._policy.start_time.hour = hour;
-        ASSERT_TRUE(_mp.should_start_backup_unlocked());
-    }
+    // first backup & cur_time.hour == start_time.hour & cur_time.min == start_time.minute
+    _mp._policy.start_time.hour = cur_hour;
+    _mp._policy.start_time.minute = cur_min;
+    ASSERT_TRUE(_mp.should_start_backup_unlocked());
 
-    {
-        std::cout << "first backup & cur_time.hour != start_time.hour" << std::endl;
-        _mp._policy.start_time.hour = hour + 100; // invalid time
-        ASSERT_FALSE(_mp.should_start_backup_unlocked());
-        _mp._policy.start_time.hour = (hour + 1) % 24; // valid, but not reach
-        ASSERT_FALSE(_mp.should_start_backup_unlocked());
-        _mp._policy.start_time.hour = hour - 1; // time passed(also, include -1)
-        ASSERT_FALSE(_mp.should_start_backup_unlocked());
-    }
+    // first backup & cur_time.hour != start_time.hour
+    _mp._policy.start_time.hour = (cur_hour + 1) % 24;
+    ASSERT_FALSE(_mp.should_start_backup_unlocked());
+    _mp._policy.start_time.hour = std::abs(cur_hour - 1);
+    ASSERT_FALSE(_mp.should_start_backup_unlocked());
 
-    {
-        std::cout << "not first backup & recent backup delay 20min to start" << std::endl;
-        info.start_time_ms = now - (oneday_sec * 1000) + 20 * 60 * 1000;
-        info.end_time_ms = info.start_time_ms + 10;
-        _mp.add_backup_history(info);
-        // if we set start_time to 24:00, then will not start backup
-        _mp._policy.start_time.hour = 24;
-        ASSERT_FALSE(_mp.should_start_backup_unlocked());
-        // if we set start_time to hour:00, then will start backup, even if the interval <
-        // policy.backup_interval
-        _mp._policy.start_time.hour = hour;
-        ASSERT_TRUE(_mp.should_start_backup_unlocked());
-    }
+    // first backup & cur_time.min != start_time.minute
+    _mp._policy.start_time.hour = cur_hour;
+    _mp._policy.start_time.minute = (cur_min + 1) % 60;
+    ASSERT_FALSE(_mp.should_start_backup_unlocked());
+    _mp._policy.start_time.minute = std::abs(cur_min - 1);
+    ASSERT_FALSE(_mp.should_start_backup_unlocked());
 
-    {
-        std::cout << "not first backup & recent backup start time is equal with start_time"
-                  << std::endl;
-        _mp._policy.start_time.hour = hour;
-        _mp._backup_history.clear();
-        info.start_time_ms = now - (oneday_sec * 1000) - (min * 60 * 1000);
-        info.start_time_ms = (info.start_time_ms / 1000) * 1000;
-        info.end_time_ms = info.start_time_ms + 10;
-        _mp.add_backup_history(info);
-        ASSERT_TRUE(_mp.should_start_backup_unlocked());
-    }
+    // not first backup & time_since_last_backup < backup_interval_seconds
+    info.start_time_ms = now - (oneday_sec * 1000) + 20 * 60 * 1000;
+    info.end_time_ms = info.start_time_ms + 10;
+    _mp.add_backup_history(info);
+    ASSERT_FALSE(_mp.should_start_backup_unlocked());
 
-    {
-        // delay the start_time
-        std::cout << "not first backup & delay the start time of policy" << std::endl;
-        _mp._policy.start_time.hour = hour + 1;
-        _mp._backup_history.clear();
-        // make sure the start time of recent backup is litte than policy's start_time, so we
-        // minus more 3min
-        info.start_time_ms = now - (oneday_sec * 1000) - 3 * 60 * 1000;
-        info.end_time_ms = info.start_time_ms + 10;
-        _mp.add_backup_history(info);
-        if (_mp._policy.start_time.hour == 24) {
-            // if hour = 23, then policy.start_time.hour = 24, we should start next backup,
-            // because now - info.start_time_ms > policy.backup_interval
-            ASSERT_TRUE(_mp.should_start_backup_unlocked());
-        } else {
-            // should not start, even if now - info.start_time_ms > policy.backup_interval, but
-            // not reach the time-point that policy.start_time limit
-            ASSERT_FALSE(_mp.should_start_backup_unlocked());
-        }
-    }
+    // not first backup & time_since_last_backup > backup_interval_seconds
+    _mp._backup_history.clear();
+    info.start_time_ms = now - (oneday_sec * 1000) - 20 * 60 * 1000;
+    info.end_time_ms = info.start_time_ms + 10;
+    _mp.add_backup_history(info);
+    ASSERT_TRUE(_mp.should_start_backup_unlocked());
+}
 
-    {
-        std::cout << "not first backup & no limit to start time & should start backup" << std::endl;
-        _mp._policy.start_time.hour = 24;
-        _mp._backup_history.clear();
-        info.start_time_ms = now - (oneday_sec * 1000) - 3 * 60 * 60;
-        info.end_time_ms = info.start_time_ms + 10;
-        _mp.add_backup_history(info);
-        ASSERT_TRUE(_mp.should_start_backup_unlocked());
-    }
-
-    {
-        std::cout << "not first backup & no limit to start time & should not start backup"
-                  << std::endl;
-        _mp._backup_history.clear();
-        info.start_time_ms = now - (oneday_sec * 1000) + 3 * 60 * 60;
-        info.end_time_ms = info.start_time_ms + 10;
-        _mp.add_backup_history(info);
-        ASSERT_FALSE(_mp.should_start_backup_unlocked());
-    }
+TEST_F(policy_context_test, test_parse_start_time)
+{
+    ASSERT_TRUE(_mp.get_policy().start_time.parse_from("00:00"));
+    ASSERT_TRUE(_mp.get_policy().start_time.parse_from("12:34"));
+    ASSERT_FALSE(_mp.get_policy().start_time.parse_from("24:00"));
+    ASSERT_FALSE(_mp.get_policy().start_time.parse_from("23:66"));
+    ASSERT_FALSE(_mp.get_policy().start_time.parse_from("12"));
 }
 
 class meta_backup_service_test : public meta_test_base
@@ -692,31 +640,14 @@ TEST_F(meta_backup_service_test, test_add_backup_policy)
     req.policy_name = test_policy_name;
     req.app_ids = {1, 2, 3};
     req.backup_interval_seconds = 24 * 60 * 60;
+    req.start_time = "00:00";
 
-    // case1: backup policy doesn't contain any valid app_id
-    // result: backup policy will not be added, and return ERR_INVALID_PARAMETERS
-    {
-        configuration_add_backup_policy_response resp;
-        auto r = fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,
-                               LPC_DEFAULT_CALLBACK,
-                               _backup_svc,
-                               &backup_service::add_backup_policy,
-                               req);
-        fake_wait_rpc(r, resp);
-        ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
-        // hint message contains the first invalid app id
-        std::string hint_message = "invalid app 1";
-        ASSERT_EQ(hint_message, resp.hint_message);
-    }
-
-    // case2: backup policy interval time < checkpoint reserve time
+    // case1: backup policy interval time < checkpoint reserve time
     // result: backup policy will not be added, and return ERR_INVALID_PARAMETERS
     {
         int64_t old_backup_interval_seconds = req.backup_interval_seconds;
         req.backup_interval_seconds = 10;
         configuration_add_backup_policy_response resp;
-        server_state *state = _meta_svc->get_server_state();
-        state->_all_apps.insert(std::make_pair(1, std::make_shared<app_state>(app_info())));
         auto r = fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,
                                LPC_DEFAULT_CALLBACK,
                                _backup_svc,
@@ -730,6 +661,22 @@ TEST_F(meta_backup_service_test, test_add_backup_policy)
         ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
         ASSERT_EQ(hint_message, resp.hint_message);
         req.backup_interval_seconds = old_backup_interval_seconds;
+    }
+
+    // case2: backup policy doesn't contain any valid app_id
+    // result: backup policy will not be added, and return ERR_INVALID_PARAMETERS
+    {
+        configuration_add_backup_policy_response resp;
+        auto r = fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,
+                               LPC_DEFAULT_CALLBACK,
+                               _backup_svc,
+                               &backup_service::add_backup_policy,
+                               req);
+        fake_wait_rpc(r, resp);
+        ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
+        // hint message contains the first invalid app id
+        std::string hint_message = "invalid app 1";
+        ASSERT_EQ(hint_message, resp.hint_message);
     }
 
     // case3: backup policy contains valid and invalid app_id
@@ -766,12 +713,46 @@ TEST_F(meta_backup_service_test, test_add_backup_policy)
         ASSERT_EQ(ERR_OK, resp.err);
     }
 
+    // case5: backup start time is invalid
+    // result: backup policy will not be added, and return ERR_INVALID_PARAMETERS
+    {
+        std::string invalid_start_time = "24:00";
+        req.start_time = invalid_start_time;
+        req.policy_name = "test_backup_start_time";
+        configuration_add_backup_policy_response resp;
+        auto r = fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,
+                               LPC_DEFAULT_CALLBACK,
+                               _backup_svc,
+                               &backup_service::add_backup_policy,
+                               req);
+        fake_wait_rpc(r, resp);
+        std::string hint_message = "invalid start time: " + invalid_start_time;
+        ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
+        ASSERT_EQ(hint_message, resp.hint_message);
+    }
+
+    // case6: backup start time is valid
+    // result: backup policy will be added
+    {
+        std::string valid_start_time = "00:00";
+        req.start_time = valid_start_time;
+        req.policy_name = "test_backup_start_time";
+        configuration_add_backup_policy_response resp;
+        auto r = fake_rpc_call(RPC_CM_ADD_BACKUP_POLICY,
+                               LPC_DEFAULT_CALLBACK,
+                               _backup_svc,
+                               &backup_service::add_backup_policy,
+                               req);
+        fake_wait_rpc(r, resp);
+        ASSERT_EQ(ERR_OK, resp.err);
+    }
+
     // test sync_policies_from_remote_storage
     _backup_svc->_policy_states.clear();
     ASSERT_TRUE(_backup_svc->_policy_states.empty());
     error_code err = _backup_svc->sync_policies_from_remote_storage();
     ASSERT_EQ(ERR_OK, err);
-    ASSERT_EQ(1, _backup_svc->_policy_states.size());
+    ASSERT_EQ(2, _backup_svc->_policy_states.size());
     ASSERT_TRUE(_backup_svc->_policy_states.find(test_policy_name) !=
                 _backup_svc->_policy_states.end());
     const policy &p = _backup_svc->_policy_states.at(test_policy_name)->get_policy();

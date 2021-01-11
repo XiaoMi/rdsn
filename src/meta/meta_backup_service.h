@@ -79,15 +79,10 @@ struct backup_info
         backup_id, start_time_ms, end_time_ms, app_ids, app_names, info_status)
 };
 
-// Attention: backup_start_time == 24:00 is represent no limit for start_time, 24:00 is mainly saved
-// for testing
-//
-// current, we don't support accurating to minute, only support accurating to hour, so
-// we just set minute to 0
 struct backup_start_time
 {
-    int32_t hour;   // [0 ~24)
-    int32_t minute; // [0 ~ 60)
+    int32_t hour;
+    int32_t minute;
     backup_start_time() : hour(0), minute(0) {}
     backup_start_time(int32_t h, int32_t m) : hour(h), minute(m) {}
     std::string to_string() const
@@ -97,58 +92,23 @@ struct backup_start_time
            << std::setfill('0') << std::to_string(minute);
         return ss.str();
     }
-    // NOTICE: this function will modify hour and minute, if time is invalid, this func will set
-    // hour = 24, minute = 0
+
+    // If start_time is valid, return true.
     bool parse_from(const std::string &time)
     {
-        if (::sscanf(time.c_str(), "%d:%d", &hour, &minute) != 2) {
+        if (sscanf(time.c_str(), "%d:%d", &hour, &minute) != 2) {
             return false;
-        } else {
-            if (hour > 24) {
-                hour = 24;
-                minute = 0;
-                return false;
-            }
-
-            if (hour == 24 && minute != 0) {
-                minute = 0;
-                return false;
-            }
-
-            if (minute >= 60) {
-                hour = 24;
-                minute = 0;
-                return false;
-            }
         }
-        return true;
+        return (hour >= 0 && hour < 24 && minute >= 0 && minute < 60);
     }
 
-    // return the interval between new_hour:new_min and start_time,
-    // namely new_hour:new_min - start_time;
-    // unit is ms
-    int64_t compute_time_drift_ms(int32_t new_hour, int32_t new_min)
-    {
-        int64_t res = 0;
-        // unit is hour
-        res += (new_hour - hour);
-        // unit is minute
-        res *= 60;
-        res += (new_min - minute);
-        // unit is ms
-        return (res * 60 * 1000);
-    }
-
-    // judge whether we should start backup base current time
     bool should_start_backup(int32_t cur_hour, int32_t cur_min)
     {
-        if (hour == 24) {
-            // erase the restrict of backup_start_time, just for testing
+        if (hour == 24 && minute == 0) {
+            // only for tests
             return true;
         }
-        // NOTICE : if you want more precisely, you can use cur_min to implement
-        // now, we just ignore
-        return (cur_hour == hour);
+        return (cur_hour == hour) && (cur_min == minute);
     }
     DEFINE_JSON_SERIALIZATION(hour, minute)
 };
@@ -175,10 +135,10 @@ public:
     backup_start_time start_time;
     policy()
         : app_ids(),
-          backup_interval_seconds(0),
-          backup_history_count_to_keep(6),
+          backup_interval_seconds(-1),
+          backup_history_count_to_keep(3),
           is_disable(false),
-          start_time(24, 0) // default is 24:00, namely no limit
+          start_time(0, 0)
     {
     }
 
