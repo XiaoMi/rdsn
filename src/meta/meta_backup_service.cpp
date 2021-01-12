@@ -1531,10 +1531,10 @@ void backup_service::modify_backup_policy(configuration_modify_backup_policy_rpc
                             cur_policy.policy_name);
             return;
         }
-        ddebug("%s: policy change start_time from (%s) to (%s)",
-               cur_policy.policy_name.c_str(),
-               cur_policy.start_time.to_string().c_str(),
-               t_start_time.to_string().c_str());
+        ddebug_f("{}: policy change start_time from {} to {}",
+                 cur_policy.policy_name,
+                 cur_policy.start_time.to_string(),
+                 t_start_time.to_string());
         cur_policy.start_time = t_start_time;
         have_modify_policy = true;
     }
