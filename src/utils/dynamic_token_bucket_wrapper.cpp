@@ -19,33 +19,35 @@
 
 #pragma once
 
-#include <chrono>
-#include <memory>
-
-namespace folly {
-template <typename Clock>
-class BasicDynamicTokenBucket;
-
-using DynamicTokenBucket = BasicDynamicTokenBucket<std::chrono::steady_clock>;
-} // namespace folly
+#include <dsn/utility/TokenBucket.h>
+#include <dsn/utility/smart_pointers.h>
+#include "dynamic_token_bucket_wrapper.h"
 
 namespace dsn {
 namespace utils {
 /// NOTE: this class is not completely developed, someone can add the interface you want in the
 /// later, for example, the interface to call _token_bucket->consumeOrDrain.
-class dynamic_token_bucket_wrapper
+dynamic_token_bucket_wrapper::dynamic_token_bucket_wrapper(double burst_ratio)
+    : _burst_ratio(burst_ratio)
 {
-public:
-    dynamic_token_bucket_wrapper(double burst_ratio);
-    dynamic_token_bucket_wrapper(uint32_t rate, double burst_ratio);
+}
 
-    void reset(uint32_t rate);
-    bool consume(uint32_t to_consume);
+dynamic_token_bucket_wrapper::dynamic_token_bucket_wrapper(uint32_t rate, double burst_ratio)
+    : _rate(rate), _burst_ratio(burst_ratio)
+{
+    _token_bucket = dsn::make_unique<folly::DynamicTokenBucket>();
+}
 
-private:
-    std::unique_ptr<folly::DynamicTokenBucket> _token_bucket;
-    uint32_t _rate;
-    const double _burst_ratio;
-};
+void dynamic_token_bucket_wrapper::reset(uint32_t rate)
+{
+    // Don't reset _token_bucket in order to keep thread safe.
+    // And don't worry, it won't cause problems in rate limit.
+    _rate = rate;
+}
+
+bool dynamic_token_bucket_wrapper::consume(uint32_t to_consume)
+{
+    return _token_bucket->consume(to_consume, _rate, _rate * _burst_ratio);
+}
 } // namespace utils
 } // namespace dsn
