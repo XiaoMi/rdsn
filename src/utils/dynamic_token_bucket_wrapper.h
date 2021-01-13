@@ -38,7 +38,7 @@ public:
     void reset(uint32_t rate)
     {
         // Don't reset _token_bucket in order to keep thread safe.
-        // And don't worry that it will not cause problems in rate limit.
+        // And don't worry, it won't cause problems in rate limit.
         _rate = rate;
     }
 
