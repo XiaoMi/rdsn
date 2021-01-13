@@ -208,8 +208,8 @@ DSN_API bool dsn_mimic_app(const char *app_role, int index)
         }
     }
 
-    auto nodes = ::dsn::service_engine::instance().get_all_nodes();
-    for (auto &n : nodes) {
+    const auto &nodes = dsn::service_engine::instance().get_all_nodes();
+    for (const auto &n : nodes) {
         if (n.second->spec().role_name == std::string(app_role) &&
             n.second->spec().index == index) {
             ::dsn::task::set_tls_dsn_context(n.second.get(), nullptr);
