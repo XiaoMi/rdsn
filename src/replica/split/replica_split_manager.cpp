@@ -1292,7 +1292,7 @@ void replica_split_manager::parent_stop_split(
             _child_gpid,
             std::bind(&replica_split_manager::child_handle_split_error,
                       std::placeholders::_1,
-                      "cancel partition split"));
+                      "stop partition split"));
         parent_cleanup_split_context();
     }
     _partition_version.store(_replica->_app_info.partition_count - 1);
@@ -1321,11 +1321,12 @@ void replica_split_manager::primary_parent_handle_stop_split(
     }
 
     if (!resp->__isset.is_split_stopped || !resp->is_split_stopped) {
+        // secondary has not stopped split
         return;
     }
 
     _replica->_primary_states.split_stopped_secondary.insert(req->node);
-    int count = 0;
+    auto count = 0;
     for (auto &iter : _replica->_primary_states.statuses) {
         if (iter.second == partition_status::PS_SECONDARY &&
             _replica->_primary_states.split_stopped_secondary.find(iter.first) !=
@@ -1333,6 +1334,7 @@ void replica_split_manager::primary_parent_handle_stop_split(
             ++count;
         }
     }
+    // all secondaries have already stop split succeed
     if (count == _replica->_primary_states.membership.max_replica_count - 1) {
         _replica->_primary_states.cleanup_split_states();
         parent_send_notify_stop_request(req->meta_split_status);
