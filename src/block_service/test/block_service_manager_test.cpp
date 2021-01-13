@@ -27,9 +27,8 @@ public:
     ~block_service_manager_test() { utils::filesystem::remove_path(LOCAL_DIR); }
 
 public:
-    error_code test_download_file()
+    error_code test_download_file(uint64_t &download_size)
     {
-        uint64_t download_size = 0;
         return _block_service_manager.download_file(
             PROVIDER, LOCAL_DIR, FILE_NAME, _fs.get(), download_size);
     }
@@ -76,20 +75,23 @@ TEST_F(block_service_manager_test, do_download_remote_file_not_exist)
     ASSERT_EQ(err, ERR_CORRUPTION); // file does not exist
 }
 
-TEST_F(block_service_manager_test, do_download_redownload_file)
+TEST_F(block_service_manager_test, do_download_same_name_file)
 {
     // local file exists, but md5 not matched with remote file
-    // expected to remove old local file and redownload it
     create_local_file(FILE_NAME);
     create_remote_file(FILE_NAME, 2333, "md5_not_match");
-    ASSERT_EQ(test_download_file(), ERR_OK);
+    uint64_t download_size = 0;
+    ASSERT_EQ(test_download_file(download_size), ERR_PATH_ALREADY_EXIST);
+    ASSERT_EQ(download_size, 0);
 }
 
 TEST_F(block_service_manager_test, do_download_file_exist)
 {
     create_local_file(FILE_NAME);
     create_remote_file(FILE_NAME, _file_meta.size, _file_meta.md5);
-    ASSERT_EQ(test_download_file(), ERR_OK);
+    uint64_t download_size = 0;
+    ASSERT_EQ(test_download_file(download_size), ERR_PATH_ALREADY_EXIST);
+    ASSERT_EQ(download_size, 0);
 }
 
 TEST_F(block_service_manager_test, do_download_succeed)
@@ -99,7 +101,9 @@ TEST_F(block_service_manager_test, do_download_succeed)
     // remove local file to mock condition that file not existed
     std::string file_name = utils::filesystem::path_combine(LOCAL_DIR, FILE_NAME);
     utils::filesystem::remove_path(file_name);
-    ASSERT_EQ(test_download_file(), ERR_OK);
+    uint64_t download_size = 0;
+    ASSERT_EQ(test_download_file(download_size), ERR_OK);
+    ASSERT_EQ(download_size, _file_meta.size);
 }
 
 } // namespace block_service

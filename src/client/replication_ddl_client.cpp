@@ -1552,12 +1552,14 @@ void replication_ddl_client::query_disk_info(
 error_with<start_bulk_load_response>
 replication_ddl_client::start_bulk_load(const std::string &app_name,
                                         const std::string &cluster_name,
-                                        const std::string &file_provider_type)
+                                        const std::string &file_provider_type,
+                                        const std::string &remote_root_path)
 {
     auto req = make_unique<start_bulk_load_request>();
     req->app_name = app_name;
     req->cluster_name = cluster_name;
     req->file_provider_type = file_provider_type;
+    req->remote_root_path = remote_root_path;
     return call_rpc_sync(start_bulk_load_rpc(std::move(req), RPC_CM_START_BULK_LOAD));
 }
 
@@ -1600,6 +1602,41 @@ replication_ddl_client::start_partition_split(const std::string &app_name, int n
     req->__set_app_name(app_name);
     req->__set_new_partition_count(new_partition_count);
     return call_rpc_sync(start_split_rpc(std::move(req), RPC_CM_START_PARTITION_SPLIT));
+}
+
+error_with<control_split_response>
+replication_ddl_client::pause_partition_split(const std::string &app_name,
+                                              const int32_t parent_pidx)
+{
+    return control_partition_split(app_name, split_control_type::PAUSE, parent_pidx, 0);
+}
+
+error_with<control_split_response>
+replication_ddl_client::restart_partition_split(const std::string &app_name,
+                                                const int32_t parent_pidx)
+{
+    return control_partition_split(app_name, split_control_type::RESTART, parent_pidx, 0);
+}
+
+error_with<control_split_response>
+replication_ddl_client::cancel_partition_split(const std::string &app_name,
+                                               const int32_t old_partition_count)
+{
+    return control_partition_split(app_name, split_control_type::CANCEL, -1, old_partition_count);
+}
+
+error_with<control_split_response>
+replication_ddl_client::control_partition_split(const std::string &app_name,
+                                                split_control_type::type control_type,
+                                                const int32_t parent_pidx,
+                                                const int32_t old_partition_count)
+{
+    auto req = make_unique<control_split_request>();
+    req->__set_app_name(app_name);
+    req->__set_control_type(control_type);
+    req->__set_parent_pidx(parent_pidx);
+    req->__set_old_partition_count(old_partition_count);
+    return call_rpc_sync(control_split_rpc(std::move(req), RPC_CM_CONTROL_PARTITION_SPLIT));
 }
 
 } // namespace replication

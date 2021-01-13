@@ -78,6 +78,14 @@ namespace test {
 class test_checker;
 }
 
+enum manual_compaction_status
+{
+    kFinish = 0,
+    kRunning,
+    kQueue
+};
+const char *manual_compaction_status_to_string(manual_compaction_status status);
+
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
 public:
@@ -392,11 +400,19 @@ private:
 
     void update_restore_progress(uint64_t f_size);
 
+    // Used for remote command
+    // TODO: remove this interface and only expose the http interface
+    // now this remote commend will be used by `scripts/pegasus_manual_compact.sh`
     std::string query_compact_state() const;
+
+    // Used for http interface
+    manual_compaction_status get_compact_status() const;
 
     void init_table_level_latency_counters();
 
     void on_detect_hotkey(const detect_hotkey_request &req, /*out*/ detect_hotkey_response &resp);
+
+    uint32_t query_data_version() const;
 
 private:
     friend class ::dsn::replication::test::test_checker;

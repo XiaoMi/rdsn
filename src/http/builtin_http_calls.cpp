@@ -72,6 +72,20 @@ namespace dsn {
             get_perf_counter_handler(req, resp);
         })
         .with_help("Gets the value of a perf counter");
+
+    register_http_call("updateConfig")
+        .with_callback(
+            [](const http_request &req, http_response &resp) { update_config(req, resp); })
+        .with_help("Updates the value of a config");
+
+    register_http_call("config")
+        .with_callback([](const http_request &req, http_response &resp) { get_config(req, resp); })
+        .with_help("get the details of a specified config");
+
+    register_http_call("configs")
+        .with_callback(
+            [](const http_request &req, http_response &resp) { list_all_configs(req, resp); })
+        .with_help("list all configs");
 }
 
 } // namespace dsn

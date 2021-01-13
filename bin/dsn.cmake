@@ -253,9 +253,6 @@ function(dsn_setup_system_libs)
     find_package(RT REQUIRED)
     set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${RT_LIBRARIES})
 
-    find_package(AIO REQUIRED)
-    set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${AIO_LIBRARIES})
-
     find_package(DL REQUIRED)
     set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${DL_LIBRARIES})
 
@@ -312,6 +309,7 @@ function(dsn_setup_thirdparty_libs)
     # libhdfs
     find_package(JNI REQUIRED)
     message (STATUS "JAVA_JVM_LIBRARY=${JAVA_JVM_LIBRARY}")
+    link_libraries(${JAVA_JVM_LIBRARY})
 
     link_directories(${DSN_THIRDPARTY_ROOT}/lib)
     link_directories(${DSN_THIRDPARTY_ROOT}/lib64)
