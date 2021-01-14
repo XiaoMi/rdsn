@@ -123,14 +123,6 @@ public:
     void on_client_read(message_ex *request, bool ignore_throttling = false);
 
     //
-    //    Throttling
-    //
-
-    /// throttle write requests
-    /// \return true if request is throttled.
-    bool throttle_write_request(throttling_controller &c, message_ex *request, int32_t req_units);
-    bool throttle_read_request(throttling_controller &c, message_ex *request, int32_t req_units);
-    //
     //    messages and tools from/for meta server
     //
     void on_config_proposal(configuration_update_request &proposal);
@@ -406,12 +398,20 @@ private:
 
     uint32_t query_data_version() const;
 
+    //
+    //    Throttling
+    //
+
+    /// return true if request is throttled.
+    bool throttle_write_request(throttling_controller &c, message_ex *request, int32_t req_units);
+    bool throttle_read_request(throttling_controller &c, message_ex *request, int32_t req_units);
     /// update throttling controllers
     /// \see replica::update_app_envs
     void update_throttle_envs(const std::map<std::string, std::string> &envs);
     void update_throttle_env_internal(const std::map<std::string, std::string> &envs,
                                       const std::string &key,
                                       throttling_controller &cntl);
+
     // update allowed users for access controller
     void update_ac_allowed_users(const std::map<std::string, std::string> &envs);
 
