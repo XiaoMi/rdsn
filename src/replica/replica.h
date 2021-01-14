@@ -60,7 +60,6 @@ namespace dsn {
 namespace security {
 class access_controller;
 } // namespace security
-
 namespace replication {
 
 class replication_app_base;
