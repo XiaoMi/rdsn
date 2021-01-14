@@ -57,6 +57,7 @@ public:
     static const std::string REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS;
     static const std::string READ_QPS_THROTTLING;
     static const std::string READ_SIZE_THROTTLING;
+    static const std::string ENABLE_READ_THROTTLING;
 };
 
 } // namespace replication

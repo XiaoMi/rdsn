@@ -61,10 +61,6 @@ namespace security {
 class access_controller;
 } // namespace security
 
-namespace utils {
-class dynamic_token_bucket_wrapper;
-} // namespace utils
-
 namespace replication {
 
 class replication_app_base;
@@ -134,15 +130,6 @@ public:
     /// \return true if request is throttled.
     /// \see replica::on_client_write
     bool throttle_request(throttling_controller &c, message_ex *request, int32_t req_units);
-    /// update throttling controllers
-    /// \see replica::update_app_envs
-    void update_throttle_envs(const std::map<std::string, std::string> &envs);
-    void update_throttle_env_internal(const std::map<std::string, std::string> &envs,
-                                      const std::string &key,
-                                      throttling_controller &cntl);
-    // update allowed users for access controller
-    void update_ac_allowed_users(const std::map<std::string, std::string> &envs);
-
     //
     //    messages and tools from/for meta server
     //
@@ -419,10 +406,16 @@ private:
 
     uint32_t query_data_version() const;
 
-    void update_read_throttles(const std::map<std::string, std::string> &envs);
-    void update_read_throttle(const std::map<std::string, std::string> &envs,
-                              const std::string &key,
-                              utils::dynamic_token_bucket_wrapper *token_bucket);
+    /// update throttling controllers
+    /// \see replica::update_app_envs
+    void update_throttle_envs(const std::map<std::string, std::string> &envs);
+    void update_throttle_env_internal(const std::map<std::string, std::string> &envs,
+                                      const std::string &key,
+                                      throttling_controller &cntl);
+    void update_enable_read_throttling(const std::map<std::string, std::string> &envs,
+                                       const std::string &key);
+    // update allowed users for access controller
+    void update_ac_allowed_users(const std::map<std::string, std::string> &envs);
 
 private:
     friend class ::dsn::replication::test::test_checker;
@@ -511,8 +504,8 @@ private:
     bool _deny_client_write;     // if deny all write requests
     throttling_controller _write_qps_throttling_controller;  // throttling by requests-per-second
     throttling_controller _write_size_throttling_controller; // throttling by bytes-per-second
-    std::unique_ptr<utils::dynamic_token_bucket_wrapper> _read_qps_throttling_controller;
-    std::unique_ptr<utils::dynamic_token_bucket_wrapper> _read_size_throttling_controller;
+    throttling_controller _read_qps_throttling_controller;
+    throttling_controller _read_size_throttling_controller;
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;

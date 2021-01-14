@@ -28,19 +28,18 @@ bool replica::throttle_request(throttling_controller &controller,
         if (type == throttling_controller::DELAY) {
             tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
                              &_tracker,
-                             [ this, req = message_ptr(request) ]() { on_client_write(req, true); },
+                             [this, req = message_ptr(request)]() { on_client_write(req, true); },
                              get_gpid().thread_hash(),
                              std::chrono::milliseconds(delay_ms));
             _counter_recent_write_throttling_delay_count->increment();
         } else { // type == throttling_controller::REJECT
             if (delay_ms > 0) {
-                tasking::enqueue(LPC_WRITE_THROTTLING_DELAY,
-                                 &_tracker,
-                                 [ this, req = message_ptr(request) ]() {
-                                     response_client_write(req, ERR_BUSY);
-                                 },
-                                 get_gpid().thread_hash(),
-                                 std::chrono::milliseconds(delay_ms));
+                tasking::enqueue(
+                    LPC_WRITE_THROTTLING_DELAY,
+                    &_tracker,
+                    [this, req = message_ptr(request)]() { response_client_write(req, ERR_BUSY); },
+                    get_gpid().thread_hash(),
+                    std::chrono::milliseconds(delay_ms));
             } else {
                 response_client_write(request, ERR_BUSY);
             }
@@ -57,7 +56,11 @@ void replica::update_throttle_envs(const std::map<std::string, std::string> &env
         envs, replica_envs::WRITE_QPS_THROTTLING, _write_qps_throttling_controller);
     update_throttle_env_internal(
         envs, replica_envs::WRITE_SIZE_THROTTLING, _write_size_throttling_controller);
-    update_read_throttles(envs);
+    update_throttle_env_internal(
+        envs, replica_envs::READ_QPS_THROTTLING, _read_qps_throttling_controller);
+    update_throttle_env_internal(
+        envs, replica_envs::READ_SIZE_THROTTLING, _read_size_throttling_controller);
+    update_enable_read_throttling(envs, replica_envs::ENABLE_READ_THROTTLING);
 }
 
 void replica::update_throttle_env_internal(const std::map<std::string, std::string> &envs,
@@ -90,44 +93,21 @@ void replica::update_throttle_env_internal(const std::map<std::string, std::stri
     }
 }
 
-void replica::update_read_throttles(const std::map<std::string, std::string> &envs) {
-    update_read_throttle(
-            envs, replica_envs::READ_QPS_THROTTLING, _read_qps_throttling_controller.get());
-    update_read_throttle(
-            envs, replica_envs::READ_SIZE_THROTTLING, _read_qps_throttling_controller.get());
-}
-
-void replica::update_read_throttle(const std::map<std::string, std::string> &envs,
-        const std::string &env_key,
-        utils::dynamic_token_bucket_wrapper *token_bucket) {
-    std::string env_value;
-    auto iter = envs.find(env_key);
+void replica::update_enable_read_throttling(const std::map<std::string, std::string> &envs,
+                                            const std::string &key)
+{
+    // set enable to false if the corresponding env is not exist
+    bool enable = false;
+    auto iter = envs.find(key);
     if (iter != envs.end()) {
-        env_value = iter->second;
-    }
-
-    uint32_t unit_multiplier = 1;
-    if (!env_value.empty()) {
-        auto last_char = *env_value.rbegin();
-        if (last_char == 'M') {
-            unit_multiplier = 1000 * 1000;
-            env_value.pop_back();
-        } else if (last_char == 'K') {
-            unit_multiplier = 1000;
-            env_value.pop_back();
+        if (buf2bool(iter->second, enable)) {
+            dwarn_replica("parse env failed, key = \"{}\", value = \"{}\"", key, iter->second);
+            return;
         }
     }
 
-    uint32_t units = 0;
-    if (!buf2uint32(env_value, units)) {
-        dwarn_replica("invalid env value, key = \"{}\", value = \"{}\"",
-                      env_key,
-                      env_value);
-        return;
-    }
-
-    uint32_t rate = unit_multiplier * units;
-    token_bucket->update(rate, rate * 1.1)
+    _read_qps_throttling_controller.set_enable(enable);
+    _read_size_throttling_controller.set_enable(enable);
 }
 } // namespace replication
 } // namespace dsn
