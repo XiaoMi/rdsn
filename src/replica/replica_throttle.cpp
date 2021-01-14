@@ -33,7 +33,7 @@ namespace replication {
                     tasking::enqueue(LPC_THROTTLING_DELAY,                                         \
                                      &_tracker,                                                    \
                                      [this, req = message_ptr(request)]() {                        \
-                                         response_client_write(req, ERR_BUSY);                     \
+                                         response_client_##op_type(req, ERR_BUSY);                 \
                                      },                                                            \
                                      get_gpid().thread_hash(),                                     \
                                      std::chrono::milliseconds(delay_ms));                         \
