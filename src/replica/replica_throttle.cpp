@@ -14,11 +14,11 @@
 namespace dsn {
 namespace replication {
 
-#define THROTTLE_REQUEST(op_type, controller, request, request_units)                              \
+#define THROTTLE_REQUEST(op_type, throttling_type, request, request_units)                         \
     do {                                                                                           \
         int64_t delay_ms = 0;                                                                      \
-        auto type =                                                                                \
-            controller.control(request->header->client.timeout_ms, request_units, delay_ms);       \
+        auto type = _##op_type##_##throttling_type##_throttling_controller.control(                \
+            request->header->client.timeout_ms, request_units, delay_ms);                          \
         if (type != throttling_controller::PASS) {                                                 \
             if (type == throttling_controller::DELAY) {                                            \
                 tasking::enqueue(                                                                  \
@@ -44,21 +44,20 @@ namespace replication {
             }                                                                                      \
             return true;                                                                           \
         }                                                                                          \
-        return false;                                                                              \
     } while (0)
 
-bool replica::throttle_write_request(throttling_controller &c,
-                                     message_ex *request,
-                                     int32_t req_units)
+bool replica::throttle_write_request(message_ex *request)
 {
-    THROTTLE_REQUEST(write, c, request, req_units);
+    THROTTLE_REQUEST(write, qps, request, 1);
+    THROTTLE_REQUEST(write, size, request, request->body_size());
+    return false;
 }
 
-bool replica::throttle_read_request(throttling_controller &c,
-                                    message_ex *request,
-                                    int32_t req_units)
+bool replica::throttle_read_request(message_ex *request)
 {
-    THROTTLE_REQUEST(read, c, request, req_units);
+    THROTTLE_REQUEST(read, qps, request, 1);
+    THROTTLE_REQUEST(read, size, request, request->body_size());
+    return false;
 }
 
 void replica::update_throttle_envs(const std::map<std::string, std::string> &envs)

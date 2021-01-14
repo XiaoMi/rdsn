@@ -402,8 +402,8 @@ private:
     //
 
     /// return true if request is throttled.
-    bool throttle_write_request(throttling_controller &c, message_ex *request, int32_t req_units);
-    bool throttle_read_request(throttling_controller &c, message_ex *request, int32_t req_units);
+    bool throttle_write_request(message_ex *request);
+    bool throttle_read_request(message_ex *request);
     /// update throttling controllers
     /// \see replica::update_app_envs
     void update_throttle_envs(const std::map<std::string, std::string> &envs);

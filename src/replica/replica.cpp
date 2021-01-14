@@ -182,14 +182,8 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
-    if (!ignore_throttling) {
-        if (throttle_read_request(_read_qps_throttling_controller, request, 1)) {
-            return;
-        }
-        if (throttle_read_request(
-                _read_size_throttling_controller, request, request->body_size())) {
-            return;
-        }
+    if (!ignore_throttling && throttle_read_request(request)) {
+        return;
     }
 
     if (!request->is_backup_request()) {
