@@ -162,12 +162,12 @@ private:
             unsigned int _left_secondary_ack_count : 15;
             unsigned int _left_potential_secondary_ack_count : 14;
             // Used for partition split
-            // _wait_child = 1 : child prepare mutation synchronously, parent should wait for child
-            // ack
+            // _wait_child = 1 : child prepare mutation synchronously, its parent should wait for
+            // child ack
             unsigned int _wait_child : 1;
             // Used for partition split
             // when prepare failed when child prepare mutation synchronously, secondary may try to
-            // ack to primary twice, we use _is_acked to restrict only ack once
+            // ack to primary twice, we use _is_error_acked to restrict only ack once
             unsigned int _is_error_acked : 1;
         };
         uint32_t _private0;

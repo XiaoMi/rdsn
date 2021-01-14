@@ -167,10 +167,8 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation, bool pop_all_c
          mu->name(),
          mu->tid());
 
-    // check whether mutation should send to its child replica synchronously
-    if (_primary_states.sync_send_write_request) {
-        mu->set_is_sync_to_child(true);
-    }
+    // child should prepare mutation synchronously
+    mu->set_is_sync_to_child(_primary_states.sync_send_write_request);
 
     // check bounded staleness
     if (mu->data.header.decree > last_committed_decree() + _options->staleness_for_commit) {

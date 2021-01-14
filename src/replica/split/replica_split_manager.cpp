@@ -1256,12 +1256,12 @@ void replica_split_manager::ack_parent(error_code ec, mutation_ptr &mu) // on ch
 {
     dassert_replica(mu->is_sync_to_child(), "mutation({}) should be copied synchronously");
     _stub->split_replica_exec(LPC_PARTITION_SPLIT,
-                             _replica->_split_states.parent_gpid,
-                             std::bind(&replica_split_manager::on_copy_mutation_reply,
-                                       std::placeholders::_1,
-                                       ec,
-                                       mu->data.header.ballot,
-                                       mu->data.header.decree));
+                              _replica->_split_states.parent_gpid,
+                              std::bind(&replica_split_manager::on_copy_mutation_reply,
+                                        std::placeholders::_1,
+                                        ec,
+                                        mu->data.header.ballot,
+                                        mu->data.header.decree));
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
