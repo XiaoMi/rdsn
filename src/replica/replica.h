@@ -412,8 +412,6 @@ private:
     void update_throttle_env_internal(const std::map<std::string, std::string> &envs,
                                       const std::string &key,
                                       throttling_controller &cntl);
-    void update_enable_read_throttling(const std::map<std::string, std::string> &envs,
-                                       const std::string &key);
     // update allowed users for access controller
     void update_ac_allowed_users(const std::map<std::string, std::string> &envs);
 

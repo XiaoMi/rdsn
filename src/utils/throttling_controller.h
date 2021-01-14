@@ -72,12 +72,6 @@ public:
     // reset to no throttling.
     void reset(/*out*/ bool &changed, /*out*/ std::string &old_env_value);
 
-    // if throttling is enabled.
-    bool enabled() const { return _enabled; }
-
-    // set _enable
-    void set_enable(const bool enable) { _enabled = enable; }
-
     // return the current env value.
     const std::string &env_value() const { return _env_value; }
 

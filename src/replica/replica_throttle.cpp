@@ -16,9 +16,6 @@ namespace replication {
 
 #define THROTTLE_REQUEST(op_type, controller, request, request_units)                              \
     do {                                                                                           \
-        if (!controller.enabled()) {                                                               \
-            return false;                                                                          \
-        }                                                                                          \
         int64_t delay_ms = 0;                                                                      \
         auto type =                                                                                \
             controller.control(request->header->client.timeout_ms, request_units, delay_ms);       \
@@ -74,7 +71,6 @@ void replica::update_throttle_envs(const std::map<std::string, std::string> &env
         envs, replica_envs::READ_QPS_THROTTLING, _read_qps_throttling_controller);
     update_throttle_env_internal(
         envs, replica_envs::READ_SIZE_THROTTLING, _read_size_throttling_controller);
-    update_enable_read_throttling(envs, replica_envs::ENABLE_READ_THROTTLING);
 }
 
 void replica::update_throttle_env_internal(const std::map<std::string, std::string> &envs,
@@ -105,23 +101,6 @@ void replica::update_throttle_env_internal(const std::map<std::string, std::stri
     if (throttling_changed) {
         ddebug_replica("switch {} from \"{}\" to \"{}\"", key, old_throttling, cntl.env_value());
     }
-}
-
-void replica::update_enable_read_throttling(const std::map<std::string, std::string> &envs,
-                                            const std::string &key)
-{
-    // set enable to false if the corresponding env is not exist
-    bool enable = false;
-    auto iter = envs.find(key);
-    if (iter != envs.end()) {
-        if (buf2bool(iter->second, enable)) {
-            dwarn_replica("parse env failed, key = \"{}\", value = \"{}\"", key, iter->second);
-            return;
-        }
-    }
-
-    _read_qps_throttling_controller.set_enable(enable);
-    _read_size_throttling_controller.set_enable(enable);
 }
 } // namespace replication
 } // namespace dsn
