@@ -21,33 +21,46 @@
 
 #include <dsn/utility/TokenBucket.h>
 #include <dsn/utility/smart_pointers.h>
+#include <dsn/dist/fmt_logging.h>
 #include "dynamic_token_bucket_wrapper.h"
 
 namespace dsn {
 namespace utils {
-/// NOTE: this class is not completely developed, someone can add the interface you want in the
-/// later, for example, the interface to call _token_bucket->consumeOrDrain.
-dynamic_token_bucket_wrapper::dynamic_token_bucket_wrapper(double burst_ratio)
-    : _burst_ratio(burst_ratio)
-{
-}
 
-dynamic_token_bucket_wrapper::dynamic_token_bucket_wrapper(uint32_t rate, double burst_ratio)
-    : _rate(rate), _burst_ratio(burst_ratio)
+dynamic_token_bucket_wrapper::dynamic_token_bucket_wrapper()
 {
-    _token_bucket = dsn::make_unique<folly::DynamicTokenBucket>();
-}
-
-void dynamic_token_bucket_wrapper::reset(uint32_t rate)
-{
-    // Don't reset _token_bucket in order to keep thread safe.
-    // And don't worry, it won't cause problems in rate limit.
-    _rate = rate;
+    _enabled = false;
+    _rate = 0;
+    _burst_size = 0;
 }
 
 bool dynamic_token_bucket_wrapper::consume(uint32_t to_consume)
 {
-    return _token_bucket->consume(to_consume, _rate, _rate * _burst_ratio);
+    if (!enabled()) {
+        return true;
+    }
+
+    return _token_bucket->consume(to_consume, _rate, _burst_size);
 }
+
+void dynamic_token_bucket_wrapper::return_tokens(uint32_t tokens_to_return)
+{
+    if (!enabled()) {
+        return;
+    }
+
+    _token_bucket->returnTokens(tokens_to_return, _rate)
+}
+
+void dynamic_token_bucket_wrapper::update(uint32_t rate, double burst_size)
+{
+    assert(burst_size > 0);
+    _rate = rate;
+    _burst_size = burst_size;
+}
+
+void dynamic_token_bucket_wrapper::enable() { _enabled = true; }
+
+void dynamic_token_bucket_wrapper::disable() { _enabled = false; }
 } // namespace utils
 } // namespace dsn

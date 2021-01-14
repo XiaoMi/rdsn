@@ -57,6 +57,7 @@ void replica::update_throttle_envs(const std::map<std::string, std::string> &env
         envs, replica_envs::WRITE_QPS_THROTTLING, _write_qps_throttling_controller);
     update_throttle_env_internal(
         envs, replica_envs::WRITE_SIZE_THROTTLING, _write_size_throttling_controller);
+    update_read_throttles(envs);
 }
 
 void replica::update_throttle_env_internal(const std::map<std::string, std::string> &envs,
@@ -89,5 +90,44 @@ void replica::update_throttle_env_internal(const std::map<std::string, std::stri
     }
 }
 
+void replica::update_read_throttles(const std::map<std::string, std::string> &envs) {
+    update_read_throttle(
+            envs, replica_envs::READ_QPS_THROTTLING, _read_qps_throttling_controller.get());
+    update_read_throttle(
+            envs, replica_envs::READ_SIZE_THROTTLING, _read_qps_throttling_controller.get());
+}
+
+void replica::update_read_throttle(const std::map<std::string, std::string> &envs,
+        const std::string &env_key,
+        utils::dynamic_token_bucket_wrapper *token_bucket) {
+    std::string env_value;
+    auto iter = envs.find(env_key);
+    if (iter != envs.end()) {
+        env_value = iter->second;
+    }
+
+    uint32_t unit_multiplier = 1;
+    if (!env_value.empty()) {
+        auto last_char = *env_value.rbegin();
+        if (last_char == 'M') {
+            unit_multiplier = 1000 * 1000;
+            env_value.pop_back();
+        } else if (last_char == 'K') {
+            unit_multiplier = 1000;
+            env_value.pop_back();
+        }
+    }
+
+    uint32_t units = 0;
+    if (!buf2uint32(env_value, units)) {
+        dwarn_replica("invalid env value, key = \"{}\", value = \"{}\"",
+                      env_key,
+                      env_value);
+        return;
+    }
+
+    uint32_t rate = unit_multiplier * units;
+    token_bucket->update(rate, rate * 1.1)
+}
 } // namespace replication
 } // namespace dsn

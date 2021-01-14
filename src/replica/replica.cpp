@@ -35,6 +35,7 @@
 #include "split/replica_split_manager.h"
 #include "replica_disk_migrator.h"
 #include "runtime/security/access_controller.h"
+#include "utils/dynamic_token_bucket_wrapper.h"
 
 #include <dsn/utils/latency_tracer.h>
 #include <dsn/cpp/json_helper.h>
@@ -108,6 +109,8 @@ replica::replica(
     }
 
     _access_controller = security::create_replica_access_controller(name());
+    _read_qps_rate_limiter = dsn::make_unique<utils::dynamic_token_bucket_wrapper>();
+    _read_size_rate_limiter = dsn::make_unique<utils::dynamic_token_bucket_wrapper>();
 }
 
 void replica::update_last_checkpoint_generate_time()
@@ -171,6 +174,19 @@ void replica::on_client_read(dsn::message_ex *request)
     if (status() == partition_status::PS_INACTIVE ||
         status() == partition_status::PS_POTENTIAL_SECONDARY) {
         response_client_read(request, ERR_INVALID_STATE);
+        return;
+    }
+
+    if (!_read_qps_throttling_controller->consume(1)) {
+        response_client_read(request, ERR_BUSY);
+        return;
+    }
+
+    if (!_read_size_throttling_controller->consume(request->body_size())) {
+        // We should return token to _read_qps_throttling_controller here. Because the token have
+        // already consumed previously, but the read operation is not allowed.
+        _read_qps_throttling_controller->return_tokens(1);
+        response_client_read(request, ERR_BUSY);
         return;
     }
 

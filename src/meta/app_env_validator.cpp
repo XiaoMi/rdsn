@@ -63,6 +63,21 @@ bool check_rocksdb_iteration(const std::string &env_value, std::string &hint_mes
     return true;
 }
 
+bool check_read_throttling(const std::string &env_value, std::string &hint_message)
+{
+    std::string rate_str = env_value;
+    if (!rate_str.empty() && ('M' == *rate_str.rbegin() || 'K' == *rate_str.rbegin())) {
+        rate_str.pop_back();
+    }
+
+    uint64_t rate = 0;
+    if (!dsn::buf2uint64(env_value, rate)) {
+        hint_message = "read limiter rate is invalid";
+        return false;
+    }
+    return true;
+}
+
 bool check_write_throttling(const std::string &env_value, std::string &hint_message)
 {
     std::vector<std::string> sargs;
@@ -168,7 +183,11 @@ void app_env_validator::register_all_validators()
         {replica_envs::MANUAL_COMPACT_PERIODIC_TRIGGER_TIME, nullptr},
         {replica_envs::MANUAL_COMPACT_PERIODIC_TARGET_LEVEL, nullptr},
         {replica_envs::MANUAL_COMPACT_PERIODIC_BOTTOMMOST_LEVEL_COMPACTION, nullptr},
-        {replica_envs::REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS, nullptr}};
+        {replica_envs::REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS, nullptr},
+        {replica_envs::READ_QPS_THROTTLING,
+         std::bind(&check_read_throttling, std::placeholders::_1, std::placeholders::_2)},
+        {replica_envs::READ_SIZE_THROTTLING,
+         std::bind(&check_read_throttling, std::placeholders::_1, std::placeholders::_2)}};
 }
 
 } // namespace replication

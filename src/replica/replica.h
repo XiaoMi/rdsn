@@ -60,6 +60,11 @@ namespace dsn {
 namespace security {
 class access_controller;
 } // namespace security
+
+namespace utils {
+class dynamic_token_bucket_wrapper;
+} // namespace utils
+
 namespace replication {
 
 class replication_app_base;
@@ -414,6 +419,11 @@ private:
 
     uint32_t query_data_version() const;
 
+    void update_read_throttles(const std::map<std::string, std::string> &envs);
+    void update_read_throttle(const std::map<std::string, std::string> &envs,
+                              const std::string &key,
+                              utils::dynamic_token_bucket_wrapper *token_bucket);
+
 private:
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::mutation_queue;
@@ -501,6 +511,8 @@ private:
     bool _deny_client_write;     // if deny all write requests
     throttling_controller _write_qps_throttling_controller;  // throttling by requests-per-second
     throttling_controller _write_size_throttling_controller; // throttling by bytes-per-second
+    std::unique_ptr<utils::dynamic_token_bucket_wrapper> _read_qps_throttling_controller;
+    std::unique_ptr<utils::dynamic_token_bucket_wrapper> _read_size_throttling_controller;
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
