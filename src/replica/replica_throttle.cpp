@@ -110,8 +110,9 @@ void replica::update_throttle_env_internal(const std::map<std::string, std::stri
 void replica::update_enable_read_throttling(const std::map<std::string, std::string> &envs,
                                             const std::string &key)
 {
-    // set enable to false if the corresponding env is not exist
-    bool enable = false;
+    // set enable to true if the corresponding env is not exist(i.e., use true as default value)
+    // I don't use false as default value here to keep pace with write throttling
+    bool enable = true;
     auto iter = envs.find(key);
     if (iter != envs.end()) {
         if (buf2bool(iter->second, enable)) {

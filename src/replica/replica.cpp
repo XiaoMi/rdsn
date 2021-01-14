@@ -187,7 +187,7 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
             return;
         }
         if (throttle_read_request(
-                _write_size_throttling_controller, request, request->body_size())) {
+                _read_size_throttling_controller, request, request->body_size())) {
             return;
         }
     }
