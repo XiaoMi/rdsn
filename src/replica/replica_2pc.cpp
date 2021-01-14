@@ -121,10 +121,11 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     }
 
     if (!ignore_throttling) {
-        if (throttle_request(_write_qps_throttling_controller, request, 1)) {
+        if (throttle_write_request(_write_qps_throttling_controller, request, 1)) {
             return;
         }
-        if (throttle_request(_write_size_throttling_controller, request, request->body_size())) {
+        if (throttle_write_request(
+                _write_size_throttling_controller, request, request->body_size())) {
             return;
         }
     }

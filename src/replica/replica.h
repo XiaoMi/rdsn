@@ -120,7 +120,7 @@ public:
     //    requests from clients
     //
     void on_client_write(message_ex *request, bool ignore_throttling = false);
-    void on_client_read(message_ex *request);
+    void on_client_read(message_ex *request, bool ignore_throttling = false);
 
     //
     //    Throttling
@@ -128,8 +128,8 @@ public:
 
     /// throttle write requests
     /// \return true if request is throttled.
-    /// \see replica::on_client_write
-    bool throttle_request(throttling_controller &c, message_ex *request, int32_t req_units);
+    bool throttle_write_request(throttling_controller &c, message_ex *request, int32_t req_units);
+    bool throttle_read_request(throttling_controller &c, message_ex *request, int32_t req_units);
     //
     //    messages and tools from/for meta server
     //
@@ -530,6 +530,8 @@ private:
     perf_counter_wrapper _counter_private_log_size;
     perf_counter_wrapper _counter_recent_write_throttling_delay_count;
     perf_counter_wrapper _counter_recent_write_throttling_reject_count;
+    perf_counter_wrapper _counter_recent_read_throttling_delay_count;
+    perf_counter_wrapper _counter_recent_read_throttling_reject_count;
     std::vector<perf_counter *> _counters_table_level_latency;
     perf_counter_wrapper _counter_dup_disabled_non_idempotent_write_count;
     perf_counter_wrapper _counter_backup_request_qps;
