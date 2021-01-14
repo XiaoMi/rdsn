@@ -724,7 +724,8 @@ typedef struct _replica_configuration__isset
           primary(false),
           status(true),
           learner_signature(false),
-          pop_all(true)
+          pop_all(true),
+          split_sync_to_child(true)
     {
     }
     bool pid : 1;
@@ -733,6 +734,7 @@ typedef struct _replica_configuration__isset
     bool status : 1;
     bool learner_signature : 1;
     bool pop_all : 1;
+    bool split_sync_to_child : 1;
 } _replica_configuration__isset;
 
 class replica_configuration
@@ -743,7 +745,11 @@ public:
     replica_configuration &operator=(const replica_configuration &);
     replica_configuration &operator=(replica_configuration &&);
     replica_configuration()
-        : ballot(0), status((partition_status::type)0), learner_signature(0), pop_all(false)
+        : ballot(0),
+          status((partition_status::type)0),
+          learner_signature(0),
+          pop_all(false),
+          split_sync_to_child(false)
     {
         status = (partition_status::type)0;
     }
@@ -755,6 +761,7 @@ public:
     partition_status::type status;
     int64_t learner_signature;
     bool pop_all;
+    bool split_sync_to_child;
 
     _replica_configuration__isset __isset;
 
@@ -769,6 +776,8 @@ public:
     void __set_learner_signature(const int64_t val);
 
     void __set_pop_all(const bool val);
+
+    void __set_split_sync_to_child(const bool val);
 
     bool operator==(const replica_configuration &rhs) const
     {
@@ -785,6 +794,10 @@ public:
         if (__isset.pop_all != rhs.__isset.pop_all)
             return false;
         else if (__isset.pop_all && !(pop_all == rhs.pop_all))
+            return false;
+        if (__isset.split_sync_to_child != rhs.__isset.split_sync_to_child)
+            return false;
+        else if (__isset.split_sync_to_child && !(split_sync_to_child == rhs.split_sync_to_child))
             return false;
         return true;
     }

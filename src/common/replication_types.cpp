@@ -754,6 +754,12 @@ void replica_configuration::__set_pop_all(const bool val)
     __isset.pop_all = true;
 }
 
+void replica_configuration::__set_split_sync_to_child(const bool val)
+{
+    this->split_sync_to_child = val;
+    __isset.split_sync_to_child = true;
+}
+
 uint32_t replica_configuration::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -823,6 +829,14 @@ uint32_t replica_configuration::read(::apache::thrift::protocol::TProtocol *ipro
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 7:
+            if (ftype == ::apache::thrift::protocol::T_BOOL) {
+                xfer += iprot->readBool(this->split_sync_to_child);
+                this->__isset.split_sync_to_child = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -866,6 +880,12 @@ uint32_t replica_configuration::write(::apache::thrift::protocol::TProtocol *opr
         xfer += oprot->writeBool(this->pop_all);
         xfer += oprot->writeFieldEnd();
     }
+    if (this->__isset.split_sync_to_child) {
+        xfer +=
+            oprot->writeFieldBegin("split_sync_to_child", ::apache::thrift::protocol::T_BOOL, 7);
+        xfer += oprot->writeBool(this->split_sync_to_child);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -880,6 +900,7 @@ void swap(replica_configuration &a, replica_configuration &b)
     swap(a.status, b.status);
     swap(a.learner_signature, b.learner_signature);
     swap(a.pop_all, b.pop_all);
+    swap(a.split_sync_to_child, b.split_sync_to_child);
     swap(a.__isset, b.__isset);
 }
 
@@ -891,6 +912,7 @@ replica_configuration::replica_configuration(const replica_configuration &other1
     status = other19.status;
     learner_signature = other19.learner_signature;
     pop_all = other19.pop_all;
+    split_sync_to_child = other19.split_sync_to_child;
     __isset = other19.__isset;
 }
 replica_configuration::replica_configuration(replica_configuration &&other20)
@@ -901,6 +923,7 @@ replica_configuration::replica_configuration(replica_configuration &&other20)
     status = std::move(other20.status);
     learner_signature = std::move(other20.learner_signature);
     pop_all = std::move(other20.pop_all);
+    split_sync_to_child = std::move(other20.split_sync_to_child);
     __isset = std::move(other20.__isset);
 }
 replica_configuration &replica_configuration::operator=(const replica_configuration &other21)
@@ -911,6 +934,7 @@ replica_configuration &replica_configuration::operator=(const replica_configurat
     status = other21.status;
     learner_signature = other21.learner_signature;
     pop_all = other21.pop_all;
+    split_sync_to_child = other21.split_sync_to_child;
     __isset = other21.__isset;
     return *this;
 }
@@ -922,6 +946,7 @@ replica_configuration &replica_configuration::operator=(replica_configuration &&
     status = std::move(other22.status);
     learner_signature = std::move(other22.learner_signature);
     pop_all = std::move(other22.pop_all);
+    split_sync_to_child = std::move(other22.split_sync_to_child);
     __isset = std::move(other22.__isset);
     return *this;
 }
@@ -941,6 +966,9 @@ void replica_configuration::printTo(std::ostream &out) const
     out << ", "
         << "pop_all=";
     (__isset.pop_all ? (out << to_string(pop_all)) : (out << "<null>"));
+    out << ", "
+        << "split_sync_to_child=";
+    (__isset.split_sync_to_child ? (out << to_string(split_sync_to_child)) : (out << "<null>"));
     out << ")";
 }
 
