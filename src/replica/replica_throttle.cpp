@@ -102,5 +102,6 @@ void replica::update_throttle_env_internal(const std::map<std::string, std::stri
         ddebug_replica("switch {} from \"{}\" to \"{}\"", key, old_throttling, cntl.env_value());
     }
 }
+
 } // namespace replication
 } // namespace dsn
