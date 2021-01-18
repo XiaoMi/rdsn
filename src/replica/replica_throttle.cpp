@@ -24,7 +24,7 @@ namespace replication {
                 tasking::enqueue(                                                                  \
                     LPC_THROTTLING_DELAY,                                                          \
                     &_tracker,                                                                     \
-                    [this, req = message_ptr(request)]() { on_client_##op_type(req, true); },      \
+                    [ this, req = message_ptr(request) ]() { on_client_##op_type(req, true); },    \
                     get_gpid().thread_hash(),                                                      \
                     std::chrono::milliseconds(delay_ms));                                          \
                 _counter_recent_##op_type##_throttling_delay_count->increment();                   \
@@ -32,7 +32,7 @@ namespace replication {
                 if (delay_ms > 0) {                                                                \
                     tasking::enqueue(LPC_THROTTLING_DELAY,                                         \
                                      &_tracker,                                                    \
-                                     [this, req = message_ptr(request)]() {                        \
+                                     [ this, req = message_ptr(request) ]() {                      \
                                          response_client_##op_type(req, ERR_BUSY);                 \
                                      },                                                            \
                                      get_gpid().thread_hash(),                                     \
