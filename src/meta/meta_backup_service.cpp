@@ -663,8 +663,7 @@ void policy_context::issue_new_backup_unlocked()
 {
     // before issue new backup, we check whether the policy is dropped
     if (_policy.is_disable) {
-        ddebug("%s: policy is disable, just ignore backup, try it later",
-               _policy.policy_name.c_str());
+        dinfo_f("policy {} is disabled, just ignore backup, try it later", _policy.policy_name);
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
                          &_tracker,
                          [this]() {
@@ -677,9 +676,9 @@ void policy_context::issue_new_backup_unlocked()
     }
 
     if (!should_start_backup_unlocked()) {
-        ddebug_f("{}: it's not the right time to start backup now, retry to issue new backup 1 "
-                 "second later.",
-                 _policy.policy_name);
+        dinfo_f("{}: it's not the right time to start backup now, retry to issue new backup 1 "
+                "second later.",
+                _policy.policy_name);
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
                          &_tracker,
                          [this]() {
