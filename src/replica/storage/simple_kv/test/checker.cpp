@@ -173,7 +173,7 @@ bool test_checker::init(const std::string &name, const std::vector<service_app *
         }
     }
 
-    const auto &nodes = ::dsn::service_engine::instance().get_all_nodes();
+    const auto &nodes = dsn::service_engine::instance().get_all_nodes();
     for (const auto &node : nodes) {
         int id = node.second->id();
         std::string name = node.second->full_name();

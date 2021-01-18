@@ -508,7 +508,7 @@ bool run(const char *config_file,
         }
     }
 
-    if (::dsn::service_engine::instance().get_all_nodes().size() == 0) {
+    if (dsn::service_engine::instance().get_all_nodes().size() == 0) {
         printf("no app are created, usually because \n"
                "app_name is not specified correctly, should be 'xxx' in [apps.xxx]\n"
                "or app_index (1-based) is greater than specified count in config file\n");
