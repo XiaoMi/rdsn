@@ -22,15 +22,15 @@ namespace replication {
         if (type != throttling_controller::PASS) {                                                 \
             if (type == throttling_controller::DELAY) {                                            \
                 tasking::enqueue(                                                                  \
-                    LPC_THROTTLING_DELAY,                                                          \
+                    LPC_##op_type##_THROTTLING_DELAY,                                              \
                     &_tracker,                                                                     \
                     [ this, req = message_ptr(request) ]() { on_client_##op_type(req, true); },    \
                     get_gpid().thread_hash(),                                                      \
                     std::chrono::milliseconds(delay_ms));                                          \
                 _counter_recent_##op_type##_throttling_delay_count->increment();                   \
-            } else {                                                                               \
+            } else { /** type == throttling_controller::REJECT **/                                 \
                 if (delay_ms > 0) {                                                                \
-                    tasking::enqueue(LPC_THROTTLING_DELAY,                                         \
+                    tasking::enqueue(LPC_##op_type##_THROTTLING_DELAY,                             \
                                      &_tracker,                                                    \
                                      [ this, req = message_ptr(request) ]() {                      \
                                          response_client_##op_type(req, ERR_BUSY);                 \
