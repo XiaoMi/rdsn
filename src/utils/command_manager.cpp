@@ -52,7 +52,6 @@ dsn_handle_t command_manager::register_command(const std::vector<std::string> &c
     c->help_long = help_long;
     c->help_short = help_one_line;
     c->handler = handler;
-    _commands.push_back(c);
 
     for (const std::string &cmd : commands) {
         if (!cmd.empty()) {
@@ -71,8 +70,6 @@ void command_manager::deregister_command(dsn_handle_t handle)
         ddebug("unregister command: %s", cmd.c_str());
         _handlers.erase(cmd);
     }
-    std::remove(_commands.begin(), _commands.end(), c);
-    delete c;
 }
 
 bool command_manager::run_command(const std::string &cmd,
@@ -106,8 +103,8 @@ command_manager::command_manager()
 
                          if (args.size() == 0) {
                              utils::auto_read_lock l(_lock);
-                             for (auto c : this->_commands) {
-                                 ss << c->help_short << std::endl;
+                             for (auto c : this->_handlers) {
+                                 ss << c.second->help_short << std::endl;
                              }
                          } else {
                              utils::auto_read_lock l(_lock);
@@ -172,11 +169,6 @@ command_manager::command_manager()
         });
 }
 
-command_manager::~command_manager()
-{
-    for (command_instance *c : _commands) {
-        delete c;
-    }
-}
+command_manager::~command_manager() { _handlers.clear(); }
 
 } // namespace dsn
