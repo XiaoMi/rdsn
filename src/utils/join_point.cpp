@@ -45,9 +45,7 @@ join_point_base::join_point_base(const char *name)
     _hdr.name = "";
 }
 
-join_point_base::~join_point_base() {
-    remove_all();
-}
+join_point_base::~join_point_base() { remove_all(); }
 
 bool join_point_base::put_front(void *fn, const char *name, bool is_native)
 {
@@ -141,7 +139,8 @@ bool join_point_base::remove(const char *name)
     return true;
 }
 
-void join_point_base::remove_all() {
+void join_point_base::remove_all()
+{
     auto p = _hdr.next;
     while (p != &_hdr) {
         p = p->next;
