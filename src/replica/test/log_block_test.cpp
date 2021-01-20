@@ -132,7 +132,6 @@ TEST_F(log_appender_test, read_log_block)
         ASSERT_GT(appender.all_blocks().size(), block_idx);
         ASSERT_GE(reader.get_remaining_size(), sizeof(log_block_header));
         reader.read(tmp_bb, sizeof(log_block_header));
-        
 
         const auto &expected_block = appender.all_blocks()[block_idx];
         size_t blk_len = expected_block.size() - sizeof(log_block_header);
