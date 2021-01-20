@@ -45,6 +45,10 @@ join_point_base::join_point_base(const char *name)
     _hdr.name = "";
 }
 
+join_point_base::~join_point_base() {
+    remove_all();
+}
+
 bool join_point_base::put_front(void *fn, const char *name, bool is_native)
 {
     auto e = new_entry(fn, name, is_native);
@@ -133,7 +137,17 @@ bool join_point_base::remove(const char *name)
     e0->next->prev = e0->prev;
     e0->prev->next = e0->next;
 
+    delete e0;
     return true;
+}
+
+void join_point_base::remove_all() {
+    auto p = _hdr.next;
+    while (p != &_hdr) {
+        p = p->next;
+        delete p->prev;
+    }
+    _hdr.next = _hdr.prev = &_hdr;
 }
 
 join_point_base::advice_entry *

@@ -157,4 +157,12 @@ TEST(core, join_point)
         jp.get_all(jp_vec);
         ASSERT_EQ(check_vec, jp_vec);
     }
+
+    {
+        // []
+        check_vec.clear();
+        jp.remove_all();
+        jp.get_all(jp_vec);
+        ASSERT_EQ(check_vec, jp_vec);
+    }
 }

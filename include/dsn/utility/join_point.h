@@ -43,6 +43,7 @@ class join_point_base
 {
 public:
     join_point_base(const char *name);
+    virtual ~join_point_base();
 
     bool put_front(void *fn, const char *name, bool is_native = false);
     bool put_back(void *fn, const char *name, bool is_native = false);
@@ -50,6 +51,7 @@ public:
     bool put_after(const char *base, void *fn, const char *name, bool is_native = false);
     bool remove(const char *name);
     bool put_replace(const char *base, void *fn, const char *name);
+    void remove_all();
 
     const char *name() const { return _name.c_str(); }
 
