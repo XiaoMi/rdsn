@@ -379,7 +379,7 @@ std::string query_data_handler(const std::vector<std::string> &args)
                     if (s_spec_profilers[task_id].ptr[counter_type].get() == NULL)
                         continue;
 
-                    std::string name = counter_info_ptr[counter_type]->title;
+                    const std::string &name = counter_info_ptr[counter_type]->title;
 
                     char name_suffix[10] = {0};
                     switch (task_spec::get(task_id)->type) {
@@ -555,7 +555,7 @@ std::string query_data_handler(const std::vector<std::string> &args)
                     if (s_spec_profilers[task_id].ptr[counter_type].get() == NULL)
                         continue;
 
-                    std::string name = counter_info_ptr[counter_type]->title;
+                    const std::string &name = counter_info_ptr[counter_type]->title;
 
                     char name_suffix[10] = {0};
                     switch (task_spec::get(task_id)->type) {
