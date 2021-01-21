@@ -103,7 +103,7 @@ command_manager::command_manager()
 
                          if (args.size() == 0) {
                              utils::auto_read_lock l(_lock);
-                             for (auto c : this->_handlers) {
+                             for (const auto &c : this->_handlers) {
                                  ss << c.second->help_short << std::endl;
                              }
                          } else {
