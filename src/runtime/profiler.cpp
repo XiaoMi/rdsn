@@ -441,7 +441,7 @@ void profiler::install(service_spec &)
             "collect_call_count",
             collect_call_count,
             "whether to collect how many time this kind of tasks invoke each of other kinds tasks");
-        s_spec_profilers[i].call_counts = new std::atomic<int64_t>[s_task_code_max + 1];
+        s_spec_profilers[i].call_counts = new std::atomic<int64_t>[ s_task_code_max + 1 ];
         std::fill(s_spec_profilers[i].call_counts,
                   s_spec_profilers[i].call_counts + s_task_code_max + 1,
                   0);
