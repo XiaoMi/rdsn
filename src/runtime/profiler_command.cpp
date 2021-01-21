@@ -77,11 +77,10 @@ static dsn_perf_counter_percentile_type_t find_percentail_type(const std::string
 
 static perf_counter_ptr_type find_counter_type(const std::string &name)
 {
-    for (int k = 0; k < PERF_COUNTER_COUNT; k++) {
-        perf_counter_ptr_type counter_type = static_cast<perf_counter_ptr_type>(k);
-        const auto &keys = counter_info_ptr[counter_type]->keys;
+    for (int i = 0; i < PERF_COUNTER_COUNT; i++) {
+        const auto &keys = counter_info_ptr[i]->keys;
         if (std::find(keys.begin(), keys.end(), name) != keys.end()) {
-            return counter_info_ptr[counter_type]->counter_ptr_type;
+            return counter_info_ptr[i]->counter_ptr_type;
         }
     }
     return PERF_COUNTER_INVALID;
