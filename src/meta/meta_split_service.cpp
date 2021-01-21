@@ -442,9 +442,10 @@ void meta_split_service::notify_stop_split(notify_stop_split_rpc rpc)
               "invalid split_status({})",
               dsn::enum_to_string(request.meta_split_status));
 
-    const std::string stop_type =
+    const std::string &stop_type =
         rpc.request().meta_split_status == split_status::PAUSING ? "pause" : "cancel";
-    auto iter = app->helpers->split_states.status.find(request.parent_gpid.get_partition_index());
+    const auto iter =
+        app->helpers->split_states.status.find(request.parent_gpid.get_partition_index());
     if (iter == app->helpers->split_states.status.end()) {
         dwarn_f("app({}) partition({}) is not executing partition split, ignore out-dated {} split "
                 "request",
@@ -499,10 +500,8 @@ void meta_split_service::do_cancel_partition_split(std::shared_ptr<app_state> ap
                  app->partition_count / 2);
         zauto_write_lock l(app_lock());
         app->partition_count /= 2;
-        for (int i = app->partition_count; i < app->partition_count * 2; ++i) {
-            app->partitions.erase(app->partitions.cbegin() + i);
-            app->helpers->contexts.erase(app->helpers->contexts.cbegin() + i);
-        }
+        app->helpers->contexts.resize(app->partition_count);
+        app->partitions.resize(app->partition_count);
     };
 
     auto copy = *app;
