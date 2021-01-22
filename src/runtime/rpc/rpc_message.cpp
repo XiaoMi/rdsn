@@ -373,25 +373,18 @@ message_ex *message_ex::create_response()
 
 void message_ex::prepare_buffer_header()
 {
-    void *ptr;
-    size_t size;
-    ::dsn::tls_trans_mem_next(&ptr, &size, sizeof(message_header));
-
-    ::dsn::blob buffer((*::dsn::tls_trans_memory.block),
-                       (int)((char *)(ptr) - ::dsn::tls_trans_memory.block->get()),
-                       (int)sizeof(message_header));
-
-    ::dsn::tls_trans_mem_commit(sizeof(message_header));
-
-    this->_rw_index = 0;
-    this->_rw_offset = (int)sizeof(message_header);
-    this->buffers.push_back(buffer);
+    size_t header_size = sizeof(message_header);
+    std::shared_ptr<char> ptr(dsn::utils::make_shared_array<char>(header_size));
 
     // here we should call placement new,
     // so the gpid & rpc_address can be initialized
-    new (ptr)(message_header);
+    new (ptr.get())(message_header);
+    this->header = (message_header *)ptr.get();
 
-    header = (message_header *)ptr;
+    ::dsn::blob buffer(std::move(ptr), header_size);
+    this->buffers.push_back(buffer);
+    this->_rw_index = 0;
+    this->_rw_offset = header_size;
 }
 
 void message_ex::release_buffer_header()
