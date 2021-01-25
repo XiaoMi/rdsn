@@ -374,7 +374,7 @@ message_ex *message_ex::create_response()
 void message_ex::prepare_buffer_header()
 {
     size_t header_size = sizeof(message_header);
-    std::shared_ptr<char> ptr(dsn::utils::make_shared_array<char>(header_size));
+    auto ptr(dsn::utils::make_shared_array<char>(header_size));
 
     // here we should call placement new,
     // so the gpid & rpc_address can be initialized
