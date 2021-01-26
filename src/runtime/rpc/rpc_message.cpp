@@ -152,7 +152,7 @@ message_ex *message_ex::create_receive_message_with_standalone_header(const blob
     std::string str(header_size, '\0');
     msg->header = reinterpret_cast<message_header *>(const_cast<char *>(str.data()));
 
-    msg->buffers.emplace_back(dsn::blob::create_from_bytes(std::move(str)));
+    msg->buffers.emplace_back(blob::create_from_bytes(std::move(str)));
     msg->buffers.push_back(data);
 
     msg->header->body_length = data.length();
@@ -170,7 +170,7 @@ message_ex *message_ex::copy_message_no_reply(const message_ex &old_msg)
     std::string str(header_size, '\0');
     msg->header = reinterpret_cast<message_header *>(const_cast<char *>(str.data()));
 
-    msg->buffers.emplace_back(dsn::blob::create_from_bytes(std::move(str)));
+    msg->buffers.emplace_back(blob::create_from_bytes(std::move(str)));
     if (old_msg.buffers.size() == 1) {
         // if old_msg only has header, consider its header as data
         msg->buffers.emplace_back(old_msg.buffers[0]);
