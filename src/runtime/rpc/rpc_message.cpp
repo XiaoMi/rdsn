@@ -149,10 +149,11 @@ message_ex *message_ex::create_receive_message_with_standalone_header(const blob
 {
     message_ex *msg = new message_ex();
     size_t header_size = sizeof(message_header);
-    std::string str('\0', header_size);
-    msg->header = reinterpret_cast<message_header *>(const_cast<char *>(str.data()));
+    auto header_holder(utils::make_shared_array<char>(header_size));
+    msg->header = reinterpret_cast<message_header *>(header_holder.get());
+    memset(static_cast<void *>(msg->header), 0, header_size);
 
-    msg->buffers.emplace_back(dsn::blob::create_from_bytes(std::move(str)));
+    msg->buffers.emplace_back(blob(std::move(header_holder), header_size));
     msg->buffers.push_back(data);
 
     msg->header->body_length = data.length();
@@ -167,10 +168,11 @@ message_ex *message_ex::copy_message_no_reply(const message_ex &old_msg)
 {
     message_ex *msg = new message_ex();
     size_t header_size = sizeof(message_header);
-    std::string str('\0', header_size);
-    msg->header = reinterpret_cast<message_header *>(const_cast<char *>(str.data()));
+    auto header_holder(utils::make_shared_array<char>(header_size));
+    msg->header = reinterpret_cast<message_header *>(header_holder.get());
+    memset(static_cast<void *>(msg->header), 0, header_size);
+    msg->buffers.emplace_back(blob(std::move(header_holder), header_size));
 
-    msg->buffers.emplace_back(dsn::blob::create_from_bytes(std::move(str)));
     if (old_msg.buffers.size() == 1) {
         // if old_msg only has header, consider its header as data
         msg->buffers.emplace_back(old_msg.buffers[0]);
