@@ -99,7 +99,7 @@ public:
     //
     mutation_log(const std::string &dir, int32_t max_log_file_mb, gpid gpid, replica *r = nullptr);
 
-    virtual ~mutation_log() = default;
+    virtual ~mutation_log() { close(); }
 
     //
     // initialization

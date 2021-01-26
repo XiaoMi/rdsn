@@ -49,7 +49,7 @@ public:
     slave_failure_detector_with_multimaster(std::vector<::dsn::rpc_address> &meta_servers,
                                             std::function<void()> &&master_disconnected_callback,
                                             std::function<void()> &&master_connected_callback);
-    ~slave_failure_detector_with_multimaster(void);
+    virtual ~slave_failure_detector_with_multimaster() {}
 
     virtual void end_ping(::dsn::error_code err, const fd::beacon_ack &ack, void *context);
 
