@@ -32,6 +32,7 @@
 #include <dsn/utility/crc.h>
 #include <dsn/service_api_c.h>
 #include <dsn/utility/smart_pointers.h>
+#include <dsn/dist/fmt_logging.h>
 #include <fstream>
 #include <sstream>
 #include <memory>
@@ -515,7 +516,7 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
         derror_replica("failed to apply mutation: {} [mu: {}, size: {}]",
                        e.what(),
                        mu->name(),
-                       mu->appro_data_bytes);
+                       mu->appro_data_bytes());
     }
 
     // release faked requests
