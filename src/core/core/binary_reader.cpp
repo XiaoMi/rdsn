@@ -64,7 +64,7 @@ int binary_reader::read(blob &blob, int len)
         _remaining_size -= len;
         return len + sizeof(len);
     } else {
-        assert(false);
+        throw std::invalid_argument("binary_reader failed to read blob");
         return 0;
     }
 }
@@ -77,7 +77,7 @@ int binary_reader::read(char *buffer, int sz)
         _remaining_size -= sz;
         return sz;
     } else {
-        assert(false);
+        throw std::invalid_argument("binary_reader failed to read char*");
         return 0;
     }
 }
