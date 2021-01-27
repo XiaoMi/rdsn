@@ -516,7 +516,7 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
         derror_replica("failed to apply mutation: {} [mu: {}, size: {}]",
                        e.what(),
                        mu->name(),
-                       mu->appro_data_bytes);
+                       mu->appro_data_bytes());
     }
 
     // release faked requests
