@@ -39,13 +39,16 @@ dsn_handle_t command_manager::register_command(const std::vector<std::string> &c
                                                command_handler handler)
 {
     utils::auto_write_lock l(_lock);
+    bool is_valid_cmd = false;
 
     for (const std::string &cmd : commands) {
         if (!cmd.empty()) {
+            is_valid_cmd = true;
             auto it = _handlers.find(cmd);
             dassert(it == _handlers.end(), "command '%s' already regisered", cmd.c_str());
         }
     }
+    dassert(is_valid_cmd, "should not register empty command");
 
     command_instance *c = new command_instance();
     c->commands = commands;
