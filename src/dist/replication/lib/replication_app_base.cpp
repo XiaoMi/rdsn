@@ -32,6 +32,7 @@
 #include <dsn/utility/crc.h>
 #include <dsn/service_api_c.h>
 #include <dsn/utility/smart_pointers.h>
+#include <dsn/dist/fmt_logging.h>
 #include <fstream>
 #include <sstream>
 #include <memory>
