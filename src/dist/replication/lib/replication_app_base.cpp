@@ -507,8 +507,16 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
         }
     }
 
-    int perror = on_batched_write_requests(
-        mu->data.header.decree, mu->data.header.timestamp, batched_requests, batched_count);
+    int perror = 0;
+    try {
+        perror = on_batched_write_requests(
+            mu->data.header.decree, mu->data.header.timestamp, batched_requests, batched_count);
+    } catch (std::exception &e) {
+        derror_replica("failed to apply mutation: {} [mu: {}, size: {}]",
+                       e.what(),
+                       mu->name(),
+                       mu->appro_data_bytes);
+    }
 
     // release faked requests
     for (int i = 0; i < faked_count; i++) {
