@@ -27,23 +27,27 @@
 namespace dsn {
 namespace replication {
 
-DSN_DEFINE_uint64("replication",
-                  gc_disk_error_replica_interval_seconds,
-                  7 * 24 * 3600 /*7day*/,
-                  "disk migration generate tmp dir gc interval, the folder name suffix is '.tmp' ");
-DSN_DEFINE_uint64("replication",
-                  gc_disk_garbage_replica_interval_seconds,
-                  24 * 3600 /*1day*/,
-                  "disk migration origin dir gc interval, the folder name suffix is '.ori' ");
+DSN_DEFINE_uint64(
+    "replication",
+    gc_disk_error_replica_interval_seconds,
+    7 * 24 * 3600 /*7day*/,
+    "Duration of error replica being removed, which is in a directory with '.err' suffixed");
+DSN_DEFINE_uint64(
+    "replication",
+    gc_disk_garbage_replica_interval_seconds,
+    24 * 3600 /*1day*/,
+    "Duration of garbaged replica being removed, which is in a directory with '.gar' suffixed");
 
 DSN_DEFINE_uint64("replication",
                   gc_disk_migration_tmp_replica_interval_seconds,
                   24 * 3600 /*1day*/,
-                  "disk migration generate tmp dir gc interval, the folder name suffix is '.tmp' ");
+                  "Duration of disk-migration tmp replica being removed, which is in a directory "
+                  "with '.tmp' suffixed");
 DSN_DEFINE_uint64("replication",
                   gc_disk_migration_origin_replica_interval_seconds,
                   7 * 24 * 3600 /*7day*/,
-                  "disk migration origin dir gc interval, the folder name suffix is '.ori' ");
+                  "Duration of disk-migration origin replica being removed, which is in a "
+                  "directory with '.ori' suffixed");
 
 const std::string kFolderSuffixErr = ".err";
 const std::string kFolderSuffixGar = ".gar";
@@ -113,7 +117,7 @@ error_s disk_remove_useless_dirs(const std::vector<std::string> &data_dirs,
                      last_write_time + remove_interval_seconds - current_time_ms / 1000);
         }
     }
-    return error_s::make(ERR_OK);
+    return error_s::ok();
 }
-}
-}
+} // namespace replication
+} // namespace dsn
