@@ -2750,6 +2750,12 @@ void group_check_response::__set_learner_signature(const int64_t val)
 
 void group_check_response::__set_node(const ::dsn::rpc_address &val) { this->node = val; }
 
+void group_check_response::__set_is_split_stopped(const bool val)
+{
+    this->is_split_stopped = val;
+    __isset.is_split_stopped = true;
+}
+
 uint32_t group_check_response::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -2827,6 +2833,14 @@ uint32_t group_check_response::read(::apache::thrift::protocol::TProtocol *iprot
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 8:
+            if (ftype == ::apache::thrift::protocol::T_BOOL) {
+                xfer += iprot->readBool(this->is_split_stopped);
+                this->__isset.is_split_stopped = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -2875,6 +2889,11 @@ uint32_t group_check_response::write(::apache::thrift::protocol::TProtocol *opro
     xfer += this->node.write(oprot);
     xfer += oprot->writeFieldEnd();
 
+    if (this->__isset.is_split_stopped) {
+        xfer += oprot->writeFieldBegin("is_split_stopped", ::apache::thrift::protocol::T_BOOL, 8);
+        xfer += oprot->writeBool(this->is_split_stopped);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -2890,6 +2909,7 @@ void swap(group_check_response &a, group_check_response &b)
     swap(a.learner_status_, b.learner_status_);
     swap(a.learner_signature, b.learner_signature);
     swap(a.node, b.node);
+    swap(a.is_split_stopped, b.is_split_stopped);
     swap(a.__isset, b.__isset);
 }
 
@@ -2902,6 +2922,7 @@ group_check_response::group_check_response(const group_check_response &other73)
     learner_status_ = other73.learner_status_;
     learner_signature = other73.learner_signature;
     node = other73.node;
+    is_split_stopped = other73.is_split_stopped;
     __isset = other73.__isset;
 }
 group_check_response::group_check_response(group_check_response &&other74)
@@ -2914,6 +2935,7 @@ group_check_response::group_check_response(group_check_response &&other74)
     learner_status_ = std::move(other74.learner_status_);
     learner_signature = std::move(other74.learner_signature);
     node = std::move(other74.node);
+    is_split_stopped = std::move(other74.is_split_stopped);
     __isset = std::move(other74.__isset);
 }
 group_check_response &group_check_response::operator=(const group_check_response &other75)
@@ -2925,6 +2947,7 @@ group_check_response &group_check_response::operator=(const group_check_response
     learner_status_ = other75.learner_status_;
     learner_signature = other75.learner_signature;
     node = other75.node;
+    is_split_stopped = other75.is_split_stopped;
     __isset = other75.__isset;
     return *this;
 }
@@ -2938,6 +2961,7 @@ group_check_response &group_check_response::operator=(group_check_response &&oth
     learner_status_ = std::move(other76.learner_status_);
     learner_signature = std::move(other76.learner_signature);
     node = std::move(other76.node);
+    is_split_stopped = std::move(other76.is_split_stopped);
     __isset = std::move(other76.__isset);
     return *this;
 }
@@ -2959,6 +2983,9 @@ void group_check_response::printTo(std::ostream &out) const
         << "learner_signature=" << to_string(learner_signature);
     out << ", "
         << "node=" << to_string(node);
+    out << ", "
+        << "is_split_stopped=";
+    (__isset.is_split_stopped ? (out << to_string(is_split_stopped)) : (out << "<null>"));
     out << ")";
 }
 
@@ -16051,6 +16078,274 @@ void register_child_response::printTo(std::ostream &out) const
     out << ")";
 }
 
+notify_stop_split_request::~notify_stop_split_request() throw() {}
+
+void notify_stop_split_request::__set_app_name(const std::string &val) { this->app_name = val; }
+
+void notify_stop_split_request::__set_parent_gpid(const ::dsn::gpid &val)
+{
+    this->parent_gpid = val;
+}
+
+void notify_stop_split_request::__set_meta_split_status(const split_status::type val)
+{
+    this->meta_split_status = val;
+}
+
+void notify_stop_split_request::__set_partition_count(const int32_t val)
+{
+    this->partition_count = val;
+}
+
+uint32_t notify_stop_split_request::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->app_name);
+                this->__isset.app_name = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->parent_gpid.read(iprot);
+                this->__isset.parent_gpid = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 3:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                int32_t ecast696;
+                xfer += iprot->readI32(ecast696);
+                this->meta_split_status = (split_status::type)ecast696;
+                this->__isset.meta_split_status = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 4:
+            if (ftype == ::apache::thrift::protocol::T_I32) {
+                xfer += iprot->readI32(this->partition_count);
+                this->__isset.partition_count = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t notify_stop_split_request::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("notify_stop_split_request");
+
+    xfer += oprot->writeFieldBegin("app_name", ::apache::thrift::protocol::T_STRING, 1);
+    xfer += oprot->writeString(this->app_name);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("parent_gpid", ::apache::thrift::protocol::T_STRUCT, 2);
+    xfer += this->parent_gpid.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("meta_split_status", ::apache::thrift::protocol::T_I32, 3);
+    xfer += oprot->writeI32((int32_t)this->meta_split_status);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("partition_count", ::apache::thrift::protocol::T_I32, 4);
+    xfer += oprot->writeI32(this->partition_count);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(notify_stop_split_request &a, notify_stop_split_request &b)
+{
+    using ::std::swap;
+    swap(a.app_name, b.app_name);
+    swap(a.parent_gpid, b.parent_gpid);
+    swap(a.meta_split_status, b.meta_split_status);
+    swap(a.partition_count, b.partition_count);
+    swap(a.__isset, b.__isset);
+}
+
+notify_stop_split_request::notify_stop_split_request(const notify_stop_split_request &other697)
+{
+    app_name = other697.app_name;
+    parent_gpid = other697.parent_gpid;
+    meta_split_status = other697.meta_split_status;
+    partition_count = other697.partition_count;
+    __isset = other697.__isset;
+}
+notify_stop_split_request::notify_stop_split_request(notify_stop_split_request &&other698)
+{
+    app_name = std::move(other698.app_name);
+    parent_gpid = std::move(other698.parent_gpid);
+    meta_split_status = std::move(other698.meta_split_status);
+    partition_count = std::move(other698.partition_count);
+    __isset = std::move(other698.__isset);
+}
+notify_stop_split_request &notify_stop_split_request::
+operator=(const notify_stop_split_request &other699)
+{
+    app_name = other699.app_name;
+    parent_gpid = other699.parent_gpid;
+    meta_split_status = other699.meta_split_status;
+    partition_count = other699.partition_count;
+    __isset = other699.__isset;
+    return *this;
+}
+notify_stop_split_request &notify_stop_split_request::
+operator=(notify_stop_split_request &&other700)
+{
+    app_name = std::move(other700.app_name);
+    parent_gpid = std::move(other700.parent_gpid);
+    meta_split_status = std::move(other700.meta_split_status);
+    partition_count = std::move(other700.partition_count);
+    __isset = std::move(other700.__isset);
+    return *this;
+}
+void notify_stop_split_request::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "notify_stop_split_request(";
+    out << "app_name=" << to_string(app_name);
+    out << ", "
+        << "parent_gpid=" << to_string(parent_gpid);
+    out << ", "
+        << "meta_split_status=" << to_string(meta_split_status);
+    out << ", "
+        << "partition_count=" << to_string(partition_count);
+    out << ")";
+}
+
+notify_stop_split_response::~notify_stop_split_response() throw() {}
+
+void notify_stop_split_response::__set_err(const ::dsn::error_code &val) { this->err = val; }
+
+uint32_t notify_stop_split_response::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->err.read(iprot);
+                this->__isset.err = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t notify_stop_split_response::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("notify_stop_split_response");
+
+    xfer += oprot->writeFieldBegin("err", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->err.write(oprot);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(notify_stop_split_response &a, notify_stop_split_response &b)
+{
+    using ::std::swap;
+    swap(a.err, b.err);
+    swap(a.__isset, b.__isset);
+}
+
+notify_stop_split_response::notify_stop_split_response(const notify_stop_split_response &other701)
+{
+    err = other701.err;
+    __isset = other701.__isset;
+}
+notify_stop_split_response::notify_stop_split_response(notify_stop_split_response &&other702)
+{
+    err = std::move(other702.err);
+    __isset = std::move(other702.__isset);
+}
+notify_stop_split_response &notify_stop_split_response::
+operator=(const notify_stop_split_response &other703)
+{
+    err = other703.err;
+    __isset = other703.__isset;
+    return *this;
+}
+notify_stop_split_response &notify_stop_split_response::
+operator=(notify_stop_split_response &&other704)
+{
+    err = std::move(other704.err);
+    __isset = std::move(other704.__isset);
+    return *this;
+}
+void notify_stop_split_response::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "notify_stop_split_response(";
+    out << "err=" << to_string(err);
+    out << ")";
+}
+
 bulk_load_metadata::~bulk_load_metadata() throw() {}
 
 void bulk_load_metadata::__set_files(const std::vector<file_meta> &val) { this->files = val; }
@@ -16080,13 +16375,13 @@ uint32_t bulk_load_metadata::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->files.clear();
-                    uint32_t _size696;
-                    ::apache::thrift::protocol::TType _etype699;
-                    xfer += iprot->readListBegin(_etype699, _size696);
-                    this->files.resize(_size696);
-                    uint32_t _i700;
-                    for (_i700 = 0; _i700 < _size696; ++_i700) {
-                        xfer += this->files[_i700].read(iprot);
+                    uint32_t _size705;
+                    ::apache::thrift::protocol::TType _etype708;
+                    xfer += iprot->readListBegin(_etype708, _size705);
+                    this->files.resize(_size705);
+                    uint32_t _i709;
+                    for (_i709 = 0; _i709 < _size705; ++_i709) {
+                        xfer += this->files[_i709].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -16125,9 +16420,9 @@ uint32_t bulk_load_metadata::write(::apache::thrift::protocol::TProtocol *oprot)
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
                                       static_cast<uint32_t>(this->files.size()));
-        std::vector<file_meta>::const_iterator _iter701;
-        for (_iter701 = this->files.begin(); _iter701 != this->files.end(); ++_iter701) {
-            xfer += (*_iter701).write(oprot);
+        std::vector<file_meta>::const_iterator _iter710;
+        for (_iter710 = this->files.begin(); _iter710 != this->files.end(); ++_iter710) {
+            xfer += (*_iter710).write(oprot);
         }
         xfer += oprot->writeListEnd();
     }
@@ -16150,30 +16445,30 @@ void swap(bulk_load_metadata &a, bulk_load_metadata &b)
     swap(a.__isset, b.__isset);
 }
 
-bulk_load_metadata::bulk_load_metadata(const bulk_load_metadata &other702)
+bulk_load_metadata::bulk_load_metadata(const bulk_load_metadata &other711)
 {
-    files = other702.files;
-    file_total_size = other702.file_total_size;
-    __isset = other702.__isset;
+    files = other711.files;
+    file_total_size = other711.file_total_size;
+    __isset = other711.__isset;
 }
-bulk_load_metadata::bulk_load_metadata(bulk_load_metadata &&other703)
+bulk_load_metadata::bulk_load_metadata(bulk_load_metadata &&other712)
 {
-    files = std::move(other703.files);
-    file_total_size = std::move(other703.file_total_size);
-    __isset = std::move(other703.__isset);
+    files = std::move(other712.files);
+    file_total_size = std::move(other712.file_total_size);
+    __isset = std::move(other712.__isset);
 }
-bulk_load_metadata &bulk_load_metadata::operator=(const bulk_load_metadata &other704)
+bulk_load_metadata &bulk_load_metadata::operator=(const bulk_load_metadata &other713)
 {
-    files = other704.files;
-    file_total_size = other704.file_total_size;
-    __isset = other704.__isset;
+    files = other713.files;
+    file_total_size = other713.file_total_size;
+    __isset = other713.__isset;
     return *this;
 }
-bulk_load_metadata &bulk_load_metadata::operator=(bulk_load_metadata &&other705)
+bulk_load_metadata &bulk_load_metadata::operator=(bulk_load_metadata &&other714)
 {
-    files = std::move(other705.files);
-    file_total_size = std::move(other705.file_total_size);
-    __isset = std::move(other705.__isset);
+    files = std::move(other714.files);
+    file_total_size = std::move(other714.file_total_size);
+    __isset = std::move(other714.__isset);
     return *this;
 }
 void bulk_load_metadata::printTo(std::ostream &out) const
@@ -16305,38 +16600,38 @@ void swap(start_bulk_load_request &a, start_bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-start_bulk_load_request::start_bulk_load_request(const start_bulk_load_request &other706)
+start_bulk_load_request::start_bulk_load_request(const start_bulk_load_request &other715)
 {
-    app_name = other706.app_name;
-    cluster_name = other706.cluster_name;
-    file_provider_type = other706.file_provider_type;
-    remote_root_path = other706.remote_root_path;
-    __isset = other706.__isset;
+    app_name = other715.app_name;
+    cluster_name = other715.cluster_name;
+    file_provider_type = other715.file_provider_type;
+    remote_root_path = other715.remote_root_path;
+    __isset = other715.__isset;
 }
-start_bulk_load_request::start_bulk_load_request(start_bulk_load_request &&other707)
+start_bulk_load_request::start_bulk_load_request(start_bulk_load_request &&other716)
 {
-    app_name = std::move(other707.app_name);
-    cluster_name = std::move(other707.cluster_name);
-    file_provider_type = std::move(other707.file_provider_type);
-    remote_root_path = std::move(other707.remote_root_path);
-    __isset = std::move(other707.__isset);
+    app_name = std::move(other716.app_name);
+    cluster_name = std::move(other716.cluster_name);
+    file_provider_type = std::move(other716.file_provider_type);
+    remote_root_path = std::move(other716.remote_root_path);
+    __isset = std::move(other716.__isset);
 }
-start_bulk_load_request &start_bulk_load_request::operator=(const start_bulk_load_request &other708)
+start_bulk_load_request &start_bulk_load_request::operator=(const start_bulk_load_request &other717)
 {
-    app_name = other708.app_name;
-    cluster_name = other708.cluster_name;
-    file_provider_type = other708.file_provider_type;
-    remote_root_path = other708.remote_root_path;
-    __isset = other708.__isset;
+    app_name = other717.app_name;
+    cluster_name = other717.cluster_name;
+    file_provider_type = other717.file_provider_type;
+    remote_root_path = other717.remote_root_path;
+    __isset = other717.__isset;
     return *this;
 }
-start_bulk_load_request &start_bulk_load_request::operator=(start_bulk_load_request &&other709)
+start_bulk_load_request &start_bulk_load_request::operator=(start_bulk_load_request &&other718)
 {
-    app_name = std::move(other709.app_name);
-    cluster_name = std::move(other709.cluster_name);
-    file_provider_type = std::move(other709.file_provider_type);
-    remote_root_path = std::move(other709.remote_root_path);
-    __isset = std::move(other709.__isset);
+    app_name = std::move(other718.app_name);
+    cluster_name = std::move(other718.cluster_name);
+    file_provider_type = std::move(other718.file_provider_type);
+    remote_root_path = std::move(other718.remote_root_path);
+    __isset = std::move(other718.__isset);
     return *this;
 }
 void start_bulk_load_request::printTo(std::ostream &out) const
@@ -16433,31 +16728,31 @@ void swap(start_bulk_load_response &a, start_bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-start_bulk_load_response::start_bulk_load_response(const start_bulk_load_response &other710)
+start_bulk_load_response::start_bulk_load_response(const start_bulk_load_response &other719)
 {
-    err = other710.err;
-    hint_msg = other710.hint_msg;
-    __isset = other710.__isset;
+    err = other719.err;
+    hint_msg = other719.hint_msg;
+    __isset = other719.__isset;
 }
-start_bulk_load_response::start_bulk_load_response(start_bulk_load_response &&other711)
+start_bulk_load_response::start_bulk_load_response(start_bulk_load_response &&other720)
 {
-    err = std::move(other711.err);
-    hint_msg = std::move(other711.hint_msg);
-    __isset = std::move(other711.__isset);
+    err = std::move(other720.err);
+    hint_msg = std::move(other720.hint_msg);
+    __isset = std::move(other720.__isset);
 }
 start_bulk_load_response &start_bulk_load_response::
-operator=(const start_bulk_load_response &other712)
+operator=(const start_bulk_load_response &other721)
 {
-    err = other712.err;
-    hint_msg = other712.hint_msg;
-    __isset = other712.__isset;
+    err = other721.err;
+    hint_msg = other721.hint_msg;
+    __isset = other721.__isset;
     return *this;
 }
-start_bulk_load_response &start_bulk_load_response::operator=(start_bulk_load_response &&other713)
+start_bulk_load_response &start_bulk_load_response::operator=(start_bulk_load_response &&other722)
 {
-    err = std::move(other713.err);
-    hint_msg = std::move(other713.hint_msg);
-    __isset = std::move(other713.__isset);
+    err = std::move(other722.err);
+    hint_msg = std::move(other722.hint_msg);
+    __isset = std::move(other722.__isset);
     return *this;
 }
 void start_bulk_load_response::printTo(std::ostream &out) const
@@ -16539,9 +16834,9 @@ uint32_t partition_bulk_load_state::read(::apache::thrift::protocol::TProtocol *
             break;
         case 3:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast714;
-                xfer += iprot->readI32(ecast714);
-                this->ingest_status = (ingestion_status::type)ecast714;
+                int32_t ecast723;
+                xfer += iprot->readI32(ecast723);
+                this->ingest_status = (ingestion_status::type)ecast723;
                 this->__isset.ingest_status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -16622,44 +16917,44 @@ void swap(partition_bulk_load_state &a, partition_bulk_load_state &b)
     swap(a.__isset, b.__isset);
 }
 
-partition_bulk_load_state::partition_bulk_load_state(const partition_bulk_load_state &other715)
+partition_bulk_load_state::partition_bulk_load_state(const partition_bulk_load_state &other724)
 {
-    download_progress = other715.download_progress;
-    download_status = other715.download_status;
-    ingest_status = other715.ingest_status;
-    is_cleaned_up = other715.is_cleaned_up;
-    is_paused = other715.is_paused;
-    __isset = other715.__isset;
+    download_progress = other724.download_progress;
+    download_status = other724.download_status;
+    ingest_status = other724.ingest_status;
+    is_cleaned_up = other724.is_cleaned_up;
+    is_paused = other724.is_paused;
+    __isset = other724.__isset;
 }
-partition_bulk_load_state::partition_bulk_load_state(partition_bulk_load_state &&other716)
+partition_bulk_load_state::partition_bulk_load_state(partition_bulk_load_state &&other725)
 {
-    download_progress = std::move(other716.download_progress);
-    download_status = std::move(other716.download_status);
-    ingest_status = std::move(other716.ingest_status);
-    is_cleaned_up = std::move(other716.is_cleaned_up);
-    is_paused = std::move(other716.is_paused);
-    __isset = std::move(other716.__isset);
+    download_progress = std::move(other725.download_progress);
+    download_status = std::move(other725.download_status);
+    ingest_status = std::move(other725.ingest_status);
+    is_cleaned_up = std::move(other725.is_cleaned_up);
+    is_paused = std::move(other725.is_paused);
+    __isset = std::move(other725.__isset);
 }
 partition_bulk_load_state &partition_bulk_load_state::
-operator=(const partition_bulk_load_state &other717)
+operator=(const partition_bulk_load_state &other726)
 {
-    download_progress = other717.download_progress;
-    download_status = other717.download_status;
-    ingest_status = other717.ingest_status;
-    is_cleaned_up = other717.is_cleaned_up;
-    is_paused = other717.is_paused;
-    __isset = other717.__isset;
+    download_progress = other726.download_progress;
+    download_status = other726.download_status;
+    ingest_status = other726.ingest_status;
+    is_cleaned_up = other726.is_cleaned_up;
+    is_paused = other726.is_paused;
+    __isset = other726.__isset;
     return *this;
 }
 partition_bulk_load_state &partition_bulk_load_state::
-operator=(partition_bulk_load_state &&other718)
+operator=(partition_bulk_load_state &&other727)
 {
-    download_progress = std::move(other718.download_progress);
-    download_status = std::move(other718.download_status);
-    ingest_status = std::move(other718.ingest_status);
-    is_cleaned_up = std::move(other718.is_cleaned_up);
-    is_paused = std::move(other718.is_paused);
-    __isset = std::move(other718.__isset);
+    download_progress = std::move(other727.download_progress);
+    download_status = std::move(other727.download_status);
+    ingest_status = std::move(other727.ingest_status);
+    is_cleaned_up = std::move(other727.is_cleaned_up);
+    is_paused = std::move(other727.is_paused);
+    __isset = std::move(other727.__isset);
     return *this;
 }
 void partition_bulk_load_state::printTo(std::ostream &out) const
@@ -16787,9 +17082,9 @@ uint32_t bulk_load_request::read(::apache::thrift::protocol::TProtocol *iprot)
             break;
         case 7:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast719;
-                xfer += iprot->readI32(ecast719);
-                this->meta_bulk_load_status = (bulk_load_status::type)ecast719;
+                int32_t ecast728;
+                xfer += iprot->readI32(ecast728);
+                this->meta_bulk_load_status = (bulk_load_status::type)ecast728;
                 this->__isset.meta_bulk_load_status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -16886,58 +17181,58 @@ void swap(bulk_load_request &a, bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-bulk_load_request::bulk_load_request(const bulk_load_request &other720)
+bulk_load_request::bulk_load_request(const bulk_load_request &other729)
 {
-    pid = other720.pid;
-    app_name = other720.app_name;
-    primary_addr = other720.primary_addr;
-    remote_provider_name = other720.remote_provider_name;
-    cluster_name = other720.cluster_name;
-    ballot = other720.ballot;
-    meta_bulk_load_status = other720.meta_bulk_load_status;
-    query_bulk_load_metadata = other720.query_bulk_load_metadata;
-    remote_root_path = other720.remote_root_path;
-    __isset = other720.__isset;
+    pid = other729.pid;
+    app_name = other729.app_name;
+    primary_addr = other729.primary_addr;
+    remote_provider_name = other729.remote_provider_name;
+    cluster_name = other729.cluster_name;
+    ballot = other729.ballot;
+    meta_bulk_load_status = other729.meta_bulk_load_status;
+    query_bulk_load_metadata = other729.query_bulk_load_metadata;
+    remote_root_path = other729.remote_root_path;
+    __isset = other729.__isset;
 }
-bulk_load_request::bulk_load_request(bulk_load_request &&other721)
+bulk_load_request::bulk_load_request(bulk_load_request &&other730)
 {
-    pid = std::move(other721.pid);
-    app_name = std::move(other721.app_name);
-    primary_addr = std::move(other721.primary_addr);
-    remote_provider_name = std::move(other721.remote_provider_name);
-    cluster_name = std::move(other721.cluster_name);
-    ballot = std::move(other721.ballot);
-    meta_bulk_load_status = std::move(other721.meta_bulk_load_status);
-    query_bulk_load_metadata = std::move(other721.query_bulk_load_metadata);
-    remote_root_path = std::move(other721.remote_root_path);
-    __isset = std::move(other721.__isset);
+    pid = std::move(other730.pid);
+    app_name = std::move(other730.app_name);
+    primary_addr = std::move(other730.primary_addr);
+    remote_provider_name = std::move(other730.remote_provider_name);
+    cluster_name = std::move(other730.cluster_name);
+    ballot = std::move(other730.ballot);
+    meta_bulk_load_status = std::move(other730.meta_bulk_load_status);
+    query_bulk_load_metadata = std::move(other730.query_bulk_load_metadata);
+    remote_root_path = std::move(other730.remote_root_path);
+    __isset = std::move(other730.__isset);
 }
-bulk_load_request &bulk_load_request::operator=(const bulk_load_request &other722)
+bulk_load_request &bulk_load_request::operator=(const bulk_load_request &other731)
 {
-    pid = other722.pid;
-    app_name = other722.app_name;
-    primary_addr = other722.primary_addr;
-    remote_provider_name = other722.remote_provider_name;
-    cluster_name = other722.cluster_name;
-    ballot = other722.ballot;
-    meta_bulk_load_status = other722.meta_bulk_load_status;
-    query_bulk_load_metadata = other722.query_bulk_load_metadata;
-    remote_root_path = other722.remote_root_path;
-    __isset = other722.__isset;
+    pid = other731.pid;
+    app_name = other731.app_name;
+    primary_addr = other731.primary_addr;
+    remote_provider_name = other731.remote_provider_name;
+    cluster_name = other731.cluster_name;
+    ballot = other731.ballot;
+    meta_bulk_load_status = other731.meta_bulk_load_status;
+    query_bulk_load_metadata = other731.query_bulk_load_metadata;
+    remote_root_path = other731.remote_root_path;
+    __isset = other731.__isset;
     return *this;
 }
-bulk_load_request &bulk_load_request::operator=(bulk_load_request &&other723)
+bulk_load_request &bulk_load_request::operator=(bulk_load_request &&other732)
 {
-    pid = std::move(other723.pid);
-    app_name = std::move(other723.app_name);
-    primary_addr = std::move(other723.primary_addr);
-    remote_provider_name = std::move(other723.remote_provider_name);
-    cluster_name = std::move(other723.cluster_name);
-    ballot = std::move(other723.ballot);
-    meta_bulk_load_status = std::move(other723.meta_bulk_load_status);
-    query_bulk_load_metadata = std::move(other723.query_bulk_load_metadata);
-    remote_root_path = std::move(other723.remote_root_path);
-    __isset = std::move(other723.__isset);
+    pid = std::move(other732.pid);
+    app_name = std::move(other732.app_name);
+    primary_addr = std::move(other732.primary_addr);
+    remote_provider_name = std::move(other732.remote_provider_name);
+    cluster_name = std::move(other732.cluster_name);
+    ballot = std::move(other732.ballot);
+    meta_bulk_load_status = std::move(other732.meta_bulk_load_status);
+    query_bulk_load_metadata = std::move(other732.query_bulk_load_metadata);
+    remote_root_path = std::move(other732.remote_root_path);
+    __isset = std::move(other732.__isset);
     return *this;
 }
 void bulk_load_request::printTo(std::ostream &out) const
@@ -17058,9 +17353,9 @@ uint32_t bulk_load_response::read(::apache::thrift::protocol::TProtocol *iprot)
             break;
         case 4:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast724;
-                xfer += iprot->readI32(ecast724);
-                this->primary_bulk_load_status = (bulk_load_status::type)ecast724;
+                int32_t ecast733;
+                xfer += iprot->readI32(ecast733);
+                this->primary_bulk_load_status = (bulk_load_status::type)ecast733;
                 this->__isset.primary_bulk_load_status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -17070,16 +17365,16 @@ uint32_t bulk_load_response::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
                     this->group_bulk_load_state.clear();
-                    uint32_t _size725;
-                    ::apache::thrift::protocol::TType _ktype726;
-                    ::apache::thrift::protocol::TType _vtype727;
-                    xfer += iprot->readMapBegin(_ktype726, _vtype727, _size725);
-                    uint32_t _i729;
-                    for (_i729 = 0; _i729 < _size725; ++_i729) {
-                        ::dsn::rpc_address _key730;
-                        xfer += _key730.read(iprot);
-                        partition_bulk_load_state &_val731 = this->group_bulk_load_state[_key730];
-                        xfer += _val731.read(iprot);
+                    uint32_t _size734;
+                    ::apache::thrift::protocol::TType _ktype735;
+                    ::apache::thrift::protocol::TType _vtype736;
+                    xfer += iprot->readMapBegin(_ktype735, _vtype736, _size734);
+                    uint32_t _i738;
+                    for (_i738 = 0; _i738 < _size734; ++_i738) {
+                        ::dsn::rpc_address _key739;
+                        xfer += _key739.read(iprot);
+                        partition_bulk_load_state &_val740 = this->group_bulk_load_state[_key739];
+                        xfer += _val740.read(iprot);
                     }
                     xfer += iprot->readMapEnd();
                 }
@@ -17168,12 +17463,12 @@ uint32_t bulk_load_response::write(::apache::thrift::protocol::TProtocol *oprot)
         xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRUCT,
                                      ::apache::thrift::protocol::T_STRUCT,
                                      static_cast<uint32_t>(this->group_bulk_load_state.size()));
-        std::map<::dsn::rpc_address, partition_bulk_load_state>::const_iterator _iter732;
-        for (_iter732 = this->group_bulk_load_state.begin();
-             _iter732 != this->group_bulk_load_state.end();
-             ++_iter732) {
-            xfer += _iter732->first.write(oprot);
-            xfer += _iter732->second.write(oprot);
+        std::map<::dsn::rpc_address, partition_bulk_load_state>::const_iterator _iter741;
+        for (_iter741 = this->group_bulk_load_state.begin();
+             _iter741 != this->group_bulk_load_state.end();
+             ++_iter741) {
+            xfer += _iter741->first.write(oprot);
+            xfer += _iter741->second.write(oprot);
         }
         xfer += oprot->writeMapEnd();
     }
@@ -17229,64 +17524,64 @@ void swap(bulk_load_response &a, bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-bulk_load_response::bulk_load_response(const bulk_load_response &other733)
+bulk_load_response::bulk_load_response(const bulk_load_response &other742)
 {
-    err = other733.err;
-    pid = other733.pid;
-    app_name = other733.app_name;
-    primary_bulk_load_status = other733.primary_bulk_load_status;
-    group_bulk_load_state = other733.group_bulk_load_state;
-    metadata = other733.metadata;
-    total_download_progress = other733.total_download_progress;
-    is_group_ingestion_finished = other733.is_group_ingestion_finished;
-    is_group_bulk_load_context_cleaned_up = other733.is_group_bulk_load_context_cleaned_up;
-    is_group_bulk_load_paused = other733.is_group_bulk_load_paused;
-    __isset = other733.__isset;
+    err = other742.err;
+    pid = other742.pid;
+    app_name = other742.app_name;
+    primary_bulk_load_status = other742.primary_bulk_load_status;
+    group_bulk_load_state = other742.group_bulk_load_state;
+    metadata = other742.metadata;
+    total_download_progress = other742.total_download_progress;
+    is_group_ingestion_finished = other742.is_group_ingestion_finished;
+    is_group_bulk_load_context_cleaned_up = other742.is_group_bulk_load_context_cleaned_up;
+    is_group_bulk_load_paused = other742.is_group_bulk_load_paused;
+    __isset = other742.__isset;
 }
-bulk_load_response::bulk_load_response(bulk_load_response &&other734)
+bulk_load_response::bulk_load_response(bulk_load_response &&other743)
 {
-    err = std::move(other734.err);
-    pid = std::move(other734.pid);
-    app_name = std::move(other734.app_name);
-    primary_bulk_load_status = std::move(other734.primary_bulk_load_status);
-    group_bulk_load_state = std::move(other734.group_bulk_load_state);
-    metadata = std::move(other734.metadata);
-    total_download_progress = std::move(other734.total_download_progress);
-    is_group_ingestion_finished = std::move(other734.is_group_ingestion_finished);
+    err = std::move(other743.err);
+    pid = std::move(other743.pid);
+    app_name = std::move(other743.app_name);
+    primary_bulk_load_status = std::move(other743.primary_bulk_load_status);
+    group_bulk_load_state = std::move(other743.group_bulk_load_state);
+    metadata = std::move(other743.metadata);
+    total_download_progress = std::move(other743.total_download_progress);
+    is_group_ingestion_finished = std::move(other743.is_group_ingestion_finished);
     is_group_bulk_load_context_cleaned_up =
-        std::move(other734.is_group_bulk_load_context_cleaned_up);
-    is_group_bulk_load_paused = std::move(other734.is_group_bulk_load_paused);
-    __isset = std::move(other734.__isset);
+        std::move(other743.is_group_bulk_load_context_cleaned_up);
+    is_group_bulk_load_paused = std::move(other743.is_group_bulk_load_paused);
+    __isset = std::move(other743.__isset);
 }
-bulk_load_response &bulk_load_response::operator=(const bulk_load_response &other735)
+bulk_load_response &bulk_load_response::operator=(const bulk_load_response &other744)
 {
-    err = other735.err;
-    pid = other735.pid;
-    app_name = other735.app_name;
-    primary_bulk_load_status = other735.primary_bulk_load_status;
-    group_bulk_load_state = other735.group_bulk_load_state;
-    metadata = other735.metadata;
-    total_download_progress = other735.total_download_progress;
-    is_group_ingestion_finished = other735.is_group_ingestion_finished;
-    is_group_bulk_load_context_cleaned_up = other735.is_group_bulk_load_context_cleaned_up;
-    is_group_bulk_load_paused = other735.is_group_bulk_load_paused;
-    __isset = other735.__isset;
+    err = other744.err;
+    pid = other744.pid;
+    app_name = other744.app_name;
+    primary_bulk_load_status = other744.primary_bulk_load_status;
+    group_bulk_load_state = other744.group_bulk_load_state;
+    metadata = other744.metadata;
+    total_download_progress = other744.total_download_progress;
+    is_group_ingestion_finished = other744.is_group_ingestion_finished;
+    is_group_bulk_load_context_cleaned_up = other744.is_group_bulk_load_context_cleaned_up;
+    is_group_bulk_load_paused = other744.is_group_bulk_load_paused;
+    __isset = other744.__isset;
     return *this;
 }
-bulk_load_response &bulk_load_response::operator=(bulk_load_response &&other736)
+bulk_load_response &bulk_load_response::operator=(bulk_load_response &&other745)
 {
-    err = std::move(other736.err);
-    pid = std::move(other736.pid);
-    app_name = std::move(other736.app_name);
-    primary_bulk_load_status = std::move(other736.primary_bulk_load_status);
-    group_bulk_load_state = std::move(other736.group_bulk_load_state);
-    metadata = std::move(other736.metadata);
-    total_download_progress = std::move(other736.total_download_progress);
-    is_group_ingestion_finished = std::move(other736.is_group_ingestion_finished);
+    err = std::move(other745.err);
+    pid = std::move(other745.pid);
+    app_name = std::move(other745.app_name);
+    primary_bulk_load_status = std::move(other745.primary_bulk_load_status);
+    group_bulk_load_state = std::move(other745.group_bulk_load_state);
+    metadata = std::move(other745.metadata);
+    total_download_progress = std::move(other745.total_download_progress);
+    is_group_ingestion_finished = std::move(other745.is_group_ingestion_finished);
     is_group_bulk_load_context_cleaned_up =
-        std::move(other736.is_group_bulk_load_context_cleaned_up);
-    is_group_bulk_load_paused = std::move(other736.is_group_bulk_load_paused);
-    __isset = std::move(other736.__isset);
+        std::move(other745.is_group_bulk_load_context_cleaned_up);
+    is_group_bulk_load_paused = std::move(other745.is_group_bulk_load_paused);
+    __isset = std::move(other745.__isset);
     return *this;
 }
 void bulk_load_response::printTo(std::ostream &out) const
@@ -17417,9 +17712,9 @@ uint32_t group_bulk_load_request::read(::apache::thrift::protocol::TProtocol *ip
             break;
         case 6:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast737;
-                xfer += iprot->readI32(ecast737);
-                this->meta_bulk_load_status = (bulk_load_status::type)ecast737;
+                int32_t ecast746;
+                xfer += iprot->readI32(ecast746);
+                this->meta_bulk_load_status = (bulk_load_status::type)ecast746;
                 this->__isset.meta_bulk_load_status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -17497,50 +17792,50 @@ void swap(group_bulk_load_request &a, group_bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-group_bulk_load_request::group_bulk_load_request(const group_bulk_load_request &other738)
+group_bulk_load_request::group_bulk_load_request(const group_bulk_load_request &other747)
 {
-    app_name = other738.app_name;
-    target_address = other738.target_address;
-    config = other738.config;
-    provider_name = other738.provider_name;
-    cluster_name = other738.cluster_name;
-    meta_bulk_load_status = other738.meta_bulk_load_status;
-    remote_root_path = other738.remote_root_path;
-    __isset = other738.__isset;
+    app_name = other747.app_name;
+    target_address = other747.target_address;
+    config = other747.config;
+    provider_name = other747.provider_name;
+    cluster_name = other747.cluster_name;
+    meta_bulk_load_status = other747.meta_bulk_load_status;
+    remote_root_path = other747.remote_root_path;
+    __isset = other747.__isset;
 }
-group_bulk_load_request::group_bulk_load_request(group_bulk_load_request &&other739)
+group_bulk_load_request::group_bulk_load_request(group_bulk_load_request &&other748)
 {
-    app_name = std::move(other739.app_name);
-    target_address = std::move(other739.target_address);
-    config = std::move(other739.config);
-    provider_name = std::move(other739.provider_name);
-    cluster_name = std::move(other739.cluster_name);
-    meta_bulk_load_status = std::move(other739.meta_bulk_load_status);
-    remote_root_path = std::move(other739.remote_root_path);
-    __isset = std::move(other739.__isset);
+    app_name = std::move(other748.app_name);
+    target_address = std::move(other748.target_address);
+    config = std::move(other748.config);
+    provider_name = std::move(other748.provider_name);
+    cluster_name = std::move(other748.cluster_name);
+    meta_bulk_load_status = std::move(other748.meta_bulk_load_status);
+    remote_root_path = std::move(other748.remote_root_path);
+    __isset = std::move(other748.__isset);
 }
-group_bulk_load_request &group_bulk_load_request::operator=(const group_bulk_load_request &other740)
+group_bulk_load_request &group_bulk_load_request::operator=(const group_bulk_load_request &other749)
 {
-    app_name = other740.app_name;
-    target_address = other740.target_address;
-    config = other740.config;
-    provider_name = other740.provider_name;
-    cluster_name = other740.cluster_name;
-    meta_bulk_load_status = other740.meta_bulk_load_status;
-    remote_root_path = other740.remote_root_path;
-    __isset = other740.__isset;
+    app_name = other749.app_name;
+    target_address = other749.target_address;
+    config = other749.config;
+    provider_name = other749.provider_name;
+    cluster_name = other749.cluster_name;
+    meta_bulk_load_status = other749.meta_bulk_load_status;
+    remote_root_path = other749.remote_root_path;
+    __isset = other749.__isset;
     return *this;
 }
-group_bulk_load_request &group_bulk_load_request::operator=(group_bulk_load_request &&other741)
+group_bulk_load_request &group_bulk_load_request::operator=(group_bulk_load_request &&other750)
 {
-    app_name = std::move(other741.app_name);
-    target_address = std::move(other741.target_address);
-    config = std::move(other741.config);
-    provider_name = std::move(other741.provider_name);
-    cluster_name = std::move(other741.cluster_name);
-    meta_bulk_load_status = std::move(other741.meta_bulk_load_status);
-    remote_root_path = std::move(other741.remote_root_path);
-    __isset = std::move(other741.__isset);
+    app_name = std::move(other750.app_name);
+    target_address = std::move(other750.target_address);
+    config = std::move(other750.config);
+    provider_name = std::move(other750.provider_name);
+    cluster_name = std::move(other750.cluster_name);
+    meta_bulk_load_status = std::move(other750.meta_bulk_load_status);
+    remote_root_path = std::move(other750.remote_root_path);
+    __isset = std::move(other750.__isset);
     return *this;
 }
 void group_bulk_load_request::printTo(std::ostream &out) const
@@ -17606,9 +17901,9 @@ uint32_t group_bulk_load_response::read(::apache::thrift::protocol::TProtocol *i
             break;
         case 2:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast742;
-                xfer += iprot->readI32(ecast742);
-                this->status = (bulk_load_status::type)ecast742;
+                int32_t ecast751;
+                xfer += iprot->readI32(ecast751);
+                this->status = (bulk_load_status::type)ecast751;
                 this->__isset.status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -17666,35 +17961,35 @@ void swap(group_bulk_load_response &a, group_bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-group_bulk_load_response::group_bulk_load_response(const group_bulk_load_response &other743)
+group_bulk_load_response::group_bulk_load_response(const group_bulk_load_response &other752)
 {
-    err = other743.err;
-    status = other743.status;
-    bulk_load_state = other743.bulk_load_state;
-    __isset = other743.__isset;
+    err = other752.err;
+    status = other752.status;
+    bulk_load_state = other752.bulk_load_state;
+    __isset = other752.__isset;
 }
-group_bulk_load_response::group_bulk_load_response(group_bulk_load_response &&other744)
+group_bulk_load_response::group_bulk_load_response(group_bulk_load_response &&other753)
 {
-    err = std::move(other744.err);
-    status = std::move(other744.status);
-    bulk_load_state = std::move(other744.bulk_load_state);
-    __isset = std::move(other744.__isset);
+    err = std::move(other753.err);
+    status = std::move(other753.status);
+    bulk_load_state = std::move(other753.bulk_load_state);
+    __isset = std::move(other753.__isset);
 }
 group_bulk_load_response &group_bulk_load_response::
-operator=(const group_bulk_load_response &other745)
+operator=(const group_bulk_load_response &other754)
 {
-    err = other745.err;
-    status = other745.status;
-    bulk_load_state = other745.bulk_load_state;
-    __isset = other745.__isset;
+    err = other754.err;
+    status = other754.status;
+    bulk_load_state = other754.bulk_load_state;
+    __isset = other754.__isset;
     return *this;
 }
-group_bulk_load_response &group_bulk_load_response::operator=(group_bulk_load_response &&other746)
+group_bulk_load_response &group_bulk_load_response::operator=(group_bulk_load_response &&other755)
 {
-    err = std::move(other746.err);
-    status = std::move(other746.status);
-    bulk_load_state = std::move(other746.bulk_load_state);
-    __isset = std::move(other746.__isset);
+    err = std::move(other755.err);
+    status = std::move(other755.status);
+    bulk_load_state = std::move(other755.bulk_load_state);
+    __isset = std::move(other755.__isset);
     return *this;
 }
 void group_bulk_load_response::printTo(std::ostream &out) const
@@ -17789,30 +18084,30 @@ void swap(ingestion_request &a, ingestion_request &b)
     swap(a.__isset, b.__isset);
 }
 
-ingestion_request::ingestion_request(const ingestion_request &other747)
+ingestion_request::ingestion_request(const ingestion_request &other756)
 {
-    app_name = other747.app_name;
-    metadata = other747.metadata;
-    __isset = other747.__isset;
+    app_name = other756.app_name;
+    metadata = other756.metadata;
+    __isset = other756.__isset;
 }
-ingestion_request::ingestion_request(ingestion_request &&other748)
+ingestion_request::ingestion_request(ingestion_request &&other757)
 {
-    app_name = std::move(other748.app_name);
-    metadata = std::move(other748.metadata);
-    __isset = std::move(other748.__isset);
+    app_name = std::move(other757.app_name);
+    metadata = std::move(other757.metadata);
+    __isset = std::move(other757.__isset);
 }
-ingestion_request &ingestion_request::operator=(const ingestion_request &other749)
+ingestion_request &ingestion_request::operator=(const ingestion_request &other758)
 {
-    app_name = other749.app_name;
-    metadata = other749.metadata;
-    __isset = other749.__isset;
+    app_name = other758.app_name;
+    metadata = other758.metadata;
+    __isset = other758.__isset;
     return *this;
 }
-ingestion_request &ingestion_request::operator=(ingestion_request &&other750)
+ingestion_request &ingestion_request::operator=(ingestion_request &&other759)
 {
-    app_name = std::move(other750.app_name);
-    metadata = std::move(other750.metadata);
-    __isset = std::move(other750.__isset);
+    app_name = std::move(other759.app_name);
+    metadata = std::move(other759.metadata);
+    __isset = std::move(other759.__isset);
     return *this;
 }
 void ingestion_request::printTo(std::ostream &out) const
@@ -17905,30 +18200,30 @@ void swap(ingestion_response &a, ingestion_response &b)
     swap(a.__isset, b.__isset);
 }
 
-ingestion_response::ingestion_response(const ingestion_response &other751)
+ingestion_response::ingestion_response(const ingestion_response &other760)
 {
-    err = other751.err;
-    rocksdb_error = other751.rocksdb_error;
-    __isset = other751.__isset;
+    err = other760.err;
+    rocksdb_error = other760.rocksdb_error;
+    __isset = other760.__isset;
 }
-ingestion_response::ingestion_response(ingestion_response &&other752)
+ingestion_response::ingestion_response(ingestion_response &&other761)
 {
-    err = std::move(other752.err);
-    rocksdb_error = std::move(other752.rocksdb_error);
-    __isset = std::move(other752.__isset);
+    err = std::move(other761.err);
+    rocksdb_error = std::move(other761.rocksdb_error);
+    __isset = std::move(other761.__isset);
 }
-ingestion_response &ingestion_response::operator=(const ingestion_response &other753)
+ingestion_response &ingestion_response::operator=(const ingestion_response &other762)
 {
-    err = other753.err;
-    rocksdb_error = other753.rocksdb_error;
-    __isset = other753.__isset;
+    err = other762.err;
+    rocksdb_error = other762.rocksdb_error;
+    __isset = other762.__isset;
     return *this;
 }
-ingestion_response &ingestion_response::operator=(ingestion_response &&other754)
+ingestion_response &ingestion_response::operator=(ingestion_response &&other763)
 {
-    err = std::move(other754.err);
-    rocksdb_error = std::move(other754.rocksdb_error);
-    __isset = std::move(other754.__isset);
+    err = std::move(other763.err);
+    rocksdb_error = std::move(other763.rocksdb_error);
+    __isset = std::move(other763.__isset);
     return *this;
 }
 void ingestion_response::printTo(std::ostream &out) const
@@ -17979,9 +18274,9 @@ uint32_t control_bulk_load_request::read(::apache::thrift::protocol::TProtocol *
             break;
         case 2:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast755;
-                xfer += iprot->readI32(ecast755);
-                this->type = (bulk_load_control_type::type)ecast755;
+                int32_t ecast764;
+                xfer += iprot->readI32(ecast764);
+                this->type = (bulk_load_control_type::type)ecast764;
                 this->__isset.type = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -18026,32 +18321,32 @@ void swap(control_bulk_load_request &a, control_bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-control_bulk_load_request::control_bulk_load_request(const control_bulk_load_request &other756)
+control_bulk_load_request::control_bulk_load_request(const control_bulk_load_request &other765)
 {
-    app_name = other756.app_name;
-    type = other756.type;
-    __isset = other756.__isset;
+    app_name = other765.app_name;
+    type = other765.type;
+    __isset = other765.__isset;
 }
-control_bulk_load_request::control_bulk_load_request(control_bulk_load_request &&other757)
+control_bulk_load_request::control_bulk_load_request(control_bulk_load_request &&other766)
 {
-    app_name = std::move(other757.app_name);
-    type = std::move(other757.type);
-    __isset = std::move(other757.__isset);
+    app_name = std::move(other766.app_name);
+    type = std::move(other766.type);
+    __isset = std::move(other766.__isset);
 }
 control_bulk_load_request &control_bulk_load_request::
-operator=(const control_bulk_load_request &other758)
+operator=(const control_bulk_load_request &other767)
 {
-    app_name = other758.app_name;
-    type = other758.type;
-    __isset = other758.__isset;
+    app_name = other767.app_name;
+    type = other767.type;
+    __isset = other767.__isset;
     return *this;
 }
 control_bulk_load_request &control_bulk_load_request::
-operator=(control_bulk_load_request &&other759)
+operator=(control_bulk_load_request &&other768)
 {
-    app_name = std::move(other759.app_name);
-    type = std::move(other759.type);
-    __isset = std::move(other759.__isset);
+    app_name = std::move(other768.app_name);
+    type = std::move(other768.type);
+    __isset = std::move(other768.__isset);
     return *this;
 }
 void control_bulk_load_request::printTo(std::ostream &out) const
@@ -18149,32 +18444,32 @@ void swap(control_bulk_load_response &a, control_bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-control_bulk_load_response::control_bulk_load_response(const control_bulk_load_response &other760)
+control_bulk_load_response::control_bulk_load_response(const control_bulk_load_response &other769)
 {
-    err = other760.err;
-    hint_msg = other760.hint_msg;
-    __isset = other760.__isset;
+    err = other769.err;
+    hint_msg = other769.hint_msg;
+    __isset = other769.__isset;
 }
-control_bulk_load_response::control_bulk_load_response(control_bulk_load_response &&other761)
+control_bulk_load_response::control_bulk_load_response(control_bulk_load_response &&other770)
 {
-    err = std::move(other761.err);
-    hint_msg = std::move(other761.hint_msg);
-    __isset = std::move(other761.__isset);
+    err = std::move(other770.err);
+    hint_msg = std::move(other770.hint_msg);
+    __isset = std::move(other770.__isset);
 }
 control_bulk_load_response &control_bulk_load_response::
-operator=(const control_bulk_load_response &other762)
+operator=(const control_bulk_load_response &other771)
 {
-    err = other762.err;
-    hint_msg = other762.hint_msg;
-    __isset = other762.__isset;
+    err = other771.err;
+    hint_msg = other771.hint_msg;
+    __isset = other771.__isset;
     return *this;
 }
 control_bulk_load_response &control_bulk_load_response::
-operator=(control_bulk_load_response &&other763)
+operator=(control_bulk_load_response &&other772)
 {
-    err = std::move(other763.err);
-    hint_msg = std::move(other763.hint_msg);
-    __isset = std::move(other763.__isset);
+    err = std::move(other772.err);
+    hint_msg = std::move(other772.hint_msg);
+    __isset = std::move(other772.__isset);
     return *this;
 }
 void control_bulk_load_response::printTo(std::ostream &out) const
@@ -18253,26 +18548,26 @@ void swap(query_bulk_load_request &a, query_bulk_load_request &b)
     swap(a.__isset, b.__isset);
 }
 
-query_bulk_load_request::query_bulk_load_request(const query_bulk_load_request &other764)
+query_bulk_load_request::query_bulk_load_request(const query_bulk_load_request &other773)
 {
-    app_name = other764.app_name;
-    __isset = other764.__isset;
+    app_name = other773.app_name;
+    __isset = other773.__isset;
 }
-query_bulk_load_request::query_bulk_load_request(query_bulk_load_request &&other765)
+query_bulk_load_request::query_bulk_load_request(query_bulk_load_request &&other774)
 {
-    app_name = std::move(other765.app_name);
-    __isset = std::move(other765.__isset);
+    app_name = std::move(other774.app_name);
+    __isset = std::move(other774.__isset);
 }
-query_bulk_load_request &query_bulk_load_request::operator=(const query_bulk_load_request &other766)
+query_bulk_load_request &query_bulk_load_request::operator=(const query_bulk_load_request &other775)
 {
-    app_name = other766.app_name;
-    __isset = other766.__isset;
+    app_name = other775.app_name;
+    __isset = other775.__isset;
     return *this;
 }
-query_bulk_load_request &query_bulk_load_request::operator=(query_bulk_load_request &&other767)
+query_bulk_load_request &query_bulk_load_request::operator=(query_bulk_load_request &&other776)
 {
-    app_name = std::move(other767.app_name);
-    __isset = std::move(other767.__isset);
+    app_name = std::move(other776.app_name);
+    __isset = std::move(other776.__isset);
     return *this;
 }
 void query_bulk_load_request::printTo(std::ostream &out) const
@@ -18354,9 +18649,9 @@ uint32_t query_bulk_load_response::read(::apache::thrift::protocol::TProtocol *i
             break;
         case 3:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast768;
-                xfer += iprot->readI32(ecast768);
-                this->app_status = (bulk_load_status::type)ecast768;
+                int32_t ecast777;
+                xfer += iprot->readI32(ecast777);
+                this->app_status = (bulk_load_status::type)ecast777;
                 this->__isset.app_status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -18366,15 +18661,15 @@ uint32_t query_bulk_load_response::read(::apache::thrift::protocol::TProtocol *i
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->partitions_status.clear();
-                    uint32_t _size769;
-                    ::apache::thrift::protocol::TType _etype772;
-                    xfer += iprot->readListBegin(_etype772, _size769);
-                    this->partitions_status.resize(_size769);
-                    uint32_t _i773;
-                    for (_i773 = 0; _i773 < _size769; ++_i773) {
-                        int32_t ecast774;
-                        xfer += iprot->readI32(ecast774);
-                        this->partitions_status[_i773] = (bulk_load_status::type)ecast774;
+                    uint32_t _size778;
+                    ::apache::thrift::protocol::TType _etype781;
+                    xfer += iprot->readListBegin(_etype781, _size778);
+                    this->partitions_status.resize(_size778);
+                    uint32_t _i782;
+                    for (_i782 = 0; _i782 < _size778; ++_i782) {
+                        int32_t ecast783;
+                        xfer += iprot->readI32(ecast783);
+                        this->partitions_status[_i782] = (bulk_load_status::type)ecast783;
                     }
                     xfer += iprot->readListEnd();
                 }
@@ -18395,25 +18690,25 @@ uint32_t query_bulk_load_response::read(::apache::thrift::protocol::TProtocol *i
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
                     this->bulk_load_states.clear();
-                    uint32_t _size775;
-                    ::apache::thrift::protocol::TType _etype778;
-                    xfer += iprot->readListBegin(_etype778, _size775);
-                    this->bulk_load_states.resize(_size775);
-                    uint32_t _i779;
-                    for (_i779 = 0; _i779 < _size775; ++_i779) {
+                    uint32_t _size784;
+                    ::apache::thrift::protocol::TType _etype787;
+                    xfer += iprot->readListBegin(_etype787, _size784);
+                    this->bulk_load_states.resize(_size784);
+                    uint32_t _i788;
+                    for (_i788 = 0; _i788 < _size784; ++_i788) {
                         {
-                            this->bulk_load_states[_i779].clear();
-                            uint32_t _size780;
-                            ::apache::thrift::protocol::TType _ktype781;
-                            ::apache::thrift::protocol::TType _vtype782;
-                            xfer += iprot->readMapBegin(_ktype781, _vtype782, _size780);
-                            uint32_t _i784;
-                            for (_i784 = 0; _i784 < _size780; ++_i784) {
-                                ::dsn::rpc_address _key785;
-                                xfer += _key785.read(iprot);
-                                partition_bulk_load_state &_val786 =
-                                    this->bulk_load_states[_i779][_key785];
-                                xfer += _val786.read(iprot);
+                            this->bulk_load_states[_i788].clear();
+                            uint32_t _size789;
+                            ::apache::thrift::protocol::TType _ktype790;
+                            ::apache::thrift::protocol::TType _vtype791;
+                            xfer += iprot->readMapBegin(_ktype790, _vtype791, _size789);
+                            uint32_t _i793;
+                            for (_i793 = 0; _i793 < _size789; ++_i793) {
+                                ::dsn::rpc_address _key794;
+                                xfer += _key794.read(iprot);
+                                partition_bulk_load_state &_val795 =
+                                    this->bulk_load_states[_i788][_key794];
+                                xfer += _val795.read(iprot);
                             }
                             xfer += iprot->readMapEnd();
                         }
@@ -18467,10 +18762,10 @@ uint32_t query_bulk_load_response::write(::apache::thrift::protocol::TProtocol *
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_I32,
                                       static_cast<uint32_t>(this->partitions_status.size()));
-        std::vector<bulk_load_status::type>::const_iterator _iter787;
-        for (_iter787 = this->partitions_status.begin(); _iter787 != this->partitions_status.end();
-             ++_iter787) {
-            xfer += oprot->writeI32((int32_t)(*_iter787));
+        std::vector<bulk_load_status::type>::const_iterator _iter796;
+        for (_iter796 = this->partitions_status.begin(); _iter796 != this->partitions_status.end();
+             ++_iter796) {
+            xfer += oprot->writeI32((int32_t)(*_iter796));
         }
         xfer += oprot->writeListEnd();
     }
@@ -18485,17 +18780,17 @@ uint32_t query_bulk_load_response::write(::apache::thrift::protocol::TProtocol *
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_MAP,
                                       static_cast<uint32_t>(this->bulk_load_states.size()));
         std::vector<std::map<::dsn::rpc_address, partition_bulk_load_state>>::const_iterator
-            _iter788;
-        for (_iter788 = this->bulk_load_states.begin(); _iter788 != this->bulk_load_states.end();
-             ++_iter788) {
+            _iter797;
+        for (_iter797 = this->bulk_load_states.begin(); _iter797 != this->bulk_load_states.end();
+             ++_iter797) {
             {
                 xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRUCT,
                                              ::apache::thrift::protocol::T_STRUCT,
-                                             static_cast<uint32_t>((*_iter788).size()));
-                std::map<::dsn::rpc_address, partition_bulk_load_state>::const_iterator _iter789;
-                for (_iter789 = (*_iter788).begin(); _iter789 != (*_iter788).end(); ++_iter789) {
-                    xfer += _iter789->first.write(oprot);
-                    xfer += _iter789->second.write(oprot);
+                                             static_cast<uint32_t>((*_iter797).size()));
+                std::map<::dsn::rpc_address, partition_bulk_load_state>::const_iterator _iter798;
+                for (_iter798 = (*_iter797).begin(); _iter798 != (*_iter797).end(); ++_iter798) {
+                    xfer += _iter798->first.write(oprot);
+                    xfer += _iter798->second.write(oprot);
                 }
                 xfer += oprot->writeMapEnd();
             }
@@ -18527,51 +18822,51 @@ void swap(query_bulk_load_response &a, query_bulk_load_response &b)
     swap(a.__isset, b.__isset);
 }
 
-query_bulk_load_response::query_bulk_load_response(const query_bulk_load_response &other790)
+query_bulk_load_response::query_bulk_load_response(const query_bulk_load_response &other799)
 {
-    err = other790.err;
-    app_name = other790.app_name;
-    app_status = other790.app_status;
-    partitions_status = other790.partitions_status;
-    max_replica_count = other790.max_replica_count;
-    bulk_load_states = other790.bulk_load_states;
-    hint_msg = other790.hint_msg;
-    __isset = other790.__isset;
+    err = other799.err;
+    app_name = other799.app_name;
+    app_status = other799.app_status;
+    partitions_status = other799.partitions_status;
+    max_replica_count = other799.max_replica_count;
+    bulk_load_states = other799.bulk_load_states;
+    hint_msg = other799.hint_msg;
+    __isset = other799.__isset;
 }
-query_bulk_load_response::query_bulk_load_response(query_bulk_load_response &&other791)
+query_bulk_load_response::query_bulk_load_response(query_bulk_load_response &&other800)
 {
-    err = std::move(other791.err);
-    app_name = std::move(other791.app_name);
-    app_status = std::move(other791.app_status);
-    partitions_status = std::move(other791.partitions_status);
-    max_replica_count = std::move(other791.max_replica_count);
-    bulk_load_states = std::move(other791.bulk_load_states);
-    hint_msg = std::move(other791.hint_msg);
-    __isset = std::move(other791.__isset);
+    err = std::move(other800.err);
+    app_name = std::move(other800.app_name);
+    app_status = std::move(other800.app_status);
+    partitions_status = std::move(other800.partitions_status);
+    max_replica_count = std::move(other800.max_replica_count);
+    bulk_load_states = std::move(other800.bulk_load_states);
+    hint_msg = std::move(other800.hint_msg);
+    __isset = std::move(other800.__isset);
 }
 query_bulk_load_response &query_bulk_load_response::
-operator=(const query_bulk_load_response &other792)
+operator=(const query_bulk_load_response &other801)
 {
-    err = other792.err;
-    app_name = other792.app_name;
-    app_status = other792.app_status;
-    partitions_status = other792.partitions_status;
-    max_replica_count = other792.max_replica_count;
-    bulk_load_states = other792.bulk_load_states;
-    hint_msg = other792.hint_msg;
-    __isset = other792.__isset;
+    err = other801.err;
+    app_name = other801.app_name;
+    app_status = other801.app_status;
+    partitions_status = other801.partitions_status;
+    max_replica_count = other801.max_replica_count;
+    bulk_load_states = other801.bulk_load_states;
+    hint_msg = other801.hint_msg;
+    __isset = other801.__isset;
     return *this;
 }
-query_bulk_load_response &query_bulk_load_response::operator=(query_bulk_load_response &&other793)
+query_bulk_load_response &query_bulk_load_response::operator=(query_bulk_load_response &&other802)
 {
-    err = std::move(other793.err);
-    app_name = std::move(other793.app_name);
-    app_status = std::move(other793.app_status);
-    partitions_status = std::move(other793.partitions_status);
-    max_replica_count = std::move(other793.max_replica_count);
-    bulk_load_states = std::move(other793.bulk_load_states);
-    hint_msg = std::move(other793.hint_msg);
-    __isset = std::move(other793.__isset);
+    err = std::move(other802.err);
+    app_name = std::move(other802.app_name);
+    app_status = std::move(other802.app_status);
+    partitions_status = std::move(other802.partitions_status);
+    max_replica_count = std::move(other802.max_replica_count);
+    bulk_load_states = std::move(other802.bulk_load_states);
+    hint_msg = std::move(other802.hint_msg);
+    __isset = std::move(other802.__isset);
     return *this;
 }
 void query_bulk_load_response::printTo(std::ostream &out) const
@@ -18624,9 +18919,9 @@ uint32_t detect_hotkey_request::read(::apache::thrift::protocol::TProtocol *ipro
         switch (fid) {
         case 1:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast794;
-                xfer += iprot->readI32(ecast794);
-                this->type = (hotkey_type::type)ecast794;
+                int32_t ecast803;
+                xfer += iprot->readI32(ecast803);
+                this->type = (hotkey_type::type)ecast803;
                 this->__isset.type = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -18634,9 +18929,9 @@ uint32_t detect_hotkey_request::read(::apache::thrift::protocol::TProtocol *ipro
             break;
         case 2:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast795;
-                xfer += iprot->readI32(ecast795);
-                this->action = (detect_action::type)ecast795;
+                int32_t ecast804;
+                xfer += iprot->readI32(ecast804);
+                this->action = (detect_action::type)ecast804;
                 this->__isset.action = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -18694,34 +18989,34 @@ void swap(detect_hotkey_request &a, detect_hotkey_request &b)
     swap(a.__isset, b.__isset);
 }
 
-detect_hotkey_request::detect_hotkey_request(const detect_hotkey_request &other796)
+detect_hotkey_request::detect_hotkey_request(const detect_hotkey_request &other805)
 {
-    type = other796.type;
-    action = other796.action;
-    pid = other796.pid;
-    __isset = other796.__isset;
+    type = other805.type;
+    action = other805.action;
+    pid = other805.pid;
+    __isset = other805.__isset;
 }
-detect_hotkey_request::detect_hotkey_request(detect_hotkey_request &&other797)
+detect_hotkey_request::detect_hotkey_request(detect_hotkey_request &&other806)
 {
-    type = std::move(other797.type);
-    action = std::move(other797.action);
-    pid = std::move(other797.pid);
-    __isset = std::move(other797.__isset);
+    type = std::move(other806.type);
+    action = std::move(other806.action);
+    pid = std::move(other806.pid);
+    __isset = std::move(other806.__isset);
 }
-detect_hotkey_request &detect_hotkey_request::operator=(const detect_hotkey_request &other798)
+detect_hotkey_request &detect_hotkey_request::operator=(const detect_hotkey_request &other807)
 {
-    type = other798.type;
-    action = other798.action;
-    pid = other798.pid;
-    __isset = other798.__isset;
+    type = other807.type;
+    action = other807.action;
+    pid = other807.pid;
+    __isset = other807.__isset;
     return *this;
 }
-detect_hotkey_request &detect_hotkey_request::operator=(detect_hotkey_request &&other799)
+detect_hotkey_request &detect_hotkey_request::operator=(detect_hotkey_request &&other808)
 {
-    type = std::move(other799.type);
-    action = std::move(other799.action);
-    pid = std::move(other799.pid);
-    __isset = std::move(other799.__isset);
+    type = std::move(other808.type);
+    action = std::move(other808.action);
+    pid = std::move(other808.pid);
+    __isset = std::move(other808.__isset);
     return *this;
 }
 void detect_hotkey_request::printTo(std::ostream &out) const
@@ -18841,34 +19136,34 @@ void swap(detect_hotkey_response &a, detect_hotkey_response &b)
     swap(a.__isset, b.__isset);
 }
 
-detect_hotkey_response::detect_hotkey_response(const detect_hotkey_response &other800)
+detect_hotkey_response::detect_hotkey_response(const detect_hotkey_response &other809)
 {
-    err = other800.err;
-    err_hint = other800.err_hint;
-    hotkey_result = other800.hotkey_result;
-    __isset = other800.__isset;
+    err = other809.err;
+    err_hint = other809.err_hint;
+    hotkey_result = other809.hotkey_result;
+    __isset = other809.__isset;
 }
-detect_hotkey_response::detect_hotkey_response(detect_hotkey_response &&other801)
+detect_hotkey_response::detect_hotkey_response(detect_hotkey_response &&other810)
 {
-    err = std::move(other801.err);
-    err_hint = std::move(other801.err_hint);
-    hotkey_result = std::move(other801.hotkey_result);
-    __isset = std::move(other801.__isset);
+    err = std::move(other810.err);
+    err_hint = std::move(other810.err_hint);
+    hotkey_result = std::move(other810.hotkey_result);
+    __isset = std::move(other810.__isset);
 }
-detect_hotkey_response &detect_hotkey_response::operator=(const detect_hotkey_response &other802)
+detect_hotkey_response &detect_hotkey_response::operator=(const detect_hotkey_response &other811)
 {
-    err = other802.err;
-    err_hint = other802.err_hint;
-    hotkey_result = other802.hotkey_result;
-    __isset = other802.__isset;
+    err = other811.err;
+    err_hint = other811.err_hint;
+    hotkey_result = other811.hotkey_result;
+    __isset = other811.__isset;
     return *this;
 }
-detect_hotkey_response &detect_hotkey_response::operator=(detect_hotkey_response &&other803)
+detect_hotkey_response &detect_hotkey_response::operator=(detect_hotkey_response &&other812)
 {
-    err = std::move(other803.err);
-    err_hint = std::move(other803.err_hint);
-    hotkey_result = std::move(other803.hotkey_result);
-    __isset = std::move(other803.__isset);
+    err = std::move(other812.err);
+    err_hint = std::move(other812.err_hint);
+    hotkey_result = std::move(other812.hotkey_result);
+    __isset = std::move(other812.__isset);
     return *this;
 }
 void detect_hotkey_response::printTo(std::ostream &out) const
