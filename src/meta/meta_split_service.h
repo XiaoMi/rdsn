@@ -40,7 +40,7 @@ private:
     void do_start_partition_split(std::shared_ptr<app_state> app, start_split_rpc rpc);
 
     // client -> meta to query split
-    void query_partition_split(query_split_rpc rpc);
+    void query_partition_split(query_split_rpc rpc) const;
 
     // client -> meta to pause/restart/cancel split
     void control_partition_split(control_split_rpc rpc);

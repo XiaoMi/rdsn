@@ -293,13 +293,13 @@ void meta_split_service::on_add_child_on_remote_storage_reply(error_code ec,
     parent_context.stage = config_status::not_pending;
 }
 
-void meta_split_service::query_partition_split(query_split_rpc rpc)
+void meta_split_service::query_partition_split(query_split_rpc rpc) const
 {
     const std::string &app_name = rpc.request().app_name;
     auto &response = rpc.response();
     response.err = ERR_OK;
 
-    zauto_write_lock l(app_lock());
+    zauto_read_lock l(app_lock());
     std::shared_ptr<app_state> app = _state->get_app(app_name);
     if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
         response.err = app == nullptr ? ERR_APP_NOT_EXIST : ERR_APP_DROPPED;

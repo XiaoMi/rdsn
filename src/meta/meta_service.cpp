@@ -1045,10 +1045,7 @@ void meta_service::on_query_partition_split(query_split_rpc rpc)
         rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
         return;
     }
-    tasking::enqueue(LPC_META_STATE_NORMAL,
-                     tracker(),
-                     [this, rpc]() { _split_svc->query_partition_split(std::move(rpc)); },
-                     server_state::sStateHash);
+    _split_svc->query_partition_split(std::move(rpc));
 }
 
 void meta_service::on_register_child_on_meta(register_child_rpc rpc)
