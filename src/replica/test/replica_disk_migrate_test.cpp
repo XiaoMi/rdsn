@@ -353,7 +353,7 @@ TEST_F(replica_disk_migrate_test, disk_migrate_replica_open)
     utils::filesystem::create_directory(kReplicaOriginSuffixDir);
     utils::filesystem::create_directory(kReplicaNewDir);
 
-    fail::cfg("mock_replica_open", "return()");
+    fail::cfg("mock_replica_load", "return()");
     const std::string kReplicaOriginDir =
         fmt::format("./{}/{}.replica", request.origin_disk, request.pid.to_string());
     const std::string kReplicaGarDir =

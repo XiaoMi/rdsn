@@ -1907,7 +1907,7 @@ void replica_stub::open_replica(const app_info &app,
                 dsn::utils::filesystem::rename_path(origin_tmp_dir, origin_dir);
                 rep = replica::load(this, origin_dir.c_str());
 
-                FAIL_POINT_INJECT_F("mock_replica_open", [&](string_view) -> void {});
+                FAIL_POINT_INJECT_F("mock_replica_load", [&](string_view) -> void {});
             }
         }
     }

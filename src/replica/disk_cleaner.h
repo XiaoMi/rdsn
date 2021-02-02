@@ -38,17 +38,17 @@ extern const std::string kFolderSuffixTmp; // replica disk migration temp dir
 
 struct disk_cleaning_report
 {
-    int remove_dir_count;
+    int remove_dir_count{0};
 
-    int garbage_replica_count;
-    int error_replica_count;
-    int disk_migrate_tmp_count;
-    int disk_migrate_origin_count;
+    int garbage_replica_count{0};
+    int error_replica_count{0};
+    int disk_migrate_tmp_count{0};
+    int disk_migrate_origin_count{0};
 };
 
-/// Removes the useless data from data directories.
-error_s disk_remove_useless_dirs(const std::vector<std::string> &data_dirs,
-                                 /*output*/ disk_cleaning_report &report);
+// Removes the useless data from data directories.
+extern error_s disk_remove_useless_dirs(const std::vector<std::string> &data_dirs,
+                                        /*output*/ disk_cleaning_report &report);
 
 inline bool is_data_dir_removable(const std::string &dir)
 {
