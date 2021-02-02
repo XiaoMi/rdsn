@@ -414,6 +414,11 @@ private:
     // update allowed users for access controller
     void update_ac_allowed_users(const std::map<std::string, std::string> &envs);
 
+    // update bool app envs
+    void update_bool_envs(const std::map<std::string, std::string> &envs,
+                          const std::string &name,
+                          /*out*/ bool &value);
+
 private:
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::mutation_queue;
@@ -519,6 +524,7 @@ private:
 
     // partition split
     std::unique_ptr<replica_split_manager> _split_mgr;
+    bool _validate_partition_hash{false};
 
     // disk migrator
     std::unique_ptr<replica_disk_migrator> _disk_migrator;

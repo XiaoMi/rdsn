@@ -77,6 +77,19 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
+    // validate partition_hash
+    if (_validate_partition_hash) {
+        if (_split_mgr->should_reject_request()) {
+            response_client_read(request, ERR_SPLITTING);
+            return;
+        }
+        if (!_split_mgr->check_partition_hash(
+                ((dsn::message_ex *)request)->header->client.partition_hash, "write")) {
+            response_client_read(request, ERR_PARENT_PARTITION_MISUSED);
+            return;
+        }
+    }
+
     if (partition_status::PS_PRIMARY != status()) {
         response_client_write(request, ERR_INVALID_STATE);
         return;
