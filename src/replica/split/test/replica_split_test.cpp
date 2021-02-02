@@ -410,7 +410,7 @@ public:
         _parent_replica->tracker()->wait_outstanding_tasks();
     }
 
-    bool test_check_partition_hash(int32_t partition_version, uint64_t partition_hash)
+    bool test_check_partition_hash(const int32_t &partition_version, const uint64_t &partition_hash)
     {
         _parent_split_mgr->_partition_version.store(partition_version);
         return _parent_split_mgr->check_partition_hash(partition_hash, "write");
@@ -939,7 +939,7 @@ TEST_F(replica_split_test, check_partition_hash_test)
               {NEW_PARTITION_COUNT - 1, send_to_parent_after_split, true},
               {NEW_PARTITION_COUNT - 1, send_to_child_after_split, false}};
 
-    for (auto test : tests) {
+    for (const auto &test : tests) {
         ASSERT_EQ(test_check_partition_hash(test.partition_version, test.partition_hash),
                   test.expected_result);
     }

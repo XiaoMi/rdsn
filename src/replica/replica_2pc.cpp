@@ -80,12 +80,12 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     // validate partition_hash
     if (_validate_partition_hash) {
         if (_split_mgr->should_reject_request()) {
-            response_client_read(request, ERR_SPLITTING);
+            response_client_write(request, ERR_SPLITTING);
             return;
         }
         if (!_split_mgr->check_partition_hash(
                 ((dsn::message_ex *)request)->header->client.partition_hash, "write")) {
-            response_client_read(request, ERR_PARENT_PARTITION_MISUSED);
+            response_client_write(request, ERR_PARENT_PARTITION_MISUSED);
             return;
         }
     }
