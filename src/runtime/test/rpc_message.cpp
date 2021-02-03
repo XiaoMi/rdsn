@@ -133,7 +133,7 @@ TEST(core, message_ex)
         request->write_next(&ptr, &sz, data_size);
         memcpy(ptr, data, data_size);
         request->write_commit(data_size);
-        ASSERT_EQ(1u, request->buffers.size());
+        ASSERT_EQ(2u, request->buffers.size());
         ASSERT_EQ(ptr, request->rw_ptr(0));
         ASSERT_EQ((void *)((char *)ptr + 10), request->rw_ptr(10));
         ASSERT_EQ(nullptr, request->rw_ptr(data_size));
@@ -143,7 +143,7 @@ TEST(core, message_ex)
         request->write_next(&ptr, &sz, data_size);
         memcpy(ptr, data, data_size);
         request->write_commit(data_size);
-        ASSERT_EQ(2u, request->buffers.size());
+        ASSERT_EQ(3u, request->buffers.size());
         ASSERT_EQ(ptr, request->rw_ptr(data_size));
         ASSERT_EQ((void *)((char *)ptr + 10), request->rw_ptr(data_size + 10));
         ASSERT_EQ(nullptr, request->rw_ptr(data_size + data_size));
@@ -164,7 +164,7 @@ TEST(core, message_ex)
         memcpy(ptr, data, data_size);
         request->write_commit(data_size);
 
-        ASSERT_EQ(1u, request->buffers.size());
+        ASSERT_EQ(2u, request->buffers.size());
         message_ex *receive = message_ex::create_receive_message(request->buffers[0]);
         ASSERT_EQ(1u, receive->buffers.size());
 
