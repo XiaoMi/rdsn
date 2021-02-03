@@ -26,7 +26,6 @@
 
 #include <dsn/utility/ports.h>
 #include <dsn/utility/crc.h>
-#include <dsn/utility/transient_memory.h>
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/tool-api/network.h>
 #include <dsn/tool-api/message_parser.h>
