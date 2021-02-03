@@ -794,7 +794,7 @@ std::vector<backup_info> policy_context::get_backup_infos(int cnt)
 bool policy_context::has_backup_history()
 {
     zauto_lock l(_lock);
-    return _backup_history.size() > 0;
+    return !_backup_history.empty();
 }
 
 bool policy_context::is_under_backuping()
