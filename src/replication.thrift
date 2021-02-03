@@ -926,6 +926,24 @@ struct control_split_response
     2:optional string   hint_msg;
 }
 
+// client->meta server to query partition split status
+struct query_split_request
+{
+    1:string    app_name;
+}
+
+struct query_split_response
+{
+    // Possible errors:
+    // - ERR_APP_NOT_EXIST: app not exist
+    // - ERR_APP_DROPPED: app has been dropped
+    // - ERR_INVALID_STATE: app is not splitting
+    1:dsn.error_code            err;
+    2:i32                       new_partition_count;
+    3:map<i32,split_status>     status;
+    4:optional string           hint_msg;
+}
+
 // child to primary parent, notifying that itself has caught up with parent
 struct notify_catch_up_request
 {
@@ -980,6 +998,22 @@ struct register_child_response
     2:dsn.layer2.app_info                   app;
     3:dsn.layer2.partition_configuration    parent_config;
     4:dsn.layer2.partition_configuration    child_config;
+}
+
+// primary -> meta to report pause or cancel split succeed
+struct notify_stop_split_request
+{
+    1:string        app_name;
+    2:dsn.gpid      parent_gpid;
+    3:split_status  meta_split_status;
+    4:i32           partition_count;
+}
+
+struct notify_stop_split_response
+{
+    // Possible errors:
+    // - ERR_INVALID_VERSION: request is out-dated
+    1:dsn.error_code    err;
 }
 
 /////////////////// bulk-load-related structs ////////////////////
