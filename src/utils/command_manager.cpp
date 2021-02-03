@@ -73,7 +73,6 @@ void command_manager::deregister_command(dsn_handle_t handle)
         ddebug("unregister command: %s", cmd.c_str());
         _handlers.erase(cmd);
     }
-    delete c;
 }
 
 bool command_manager::run_command(const std::string &cmd,
