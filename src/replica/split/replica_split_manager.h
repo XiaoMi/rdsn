@@ -174,7 +174,7 @@ private:
     bool check_partition_hash(const uint64_t &partition_hash, const std::string &op) const
     {
         auto target_pidx = get_partition_version() & partition_hash;
-        if (target_pidx != get_gpid().get_partition_index()) {
+        if (dsn_unlikely(target_pidx != get_gpid().get_partition_index())) {
             derror_replica(
                 "receive {} request with wrong partition_hash({}), partition_version = {}, "
                 "target_pidx = {}",
