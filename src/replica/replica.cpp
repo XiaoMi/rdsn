@@ -176,18 +176,7 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
         response_client_read(request, ERR_ACL_DENY);
     }
 
-    // validate partition_hash
-    if (_validate_partition_hash) {
-        if (_split_mgr->should_reject_request()) {
-            response_client_read(request, ERR_SPLITTING);
-            return;
-        }
-        if (!_split_mgr->check_partition_hash(
-                ((dsn::message_ex *)request)->header->client.partition_hash, "read")) {
-            response_client_read(request, ERR_PARENT_PARTITION_MISUSED);
-            return;
-        }
-    }
+    CHECK_REQUEST_IF_SPLITTING(read)
 
     if (status() == partition_status::PS_INACTIVE ||
         status() == partition_status::PS_POTENTIAL_SECONDARY) {

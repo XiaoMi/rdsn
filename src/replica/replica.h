@@ -86,6 +86,19 @@ enum manual_compaction_status
 };
 const char *manual_compaction_status_to_string(manual_compaction_status status);
 
+#define CHECK_REQUEST_IF_SPLITTING(op_type)                                                        \
+    if (_validate_partition_hash) {                                                                \
+        if (_split_mgr->should_reject_request()) {                                                 \
+            response_client_##op_type(request, ERR_SPLITTING);                                     \
+            return;                                                                                \
+        }                                                                                          \
+        if (!_split_mgr->check_partition_hash(                                                     \
+                ((dsn::message_ex *)request)->header->client.partition_hash, #op_type)) {          \
+            response_client_##op_type(request, ERR_PARENT_PARTITION_MISUSED);                      \
+            return;                                                                                \
+        }                                                                                          \
+    }
+
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
 public:

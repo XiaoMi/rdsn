@@ -39,7 +39,7 @@ public:
         return _mock_replica->_counter_backup_request_qps->get_integer_value();
     }
 
-    bool get_validate_partition_hash() { return _mock_replica->_validate_partition_hash; }
+    bool get_validate_partition_hash() const { return _mock_replica->_validate_partition_hash; }
 
     void reset_validate_partition_hash() { _mock_replica->_validate_partition_hash = false; }
 
