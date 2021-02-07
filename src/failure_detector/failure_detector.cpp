@@ -111,7 +111,7 @@ void failure_detector::stop()
     _tracker.cancel_outstanding_tasks();
 
     zauto_lock l(_lock);
-    if (_is_started == false) {
+    if (!_is_started) {
         return;
     }
     _is_started = false;
