@@ -26,10 +26,11 @@ find_program(THRIFT_COMPILER
         bin
 )
 
-set(THRIFT_GENERATED_FILE_PATH ${CMAKE_BINARY_DIR}/thrift-gen)
+set(THRIFT_GENERATED_FILE_PATH ${CMAKE_BINARY_DIR}/thrift-gen CACHE INTERNAL "Where the thrift generated sources locate")
 if(NOT EXISTS ${THRIFT_GENERATED_FILE_PATH})
     file(MAKE_DIRECTORY ${THRIFT_GENERATED_FILE_PATH})
 endif()
+message(STATUS "THRIFT_GENERATED_FILE_PATH=${THRIFT_GENERATED_FILE_PATH}")
 include_directories(${THRIFT_GENERATED_FILE_PATH})
 
 # THRIFT_GENERATE_CPP is used to generate sources using the thrift compiler.
@@ -51,10 +52,11 @@ function(THRIFT_GENERATE_CPP SRCS HDRS thrift_file)
     message(STATUS "THRIFT_GENERATE_CPP: ${thrift_file}")
 
     exec_program(${THRIFT_COMPILER}
-        ARGS --out "${THRIFT_GENERATED_FILE_PATH}" --gen cpp ${thrift_file}
+        ARGS --out ${THRIFT_GENERATED_FILE_PATH} --gen cpp ${thrift_file}
         OUTPUT_VARIABLE __thrift_OUT
         RETURN_VALUE THRIFT_RETURN)
     if(NOT ${THRIFT_RETURN} EQUAL "0")
+        message(STATUS "COMMAND: ${THRIFT_COMPILER} --out ${THRIFT_GENERATED_FILE_PATH} --gen cpp ${thrift_file}")
         message(FATAL_ERROR "thrift-compiler exits with " ${THRIFT_RETURN} ": " ${__thrift_OUT})
     endif()
 
@@ -64,6 +66,7 @@ function(THRIFT_GENERATE_CPP SRCS HDRS thrift_file)
     file(GLOB_RECURSE __result_hdr "${CMAKE_BINARY_DIR}/${_target_dir}/*.h")
     list(APPEND ${SRCS} ${__result_src})
     list(APPEND ${HDRS} ${__result_hdr})
+    # Sets the variables in global scope.
     set(${SRCS} ${${SRCS}} PARENT_SCOPE)
     set(${HDRS} ${${HDRS}} PARENT_SCOPE)
 endfunction()
