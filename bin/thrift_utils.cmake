@@ -37,11 +37,14 @@ include_directories(${THRIFT_GENERATED_FILE_PATH})
 #
 # Example:
 #
-# include(thrift_utils)
-# thrift_generate_cpp(RPC_META_THRIFT_SRCS RPC_META_THRIFT_HDRS rpc_meta.thrift)
+# thrift_generate_cpp(
+#     REQUEST_META_THRIFT_SRCS
+#     REQUEST_META_THRIFT_HDRS
+#     ${CMAKE_CURRENT_SOURCE_DIR}/request_meta.thrift
+# )
 # add_library(
 #     dsn_rpc
-#     ${RPC_META_THRIFT_SRCS}
+#     ${REQUEST_META_THRIFT_SRCS}
 #     ...
 # )
 function(THRIFT_GENERATE_CPP SRCS HDRS thrift_file)
@@ -60,10 +63,12 @@ function(THRIFT_GENERATE_CPP SRCS HDRS thrift_file)
         message(FATAL_ERROR "thrift-compiler exits with " ${THRIFT_RETURN} ": " ${__thrift_OUT})
     endif()
 
+    get_filename_component(__thrift_name ${thrift_file} NAME_WE)
+
     set(${SRCS})
     set(${HDRS})
-    file(GLOB_RECURSE __result_src "${CMAKE_BINARY_DIR}/${_target_dir}/*.cpp")
-    file(GLOB_RECURSE __result_hdr "${CMAKE_BINARY_DIR}/${_target_dir}/*.h")
+    file(GLOB_RECURSE __result_src "${THRIFT_GENERATED_FILE_PATH}/${__thrift_name}*.cpp")
+    file(GLOB_RECURSE __result_hdr "${THRIFT_GENERATED_FILE_PATH}/${__thrift_name}*.h")
     list(APPEND ${SRCS} ${__result_src})
     list(APPEND ${HDRS} ${__result_hdr})
     # Sets the variables in global scope.
