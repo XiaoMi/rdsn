@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.5.2)
 project(dsn C CXX)
 
 include(bin/dsn.cmake)
-include(bin/thrift_utils.cmake)
 
 set(DSN_BUILD_RUNTIME TRUE)
 add_definitions(-DGTEST_HAS_TR1_TUPLE=0 -DGTEST_USE_OWN_TR1_TUPLE=0)
