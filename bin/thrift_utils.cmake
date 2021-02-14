@@ -17,13 +17,13 @@
 # under the License.
 ##############################################################################
 
-# Path of Thrift compiler has been determined from the outside thirdparties management.
-# Here we assume the path is found.
 find_program(THRIFT_COMPILER
-    NAMES
+    NAME
         thrift
-    PATH_SUFFIXES
-        bin
+    PATHS
+        ${DSN_THIRDPARTY_ROOT}/bin
+    NO_DEFAULT_PATH
+    REQUIRED
 )
 
 set(THRIFT_GENERATED_FILE_PATH ${CMAKE_BINARY_DIR}/thrift-gen CACHE INTERNAL "Where the thrift generated sources locate")
