@@ -766,10 +766,10 @@ void replica_stub::initialize_start()
     // init liveness monitor
     dassert(NS_Disconnected == _state, "");
     if (_options.fd_disabled == false) {
-        _failure_detector.reset(new dsn::dist::slave_failure_detector_with_multimaster(
+        _failure_detector = std::make_shared<dsn::dist::slave_failure_detector_with_multimaster>(
             _options.meta_servers,
             [this]() { this->on_meta_server_disconnected(); },
-            [this]() { this->on_meta_server_connected(); }));
+            [this]() { this->on_meta_server_connected(); });
 
         auto err = _failure_detector->start(_options.fd_check_interval_seconds,
                                             _options.fd_beacon_interval_seconds,
