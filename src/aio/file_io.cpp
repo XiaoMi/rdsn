@@ -42,10 +42,13 @@ namespace file {
 
 /*extern*/ error_code close(disk_file *file)
 {
+    error_code result = ERR_INVALID_HANDLE;
     if (file != nullptr) {
-        return disk_engine::provider().close(file->native_handle());
+        result = disk_engine::provider().close(file->native_handle());
+        delete file;
+        file = nullptr;
     }
-    return ERR_INVALID_HANDLE;
+    return result;
 }
 
 /*extern*/ error_code flush(disk_file *file)
