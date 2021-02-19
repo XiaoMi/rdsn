@@ -23,7 +23,6 @@ find_program(THRIFT_COMPILER
     PATHS
         ${DSN_THIRDPARTY_ROOT}/bin
     NO_DEFAULT_PATH
-    REQUIRED
 )
 
 set(THRIFT_GENERATED_FILE_PATH ${CMAKE_BINARY_DIR}/thrift-gen CACHE INTERNAL "Where the thrift generated sources locate")
