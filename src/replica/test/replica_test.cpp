@@ -7,6 +7,8 @@
 #include <dsn/utility/fail_point.h>
 #include "replica_test_base.h"
 #include <dsn/utility/defer.h>
+#include <dsn/dist/replication/replica_envs.h>
+#include "replica/replica_http_service.h"
 
 namespace dsn {
 namespace replication {
@@ -21,6 +23,7 @@ public:
 public:
     void SetUp() override
     {
+        FLAGS_enable_http_server = false;
         stub->install_perf_counters();
         mock_app_info();
         _mock_replica = stub->generate_replica(_app_info, pid, partition_status::PS_PRIMARY, 1);
@@ -34,6 +37,22 @@ public:
     int get_table_level_backup_request_qps()
     {
         return _mock_replica->_counter_backup_request_qps->get_integer_value();
+    }
+
+    bool get_validate_partition_hash() const { return _mock_replica->_validate_partition_hash; }
+
+    void reset_validate_partition_hash() { _mock_replica->_validate_partition_hash = false; }
+
+    void update_validate_partition_hash(bool old_value, bool set_in_map, std::string new_value)
+    {
+        _mock_replica->_validate_partition_hash = old_value;
+        std::map<std::string, std::string> envs;
+        if (set_in_map) {
+            envs[replica_envs::SPLIT_VALIDATE_PARTITION_HASH] = new_value;
+        }
+        _mock_replica->update_bool_envs(envs,
+                                        replica_envs::SPLIT_VALIDATE_PARTITION_HASH,
+                                        _mock_replica->_validate_partition_hash);
     }
 
     void mock_app_info()
@@ -79,6 +98,94 @@ TEST_F(replica_test, backup_request_qps)
     // implementation of perf-counter which type is COUNTER_TYPE_RATE.
     usleep(1e5);
     ASSERT_GT(get_table_level_backup_request_qps(), 0);
+}
+
+TEST_F(replica_test, query_data_version_test)
+{
+    replica_http_service http_svc(stub.get());
+    struct query_data_version_test
+    {
+        std::string app_id;
+        http_status_code expected_code;
+        std::string expected_response_json;
+    } tests[] = {{"", http_status_code::bad_request, "app_id should not be empty"},
+                 {"wrong", http_status_code::bad_request, "invalid app_id=wrong"},
+                 {"2",
+                  http_status_code::ok,
+                  R"({"1":{"pidx":"1","data_version":"1"}})"},
+                 {"4", http_status_code::not_found, "app_id=4 not found"}};
+    for (const auto &test : tests) {
+        http_request req;
+        http_response resp;
+        if (!test.app_id.empty()) {
+            req.query_args["app_id"] = test.app_id;
+        }
+        http_svc.query_app_data_version_handler(req, resp);
+        ASSERT_EQ(resp.status_code, test.expected_code);
+        std::string expected_json = test.expected_response_json;
+        if (test.expected_code == http_status_code::ok) {
+            expected_json += "\n";
+        }
+        ASSERT_EQ(resp.body, expected_json);
+    }
+}
+
+TEST_F(replica_test, query_compaction_test)
+{
+    replica_http_service http_svc(stub.get());
+    struct query_compaction_test
+    {
+        std::string app_id;
+        http_status_code expected_code;
+        std::string expected_response_json;
+    } tests[] = {
+        {"", http_status_code::bad_request, "app_id should not be empty"},
+        {"xxx", http_status_code::bad_request, "invalid app_id=xxx"},
+        {"2",
+         http_status_code::ok,
+         R"({"status":{"CompactionRunning":"0","CompactionQueue":"0","CompactionFinish":"1"}})"},
+        {"4",
+         http_status_code::ok,
+         R"({"status":{"CompactionRunning":"0","CompactionQueue":"0","CompactionFinish":"0"}})"}};
+    for (const auto &test : tests) {
+        http_request req;
+        http_response resp;
+        if (!test.app_id.empty()) {
+            req.query_args["app_id"] = test.app_id;
+        }
+        http_svc.query_compaction_handler(req, resp);
+        ASSERT_EQ(resp.status_code, test.expected_code);
+        std::string expected_json = test.expected_response_json;
+        if (test.expected_code == http_status_code::ok) {
+            expected_json += "\n";
+        }
+        ASSERT_EQ(resp.body, expected_json);
+    }
+}
+
+TEST_F(replica_test, update_validate_partition_hash_test)
+{
+    struct update_validate_partition_hash_test
+    {
+        bool old_value;
+        bool set_in_map;
+        std::string new_value;
+        bool expected_value;
+    } tests[]{
+        {false, false, "false", false},
+        {false, true, "false", false},
+        {false, false, "true", false},
+        {false, true, "true", true},
+        {false, true, "ture", false},
+        {true, true, "false", false},
+        {true, true, "true", true},
+        {true, true, "flase", true},
+    };
+    for (const auto &test : tests) {
+        update_validate_partition_hash(test.old_value, test.set_in_map, test.new_value);
+        ASSERT_EQ(get_validate_partition_hash(), test.expected_value);
+        reset_validate_partition_hash();
+    }
 }
 
 } // namespace replication

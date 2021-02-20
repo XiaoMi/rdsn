@@ -28,6 +28,7 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/flags.h>
 #include <dsn/utility/safe_strerror_posix.h>
+#include <dsn/utility/TokenBucket.h>
 #include <dsn/utility/utils.h>
 
 namespace dsn {
@@ -40,24 +41,28 @@ DSN_DEFINE_uint64("replication",
                   hdfs_read_batch_size_bytes,
                   64 << 20,
                   "hdfs read batch size, the default value is 64MB");
+DSN_TAG_VARIABLE(hdfs_read_batch_size_bytes, FT_MUTABLE);
+
+DSN_DEFINE_uint32("replication", hdfs_read_limit_rate_megabytes, 200, "hdfs read limit(MB/s)");
+DSN_TAG_VARIABLE(hdfs_read_limit_rate_megabytes, FT_MUTABLE);
 
 DSN_DEFINE_uint64("replication",
                   hdfs_write_batch_size_bytes,
                   64 << 20,
                   "hdfs write batch size, the default value is 64MB");
+DSN_TAG_VARIABLE(hdfs_write_batch_size_bytes, FT_MUTABLE);
 
-hdfs_service::hdfs_service() {}
+hdfs_service::hdfs_service() { _read_token_bucket.reset(new folly::DynamicTokenBucket()); }
 
 hdfs_service::~hdfs_service()
 {
-    ddebug("Try to disconnect hdfs.");
-    int result = hdfsDisconnect(_fs);
-    if (result == -1) {
-        derror_f("Fail to disconnect from the hdfs file system, error: {}.",
-                 utils::safe_strerror(errno));
-    }
-    // Even if there is an error, the resources associated with the hdfsFS will be freed.
-    _fs = nullptr;
+    // We should not call hdfsDisconnect() here if jvm has exited.
+    // And there is no simple, safe way to call hdfsDisconnect()
+    // when process terminates (the proper solution is likely to create a
+    // signal handler to detect when the process is killed, but we would still
+    // leak when pegasus crashes).
+    //
+    // close();
 }
 
 error_code hdfs_service::initialize(const std::vector<std::string> &args)
@@ -87,6 +92,21 @@ error_code hdfs_service::create_fs()
     }
     ddebug_f("Succeed to connect hdfs name node {}.", _hdfs_name_node);
     return ERR_OK;
+}
+
+void hdfs_service::close()
+{
+    // This method should be carefully called.
+    // Calls to hdfsDisconnect() by individual threads would terminate
+    // all other connections handed out via hdfsConnect() to the same URI.
+    ddebug("Try to disconnect hdfs.");
+    int result = hdfsDisconnect(_fs);
+    if (result == -1) {
+        derror_f("Fail to disconnect from the hdfs file system, error: {}.",
+                 utils::safe_strerror(errno));
+    }
+    // Even if there is an error, the resources associated with the hdfsFS will be freed.
+    _fs = nullptr;
 }
 
 std::string hdfs_service::get_hdfs_entry_name(const std::string &hdfs_path)
@@ -384,7 +404,12 @@ error_code hdfs_file_object::read_data_in_batches(uint64_t start_pos,
     uint64_t read_size = 0;
     bool read_success = true;
     while (cur_pos < start_pos + data_length) {
+        const uint64_t rate = FLAGS_hdfs_read_limit_rate_megabytes << 20;
         read_size = std::min(start_pos + data_length - cur_pos, FLAGS_hdfs_read_batch_size_bytes);
+        // burst size should not be less than consume size
+        _service->_read_token_bucket->consumeWithBorrowAndWait(
+            read_size, rate, std::max(2 * rate, read_size));
+
         tSize num_read_bytes = hdfsPread(_service->get_fs(),
                                          read_file,
                                          static_cast<tOffset>(cur_pos),

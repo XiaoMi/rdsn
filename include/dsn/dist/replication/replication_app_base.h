@@ -197,7 +197,8 @@ public:
     // must be thread safe
     //
     virtual ::dsn::error_code copy_checkpoint_to_dir(const char *checkpoint_dir,
-                                                     /*output*/ int64_t *last_decree) = 0;
+                                                     /*output*/ int64_t *last_decree,
+                                                     bool flush_memtable = false) = 0;
 
     //
     // Query methods.
@@ -248,6 +249,9 @@ public:
         resp.err = dsn::ERR_OBJECT_NOT_FOUND;
         resp.__set_err_hint("on_detect_hotkey implementation not found");
     }
+
+    // query pegasus data version
+    virtual uint32_t query_data_version() const = 0;
 
 public:
     //

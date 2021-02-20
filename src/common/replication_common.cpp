@@ -500,11 +500,6 @@ void replication_options::initialize()
                                          cold_backup_checkpoint_reserve_minutes,
                                          "reserve minutes of cold backup checkpoint");
 
-    bulk_load_provider_root = dsn_config_get_value_string("replication",
-                                                          "bulk_load_provider_root",
-                                                          "bulk_load_provider_root",
-                                                          "bulk load root on remote file provider");
-
     max_concurrent_bulk_load_downloading_count = FLAGS_max_concurrent_bulk_load_downloading_count;
 
     replica_helper::load_meta_servers(meta_servers);
@@ -617,6 +612,10 @@ const std::string replica_envs::ROCKSDB_ITERATION_THRESHOLD_TIME_MS(
 const std::string replica_envs::BUSINESS_INFO("business.info");
 const std::string replica_envs::REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS(
     "replica_access_controller.allowed_users");
+const std::string replica_envs::READ_QPS_THROTTLING("replica.read_throttling");
+const std::string replica_envs::READ_SIZE_THROTTLING("replica.read_throttling_by_size");
+const std::string
+    replica_envs::SPLIT_VALIDATE_PARTITION_HASH("replica.split.validate_partition_hash");
 
 const std::string bulk_load_constant::BULK_LOAD_INFO("bulk_load_info");
 const int32_t bulk_load_constant::BULK_LOAD_REQUEST_INTERVAL = 10;

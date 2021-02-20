@@ -77,6 +77,8 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
+    CHECK_REQUEST_IF_SPLITTING(write)
+
     if (partition_status::PS_PRIMARY != status()) {
         response_client_write(request, ERR_INVALID_STATE);
         return;
@@ -120,13 +122,8 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
-    if (!ignore_throttling) {
-        if (throttle_request(_write_qps_throttling_controller, request, 1)) {
-            return;
-        }
-        if (throttle_request(_write_size_throttling_controller, request, request->body_size())) {
-            return;
-        }
+    if (!ignore_throttling && throttle_write_request(request)) {
+        return;
     }
 
     dinfo("%s: got write request from %s", name(), request->header->from_address.to_string());

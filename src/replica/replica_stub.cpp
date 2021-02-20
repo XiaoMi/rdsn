@@ -2373,19 +2373,18 @@ void replica_stub::close()
         return;
     }
 
-    dsn::command_manager::instance().deregister_command(_kill_partition_command);
-    dsn::command_manager::instance().deregister_command(_deny_client_command);
-    dsn::command_manager::instance().deregister_command(_verbose_client_log_command);
-    dsn::command_manager::instance().deregister_command(_verbose_commit_log_command);
-    dsn::command_manager::instance().deregister_command(_trigger_chkpt_command);
-    dsn::command_manager::instance().deregister_command(_query_compact_command);
-    dsn::command_manager::instance().deregister_command(_query_app_envs_command);
+    UNREGISTER_VALID_HANDLER(_kill_partition_command);
+    UNREGISTER_VALID_HANDLER(_deny_client_command);
+    UNREGISTER_VALID_HANDLER(_verbose_client_log_command);
+    UNREGISTER_VALID_HANDLER(_verbose_commit_log_command);
+    UNREGISTER_VALID_HANDLER(_trigger_chkpt_command);
+    UNREGISTER_VALID_HANDLER(_query_compact_command);
+    UNREGISTER_VALID_HANDLER(_query_app_envs_command);
 #ifdef DSN_ENABLE_GPERF
-    dsn::command_manager::instance().deregister_command(_release_tcmalloc_memory_command);
-    dsn::command_manager::instance().deregister_command(_max_reserved_memory_percentage_command);
+    UNREGISTER_VALID_HANDLER(_release_tcmalloc_memory_command);
+    UNREGISTER_VALID_HANDLER(_max_reserved_memory_percentage_command);
 #endif
-    dsn::command_manager::instance().deregister_command(
-        _max_concurrent_bulk_load_downloading_count_command);
+    UNREGISTER_VALID_HANDLER(_max_concurrent_bulk_load_downloading_count_command);
 
     _kill_partition_command = nullptr;
     _deny_client_command = nullptr;
@@ -2743,7 +2742,6 @@ void replica_stub::on_group_bulk_load(group_bulk_load_rpc rpc)
     }
 }
 
-// TODO: (Tangyanzhao) implement it later
 void replica_stub::on_detect_hotkey(detect_hotkey_rpc rpc)
 {
     const auto &request = rpc.request();
@@ -2763,5 +2761,32 @@ void replica_stub::on_detect_hotkey(detect_hotkey_rpc rpc)
         response.err_hint = fmt::format("not find the replica {} \n", request.pid);
     }
 }
+
+void replica_stub::query_app_data_version(
+    int32_t app_id, /*pidx => data_version*/ std::unordered_map<int32_t, uint32_t> &version_map)
+{
+    zauto_read_lock l(_replicas_lock);
+    for (const auto &kv : _replicas) {
+        if (kv.first.get_app_id() == app_id) {
+            replica_ptr rep = kv.second;
+            if (rep != nullptr) {
+                uint32_t data_version = rep->query_data_version();
+                version_map[kv.first.get_partition_index()] = data_version;
+            }
+        }
+    }
+}
+
+void replica_stub::query_app_compact_status(
+    int32_t app_id, std::unordered_map<gpid, manual_compaction_status> &status)
+{
+    zauto_read_lock l(_replicas_lock);
+    for (auto it = _replicas.begin(); it != _replicas.end(); ++it) {
+        if (it->first.get_app_id() == app_id) {
+            status[it->first] = it->second->get_compact_status();
+        }
+    }
+}
+
 } // namespace replication
 } // namespace dsn

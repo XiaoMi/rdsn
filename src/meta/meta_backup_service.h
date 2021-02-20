@@ -25,6 +25,7 @@
 #include <dsn/dist/block_service.h>
 #include <dsn/http/http_server.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
+#include <gtest/gtest_prod.h>
 
 #include "meta_data.h"
 
@@ -195,7 +196,6 @@ struct backup_progress
 {
     int32_t unfinished_apps;
     std::map<gpid, int32_t> partition_progress;
-    std::map<gpid, dsn::task_ptr> backup_requests;
     std::map<app_id, int32_t> unfinished_partitions_per_app;
     // <app_id, <partition_id, checkpoint size>>
     std::map<app_id, std::map<int, int64_t>> app_chkpt_size;
@@ -208,7 +208,6 @@ struct backup_progress
     {
         unfinished_apps = 0;
         partition_progress.clear();
-        backup_requests.clear();
         unfinished_partitions_per_app.clear();
         app_chkpt_size.clear();
         is_app_skipped.clear();
@@ -355,6 +354,10 @@ public:
     std::string get_backup_path(const std::string &policy_name, int64_t backup_id);
 
 private:
+    friend class meta_service_test_app;
+    
+    FRIEND_TEST(meta_backup_service_test, test_add_backup_policy);
+
     void start_create_policy_meta_root(dsn::task_ptr callback);
     void start_sync_policies();
     error_code sync_policies_from_remote_storage();
@@ -367,9 +370,6 @@ private:
                                             std::shared_ptr<policy_context> &p_context_ptr);
 
     bool is_valid_policy_name_unlocked(const std::string &policy_name);
-
-private:
-    friend class meta_service_test_app;
 
     policy_factory _factory;
     meta_service *_meta_svc;

@@ -56,7 +56,8 @@ public:
         return ERR_OK;
     }
     error_code copy_checkpoint_to_dir(const char *checkpoint_dir,
-                                      /*output*/ int64_t *last_decree) override
+                                      /*output*/ int64_t *last_decree,
+                                      bool flush_memtable = false) override
     {
         if (last_decree != nullptr) {
             *last_decree = _decree;
@@ -78,6 +79,8 @@ public:
 
     void set_ingestion_status(ingestion_status::type status) { _ingestion_status = status; }
     ingestion_status::type get_ingestion_status() override { return _ingestion_status; }
+
+    uint32_t query_data_version() const { return 1; }
 
 private:
     std::map<std::string, std::string> _envs;

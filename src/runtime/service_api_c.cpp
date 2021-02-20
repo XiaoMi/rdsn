@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include "aio/disk_engine.h"
 #include "service_engine.h"
 #include "utils/coredump.h"
 #include "runtime/rpc/rpc_engine.h"
@@ -208,8 +209,8 @@ DSN_API bool dsn_mimic_app(const char *app_role, int index)
         }
     }
 
-    auto nodes = ::dsn::service_engine::instance().get_all_nodes();
-    for (auto &n : nodes) {
+    const auto &nodes = dsn::service_engine::instance().get_all_nodes();
+    for (const auto &n : nodes) {
         if (n.second->spec().role_name == std::string(app_role) &&
             n.second->spec().index == index) {
             ::dsn::task::set_tls_dsn_context(n.second.get(), nullptr);
@@ -291,10 +292,11 @@ extern void dsn_core_init();
 
 inline void dsn_global_init()
 {
-    // ensure perf_counters is destructed after service_engine,
+    // make perf_counters/disk_engine destructed after service_engine,
     // because service_engine relies on the former to monitor
-    // task queues length.
+    // task queues length and close files.
     dsn::perf_counters::instance();
+    dsn::disk_engine::instance();
     dsn::service_engine::instance();
 }
 
@@ -421,14 +423,6 @@ bool run(const char *config_file,
         return false;
     }
 
-    // init tool memory
-    size_t tls_trans_memory_KB = (size_t)dsn_config_get_value_uint64(
-        "core",
-        "tls_trans_memory_KB",
-        1024, // 1 MB
-        "thread local transient memory buffer size (KB), default is 1024");
-    ::dsn::tls_trans_mem_init(tls_trans_memory_KB * 1024);
-
 #ifdef DSN_ENABLE_GPERF
     double_t tcmalloc_release_rate =
         (double_t)dsn_config_get_value_double("core",
@@ -508,7 +502,7 @@ bool run(const char *config_file,
         }
     }
 
-    if (::dsn::service_engine::instance().get_all_nodes().size() == 0) {
+    if (dsn::service_engine::instance().get_all_nodes().size() == 0) {
         printf("no app are created, usually because \n"
                "app_name is not specified correctly, should be 'xxx' in [apps.xxx]\n"
                "or app_index (1-based) is greater than specified count in config file\n");

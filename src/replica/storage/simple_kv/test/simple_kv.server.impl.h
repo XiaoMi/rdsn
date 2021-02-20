@@ -72,7 +72,8 @@ public:
     virtual ::dsn::error_code async_checkpoint(bool flush_memtable) override;
 
     virtual ::dsn::error_code copy_checkpoint_to_dir(const char *checkpoint_dir,
-                                                     int64_t *last_decree) override
+                                                     int64_t *last_decree,
+                                                     bool flush_memtable = false) override
     {
         return ERR_NOT_IMPLEMENTED;
     }
@@ -89,6 +90,8 @@ public:
     virtual void update_app_envs(const std::map<std::string, std::string> &envs) {}
 
     virtual void query_app_envs(/*out*/ std::map<std::string, std::string> &envs) {}
+
+    virtual uint32_t query_data_version() const override { return 0; }
 
 private:
     void recover();

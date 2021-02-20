@@ -217,6 +217,11 @@ public:
     void on_query_disk_info(query_disk_info_rpc rpc);
     void on_disk_migrate(replica_disk_migrate_rpc rpc);
 
+    // query partitions compact status by app_id
+    void
+    query_app_compact_status(int32_t app_id,
+                             /*out*/ std::unordered_map<gpid, manual_compaction_status> &status);
+
 private:
     enum replica_node_state
     {
@@ -283,6 +288,10 @@ private:
         }
         return 0;
     }
+
+    void query_app_data_version(
+        int32_t app_id,
+        /*pidx => data_version*/ std::unordered_map<int32_t, uint32_t> &version_map);
 
 #ifdef DSN_ENABLE_GPERF
     // Try to release tcmalloc memory back to operating system

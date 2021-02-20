@@ -154,6 +154,15 @@ private:
     // when child copy mutation synchronously, parent replica handle child ack
     void on_copy_mutation_reply(dsn::error_code ec, ballot b, decree d);
 
+    // parent partition pause or cancel split
+    void parent_stop_split(split_status::type meta_split_status);
+
+    // called by `on_group_check_reply` in `replica_check.cpp`
+    // if group all replica pause/cancel split, send notify request to meta server
+    void primary_parent_handle_stop_split(const std::shared_ptr<group_check_request> &req,
+                                          const std::shared_ptr<group_check_response> &resp);
+    void parent_send_notify_stop_request(split_status::type meta_split_status);
+
     //
     // helper functions
     //
@@ -161,6 +170,22 @@ private:
     ballot get_ballot() const { return _replica->get_ballot(); }
     decree last_committed_decree() const { return _replica->last_committed_decree(); }
     task_tracker *tracker() { return _replica->tracker(); }
+    bool should_reject_request() const { return get_partition_version() == -1; }
+    bool check_partition_hash(const uint64_t &partition_hash, const std::string &op) const
+    {
+        auto target_pidx = get_partition_version() & partition_hash;
+        if (dsn_unlikely(target_pidx != get_gpid().get_partition_index())) {
+            derror_replica(
+                "receive {} request with wrong partition_hash({}), partition_version = {}, "
+                "target_pidx = {}",
+                op,
+                partition_hash,
+                get_partition_version(),
+                target_pidx);
+            return false;
+        }
+        return true;
+    }
 
 private:
     replica *_replica;

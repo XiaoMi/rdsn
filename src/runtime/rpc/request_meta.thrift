@@ -15,28 +15,23 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#pragma once
+namespace cpp dsn
 
-#include <dsn/utility/synchronize.h>
-#include "access_controller.h"
-
-namespace dsn {
-namespace security {
-class replica_access_controller : public access_controller
+// Metadata field of the request in rDSN's thrift protocol (version 1).
+// TODO(wutao1): add design doc of the thrift protocol.
+struct thrift_request_meta_v1
 {
-public:
-    explicit replica_access_controller(const std::string &name);
-    bool allowed(message_ex *msg) override;
-    void update(const std::string &users) override;
+    // The replica's gpid.
+    1:optional i32 app_id;
+    2:optional i32 partition_index;
 
-private:
-    utils::rw_lock_nr _lock; // [
-    std::unordered_set<std::string> _users;
-    std::string _env_users;
-    // ]
-    std::string _name;
+    // The timeout of this request that's set on client side.
+    3:optional i32 client_timeout;
 
-    friend class replica_access_controller_test;
-};
-} // namespace security
-} // namespace dsn
+    // The hash value calculated from the hash key.
+    4:optional i64 client_partition_hash;
+
+    // Whether it is a backup request. If true, this request (only if it's a read) can be handled by
+    // a secondary replica, which does not guarantee strong consistency.
+    5:optional bool is_backup_request;
+}

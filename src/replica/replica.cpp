@@ -90,6 +90,14 @@ replica::replica(
     _counter_recent_write_throttling_reject_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
+    counter_str = fmt::format("recent.read.throttling.delay.count@{}", gpid);
+    _counter_recent_read_throttling_delay_count.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
+
+    counter_str = fmt::format("recent.read.throttling.reject.count@{}", gpid);
+    _counter_recent_read_throttling_reject_count.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
+
     counter_str = fmt::format("dup.disabled_non_idempotent_write_count@{}", _app_info.app_name);
     _counter_dup_disabled_non_idempotent_write_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
@@ -162,15 +170,21 @@ replica::~replica(void)
     dinfo("%s: replica destroyed", name());
 }
 
-void replica::on_client_read(dsn::message_ex *request)
+void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
 {
     if (!_access_controller->allowed(request)) {
         response_client_read(request, ERR_ACL_DENY);
     }
 
+    CHECK_REQUEST_IF_SPLITTING(read)
+
     if (status() == partition_status::PS_INACTIVE ||
         status() == partition_status::PS_POTENTIAL_SECONDARY) {
         response_client_read(request, ERR_INVALID_STATE);
+        return;
+    }
+
+    if (!ignore_throttling && throttle_read_request(request)) {
         return;
     }
 
@@ -453,6 +467,42 @@ std::string replica::query_compact_state() const
     return _app->query_compact_state();
 }
 
+const char *manual_compaction_status_to_string(manual_compaction_status status)
+{
+    switch (status) {
+    case kFinish:
+        return "CompactionFinish";
+    case kRunning:
+        return "CompactionRunning";
+    case kQueue:
+        return "CompactionQueue";
+    default:
+        dassert(false, "invalid status({})", status);
+        __builtin_unreachable();
+    }
+}
+
+manual_compaction_status replica::get_compact_status() const
+{
+    std::string compact_state = query_compact_state();
+    // query_compact_state will return a message like:
+    // Case1. last finish at [-]
+    // - partition is not manual compaction
+    // Case2. last finish at [timestamp], last used {time_used} ms
+    // - partition manual compaction finished
+    // Case3. last finish at [-], recent enqueue at [timestamp]
+    // - partition is in manual compaction queue
+    // Case4. last finish at [-], recent enqueue at [timestamp], recent start at [timestamp]
+    // - partition is running manual compaction
+    if (compact_state.find("recent start at") != std::string::npos) {
+        return kRunning;
+    } else if (compact_state.find("recent enqueue at") != std::string::npos) {
+        return kQueue;
+    } else {
+        return kFinish;
+    }
+}
+
 // Replicas on the server which serves for the same table will share the same perf-counter.
 // For example counter `table.level.RPC_RRDB_RRDB_MULTI_PUT.latency(ns)@test_table` is shared by
 // all the replicas for `test_table`.
@@ -482,6 +532,12 @@ void replica::init_table_level_latency_counters()
 void replica::on_detect_hotkey(const detect_hotkey_request &req, detect_hotkey_response &resp)
 {
     _app->on_detect_hotkey(req, resp);
+}
+
+uint32_t replica::query_data_version() const
+{
+    dassert_replica(_app != nullptr, "");
+    return _app->query_data_version();
 }
 
 } // namespace replication
