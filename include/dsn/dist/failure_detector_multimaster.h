@@ -51,18 +51,18 @@ public:
                                             std::function<void()> &&master_connected_callback);
     virtual ~slave_failure_detector_with_multimaster() {}
 
-    virtual void end_ping(::dsn::error_code err, const fd::beacon_ack &ack, void *context);
+    void end_ping(::dsn::error_code err, const fd::beacon_ack &ack, void *context) override;
 
     // client side
-    virtual void on_master_disconnected(const std::vector<::dsn::rpc_address> &nodes);
-    virtual void on_master_connected(::dsn::rpc_address node);
+    void on_master_disconnected(const std::vector<::dsn::rpc_address> &nodes) override;
+    void on_master_connected(::dsn::rpc_address node) override;
 
     // server side
-    virtual void on_worker_disconnected(const std::vector<::dsn::rpc_address> &nodes)
+    void on_worker_disconnected(const std::vector<::dsn::rpc_address> &nodes) override
     {
         dassert(false, "invalid execution flow");
     }
-    virtual void on_worker_connected(::dsn::rpc_address node)
+    void on_worker_connected(::dsn::rpc_address node) override
     {
         dassert(false, "invalid execution flow");
     }
