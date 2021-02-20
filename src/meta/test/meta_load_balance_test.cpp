@@ -820,13 +820,15 @@ void meta_load_balance_test::simple_lb_from_proposal_test()
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 2: test invalid proposal: invalid target" << std::endl;
-    cpa2 = new_proposal_action(dsn::rpc_address(), node_list[0], config_type::CT_UPGRADE_TO_PRIMARY);
+    cpa2 =
+        new_proposal_action(dsn::rpc_address(), node_list[0], config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 3: test invalid proposal: invalid node" << std::endl;
-    cpa2 = new_proposal_action(node_list[0], dsn::rpc_address(), config_type::CT_UPGRADE_TO_PRIMARY);
+    cpa2 =
+        new_proposal_action(node_list[0], dsn::rpc_address(), config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
