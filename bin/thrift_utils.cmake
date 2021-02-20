@@ -54,11 +54,11 @@ function(THRIFT_GENERATE_CPP SRCS HDRS thrift_file)
     message(STATUS "THRIFT_GENERATE_CPP: ${thrift_file}")
 
     exec_program(${THRIFT_COMPILER}
-        ARGS --out ${THRIFT_GENERATED_FILE_PATH} --gen cpp ${thrift_file}
+        ARGS -gen cpp:moveable_types --out ${THRIFT_GENERATED_FILE_PATH} --gen cpp ${thrift_file}
         OUTPUT_VARIABLE __thrift_OUT
         RETURN_VALUE THRIFT_RETURN)
     if(NOT ${THRIFT_RETURN} EQUAL "0")
-        message(STATUS "COMMAND: ${THRIFT_COMPILER} --out ${THRIFT_GENERATED_FILE_PATH} --gen cpp ${thrift_file}")
+        message(STATUS "COMMAND: ${THRIFT_COMPILER} -gen cpp:moveable_types --out ${THRIFT_GENERATED_FILE_PATH} --gen cpp ${thrift_file}")
         message(FATAL_ERROR "thrift-compiler exits with " ${THRIFT_RETURN} ": " ${__thrift_OUT})
     endif()
 
