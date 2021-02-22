@@ -481,6 +481,10 @@ class register_child_request;
 
 class register_child_response;
 
+class query_child_state_request;
+
+class query_child_state_response;
+
 class notify_stop_split_request;
 
 class notify_stop_split_response;
@@ -6927,6 +6931,128 @@ public:
 void swap(register_child_response &a, register_child_response &b);
 
 inline std::ostream &operator<<(std::ostream &out, const register_child_response &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _query_child_state_request__isset
+{
+    _query_child_state_request__isset() : app_name(false), pid(false), partition_count(false) {}
+    bool app_name : 1;
+    bool pid : 1;
+    bool partition_count : 1;
+} _query_child_state_request__isset;
+
+class query_child_state_request
+{
+public:
+    query_child_state_request(const query_child_state_request &);
+    query_child_state_request(query_child_state_request &&);
+    query_child_state_request &operator=(const query_child_state_request &);
+    query_child_state_request &operator=(query_child_state_request &&);
+    query_child_state_request() : app_name(), partition_count(0) {}
+
+    virtual ~query_child_state_request() throw();
+    std::string app_name;
+    ::dsn::gpid pid;
+    int32_t partition_count;
+
+    _query_child_state_request__isset __isset;
+
+    void __set_app_name(const std::string &val);
+
+    void __set_pid(const ::dsn::gpid &val);
+
+    void __set_partition_count(const int32_t val);
+
+    bool operator==(const query_child_state_request &rhs) const
+    {
+        if (!(app_name == rhs.app_name))
+            return false;
+        if (!(pid == rhs.pid))
+            return false;
+        if (!(partition_count == rhs.partition_count))
+            return false;
+        return true;
+    }
+    bool operator!=(const query_child_state_request &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const query_child_state_request &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(query_child_state_request &a, query_child_state_request &b);
+
+inline std::ostream &operator<<(std::ostream &out, const query_child_state_request &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
+typedef struct _query_child_state_response__isset
+{
+    _query_child_state_response__isset() : err(false), partition_count(false), child_config(false)
+    {
+    }
+    bool err : 1;
+    bool partition_count : 1;
+    bool child_config : 1;
+} _query_child_state_response__isset;
+
+class query_child_state_response
+{
+public:
+    query_child_state_response(const query_child_state_response &);
+    query_child_state_response(query_child_state_response &&);
+    query_child_state_response &operator=(const query_child_state_response &);
+    query_child_state_response &operator=(query_child_state_response &&);
+    query_child_state_response() : partition_count(0) {}
+
+    virtual ~query_child_state_response() throw();
+    ::dsn::error_code err;
+    int32_t partition_count;
+    ::dsn::partition_configuration child_config;
+
+    _query_child_state_response__isset __isset;
+
+    void __set_err(const ::dsn::error_code &val);
+
+    void __set_partition_count(const int32_t val);
+
+    void __set_child_config(const ::dsn::partition_configuration &val);
+
+    bool operator==(const query_child_state_response &rhs) const
+    {
+        if (!(err == rhs.err))
+            return false;
+        if (__isset.partition_count != rhs.__isset.partition_count)
+            return false;
+        else if (__isset.partition_count && !(partition_count == rhs.partition_count))
+            return false;
+        if (__isset.child_config != rhs.__isset.child_config)
+            return false;
+        else if (__isset.child_config && !(child_config == rhs.child_config))
+            return false;
+        return true;
+    }
+    bool operator!=(const query_child_state_response &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const query_child_state_response &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(query_child_state_response &a, query_child_state_response &b);
+
+inline std::ostream &operator<<(std::ostream &out, const query_child_state_response &obj)
 {
     obj.printTo(out);
     return out;
