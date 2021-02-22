@@ -836,6 +836,11 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
         if (app->status != app_status::AS_AVAILABLE || app->is_bulk_loading)
             continue;
 
+        if (app->helpers->split_states.splitting_count > 0) {
+            ddebug_f("app({}) is executing partition split, skip it.", app->app_name);
+            continue;
+        }
+
         bool enough_information = primary_balancer_per_app(app);
         if (!enough_information) {
             // Even if we don't have enough info for current app,
