@@ -693,7 +693,7 @@ TEST_F(meta_split_service_test, query_child_state_test)
     } tests[] = {
         {true, false, ERR_INVALID_STATE}, {false, false, ERR_INVALID_STATE}, {true, true, ERR_OK}};
 
-    for (auto test : tests) {
+    for (const auto &test : tests) {
         if (test.mock_splitting) {
             mock_app_partition_split_context();
         }

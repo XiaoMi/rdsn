@@ -1426,6 +1426,7 @@ void replica_split_manager::on_query_child_state_reply(
 
     ddebug_replica("query child partition succeed, child partition[{}] has already been ready",
                    response.child_config.pid);
+    // make child partition active
     _stub->split_replica_exec(LPC_PARTITION_SPLIT,
                               response.child_config.pid,
                               std::bind(&replica_split_manager::child_partition_active,
@@ -1434,6 +1435,7 @@ void replica_split_manager::on_query_child_state_reply(
     update_local_partition_count(response.partition_count);
     _replica->_primary_states.cleanup_split_states();
     parent_cleanup_split_context();
+    // update parent group partition_count
     _replica->broadcast_group_check();
 }
 
