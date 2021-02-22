@@ -66,11 +66,14 @@ function(THRIFT_GENERATE_CPP SRCS HDRS thrift_file)
 
     set(${SRCS})
     set(${HDRS})
-    file(GLOB_RECURSE __result_src "${THRIFT_GENERATED_FILE_PATH}/${__thrift_name}*.cpp")
-    file(GLOB_RECURSE __result_hdr "${THRIFT_GENERATED_FILE_PATH}/${__thrift_name}*.h")
+    file(GLOB __result_src "${THRIFT_GENERATED_FILE_PATH}/${__thrift_name}_types.cpp")
+    file(GLOB __result_hdr "${THRIFT_GENERATED_FILE_PATH}/${__thrift_name}_types.h")
     list(APPEND ${SRCS} ${__result_src})
     list(APPEND ${HDRS} ${__result_hdr})
     # Sets the variables in global scope.
     set(${SRCS} ${${SRCS}} PARENT_SCOPE)
     set(${HDRS} ${${HDRS}} PARENT_SCOPE)
+
+    # install the thrift generated headers to include/
+    install(FILES ${__result_hdr} DESTINATION include)
 endfunction()
