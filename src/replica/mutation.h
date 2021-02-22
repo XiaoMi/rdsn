@@ -82,8 +82,8 @@ public:
     {
         return _left_potential_secondary_ack_count;
     }
-    bool is_child_acked() const { return _wait_child == 0; }
-    bool is_error_acked() const { return _is_error_acked != 0; }
+    bool is_child_acked() const { return !_wait_child; }
+    bool is_error_acked() const { return _is_error_acked; }
     ::dsn::task_ptr &log_task() { return _log_task; }
     node_tasks &remote_tasks() { return _prepare_or_commit_tasks; }
     bool is_prepare_close_to_timeout(int gap_ms, int timeout_ms)
@@ -114,8 +114,8 @@ public:
     {
         _left_potential_secondary_ack_count = count;
     }
-    void wait_child() { _wait_child = 1; }
-    void child_acked() { _wait_child = 0; }
+    void wait_child() { _wait_child = true; }
+    void child_acked() { _wait_child = false; }
     void set_error_acked() { _is_error_acked = 1; }
     int clear_prepare_or_commit_tasks();
     void wait_log_task() const;
@@ -162,7 +162,7 @@ private:
             unsigned int _left_secondary_ack_count : 15;
             unsigned int _left_potential_secondary_ack_count : 14;
             // Used for partition split
-            // _wait_child = 1 : child prepare mutation synchronously, its parent should wait for
+            // _wait_child = true : child prepare mutation synchronously, its parent should wait for
             // child ack
             bool _wait_child : 1;
             // Used for partition split
