@@ -121,7 +121,8 @@ struct replica_disk_migrate_response
    2:optional string hint;
 }
 
-enum disk_migration_status {
+enum disk_migration_status
+{
     IDLE,
     MOVING,
     MOVED,
