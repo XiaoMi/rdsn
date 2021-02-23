@@ -41,8 +41,6 @@
 #include <dsn/utility/dlib.h>
 #include <dsn/utility/blob.h>
 #include <dsn/utility/link.h>
-#include <dsn/utility/callocator.h>
-#include <dsn/utility/link.h>
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/tool-api/rpc_address.h>
 #include <dsn/tool-api/global_config.h>
@@ -123,9 +121,7 @@ typedef struct message_header
     ~message_header() = default;
 } message_header;
 
-class message_ex : public ref_counter,
-                   public extensible_object<message_ex, 4>,
-                   public transient_object
+class message_ex : public ref_counter, public extensible_object<message_ex, 4>
 {
 public:
     message_header *header;
@@ -180,6 +176,7 @@ public:
     /// The returned message:
     ///   - msg->buffers[0] = message_header
     ///   - msg->buffers[1] = data
+    /// NOTE: the reference counter of returned message_ex is not added in this function
     DSN_API static message_ex *create_receive_message_with_standalone_header(const blob &data);
 
     /// copy message without client information, it will not reply

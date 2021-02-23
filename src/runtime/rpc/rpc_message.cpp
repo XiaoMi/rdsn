@@ -26,7 +26,6 @@
 
 #include <dsn/utility/ports.h>
 #include <dsn/utility/crc.h>
-#include <dsn/utility/transient_memory.h>
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/tool-api/network.h>
 #include <dsn/tool-api/message_parser.h>
@@ -148,13 +147,11 @@ message_ex *message_ex::create_received_request(dsn::task_code code,
 message_ex *message_ex::create_receive_message_with_standalone_header(const blob &data)
 {
     message_ex *msg = new message_ex();
-    std::shared_ptr<char> header_holder(
-        static_cast<char *>(dsn::tls_trans_malloc(sizeof(message_header))),
-        [](char *c) { dsn::tls_trans_free(c); });
-    msg->header = reinterpret_cast<message_header *>(header_holder.get());
-    memset(static_cast<void *>(msg->header), 0, sizeof(message_header));
+    size_t header_size = sizeof(message_header);
+    std::string str(header_size, '\0');
+    msg->header = reinterpret_cast<message_header *>(const_cast<char *>(str.data()));
 
-    msg->buffers.emplace_back(blob(std::move(header_holder), sizeof(message_header)));
+    msg->buffers.emplace_back(blob::create_from_bytes(std::move(str)));
     msg->buffers.push_back(data);
 
     msg->header->body_length = data.length();
@@ -168,13 +165,11 @@ message_ex *message_ex::create_receive_message_with_standalone_header(const blob
 message_ex *message_ex::copy_message_no_reply(const message_ex &old_msg)
 {
     message_ex *msg = new message_ex();
-    std::shared_ptr<char> header_holder(
-        static_cast<char *>(dsn::tls_trans_malloc(sizeof(message_header))),
-        [](char *c) { dsn::tls_trans_free(c); });
-    msg->header = reinterpret_cast<message_header *>(header_holder.get());
-    msg->header = {}; // initialize to empty struct
-    msg->buffers.emplace_back(blob(std::move(header_holder), sizeof(message_header)));
+    size_t header_size = sizeof(message_header);
+    std::string str(header_size, '\0');
+    msg->header = reinterpret_cast<message_header *>(const_cast<char *>(str.data()));
 
+    msg->buffers.emplace_back(blob::create_from_bytes(std::move(str)));
     if (old_msg.buffers.size() == 1) {
         // if old_msg only has header, consider its header as data
         msg->buffers.emplace_back(old_msg.buffers[0]);
@@ -373,25 +368,18 @@ message_ex *message_ex::create_response()
 
 void message_ex::prepare_buffer_header()
 {
-    void *ptr;
-    size_t size;
-    ::dsn::tls_trans_mem_next(&ptr, &size, sizeof(message_header));
-
-    ::dsn::blob buffer((*::dsn::tls_trans_memory.block),
-                       (int)((char *)(ptr) - ::dsn::tls_trans_memory.block->get()),
-                       (int)sizeof(message_header));
-
-    ::dsn::tls_trans_mem_commit(sizeof(message_header));
-
-    this->_rw_index = 0;
-    this->_rw_offset = (int)sizeof(message_header);
-    this->buffers.push_back(buffer);
+    size_t header_size = sizeof(message_header);
+    auto ptr(dsn::utils::make_shared_array<char>(header_size));
 
     // here we should call placement new,
     // so the gpid & rpc_address can be initialized
-    new (ptr)(message_header);
+    new (ptr.get())(message_header);
+    this->header = (message_header *)ptr.get();
 
-    header = (message_header *)ptr;
+    ::dsn::blob buffer(std::move(ptr), header_size);
+    this->buffers.push_back(buffer);
+    this->_rw_index = 0;
+    this->_rw_offset = header_size;
 }
 
 void message_ex::release_buffer_header()
@@ -407,27 +395,12 @@ void message_ex::write_next(void **ptr, size_t *size, size_t min_size)
     dassert(!this->_is_read && this->_rw_committed,
             "there are pending msg write not committed"
             ", please invoke dsn_msg_write_next and dsn_msg_write_commit in pairs");
-    ::dsn::tls_trans_mem_next(ptr, size, min_size);
+    auto ptr_data(utils::make_shared_array<char>(min_size));
+    *size = min_size;
+    *ptr = ptr_data.get();
     this->_rw_committed = false;
 
-    // optimization
-    if (this->_rw_index >= 0) {
-        auto &lbb = *this->buffers.rbegin();
-
-        // if the current allocation is within the same buffer with the previous one
-        if (*ptr == lbb.data() + lbb.length() &&
-            ::dsn::tls_trans_memory.block->get() == lbb.buffer_ptr()) {
-            lbb.assign(*::dsn::tls_trans_memory.block,
-                       (int)((char *)(*ptr) - ::dsn::tls_trans_memory.block->get() - lbb.length()),
-                       (int)(lbb.length() + *size));
-
-            return;
-        }
-    }
-
-    ::dsn::blob buffer((*::dsn::tls_trans_memory.block),
-                       (int)((char *)(*ptr) - ::dsn::tls_trans_memory.block->get()),
-                       (int)(*size));
+    ::dsn::blob buffer(ptr_data, min_size);
     this->_rw_index++;
     this->_rw_offset = 0;
     this->buffers.push_back(buffer);
@@ -442,8 +415,6 @@ void message_ex::write_commit(size_t size)
     dassert(!this->_rw_committed,
             "there are no pending msg write to be committed"
             ", please invoke dsn_msg_write_next and dsn_msg_write_commit in pairs");
-
-    ::dsn::tls_trans_mem_commit(size);
 
     this->_rw_offset += (int)size;
     *this->buffers.rbegin() = this->buffers.rbegin()->range(0, (int)this->_rw_offset);
