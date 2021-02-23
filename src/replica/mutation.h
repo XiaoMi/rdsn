@@ -116,7 +116,7 @@ public:
     }
     void wait_child() { _wait_child = true; }
     void child_acked() { _wait_child = false; }
-    void set_error_acked() { _is_error_acked = 1; }
+    void set_error_acked() { _is_error_acked = true; }
     int clear_prepare_or_commit_tasks();
     void wait_log_task() const;
     uint64_t prepare_ts_ms() const { return _prepare_ts_ms; }
