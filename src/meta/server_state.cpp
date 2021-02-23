@@ -1153,6 +1153,11 @@ void server_state::drop_app(dsn::message_ex *msg)
         } else {
             switch (app->status) {
             case app_status::AS_AVAILABLE:
+                // ignore drop splitting app
+                if (app->helpers->split_states.splitting_count > 0) {
+                    response.err = ERR_SPLITTING;
+                    break;
+                }
                 do_dropping = true;
                 app->status = app_status::AS_DROPPING;
                 app->drop_second = dsn_now_ms() / 1000;
