@@ -30,37 +30,145 @@
 namespace dsn {
 namespace replication {
 
+backup_engine::backup_engine(backup_service *service)
+    : _backup_service(service), _block_service(nullptr)
+{
+}
+
+backup_engine::~backup_engine() { _tracker.cancel_outstanding_tasks(); }
+
+void backup_engine::set_block_service(const std::string &provider)
+{
+    _provider_type = provider;
+    _block_service.reset(_backup_service->get_meta_service()
+                             ->get_block_service_manager()
+                             .get_or_create_block_filesystem(provider));
+    dassert(_block_service, "can't initialize block filesystem by provider (%s)", provider);
+}
+
+error_code backup_engine::write_backup_file(const std::string &file_name,
+                                            const dsn::blob &write_buffer)
+{
+    dist::block_service::create_file_request create_file_req;
+    create_file_req.ignore_metadata = true;
+    create_file_req.file_name = file_name;
+
+    dsn::error_code err;
+    dist::block_service::block_file_ptr remote_file;
+    _block_service
+        ->create_file(create_file_req,
+                      TASK_CODE_EXEC_INLINED,
+                      [&err, &remote_file](const dist::block_service::create_file_response &resp) {
+                          err = resp.err;
+                          remote_file = resp.file_handle;
+                      })
+        ->wait();
+    if (err != dsn::ERR_OK) {
+        return err;
+    }
+    dassert(remote_file != nullptr,
+            "create file(%s) succeed, but can't get handle",
+            create_file_req.file_name.c_str());
+
+    remote_file
+        ->write(dist::block_service::write_request{write_buffer},
+                LPC_DEFAULT_CALLBACK,
+                [&err](const dist::block_service::write_response &resp) { err = resp.err; })
+        ->wait();
+    return err;
+}
+
+error_code
+backup_engine::backup_app_meta(const std::string &app_name, int32_t app_id, int64_t backup_id)
+{
+    dsn::blob buffer;
+    {
+        zauto_read_lock l;
+        _backup_service->get_state()->lock_read(l);
+        const std::shared_ptr<app_state> &app = _backup_service->get_state()->get_app(app_id);
+        if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
+            return ERR_INVALID_STATE;
+        }
+
+        // do not persistent envs to backup file
+        if (app->envs.empty()) {
+            buffer = dsn::json::json_forwarder<app_info>::encode(*app);
+        } else {
+            app_state tmp = *app;
+            tmp.envs.clear();
+            buffer = dsn::json::json_forwarder<app_info>::encode(tmp);
+        }
+    }
+
+    std::string file_name = cold_backup::get_app_metadata_file(
+        _backup_service->backup_root(), app_name, app_id, backup_id);
+    return write_backup_file(file_name, buffer);
+}
+
+error_code backup_engine::backup_app_partition(const std::string &app_name,
+                                               const gpid &pid,
+                                               int64_t backup_id,
+                                               const std::string &policy_name)
+{
+    dsn::rpc_address partition_primary;
+    {
+        zauto_read_lock l;
+        _backup_service->get_state()->lock_read(l);
+        const std::shared_ptr<app_state> &app =
+            _backup_service->get_state()->get_app(pid.get_app_id());
+
+        if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
+            return ERR_INVALID_STATE;
+        }
+        partition_primary = app->partitions[pid.get_partition_index()].primary;
+    }
+
+    if (partition_primary.is_invalid()) {
+        return ERR_INACTIVE_STATE;
+    }
+
+    backup_request req;
+    req.pid = pid;
+    policy_info backup_policy_info;
+    backup_policy_info.__set_backup_provider_type(_provider_type);
+    backup_policy_info.__set_policy_name(policy_name);
+    req.policy = backup_policy_info;
+    req.backup_id = backup_id;
+    req.app_name = app_name;
+    dsn::message_ex *request =
+        dsn::message_ex::create_request(RPC_COLD_BACKUP, 0, pid.thread_hash());
+    dsn::marshall(request, req);
+    dsn::rpc_response_task_ptr rpc_callback = rpc::create_rpc_response_task(
+        request,
+        &_tracker,
+        [this, pid, partition_primary](error_code err, backup_response &&response) {
+            on_backup_reply(err, std::move(response), pid, partition_primary);
+        });
+    ddebug_f("send backup command to partition {}, target_addr = {}",
+             pid.to_string(),
+             partition_primary.to_string());
+    _backup_service->get_meta_service()->send_request(request, partition_primary, rpc_callback);
+    return ERR_OK;
+}
+
+void backup_engine::on_backup_reply(dsn::error_code err,
+                                    backup_response &&response,
+                                    gpid pid,
+                                    const rpc_address &primary)
+{
+}
+
 // TODO: backup_service and policy_context should need two locks, its own _lock and server_state's
 // _lock this maybe lead to deadlock, should refactor this
 
 void policy_context::start_backup_app_meta_unlocked(int32_t app_id)
 {
-    server_state *state = _backup_service->get_state();
-    dsn::blob buffer;
-    bool app_available = false;
-    {
-        zauto_read_lock l;
-        state->lock_read(l);
-        const std::shared_ptr<app_state> &app = state->get_app(app_id);
-        if (app != nullptr && app->status == app_status::AS_AVAILABLE) {
-            app_available = true;
-            // do not persistent envs to backup file
-            if (app->envs.empty()) {
-                buffer = dsn::json::json_forwarder<app_info>::encode(*app);
-            } else {
-                app_state tmp = *app;
-                tmp.envs.clear();
-                buffer = dsn::json::json_forwarder<app_info>::encode(tmp);
-            }
-        }
-    }
+    error_code err = backup_app_meta(_policy.app_names.at(app_id), app_id, _cur_backup.backup_id);
 
     // if app is dropped when app is under backuping, we just skip backup this app this time, and
     // also we will not write backup-finish-flag on fds
-    if (!app_available) {
-        dwarn("%s: can't encode app_info for app(%d), perhaps removed, treat it as backup finished",
-              _backup_sig.c_str(),
-              app_id);
+    if (err == ERR_INVALID_STATE) {
+        dwarn_f("{}: app {} is not available, perhaps removed, skip it.", _backup_sig, app_id);
         auto iter = _progress.unfinished_partitions_per_app.find(app_id);
         dassert(iter != _progress.unfinished_partitions_per_app.end(),
                 "%s: can't find app(%d) in unfished_map",
@@ -75,28 +183,11 @@ void policy_context::start_backup_app_meta_unlocked(int32_t app_id)
         return;
     }
 
-    dist::block_service::create_file_request create_file_req;
-    create_file_req.ignore_metadata = true;
-    create_file_req.file_name = cold_backup::get_app_metadata_file(_backup_service->backup_root(),
-                                                                   _policy.app_names.at(app_id),
-                                                                   app_id,
-                                                                   _cur_backup.backup_id);
-
-    dsn::error_code err;
-    dist::block_service::block_file_ptr remote_file;
-    // here we can use synchronous way coz create_file with ignored metadata is very fast
-    _block_service
-        ->create_file(create_file_req,
-                      TASK_CODE_EXEC_INLINED,
-                      [&err, &remote_file](const dist::block_service::create_file_response &resp) {
-                          err = resp.err;
-                          remote_file = resp.file_handle;
-                      })
-        ->wait();
-    if (err != dsn::ERR_OK) {
-        derror("%s: create file %s failed, restart this backup later",
-               _backup_sig.c_str(),
-               create_file_req.file_name.c_str());
+    if (err != ERR_OK) {
+        dwarn_f("{}, backup meta for app {} failed, error: {}, try it later",
+                _backup_sig,
+                app_id,
+                err.to_string());
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
                          &_tracker,
                          [this, app_id]() {
@@ -107,43 +198,9 @@ void policy_context::start_backup_app_meta_unlocked(int32_t app_id)
                          _backup_service->backup_option().block_retry_delay_ms);
         return;
     }
-    dassert(remote_file != nullptr,
-            "%s: create file(%s) succeed, but can't get handle",
-            _backup_sig.c_str(),
-            create_file_req.file_name.c_str());
 
-    remote_file->write(
-        dist::block_service::write_request{buffer},
-        LPC_DEFAULT_CALLBACK,
-        [this, remote_file, buffer, app_id](const dist::block_service::write_response &resp) {
-            if (resp.err == dsn::ERR_OK) {
-                dassert(resp.written_size == buffer.length(),
-                        "write %s length not match, source(%u), actual(%llu)",
-                        remote_file->file_name().c_str(),
-                        buffer.length(),
-                        resp.written_size);
-                {
-                    zauto_lock l(_lock);
-                    ddebug("%s: successfully backup app metadata to %s",
-                           _policy.policy_name.c_str(),
-                           remote_file->file_name().c_str());
-                    start_backup_app_partitions_unlocked(app_id);
-                }
-            } else {
-                dwarn("write %s failed, reason(%s), try it later",
-                      remote_file->file_name().c_str(),
-                      resp.err.to_string());
-                tasking::enqueue(LPC_DEFAULT_CALLBACK,
-                                 &_tracker,
-                                 [this, app_id]() {
-                                     zauto_lock l(_lock);
-                                     start_backup_app_meta_unlocked(app_id);
-                                 },
-                                 0,
-                                 _backup_service->backup_option().block_retry_delay_ms);
-            }
-        },
-        &_tracker);
+    ddebug_f("{}: successfully backup metadata for app {}", _policy.policy_name, app_id);
+    start_backup_app_partitions_unlocked(app_id);
 }
 
 void policy_context::start_backup_app_partitions_unlocked(int32_t app_id)
@@ -289,70 +346,28 @@ void policy_context::finish_backup_app_unlocked(int32_t app_id)
 void policy_context::write_backup_info_unlocked(const backup_info &b_info,
                                                 dsn::task_ptr write_callback)
 {
-    dsn::error_code err;
-    dist::block_service::block_file_ptr remote_file;
 
-    dist::block_service::create_file_request create_file_req;
-    create_file_req.ignore_metadata = true;
-    create_file_req.file_name =
+    std::string file_name =
         cold_backup::get_backup_info_file(_backup_service->backup_root(), b_info.backup_id);
-    // here we can use synchronous way coz create_file with ignored metadata is very fast
-    _block_service
-        ->create_file(create_file_req,
-                      TASK_CODE_EXEC_INLINED,
-                      [&err, &remote_file](const dist::block_service::create_file_response &resp) {
-                          err = resp.err;
-                          remote_file = resp.file_handle;
-                      })
-        ->wait();
-
-    if (err != ERR_OK) {
-        derror("%s: create file %s failed, restart this backup later",
-               _backup_sig.c_str(),
-               create_file_req.file_name.c_str());
-        tasking::enqueue(LPC_DEFAULT_CALLBACK,
-                         &_tracker,
-                         [this, b_info, write_callback]() {
-                             zauto_lock l(_lock);
-                             write_backup_info_unlocked(b_info, write_callback);
-                         },
-                         0,
-                         _backup_service->backup_option().block_retry_delay_ms);
+    blob buf = dsn::json::json_forwarder<backup_info>::encode(b_info);
+    dsn::error_code err = write_backup_file(file_name, buf);
+    if (err == ERR_OK) {
+        ddebug("policy(%s) write backup_info to cold backup media succeed",
+               _policy.policy_name.c_str());
+        if (write_callback != nullptr) {
+            write_callback->enqueue();
+        }
         return;
     }
-
-    dassert(remote_file != nullptr,
-            "%s: create file(%s) succeed, but can't get handle",
-            _backup_sig.c_str(),
-            create_file_req.file_name.c_str());
-
-    blob buf = dsn::json::json_forwarder<backup_info>::encode(b_info);
-
-    remote_file->write(dist::block_service::write_request{buf},
-                       LPC_DEFAULT_CALLBACK,
-                       [this, b_info, write_callback, remote_file](
-                           const dist::block_service::write_response &resp) {
-                           if (resp.err == ERR_OK) {
-                               ddebug("policy(%s) write backup_info to cold backup media succeed",
-                                      _policy.policy_name.c_str());
-                               if (write_callback != nullptr) {
-                                   write_callback->enqueue();
-                               }
-                           } else {
-                               dwarn("write %s failed, reason(%s), try it later",
-                                     remote_file->file_name().c_str(),
-                                     resp.err.to_string());
-                               tasking::enqueue(
-                                   LPC_DEFAULT_CALLBACK,
-                                   &_tracker,
-                                   [this, b_info, write_callback]() {
-                                       zauto_lock l(_lock);
-                                       write_backup_info_unlocked(b_info, write_callback);
-                                   },
-                                   0,
-                                   _backup_service->backup_option().block_retry_delay_ms);
-                           }
-                       });
+    dwarn_f("write {} failed, error: {}, try it later", file_name, err.to_string());
+    tasking::enqueue(LPC_DEFAULT_CALLBACK,
+                     &_tracker,
+                     [this, b_info, write_callback]() {
+                         zauto_lock l(_lock);
+                         write_backup_info_unlocked(b_info, write_callback);
+                     },
+                     0,
+                     _backup_service->backup_option().block_retry_delay_ms);
 }
 
 bool policy_context::update_partition_progress_unlocked(gpid pid,
@@ -408,24 +423,14 @@ void policy_context::record_partition_checkpoint_size_unlock(const gpid &pid, in
 
 void policy_context::start_backup_partition_unlocked(gpid pid)
 {
-    dsn::rpc_address partition_primary;
-    {
-        // check app and partition status
-        zauto_read_lock l;
-        _backup_service->get_state()->lock_read(l);
-        const app_state *app = _backup_service->get_state()->get_app(pid.get_app_id()).get();
-
-        if (app == nullptr || app->status == app_status::AS_DROPPED) {
-            dwarn_f(
-                "{}: app {} is not available, skip to backup it.", _backup_sig, pid.get_app_id());
-            _progress.is_app_skipped[pid.get_app_id()] = true;
-            update_partition_progress_unlocked(
-                pid, cold_backup_constant::PROGRESS_FINISHED, dsn::rpc_address());
-            return;
-        }
-        partition_primary = app->partitions[pid.get_partition_index()].primary;
-    }
-    if (partition_primary.is_invalid()) {
+    error_code err = backup_app_partition(
+        _policy.app_names.at(pid.get_app_id()), pid, _cur_backup.backup_id, _policy.policy_name);
+    if (err == ERR_INVALID_STATE) {
+        dwarn_f("{}: app {} is not available, skip to backup it.", _backup_sig, pid.get_app_id());
+        _progress.is_app_skipped[pid.get_app_id()] = true;
+        update_partition_progress_unlocked(
+            pid, cold_backup_constant::PROGRESS_FINISHED, dsn::rpc_address());
+    } else if (err == ERR_INACTIVE_STATE) {
         dwarn_f("{}: partition {} doesn't have a primary now, retry to backup it later",
                 _backup_sig,
                 pid.to_string());
@@ -437,28 +442,7 @@ void policy_context::start_backup_partition_unlocked(gpid pid)
                          },
                          0,
                          _backup_service->backup_option().reconfiguration_retry_delay_ms);
-        return;
     }
-
-    backup_request req;
-    req.pid = pid;
-    req.policy = *(static_cast<const policy_info *>(&_policy));
-    req.backup_id = _cur_backup.backup_id;
-    req.app_name = _policy.app_names.at(pid.get_app_id());
-    dsn::message_ex *request =
-        dsn::message_ex::create_request(RPC_COLD_BACKUP, 0, pid.thread_hash());
-    dsn::marshall(request, req);
-    dsn::rpc_response_task_ptr rpc_callback = rpc::create_rpc_response_task(
-        request,
-        &_tracker,
-        [this, pid, partition_primary](error_code err, backup_response &&response) {
-            on_backup_reply(err, std::move(response), pid, partition_primary);
-        });
-    ddebug_f("{}: send backup command to partition {}, target_addr = {}",
-             _backup_sig,
-             pid.to_string(),
-             partition_primary.to_string());
-    _backup_service->get_meta_service()->send_request(request, partition_primary, rpc_callback);
 }
 
 void policy_context::on_backup_reply(error_code err,
@@ -851,13 +835,8 @@ void policy_context::set_policy(const policy &p)
     const std::string old_backup_provider_type = _policy.backup_provider_type;
     _policy = p;
     if (_policy.backup_provider_type != old_backup_provider_type) {
-        _block_service = _backup_service->get_meta_service()
-                             ->get_block_service_manager()
-                             .get_or_create_block_filesystem(_policy.backup_provider_type);
+        set_block_service(_policy.backup_provider_type);
     }
-    dassert(_block_service,
-            "can't initialize block filesystem by provider (%s)",
-            _policy.backup_provider_type.c_str());
 }
 
 policy policy_context::get_policy()

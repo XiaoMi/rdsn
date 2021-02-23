@@ -220,14 +220,39 @@ struct backup_flag
     DEFINE_JSON_SERIALIZATION(total_checkpoint_size)
 };
 
-class policy_context
+class backup_engine
 {
 public:
-    explicit policy_context(backup_service *service)
-        : _backup_service(service), _block_service(nullptr)
-    {
-    }
-    mock_virtual ~policy_context() {}
+    backup_engine(backup_service *service);
+    virtual ~backup_engine();
+
+    void set_block_service(const std::string &provider);
+    error_code write_backup_file(const std::string &file_name, const dsn::blob &write_buffer);
+    error_code backup_app_meta(const std::string &app_name, int32_t app_id, int64_t backup_id);
+    error_code backup_app_partition(const std::string &app_name,
+                                    const gpid &pid,
+                                    int64_t backup_id,
+                                    const std::string &policy_name);
+    error_code write_backup_info();
+    virtual void on_backup_reply(dsn::error_code err,
+                                 backup_response &&response,
+                                 gpid pid,
+                                 const rpc_address &primary);
+
+protected:
+    friend class policy_context_test;
+
+    std::shared_ptr<backup_service> _backup_service;
+    std::shared_ptr<dist::block_service::block_filesystem> _block_service;
+    std::string _provider_type;
+    dsn::task_tracker _tracker;
+};
+
+class policy_context : public backup_engine
+{
+public:
+    explicit policy_context(backup_service *service) : backup_engine(service) {}
+    mock_virtual ~policy_context() override {}
 
     void set_policy(const policy &p);
     policy get_policy();
@@ -282,7 +307,7 @@ mock_private :
     mock_virtual void on_backup_reply(dsn::error_code err,
                                       backup_response &&response,
                                       gpid pid,
-                                      const rpc_address &primary);
+                                      const rpc_address &primary) override;
 
     mock_virtual void gc_backup_info_unlocked(const backup_info &info_to_gc);
     mock_virtual void issue_gc_backup_info_task_unlocked();
@@ -290,14 +315,12 @@ mock_private :
 
 mock_private :
     friend class backup_service;
-    backup_service *_backup_service;
 
     // lock the data-structure below
     dsn::zlock _lock;
 
     // policy related
     policy _policy;
-    dist::block_service::block_filesystem *_block_service;
 
     // backup related
     backup_info _cur_backup;
@@ -307,8 +330,6 @@ mock_private :
     std::string _backup_sig; // policy_name@backup_id, used when print backup related log
 
     perf_counter_wrapper _counter_policy_recent_backup_duration_ms;
-//clang-format on
-    dsn::task_tracker _tracker;
 };
 
 class backup_service
