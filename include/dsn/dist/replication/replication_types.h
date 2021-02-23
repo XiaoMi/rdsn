@@ -22,7 +22,7 @@
 #include "meta_admin_types.h"
 #include "partition_split_types.h"
 #include "duplication_types.h"
-#include "bulkload_types.h"
+#include "bulk_load_types.h"
 #include "backup_types.h"
 #include "consensus_types.h"
 #include "replica_admin_types.h"
