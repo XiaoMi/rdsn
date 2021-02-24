@@ -356,7 +356,6 @@ void replica::on_prepare(dsn::message_ex *request)
         unmarshall(reader, rconfig, DSF_THRIFT_BINARY);
         mu = mutation::read_from(reader, request);
         mu->set_is_sync_to_child(rconfig.split_sync_to_child);
-        // set split_sync_to_child to false immediately
         rconfig.split_sync_to_child = false;
     }
 
