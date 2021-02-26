@@ -26,6 +26,7 @@
 
 #include <gtest/gtest.h>
 #include <dsn/service_api_c.h>
+#include <dsn/dist/replication/replica_envs.h>
 
 #include "meta_service_test_app.h"
 #include "meta_test_base.h"
@@ -61,6 +62,17 @@ public:
         split_svc().start_partition_split(rpc);
         wait_all();
         return rpc.response().err;
+    }
+
+    query_split_response query_partition_split(const std::string &app_name)
+    {
+        auto request = dsn::make_unique<query_split_request>();
+        request->app_name = app_name;
+
+        query_split_rpc rpc(std::move(request), RPC_CM_QUERY_PARTITION_SPLIT);
+        split_svc().query_partition_split(rpc);
+        wait_all();
+        return rpc.response();
     }
 
     error_code control_partition_split(const std::string &app_name,
@@ -262,6 +274,43 @@ TEST_F(meta_split_service_test, start_split_test)
         ASSERT_EQ(start_partition_split(test.app_name, test.new_partition_count),
                   test.expected_err);
         ASSERT_EQ(app->partition_count, test.expected_partition_count);
+        if (test.expected_err == ERR_OK) {
+            ASSERT_EQ(app->envs[replica_envs::SPLIT_VALIDATE_PARTITION_HASH], "true");
+        }
+    }
+}
+
+// query split unit tests
+TEST_F(meta_split_service_test, query_split_test)
+{
+    // Test case:
+    // - app not existed
+    // - app not splitting
+    // - query split succeed
+    struct query_test
+    {
+        std::string app_name;
+        bool mock_splitting;
+        error_code expected_err;
+    } tests[] = {
+        {"table_not_exist", false, ERR_APP_NOT_EXIST},
+        {NAME, false, ERR_INVALID_STATE},
+        {NAME, true, ERR_OK},
+    };
+
+    for (auto test : tests) {
+        if (test.mock_splitting) {
+            mock_app_partition_split_context();
+        }
+        auto resp = query_partition_split(test.app_name);
+        ASSERT_EQ(resp.err, test.expected_err);
+        if (resp.err == ERR_OK) {
+            ASSERT_EQ(resp.new_partition_count, NEW_PARTITION_COUNT);
+            ASSERT_EQ(resp.status.size(), PARTITION_COUNT);
+        }
+        if (test.mock_splitting) {
+            clear_app_partition_split_context();
+        }
     }
 }
 
@@ -271,7 +320,7 @@ TEST_F(meta_split_service_test, register_child_test)
     // Test case:
     // - request is out-dated
     // - child has been registered
-    // - TODO(heyuchen): parent partition has been paused splitting
+    // - parent partition has been paused splitting
     // - parent partition is sync config to remote storage
     // - register child succeed
     struct register_test
@@ -285,6 +334,7 @@ TEST_F(meta_split_service_test, register_child_test)
     } tests[] = {
         {PARENT_BALLOT - 1, false, false, false, ERR_INVALID_VERSION, false},
         {PARENT_BALLOT, true, false, false, ERR_CHILD_REGISTERED, false},
+        {PARENT_BALLOT, false, true, false, ERR_INVALID_STATE, false},
         {PARENT_BALLOT, false, false, true, ERR_IO_PENDING, false},
         {PARENT_BALLOT, false, false, false, ERR_OK, true},
     };
@@ -295,7 +345,7 @@ TEST_F(meta_split_service_test, register_child_test)
             mock_child_registered();
         }
         if (test.mock_parent_paused) {
-            // TODO(heyuchen): mock split paused
+            mock_split_states(split_status::PAUSED, PARENT_INDEX);
         }
         if (test.mock_pending) {
             app->helpers->contexts[PARENT_INDEX].stage = config_status::pending_remote_sync;
@@ -330,13 +380,13 @@ TEST_F(meta_split_service_test, on_config_sync_test)
     // Test case:
     // - partition is splitting
     // - partition is not splitting
-    // - TODO(heyuchen): partition split is paused({false, true, 1})
+    // - partition split is paused
     struct config_sync_test
     {
         bool mock_child_registered;
         bool mock_parent_paused;
         int32_t expected_count;
-    } tests[] = {{false, false, 1}, {true, false, 0}};
+    } tests[] = {{false, false, 1}, {true, false, 0}, {false, true, 1}};
 
     for (const auto &test : tests) {
         mock_app_partition_split_context();
@@ -344,7 +394,7 @@ TEST_F(meta_split_service_test, on_config_sync_test)
             mock_child_registered();
         }
         if (test.mock_parent_paused) {
-            // TODO(heyuchen): TBD
+            mock_split_states(split_status::PAUSED, PARENT_INDEX);
         }
         ASSERT_EQ(on_config_sync(req), test.expected_count);
     }

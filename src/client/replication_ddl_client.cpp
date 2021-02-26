@@ -606,16 +606,11 @@ dsn::error_code replication_ddl_client::cluster_name(int64_t timeout_ms, std::st
         return resp.err;
     }
 
-    std::string zk_root;
-    for (int i = 0; i < resp.keys.size(); ++i) {
-        if (resp.keys[i] == "zookeeper_root") {
-            zk_root = resp.values[i];
-        }
-    }
-
     cluster_name.clear();
-    if (!zk_root.empty() && zk_root.find("/pegasus/") == 0) {
-        cluster_name = zk_root.substr(9);
+    for (int i = 0; i < resp.keys.size(); ++i) {
+        if (resp.keys[i] == "cluster_name") {
+            cluster_name = resp.values[i];
+        }
     }
 
     return cluster_name.empty() ? dsn::ERR_UNKNOWN : dsn::ERR_OK;
@@ -1637,6 +1632,14 @@ replication_ddl_client::control_partition_split(const std::string &app_name,
     req->__set_parent_pidx(parent_pidx);
     req->__set_old_partition_count(old_partition_count);
     return call_rpc_sync(control_split_rpc(std::move(req), RPC_CM_CONTROL_PARTITION_SPLIT));
+}
+
+error_with<query_split_response>
+replication_ddl_client::query_partition_split(const std::string &app_name)
+{
+    auto req = make_unique<query_split_request>();
+    req->__set_app_name(app_name);
+    return call_rpc_sync(query_split_rpc(std::move(req), RPC_CM_QUERY_PARTITION_SPLIT));
 }
 
 } // namespace replication

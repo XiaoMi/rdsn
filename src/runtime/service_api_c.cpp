@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include "aio/disk_engine.h"
 #include "service_engine.h"
 #include "utils/coredump.h"
 #include "runtime/rpc/rpc_engine.h"
@@ -47,7 +48,6 @@
 #include <gperftools/malloc_extension.h>
 #endif
 
-#include <dsn/utility/transient_memory.h>
 #include "service_engine.h"
 #include "runtime/rpc/rpc_engine.h"
 #include "runtime/task/task_engine.h"
@@ -292,10 +292,11 @@ extern void dsn_core_init();
 
 inline void dsn_global_init()
 {
-    // ensure perf_counters is destructed after service_engine,
+    // make perf_counters/disk_engine destructed after service_engine,
     // because service_engine relies on the former to monitor
-    // task queues length.
+    // task queues length and close files.
     dsn::perf_counters::instance();
+    dsn::disk_engine::instance();
     dsn::service_engine::instance();
 }
 
@@ -421,14 +422,6 @@ bool run(const char *config_file,
         printf("error in config file %s, exit ...\n", config_file);
         return false;
     }
-
-    // init tool memory
-    size_t tls_trans_memory_KB = (size_t)dsn_config_get_value_uint64(
-        "core",
-        "tls_trans_memory_KB",
-        1024, // 1 MB
-        "thread local transient memory buffer size (KB), default is 1024");
-    ::dsn::tls_trans_mem_init(tls_trans_memory_KB * 1024);
 
 #ifdef DSN_ENABLE_GPERF
     double_t tcmalloc_release_rate =

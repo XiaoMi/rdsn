@@ -42,7 +42,10 @@ typedef rpc_holder<query_bulk_load_request, query_bulk_load_response> query_bulk
 
 typedef rpc_holder<start_partition_split_request, start_partition_split_response> start_split_rpc;
 typedef rpc_holder<control_split_request, control_split_response> control_split_rpc;
+typedef rpc_holder<query_split_request, query_split_response> query_split_rpc;
 typedef rpc_holder<notify_stop_split_request, notify_stop_split_response> notify_stop_split_rpc;
+typedef rpc_holder<configuration_update_app_env_request, configuration_update_app_env_response>
+    update_app_env_rpc;
 
 class replication_options
 {
@@ -82,8 +85,6 @@ public:
     bool gc_disabled;
     int32_t gc_interval_ms;
     int32_t gc_memory_replica_interval_ms;
-    int32_t gc_disk_error_replica_interval_seconds;
-    int32_t gc_disk_garbage_replica_interval_seconds;
 
     bool disk_stat_disabled;
     int32_t disk_stat_interval_seconds;
