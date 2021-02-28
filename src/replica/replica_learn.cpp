@@ -956,12 +956,12 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
     }
 }
 
-bool replica::prepare_learn_from_cache(const learn_request &request,
-                                       decree learn_start_decree,
-                                       decree local_committed_decree,
-                                       remote_learner_state &learner_state,
-                                       learn_response &response,
-                                       bool &delayed_replay_prepare_list)
+bool replica::prepare_cached_learn_state(const learn_request &request,
+                                         decree learn_start_decree,
+                                         decree local_committed_decree,
+                                         /*out*/ remote_learner_state &learner_state,
+                                         /*out*/ learn_response &response,
+                                         /*out*/ bool &delayed_replay_prepare_list)
 {
     // set prepare_start_decree when to-be-learn state is covered by prepare list,
     // note min_decree can be NOT present in prepare list when list.count == 0

@@ -290,9 +290,9 @@ private:
     bool prepare_cached_learn_state(const learn_request &request,
                                     decree learn_start_decree,
                                     decree local_committed_decree,
-                                    remote_learner_state &learner_state,
-                                    learn_response &response,
-                                    bool &delayed_replay_prepare_list);
+                                    /*out*/ remote_learner_state &learner_state,
+                                    /*out*/ learn_response &response,
+                                    /*out*/ bool &delayed_replay_prepare_list);
 
     // Gets the position where this round of the learning process should begin.
     // This method is called on primary-side.
