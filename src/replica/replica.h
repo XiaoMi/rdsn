@@ -287,6 +287,11 @@ private:
     void notify_learn_completion();
     error_code apply_learned_state_from_private_log(learn_state &state);
 
+    void prepare_durable_learn_state(decree learn_start_decree,
+                                     const learn_request &request,
+                                     learn_response &response,
+                                     remote_learner_state &learn_state);
+
     // Gets the position where this round of the learning process should begin.
     // This method is called on primary-side.
     // TODO(wutao1): mark it const
