@@ -37,7 +37,7 @@ jobs:
     needs: lint
     runs-on: self-hosted
     container:
-      image: apachepegasus/ci-env
+      image: ghcr.io/pegasus-kv/thirdparties-bin:ubuntu1804
       env:
         CCACHE_DIR: /tmp/ccache/pegasus
         CCACHE_MAXSIZE: 10G
@@ -46,13 +46,16 @@ jobs:
         - /tmp/ccache/pegasus:/tmp/ccache/pegasus
       # Read docs at https://docs.docker.com/storage/tmpfs/ for more details of using tmpfs in docker.
       options: --mount type=tmpfs,destination=/tmp/pegasus,tmpfs-size=10737418240 --cap-add=SYS_PTRACE
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 1
       - name: Unpack prebuilt third-parties
         if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
-        run: unzip /root/pegasus-thirdparty-output.zip -d ./thirdparty
+        run: unzip /root/thirdparties-bin.zip -d ./rdsn/thirdparty
       - name: Rebuild third-parties
         if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
         working-directory: thirdparty
