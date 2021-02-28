@@ -37,7 +37,7 @@ jobs:
     needs: lint
     runs-on: self-hosted
     container:
-      image: ghcr.io/pegasus-kv/thirdparties-bin:ubuntu1804
+      image: registry.cn-beijing.aliyuncs.com/apachepegasus/thirdparties-bin:ubuntu1804
       env:
         CCACHE_DIR: /tmp/ccache/pegasus
         CCACHE_MAXSIZE: 10G
