@@ -49,10 +49,12 @@ jobs:
     defaults:
       run:
         shell: bash
+        working-directory: /root/rdsn
     steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 1
+      - name: Clone rdsn source
+        working-directory: /root
+        run: |
+          git clone --depth=1 https://hub.fastgit.org/XiaoMi/rdsn.git
       - name: Unpack prebuilt third-parties
         if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
         run: unzip /root/thirdparties-bin.zip -d ./rdsn/thirdparty
