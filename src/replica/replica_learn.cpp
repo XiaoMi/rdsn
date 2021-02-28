@@ -510,8 +510,8 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
 
 void replica::prepare_durable_learn_state(decree learn_start_decree,
                                           const learn_request &request,
-                                          learn_response &response,
-                                          remote_learner_state &learner_state)
+                                          /*out*/ learn_response &response,
+                                          /*out*/ remote_learner_state &learner_state)
 {
     if (learn_start_decree > _app->last_durable_decree()) {
         ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, choose to learn private logs, "
