@@ -530,6 +530,13 @@ void replica::prepare_durable_learn_state(decree learn_start_decree,
                request.signature,
                request.learner.to_string());
         response.type = learn_type::LT_LOG;
+    } else if (learn_start_decree < request.last_committed_decree_in_app + 1) {
+        ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, choose to learn private logs, "
+               "because learn_start_decree steps back for duplication",
+               name(),
+               request.signature,
+               request.learner.to_string());
+        response.type = learn_type::LT_LOG;
     } else {
         ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, choose to learn app, "
                "beacuse learn_start_decree(%" PRId64 ") <= _app->last_durable_decree(%" PRId64 "), "
