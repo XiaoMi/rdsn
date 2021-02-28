@@ -287,6 +287,8 @@ private:
     void notify_learn_completion();
     error_code apply_learned_state_from_private_log(learn_state &state);
 
+    // Prepares in-memory mutations for the replica's learning.
+    // Returns false if there's no delta data in cache (aka prepare-list).
     bool prepare_cached_learn_state(const learn_request &request,
                                     decree learn_start_decree,
                                     decree local_committed_decree,
