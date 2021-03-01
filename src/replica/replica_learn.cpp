@@ -526,15 +526,15 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
                        err.to_string());
             } else {
                 response.base_local_dir = _app->data_dir();
-                ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, get app learn state succeed, "
-                       "learned_meta_size = %u, learned_file_count = %u, learned_to_decree = "
-                       "%" PRId64,
-                       name(),
-                       request.signature,
-                       request.learner.to_string(),
-                       response.state.meta.length(),
-                       static_cast<uint32_t>(response.state.files.size()),
-                       response.state.to_decree_included);
+                ddebug(
+                    "%s: on_learn[%016" PRIx64 "]: learner = %s, get app learn state succeed, "
+                    "learned_meta_size = %u, learned_file_count = %u, learned_to_decree = %" PRId64,
+                    name(),
+                    request.signature,
+                    request.learner.to_string(),
+                    response.state.meta.length(),
+                    static_cast<uint32_t>(response.state.files.size()),
+                    response.state.to_decree_included);
             }
         }
     }
