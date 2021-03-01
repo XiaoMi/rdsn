@@ -437,14 +437,15 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
     response.last_committed_decree = local_committed_decree;
     response.err = ERR_OK;
 
+    bool should_learn_cache = prepare_cached_learn_state(request,
+                                                         learn_start_decree,
+                                                         local_committed_decree,
+                                                         learner_state,
+                                                         response,
+                                                         delayed_replay_prepare_list);
     // learn delta state or checkpoint
     // in this case, the state on the PS is still incomplete
-    if (!prepare_cached_learn_state(request,
-                                    learn_start_decree,
-                                    local_committed_decree,
-                                    learner_state,
-                                    response,
-                                    delayed_replay_prepare_list)) {
+    if (!should_learn_cache) {
         if (learn_start_decree > _app->last_durable_decree()) {
             ddebug("%s: on_learn[%016" PRIx64 "]: learner = %s, choose to learn private logs, "
                    "because learn_start_decree(%" PRId64 ") > _app->last_durable_decree(%" PRId64
