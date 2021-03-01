@@ -45,7 +45,7 @@ jobs:
         # Place ccache compilation intermediate results in host memory, that's shared among containers.
         - /tmp/ccache/pegasus:/tmp/ccache/pegasus
       # Read docs at https://docs.docker.com/storage/tmpfs/ for more details of using tmpfs in docker.
-      options: --mount type=tmpfs,destination=/tmp/pegasus,tmpfs-size=10737418240 --cap-add=SYS_PTRACE
+      options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     defaults:
       run:
         shell: bash
