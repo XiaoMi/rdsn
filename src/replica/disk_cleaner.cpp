@@ -46,7 +46,7 @@ DSN_DEFINE_uint64("replication",
                   24 * 3600 /*1day*/,
                   "Duration of disk-migration tmp replica being removed, which is in a directory "
                   "with '.tmp' suffixed");
-DSN_TAG_VARIABLE(gc_disk_migration_tmp_replica_interval_seconds, FT_MUTABLE)
+DSN_TAG_VARIABLE(gc_disk_migration_tmp_replica_interval_seconds, FT_MUTABLE);
 
 DSN_DEFINE_uint64("replication",
                   gc_disk_migration_origin_replica_interval_seconds,
