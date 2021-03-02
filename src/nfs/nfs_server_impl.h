@@ -27,14 +27,17 @@
 #pragma once
 #include <dsn/tool-api/task_tracker.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
+#include <iostream>
+#include <dsn/cpp/serverlet.h>
+#include <dsn/utility/flags.h>
 
-#include "nfs_server.h"
+#include "nfs_code_definition.h"
+#include "nfs_types.h"
 #include "nfs_client_impl.h"
 
 namespace dsn {
 namespace service {
-class nfs_service_impl : public ::dsn::service::nfs_service,
-                         public ::dsn::serverlet<nfs_service_impl>
+class nfs_service_impl : public ::dsn::serverlet<nfs_service_impl>
 {
 public:
     nfs_service_impl();
@@ -42,9 +45,9 @@ public:
 
     void open_service()
     {
-        register_async_rpc_handler(RPC_NFS_COPY, "copy", &nfs_service::on_copy);
+        register_async_rpc_handler(RPC_NFS_COPY, "copy", &nfs_service_impl::on_copy);
         register_async_rpc_handler(
-            RPC_NFS_GET_FILE_SIZE, "get_file_size", &nfs_service::on_get_file_size);
+            RPC_NFS_GET_FILE_SIZE, "get_file_size", &nfs_service_impl::on_get_file_size);
     }
 
     void close_service()

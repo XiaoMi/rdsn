@@ -67,12 +67,8 @@ task_ptr async_nfs_copy(const copy_request &request,
                         std::chrono::milliseconds timeout,
                         rpc_address server_addr)
 {
-    return rpc::call(server_addr,
-                     RPC_NFS_COPY,
-                     request,
-                     nullptr,
-                     std::forward<TCallback>(callback),
-                     timeout);
+    return rpc::call(
+        server_addr, RPC_NFS_COPY, request, nullptr, std::forward<TCallback>(callback), timeout);
 }
 
 class nfs_client_impl
