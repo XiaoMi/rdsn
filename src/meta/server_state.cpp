@@ -1156,8 +1156,8 @@ void server_state::drop_app(dsn::message_ex *msg)
         } else {
             switch (app->status) {
             case app_status::AS_AVAILABLE:
-                // ignore drop splitting app
-                if (app->helpers->split_states.splitting_count > 0) {
+                if (app->splitting()) {
+                    // not drop splitting app
                     response.err = ERR_SPLITTING;
                     break;
                 }
