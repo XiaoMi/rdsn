@@ -43,10 +43,10 @@
 #include <dsn/utils/time_utils.h>
 #include <dsn/utility/errors.h>
 #include <dsn/dist/fmt_logging.h>
+#include <utils/shared_io_service.h>
 
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
-#include <utils/shared_io_service.h>
 
 #endif
 
