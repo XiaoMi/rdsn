@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "common/replication_common.h"
 #include <dsn/dist/replication/replication_types.h>
 #include <dsn/cpp/rpc_holder.h>
 
@@ -24,8 +25,6 @@ namespace dsn {
 namespace replication {
 
 class replica_stub;
-
-typedef rpc_holder<backup_request, backup_response> backup_rpc;
 
 // A server distributes the cold-backup task to the targeted replica.
 class replica_backup_server

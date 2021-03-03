@@ -18,6 +18,7 @@
 #include <dsn/dist/fmt_logging.h>
 
 #include "common/backup_utils.h"
+#include "common/replication_common.h"
 #include "server_state.h"
 
 namespace dsn {
@@ -30,7 +31,7 @@ backup_engine::backup_engine(backup_service *service)
 
 backup_engine::~backup_engine() { _tracker.cancel_outstanding_tasks(); }
 
-error_code backup_engine::get_app_stat(int32_t app_id, std::shared_ptr<app_state> &app)
+error_code backup_engine::get_app_state(int32_t app_id, std::shared_ptr<app_state> &app)
 {
     zauto_read_lock l;
     _backup_service->get_state()->lock_read(l);
@@ -45,7 +46,7 @@ error_code backup_engine::get_app_stat(int32_t app_id, std::shared_ptr<app_state
 error_code backup_engine::init_backup(int32_t app_id)
 {
     std::shared_ptr<app_state> app;
-    error_code err = get_app_stat(app_id, app);
+    error_code err = get_app_state(app_id, app);
     if (err != ERR_OK) {
         return err;
     }
@@ -74,9 +75,128 @@ error_code backup_engine::set_block_service(const std::string &provider)
     return ERR_OK;
 }
 
-error_code backup_engine::start() { return ERR_OK; }
+error_code backup_engine::write_backup_file(const std::string &file_name,
+                                            const dsn::blob &write_buffer)
+{
+    dist::block_service::create_file_request create_file_req;
+    create_file_req.ignore_metadata = true;
+    create_file_req.file_name = file_name;
 
-bool backup_engine::is_backing_up()
+    dsn::error_code err;
+    dist::block_service::block_file_ptr remote_file;
+    _block_service
+        ->create_file(create_file_req,
+                      TASK_CODE_EXEC_INLINED,
+                      [&err, &remote_file](const dist::block_service::create_file_response &resp) {
+                          err = resp.err;
+                          remote_file = resp.file_handle;
+                      })
+        ->wait();
+    if (err != dsn::ERR_OK) {
+        ddebug_f("create file {} failed", file_name);
+        return err;
+    }
+    dassert_f(remote_file != nullptr,
+              "create file {} succeed, but can't get handle",
+              create_file_req.file_name);
+    remote_file
+        ->write(dist::block_service::write_request{write_buffer},
+                TASK_CODE_EXEC_INLINED,
+                [&err](const dist::block_service::write_response &resp) { err = resp.err; })
+        ->wait();
+    return err;
+}
+
+error_code backup_engine::backup_app_meta()
+{
+    std::shared_ptr<app_state> app;
+    error_code err = get_app_state(_cur_backup.app_id, app);
+    if (err != ERR_OK) {
+        return err;
+    }
+    // do not write app envs to backup file
+    app_state tmp = *app;
+    tmp.envs.clear();
+    dsn::blob buffer = dsn::json::json_forwarder<app_info>::encode(tmp);
+    std::string file_name = cold_backup::get_app_metadata_file(_backup_service->backup_root(),
+                                                               _cur_backup.app_name,
+                                                               _cur_backup.app_id,
+                                                               _cur_backup.backup_id);
+    return write_backup_file(file_name, buffer);
+}
+
+void backup_engine::backup_app_partition(const gpid &pid)
+{
+    std::shared_ptr<app_state> app;
+    error_code err = get_app_state(pid.get_app_id(), app);
+    if (err != ERR_OK) {
+        zauto_lock lock(_lock);
+        is_backup_failed = true;
+        return;
+    }
+
+    dsn::rpc_address partition_primary = app->partitions[pid.get_partition_index()].primary;
+    if (partition_primary.is_invalid()) {
+        dwarn_f("backup_id({}): partition {} doesn't have a primary now, retry to backup it later.",
+                _cur_backup.backup_id,
+                pid.to_string());
+        tasking::enqueue(LPC_DEFAULT_CALLBACK,
+                         &_tracker,
+                         [this, pid]() { backup_app_partition(pid); },
+                         0,
+                         std::chrono::seconds(10));
+        return;
+    }
+
+    auto req = std::make_unique<backup_request>();
+    req->pid = pid;
+    policy_info backup_policy_info;
+    backup_policy_info.__set_backup_provider_type(_provider_type);
+    backup_policy_info.__set_policy_name(get_policy_name());
+    req->policy = backup_policy_info;
+    req->backup_id = _cur_backup.backup_id;
+    req->app_name = _cur_backup.app_name;
+
+    ddebug_f("backup_id({}): send backup request to partition {}, target_addr = {}",
+             _cur_backup.backup_id,
+             pid.to_string(),
+             partition_primary.to_string());
+    backup_rpc rpc(std::move(req), RPC_COLD_BACKUP, 0_ms, 0, pid.thread_hash());
+    rpc.call(
+        partition_primary, &_tracker, [this, rpc, pid, partition_primary](error_code err) mutable {
+            on_backup_reply(err, rpc.response(), pid, partition_primary);
+        });
+
+    zauto_lock l(_lock);
+    _backup_status[pid.get_partition_index()] = backup_status::ALIVE;
+}
+
+void backup_engine::on_backup_reply(error_code err,
+                                    const backup_response &response,
+                                    gpid pid,
+                                    const rpc_address &primary)
+{
+}
+
+error_code backup_engine::start()
+{
+    error_code err = backup_app_meta();
+    if (err != ERR_OK) {
+        derror_f("backup_id({}): backup meta data for app {} failed, error {}",
+                 _cur_backup.backup_id,
+                 _cur_backup.app_id,
+                 err.to_string());
+        return err;
+    }
+    for (int i = 0; i < _backup_status.size(); ++i) {
+        tasking::enqueue(LPC_DEFAULT_CALLBACK, &_tracker, [this, i]() {
+            backup_app_partition(gpid(_cur_backup.app_id, i));
+        });
+    }
+    return ERR_OK;
+}
+
+bool backup_engine::is_backing_up() const
 {
     zauto_lock l(_lock);
     return _cur_backup.end_time_ms == 0 && !is_backup_failed;

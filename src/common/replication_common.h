@@ -47,6 +47,8 @@ typedef rpc_holder<notify_stop_split_request, notify_stop_split_response> notify
 typedef rpc_holder<configuration_update_app_env_request, configuration_update_app_env_response>
     update_app_env_rpc;
 
+typedef rpc_holder<backup_request, backup_response> backup_rpc;
+
 class replication_options
 {
 public:
