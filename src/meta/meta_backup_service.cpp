@@ -158,9 +158,6 @@ void backup_engine::on_backup_reply(dsn::error_code err,
 {
 }
 
-// TODO: backup_service and policy_context should need two locks, its own _lock and server_state's
-// _lock this maybe lead to deadlock, should refactor this
-
 void policy_context::start_backup_app_meta_unlocked(int32_t app_id)
 {
     error_code err = backup_app_meta(_policy.app_names.at(app_id), app_id, _cur_backup.backup_id);
