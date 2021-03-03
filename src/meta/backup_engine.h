@@ -68,10 +68,13 @@ private:
     error_code write_backup_file(const std::string &file_name, const dsn::blob &write_buffer);
     error_code backup_app_meta();
     void backup_app_partition(const gpid &pid);
-    void on_backup_reply(error_code err,
+    void on_backup_reply(dsn::error_code err,
                          const backup_response &response,
                          gpid pid,
                          const rpc_address &primary);
+    void write_backup_info();
+    // if all partitions have been backed up, write backup_info file.
+    void complete_current_backup();
 
     std::string get_policy_name() const
     {
