@@ -438,7 +438,6 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
     response.err = ERR_OK;
 
     // learn delta state or checkpoint
-    // in this case, the state on the PS is still incomplete
     bool should_learn_cache = prepare_cached_learn_state(request,
                                                          learn_start_decree,
                                                          local_committed_decree,
