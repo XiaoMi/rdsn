@@ -47,7 +47,6 @@
 
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
-
 #endif
 
 #include "service_engine.h"
