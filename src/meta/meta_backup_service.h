@@ -242,8 +242,8 @@ public:
 protected:
     friend class policy_context_test;
 
-    std::shared_ptr<backup_service> _backup_service;
-    std::shared_ptr<dist::block_service::block_filesystem> _block_service;
+    backup_service *_backup_service;
+    dist::block_service::block_filesystem *_block_service;
     std::string _provider_type;
     dsn::task_tracker _tracker;
 };

@@ -40,9 +40,9 @@ backup_engine::~backup_engine() { _tracker.cancel_outstanding_tasks(); }
 void backup_engine::set_block_service(const std::string &provider)
 {
     _provider_type = provider;
-    _block_service.reset(_backup_service->get_meta_service()
-                             ->get_block_service_manager()
-                             .get_or_create_block_filesystem(provider));
+    _block_service = _backup_service->get_meta_service()
+                         ->get_block_service_manager()
+                         .get_or_create_block_filesystem(provider);
     dassert(_block_service, "can't initialize block filesystem by provider (%s)", provider);
 }
 
@@ -72,7 +72,7 @@ error_code backup_engine::write_backup_file(const std::string &file_name,
 
     remote_file
         ->write(dist::block_service::write_request{write_buffer},
-                LPC_DEFAULT_CALLBACK,
+                TASK_CODE_EXEC_INLINED,
                 [&err](const dist::block_service::write_response &resp) { err = resp.err; })
         ->wait();
     return err;
