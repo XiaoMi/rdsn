@@ -36,7 +36,6 @@
 #include <dsn/utility/defer.h>
 #include <dsn/utility/TokenBucket.h>
 #include <dsn/utility/flags.h>
-#include <dsn/utility/optional.h>
 #include <dsn/tool-api/async_calls.h>
 
 #include "nfs_types.h"
