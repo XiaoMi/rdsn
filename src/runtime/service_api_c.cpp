@@ -43,7 +43,6 @@
 #include <dsn/utils/time_utils.h>
 #include <dsn/utility/errors.h>
 #include <dsn/dist/fmt_logging.h>
-#include <utils/shared_io_service.h>
 
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
@@ -293,11 +292,6 @@ extern void dsn_core_init();
 
 inline void dsn_global_init()
 {
-    // make shared_io_service destructed after perf_counters,
-    // because shared_io_service will destruct the timer created by perf_counters
-    // It will produce heap-use-after-free error if shared_io_service destructed in front of
-    // perf_counters
-    dsn::tools::shared_io_service::instance();
     // make perf_counters/disk_engine destructed after service_engine,
     // because service_engine relies on the former to monitor
     // task queues length and close files.
