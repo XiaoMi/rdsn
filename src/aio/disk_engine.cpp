@@ -37,13 +37,13 @@ using namespace dsn::utils;
 namespace dsn {
 using namespace aio;
 
-DSN_DEFINE_string("core", aio_factory_name, "", "asynchonous file system provider");
-
 DEFINE_TASK_CODE_AIO(LPC_AIO_BATCH_WRITE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
 
 const char *native_aio_provider = "dsn::tools::native_aio_provider";
 DSN_REGISTER_COMPONENT_PROVIDER(native_linux_aio_provider, native_aio_provider);
 DSN_REGISTER_COMPONENT_PROVIDER(sim_aio_provider, "dsn::tools::sim_aio_provider");
+
+DSN_DEFINE_string("core", aio_factory_name, native_aio_provider, "asynchonous file system provider");
 
 //----------------- disk_file ------------------------
 aio_task *disk_write_queue::unlink_next_workload(void *plength)
