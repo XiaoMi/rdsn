@@ -26,6 +26,7 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/aio_task.h>
+#include <dsn/utility/flags.h>
 
 #include "disk_engine.h"
 #include "sim_aio_provider.h"
@@ -35,6 +36,8 @@ using namespace dsn::utils;
 
 namespace dsn {
 using namespace aio;
+
+DSN_DEFINE_string("core", aio_factory_name, "", "asynchonous file system provider");
 
 DEFINE_TASK_CODE_AIO(LPC_AIO_BATCH_WRITE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
 

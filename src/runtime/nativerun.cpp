@@ -101,5 +101,5 @@ void nativerun::install(service_spec &spec)
 }
 
 void nativerun::run() { tool_app::run(); }
-}
-} // end namespace dsn::tools
+} // namespace tools
+} // namespace dsn
