@@ -43,7 +43,10 @@ const char *native_aio_provider = "dsn::tools::native_aio_provider";
 DSN_REGISTER_COMPONENT_PROVIDER(native_linux_aio_provider, native_aio_provider);
 DSN_REGISTER_COMPONENT_PROVIDER(sim_aio_provider, "dsn::tools::sim_aio_provider");
 
-DSN_DEFINE_string("core", aio_factory_name, native_aio_provider, "asynchonous file system provider");
+DSN_DEFINE_string("core",
+                  aio_factory_name,
+                  native_aio_provider,
+                  "asynchonous file system provider");
 
 //----------------- disk_file ------------------------
 aio_task *disk_write_queue::unlink_next_workload(void *plength)
