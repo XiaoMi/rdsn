@@ -60,6 +60,7 @@
 #endif
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/remote_command.h>
+#include <dsn/aio/disk_engine.h>
 
 namespace dsn {
 namespace replication {
@@ -87,6 +88,7 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _fs_manager(false),
       _bulk_load_downloading_count(0)
 {
+    disk_engine::instance();
 #ifdef DSN_ENABLE_GPERF
     _release_tcmalloc_memory_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;

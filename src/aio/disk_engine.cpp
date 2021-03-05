@@ -26,8 +26,8 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/aio_task.h>
+#include <dsn/aio/disk_engine.h>
 
-#include "disk_engine.h"
 #include "sim_aio_provider.h"
 #include "runtime/service_engine.h"
 

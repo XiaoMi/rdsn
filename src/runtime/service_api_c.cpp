@@ -24,7 +24,6 @@
  * THE SOFTWARE.
  */
 
-#include "aio/disk_engine.h"
 #include "service_engine.h"
 #include "utils/coredump.h"
 #include "runtime/rpc/rpc_engine.h"
@@ -33,6 +32,7 @@
 
 #include <fstream>
 
+#include <dsn/aio/disk_engine.h>
 #include <dsn/service_api_c.h>
 #include <dsn/tool_api.h>
 #include <dsn/tool-api/command_manager.h>
@@ -292,7 +292,7 @@ extern void dsn_core_init();
 
 inline void dsn_global_init()
 {
-    // make perf_counters/disk_engine destructed after service_engine,
+    // make perf_counters destructed after service_engine,
     // because service_engine relies on the former to monitor
     // task queues length and close files.
     dsn::perf_counters::instance();
