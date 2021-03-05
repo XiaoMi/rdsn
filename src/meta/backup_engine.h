@@ -60,9 +60,9 @@ public:
 
     error_code run();
 
-    int64_t get_current_backup_id() { return _cur_backup.backup_id; }
-    int32_t get_backup_app_id() { return _cur_backup.app_id; }
-    bool is_backing_up();
+    int64_t get_current_backup_id() const { return _cur_backup.backup_id; }
+    int32_t get_backup_app_id() const { return _cur_backup.app_id; }
+    bool is_backing_up() const;
 
 private:
     error_code get_app_stat(int32_t app_id, std::shared_ptr<app_state> &app);
