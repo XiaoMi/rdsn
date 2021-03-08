@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include <dsn/aio/disk_engine.h>
+#include "disk_engine.h"
 #include <dsn/tool-api/file_io.h>
 
 namespace dsn {

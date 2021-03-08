@@ -25,7 +25,7 @@
  */
 
 #include "aio_provider.h"
-#include <dsn/aio/disk_engine.h>
+#include "disk_engine.h"
 
 namespace dsn {
 

@@ -60,7 +60,7 @@
 #endif
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/remote_command.h>
-#include <dsn/aio/disk_engine.h>
+#include <aio/disk_engine.h>
 
 namespace dsn {
 namespace replication {
