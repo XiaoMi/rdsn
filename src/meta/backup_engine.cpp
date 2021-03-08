@@ -18,7 +18,7 @@
 #include <dsn/dist/fmt_logging.h>
 
 #include "common/backup_utils.h"
-#include "replica/backup/replica_backup_server.h"
+#include "common/replication_common.h"
 #include "server_state.h"
 
 namespace dsn {
