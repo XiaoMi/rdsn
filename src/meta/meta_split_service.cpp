@@ -558,7 +558,7 @@ void meta_split_service::query_child_state(query_child_state_rpc rpc)
     const auto &parent_pid = request.pid;
     auto &response = rpc.response();
 
-    zauto_write_lock l(app_lock());
+    zauto_read_lock l(app_lock());
     std::shared_ptr<app_state> app = _state->get_app(app_name);
     dassert_f(app != nullptr, "app({}) is not existed", app_name);
     dassert_f(app->is_stateful, "app({}) is stateless currently", app_name);

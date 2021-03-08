@@ -1085,16 +1085,12 @@ void meta_service::on_query_child_state(query_child_state_rpc rpc)
     if (!check_status(rpc)) {
         return;
     }
-
     if (_split_svc == nullptr) {
         derror_f("meta doesn't support partition split");
         rpc.response().err = ERR_SERVICE_NOT_ACTIVE;
         return;
     }
-    tasking::enqueue(LPC_META_STATE_NORMAL,
-                     tracker(),
-                     [this, rpc]() { _split_svc->query_child_state(std::move(rpc)); },
-                     server_state::sStateHash);
+    _split_svc->query_child_state(std::move(rpc));
 }
 
 void meta_service::on_start_bulk_load(start_bulk_load_rpc rpc)
