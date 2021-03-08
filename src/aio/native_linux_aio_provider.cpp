@@ -101,8 +101,10 @@ void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk)
                      aio_tsk->tracker(),
                      [=]() { aio_internal(aio_tsk, true); },
                      aio_tsk->hash());
+    ddebug("test point: async submit");
 #else
     aio_internal(aio_tsk, true);
+    ddebug("test point: simulator sync submit");
 #endif
 }
 
