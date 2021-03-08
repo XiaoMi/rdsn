@@ -36,12 +36,10 @@ struct app_backup_info
     int64_t start_time_ms;
     int64_t end_time_ms;
 
-    bool is_backup_failed;
-
     int32_t app_id;
     std::string app_name;
 
-    app_backup_info() : backup_id(0), start_time_ms(0), end_time_ms(0), is_backup_failed(false) {}
+    app_backup_info() : backup_id(0), start_time_ms(0), end_time_ms(0) {}
 
     DEFINE_JSON_SERIALIZATION(backup_id, start_time_ms, end_time_ms, app_id, app_name)
 };
@@ -72,8 +70,9 @@ private:
     std::string _provider_type;
     dsn::task_tracker _tracker;
 
-    // lock _cur_backup and _backup_status.
+    // lock the following variables.
     dsn::zlock _lock;
+    bool is_backup_failed;
     app_backup_info _cur_backup;
     // partition_id -> backup_status
     std::map<int32_t, backup_status> _backup_status;

@@ -24,7 +24,7 @@ namespace dsn {
 namespace replication {
 
 backup_engine::backup_engine(backup_service *service)
-    : _backup_service(service), _block_service(nullptr)
+    : _backup_service(service), _block_service(nullptr), is_backup_failed(false)
 {
 }
 
@@ -79,7 +79,7 @@ error_code backup_engine::start() { return ERR_OK; }
 bool backup_engine::is_backing_up()
 {
     zauto_lock l(_lock);
-    return _cur_backup.end_time_ms == 0 && !_cur_backup.is_backup_failed;
+    return _cur_backup.end_time_ms == 0 && !is_backup_failed;
 }
 
 } // namespace replication
