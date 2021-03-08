@@ -25,8 +25,10 @@
  */
 
 #include "native_linux_aio_provider.h"
+#include "runtime/service_engine.h"
 
 #include <dsn/tool-api/async_calls.h>
+#include <dsn/c/api_utilities.h>
 
 namespace dsn {
 
@@ -96,16 +98,14 @@ error_code native_linux_aio_provider::read(const aio_context &aio_ctx,
 
 void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk)
 {
-#ifndef DSN_SIMULATOR_RUN
-    tasking::enqueue(aio_tsk->code(),
-                     aio_tsk->tracker(),
-                     [=]() { aio_internal(aio_tsk, true); },
-                     aio_tsk->hash());
-    ddebug("test point: async submit");
-#else
-    aio_internal(aio_tsk, true);
-    ddebug("test point: simulator sync submit");
-#endif
+    if (dsn_unlikely(service_engine::instance().is_simulator())) {
+        aio_internal(aio_tsk, true);
+    } else {
+        tasking::enqueue(aio_tsk->code(),
+                         aio_tsk->tracker(),
+                         [=]() { aio_internal(aio_tsk, true); },
+                         aio_tsk->hash());
+    }
 }
 
 error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,

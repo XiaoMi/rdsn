@@ -29,12 +29,11 @@
 
 #include "disk_engine.h"
 #include "runtime/service_engine.h"
+#include "native_linux_aio_provider.h"
 
 using namespace dsn::utils;
 
 namespace dsn {
-using namespace aio;
-
 DEFINE_TASK_CODE_AIO(LPC_AIO_BATCH_WRITE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
 
 const char *native_aio_provider = "dsn::tools::native_aio_provider";
@@ -44,8 +43,9 @@ struct disk_engine_registerer
 {
     disk_engine_registerer() { disk_engine::instance(); }
 };
-#define DSN_REGISTER_DISK_ENGINE() static disk_engine_registerer DISK_ENGINE_REG()
+#define DSN_REGISTER_DISK_ENGINE() static disk_engine_registerer DISK_ENGINE_REG
 
+// make disk_engine destructed last, because service_engine relies on the former to close files.
 DSN_REGISTER_DISK_ENGINE();
 
 //----------------- disk_file ------------------------
