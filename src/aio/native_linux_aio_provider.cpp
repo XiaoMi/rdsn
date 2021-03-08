@@ -99,6 +99,7 @@ error_code native_linux_aio_provider::read(const aio_context &aio_ctx,
 void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk)
 {
     if (dsn_unlikely(service_engine::instance().is_simulator())) {
+	// for the tests which use simulator in dsn, theoy need sync submit for aio
         aio_internal(aio_tsk, true);
     } else {
         tasking::enqueue(aio_tsk->code(),
