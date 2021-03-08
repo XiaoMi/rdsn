@@ -24,11 +24,10 @@
  * THE SOFTWARE.
  */
 
-#include "disk_engine.h"
-
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/aio_task.h>
 
+#include "disk_engine.h"
 #include "sim_aio_provider.h"
 #include "runtime/service_engine.h"
 
