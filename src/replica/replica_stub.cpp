@@ -43,6 +43,7 @@
 #include "split/replica_split_manager.h"
 #include "replica_disk_migrator.h"
 #include "disk_cleaner.h"
+#include "aio/disk_engine.h"
 
 #include <boost/algorithm/string/replace.hpp>
 #include <dsn/cpp/json_helper.h>
@@ -60,7 +61,6 @@
 #endif
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/remote_command.h>
-#include <aio/disk_engine.h>
 
 namespace dsn {
 namespace replication {
