@@ -293,7 +293,7 @@ inline void dsn_global_init()
 {
     // make perf_counters destructed after service_engine,
     // because service_engine relies on the former to monitor
-    // task queues length and close files.
+    // task queues length.
     dsn::perf_counters::instance();
     dsn::service_engine::instance();
 }
