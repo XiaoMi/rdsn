@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "common/replication_common.h"
 #include <dsn/dist/replication/replication_types.h>
 #include <dsn/cpp/rpc_holder.h>
 
