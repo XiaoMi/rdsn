@@ -58,11 +58,11 @@ public:
     error_code init_backup(int32_t app_id);
     error_code set_block_service(const std::string &provider);
 
-    error_code run();
+    error_code start();
 
     int64_t get_current_backup_id() const { return _cur_backup.backup_id; }
     int32_t get_backup_app_id() const { return _cur_backup.app_id; }
-    bool is_backing_up() const;
+    bool is_backing_up();
 
 private:
     error_code get_app_stat(int32_t app_id, std::shared_ptr<app_state> &app);

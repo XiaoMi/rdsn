@@ -74,7 +74,7 @@ error_code backup_engine::set_block_service(const std::string &provider)
     return ERR_OK;
 }
 
-error_code backup_engine::run() { return ERR_OK; }
+error_code backup_engine::start() { return ERR_OK; }
 
 bool backup_engine::is_backing_up()
 {
