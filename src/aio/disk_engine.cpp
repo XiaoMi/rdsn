@@ -28,7 +28,6 @@
 #include <dsn/tool-api/aio_task.h>
 
 #include "disk_engine.h"
-#include "sim_aio_provider.h"
 #include "runtime/service_engine.h"
 
 using namespace dsn::utils;
@@ -40,7 +39,14 @@ DEFINE_TASK_CODE_AIO(LPC_AIO_BATCH_WRITE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFA
 
 const char *native_aio_provider = "dsn::tools::native_aio_provider";
 DSN_REGISTER_COMPONENT_PROVIDER(native_linux_aio_provider, native_aio_provider);
-DSN_REGISTER_COMPONENT_PROVIDER(sim_aio_provider, "dsn::tools::sim_aio_provider");
+
+struct disk_engine_registerer
+{
+    disk_engine_registerer() { disk_engine::instance(); }
+};
+#define DSN_REGISTER_DISK_ENGINE() static disk_engine_registerer DISK_ENGINE_REG()
+
+DSN_REGISTER_DISK_ENGINE();
 
 //----------------- disk_file ------------------------
 aio_task *disk_write_queue::unlink_next_workload(void *plength)

@@ -118,6 +118,8 @@ void simulator::install(service_spec &spec)
 
     // the new sim_clock is taken over by unique_ptr in clock instance
     utils::clock::instance()->mock(new sim_clock());
+
+#define DSN_SIMULATOR_RUN
 }
 
 void simulator::on_system_exit(sys_exit_type st)

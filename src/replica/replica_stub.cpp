@@ -43,7 +43,6 @@
 #include "split/replica_split_manager.h"
 #include "replica_disk_migrator.h"
 #include "disk_cleaner.h"
-#include "aio/disk_engine.h"
 
 #include <boost/algorithm/string/replace.hpp>
 #include <dsn/cpp/json_helper.h>
@@ -88,11 +87,6 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _fs_manager(false),
       _bulk_load_downloading_count(0)
 {
-
-    // make disk_engine destructed after replica_stub,
-    // because replica_stub relies on the former to close files.
-    disk_engine::instance();
-
 #ifdef DSN_ENABLE_GPERF
     _release_tcmalloc_memory_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;

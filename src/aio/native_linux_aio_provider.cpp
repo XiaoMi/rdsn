@@ -96,10 +96,14 @@ error_code native_linux_aio_provider::read(const aio_context &aio_ctx,
 
 void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk)
 {
+#ifndef DSN_SIMULATOR_RUN
     tasking::enqueue(aio_tsk->code(),
                      aio_tsk->tracker(),
                      [=]() { aio_internal(aio_tsk, true); },
                      aio_tsk->hash());
+#else
+    aio_internal(aio_tsk, true);
+#endif
 }
 
 error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk,
