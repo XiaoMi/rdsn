@@ -39,14 +39,14 @@ DEFINE_TASK_CODE_AIO(LPC_AIO_BATCH_WRITE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFA
 const char *native_aio_provider = "dsn::tools::native_aio_provider";
 DSN_REGISTER_COMPONENT_PROVIDER(native_linux_aio_provider, native_aio_provider);
 
-struct disk_engine_registerer
+struct disk_engine_initliazer
 {
-    disk_engine_registerer() { disk_engine::instance(); }
+    disk_engine_initliazer() { disk_engine::instance(); }
 };
-#define DSN_REGISTER_DISK_ENGINE() static disk_engine_registerer DISK_ENGINE_REG
+#define DSN_INIT_DISK_ENGINE() static disk_engine_initliazer DISK_ENGINE_REG
 
 // make disk_engine destructed last, because service_engine relies on the former to close files.
-DSN_REGISTER_DISK_ENGINE();
+DSN_INIT_DISK_ENGINE();
 
 //----------------- disk_file ------------------------
 aio_task *disk_write_queue::unlink_next_workload(void *plength)
@@ -151,14 +151,7 @@ aio_task *disk_file::on_write_completed(aio_task *wk, void *ctx, error_code err,
 disk_engine::disk_engine()
 {
     aio_provider *provider = utils::factory_store<aio_provider>::create(
-        FLAGS_aio_factory_name, dsn::PROVIDER_TYPE_MAIN, this);
-    // use native_aio_provider in default
-    if (nullptr == provider) {
-        derror_f("The config value of aio_factory_name is invalid, use {} in default",
-                 native_aio_provider);
-        provider = utils::factory_store<aio_provider>::create(
-            native_aio_provider, dsn::PROVIDER_TYPE_MAIN, this);
-    }
+        native_aio_provider, dsn::PROVIDER_TYPE_MAIN, this);
     _provider.reset(provider);
 }
 
