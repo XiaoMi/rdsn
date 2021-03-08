@@ -88,6 +88,9 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _fs_manager(false),
       _bulk_load_downloading_count(0)
 {
+
+    // make disk_engine destructed after replica_stub,
+    // because replica_stub relies on the former to close files.
     disk_engine::instance();
 #ifdef DSN_ENABLE_GPERF
     _release_tcmalloc_memory_command = nullptr;
