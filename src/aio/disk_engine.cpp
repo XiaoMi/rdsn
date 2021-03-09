@@ -26,6 +26,7 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/aio_task.h>
+#include <dsn/utility/flags.h>
 
 #include "disk_engine.h"
 #include "runtime/service_engine.h"
@@ -47,6 +48,11 @@ struct disk_engine_initializer
 // make disk_engine destructed after service_engine, which is inited in dsn_global_init,
 // because service_engine relies on the former to close files.
 static disk_engine_initializer disk_engine_init;
+
+DSN_DEFINE_string("core",
+                  aio_factory_name,
+                  native_aio_provider,
+                  "asynchonous file system provider");
 
 //----------------- disk_file ------------------------
 aio_task *disk_write_queue::unlink_next_workload(void *plength)
