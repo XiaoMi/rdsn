@@ -43,6 +43,7 @@ struct disk_engine_initializer
 {
     disk_engine_initializer() { disk_engine::instance(); }
 };
+
 // make disk_engine destructed after service_engine, which is inited in dsn_global_init,
 // because service_engine relies on the former to close files.
 static disk_engine_initializer disk_engine_init;
