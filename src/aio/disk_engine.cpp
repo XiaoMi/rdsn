@@ -43,11 +43,9 @@ struct disk_engine_initializer
 {
     disk_engine_initializer() { disk_engine::instance(); }
 };
-#define DSN_INIT_DISK_ENGINE() static disk_engine_initializer DISK_ENGINE_REG
-
 // make disk_engine destructed after service_engine, which is inited in dsn_global_init,
 // because service_engine relies on the former to close files.
-DSN_INIT_DISK_ENGINE();
+static disk_engine_initializer disk_engine_init;
 
 //----------------- disk_file ------------------------
 aio_task *disk_write_queue::unlink_next_workload(void *plength)
