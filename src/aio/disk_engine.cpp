@@ -45,8 +45,8 @@ struct disk_engine_initializer
 };
 #define DSN_INIT_DISK_ENGINE() static disk_engine_initializer DISK_ENGINE_REG
 
-// make disk_engine destructed after service_engine, which is inited in dsn_global_init, because
-// service_engine relies on the former to close files.
+// make disk_engine destructed after service_engine, which is inited in dsn_global_init,
+// because service_engine relies on the former to close files.
 DSN_INIT_DISK_ENGINE();
 
 //----------------- disk_file ------------------------
