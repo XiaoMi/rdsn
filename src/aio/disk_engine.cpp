@@ -39,11 +39,11 @@ DEFINE_TASK_CODE_AIO(LPC_AIO_BATCH_WRITE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFA
 const char *native_aio_provider = "dsn::tools::native_aio_provider";
 DSN_REGISTER_COMPONENT_PROVIDER(native_linux_aio_provider, native_aio_provider);
 
-struct disk_engine_initliazer
+struct disk_engine_initializer
 {
-    disk_engine_initliazer() { disk_engine::instance(); }
+    disk_engine_initializer() { disk_engine::instance(); }
 };
-#define DSN_INIT_DISK_ENGINE() static disk_engine_initliazer DISK_ENGINE_REG
+#define DSN_INIT_DISK_ENGINE() static disk_engine_initializer DISK_ENGINE_REG
 
 // make disk_engine destructed after service_engine, which is inited in dsn_global_init, because
 // service_engine relies on the former to close files.
