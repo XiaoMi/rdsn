@@ -2087,8 +2087,8 @@ void replica_stub::open_service()
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_APP_INFO, "query_app_info", &replica_stub::on_query_app_info);
     register_rpc_handler_with_rpc_holder(RPC_SPLIT_UPDATE_CHILD_PARTITION_COUNT,
-                                             "update_child_group_partition_count",
-                                             &replica_stub::on_update_child_group_partition_count);
+                                         "update_child_group_partition_count",
+                                         &replica_stub::on_update_child_group_partition_count);
     register_rpc_handler_with_rpc_holder(RPC_SPLIT_NOTIFY_CATCH_UP,
                                          "child_notify_catch_up",
                                          &replica_stub::on_notify_primary_split_catch_up);
