@@ -124,10 +124,6 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk)
         return err;
     }
 
-    if (pbytes) {
-        *pbytes = processed_bytes;
-    }
-
     complete_io(aio_tsk, err, processed_bytes);
     return err;
 }
