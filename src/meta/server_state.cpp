@@ -800,7 +800,10 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
                 // request
                 if (cc.stage == config_status::pending_remote_sync) {
                     configuration_update_request *req = cc.pending_sync_request.get();
-                    if (req->node == request.node)
+                    // when register child partition, stage is config_status::pending_remote_sync,
+                    // but cc.pending_sync_request is not set, see more in function
+                    // 'register_child_on_meta'
+                    if (req == nullptr || req->node == request.node)
                         return false;
                 }
 
@@ -809,7 +812,7 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
                 response.partitions[i].host_node = request.node;
                 // set meta_split_status
                 const split_state &app_split_states = app->helpers->split_states;
-                if (app_split_states.splitting_count > 0) {
+                if (app->splitting()) {
                     auto iter = app_split_states.status.find(pid.get_partition_index());
                     if (iter != app_split_states.status.end()) {
                         response.partitions[i].__set_meta_split_status(iter->second);
@@ -1172,6 +1175,11 @@ void server_state::drop_app(dsn::message_ex *msg)
         } else {
             switch (app->status) {
             case app_status::AS_AVAILABLE:
+                if (app->splitting()) {
+                    // not drop splitting app
+                    response.err = ERR_SPLITTING;
+                    break;
+                }
                 do_dropping = true;
                 app->status = app_status::AS_DROPPING;
                 app->drop_second = dsn_now_ms() / 1000;
@@ -2375,8 +2383,8 @@ bool server_state::check_all_partitions()
         for (unsigned int i = 0; i != app->partition_count; ++i) {
             partition_configuration &pc = app->partitions[i];
             config_context &cc = app->helpers->contexts[i];
-
-            if (cc.stage != config_status::pending_remote_sync) {
+            // partition is under re-configuration or is child partition
+            if (cc.stage != config_status::pending_remote_sync && pc.ballot != invalid_ballot) {
                 configuration_proposal_action action;
                 pc_status s =
                     _meta_svc->get_balancer()->cure({&_all_apps, &_nodes}, pc.pid, action);

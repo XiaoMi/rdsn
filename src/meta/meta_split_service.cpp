@@ -71,7 +71,7 @@ void meta_split_service::start_partition_split(start_split_rpc rpc)
             return;
         }
 
-        if (app->helpers->split_states.splitting_count > 0) {
+        if (app->splitting()) {
             response.err = ERR_BUSY;
             auto err_msg =
                 fmt::format("app({}) is already executing partition split", request.app_name);
@@ -318,7 +318,7 @@ void meta_split_service::query_partition_split(query_split_rpc rpc) const
         return;
     }
 
-    if (app->helpers->split_states.splitting_count <= 0) {
+    if (!app->splitting()) {
         response.err = ERR_INVALID_STATE;
         response.__set_hint_msg(fmt::format("app({}) is not splitting", app_name));
         derror_f("query partition split failed, {}", response.hint_msg);
@@ -349,7 +349,7 @@ void meta_split_service::control_partition_split(control_split_rpc rpc)
         return;
     }
 
-    if (app->helpers->split_states.splitting_count <= 0) {
+    if (!app->splitting()) {
         response.err = ERR_INVALID_STATE;
         response.__set_hint_msg(fmt::format("app({}) is not splitting", req.app_name));
         derror_f("{} split failed, {}", control_type_str(control_type), response.hint_msg);
@@ -549,6 +549,41 @@ void meta_split_service::do_cancel_partition_split(std::shared_ptr<app_state> ap
     blob value = dsn::json::json_forwarder<app_info>::encode(copy);
     _meta_svc->get_meta_storage()->set_data(
         _state->get_app_path(*app), std::move(value), on_write_storage_complete);
+}
+
+void meta_split_service::query_child_state(query_child_state_rpc rpc)
+{
+    const auto &request = rpc.request();
+    const auto &app_name = request.app_name;
+    const auto &parent_pid = request.pid;
+    auto &response = rpc.response();
+
+    zauto_read_lock l(app_lock());
+    std::shared_ptr<app_state> app = _state->get_app(app_name);
+    dassert_f(app != nullptr, "app({}) is not existed", app_name);
+    dassert_f(app->is_stateful, "app({}) is stateless currently", app_name);
+
+    if (app->partition_count == request.partition_count) {
+        response.err = ERR_INVALID_STATE;
+        derror_f("app({}) is not executing partition split", app_name);
+        return;
+    }
+
+    dassert_f(app->partition_count == request.partition_count * 2,
+              "app({}) has invalid partition_count",
+              app_name);
+
+    auto child_pidx = parent_pid.get_partition_index() + request.partition_count;
+    if (app->partitions[child_pidx].ballot == invalid_ballot) {
+        response.err = ERR_INVALID_STATE;
+        derror_f("app({}) parent partition({}) split has been canceled", app_name, parent_pid);
+        return;
+    }
+    ddebug_f(
+        "app({}) child partition({}.{}) is ready", app_name, parent_pid.get_app_id(), child_pidx);
+    response.err = ERR_OK;
+    response.__set_partition_count(app->partition_count);
+    response.__set_child_config(app->partitions[child_pidx]);
 }
 
 } // namespace replication

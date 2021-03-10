@@ -84,7 +84,8 @@ bool primary_context::is_cleaned()
 {
     return nullptr == group_check_task && nullptr == reconfiguration_task &&
            nullptr == checkpoint_task && group_check_pending_replies.empty() &&
-           nullptr == register_child_task && group_bulk_load_pending_replies.empty();
+           nullptr == register_child_task && nullptr == query_child_task &&
+           group_bulk_load_pending_replies.empty();
 }
 
 void primary_context::do_cleanup_pending_mutations(bool clean_pending_mutations)
@@ -168,6 +169,7 @@ void primary_context::cleanup_bulk_load_states()
 void primary_context::cleanup_split_states()
 {
     CLEANUP_TASK_ALWAYS(register_child_task)
+    CLEANUP_TASK_ALWAYS(query_child_task)
 
     caught_up_children.clear();
     sync_send_write_request = false;
@@ -244,6 +246,11 @@ bool potential_secondary_context::is_cleaned()
 bool partition_split_context::cleanup(bool force)
 {
     CLEANUP_TASK(async_learn_task, force)
+    if (!force) {
+        CLEANUP_TASK_ALWAYS(check_state_task)
+    } else {
+        CLEANUP_TASK(check_state_task, force)
+    }
 
     parent_gpid.set_app_id(0);
     is_prepare_list_copied = false;
@@ -251,7 +258,10 @@ bool partition_split_context::cleanup(bool force)
     return true;
 }
 
-bool partition_split_context::is_cleaned() const { return async_learn_task == nullptr; }
+bool partition_split_context::is_cleaned() const
+{
+    return async_learn_task == nullptr && check_state_task == nullptr;
+}
 
 } // namespace replication
 } // namespace dsn
