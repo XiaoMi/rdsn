@@ -796,7 +796,7 @@ TEST_F(meta_split_service_test, query_child_state_test)
         }
     }
 }
-  
+
 class meta_split_service_failover_test : public meta_split_service_test
 {
 public:
