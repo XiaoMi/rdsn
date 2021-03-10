@@ -63,8 +63,6 @@ public:
     bool is_backing_up() const;
 
 private:
-    error_code get_app_state(int32_t app_id, /*out*/ std::shared_ptr<app_state> &app);
-
     error_code write_backup_file(const std::string &file_name, const dsn::blob &write_buffer);
     error_code backup_app_meta();
     void backup_app_partition(const gpid &pid);
