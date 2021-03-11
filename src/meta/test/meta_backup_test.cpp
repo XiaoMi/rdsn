@@ -86,6 +86,10 @@ TEST_F(backup_service_test, test_init_backup_succeed)
 
     auto it = _backup_service->_backup_states.begin();
     ASSERT_LE(now, it->second->get_current_backup_id());
+
+    // backup for app 1 is running, couldn't backup it again.
+    err = start_backup(1, "local_service");
+    ASSERT_EQ(ERR_INVALID_STATE, err);
 }
 
 } // namespace replication
