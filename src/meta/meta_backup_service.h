@@ -358,7 +358,8 @@ public:
 
 private:
     friend class meta_service_test_app;
-    
+
+    FRIEND_TEST(backup_service_test, test_init_backup_succeed);
     FRIEND_TEST(meta_backup_service_test, test_add_backup_policy);
 
     void start_create_policy_meta_root(dsn::task_ptr callback);
