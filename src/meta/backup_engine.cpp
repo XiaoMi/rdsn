@@ -115,7 +115,7 @@ error_code backup_engine::backup_app_meta()
             return ERR_INVALID_STATE;
         }
         app_state tmp = *app;
-        // do not write app envs to backup file
+        // Because we don't restore app envs, so no need to write app envs to backup file.
         tmp.envs.clear();
         app_info_buffer = dsn::json::json_forwarder<app_info>::encode(tmp);
     }

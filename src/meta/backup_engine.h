@@ -71,7 +71,7 @@ private:
                          gpid pid,
                          const rpc_address &primary);
 
-    std::string get_policy_name() const
+    const std::string get_policy_name() const
     {
         return "fake_policy_" + std::to_string(_cur_backup.backup_id);
     }
