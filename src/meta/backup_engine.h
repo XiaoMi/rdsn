@@ -63,20 +63,15 @@ public:
     bool is_backing_up() const;
 
 private:
-    error_code get_app_state(int32_t app_id, /*out*/ std::shared_ptr<app_state> &app);
-
     error_code write_backup_file(const std::string &file_name, const dsn::blob &write_buffer);
     error_code backup_app_meta();
     void backup_app_partition(const gpid &pid);
-    void on_backup_reply(dsn::error_code err,
+    void on_backup_reply(error_code err,
                          const backup_response &response,
                          gpid pid,
                          const rpc_address &primary);
-    void write_backup_info();
-    // if all partitions have been backed up, write backup_info file.
-    void complete_current_backup();
 
-    std::string get_policy_name() const
+    const std::string get_policy_name() const
     {
         return "fake_policy_" + std::to_string(_cur_backup.backup_id);
     }

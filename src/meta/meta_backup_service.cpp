@@ -1606,7 +1606,7 @@ void backup_service::start_backup_app(start_backup_app_rpc rpc)
         int64_t backup_id = engine->get_current_backup_id();
         _backup_states.emplace(backup_id, std::move(engine));
         response.hint_message =
-            fmt::format("Backup id {}: metadata of app {} has been successfully backed up and "
+            fmt::format("Backup id {} : metadata of app {} has been successfully backed up and "
                         "backup request has been sent to replica servers.",
                         backup_id,
                         app_id);
