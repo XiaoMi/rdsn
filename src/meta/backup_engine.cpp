@@ -208,9 +208,10 @@ void backup_engine::on_backup_reply(error_code err,
         }
     }
 
-    // if backup completed, receive ERR_OK;
+    // if backup completed, receive ERR_OK and
+    // resp.progress=cold_backup_constant::PROGRESS_FINISHED;
     // if backup failed, receive ERR_LOCAL_APP_FAILURE;
-    // receive ERR_BUSY or ERR_INVALID_STATE in other cases.
+    // backup not completed in other cases.
     // see replica::on_cold_backup() for details.
     int32_t partition = pid.get_partition_index();
     if (err == dsn::ERR_OK && response.err == dsn::ERR_OK &&

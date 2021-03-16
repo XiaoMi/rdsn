@@ -52,8 +52,6 @@ typedef rpc_holder<query_child_state_request, query_child_state_response> query_
 
 typedef rpc_holder<backup_request, backup_response> backup_rpc;
 
-typedef rpc_holder<backup_request, backup_response> backup_rpc;
-
 class replication_options
 {
 public:
