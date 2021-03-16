@@ -116,6 +116,7 @@ error_code backup_engine::backup_app_meta()
         }
         app_state tmp = *app;
         // Because we don't restore app envs, so no need to write app envs to backup file.
+        // TODO(zhangyifan): backup and restore app envs when needed.
         tmp.envs.clear();
         app_info_buffer = dsn::json::json_forwarder<app_info>::encode(tmp);
     }
