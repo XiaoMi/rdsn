@@ -170,3 +170,28 @@ struct start_backup_app_response
     1:dsn.error_code    err;
     2:string            hint_message;
 }
+
+struct backup_item
+{
+    1:i64           backup_id;
+    2:string        app_name;
+    3:string        backup_provider_type;
+    4:i64           start_time_ms;
+    5:i64           end_time_ms;
+    6:bool          is_backup_failed;
+}
+
+struct query_backup_status_request
+{
+    1:i32         app_id;
+}
+
+struct query_backup_status_response
+{
+    // Possible error:
+    // - ERR_INVALID_PARAMETERS: no available backup for requested app
+    // - ERR_SERVICE_NOT_ACTIVE: meta doesn't enable backup service
+    1:dsn.error_code                 err;
+    2:optional list<backup_item>     backup_items;
+    3:string                         hint_message;
+}

@@ -62,6 +62,8 @@ public:
     int32_t get_backup_app_id() const { return _cur_backup.app_id; }
     bool is_backing_up() const;
 
+    backup_item get_backup_item() const;
+
 private:
     error_code write_backup_file(const std::string &file_name, const dsn::blob &write_buffer);
     error_code backup_app_meta();
@@ -85,7 +87,7 @@ private:
 
     // lock the following variables.
     mutable dsn::zlock _lock;
-    bool is_backup_failed;
+    bool _is_backup_failed;
     app_backup_info _cur_backup;
     // partition_id -> backup_status
     std::map<int32_t, backup_status> _backup_status;
