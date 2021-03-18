@@ -218,6 +218,7 @@ private:
     bool check_freeze() const;
 
 private:
+    friend class backup_engine_test;
     friend class backup_service_test;
     friend class bulk_load_service_test;
     friend class meta_backup_service_test;
