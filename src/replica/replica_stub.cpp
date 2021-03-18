@@ -405,6 +405,59 @@ void replica_stub::install_perf_counters()
                                                            COUNTER_TYPE_NUMBER,
                                                            "current tcmalloc release memory size");
 #endif
+
+    // <- Partition split Metrics ->
+
+    _counter_replicas_splitting_count.init_app_counter("eon.replica_stub",
+                                                       "replicas.splitting.count",
+                                                       COUNTER_TYPE_NUMBER,
+                                                       "current partition splitting count");
+
+    _counter_replicas_splitting_max_duration_time_ms.init_app_counter(
+        "eon.replica_stub",
+        "replicas.splitting.max.duration.time(ms)",
+        COUNTER_TYPE_NUMBER,
+        "current partition splitting max duration time(ms)");
+    _counter_replicas_splitting_max_async_learn_time_ms.init_app_counter(
+        "eon.replica_stub",
+        "replicas.splitting.max.async.learn.time(ms)",
+        COUNTER_TYPE_NUMBER,
+        "current partition splitting max async learn time(ms)");
+    _counter_replicas_splitting_max_copy_file_size.init_app_counter(
+        "eon.replica_stub",
+        "replicas.splitting.max.copy.file.size",
+        COUNTER_TYPE_NUMBER,
+        "current splitting max copy file size");
+    _counter_replicas_splitting_recent_start_count.init_app_counter(
+        "eon.replica_stub",
+        "replicas.splitting.recent.start.count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "current splitting start count in the recent period");
+    _counter_replicas_splitting_recent_copy_file_count.init_app_counter(
+        "eon.replica_stub",
+        "replicas.splitting.recent.copy.file.count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "splitting copy file count in the recent period");
+    _counter_replicas_splitting_recent_copy_file_size.init_app_counter(
+        "eon.replica_stub",
+        "replicas.splitting.recent.copy.file.size",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "splitting copy file size in the recent period");
+    _counter_replicas_splitting_recent_copy_mutation_count.init_app_counter(
+        "eon.replica_stub",
+        "replicas.splitting.recent.copy.mutation.count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "splitting copy mutation count in the recent period");
+    _counter_replicas_splitting_recent_split_succ_count.init_app_counter(
+        "eon.replica_stub",
+        "replicas.splitting.recent.split.succ.count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "splitting succeed count in the recent period");
+    _counter_replicas_splitting_recent_split_fail_count.init_app_counter(
+        "eon.replica_stub",
+        "replicas.splitting.recent.split.fail.count",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "splitting fail count in the recent period");
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
@@ -1221,6 +1274,11 @@ void replica_stub::get_local_replicas(std::vector<replica_info> &replicas)
 
     for (auto &pairs : _replicas) {
         replica_ptr &rep = pairs.second;
+        // child partition should not sync config from meta server
+        // because it is not ready in meta view
+        if (rep->status() == partition_status::PS_PARTITION_SPLIT) {
+            continue;
+        }
         replica_info info;
         get_replica_info(info, rep);
         replicas.push_back(std::move(info));
@@ -1426,7 +1484,8 @@ void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
 void replica_stub::on_node_query_reply_scatter2(replica_stub_ptr this_, gpid id)
 {
     replica_ptr replica = get_replica(id);
-    if (replica != nullptr && replica->status() != partition_status::PS_POTENTIAL_SECONDARY) {
+    if (replica != nullptr && replica->status() != partition_status::PS_POTENTIAL_SECONDARY &&
+        replica->status() != partition_status::PS_PARTITION_SPLIT) {
         if (replica->status() == partition_status::PS_INACTIVE &&
             dsn_now_ms() - replica->create_time_milliseconds() <
                 _options.gc_memory_replica_interval_ms) {
@@ -1736,6 +1795,10 @@ void replica_stub::on_gc()
     uint64_t bulk_load_running_count = 0;
     uint64_t bulk_load_max_ingestion_time_ms = 0;
     uint64_t bulk_load_max_duration_time_ms = 0;
+    uint64_t splitting_count = 0;
+    uint64_t splitting_max_duration_time_ms = 0;
+    uint64_t splitting_max_async_learn_time_ms = 0;
+    uint64_t splitting_max_copy_file_size = 0;
     for (auto &kv : rs) {
         replica_ptr &rep = kv.second.rep;
         if (rep->status() == partition_status::PS_POTENTIAL_SECONDARY) {
@@ -1761,6 +1824,16 @@ void replica_stub::on_gc()
                 bulk_load_max_duration_time_ms =
                     std::max(bulk_load_max_duration_time_ms, rep->get_bulk_loader()->duration_ms());
             }
+        }
+        // splitting_max_copy_file_size, rep->_split_states.copy_file_size
+        if (rep->status() == partition_status::PS_PARTITION_SPLIT) {
+            splitting_count++;
+            splitting_max_duration_time_ms =
+                std::max(splitting_max_duration_time_ms, rep->_split_states.total_ms());
+            splitting_max_async_learn_time_ms =
+                std::max(splitting_max_async_learn_time_ms, rep->_split_states.async_learn_ms());
+            splitting_max_copy_file_size =
+                std::max(splitting_max_copy_file_size, rep->_split_states.splitting_copy_file_size);
         }
     }
 
@@ -2570,7 +2643,7 @@ void replica_stub::create_child_replica(rpc_address primary_address,
 {
     replica_ptr child_replica = create_child_replica_if_not_found(child_gpid, &app, parent_dir);
     if (child_replica != nullptr) {
-        ddebug_f("create child replica ({}) succeed", child_gpid);
+        ddebug_f("app({}), create child replica ({}) succeed", app.app_name, child_gpid);
         tasking::enqueue(LPC_PARTITION_SPLIT,
                          child_replica->tracker(),
                          std::bind(&replica_split_manager::child_init_replica,

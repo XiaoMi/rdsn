@@ -117,7 +117,8 @@ void replica::assign_primary(configuration_update_request &proposal)
     }
 
     if (proposal.type == config_type::CT_UPGRADE_TO_PRIMARY &&
-        (status() != partition_status::PS_SECONDARY || _secondary_states.checkpoint_is_running)) {
+        (status() != partition_status::PS_SECONDARY || _secondary_states.checkpoint_is_running) &&
+        status() != partition_status::PS_PARTITION_SPLIT) {
         dwarn(
             "%s: invalid upgrade to primary proposal as the node is in %s or during checkpointing",
             name(),
@@ -773,6 +774,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
                   _config.ballot,
                   result.to_string());
         }
+        _split_mgr->parent_cleanup_split_context();
     }
     _last_config_change_time_ms = dsn_now_ms();
     dassert(max_prepared_decree() >= last_committed_decree(),
