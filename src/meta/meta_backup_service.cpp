@@ -1598,7 +1598,7 @@ void backup_service::start_backup_app(start_backup_app_rpc rpc)
             if (app_id == backup->get_backup_app_id() && backup->is_backing_up()) {
                 response.err = ERR_INVALID_STATE;
                 response.hint_message =
-                    fmt::format("Backup failed: app {} is backing up now.", app_id);
+                    fmt::format("Backup failed: app {} is actively being backed up.", app_id);
                 return;
             }
         }
