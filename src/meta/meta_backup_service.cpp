@@ -1611,10 +1611,11 @@ void backup_service::start_backup_app(start_backup_app_rpc rpc)
             zauto_lock l(_lock);
             _backup_states.emplace_back(std::move(engine));
         }
+        response.__isset.backup_id = true;
+        response.backup_id = backup_id;
         response.hint_message =
-            fmt::format("Backup id {} : metadata of app {} has been successfully backed up and "
-                        "backup request has been sent to replica servers.",
-                        backup_id,
+            fmt::format("Backup succeed: metadata of app {} has been successfully backed up "
+                        "and backup request has been sent to replica servers.",
                         app_id);
     } else {
         response.hint_message =
