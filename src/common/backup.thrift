@@ -169,7 +169,6 @@ struct start_backup_app_response
     // - ERR_SERVICE_NOT_ACTIVE: meta doesn't enable backup service
     1:dsn.error_code    err;
     2:string            hint_message;
-    // backup_id is useful when restore a app or read backup data stored on fds/hdfs/local
     3:optional i64      backup_id;
 }
 
@@ -185,7 +184,8 @@ struct backup_item
 
 struct query_backup_status_request
 {
-    1:i32         app_id;
+    1:i32                 app_id;
+    2:optional i64        backup_id;
 }
 
 struct query_backup_status_response

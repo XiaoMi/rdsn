@@ -1595,7 +1595,7 @@ void backup_service::start_backup_app(start_backup_app_rpc rpc)
     {
         zauto_lock l(_lock);
         for (const auto &backup : _backup_states) {
-            if (app_id == backup->get_backup_app_id() && backup->is_backing_up()) {
+            if (app_id == backup->get_backup_app_id() && backup->is_in_progress()) {
                 response.err = ERR_INVALID_STATE;
                 response.hint_message =
                     fmt::format("Backup failed: app {} is actively being backed up.", app_id);
@@ -1633,7 +1633,9 @@ void backup_service::query_backup_status(query_backup_status_rpc rpc)
     {
         zauto_lock l(_lock);
         for (const auto &backup : _backup_states) {
-            if (app_id == backup->get_backup_app_id()) {
+            if (app_id == backup->get_backup_app_id() &&
+                (!request.__isset.backup_id ||
+                 request.backup_id == backup->get_current_backup_id())) {
                 response.backup_items.emplace_back(backup->get_backup_item());
             }
         }
@@ -1641,7 +1643,7 @@ void backup_service::query_backup_status(query_backup_status_rpc rpc)
 
     if (response.backup_items.empty()) {
         response.err = ERR_INVALID_PARAMETERS;
-        response.hint_message = fmt::format("No available backup for app {}.", app_id);
+        response.hint_message = "Backup not found, please check app_id or backup_id.";
         return;
     }
     response.__isset.backup_items = true;

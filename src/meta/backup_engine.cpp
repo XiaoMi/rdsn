@@ -301,7 +301,7 @@ error_code backup_engine::start()
     return ERR_OK;
 }
 
-bool backup_engine::is_backing_up() const
+bool backup_engine::is_in_progress() const
 {
     zauto_lock l(_lock);
     return _cur_backup.end_time_ms == 0 && !_is_backup_failed;

@@ -60,7 +60,7 @@ public:
 
     int64_t get_current_backup_id() const { return _cur_backup.backup_id; }
     int32_t get_backup_app_id() const { return _cur_backup.app_id; }
-    bool is_backing_up() const;
+    bool is_in_progress() const;
 
     backup_item get_backup_item() const;
 
