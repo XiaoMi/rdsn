@@ -48,7 +48,7 @@ public:
         create_app(_app_name);
     }
 
-    error_code start_backup(int32_t app_id, const std::string &provider)
+    start_backup_app_response start_backup(int32_t app_id, const std::string &provider)
     {
         auto request = dsn::make_unique<start_backup_app_request>();
         request->app_id = app_id;
@@ -57,7 +57,20 @@ public:
         start_backup_app_rpc rpc(std::move(request), RPC_CM_START_BACKUP_APP);
         _backup_service->start_backup_app(rpc);
         wait_all();
-        return rpc.response().err;
+        return rpc.response();
+    }
+
+    query_backup_status_response query_backup(int32_t app_id, int64_t backup_id)
+    {
+        auto request = dsn::make_unique<query_backup_status_request>();
+        request->app_id = app_id;
+        request->__isset.backup_id = true;
+        request->backup_id = backup_id;
+
+        query_backup_status_rpc rpc(std::move(request), RPC_CM_QUERY_BACKUP_STATUS);
+        _backup_service->query_backup_status(rpc);
+        wait_all();
+        return rpc.response();
     }
 
 protected:
@@ -71,30 +84,46 @@ TEST_F(backup_service_test, test_invalid_backup_request)
 {
     // invalid app id.
     int32_t test_app_id = _ss->next_app_id();
-    error_code err = start_backup(test_app_id, "local_service");
-    ASSERT_EQ(ERR_INVALID_STATE, err);
+    auto resp = start_backup(test_app_id, "local_service");
+    ASSERT_EQ(ERR_INVALID_STATE, resp.err);
 
     // invalid provider.
-    err = start_backup(1, "invalid_provider");
-    ASSERT_EQ(ERR_INVALID_PARAMETERS, err);
+    resp = start_backup(1, "invalid_provider");
+    ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
 }
 
 TEST_F(backup_service_test, test_init_backup)
 {
     int64_t now = dsn_now_ms();
-    error_code err = start_backup(1, "local_service");
-    ASSERT_EQ(ERR_OK, err);
+    auto resp = start_backup(1, "local_service");
+    ASSERT_EQ(ERR_OK, resp.err);
+    ASSERT_LE(now, resp.backup_id);
     ASSERT_EQ(1, _backup_service->_backup_states.size());
 
-    auto it = _backup_service->_backup_states.begin();
-    ASSERT_LE(now, it->second->get_current_backup_id());
-
     // backup for app 1 is running, couldn't backup it again.
-    err = start_backup(1, "local_service");
-    ASSERT_EQ(ERR_INVALID_STATE, err);
+    resp = start_backup(1, "local_service");
+    ASSERT_EQ(ERR_INVALID_STATE, resp.err);
 
-    err = start_backup(2, "local_service");
-    ASSERT_EQ(ERR_OK, err);
+    resp = start_backup(2, "local_service");
+    ASSERT_EQ(ERR_OK, resp.err);
+}
+
+TEST_F(backup_service_test, test_query_backup_status)
+{
+    // query a backup that does not exist
+    auto resp = query_backup(1, 1);
+    ASSERT_EQ(ERR_INVALID_PARAMETERS, resp.err);
+
+    auto start_backup_resp = start_backup(1, "local_service");
+    ASSERT_EQ(ERR_OK, start_backup_resp.err);
+    ASSERT_EQ(1, _backup_service->_backup_states.size());
+
+    // query backup succeed
+    int64_t backup_id = start_backup_resp.backup_id;
+    resp = query_backup(1, backup_id);
+    ASSERT_EQ(ERR_OK, resp.err);
+    ASSERT_TRUE(resp.__isset.backup_items);
+    ASSERT_EQ(1, resp.backup_items.size());
 }
 
 class backup_engine_test : public meta_test_base
@@ -117,9 +146,8 @@ public:
             std::make_shared<backup_service>(_ms.get(), _policy_root, _backup_root, nullptr);
         _backup_engine = std::make_shared<backup_engine>(_ms->_backup_handler.get());
         _backup_engine->set_block_service("local_service");
-        c
 
-            zauto_lock lock(_backup_engine->_lock);
+        zauto_lock lock(_backup_engine->_lock);
         _backup_engine->_backup_status.clear();
         for (int i = 0; i < _partition_count; ++i) {
             _backup_engine->_backup_status.emplace(i, backup_status::UNALIVE);
@@ -155,6 +183,12 @@ public:
         _backup_engine->on_backup_reply(rpc_err, resp, pid, mock_primary_address);
     }
 
+    bool is_backup_failed() const
+    {
+        zauto_lock l(_backup_engine->_lock);
+        return _backup_engine->_is_backup_failed;
+    }
+
 protected:
     const std::string _policy_root;
     const std::string _backup_root;
@@ -170,31 +204,31 @@ TEST_F(backup_engine_test, test_on_backup_reply)
 
     // recieve a rpc error
     mock_on_backup_reply(/*partition_index=*/0, ERR_NETWORK_FAILURE, ERR_BUSY, /*progress=*/0);
-    ASSERT_TRUE(_backup_engine->is_backing_up());
+    ASSERT_TRUE(_backup_engine->is_in_progress());
 
     // recieve a backup finished response
     mock_on_backup_reply(/*partition_index=*/1,
                          ERR_OK,
                          ERR_OK,
                          /*progress=*/cold_backup_constant::PROGRESS_FINISHED);
-    ASSERT_TRUE(_backup_engine->is_backing_up());
+    ASSERT_TRUE(_backup_engine->is_in_progress());
 
     // recieve a backup in-progress response
     mock_on_backup_reply(/*partition_index=*/2, ERR_OK, ERR_BUSY, /*progress=*/0);
-    ASSERT_TRUE(_backup_engine->is_backing_up());
+    ASSERT_TRUE(_backup_engine->is_in_progress());
 
     // recieve a backup failed response
     mock_on_backup_reply(/*partition_index=*/3, ERR_OK, ERR_LOCAL_APP_FAILURE, /*progress=*/0);
-    ASSERT_TRUE(_backup_engine->is_backup_failed);
+    ASSERT_TRUE(is_backup_failed());
 
-    // backup failed
+    // this backup is still a failure even recieved non-failure response
     mock_on_backup_reply(/*partition_index=*/4, ERR_OK, ERR_BUSY, /*progress=*/0);
-    ASSERT_TRUE(_backup_engine->is_backup_failed);
+    ASSERT_TRUE(is_backup_failed());
     mock_on_backup_reply(/*partition_index=*/5,
                          ERR_OK,
                          ERR_OK,
                          /*progress=*/cold_backup_constant::PROGRESS_FINISHED);
-    ASSERT_TRUE(_backup_engine->is_backup_failed);
+    ASSERT_TRUE(is_backup_failed());
 }
 
 TEST_F(backup_engine_test, test_backup_completed)
@@ -206,7 +240,7 @@ TEST_F(backup_engine_test, test_backup_completed)
                              ERR_OK,
                              /*progress=*/cold_backup_constant::PROGRESS_FINISHED);
     }
-    ASSERT_FALSE(_backup_engine->is_backup_failed);
+    ASSERT_FALSE(is_backup_failed());
     ASSERT_LE(_backup_engine->_cur_backup.start_time_ms, _backup_engine->_cur_backup.end_time_ms);
 }
 
