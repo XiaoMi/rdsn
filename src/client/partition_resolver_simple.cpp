@@ -48,7 +48,13 @@ void partition_resolver_simple::resolve(uint64_t partition_hash,
     if (_app_partition_count != -1) {
         idx = get_partition_index(_app_partition_count, partition_hash);
         rpc_address target;
-        if (ERR_OK == get_address(idx, target)) {
+        auto err = get_address(idx, target);
+        if (err == ERR_CHILD_NOT_READY) {
+            // child partition is not ready, its requests should be sent to parent partition
+            idx -= _app_partition_count / 2;
+            err = get_address(idx, target);
+        }
+        if (err == ERR_OK) {
             callback(resolve_result{ERR_OK, target, {_app_id, idx}});
             return;
         }
@@ -68,27 +74,36 @@ void partition_resolver_simple::resolve(uint64_t partition_hash,
 
 void partition_resolver_simple::on_access_failure(int partition_index, error_code err)
 {
-    if (-1 != partition_index &&
-        err != ERR_CAPACITY_EXCEEDED // no need for reconfiguration on primary
-        &&
-        err != ERR_NOT_ENOUGH_MEMBER // primary won't change and we only r/w on primary in this
+    if (-1 == partition_index ||
+        err == ERR_CAPACITY_EXCEEDED // no need for reconfiguration on primary
+        ||
+        err == ERR_NOT_ENOUGH_MEMBER // primary won't change and we only r/w on primary in this
                                      // provider
-        &&
-        err != ERR_OPERATION_DISABLED // operation disabled
-        &&
-        err != ERR_BUSY //  busy (rpc busy or throttling busy)
+        ||
+        err == ERR_OPERATION_DISABLED // operation disabled
+        ||
+        err == ERR_BUSY //  busy (rpc busy or throttling busy)
+        ||
+        err == ERR_SPLITTING // partition is splitting, reject read and write
         ) {
+        return;
+    }
+
+    zauto_write_lock l(_config_lock);
+    if (err == ERR_PARENT_PARTITION_MISUSED) {
+        ddebug("clear all partition configuration cache due to access failure %s at %d.%d",
+               err.to_string(),
+               _app_id,
+               partition_index);
+        _app_partition_count = -1;
+    } else {
         ddebug("clear partition configuration cache %d.%d due to access failure %s",
                _app_id,
                partition_index,
                err.to_string());
-
-        {
-            zauto_write_lock l(_config_lock);
-            auto it = _config_cache.find(partition_index);
-            if (it != _config_cache.end()) {
-                _config_cache.erase(it);
-            }
+        auto it = _config_cache.find(partition_index);
+        if (it != _config_cache.end()) {
+            _config_cache.erase(it);
         }
     }
 }
@@ -272,7 +287,9 @@ void partition_resolver_simple::query_config_reply(error_code err,
                         _app_id,
                         resp.app_id);
             }
-            if (_app_partition_count != -1 && _app_partition_count != resp.partition_count) {
+            if (_app_partition_count != -1 && _app_partition_count != resp.partition_count &&
+                _app_partition_count * 2 != resp.partition_count &&
+                _app_partition_count != resp.partition_count * 2) {
                 dassert(false,
                         "partition count is changed (mostly the app was removed and created with "
                         "the same name), local Vs remote: %u vs %u ",
@@ -429,6 +446,10 @@ error_code partition_resolver_simple::get_address(int partition_index, /*out*/ r
         auto it = _config_cache.find(partition_index);
         if (it != _config_cache.end()) {
             // config = it->second->config;
+            if (it->second->config.ballot < 0) {
+                // client query config for splitting app, child partition is not ready
+                return ERR_CHILD_NOT_READY;
+            }
             addr = get_address(it->second->config);
             if (addr.is_invalid()) {
                 return ERR_IO_PENDING;
