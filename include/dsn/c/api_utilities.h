@@ -37,6 +37,7 @@
 
 #include <dsn/c/api_common.h>
 #include <dsn/utility/ports.h>
+#include <fmt/printf.h>
 
 /*!
 @defgroup logging Logging Service
@@ -50,7 +51,8 @@
 @{
 */
 
-typedef enum dsn_log_level_t {
+typedef enum dsn_log_level_t
+{
     LOG_LEVEL_INFORMATION,
     LOG_LEVEL_DEBUG,
     LOG_LEVEL_WARNING,
@@ -64,30 +66,18 @@ typedef enum dsn_log_level_t {
 extern DSN_API dsn_log_level_t dsn_log_start_level;
 extern DSN_API dsn_log_level_t dsn_log_get_start_level();
 extern DSN_API void dsn_log_set_start_level(dsn_log_level_t level);
-extern DSN_API void dsn_logv(const char *file,
-                             const char *function,
-                             const int line,
-                             dsn_log_level_t log_level,
-                             const char *fmt,
-                             va_list args);
-extern DSN_API void dsn_logf(const char *file,
-                             const char *function,
-                             const int line,
-                             dsn_log_level_t log_level,
-                             const char *fmt,
-                             ...);
 extern DSN_API void dsn_log(const char *file,
                             const char *function,
                             const int line,
                             dsn_log_level_t log_level,
-                            const char *str);
+                            fmt::string_view str);
 extern DSN_API void dsn_coredump();
 
 // __FILENAME__ macro comes from the cmake, in which we calculate a filename without path.
 #define dlog(level, ...)                                                                           \
     do {                                                                                           \
         if (level >= dsn_log_start_level)                                                          \
-            dsn_logf(__FILENAME__, __FUNCTION__, __LINE__, level, __VA_ARGS__);                    \
+            dsn_log(__FILENAME__, __FUNCTION__, __LINE__, level, fmt::sprintf(__VA_ARGS__));       \
     } while (false)
 #define dinfo(...) dlog(LOG_LEVEL_INFORMATION, __VA_ARGS__)
 #define ddebug(...) dlog(LOG_LEVEL_DEBUG, __VA_ARGS__)
@@ -139,23 +129,3 @@ extern DSN_API void dsn_coredump();
             return false;                                                                          \
         }                                                                                          \
     } while (0)
-
-#define dverify_logged(exp, level, ...)                                                            \
-    do {                                                                                           \
-        if (dsn_unlikely(!(exp))) {                                                                \
-            dlog(level, __VA_ARGS__);                                                              \
-            return false;                                                                          \
-        }                                                                                          \
-    } while (0)
-
-#define dstop_on_false(exp)                                                                        \
-    if (dsn_unlikely(!(exp)))                                                                      \
-    return
-#define dstop_on_false_logged(exp, level, ...)                                                     \
-    do {                                                                                           \
-        if (dsn_unlikely(!(exp))) {                                                                \
-            dlog(level, __VA_ARGS__);                                                              \
-            return;                                                                                \
-        }                                                                                          \
-    } while (0)
-/*@}*/

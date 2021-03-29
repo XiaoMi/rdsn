@@ -731,13 +731,12 @@ bool replica::update_local_configuration(const replica_configuration &config,
                     native_handle = nullptr;
 
                 dwarn("%s: status change from %s @ %" PRId64 " to %s @ %" PRId64
-                      " is not allowed coz checkpointing %p is still running",
+                      " is not allowed coz checkpointing is still running",
                       name(),
                       enum_to_string(old_status),
                       old_ballot,
                       enum_to_string(config.status),
-                      config.ballot,
-                      native_handle);
+                      config.ballot);
                 return false;
             }
         }

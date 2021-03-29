@@ -29,6 +29,7 @@
 #include <dsn/tool_api.h>
 #include <thread>
 #include <cstdio>
+#include <spdlog/fwd.h>
 
 namespace dsn {
 namespace tools {
@@ -39,67 +40,41 @@ namespace tools {
 class screen_logger : public logging_provider
 {
 public:
-    screen_logger(bool short_header);
-    screen_logger(const char *log_dir);
-    virtual ~screen_logger(void);
+    screen_logger();
+    explicit screen_logger(const char *log_dir) : logging_provider(log_dir){};
+    ~screen_logger() override;
 
-    virtual void dsn_logv(const char *file,
-                          const char *function,
-                          const int line,
-                          dsn_log_level_t log_level,
-                          const char *fmt,
-                          va_list args);
+    void dsn_log(const char *file,
+                 const char *function,
+                 int line,
+                 dsn_log_level_t log_level,
+                 fmt::string_view str) override;
 
-    virtual void dsn_log(const char *file,
-                         const char *function,
-                         const int line,
-                         dsn_log_level_t log_level,
-                         const char *str){};
-
-    virtual void flush();
+    void flush() override;
 
 private:
-    ::dsn::utils::ex_lock_nr _lock;
-    bool _short_header;
+    std::shared_ptr<spdlog::logger> _logger;
 };
 
 /*
  * simple_logger provides a logger which writes to file.
- * The max number of lines in a logger file is 200000.
  */
 class simple_logger : public logging_provider
 {
 public:
-    simple_logger(const char *log_dir);
-    virtual ~simple_logger(void);
+    explicit simple_logger(const char *log_dir);
+    ~simple_logger() override;
 
-    virtual void dsn_logv(const char *file,
-                          const char *function,
-                          const int line,
-                          dsn_log_level_t log_level,
-                          const char *fmt,
-                          va_list args);
+    void dsn_log(const char *file,
+                 const char *function,
+                 int line,
+                 dsn_log_level_t log_level,
+                 fmt::string_view str) override;
 
-    virtual void dsn_log(const char *file,
-                         const char *function,
-                         const int line,
-                         dsn_log_level_t log_level,
-                         const char *str);
-
-    virtual void flush();
+    void flush() override;
 
 private:
-    void create_log_file();
-
-private:
-    std::string _log_dir;
-    ::dsn::utils::ex_lock _lock; // use recursive lock to avoid dead lock when flush() is called
-                                 // in signal handler if cored for bad logging format reason.
-    FILE *_log;
-    int _start_index;
-    int _index;
-    int _lines;
-    dsn_log_level_t _stderr_start_level;
+    std::shared_ptr<spdlog::logger> _logger;
 };
-}
-}
+} // namespace tools
+} // namespace dsn

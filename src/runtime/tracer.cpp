@@ -165,7 +165,7 @@ static void tracer_on_rpc_request_enqueue(rpc_request_task *callee)
     ddebug("%s RPC.REQUEST.ENQUEUE (0x%p), task_id = %016" PRIx64
            ", %s => %s, trace_id = %016" PRIx64 ", queue size = %d",
            callee->spec().name.c_str(),
-           callee,
+           reinterpret_cast<void *>(callee),
            callee->id(),
            callee->get_request()->header->from_address.to_string(),
            callee->get_request()->to_address.to_string(),
@@ -404,5 +404,5 @@ void tracer::install(service_spec &spec)
 }
 
 tracer::tracer(const char *name) : toollet(name) {}
-}
-}
+} // namespace tools
+} // namespace dsn
