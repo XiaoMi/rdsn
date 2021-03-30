@@ -153,12 +153,12 @@ class simple_task : public dsn::raw_task
 public:
     simple_task(dsn::task_code code, const task_handler &h) : dsn::raw_task(code, h, 0, nullptr)
     {
-        ddebug("simple task %p created", reinterpret_cast<void*>(this));
+        ddebug("simple task %p created", reinterpret_cast<void *>(this));
         allocate_count++;
     }
     virtual ~simple_task() override
     {
-        ddebug("simple task %p is deallocated", reinterpret_cast<void*>(this));
+        ddebug("simple task %p is deallocated", reinterpret_cast<void *>(this));
         allocate_count--;
     }
     static std::atomic_int allocate_count;
@@ -176,12 +176,12 @@ public:
     simple_rpc_response_task(dsn::message_ex *m, const rpc_response_handler &h)
         : dsn::rpc_response_task(m, h)
     {
-        ddebug("simple rpc response task(%p) created", reinterpret_cast<void*>(this));
+        ddebug("simple rpc response task(%p) created", reinterpret_cast<void *>(this));
         allocate_count++;
     }
     virtual ~simple_rpc_response_task() override
     {
-        ddebug("simple rpc repsonse task(%p) is dealloate", reinterpret_cast<void*>(this));
+        ddebug("simple rpc repsonse task(%p) is dealloate", reinterpret_cast<void *>(this));
         allocate_count--;
     }
     static std::atomic_int allocate_count;

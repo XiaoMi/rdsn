@@ -51,8 +51,7 @@
 @{
 */
 
-typedef enum dsn_log_level_t
-{
+typedef enum dsn_log_level_t {
     LOG_LEVEL_INFORMATION,
     LOG_LEVEL_DEBUG,
     LOG_LEVEL_WARNING,
