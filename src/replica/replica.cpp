@@ -482,12 +482,12 @@ const char *manual_compaction_status_to_string(manual_compaction_status status)
     switch (status) {
     case kIdle:
         return "idle";
-    case kQueue:
-        return "queue";
+    case kQueuing:
+        return "queuing";
     case kRunning:
         return "running";
-    case kFinish:
-        return "finish";
+    case kFinished:
+        return "finished";
     default:
         dassert(false, "invalid status({})", status);
         __builtin_unreachable();
@@ -509,9 +509,9 @@ manual_compaction_status replica::get_manual_compact_status() const
     if (compact_state.find("recent start at") != std::string::npos) {
         return kRunning;
     } else if (compact_state.find("recent enqueue at") != std::string::npos) {
-        return kQueue;
+        return kQueuing;
     } else if (compact_state.find("last used") != std::string::npos) {
-        return kFinish;
+        return kFinished;
     } else {
         return kIdle;
     }

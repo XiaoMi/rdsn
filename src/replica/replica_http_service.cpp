@@ -115,25 +115,26 @@ void replica_http_service::query_manual_compaction_handler(const http_request &r
 
     int32_t idle_count = 0;
     int32_t running_count = 0;
-    int32_t queue_count = 0;
-    int32_t finish_count = 0;
+    int32_t queuing_count = 0;
+    int32_t finished_count = 0;
     for (const auto &kv : partition_compaction_status) {
         if (kv.second == kRunning) {
             running_count++;
-        } else if (kv.second == kQueue) {
-            queue_count++;
-        } else if (kv.second == kFinish) {
-            finish_count++;
+        } else if (kv.second == kQueuing) {
+            queuing_count++;
+        } else if (kv.second == kFinished) {
+            finished_count++;
         } else if (kv.second == kIdle) {
             idle_count++;
         }
     }
 
     nlohmann::json json;
-    json["status"] = nlohmann::json{{manual_compaction_status_to_string(kIdle), idle_count},
-                                    {manual_compaction_status_to_string(kRunning), running_count},
-                                    {manual_compaction_status_to_string(kQueue), queue_count},
-                                    {manual_compaction_status_to_string(kFinish), finish_count}};
+    json["status"] =
+        nlohmann::json{{manual_compaction_status_to_string(kIdle), idle_count},
+                       {manual_compaction_status_to_string(kRunning), running_count},
+                       {manual_compaction_status_to_string(kQueuing), queuing_count},
+                       {manual_compaction_status_to_string(kFinished), finished_count}};
     resp.status_code = http_status_code::ok;
     resp.body = json.dump();
 }

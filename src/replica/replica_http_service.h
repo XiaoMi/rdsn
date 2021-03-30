@@ -31,7 +31,7 @@ public:
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2),
-                         "ip:port/replica/compaction?app_id=<app_id>");
+                         "ip:port/replica/maual_compaction?app_id=<app_id>");
     }
 
     std::string path() const override { return "replica"; }

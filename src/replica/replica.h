@@ -81,9 +81,9 @@ class test_checker;
 enum manual_compaction_status
 {
     kIdle = 0,
-    kQueue,
+    kQueuing,
     kRunning,
-    kFinish
+    kFinished
 };
 const char *manual_compaction_status_to_string(manual_compaction_status status);
 

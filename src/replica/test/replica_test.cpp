@@ -139,10 +139,10 @@ TEST_F(replica_test, query_compaction_test)
                  {"xxx", http_status_code::bad_request, "invalid app_id=xxx"},
                  {"2",
                   http_status_code::ok,
-                  R"({"status":{"finish":0,"idle":1,"queue":0,"running":0}})"},
+                  R"({"status":{"finished":0,"idle":1,"queuing":0,"running":0}})"},
                  {"4",
                   http_status_code::ok,
-                  R"({"status":{"finish":0,"idle":0,"queue":0,"running":0}})"}};
+                  R"({"status":{"finished":0,"idle":0,"queuing":0,"running":0}})"}};
     for (const auto &test : tests) {
         http_request req;
         http_response resp;
