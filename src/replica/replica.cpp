@@ -471,7 +471,7 @@ void replica::close()
     ddebug("%s: replica closed, time_used = %" PRIu64 "ms", name(), dsn_now_ms() - start_time);
 }
 
-std::string replica::query_compact_state() const
+std::string replica::query_manual_compact_state() const
 {
     dassert_replica(_app != nullptr, "");
     return _app->query_compact_state();
@@ -480,22 +480,24 @@ std::string replica::query_compact_state() const
 const char *manual_compaction_status_to_string(manual_compaction_status status)
 {
     switch (status) {
-    case kFinish:
-        return "CompactionFinish";
-    case kRunning:
-        return "CompactionRunning";
+    case kIdle:
+        return "idle";
     case kQueue:
-        return "CompactionQueue";
+        return "queue";
+    case kRunning:
+        return "running";
+    case kFinish:
+        return "finish";
     default:
         dassert(false, "invalid status({})", status);
         __builtin_unreachable();
     }
 }
 
-manual_compaction_status replica::get_compact_status() const
+manual_compaction_status replica::get_manual_compact_status() const
 {
-    std::string compact_state = query_compact_state();
-    // query_compact_state will return a message like:
+    std::string compact_state = query_manual_compact_state();
+    // query_manual_compact_state will return a message like:
     // Case1. last finish at [-]
     // - partition is not manual compaction
     // Case2. last finish at [timestamp], last used {time_used} ms
@@ -508,8 +510,10 @@ manual_compaction_status replica::get_compact_status() const
         return kRunning;
     } else if (compact_state.find("recent enqueue at") != std::string::npos) {
         return kQueue;
-    } else {
+    } else if (compact_state.find("last used") != std::string::npos) {
         return kFinish;
+    } else {
+        return kIdle;
     }
 }
 

@@ -93,7 +93,8 @@ void replica_http_service::query_app_data_version_handler(const http_request &re
     resp.body = json.dump();
 }
 
-void replica_http_service::query_compaction_handler(const http_request &req, http_response &resp)
+void replica_http_service::query_manual_compaction_handler(const http_request &req,
+                                                           http_response &resp)
 {
     auto it = req.query_args.find("app_id");
     if (it == req.query_args.end()) {
@@ -110,8 +111,9 @@ void replica_http_service::query_compaction_handler(const http_request &req, htt
     }
 
     std::unordered_map<gpid, manual_compaction_status> partition_compaction_status;
-    _stub->query_app_compact_status(app_id, partition_compaction_status);
+    _stub->query_app_manual_compact_status(app_id, partition_compaction_status);
 
+    int32_t idle_count = 0;
     int32_t running_count = 0;
     int32_t queue_count = 0;
     int32_t finish_count = 0;
@@ -122,16 +124,18 @@ void replica_http_service::query_compaction_handler(const http_request &req, htt
             queue_count++;
         } else if (kv.second == kFinish) {
             finish_count++;
+        } else if (kv.second == kIdle) {
+            idle_count++;
         }
     }
-    dsn::utils::table_printer tp("status");
-    tp.add_row_name_and_data(manual_compaction_status_to_string(kRunning), running_count);
-    tp.add_row_name_and_data(manual_compaction_status_to_string(kQueue), queue_count);
-    tp.add_row_name_and_data(manual_compaction_status_to_string(kFinish), finish_count);
-    std::ostringstream out;
-    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
-    resp.body = out.str();
+
+    nlohmann::json json;
+    json["status"] = nlohmann::json{{manual_compaction_status_to_string(kIdle), idle_count},
+                                    {manual_compaction_status_to_string(kRunning), running_count},
+                                    {manual_compaction_status_to_string(kQueue), queue_count},
+                                    {manual_compaction_status_to_string(kFinish), finish_count}};
     resp.status_code = http_status_code::ok;
+    resp.body = json.dump();
 }
 
 } // namespace replication

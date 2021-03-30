@@ -26,8 +26,8 @@ public:
                                    std::placeholders::_1,
                                    std::placeholders::_2),
                          "ip:port/replica/data_version?app_id=<app_id>");
-        register_handler("compaction",
-                         std::bind(&replica_http_service::query_compaction_handler,
+        register_handler("manual_compaction",
+                         std::bind(&replica_http_service::query_manual_compaction_handler,
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2),
@@ -38,7 +38,7 @@ public:
 
     void query_duplication_handler(const http_request &req, http_response &resp);
     void query_app_data_version_handler(const http_request &req, http_response &resp);
-    void query_compaction_handler(const http_request &req, http_response &resp);
+    void query_manual_compaction_handler(const http_request &req, http_response &resp);
 
 private:
     replica_stub *_stub;
