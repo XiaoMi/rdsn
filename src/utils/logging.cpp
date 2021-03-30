@@ -118,35 +118,11 @@ DSN_API dsn_log_level_t dsn_log_get_start_level() { return dsn_log_start_level; 
 
 DSN_API void dsn_log_set_start_level(dsn_log_level_t level) { dsn_log_start_level = level; }
 
-DSN_API void dsn_logv(const char *file,
-                      const char *function,
-                      const int line,
-                      dsn_log_level_t log_level,
-                      const char *fmt,
-                      va_list args)
-{
-    dsn::logging_provider *logger = dsn::logging_provider::instance();
-    logger->dsn_logv(file, function, line, log_level, fmt, args);
-}
-
-DSN_API void dsn_logf(const char *file,
-                      const char *function,
-                      const int line,
-                      dsn_log_level_t log_level,
-                      const char *fmt,
-                      ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    dsn_logv(file, function, line, log_level, fmt, ap);
-    va_end(ap);
-}
-
 DSN_API void dsn_log(const char *file,
                      const char *function,
                      const int line,
                      dsn_log_level_t log_level,
-                     const char *str)
+                     fmt::string_view str)
 {
     dsn::logging_provider *logger = dsn::logging_provider::instance();
     logger->dsn_log(file, function, line, log_level, str);
@@ -164,10 +140,7 @@ logging_provider *logging_provider::instance()
     return _logger ? _logger.get() : default_logger.get();
 }
 
-logging_provider *logging_provider::create_default_instance()
-{
-    return new tools::screen_logger(true);
-}
+logging_provider *logging_provider::create_default_instance() { return new tools::screen_logger(); }
 
 void logging_provider::set_logger(logging_provider *logger) { _logger.reset(logger); }
 

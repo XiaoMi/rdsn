@@ -353,3 +353,11 @@ ExternalProject_Add(http-parser
         INSTALL_COMMAND cp -R http_parser.h ${TP_OUTPUT}/include/nodejs/http_parser.h
         BUILD_IN_SOURCE 1
         )
+
+ExternalProject_Add(spdlog
+        URL ${OSS_URL_PREFIX}/spdlog-1.8.2.zip
+        https://github.com/gabime/spdlog/archive/refs/tags/v1.8.2.zip
+        URL_MD5 1672a6a192e327ee32e8efac1653421f
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
+        -DSPDLOG_BUILD_EXAMPLE=OFF
+        )
