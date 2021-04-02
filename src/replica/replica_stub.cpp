@@ -2220,8 +2220,8 @@ void replica_stub::register_ctrl_command()
         _verbose_client_log_command = ::dsn::command_manager::instance().register_command(
             {"replica.verbose-client-log"},
             "replica.verbose-client-log <true|false>",
-            "replica.verbose-client-log - control if print verbose error log when reply read & write "
-            "request",
+            "replica.verbose-client-log - control if print verbose error log when reply read & "
+            "write request",
             [this](const std::vector<std::string> &args) {
                 return remote_command_set_bool_flag(
                     _verbose_client_log, "verbose-client-log", args);
@@ -2238,7 +2238,8 @@ void replica_stub::register_ctrl_command()
 
         _trigger_chkpt_command = ::dsn::command_manager::instance().register_command(
             {"replica.trigger-checkpoint"},
-            "replica.trigger-checkpoint [id1,id2,...] (where id is 'app_id' or 'app_id.partition_id')",
+            "replica.trigger-checkpoint [id1,id2,...] (where id is 'app_id' or "
+            "'app_id.partition_id')",
             "replica.trigger-checkpoint - trigger replicas to do checkpoint",
             [this](const std::vector<std::string> &args) {
                 return exec_command_on_replica(args, true, [this](const replica_ptr &rep) {
