@@ -394,18 +394,18 @@ void register_command_profiler()
     textpd << textarg.str();
     textquery << textarg.str();
 
-    command_manager::instance().register_command({"p", "P", "profile", "Profile"},
-                                                 "profile|Profile|p|P - performance profiling",
+    command_manager::instance().register_command({"profile"},
+                                                 "profile - performance profiling",
                                                  textp.str().c_str(),
                                                  profiler_output_handler);
 
-    command_manager::instance().register_command({"pd", "PD", "profiledata", "ProfileData"},
+    command_manager::instance().register_command({"profiledata"},
                                                  "profiler data - get appointed data, using by pjs",
                                                  textpd.str().c_str(),
                                                  profiler_data_handler);
     command_manager::instance().register_command(
-        {"profiler.query", "pq"},
-        "profiler.query|pq - query profiling data, output in json format",
+        {"profiler.query"},
+        "profiler.query - query profiling data, output in json format",
         textquery.str().c_str(),
         query_data_handler);
 }

@@ -25,11 +25,12 @@
  */
 
 #include <iostream>
-#include <thread>
 #include <sstream>
+#include <utility>
 
 #include <dsn/utility/utils.h>
 #include <dsn/tool-api/command_manager.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 
@@ -38,29 +39,20 @@ dsn_handle_t command_manager::register_command(const std::vector<std::string> &c
                                                const std::string &help_long,
                                                command_handler handler)
 {
+    // TODO(wutao1): refactor the arg `commands` to single string rather than string-list.
+    dcheck_eq(commands.size(), 1);
+    const std::string &cmd = commands[0];
+    dassert(!cmd.empty(), "should not register empty command");
+
     utils::auto_write_lock l(_lock);
-    bool is_valid_cmd = false;
 
-    for (const std::string &cmd : commands) {
-        if (!cmd.empty()) {
-            is_valid_cmd = true;
-            auto it = _handlers.find(cmd);
-            dassert(it == _handlers.end(), "command '%s' already regisered", cmd.c_str());
-        }
-    }
-    dassert(is_valid_cmd, "should not register empty command");
-
-    command_instance *c = new command_instance();
+    auto c = new command_instance();
     c->commands = commands;
     c->help_long = help_long;
     c->help_short = help_one_line;
-    c->handler = handler;
+    c->handler = std::move(handler);
 
-    for (const std::string &cmd : commands) {
-        if (!cmd.empty()) {
-            _handlers[cmd] = c;
-        }
-    }
+    _handlers[cmd] = c;
     return c;
 }
 
@@ -82,31 +74,31 @@ bool command_manager::run_command(const std::string &cmd,
     {
         utils::auto_read_lock l(_lock);
         auto it = _handlers.find(cmd);
-        if (it != _handlers.end())
+        if (it != _handlers.end()) {
             h = it->second;
+        }
     }
 
     if (h == nullptr) {
         output = std::string("unknown command '") + cmd + "'";
         return false;
-    } else {
-        output = h->handler(args);
-        return true;
     }
+    output = h->handler(args);
+    return true;
 }
 
 command_manager::command_manager()
 {
-    register_command({"help", "h", "H", "Help"},
-                     "help|Help|h|H [command] - display help information",
+    register_command({"help"},
+                     "help - display help information",
                      "",
                      [this](const std::vector<std::string> &args) {
                          std::stringstream ss;
 
                          if (args.size() == 0) {
                              utils::auto_read_lock l(_lock);
-                             for (const auto &c : this->_handlers) {
-                                 ss << c.second->help_short << std::endl;
+                             for (const auto &c : _handlers) {
+                                 ss << c.first << ": " << c.second->help_short << std::endl;
                              }
                          } else {
                              utils::auto_read_lock l(_lock);
@@ -123,52 +115,6 @@ command_manager::command_manager()
 
                          return ss.str();
                      });
-
-    register_command(
-        {"repeat", "r", "R", "Repeat"},
-        "repeat|Repeat|r|R interval_seconds max_count command - execute command periodically",
-        "repeat|Repeat|r|R interval_seconds max_count command - execute command every interval "
-        "seconds, to the max count as max_count (0 for infinite)",
-        [this](const std::vector<std::string> &args) {
-            std::stringstream ss;
-
-            if (args.size() < 3) {
-                return "insufficient arguments";
-            }
-
-            int interval_seconds = atoi(args[0].c_str());
-            if (interval_seconds <= 0) {
-                return "invalid interval argument";
-            }
-
-            int max_count = atoi(args[1].c_str());
-            if (max_count < 0) {
-                return "invalid max count";
-            }
-
-            if (max_count == 0) {
-                max_count = std::numeric_limits<int>::max();
-            }
-
-            std::string cmd = args[2];
-            std::vector<std::string> largs;
-            for (int i = 3; i < (int)args.size(); i++) {
-                largs.push_back(args[i]);
-            }
-
-            for (int i = 0; i < max_count; i++) {
-                std::string output;
-                auto r = this->run_command(cmd, largs, output);
-
-                if (!r) {
-                    break;
-                }
-
-                std::this_thread::sleep_for(std::chrono::seconds(interval_seconds));
-            }
-
-            return "repeat command completed";
-        });
 }
 
 command_manager::~command_manager() { _handlers.clear(); }
