@@ -82,7 +82,7 @@ void server_state::register_cli_commands()
     _cli_dump_handle = dsn::command_manager::instance().register_command(
         {"meta.dump"},
         "meta.dump - dump app_states of meta server to local file",
-        "dump -t|--target target_file",
+        "meta.dump -t|--target target_file",
         [this](const std::vector<std::string> &args) {
             dsn::error_code err;
             if (args.size() != 2) {
