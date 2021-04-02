@@ -25,6 +25,8 @@
 #include "meta_service_test_app.h"
 #include "meta_test_base.h"
 
+DSN_DECLARE_bool(mock_local_service_write_failed);
+
 namespace dsn {
 namespace replication {
 
@@ -534,6 +536,35 @@ TEST_F(policy_context_test, test_app_dropped_during_backup)
             test_policy_name + std::string("@") + std::to_string(bi.backup_id);
         ASSERT_EQ(cur_backup_sig, _mp._backup_sig);
     }
+}
+
+TEST_F(policy_context_test, test_backup_failed)
+{
+    // app 1 is available.
+    dsn::app_info info;
+    info.is_stateful = true;
+    info.app_id = 1;
+    info.app_type = "simple_kv";
+    info.max_replica_count = 3;
+    info.partition_count = 32;
+    info.status = dsn::app_status::AS_AVAILABLE;
+    _service->get_server_state()->_all_apps.emplace(info.app_id, app_state::create(info));
+
+    FLAGS_mock_local_service_write_failed = true;
+    {
+        zauto_lock l(_mp._lock);
+        _mp._backup_history.clear();
+        _mp.reset_records();
+
+        // start backup in this policy
+        _mp.issue_new_backup_unlocked();
+    }
+    sleep(1);
+    {
+        zauto_lock l(_mp._lock);
+        ASSERT_TRUE(_mp._is_backup_failed);
+    }
+    ASSERT_FALSE(_mp.is_under_backuping());
 }
 
 // test should_start_backup_unlock()

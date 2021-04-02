@@ -7,6 +7,7 @@
 #include <dsn/utility/strings.h>
 #include <dsn/utility/safe_strerror_posix.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/flags.h>
 
 #include <dsn/cpp/json_helper.h>
 #include <dsn/tool-api/task_tracker.h>
@@ -14,6 +15,11 @@
 #include "local_service.h"
 
 static const int max_length = 2048; // max data length read from file each time
+
+DSN_DEFINE_bool("backup_test",
+                mock_local_service_write_failed,
+                false,
+                "make local service write failed, for testing purposes only.");
 
 namespace dsn {
 namespace dist {
@@ -293,6 +299,17 @@ dsn::task_ptr local_file_object::write(const write_request &req,
 
     write_future_ptr tsk(new write_future(code, cb, 0));
     tsk->set_tracker(tracker);
+
+    if (FLAGS_mock_local_service_write_failed) {
+        auto write_failed = [this, req, tsk]() {
+            write_response resp;
+            resp.err = ERR_FS_INTERNAL;
+            tsk->enqueue_with(resp);
+            release_ref();
+        };
+        dsn::tasking::enqueue(LPC_LOCAL_SERVICE_CALL, nullptr, std::move(write_failed));
+        return tsk;
+    }
 
     auto write_background = [this, req, tsk]() {
         write_response resp;

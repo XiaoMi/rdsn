@@ -130,6 +130,7 @@ void policy_context::start_backup_app_meta_unlocked(int32_t app_id)
                     start_backup_app_partitions_unlocked(app_id);
                 }
             } else if (resp.err == ERR_FS_INTERNAL) {
+                zauto_lock l(_lock);
                 _is_backup_failed = true;
                 derror_f("write {} failed, err = {}, don't try again when got this error.",
                          remote_file->file_name(),
@@ -245,6 +246,7 @@ void policy_context::write_backup_app_finish_flag_unlocked(int32_t app_id,
                     write_callback->enqueue();
                 }
             } else if (resp.err == ERR_FS_INTERNAL) {
+                zauto_lock l(_lock);
                 _is_backup_failed = true;
                 derror_f("write {} failed, err = {}, don't try again when got this error.",
                          remote_file->file_name(),
@@ -352,6 +354,7 @@ void policy_context::write_backup_info_unlocked(const backup_info &b_info,
                     write_callback->enqueue();
                 }
             } else if (resp.err == ERR_FS_INTERNAL) {
+                zauto_lock l(_lock);
                 _is_backup_failed = true;
                 derror_f("write {} failed, err = {}, don't try again when got this error.",
                          remote_file->file_name(),
@@ -529,6 +532,7 @@ void policy_context::on_backup_reply(error_code err,
             }
         }
     } else if (response.err == dsn::ERR_LOCAL_APP_FAILURE) {
+        zauto_lock l(_lock);
         _is_backup_failed = true;
         derror_f("{}: backup got error {} for partition {} from {}, don't try again when got "
                  "this error.",
