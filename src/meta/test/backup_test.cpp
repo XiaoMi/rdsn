@@ -565,6 +565,7 @@ TEST_F(policy_context_test, test_backup_failed)
         ASSERT_TRUE(_mp._is_backup_failed);
     }
     ASSERT_FALSE(_mp.is_under_backuping());
+    FLAGS_mock_local_service_write_failed = false;
 }
 
 // test should_start_backup_unlock()
