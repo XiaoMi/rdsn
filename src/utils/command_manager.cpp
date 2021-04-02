@@ -74,17 +74,17 @@ bool command_manager::run_command(const std::string &cmd,
     {
         utils::auto_read_lock l(_lock);
         auto it = _handlers.find(cmd);
-        if (it != _handlers.end()) {
+        if (it != _handlers.end())
             h = it->second;
-        }
     }
 
     if (h == nullptr) {
         output = std::string("unknown command '") + cmd + "'";
         return false;
+    } else {
+        output = h->handler(args);
+        return true;
     }
-    output = h->handler(args);
-    return true;
 }
 
 command_manager::command_manager()
@@ -98,7 +98,7 @@ command_manager::command_manager()
                          if (args.size() == 0) {
                              utils::auto_read_lock l(_lock);
                              for (const auto &c : _handlers) {
-                                 ss << c.first << ": " << c.second->help_short << std::endl;
+                                 ss << c.second->help_short << std::endl;
                              }
                          } else {
                              utils::auto_read_lock l(_lock);
