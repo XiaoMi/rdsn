@@ -41,7 +41,6 @@
 #include <dsn/toollet/tracer.h>
 #include <dsn/toollet/profiler.h>
 #include <dsn/toollet/fault_injector.h>
-#include <dsn/toollet/explorer.h>
 
 #include <dsn/tool/providers.common.h>
 #include <dsn/utility/singleton.h>
@@ -57,7 +56,6 @@ void dsn_core_init()
     dsn::tools::register_toollet<dsn::tools::tracer>("tracer");
     dsn::tools::register_toollet<dsn::tools::profiler>("profiler");
     dsn::tools::register_toollet<dsn::tools::fault_injector>("fault_injector");
-    dsn::tools::register_toollet<dsn::tools::explorer>("explorer");
 }
 
 #if defined(__linux__)
