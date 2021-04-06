@@ -540,7 +540,7 @@ TEST_F(policy_context_test, test_app_dropped_during_backup)
 TEST_F(policy_context_test, test_backup_failed)
 {
     fail::setup();
-    fail::cfg("mock_local_service_write_failed", "100%1*return()");
+    fail::cfg("mock_local_service_write_failed", "100%1*return(ERR_FS_INTERNAL)");
 
     // app 1 is available.
     dsn::app_info info;
