@@ -57,7 +57,8 @@ void replica::on_cold_backup(const backup_request &request, /*out*/ backup_respo
             dassert(r.second, "");
             backup_context = r.first->second;
             backup_context->block_service = block_service;
-            backup_context->backup_root = _options->cold_backup_root;
+            backup_context->backup_root = dsn::utils::filesystem::path_combine(
+                request.backup_path, _options->cold_backup_root);
         }
 
         dcheck_eq_replica(backup_context->request.policy.policy_name, policy_name);

@@ -16,6 +16,7 @@
 // under the License.
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/filesystem.h>
 
 #include "common/backup_utils.h"
 #include "common/replication_common.h"
@@ -25,7 +26,7 @@ namespace dsn {
 namespace replication {
 
 backup_engine::backup_engine(backup_service *service)
-    : _backup_service(service), _block_service(nullptr), _is_backup_failed(false)
+    : _backup_service(service), _block_service(nullptr), _backup_path(""), _is_backup_failed(false)
 {
 }
 
@@ -69,6 +70,12 @@ error_code backup_engine::set_block_service(const std::string &provider)
         return ERR_INVALID_PARAMETERS;
     }
     return ERR_OK;
+}
+
+void backup_engine::set_backup_path(const std::string &path)
+{
+    ddebug_f("backup path is set to {}.", path);
+    _backup_path = path;
 }
 
 error_code backup_engine::write_backup_file(const std::string &file_name,
@@ -121,10 +128,10 @@ error_code backup_engine::backup_app_meta()
         app_info_buffer = dsn::json::json_forwarder<app_info>::encode(tmp);
     }
 
-    std::string file_name = cold_backup::get_app_metadata_file(_backup_service->backup_root(),
-                                                               _cur_backup.app_name,
-                                                               _cur_backup.app_id,
-                                                               _cur_backup.backup_id);
+    std::string backup_root =
+        dsn::utils::filesystem::path_combine(_backup_path, _backup_service->backup_root());
+    std::string file_name = cold_backup::get_app_metadata_file(
+        backup_root, _cur_backup.app_name, _cur_backup.app_id, _cur_backup.backup_id);
     return write_backup_file(file_name, app_info_buffer);
 }
 
@@ -165,6 +172,7 @@ void backup_engine::backup_app_partition(const gpid &pid)
     req->policy = backup_policy_info;
     req->backup_id = _cur_backup.backup_id;
     req->app_name = _cur_backup.app_name;
+    req->backup_path = _backup_path;
 
     ddebug_f("backup_id({}): send backup request to partition {}, target_addr = {}",
              _cur_backup.backup_id,
@@ -250,8 +258,9 @@ void backup_engine::on_backup_reply(error_code err,
 
 void backup_engine::write_backup_info()
 {
-    std::string file_name =
-        cold_backup::get_backup_info_file(_backup_service->backup_root(), _cur_backup.backup_id);
+    std::string backup_root =
+        dsn::utils::filesystem::path_combine(_backup_path, _backup_service->backup_root());
+    std::string file_name = cold_backup::get_backup_info_file(backup_root, _cur_backup.backup_id);
     blob buf = dsn::json::json_forwarder<app_backup_info>::encode(_cur_backup);
     error_code err = write_backup_file(file_name, buf);
     if (err != ERR_OK) {
@@ -313,6 +322,7 @@ backup_item backup_engine::get_backup_item() const
     backup_item item;
     item.backup_id = _cur_backup.backup_id;
     item.app_name = _cur_backup.app_name;
+    item.backup_path = _backup_path;
     item.backup_provider_type = _provider_type;
     item.start_time_ms = _cur_backup.start_time_ms;
     item.end_time_ms = _cur_backup.end_time_ms;
