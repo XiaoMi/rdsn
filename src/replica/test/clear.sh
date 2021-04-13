@@ -1,2 +1,2 @@
 #!/ bin / sh
-rm - rf core.* data/
+rm - rf core.* data/ test_cluster/

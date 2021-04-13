@@ -1,14 +1,29 @@
-// Copyright (c) 2017-present, Xiaomi, Inc.  All rights reserved.
-// This source code is licensed under the Apache License Version 2.0, which
-// can be found in the LICENSE file in the root directory of this source tree.
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
+#include <dsn/dist/replication/replica_envs.h>
+#include <dsn/utility/defer.h>
+#include <dsn/utility/fail_point.h>
 #include <gtest/gtest.h>
 
-#include <dsn/utility/fail_point.h>
+#include "common/backup_utils.h"
 #include "replica_test_base.h"
-#include <dsn/utility/defer.h>
-#include <dsn/dist/replication/replica_envs.h>
 #include "replica/replica_http_service.h"
+#include "common/backup_utils.h"
 
 namespace dsn {
 namespace replication {
@@ -63,6 +78,44 @@ public:
         _app_info.is_stateful = true;
         _app_info.max_replica_count = 3;
         _app_info.partition_count = 8;
+    }
+
+    void test_on_cold_backup(const std::string user_specified_path = "")
+    {
+        // set cold_backup_root manually.
+        // `cold_backup_root` is set by "replication.cold_backup_root",
+        // which is usually cluster_name of production clusters.
+        _mock_replica->_options->cold_backup_root = "test_cluster";
+
+        backup_request req;
+        req.pid = pid;
+        policy_info backup_policy_info;
+        backup_policy_info.__set_backup_provider_type("local_service");
+        backup_policy_info.__set_policy_name("mock_policy");
+        req.policy = backup_policy_info;
+        req.app_name = _app_info.app_name;
+        req.backup_id = dsn_now_ms();
+        if (!user_specified_path.empty()) {
+            req.__isset.backup_path = true;
+            req.backup_path = user_specified_path;
+        }
+
+        // test cold backup could complete.
+        backup_response resp;
+        do {
+            _mock_replica->on_cold_backup(req, resp);
+        } while (resp.err == ERR_BUSY);
+        ASSERT_EQ(ERR_OK, resp.err);
+
+        // test checkpoint files have been uploaded successfully.
+        std::string backup_root = dsn::utils::filesystem::path_combine(
+            user_specified_path, _mock_replica->_options->cold_backup_root);
+        std::string current_chkpt_file =
+            cold_backup::get_current_chkpt_file(backup_root, req.app_name, req.pid, req.backup_id);
+        ASSERT_TRUE(dsn::utils::filesystem::file_exists(current_chkpt_file));
+        int64_t size = 0;
+        dsn::utils::filesystem::file_size(current_chkpt_file, size);
+        ASSERT_LT(0, size);
     }
 };
 
@@ -176,6 +229,13 @@ TEST_F(replica_test, update_validate_partition_hash_test)
         ASSERT_EQ(get_validate_partition_hash(), test.expected_value);
         reset_validate_partition_hash();
     }
+}
+
+TEST_F(replica_test, test_replica_backup)
+{
+    test_on_cold_backup();
+
+    test_on_cold_backup("test/backup");
 }
 
 } // namespace replication

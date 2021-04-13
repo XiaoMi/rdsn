@@ -466,8 +466,6 @@ void policy_context::start_backup_partition_unlocked(gpid pid)
     req.policy = *(static_cast<const policy_info *>(&_policy));
     req.backup_id = _cur_backup.backup_id;
     req.app_name = _policy.app_names.at(pid.get_app_id());
-    // user specified backup_path is set to "/" in policy_context.
-    req.backup_path = "/";
     dsn::message_ex *request =
         dsn::message_ex::create_request(RPC_COLD_BACKUP, 0, pid.thread_hash());
     dsn::marshall(request, req);

@@ -172,7 +172,10 @@ void backup_engine::backup_app_partition(const gpid &pid)
     req->policy = backup_policy_info;
     req->backup_id = _cur_backup.backup_id;
     req->app_name = _cur_backup.app_name;
-    req->backup_path = _backup_path;
+    if (!_backup_path.empty()) {
+        req->__isset.backup_path = true;
+        req->backup_path = _backup_path;
+    }
 
     ddebug_f("backup_id({}): send backup request to partition {}, target_addr = {}",
              _cur_backup.backup_id,
