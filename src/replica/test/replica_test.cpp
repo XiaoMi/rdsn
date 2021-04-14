@@ -31,17 +31,21 @@ namespace replication {
 class replica_test : public replica_test_base
 {
 public:
-    dsn::app_info _app_info;
-    dsn::gpid pid = gpid(2, 1);
-    mock_replica_ptr _mock_replica;
+    replica_test() : pid(gpid(2, 1)), _provider_name("local_service"), _policy_name("mock_policy")
+    {
+    }
 
-public:
     void SetUp() override
     {
         FLAGS_enable_http_server = false;
         stub->install_perf_counters();
         mock_app_info();
         _mock_replica = stub->generate_replica(_app_info, pid, partition_status::PS_PRIMARY, 1);
+
+        // set cold_backup_root manually.
+        // `cold_backup_root` is set by configuration "replication.cold_backup_root",
+        // which is usually the cluster_name of production clusters.
+        _mock_replica->_options->cold_backup_root = "test_cluster";
     }
 
     int get_write_size_exceed_threshold_count()
@@ -82,16 +86,11 @@ public:
 
     void test_on_cold_backup(const std::string user_specified_path = "")
     {
-        // set cold_backup_root manually.
-        // `cold_backup_root` is set by "replication.cold_backup_root",
-        // which is usually cluster_name of production clusters.
-        _mock_replica->_options->cold_backup_root = "test_cluster";
-
         backup_request req;
         req.pid = pid;
         policy_info backup_policy_info;
-        backup_policy_info.__set_backup_provider_type("local_service");
-        backup_policy_info.__set_policy_name("mock_policy");
+        backup_policy_info.__set_backup_provider_type(_provider_name);
+        backup_policy_info.__set_policy_name(_policy_name);
         req.policy = backup_policy_info;
         req.app_name = _app_info.app_name;
         req.backup_id = dsn_now_ms();
@@ -117,6 +116,15 @@ public:
         dsn::utils::filesystem::file_size(current_chkpt_file, size);
         ASSERT_LT(0, size);
     }
+
+public:
+    dsn::app_info _app_info;
+    dsn::gpid pid;
+    mock_replica_ptr _mock_replica;
+
+private:
+    const std::string _provider_name;
+    const std::string _policy_name;
 };
 
 TEST_F(replica_test, write_size_limited)
@@ -234,7 +242,7 @@ TEST_F(replica_test, update_validate_partition_hash_test)
 TEST_F(replica_test, test_replica_backup)
 {
     test_on_cold_backup();
-
+    // test backup with user specified path
     test_on_cold_backup("test/backup");
 }
 
