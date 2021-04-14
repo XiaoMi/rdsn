@@ -71,6 +71,7 @@ error_code hdfs_service::initialize(const std::vector<std::string> &args)
         return ERR_INVALID_PARAMETERS;
     }
     _hdfs_name_node = args[0];
+    // If no path is configured in 'block_service', just use "/" as default root path..
     _hdfs_path = args.size() >= 2 ? args[1] : "/";
     ddebug_f("hdfs backup root path is initialized to {}.", _hdfs_path);
 
