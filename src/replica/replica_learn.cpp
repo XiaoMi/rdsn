@@ -776,7 +776,7 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
             this,
             _stub->_log->on_partition_reset(get_gpid(), _app->last_committed_decree()),
             _private_log->on_partition_reset(get_gpid(), _app->last_committed_decree()),
-            _app->last_committed_decree());
+            _app->last_durable_decree());
 
         // switch private log to make learning easier
         _private_log->demand_switch_file();
