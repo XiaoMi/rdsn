@@ -31,7 +31,11 @@ namespace replication {
 class replica_test : public replica_test_base
 {
 public:
-    replica_test() : pid(gpid(2, 1)), _provider_name("local_service"), _policy_name("mock_policy")
+    replica_test()
+        : pid(gpid(2, 1)),
+          _backup_id(dsn_now_ms()),
+          _provider_name("local_service"),
+          _policy_name("mock_policy")
     {
     }
 
@@ -93,7 +97,7 @@ public:
         backup_policy_info.__set_policy_name(_policy_name);
         req.policy = backup_policy_info;
         req.app_name = _app_info.app_name;
-        req.backup_id = dsn_now_ms();
+        req.backup_id = _backup_id;
         if (!user_specified_path.empty()) {
             req.__isset.backup_path = true;
             req.backup_path = user_specified_path;
@@ -123,6 +127,7 @@ public:
     mock_replica_ptr _mock_replica;
 
 private:
+    const int64_t _backup_id;
     const std::string _provider_name;
     const std::string _policy_name;
 };
@@ -239,12 +244,9 @@ TEST_F(replica_test, update_validate_partition_hash_test)
     }
 }
 
-TEST_F(replica_test, test_replica_backup)
-{
-    test_on_cold_backup();
-    // test backup with user specified path
-    test_on_cold_backup("test/backup");
-}
+TEST_F(replica_test, test_replica_backup) { test_on_cold_backup(); }
+
+TEST_F(replica_test, test_replica_backup_with_specific_path) { test_on_cold_backup("test/backup"); }
 
 } // namespace replication
 } // namespace dsn
