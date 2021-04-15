@@ -72,10 +72,14 @@ error_code backup_engine::set_block_service(const std::string &provider)
     return ERR_OK;
 }
 
-void backup_engine::set_backup_path(const std::string &path)
+error_code backup_engine::set_backup_path(const std::string &path)
 {
+    if (_block_service && _block_service->is_root_path_set()) {
+        return ERR_INVALID_PARAMETERS;
+    }
     ddebug_f("backup path is set to {}.", path);
     _backup_path = path;
+    return ERR_OK;
 }
 
 error_code backup_engine::write_backup_file(const std::string &file_name,

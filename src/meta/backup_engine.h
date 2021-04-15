@@ -55,7 +55,7 @@ public:
 
     error_code init_backup(int32_t app_id);
     error_code set_block_service(const std::string &provider);
-    void set_backup_path(const std::string &path);
+    error_code set_backup_path(const std::string &path);
 
     error_code start();
 
