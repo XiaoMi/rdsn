@@ -1040,9 +1040,8 @@ error_with<start_backup_app_response> replication_ddl_client::backup_app(
     auto req = make_unique<start_backup_app_request>();
     req->app_id = app_id;
     req->backup_provider_type = backup_provider_type;
-    if (backup_path != "") {
-        req->__isset.backup_path = true;
-        req->backup_path = backup_path;
+    if (!backup_path.empty()) {
+        req->__set_backup_path(backup_path);
     }
     return call_rpc_sync(start_backup_app_rpc(std::move(req), RPC_CM_START_BACKUP_APP));
 }
