@@ -47,7 +47,7 @@ struct backup_request
     3:string                app_name;
     4:i64                   backup_id;
     // user specified backup_path.
-    5:string                backup_path;
+    5:optional string       backup_path;
 }
 
 struct backup_response
