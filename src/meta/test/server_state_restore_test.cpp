@@ -67,8 +67,7 @@ public:
         req.cluster_name = _cluster_name;
         req.backup_provider_name = _provider;
         if (!user_specified_restore_path.empty()) {
-            req.__isset.restore_path = true;
-            req.restore_path = user_specified_restore_path;
+            req.__set_restore_path(user_specified_restore_path);
         }
         int32_t new_app_id = _ss->next_app_id();
 

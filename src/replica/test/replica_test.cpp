@@ -130,8 +130,7 @@ public:
         req.cluster_name = _mock_replica->_options->cold_backup_root;
         req.time_stamp = _backup_id;
         if (!user_specified_path.empty()) {
-            req.__isset.restore_path = true;
-            req.restore_path = user_specified_path;
+            req.__set_restore_path(user_specified_path);
         }
 
         std::string remote_chkpt_dir;

@@ -976,8 +976,7 @@ dsn::error_code replication_ddl_client::do_restore(const std::string &backup_pro
     req->time_stamp = timestamp;
     req->skip_bad_partition = skip_bad_partition;
     if (!restore_path.empty()) {
-        req->__isset.restore_path = true;
-        req->restore_path = restore_path;
+        req->__set_restore_path(restore_path);
         std::cout << "restore app from the specified path : " << restore_path << std::endl;
     }
 

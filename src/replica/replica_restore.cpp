@@ -333,8 +333,7 @@ dsn::error_code replica::restore_checkpoint()
 
     iter = _app_info.envs.find(backup_restore_constant::RESTORE_PATH);
     if (iter != _app_info.envs.end()) {
-        restore_req.__isset.restore_path = true;
-        restore_req.restore_path = iter->second;
+        restore_req.__set_restore_path(iter->second);
     }
 
     ddebug_f("{}: restore checkpoint(policy_name {}, backup_id {}), restore_path({}) from {} to "
