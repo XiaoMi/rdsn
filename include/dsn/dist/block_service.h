@@ -297,7 +297,7 @@ public:
                                       const remove_path_callback &cb,
                                       dsn::task_tracker *tracker = nullptr) = 0;
 
-    virtual bool is_root_path_set() { return false; }
+    virtual bool is_root_path_set() const { return false; }
 
     virtual ~block_filesystem() {}
 };
