@@ -99,34 +99,17 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
 error_code native_linux_aio_provider::read(const aio_context &aio_ctx,
                                            /*out*/ uint32_t *processed_bytes)
 {
-
-    bool enable_retry = true;
-    uint32_t buffer_offset = 0;
-    while (true) {
-        ssize_t ret = pread(static_cast<int>((ssize_t)aio_ctx.file),
-                            (char *)aio_ctx.buffer + buffer_offset,
-                            aio_ctx.buffer_size - buffer_offset,
-                            aio_ctx.file_offset + buffer_offset);
-        if (ret < 0) {
-            return ERR_FILE_OPERATION_FAILED;
-        }
-        if (ret == 0) {
-            return ERR_HANDLE_EOF;
-        }
-
-        buffer_offset += ret;
-        if (buffer_offset != aio_ctx.buffer_size && enable_retry) {
-            dwarn_f("read incomplete, request_size={}, read_size={}, will retry delay 10ms",
-                    aio_ctx.buffer_size,
-                    ret);
-            enable_retry = false;
-            usleep(10000);
-            continue;
-        }
-        break;
+    ssize_t ret = pread(static_cast<int>((ssize_t)aio_ctx.file),
+                        aio_ctx.buffer,
+                        aio_ctx.buffer_size,
+                        aio_ctx.file_offset);
+    if (ret < 0) {
+        return ERR_FILE_OPERATION_FAILED;
     }
-
-    *processed_bytes = buffer_offset;
+    if (ret == 0) {
+        return ERR_HANDLE_EOF;
+    }
+    *processed_bytes = static_cast<uint32_t>(ret);
     return ERR_OK;
 }
 
