@@ -88,7 +88,7 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
             }
         });
         buffer_offset += ret;
-        if (buffer_offset != aio_ctx.buffer_size) {
+        if (buffer_offset != aio_ctx.buffer_size && retries > 0) {
             dwarn_f("write incomplete, request_size={}, write_size={}, will retry delay 10ms",
                     aio_ctx.buffer_size,
                     ret);
