@@ -29,6 +29,7 @@
 
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/c/api_utilities.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 
@@ -72,7 +73,7 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
     uint32_t buffer_offset = 0;
     while (true) {
         uint32_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx.file),
-                              aio_ctx.buffer + buffer_offset,
+                              (char *)aio_ctx.buffer + buffer_offset,
                               aio_ctx.buffer_size - buffer_offset,
                               aio_ctx.file_offset + buffer_offset);
         if (ret < 0) {
@@ -103,7 +104,7 @@ error_code native_linux_aio_provider::read(const aio_context &aio_ctx,
     uint32_t buffer_offset = 0;
     while (true) {
         ssize_t ret = pread(static_cast<int>((ssize_t)aio_ctx.file),
-                            aio_ctx.buffer + buffer_offset,
+                            (char *)aio_ctx.buffer + buffer_offset,
                             aio_ctx.buffer_size - buffer_offset,
                             aio_ctx.file_offset + buffer_offset);
         if (ret < 0) {
