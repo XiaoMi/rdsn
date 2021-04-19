@@ -30,6 +30,7 @@
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 
@@ -80,6 +81,11 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
             return ERR_FILE_OPERATION_FAILED;
         }
 
+        FAIL_POINT_INJECT_OFF_F("aio_pwrite", [&]() -> void {
+            if (enable_retry) {
+                ret -= 1;
+            }
+        });
         buffer_offset += ret;
         if (buffer_offset != aio_ctx.buffer_size && enable_retry) {
             dwarn_f("write incomplete, request_size={}, write_size={}, will retry delay 10ms",
