@@ -72,7 +72,7 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
 {
     int retries = 2;
     uint32_t buffer_offset = 0;
-    while (retries-- >= 0) {
+    while (--retries >= 0) {
         uint32_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx.file),
                               (char *)aio_ctx.buffer + buffer_offset,
                               aio_ctx.buffer_size - buffer_offset,
