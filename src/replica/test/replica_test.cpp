@@ -96,6 +96,7 @@ public:
         backup_policy_info.__set_backup_provider_type(_provider_name);
         backup_policy_info.__set_policy_name(_policy_name);
         req.policy = backup_policy_info;
+        req.app_name = _app_info.app_name;
         req.backup_id = _backup_id;
         if (!user_specified_path.empty()) {
             req.__set_backup_path(user_specified_path);
