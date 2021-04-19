@@ -70,9 +70,9 @@ error_code native_linux_aio_provider::flush(dsn_handle_t fh)
 error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
                                             /*out*/ uint32_t *processed_bytes)
 {
-    bool enable_retry = true;
+    int retries = 2;
     uint32_t buffer_offset = 0;
-    while (true) {
+    while (retries-- >= 0) {
         uint32_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx.file),
                               (char *)aio_ctx.buffer + buffer_offset,
                               aio_ctx.buffer_size - buffer_offset,
@@ -81,21 +81,19 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
             return ERR_FILE_OPERATION_FAILED;
         }
 
+        // mock the `ret` to reproduce the `write incomplete` case
         FAIL_POINT_INJECT_OFF_F("aio_pwrite", [&]() -> void {
-            if (enable_retry) {
+            if (retries > 0) {
                 ret -= 1;
             }
         });
         buffer_offset += ret;
-        if (buffer_offset != aio_ctx.buffer_size && enable_retry) {
+        if (buffer_offset != aio_ctx.buffer_size) {
             dwarn_f("write incomplete, request_size={}, write_size={}, will retry delay 10ms",
                     aio_ctx.buffer_size,
                     ret);
-            enable_retry = false;
-            usleep(10000);
-            continue;
+            usleep(1e4);
         }
-        break;
     }
 
     *processed_bytes = buffer_offset;
