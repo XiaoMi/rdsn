@@ -129,9 +129,9 @@ public:
                                int64_t timestamp /*backup_id*/,
                                const std::string &old_app_name,
                                int32_t old_app_id,
-                               /* paras above is used to combine the path on block service*/
                                const std::string &new_app_name,
-                               bool skip_bad_partition);
+                               bool skip_bad_partition,
+                               const std::string &restore_path = "");
 
     dsn::error_code query_restore(int32_t restore_app_id, bool detailed);
 
@@ -141,6 +141,12 @@ public:
                                       int64_t backup_interval_seconds,
                                       int32_t backup_history_cnt,
                                       const std::string &start_time);
+
+    error_with<start_backup_app_response> backup_app(int32_t app_id,
+                                                     const std::string &backup_provider_type,
+                                                     const std::string &backup_path = "");
+
+    error_with<query_backup_status_response> query_backup(int32_t app_id, int64_t backup_id);
 
     dsn::error_code ls_backup_policy();
 
