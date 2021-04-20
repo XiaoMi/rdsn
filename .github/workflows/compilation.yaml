@@ -21,8 +21,12 @@ name: rdsn compilation
 
 on:
   push:
+    # when new tag created
     tags:
       - v*
+    # when this file is updated
+    paths:
+      - '.github/workflows/compilation.yml'
 
   # for manually triggering workflow
   workflow_dispatch:
