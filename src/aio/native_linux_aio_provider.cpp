@@ -79,9 +79,10 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
                               aio_ctx.file_offset + buffer_offset);
         if (ret < 0) {
             if (errno == EINTR) {
+                dwarn_f("write failed with EINTR, retry it.");
                 continue;
             }
-            derror_f("write failed, errno={}", strerror(errno));
+            derror_f("write failed, errno={}, return ERR_FILE_OPERATION_FAILED", strerror(errno));
             return ERR_FILE_OPERATION_FAILED;
         }
 
