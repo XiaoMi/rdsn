@@ -95,8 +95,10 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
         buffer_offset += ret;
         remaing_size -= ret;
         if (remaing_size > 0) {
-            dwarn_f("write incomplete, request_size={}, write_size={}, will retry delay 10ms",
+            dwarn_f("write incomplete, request_size={}, total_write_size={}, this_write_size={}, "
+                    "will retry delay 10ms",
                     aio_ctx.buffer_size,
+                    buffer_offset,
                     ret);
             usleep(1e4);
         }
