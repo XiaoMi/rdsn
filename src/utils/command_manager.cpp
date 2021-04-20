@@ -39,7 +39,6 @@ dsn_handle_t command_manager::register_command(const std::vector<std::string> &c
                                                const std::string &help_long,
                                                command_handler handler)
 {
-    // TODO(wutao1): refactor the arg `commands` to single string rather than string-list.
     dcheck_eq(commands.size(), 1);
     const std::string &cmd = commands[0];
     dassert(!cmd.empty(), "should not register empty command");
