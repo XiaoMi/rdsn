@@ -71,40 +71,36 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
                                             /*out*/ uint32_t *processed_bytes)
 {
     uint32_t buffer_offset = 0;
-    uint32_t remaing_size = aio_ctx.buffer_size;
-    while (remaing_size > 0) {
+    do {
         uint32_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx.file),
                               (char *)aio_ctx.buffer + buffer_offset,
-                              remaing_size,
+                              aio_ctx.buffer_size - buffer_offset,
                               aio_ctx.file_offset + buffer_offset);
-        if (ret < 0) {
+        if (dsn_unlikely(ret < 0)) {
             if (errno == EINTR) {
-                dwarn_f("write failed with EINTR, will retry delay 10ms.");
-                usleep(1e4);
+                dwarn_f("write failed with EINTR and will retry it.");
                 continue;
             }
-            derror_f("write failed, errno={}, return ERR_FILE_OPERATION_FAILED", strerror(errno));
+            derror_f("write failed, errno={}, return ERR_FILE_OPERATION_FAILED.", strerror(errno));
             return ERR_FILE_OPERATION_FAILED;
         }
 
         // mock the `ret` to reproduce the `write incomplete` case in the first write
         FAIL_POINT_INJECT_OFF_F("aio_pwrite", [&]() -> void {
-            if (buffer_offset == 0) {
+            if (dsn_unlikely(buffer_offset == 0)) {
                 --ret;
             }
         });
 
         buffer_offset += ret;
-        remaing_size -= ret;
-        if (remaing_size > 0) {
+        if (dsn_unlikely(buffer_offset != aio_ctx.buffer_size)) {
             dwarn_f("write incomplete, request_size={}, total_write_size={}, this_write_size={}, "
-                    "will retry delay 10ms",
+                    "and will retry it.",
                     aio_ctx.buffer_size,
                     buffer_offset,
                     ret);
-            usleep(1e4);
         }
-    }
+    } while (dsn_unlikely(buffer_offset < aio_ctx.buffer_size));
 
     *processed_bytes = buffer_offset;
     return ERR_OK;

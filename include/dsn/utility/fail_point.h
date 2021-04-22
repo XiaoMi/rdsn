@@ -23,7 +23,7 @@
 #include <dsn/utility/string_view.h>
 
 /// The only entry to define a fail point with `return()` function: lambda function must be
-/// return non-void type;  When a fail point is defined, it's referenced via the name.
+/// return non-void type. When a fail point is defined, it's referenced via the name.
 #define FAIL_POINT_INJECT_F(name, lambda)                                                          \
     do {                                                                                           \
         if (dsn_likely(!::dsn::fail::_S_FAIL_POINT_ENABLED))                                       \
@@ -36,7 +36,7 @@
     } while (0)
 
 /// The only entry to define a fail point with `off()` function: lambda  function must be
-/// return void type; When a fail point is defined, it's referenced via the name.
+/// return void type. When a fail point is defined, it's referenced via the name.
 #define FAIL_POINT_INJECT_OFF_F(name, lambda)                                                      \
     do {                                                                                           \
         if (dsn_likely(!::dsn::fail::_S_FAIL_POINT_ENABLED))                                       \
