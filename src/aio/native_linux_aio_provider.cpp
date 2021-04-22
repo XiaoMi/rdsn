@@ -90,7 +90,7 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
         // mock the `ret` to reproduce the `write incomplete` case in the first write
         FAIL_POINT_INJECT_OFF_F("aio_pwrite", [&]() -> void {
             if (buffer_offset == 0) {
-                ret -= 1;
+                --ret;
             }
         });
 
