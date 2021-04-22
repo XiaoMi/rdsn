@@ -17,6 +17,7 @@
 
 #include <dsn/utility/output_utils.h>
 #include <dsn/utils/time_utils.h>
+#include <dsn/utility/meta_service_info.h>
 
 #include "builtin_http_calls.h"
 #include "http_call_registry.h"
@@ -41,9 +42,9 @@ namespace dsn {
 {
     std::ostringstream out;
     dsn::utils::table_printer tp;
-    perf_counter_ptr perf_counter = perf_counters::instance().get_counter(perf_counter_name);
-    tp.add_row_name_and_data("Version", );
-    tp.add_row_name_and_data("GitCommit", );
+    auto info = meta_service_info_registry::instance().get_info();
+    tp.add_row_name_and_data("Version", info.version);
+    tp.add_row_name_and_data("GitCommit", info.git_commit);
     tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
 
     resp.body = out.str();

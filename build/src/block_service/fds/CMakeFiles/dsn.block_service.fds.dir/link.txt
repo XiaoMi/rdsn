@@ -1,0 +1,2 @@
+ccache /bin/ar qc libdsn.block_service.fds.a  CMakeFiles/dsn.block_service.fds.dir/fds_service.cpp.o
+ccache /bin/ranlib libdsn.block_service.fds.a

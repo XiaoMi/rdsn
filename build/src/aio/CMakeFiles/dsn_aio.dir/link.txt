@@ -1,0 +1,2 @@
+ccache /bin/ar qc libdsn_aio.a  CMakeFiles/dsn_aio.dir/aio_provider.cpp.o CMakeFiles/dsn_aio.dir/aio_task.cpp.o CMakeFiles/dsn_aio.dir/disk_engine.cpp.o CMakeFiles/dsn_aio.dir/file_io.cpp.o CMakeFiles/dsn_aio.dir/native_linux_aio_provider.cpp.o
+ccache /bin/ranlib libdsn_aio.a

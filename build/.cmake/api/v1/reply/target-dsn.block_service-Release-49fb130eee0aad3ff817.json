@@ -1,0 +1,428 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "src/block_service/libdsn.block_service.a"
+		}
+	],
+	"backtrace" : 4,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"ms_add_project",
+			"dsn_add_project",
+			"dsn_add_static_library",
+			"install",
+			"dsn_install_library",
+			"add_compile_options",
+			"dsn_setup_compiler_flags",
+			"dsn_common_setup",
+			"add_definitions",
+			"dsn_setup_system_libs",
+			"include_directories",
+			"dsn_setup_include_path",
+			"include"
+		],
+		"files" : 
+		[
+			"bin/dsn.cmake",
+			"src/block_service/CMakeLists.txt",
+			"CMakeLists.txt",
+			"src/CMakeLists.txt",
+			"bin/thrift_utils.cmake"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 38,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 136,
+				"parent" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 131,
+				"parent" : 2
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 64,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 137,
+				"parent" : 1
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 36,
+				"parent" : 5
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 8,
+				"file" : 2,
+				"line" : 9,
+				"parent" : 7
+			},
+			{
+				"command" : 7,
+				"file" : 0,
+				"line" : 348,
+				"parent" : 8
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 191,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 192,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 194,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 195,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 196,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 197,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 198,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 199,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 200,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 201,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 205,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 208,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 211,
+				"parent" : 9
+			},
+			{
+				"file" : 3
+			},
+			{
+				"command" : 6,
+				"file" : 3,
+				"line" : 2,
+				"parent" : 23
+			},
+			{
+				"command" : 9,
+				"file" : 0,
+				"line" : 183,
+				"parent" : 9
+			},
+			{
+				"command" : 9,
+				"file" : 0,
+				"line" : 180,
+				"parent" : 9
+			},
+			{
+				"command" : 10,
+				"file" : 0,
+				"line" : 347,
+				"parent" : 8
+			},
+			{
+				"command" : 9,
+				"file" : 0,
+				"line" : 271,
+				"parent" : 27
+			},
+			{
+				"command" : 9,
+				"file" : 2,
+				"line" : 8,
+				"parent" : 7
+			},
+			{
+				"command" : 9,
+				"file" : 0,
+				"line" : 186,
+				"parent" : 9
+			},
+			{
+				"command" : 12,
+				"file" : 0,
+				"line" : 349,
+				"parent" : 8
+			},
+			{
+				"command" : 11,
+				"file" : 0,
+				"line" : 282,
+				"parent" : 31
+			},
+			{
+				"command" : 13,
+				"file" : 0,
+				"line" : 352,
+				"parent" : 8
+			},
+			{
+				"file" : 4,
+				"parent" : 33
+			},
+			{
+				"command" : 11,
+				"file" : 4,
+				"line" : 33,
+				"parent" : 34
+			},
+			{
+				"command" : 11,
+				"file" : 2,
+				"line" : 51,
+				"parent" : 7
+			},
+			{
+				"command" : 11,
+				"file" : 2,
+				"line" : 52,
+				"parent" : 7
+			},
+			{
+				"command" : 11,
+				"file" : 2,
+				"line" : 53,
+				"parent" : 7
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : " -D__FILENAME__='\"$(notdir $(abspath $<))\"' -std=c++1y -O3 -DNDEBUG   -g -O2"
+				},
+				{
+					"backtrace" : 10,
+					"fragment" : "-Wall"
+				},
+				{
+					"backtrace" : 11,
+					"fragment" : "-Werror"
+				},
+				{
+					"backtrace" : 12,
+					"fragment" : "-Wno-sign-compare"
+				},
+				{
+					"backtrace" : 13,
+					"fragment" : "-Wno-strict-aliasing"
+				},
+				{
+					"backtrace" : 14,
+					"fragment" : "-Wuninitialized"
+				},
+				{
+					"backtrace" : 15,
+					"fragment" : "-Wno-unused-result"
+				},
+				{
+					"backtrace" : 16,
+					"fragment" : "-Wno-unused-variable"
+				},
+				{
+					"backtrace" : 17,
+					"fragment" : "-Wno-deprecated-declarations"
+				},
+				{
+					"backtrace" : 18,
+					"fragment" : "-Wno-inconsistent-missing-override"
+				},
+				{
+					"backtrace" : 19,
+					"fragment" : "-Wno-attributes"
+				},
+				{
+					"backtrace" : 20,
+					"fragment" : "-fno-omit-frame-pointer"
+				},
+				{
+					"backtrace" : 21,
+					"fragment" : "-Wno-deprecated-register"
+				},
+				{
+					"backtrace" : 22,
+					"fragment" : "-Wno-implicit-float-conversion"
+				},
+				{
+					"backtrace" : 24,
+					"fragment" : "-fPIC"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 25,
+					"define" : "DSN_BUILD_HOSTNAME=smilencer-OptiPlex-7040"
+				},
+				{
+					"backtrace" : 26,
+					"define" : "DSN_BUILD_TYPE=Release"
+				},
+				{
+					"backtrace" : 28,
+					"define" : "DSN_ENABLE_GPERF"
+				},
+				{
+					"backtrace" : 29,
+					"define" : "GTEST_HAS_TR1_TUPLE=0"
+				},
+				{
+					"backtrace" : 29,
+					"define" : "GTEST_USE_OWN_TR1_TUPLE=0"
+				},
+				{
+					"backtrace" : 30,
+					"define" : "__STDC_FORMAT_MACROS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 32,
+					"path" : "/home/smilencer/Code/incubator-pegasus/rdsn/thirdparty/output/include"
+				},
+				{
+					"backtrace" : 35,
+					"path" : "/home/smilencer/Code/incubator-pegasus/rdsn/build/thrift-gen"
+				},
+				{
+					"backtrace" : 36,
+					"path" : "/home/smilencer/Code/incubator-pegasus/rdsn/include"
+				},
+				{
+					"backtrace" : 37,
+					"path" : "/home/smilencer/Code/incubator-pegasus/rdsn/include/dsn/cpp/serialization_helper"
+				},
+				{
+					"backtrace" : 38,
+					"path" : "/home/smilencer/Code/incubator-pegasus/rdsn/src"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"id" : "dsn.block_service::@73fdb283889c367f1a80",
+	"install" : 
+	{
+		"destinations" : 
+		[
+			{
+				"backtrace" : 6,
+				"path" : "lib"
+			}
+		],
+		"prefix" : 
+		{
+			"path" : "/home/smilencer/Code/incubator-pegasus/rdsn/DSN_ROOT"
+		}
+	},
+	"name" : "dsn.block_service",
+	"nameOnDisk" : "libdsn.block_service.a",
+	"paths" : 
+	{
+		"build" : "src/block_service",
+		"source" : "src/block_service"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 4,
+			"compileGroupIndex" : 0,
+			"path" : "src/block_service/block_service_manager.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

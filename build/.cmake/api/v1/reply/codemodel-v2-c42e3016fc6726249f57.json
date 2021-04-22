@@ -1,0 +1,1129 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"projectIndex" : 0,
+					"source" : "."
+				},
+				{
+					"build" : "src",
+					"childIndexes" : 
+					[
+						2,
+						7,
+						9,
+						11,
+						13,
+						15,
+						16,
+						18,
+						23,
+						25,
+						26,
+						28,
+						37,
+						41,
+						42
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src"
+				},
+				{
+					"build" : "src/runtime",
+					"childIndexes" : 
+					[
+						3,
+						4,
+						5,
+						6
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/runtime",
+					"targetIndexes" : 
+					[
+						36
+					]
+				},
+				{
+					"build" : "src/runtime/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "src/runtime/test",
+					"targetIndexes" : 
+					[
+						37
+					]
+				},
+				{
+					"build" : "src/runtime/rpc",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "src/runtime/rpc",
+					"targetIndexes" : 
+					[
+						13
+					]
+				},
+				{
+					"build" : "src/runtime/task",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "src/runtime/task",
+					"targetIndexes" : 
+					[
+						15
+					]
+				},
+				{
+					"build" : "src/runtime/security",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "src/runtime/security",
+					"targetIndexes" : 
+					[
+						14
+					]
+				},
+				{
+					"build" : "src/aio",
+					"childIndexes" : 
+					[
+						8
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/aio",
+					"targetIndexes" : 
+					[
+						17
+					]
+				},
+				{
+					"build" : "src/aio/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 7,
+					"projectIndex" : 0,
+					"source" : "src/aio/test",
+					"targetIndexes" : 
+					[
+						18
+					]
+				},
+				{
+					"build" : "src/zookeeper",
+					"childIndexes" : 
+					[
+						10
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/zookeeper",
+					"targetIndexes" : 
+					[
+						12
+					]
+				},
+				{
+					"build" : "src/zookeeper/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 9,
+					"projectIndex" : 0,
+					"source" : "src/zookeeper/test",
+					"targetIndexes" : 
+					[
+						16
+					]
+				},
+				{
+					"build" : "src/perf_counter",
+					"childIndexes" : 
+					[
+						12
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/perf_counter",
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"build" : "src/perf_counter/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 11,
+					"projectIndex" : 0,
+					"source" : "src/perf_counter/test",
+					"targetIndexes" : 
+					[
+						28
+					]
+				},
+				{
+					"build" : "src/failure_detector",
+					"childIndexes" : 
+					[
+						14
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/failure_detector",
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"build" : "src/failure_detector/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 13,
+					"projectIndex" : 0,
+					"source" : "src/failure_detector/test",
+					"targetIndexes" : 
+					[
+						5
+					]
+				},
+				{
+					"build" : "src/remote_cmd",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/remote_cmd",
+					"targetIndexes" : 
+					[
+						21
+					]
+				},
+				{
+					"build" : "src/nfs",
+					"childIndexes" : 
+					[
+						17
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/nfs",
+					"targetIndexes" : 
+					[
+						26
+					]
+				},
+				{
+					"build" : "src/nfs/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 16,
+					"projectIndex" : 0,
+					"source" : "src/nfs/test",
+					"targetIndexes" : 
+					[
+						27
+					]
+				},
+				{
+					"build" : "src/block_service",
+					"childIndexes" : 
+					[
+						19,
+						20,
+						21,
+						22
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/block_service",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "src/block_service/fds",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 0,
+					"source" : "src/block_service/fds",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "src/block_service/hdfs",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 0,
+					"source" : "src/block_service/hdfs",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "src/block_service/local",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 0,
+					"source" : "src/block_service/local",
+					"targetIndexes" : 
+					[
+						3
+					]
+				},
+				{
+					"build" : "src/block_service/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 0,
+					"source" : "src/block_service/test",
+					"targetIndexes" : 
+					[
+						19
+					]
+				},
+				{
+					"build" : "src/http",
+					"childIndexes" : 
+					[
+						24
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/http",
+					"targetIndexes" : 
+					[
+						22
+					]
+				},
+				{
+					"build" : "src/http/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 23,
+					"projectIndex" : 0,
+					"source" : "src/http/test",
+					"targetIndexes" : 
+					[
+						23
+					]
+				},
+				{
+					"build" : "src/client",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/client",
+					"targetIndexes" : 
+					[
+						20
+					]
+				},
+				{
+					"build" : "src/common",
+					"childIndexes" : 
+					[
+						27
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/common",
+					"targetIndexes" : 
+					[
+						34
+					]
+				},
+				{
+					"build" : "src/common/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 26,
+					"projectIndex" : 0,
+					"source" : "src/common/test",
+					"targetIndexes" : 
+					[
+						35
+					]
+				},
+				{
+					"build" : "src/replica",
+					"childIndexes" : 
+					[
+						29,
+						30,
+						31,
+						32,
+						33,
+						36
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/replica",
+					"targetIndexes" : 
+					[
+						32
+					]
+				},
+				{
+					"build" : "src/replica/duplication/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 28,
+					"projectIndex" : 0,
+					"source" : "src/replica/duplication/test",
+					"targetIndexes" : 
+					[
+						31
+					]
+				},
+				{
+					"build" : "src/replica/backup/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 28,
+					"projectIndex" : 0,
+					"source" : "src/replica/backup/test",
+					"targetIndexes" : 
+					[
+						29
+					]
+				},
+				{
+					"build" : "src/replica/bulk_load/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 28,
+					"projectIndex" : 0,
+					"source" : "src/replica/bulk_load/test",
+					"targetIndexes" : 
+					[
+						30
+					]
+				},
+				{
+					"build" : "src/replica/split/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 28,
+					"projectIndex" : 0,
+					"source" : "src/replica/split/test",
+					"targetIndexes" : 
+					[
+						33
+					]
+				},
+				{
+					"build" : "src/replica/storage",
+					"childIndexes" : 
+					[
+						34
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 28,
+					"projectIndex" : 0,
+					"source" : "src/replica/storage"
+				},
+				{
+					"build" : "src/replica/storage/simple_kv",
+					"childIndexes" : 
+					[
+						35
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 33,
+					"projectIndex" : 0,
+					"source" : "src/replica/storage/simple_kv",
+					"targetIndexes" : 
+					[
+						10
+					]
+				},
+				{
+					"build" : "src/replica/storage/simple_kv/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 34,
+					"projectIndex" : 0,
+					"source" : "src/replica/storage/simple_kv/test",
+					"targetIndexes" : 
+					[
+						8
+					]
+				},
+				{
+					"build" : "src/replica/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 28,
+					"projectIndex" : 0,
+					"source" : "src/replica/test",
+					"targetIndexes" : 
+					[
+						9
+					]
+				},
+				{
+					"build" : "src/meta",
+					"childIndexes" : 
+					[
+						38
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/meta",
+					"targetIndexes" : 
+					[
+						24
+					]
+				},
+				{
+					"build" : "src/meta/test",
+					"childIndexes" : 
+					[
+						39,
+						40
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 37,
+					"projectIndex" : 0,
+					"source" : "src/meta/test",
+					"targetIndexes" : 
+					[
+						6
+					]
+				},
+				{
+					"build" : "src/meta/test/balancer_simulator",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 38,
+					"projectIndex" : 0,
+					"source" : "src/meta/test/balancer_simulator",
+					"targetIndexes" : 
+					[
+						40
+					]
+				},
+				{
+					"build" : "src/meta/test/meta_state",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 38,
+					"projectIndex" : 0,
+					"source" : "src/meta/test/meta_state",
+					"targetIndexes" : 
+					[
+						25
+					]
+				},
+				{
+					"build" : "src/tools",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/tools",
+					"targetIndexes" : 
+					[
+						11
+					]
+				},
+				{
+					"build" : "src/utils",
+					"childIndexes" : 
+					[
+						43
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "src/utils",
+					"targetIndexes" : 
+					[
+						38
+					]
+				},
+				{
+					"build" : "src/utils/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.2"
+					},
+					"parentIndex" : 42,
+					"projectIndex" : 0,
+					"source" : "src/utils/test",
+					"targetIndexes" : 
+					[
+						39
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23,
+						24,
+						25,
+						26,
+						27,
+						28,
+						29,
+						30,
+						31,
+						32,
+						33,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39,
+						40,
+						41,
+						42,
+						43
+					],
+					"name" : "dsn",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23,
+						24,
+						25,
+						26,
+						27,
+						28,
+						29,
+						30,
+						31,
+						32,
+						33,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39,
+						40
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 18,
+					"id" : "dsn.block_service::@73fdb283889c367f1a80",
+					"jsonFile" : "target-dsn.block_service-Release-49fb130eee0aad3ff817.json",
+					"name" : "dsn.block_service",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 19,
+					"id" : "dsn.block_service.fds::@7c4bf2f77846b9ad21bc",
+					"jsonFile" : "target-dsn.block_service.fds-Release-75922e97d9c30c4ac5dc.json",
+					"name" : "dsn.block_service.fds",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 20,
+					"id" : "dsn.block_service.hdfs::@93ea4bd72870f0ef79b9",
+					"jsonFile" : "target-dsn.block_service.hdfs-Release-5bcfcc18010c9d7664b3.json",
+					"name" : "dsn.block_service.hdfs",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 21,
+					"id" : "dsn.block_service.local::@9f50edcc568687c70b74",
+					"jsonFile" : "target-dsn.block_service.local-Release-879747167c44219ab4ef.json",
+					"name" : "dsn.block_service.local",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "dsn.failure_detector::@9dae8004babc452eb801",
+					"jsonFile" : "target-dsn.failure_detector-Release-88b5f9b397676cb56ab1.json",
+					"name" : "dsn.failure_detector",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 14,
+					"id" : "dsn.failure_detector.tests::@109ea0d2afb3abdb4d45",
+					"jsonFile" : "target-dsn.failure_detector.tests-Release-abb639376cb808810880.json",
+					"name" : "dsn.failure_detector.tests",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 38,
+					"id" : "dsn.meta.test::@e54621de8ae0bd3cd391",
+					"jsonFile" : "target-dsn.meta.test-Release-d5d85a54dbec673b68f5.json",
+					"name" : "dsn.meta.test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "dsn.perf_counter::@95908618ec45d52b17be",
+					"jsonFile" : "target-dsn.perf_counter-Release-da9952ed5f20eae73dba.json",
+					"name" : "dsn.perf_counter",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 35,
+					"id" : "dsn.rep_tests.simple_kv::@a9be3a8168384dc96b9e",
+					"jsonFile" : "target-dsn.rep_tests.simple_kv-Release-07904fa947a1b66fe414.json",
+					"name" : "dsn.rep_tests.simple_kv",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 36,
+					"id" : "dsn.replica.test::@a357d8c4af59967cdc75",
+					"jsonFile" : "target-dsn.replica.test-Release-522123e0eb7dc188e66d.json",
+					"name" : "dsn.replica.test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 34,
+					"id" : "dsn.replication.simple_kv::@b65954c875b5e2a8a7ee",
+					"jsonFile" : "target-dsn.replication.simple_kv-Release-e45c512247ca3685e160.json",
+					"name" : "dsn.replication.simple_kv",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 41,
+					"id" : "dsn.replication.tool::@de05559f4338c8534979",
+					"jsonFile" : "target-dsn.replication.tool-Release-e396da0434480b6635c8.json",
+					"name" : "dsn.replication.tool",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "dsn.replication.zookeeper_provider::@e25ede3e7391d84a8aa0",
+					"jsonFile" : "target-dsn.replication.zookeeper_provider-Release-db9fbd602aaf5dc0abaf.json",
+					"name" : "dsn.replication.zookeeper_provider",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "dsn.rpc::@0a903ee71c8fe195a5a6",
+					"jsonFile" : "target-dsn.rpc-Release-deeb589790555e0de2a4.json",
+					"name" : "dsn.rpc",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "dsn.security::@9703a9d3fa5c15a500ed",
+					"jsonFile" : "target-dsn.security-Release-dc9253043195b23f615e.json",
+					"name" : "dsn.security",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "dsn.task::@7cbdf1bf2211589b9e3d",
+					"jsonFile" : "target-dsn.task-Release-255f32055d4d353bbd59.json",
+					"name" : "dsn.task",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "dsn.zookeeper.tests::@9f6de1d267e5d15108a9",
+					"jsonFile" : "target-dsn.zookeeper.tests-Release-268d5346ab513570b976.json",
+					"name" : "dsn.zookeeper.tests",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "dsn_aio::@ec36caeacfb013f7092d",
+					"jsonFile" : "target-dsn_aio-Release-ad247a12fd6b2cf026e0.json",
+					"name" : "dsn_aio",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "dsn_aio_test::@c0a3806d1efcc13f168f",
+					"jsonFile" : "target-dsn_aio_test-Release-2229fae692a620694f92.json",
+					"name" : "dsn_aio_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 22,
+					"id" : "dsn_block_service_test::@73fa45be4c44534cdbfb",
+					"jsonFile" : "target-dsn_block_service_test-Release-2d1a4cd6abc1616e7d1c.json",
+					"name" : "dsn_block_service_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 25,
+					"id" : "dsn_client::@8ca63c80a879d0067daa",
+					"jsonFile" : "target-dsn_client-Release-fe44103b60014af2c2d9.json",
+					"name" : "dsn_client",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "dsn_dist_cmd::@77ba1cf5ce18b81da9c9",
+					"jsonFile" : "target-dsn_dist_cmd-Release-73f5bbe8376ccd3f9681.json",
+					"name" : "dsn_dist_cmd",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 23,
+					"id" : "dsn_http::@8197c89eb9db1dcb42c8",
+					"jsonFile" : "target-dsn_http-Release-e9b113b832ee940a7193.json",
+					"name" : "dsn_http",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 24,
+					"id" : "dsn_http_test::@93a724318c19674e3eef",
+					"jsonFile" : "target-dsn_http_test-Release-88b42c6a6282064e4123.json",
+					"name" : "dsn_http_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 37,
+					"id" : "dsn_meta_server::@f69fed33d400d3e80724",
+					"jsonFile" : "target-dsn_meta_server-Release-1905249e4730e81cba2b.json",
+					"name" : "dsn_meta_server",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 40,
+					"id" : "dsn_meta_state_tests::@2fd17eb7a08defd34c6c",
+					"jsonFile" : "target-dsn_meta_state_tests-Release-1375da9570a14385cff4.json",
+					"name" : "dsn_meta_state_tests",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 16,
+					"id" : "dsn_nfs::@85a0170b8d53c9b09066",
+					"jsonFile" : "target-dsn_nfs-Release-19042d1b6604612df552.json",
+					"name" : "dsn_nfs",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 17,
+					"id" : "dsn_nfs_test::@57b2bb46f9057210e109",
+					"jsonFile" : "target-dsn_nfs_test-Release-d36013dfe7a54351d85f.json",
+					"name" : "dsn_nfs_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "dsn_perf_counter_test::@fa72296a92775df1b3bf",
+					"jsonFile" : "target-dsn_perf_counter_test-Release-d88ce8e88b13ae59924a.json",
+					"name" : "dsn_perf_counter_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 30,
+					"id" : "dsn_replica_backup_test::@4cc09cf769bc28b592cd",
+					"jsonFile" : "target-dsn_replica_backup_test-Release-cb29d0ecb3d8d09f29e4.json",
+					"name" : "dsn_replica_backup_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 31,
+					"id" : "dsn_replica_bulk_load_test::@110ea6a6fbe52001d37e",
+					"jsonFile" : "target-dsn_replica_bulk_load_test-Release-8ca31d506af1766a9f3f.json",
+					"name" : "dsn_replica_bulk_load_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 29,
+					"id" : "dsn_replica_dup_test::@8ceac02b4544693ba762",
+					"jsonFile" : "target-dsn_replica_dup_test-Release-c6ad83342e39675a7455.json",
+					"name" : "dsn_replica_dup_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 28,
+					"id" : "dsn_replica_server::@b047262856201e0e12eb",
+					"jsonFile" : "target-dsn_replica_server-Release-6f1955cd0260424b9591.json",
+					"name" : "dsn_replica_server",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 32,
+					"id" : "dsn_replica_split_test::@3df06e5d2642ebcd10ab",
+					"jsonFile" : "target-dsn_replica_split_test-Release-e9d01485a477d6e2df0a.json",
+					"name" : "dsn_replica_split_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 26,
+					"id" : "dsn_replication_common::@af79f3804eddddbfa7f1",
+					"jsonFile" : "target-dsn_replication_common-Release-9ba79d6f77ed90e66d63.json",
+					"name" : "dsn_replication_common",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 27,
+					"id" : "dsn_replication_common_test::@277e1bf2985f5cb7abac",
+					"jsonFile" : "target-dsn_replication_common_test-Release-d1409b37cf6f1f93cbf1.json",
+					"name" : "dsn_replication_common_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "dsn_runtime::@6e5025570506519f0aff",
+					"jsonFile" : "target-dsn_runtime-Release-dbd4c0279cf4a0c3e32a.json",
+					"name" : "dsn_runtime",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "dsn_runtime_tests::@ef3858be3af3058dc03d",
+					"jsonFile" : "target-dsn_runtime_tests-Release-c6684f305e364800e4ee.json",
+					"name" : "dsn_runtime_tests",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 42,
+					"id" : "dsn_utils::@f1b38b22aeb65474a6c5",
+					"jsonFile" : "target-dsn_utils-Release-1215101ef5df542b4480.json",
+					"name" : "dsn_utils",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 43,
+					"id" : "dsn_utils_tests::@3074c4c62aefa103236a",
+					"jsonFile" : "target-dsn_utils_tests-Release-802532a2ace9a893f815.json",
+					"name" : "dsn_utils_tests",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 39,
+					"id" : "sim_lb::@e9ccb008480265a75aa6",
+					"jsonFile" : "target-sim_lb-Release-faf54a8779af5189fb67.json",
+					"name" : "sim_lb",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/smilencer/Code/incubator-pegasus/rdsn/build",
+		"source" : "/home/smilencer/Code/incubator-pegasus/rdsn"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 0
+	}
+}
