@@ -6,7 +6,8 @@
 
 namespace dsn {
 
-struct version_info{
+struct version_info
+{
     std::string version;
     std::string git_commit;
 };
@@ -14,14 +15,9 @@ struct version_info{
 class meta_service_info_registry : public utils::singleton<meta_service_info_registry>
 {
 public:
+    void set_info(version_info &info) { _info = info; }
 
-    void set_info(version_info &info){
-        _info = info;
-    }
-
-    version_info get_info(){
-        return _info;
-    }
+    version_info get_info() { return _info; }
 
 private:
     friend class utils::singleton<meta_service_info_registry>;
