@@ -17,7 +17,7 @@
 
 #include <dsn/utility/output_utils.h>
 #include <dsn/utils/time_utils.h>
-#include <dsn/utility/meta_service_info.h>
+#include <dsn/utility/service_version.h>
 
 #include "builtin_http_calls.h"
 #include "http_call_registry.h"
@@ -42,7 +42,7 @@ namespace dsn {
 {
     std::ostringstream out;
     dsn::utils::table_printer tp;
-    auto info = meta_service_info_registry::instance().get_info();
+    auto info = service_version_registry::instance().get_info();
     tp.add_row_name_and_data("Version", info.version);
     tp.add_row_name_and_data("GitCommit", info.git_commit);
     tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
@@ -76,8 +76,9 @@ namespace dsn {
         .with_help("Lists all supported calls");
 
     register_http_call("version")
-        .with_callback(
-            [](const http_request &req, http_response &resp) { get_version_handler(req, resp); })
+        .with_callback([](const http_request &req, http_response &resp) {
+            get_version_handler(req, resp);
+        })
         .with_help("Gets the server version.");
 
     register_http_call("recentStartTime")

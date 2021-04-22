@@ -81,6 +81,7 @@ TEST(bultin_http_calls_test, get_help)
             get_recent_start_time_handler(req, resp);
         })
         .with_help("ip:port/recentStartTime");
+        
     get_help_handler(req, resp);
     ASSERT_EQ(resp.body, "{\"/\":\"ip:port/\",\"/recentStartTime\":\"ip:port/recentStartTime\"}\n");
 

@@ -28,7 +28,7 @@
 #include <dsn/utility/factory_store.h>
 #include <dsn/dist/replication/meta_service_app.h>
 #include <dsn/http/http_server.h>
-#include <dsn/utility/service_version_registry.h>
+#include <dsn/utility/service_version.h>
 
 #include "distributed_lock_service_simple.h"
 #include "meta_state_service_simple.h"
