@@ -41,6 +41,7 @@ namespace dsn {
 {
     std::ostringstream out;
     dsn::utils::table_printer tp;
+    perf_counter_ptr perf_counter = perf_counters::instance().get_counter(perf_counter_name);
     tp.add_row_name_and_data("Version", );
     tp.add_row_name_and_data("GitCommit", );
     tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
