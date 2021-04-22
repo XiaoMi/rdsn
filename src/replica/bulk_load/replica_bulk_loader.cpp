@@ -610,10 +610,13 @@ void replica_bulk_loader::remove_local_bulk_load_dir(const std::string &bulk_loa
                                           bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR,
                                           std::to_string(dsn_now_ms()),
                                           kFolderSuffixGar);
-    utils::filesystem::rename_path(bulk_load_dir, garbage_dir);
+    if (!utils::filesystem::rename_path(bulk_load_dir, garbage_dir)) {
+        derror_replica("rename bulk_load dir({}) failed.", bulk_load_dir);
+        return;
+    }
     if (!utils::filesystem::remove_path(garbage_dir)) {
         derror_replica(
-            "remove bulk_load gar dir({}) failed, disk cleaner would retry to remote it.",
+            "remove bulk_load gar dir({}) failed, disk cleaner would retry to remove it.",
             garbage_dir);
     }
 }
