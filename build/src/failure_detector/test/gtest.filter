@@ -1,3 +1,0 @@
-config-test.ini -fd.not_in_whitelist
-config-whitelist-test.ini -fd.not_in_whitelist
-config-whitelist-test-failed.ini fd.not_in_whitelist

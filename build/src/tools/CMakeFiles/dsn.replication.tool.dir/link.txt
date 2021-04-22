@@ -1,2 +1,0 @@
-ccache /bin/ar qc libdsn.replication.tool.a  CMakeFiles/dsn.replication.tool.dir/mutation_log_tool.cpp.o
-ccache /bin/ranlib libdsn.replication.tool.a

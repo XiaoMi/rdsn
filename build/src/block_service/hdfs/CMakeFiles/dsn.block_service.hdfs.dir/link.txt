@@ -1,2 +1,0 @@
-ccache /bin/ar qc libdsn.block_service.hdfs.a  CMakeFiles/dsn.block_service.hdfs.dir/hdfs_service.cpp.o
-ccache /bin/ranlib libdsn.block_service.hdfs.a

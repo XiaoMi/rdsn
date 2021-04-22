@@ -1,2 +1,0 @@
-ccache /bin/ar qc libdsn.failure_detector.a  CMakeFiles/dsn.failure_detector.dir/failure_detector.cpp.o CMakeFiles/dsn.failure_detector.dir/failure_detector_multimaster.cpp.o CMakeFiles/dsn.failure_detector.dir/__/__/thrift-gen/fd_types.cpp.o
-ccache /bin/ranlib libdsn.failure_detector.a
