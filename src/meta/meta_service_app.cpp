@@ -28,7 +28,7 @@
 #include <dsn/utility/factory_store.h>
 #include <dsn/dist/replication/meta_service_app.h>
 #include <dsn/http/http_server.h>
-#include <dsn/utility/meta_service_info.h>
+#include <dsn/utility/service_version_registry.h>
 
 #include "distributed_lock_service_simple.h"
 #include "meta_state_service_simple.h"
@@ -100,7 +100,7 @@ error_code meta_service_app::start(const std::vector<std::string> &args)
         info.version = *(args.end() - 2);
         info.git_commit = *(args.end() - 1);
     }
-    meta_service_info_registry::instance().set_info(info);
+    service_version_registry::instance().set_info(info);
     return _service->start();
 }
 
