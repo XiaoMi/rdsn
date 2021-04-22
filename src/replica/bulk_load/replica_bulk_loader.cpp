@@ -393,6 +393,7 @@ error_code replica_bulk_loader::download_sst_files(const std::string &remote_dir
     const std::string local_dir = utils::filesystem::path_combine(
         _replica->_dir, bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR);
     if (utils::filesystem::directory_exists(local_dir)) {
+        // remove old files before downloading sst files.
         remove_local_bulk_load_dir(local_dir);
     }
     if (!utils::filesystem::create_directory(local_dir)) {
@@ -605,6 +606,7 @@ void replica_bulk_loader::remove_local_bulk_load_dir(const std::string &bulk_loa
     if (!utils::filesystem::directory_exists(bulk_load_dir)) {
         return;
     }
+    // rename bulk_load_dir to replica_dir.bulkload.timestamp.gar.
     std::string garbage_dir = fmt::format("{}.{}.{}.{}",
                                           _replica->_dir,
                                           bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR,
