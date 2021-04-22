@@ -37,6 +37,18 @@ namespace dsn {
     resp.status_code = http_status_code::ok;
 }
 
+/*extern*/ void get_version_handler(const http_request &req, http_response &resp)
+{
+    std::ostringstream out;
+    dsn::utils::table_printer tp;
+    tp.add_row_name_and_data("Version", );
+    tp.add_row_name_and_data("GitCommit", );
+    tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
+
+    resp.body = out.str();
+    resp.status_code = http_status_code::ok;
+}
+
 /*extern*/ void get_recent_start_time_handler(const http_request &req, http_response &resp)
 {
     char start_time[100];
@@ -60,6 +72,12 @@ namespace dsn {
         .with_callback(
             [](const http_request &req, http_response &resp) { get_help_handler(req, resp); })
         .with_help("Lists all supported calls");
+
+    register_http_call("version")
+        .with_callback([](const http_request &req, http_response &resp) {
+            get_version_handler(req, resp);
+        })
+        .with_help("Gets the server version.");
 
     register_http_call("recentStartTime")
         .with_callback([](const http_request &req, http_response &resp) {
