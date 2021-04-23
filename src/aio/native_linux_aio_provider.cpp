@@ -73,6 +73,7 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
     dsn::error_code resp = ERR_OK;
     uint32_t buffer_offset = 0;
     do {
+        // ret is the written data size
         uint32_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx.file),
                               (char *)aio_ctx.buffer + buffer_offset,
                               aio_ctx.buffer_size - buffer_offset,
