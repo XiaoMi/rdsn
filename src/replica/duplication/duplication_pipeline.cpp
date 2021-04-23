@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>
 
