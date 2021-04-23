@@ -39,7 +39,7 @@ DEFINE_TASK_CODE_AIO(LPC_AIO_TEST, TASK_PRIORITY_COMMON, THREAD_POOL_TEST_SERVER
 TEST(core, aio)
 {
     fail::setup();
-    fail::cfg("aio_pwrite", "off()");
+    fail::cfg("aio_pwrite_incomplete", "off()");
     const char *buffer = "hello, world";
     int len = (int)strlen(buffer);
 
