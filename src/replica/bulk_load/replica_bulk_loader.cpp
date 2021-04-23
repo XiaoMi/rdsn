@@ -603,7 +603,7 @@ void replica_bulk_loader::remove_local_bulk_load_dir(const std::string &bulk_loa
     if (!utils::filesystem::directory_exists(bulk_load_dir)) {
         return;
     }
-    // Rename bulk_load_dir to replica_dir.bulkload.timestamp.gar before remove it.
+    // Rename bulk_load_dir to ${replica_dir}.bulk_load.timestamp.gar before remove it.
     // Because we download sst files asynchronously and couldn't remove a directory while writing
     // files in it.
     std::string garbage_dir = fmt::format("{}.{}.{}.{}",
