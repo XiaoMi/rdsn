@@ -40,6 +40,9 @@ namespace dsn {
 
 /*extern*/ void get_version_handler(const http_request &req, http_response &resp)
 {
+    /*
+        resp = { Version: "2.1.SNAPSHOT",GitCommit: "88783e1ec28c326974f808d91c1531391d38acb5"}
+    */
     std::ostringstream out;
     dsn::utils::table_printer tp;
     tp.add_row_name_and_data("Version", verion.version);
