@@ -17,11 +17,11 @@
 
 #include <dsn/utility/output_utils.h>
 #include <dsn/utils/time_utils.h>
-#include <dsn/utility/service_version.h>
 
 #include "builtin_http_calls.h"
 #include "http_call_registry.h"
 #include "pprof_http_service.h"
+#include "service_version.h"
 
 namespace dsn {
 
@@ -42,9 +42,8 @@ namespace dsn {
 {
     std::ostringstream out;
     dsn::utils::table_printer tp;
-    auto info = service_version_registry::instance().get_info();
-    tp.add_row_name_and_data("Version", info.version);
-    tp.add_row_name_and_data("GitCommit", info.git_commit);
+    tp.add_row_name_and_data("Version", verion.version);
+    tp.add_row_name_and_data("GitCommit", verion.git_commit);
     tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
 
     resp.body = out.str();

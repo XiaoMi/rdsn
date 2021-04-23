@@ -28,7 +28,7 @@
 #include <dsn/utility/factory_store.h>
 #include <dsn/dist/replication/meta_service_app.h>
 #include <dsn/http/http_server.h>
-#include <dsn/utility/service_version.h>
+
 
 #include "distributed_lock_service_simple.h"
 #include "meta_state_service_simple.h"
@@ -41,6 +41,7 @@
 
 #include "meta_service.h"
 #include "meta_http_service.h"
+#include "http/service_version.h"
 
 namespace dsn {
 namespace service {
@@ -95,12 +96,10 @@ meta_service_app::~meta_service_app() {}
 
 error_code meta_service_app::start(const std::vector<std::string> &args)
 {
-    version_info info;
     if (args.size() >= 2) {
-        info.version = *(args.end() - 2);
-        info.git_commit = *(args.end() - 1);
+        verion.version = *(args.end() - 2);
+        verion.git_commit = *(args.end() - 1);
     }
-    service_version_registry::instance().set_info(info);
     return _service->start();
 }
 
