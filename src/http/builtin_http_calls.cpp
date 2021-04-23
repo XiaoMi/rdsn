@@ -75,9 +75,8 @@ namespace dsn {
         .with_help("Lists all supported calls");
 
     register_http_call("version")
-        .with_callback([](const http_request &req, http_response &resp) {
-            get_version_handler(req, resp);
-        })
+        .with_callback(
+            [](const http_request &req, http_response &resp) { get_version_handler(req, resp); })
         .with_help("Gets the server version.");
 
     register_http_call("recentStartTime")
