@@ -17,9 +17,6 @@
 
 #pragma once
 
-#include <dsn/utility/errors.h>
-#include <dsn/utility/singleton.h>
-
 namespace dsn {
 
 struct service_version
