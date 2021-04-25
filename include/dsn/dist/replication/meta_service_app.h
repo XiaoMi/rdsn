@@ -28,7 +28,6 @@
 #include <dsn/cpp/service_app.h>
 
 namespace dsn {
-
 class version_http_service;
 namespace replication {
 

@@ -21,8 +21,6 @@
 #include <dsn/http/http_server.h>
 #include <dsn/utility/errors.h>
 
-#include "service_version.h"
-
 namespace dsn {
 
 // Register basic services for the HTTP server.
@@ -47,5 +45,4 @@ extern void update_config(const http_request &req, http_response &resp);
 extern void list_all_configs(const http_request &req, http_response &resp);
 
 extern void get_config(const http_request &req, http_response &resp);
-
 } // namespace dsn
