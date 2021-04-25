@@ -15,18 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#pragma once
-
-#include <string>
+#include "service_version.h"
 
 namespace dsn {
 
-struct service_version
-{
-    std::string version;
-    std::string git_commit;
-};
-
-extern service_version app_version;
+service_version app_version;
 
 } // namespace dsn

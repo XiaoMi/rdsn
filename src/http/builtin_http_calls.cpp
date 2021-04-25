@@ -42,8 +42,9 @@ namespace dsn {
 {
     std::ostringstream out;
     dsn::utils::table_printer tp;
-    tp.add_row_name_and_data("Version", verion.version);
-    tp.add_row_name_and_data("GitCommit", verion.git_commit);
+
+    tp.add_row_name_and_data("Version", app_version.version);
+    tp.add_row_name_and_data("GitCommit", app_version.git_commit);
     tp.output(out, dsn::utils::table_printer::output_format::kJsonCompact);
 
     resp.body = out.str();
