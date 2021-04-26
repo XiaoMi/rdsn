@@ -148,7 +148,7 @@ TEST(core, aio_share)
 TEST(core, operation_failed)
 {
     fail::setup();
-    fail::cfg("aio_pwrite", "off()");
+    fail::cfg("aio_pwrite_incomplete", "off()");
 
     auto fp = file::open("tmp_test_file", O_WRONLY, 0600);
     EXPECT_TRUE(fp == nullptr);
