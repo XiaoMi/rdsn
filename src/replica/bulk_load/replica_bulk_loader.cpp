@@ -436,12 +436,12 @@ error_code replica_bulk_loader::download_sst_files(const std::string &remote_dir
                         f_size = f_meta.size;
                         verified = true;
                     } else {
-                        dwarn_replica(
-                            "file({}) exists, but not verified, try to remove and redownload it",
+                        derror_replica(
+                            "file({}) exists, but not verified, try to remove local file "
+                            "and redownload it",
                             file_name);
-                        // remove unverified local file and redownload
                         if (!utils::filesystem::remove_path(file_name)) {
-                            derror_f("failed to remove file({})", file_name);
+                            derror_replica("failed to remove file({})", file_name);
                             ec = ERR_FILE_OPERATION_FAILED;
                         } else {
                             ec = _stub->_block_service_manager.download_file(
@@ -501,8 +501,11 @@ void replica_bulk_loader::update_bulk_load_download_progress(uint64_t file_size,
                                                              const std::string &file_name)
 {
     if (_metadata.file_total_size <= 0) {
-        derror_replica("bulk_load_metadata has invalid file_total_size({})",
-                       _metadata.file_total_size);
+        derror_replica("update downloading file({}) progress failed, metadata has invalid "
+                       "file_total_size({}), current status = {}",
+                       file_name,
+                       _metadata.file_total_size,
+                       enum_to_string(_status));
         return;
     }
 
