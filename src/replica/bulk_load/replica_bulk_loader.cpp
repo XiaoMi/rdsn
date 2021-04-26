@@ -428,14 +428,30 @@ error_code replica_bulk_loader::download_sst_files(const std::string &remote_dir
                     remote_dir, local_dir, f_meta.name, fs, f_size);
                 const std::string &file_name =
                     utils::filesystem::path_combine(local_dir, f_meta.name);
-                if (ec == ERR_OK || ec == ERR_PATH_ALREADY_EXIST) {
-                    if (!utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
-                        ec = ERR_CORRUPTION;
-                    } else if (ec == ERR_PATH_ALREADY_EXIST) {
+                bool verified = false;
+                if (ec == ERR_PATH_ALREADY_EXIST) {
+                    if (utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
                         // local file exist and is verified
                         ec = ERR_OK;
                         f_size = f_meta.size;
+                        verified = true;
+                    } else {
+                        dwarn_replica(
+                            "file({}) exists, but not verified, try to remove and redownload it",
+                            file_name);
+                        // remove unverified local file and redownload
+                        if (!utils::filesystem::remove_path(file_name)) {
+                            derror_f("failed to remove file({})", file_name);
+                            ec = ERR_FILE_OPERATION_FAILED;
+                        } else {
+                            ec = _stub->_block_service_manager.download_file(
+                                remote_dir, local_dir, f_meta.name, fs, f_size);
+                        }
                     }
+                }
+                if (ec == ERR_OK && !verified &&
+                    !utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
+                    ec = ERR_CORRUPTION;
                 }
                 if (ec != ERR_OK) {
                     try_decrease_bulk_load_download_count();
