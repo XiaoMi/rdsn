@@ -23,7 +23,7 @@
 namespace dsn {
 namespace replication {
 
-DSN_DECLARE_uint32(bulk_load_max_failover_count);
+DSN_DECLARE_uint32(bulk_load_max_rollback_times);
 
 ///
 /// bulk load path on remote storage:
@@ -406,8 +406,8 @@ private:
     std::unordered_map<app_id, bool> _apps_cleaning_up;
     // Used for bulk load rolling back to downloading
     std::unordered_map<app_id, bool> _apps_rolling_back;
-    // Used for restrict bulk load failover count
-    std::unordered_map<app_id, int32_t> _apps_failover_count;
+    // Used for restrict bulk load rollback count
+    std::unordered_map<app_id, int32_t> _apps_rollback_count;
 };
 
 } // namespace replication
