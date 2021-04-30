@@ -17,7 +17,6 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/fail_point.h>
-#include <dsn/utility/flags.h>
 
 #include "meta_bulk_load_service.h"
 
@@ -25,14 +24,14 @@ namespace dsn {
 namespace replication {
 
 DSN_DEFINE_uint32("meta_server",
-                  bulk_load_max_failover_count,
-                  20,
-                  "if bulk load failover count "
+                  bulk_load_max_rollback_times,
+                  10,
+                  "if bulk load rollback time "
                   "exceed this value, meta won't "
                   "rollback bulk load process to "
                   "downloading, but turn it into "
                   "failed");
-DSN_TAG_VARIABLE(bulk_load_max_failover_count, FT_MUTABLE);
+DSN_TAG_VARIABLE(bulk_load_max_rollback_times, FT_MUTABLE);
 
 bulk_load_service::bulk_load_service(meta_service *meta_svc, const std::string &bulk_load_dir)
     : _meta_svc(meta_svc), _state(meta_svc->get_server_state()), _bulk_load_root(bulk_load_dir)
@@ -242,7 +241,7 @@ void bulk_load_service::create_app_bulk_load_dir(const std::string &app_name,
                 zauto_write_lock l(_lock);
                 _app_bulk_load_info[ainfo.app_id] = ainfo;
                 _apps_pending_sync_flag[ainfo.app_id] = false;
-                _apps_failover_count[ainfo.app_id] = 0;
+                _apps_rollback_count[ainfo.app_id] = 0;
             }
             for (int32_t i = 0; i < ainfo.partition_count; ++i) {
                 create_partition_bulk_load_dir(
@@ -756,22 +755,22 @@ void bulk_load_service::try_rollback_to_downloading(const std::string &app_name,
         dwarn_f("app({}) is rolling back to downloading, ignore this request", app_name);
         return;
     }
-    if (_apps_failover_count[pid.get_app_id()] >= FLAGS_bulk_load_max_failover_count) {
+    if (_apps_rollback_count[pid.get_app_id()] >= FLAGS_bulk_load_max_rollback_times) {
         dwarn_f(
             "app({}) has been rollback to downloading for {} times, make bulk load process failed",
             app_name,
-            _apps_failover_count[pid.get_app_id()]);
+            _apps_rollback_count[pid.get_app_id()]);
         update_app_status_on_remote_storage_unlocked(pid.get_app_id(),
                                                      bulk_load_status::type::BLS_FAILED);
         return;
     }
-    ddebug_f("app({}) will rolling back from {} to {}, current failover_count = {}",
+    ddebug_f("app({}) will rolling back from {} to {}, current rollback_count = {}",
              app_name,
              dsn::enum_to_string(app_status),
              dsn::enum_to_string(bulk_load_status::BLS_DOWNLOADING),
-             _apps_failover_count[pid.get_app_id()]);
+             _apps_rollback_count[pid.get_app_id()]);
     _apps_rolling_back[pid.get_app_id()] = true;
-    _apps_failover_count[pid.get_app_id()]++;
+    _apps_rollback_count[pid.get_app_id()]++;
     update_app_status_on_remote_storage_unlocked(pid.get_app_id(),
                                                  bulk_load_status::type::BLS_DOWNLOADING);
 }
@@ -1207,7 +1206,7 @@ void bulk_load_service::reset_local_bulk_load_states(int32_t app_id, const std::
     erase_map_elem_by_id(app_id, _partitions_total_download_progress);
     erase_map_elem_by_id(app_id, _partitions_cleaned_up);
     _apps_rolling_back.erase(app_id);
-    _apps_failover_count.erase(app_id);
+    _apps_rollback_count.erase(app_id);
     _apps_cleaning_up.erase(app_id);
     _bulk_load_app_id.erase(app_id);
     ddebug_f("reset local app({}) bulk load context", app_name);
@@ -1679,7 +1678,7 @@ void bulk_load_service::do_continue_app_bulk_load(
     {
         zauto_write_lock l(_lock);
         _apps_in_progress_count[app_id] = in_progress_partition_count;
-        _apps_failover_count[app_id] = 0;
+        _apps_rollback_count[app_id] = 0;
     }
 
     // if app is paused, no need to send bulk_load_request, just return
