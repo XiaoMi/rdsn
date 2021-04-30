@@ -23,6 +23,8 @@
 namespace dsn {
 namespace replication {
 
+DSN_DECLARE_uint32(bulk_load_ingestion_concurrent_count);
+
 ///
 /// bulk load path on remote storage:
 /// <cluster_root>/bulk_load/<app_id> -> app_bulk_load_info
@@ -169,6 +171,10 @@ private:
     // Called when app bulk load status update to ingesting
     // create ingestion_request and send it to primary
     void partition_ingestion(const std::string &app_name, const gpid &pid);
+
+    void send_ingestion_request(const std::string &app_name,
+                                const gpid &pid,
+                                const rpc_address &primary_addr);
 
     void on_partition_ingestion_reply(error_code err,
                                       const ingestion_response &&resp,
@@ -404,6 +410,8 @@ private:
     std::unordered_map<app_id, bool> _apps_cleaning_up;
     // Used for bulk load rolling back to downloading
     std::unordered_map<app_id, bool> _apps_rolling_back;
+    // app_id -> ingesting partition count
+    std::unordered_map<app_id, int32_t> _apps_ingesting_count;
 };
 
 } // namespace replication
