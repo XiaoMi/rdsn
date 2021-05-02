@@ -530,7 +530,7 @@ void replica::init_table_level_latency_counters()
         if (get_storage_rpc_req_codes().find(task_code(code)) !=
             get_storage_rpc_req_codes().end()) {
             std::string counter_str =
-                fmt::format("table.level.{}.latency(ns)@{}", task_code(code), _app_info.app_name);
+                fmt::format("table.level.{}.latency(ns)@{}", task_code(code).to_string(), _app_info.app_name);
             _counters_table_level_latency[code] =
                 dsn::perf_counters::instance()
                     .get_app_counter("eon.replica",
