@@ -1031,7 +1031,7 @@ void bulk_load_service::partition_ingestion(const std::string &app_name, const g
                 _meta_svc->tracker(),
                 std::bind(&bulk_load_service::partition_ingestion, this, app_name, pid),
                 pid.thread_hash(),
-                std::chrono::seconds(1));
+                std::chrono::seconds(5));
             return;
         }
     }
