@@ -23,6 +23,7 @@
 namespace dsn {
 namespace replication {
 
+DSN_DECLARE_uint32(bulk_load_max_rollback_times);
 DSN_DECLARE_uint32(bulk_load_ingestion_concurrent_count);
 
 ///
@@ -419,6 +420,8 @@ private:
     std::unordered_map<app_id, bool> _apps_cleaning_up;
     // Used for bulk load rolling back to downloading
     std::unordered_map<app_id, bool> _apps_rolling_back;
+    // Used for restrict bulk load rollback count
+    std::unordered_map<app_id, int32_t> _apps_rollback_count;
     // app_id -> ingesting partition count
     std::unordered_map<app_id, int32_t> _apps_ingesting_count;
 };

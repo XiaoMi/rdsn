@@ -24,6 +24,16 @@ namespace dsn {
 namespace replication {
 
 DSN_DEFINE_uint32("meta_server",
+                  bulk_load_max_rollback_times,
+                  10,
+                  "if bulk load rollback time "
+                  "exceed this value, meta won't "
+                  "rollback bulk load process to "
+                  "downloading, but turn it into "
+                  "failed");
+DSN_TAG_VARIABLE(bulk_load_max_rollback_times, FT_MUTABLE);
+
+DSN_DEFINE_uint32("meta_server",
                   bulk_load_ingestion_concurrent_count,
                   4,
                   "max partition_count executing ingestion at the same time");
@@ -238,6 +248,7 @@ void bulk_load_service::create_app_bulk_load_dir(const std::string &app_name,
                 zauto_write_lock l(_lock);
                 _app_bulk_load_info[ainfo.app_id] = ainfo;
                 _apps_pending_sync_flag[ainfo.app_id] = false;
+                _apps_rollback_count[ainfo.app_id] = 0;
             }
             for (int32_t i = 0; i < ainfo.partition_count; ++i) {
                 create_partition_bulk_load_dir(
@@ -739,26 +750,38 @@ void bulk_load_service::try_rollback_to_downloading(const std::string &app_name,
     zauto_write_lock l(_lock);
 
     const auto app_status = get_app_bulk_load_status_unlocked(pid.get_app_id());
-    if (app_status == bulk_load_status::BLS_DOWNLOADING ||
-        app_status == bulk_load_status::BLS_DOWNLOADED ||
-        app_status == bulk_load_status::BLS_INGESTING ||
-        app_status == bulk_load_status::BLS_SUCCEED) {
-        if (_apps_rolling_back[pid.get_app_id()]) {
-            dwarn_f("app({}) is rolling back to downloading, ignore this request", app_name);
-            return;
-        }
-        ddebug_f("app({}) will rolling back from {} to {}",
-                 app_name,
-                 dsn::enum_to_string(app_status),
-                 dsn::enum_to_string(bulk_load_status::BLS_DOWNLOADING));
-        _apps_rolling_back[pid.get_app_id()] = true;
-        update_app_status_on_remote_storage_unlocked(pid.get_app_id(),
-                                                     bulk_load_status::type::BLS_DOWNLOADING);
-    } else {
+    if (app_status != bulk_load_status::BLS_DOWNLOADING &&
+        app_status != bulk_load_status::BLS_DOWNLOADED &&
+        app_status != bulk_load_status::BLS_INGESTING &&
+        app_status != bulk_load_status::BLS_SUCCEED) {
         ddebug_f("app({}) status={}, no need to rollback to downloading, wait for next round",
                  app_name,
                  dsn::enum_to_string(app_status));
+        return;
     }
+
+    if (_apps_rolling_back[pid.get_app_id()]) {
+        dwarn_f("app({}) is rolling back to downloading, ignore this request", app_name);
+        return;
+    }
+    if (_apps_rollback_count[pid.get_app_id()] >= FLAGS_bulk_load_max_rollback_times) {
+        dwarn_f(
+            "app({}) has been rollback to downloading for {} times, make bulk load process failed",
+            app_name,
+            _apps_rollback_count[pid.get_app_id()]);
+        update_app_status_on_remote_storage_unlocked(pid.get_app_id(),
+                                                     bulk_load_status::type::BLS_FAILED);
+        return;
+    }
+    ddebug_f("app({}) will rolling back from {} to {}, current rollback_count = {}",
+             app_name,
+             dsn::enum_to_string(app_status),
+             dsn::enum_to_string(bulk_load_status::BLS_DOWNLOADING),
+             _apps_rollback_count[pid.get_app_id()]);
+    _apps_rolling_back[pid.get_app_id()] = true;
+    _apps_rollback_count[pid.get_app_id()]++;
+    update_app_status_on_remote_storage_unlocked(pid.get_app_id(),
+                                                 bulk_load_status::type::BLS_DOWNLOADING);
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
@@ -1224,8 +1247,9 @@ void bulk_load_service::reset_local_bulk_load_states(int32_t app_id, const std::
     erase_map_elem_by_id(app_id, _partitions_total_download_progress);
     erase_map_elem_by_id(app_id, _partitions_cleaned_up);
     _apps_rolling_back.erase(app_id);
-    _apps_cleaning_up.erase(app_id);
+    _apps_rollback_count.erase(app_id);
     _apps_ingesting_count.erase(app_id);
+    _apps_cleaning_up.erase(app_id);
     _bulk_load_app_id.erase(app_id);
     ddebug_f("reset local app({}) bulk load context", app_name);
 }
@@ -1696,6 +1720,7 @@ void bulk_load_service::do_continue_app_bulk_load(
     {
         zauto_write_lock l(_lock);
         _apps_in_progress_count[app_id] = in_progress_partition_count;
+        _apps_rollback_count[app_id] = 0;
         _apps_ingesting_count[app_id] = 0;
     }
 
