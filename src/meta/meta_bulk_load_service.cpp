@@ -1117,19 +1117,21 @@ void bulk_load_service::on_partition_ingestion_reply(error_code err,
                                                      const std::string &app_name,
                                                      const gpid &pid)
 {
+    if (err != ERR_OK || resp.err != ERR_OK || resp.rocksdb_error != ERR_OK) {
+        decrease_app_ingestion_count(pid);
+    }
+
     if (err == ERR_NO_NEED_OPERATE) {
         dwarn_f(
             "app({}) partition({}) has already executing ingestion, ignore this repeated request",
             app_name,
             pid);
-        decrease_app_ingestion_count(pid);
         return;
     }
 
     // if meet 2pc error, ingesting will rollback to downloading, no need to retry here
     if (err != ERR_OK) {
         derror_f("app({}) partition({}) ingestion files failed, error = {}", app_name, pid, err);
-        decrease_app_ingestion_count(pid);
         tasking::enqueue(
             LPC_META_STATE_NORMAL,
             _meta_svc->tracker(),
@@ -1143,7 +1145,6 @@ void bulk_load_service::on_partition_ingestion_reply(error_code err,
                  app_name,
                  pid,
                  resp.rocksdb_error);
-        decrease_app_ingestion_count(pid);
         tasking::enqueue(LPC_BULK_LOAD_INGESTION,
                          _meta_svc->tracker(),
                          std::bind(&bulk_load_service::partition_ingestion, this, app_name, pid),
@@ -1160,7 +1161,6 @@ void bulk_load_service::on_partition_ingestion_reply(error_code err,
                  pid,
                  resp.err,
                  resp.rocksdb_error);
-        decrease_app_ingestion_count(pid);
         tasking::enqueue(
             LPC_META_STATE_NORMAL,
             _meta_svc->tracker(),
