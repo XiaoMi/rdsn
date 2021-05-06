@@ -95,7 +95,6 @@ public:
             gpid pid = gpid(app_id, i);
             bulk_svc()._partition_bulk_load_info[pid].status = status;
         }
-        bulk_svc()._apps_ingesting_count[app_id] = 0;
     }
 
     void on_partition_bulk_load_reply(error_code err,
@@ -482,7 +481,8 @@ public:
         _resp.__set_metadata(metadata);
     }
 
-    void mock_response_ingestion_status(ingestion_status::type secondary_istatus)
+    void mock_response_ingestion_status(ingestion_status::type secondary_istatus,
+                                        int32_t ingestion_count)
     {
         create_basic_response(ERR_OK, bulk_load_status::BLS_INGESTING);
 
@@ -494,6 +494,8 @@ public:
         _resp.group_bulk_load_state[SECONDARY1] = state;
         _resp.group_bulk_load_state[SECONDARY2] = state2;
         _resp.__set_is_group_ingestion_finished(secondary_istatus == ingestion_status::IS_SUCCEED);
+        FLAGS_bulk_load_ingestion_concurrent_count = 4;
+        set_app_ingesting_count(_app_id, ingestion_count);
     }
 
     void mock_response_cleaned_up_flag(bool all_cleaned_up, bulk_load_status::type status)
@@ -629,23 +631,26 @@ TEST_F(bulk_load_process_test, ingestion_count_restriction)
 
 TEST_F(bulk_load_process_test, ingestion_running)
 {
-    mock_response_ingestion_status(ingestion_status::IS_RUNNING);
+    mock_response_ingestion_status(ingestion_status::IS_RUNNING, 4);
     test_on_partition_bulk_load_reply(_partition_count, bulk_load_status::BLS_INGESTING);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_ingesting_count(_app_id), 4);
 }
 
 TEST_F(bulk_load_process_test, ingestion_error)
 {
-    mock_response_ingestion_status(ingestion_status::IS_FAILED);
+    mock_response_ingestion_status(ingestion_status::IS_FAILED, 3);
     test_on_partition_bulk_load_reply(_partition_count, bulk_load_status::BLS_INGESTING);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_FAILED);
+    ASSERT_EQ(get_app_ingesting_count(_app_id), 2);
 }
 
 TEST_F(bulk_load_process_test, normal_succeed)
 {
-    mock_response_ingestion_status(ingestion_status::IS_SUCCEED);
+    mock_response_ingestion_status(ingestion_status::IS_SUCCEED, 1);
     test_on_partition_bulk_load_reply(1, bulk_load_status::BLS_INGESTING);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_SUCCEED);
+    ASSERT_EQ(get_app_ingesting_count(_app_id), 0);
 }
 
 TEST_F(bulk_load_process_test, succeed_not_all_finished)
@@ -730,6 +735,17 @@ TEST_F(bulk_load_process_test, response_object_not_found)
     ASSERT_EQ(get_app_in_process_count(_app_id), _partition_count);
 }
 
+TEST_F(bulk_load_process_test, response_ingestion_error)
+{
+    FLAGS_bulk_load_ingestion_concurrent_count = 4;
+    set_app_ingesting_count(_app_id, 3);
+    test_on_partition_bulk_load_reply(
+        _partition_count, bulk_load_status::BLS_INGESTING, ERR_INVALID_STATE);
+    ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_DOWNLOADING);
+    ASSERT_EQ(get_app_in_process_count(_app_id), _partition_count);
+    ASSERT_EQ(get_app_ingesting_count(_app_id), 0);
+}
+
 /// on_partition_ingestion_reply unit tests
 TEST_F(bulk_load_process_test, ingest_rpc_error)
 {
@@ -752,7 +768,7 @@ TEST_F(bulk_load_process_test, ingest_wrong_state)
     mock_ingestion_context(ERR_OK, 1, _partition_count, 3);
     test_on_partition_ingestion_reply(_ingestion_resp, gpid(_app_id, _pidx), ERR_INVALID_STATE);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_DOWNLOADING);
-    ASSERT_EQ(get_app_ingesting_count(_app_id), 2);
+    ASSERT_EQ(get_app_ingesting_count(_app_id), 0);
 }
 
 TEST_F(bulk_load_process_test, ingest_empty_write_error)
@@ -778,7 +794,7 @@ TEST_F(bulk_load_process_test, ingest_succeed)
     mock_ingestion_context(ERR_OK, 0, 1, 3);
     test_on_partition_ingestion_reply(_ingestion_resp, gpid(_app_id, _pidx));
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_INGESTING);
-    ASSERT_EQ(get_app_ingesting_count(_app_id), 2);
+    ASSERT_EQ(get_app_ingesting_count(_app_id), 3);
 }
 
 class bulk_load_failover_test : public bulk_load_service_test

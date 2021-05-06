@@ -374,6 +374,15 @@ private:
         return (_bulk_load_app_id.find(app_id) != _bulk_load_app_id.end());
     }
 
+    inline void decrease_app_ingestion_count(const gpid &pid)
+    {
+        zauto_write_lock l(_lock);
+        auto app_id = pid.get_app_id();
+        if (_apps_ingesting_count.find(app_id) != _apps_ingesting_count.end()) {
+            _apps_ingesting_count[app_id]--;
+        }
+    }
+
 private:
     friend class bulk_load_service_test;
     friend class meta_bulk_load_http_test;

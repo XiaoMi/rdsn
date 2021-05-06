@@ -574,6 +574,7 @@ void bulk_load_service::handle_app_ingestion(const bulk_load_response &response,
                      app_name,
                      pid,
                      kv.first.to_string());
+            decrease_app_ingestion_count(pid);
             handle_bulk_load_failed(pid.get_app_id());
             return;
         }
@@ -593,6 +594,7 @@ void bulk_load_service::handle_app_ingestion(const bulk_load_response &response,
 
     if (response.is_group_ingestion_finished) {
         ddebug_f("app({}) partition({}) ingestion files succeed", app_name, pid);
+        decrease_app_ingestion_count(pid);
         update_partition_status_on_remote_storage(app_name, pid, bulk_load_status::BLS_SUCCEED);
     }
 }
@@ -979,6 +981,10 @@ void bulk_load_service::update_app_status_on_remote_storage_reply(const app_bulk
         _app_bulk_load_info[app_id] = ainfo;
         _apps_pending_sync_flag[app_id] = false;
         _apps_in_progress_count[app_id] = partition_count;
+        if (old_status == bulk_load_status::BLS_INGESTING &&
+            new_status == bulk_load_status::BLS_DOWNLOADING) {
+            _apps_ingesting_count[app_id] = 0;
+        }
     }
 
     ddebug_f("update app({}) status from {} to {}",
@@ -1025,7 +1031,7 @@ void bulk_load_service::partition_ingestion(const std::string &app_name, const g
                 _meta_svc->tracker(),
                 std::bind(&bulk_load_service::partition_ingestion, this, app_name, pid),
                 pid.thread_hash(),
-                std::chrono::milliseconds(100));
+                std::chrono::seconds(1));
             return;
         }
     }
@@ -1111,22 +1117,19 @@ void bulk_load_service::on_partition_ingestion_reply(error_code err,
                                                      const std::string &app_name,
                                                      const gpid &pid)
 {
-    {
-        zauto_write_lock l(_lock);
-        _apps_ingesting_count[pid.get_app_id()]--;
-    }
-
     if (err == ERR_NO_NEED_OPERATE) {
         dwarn_f(
             "app({}) partition({}) has already executing ingestion, ignore this repeated request",
             app_name,
             pid);
+        decrease_app_ingestion_count(pid);
         return;
     }
 
     // if meet 2pc error, ingesting will rollback to downloading, no need to retry here
     if (err != ERR_OK) {
         derror_f("app({}) partition({}) ingestion files failed, error = {}", app_name, pid, err);
+        decrease_app_ingestion_count(pid);
         tasking::enqueue(
             LPC_META_STATE_NORMAL,
             _meta_svc->tracker(),
@@ -1140,6 +1143,7 @@ void bulk_load_service::on_partition_ingestion_reply(error_code err,
                  app_name,
                  pid,
                  resp.rocksdb_error);
+        decrease_app_ingestion_count(pid);
         tasking::enqueue(LPC_BULK_LOAD_INGESTION,
                          _meta_svc->tracker(),
                          std::bind(&bulk_load_service::partition_ingestion, this, app_name, pid),
@@ -1156,6 +1160,7 @@ void bulk_load_service::on_partition_ingestion_reply(error_code err,
                  pid,
                  resp.err,
                  resp.rocksdb_error);
+        decrease_app_ingestion_count(pid);
         tasking::enqueue(
             LPC_META_STATE_NORMAL,
             _meta_svc->tracker(),
