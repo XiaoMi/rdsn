@@ -1059,6 +1059,15 @@ void bulk_load_service::partition_ingestion(const std::string &app_name, const g
         }
     }
 
+    auto app_status = get_app_bulk_load_status(pid.get_app_id());
+    if (app_status != bulk_load_status::BLS_INGESTING) {
+        dwarn_f("app({}) current status is {}, partition({}), ignore it",
+                app_name,
+                dsn::enum_to_string(app_status),
+                pid);
+        return;
+    }
+
     rpc_address primary_addr;
     {
         zauto_read_lock l(app_lock());
@@ -1071,15 +1080,6 @@ void bulk_load_service::partition_ingestion(const std::string &app_name, const g
             return;
         }
         primary_addr = app->partitions[pid.get_partition_index()].primary;
-    }
-
-    auto app_status = get_app_bulk_load_status(pid.get_app_id());
-    if (app_status != bulk_load_status::BLS_INGESTING) {
-        dwarn_f("app({}) current status is {}, partition({}), ignore it",
-                app_name,
-                dsn::enum_to_string(app_status),
-                pid);
-        return;
     }
 
     if (primary_addr.is_invalid()) {
