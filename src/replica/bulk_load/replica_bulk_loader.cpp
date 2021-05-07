@@ -1,14 +1,28 @@
-// Copyright (c) 2017-present, Xiaomi, Inc.  All rights reserved.
-// This source code is licensed under the Apache License Version 2.0, which
-// can be found in the LICENSE file in the root directory of this source tree.
-
-#include "replica_bulk_loader.h"
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 #include <dsn/dist/block_service.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/fail_point.h>
 #include <dsn/utility/filesystem.h>
+
+#include "replica_bulk_loader.h"
+#include "replica/disk_cleaner.h"
 
 namespace dsn {
 namespace replication {
@@ -341,6 +355,11 @@ error_code replica_bulk_loader::start_download(const std::string &remote_dir,
     }
 
     // reset local bulk load context and state
+    if (_status == bulk_load_status::BLS_INVALID) {
+        // try to remove possible garbage bulk load data when actually starting bulk load
+        remove_local_bulk_load_dir(utils::filesystem::path_combine(
+            _replica->_dir, bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR));
+    }
     if (status() == partition_status::PS_PRIMARY) {
         _replica->_primary_states.cleanup_bulk_load_states();
     }
@@ -414,14 +433,30 @@ error_code replica_bulk_loader::download_sst_files(const std::string &remote_dir
                     remote_dir, local_dir, f_meta.name, fs, f_size);
                 const std::string &file_name =
                     utils::filesystem::path_combine(local_dir, f_meta.name);
-                if (ec == ERR_OK || ec == ERR_PATH_ALREADY_EXIST) {
-                    if (!utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
-                        ec = ERR_CORRUPTION;
-                    } else if (ec == ERR_PATH_ALREADY_EXIST) {
+                bool verified = false;
+                if (ec == ERR_PATH_ALREADY_EXIST) {
+                    if (utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
                         // local file exist and is verified
                         ec = ERR_OK;
                         f_size = f_meta.size;
+                        verified = true;
+                    } else {
+                        derror_replica(
+                            "file({}) exists, but not verified, try to remove local file "
+                            "and redownload it",
+                            file_name);
+                        if (!utils::filesystem::remove_path(file_name)) {
+                            derror_replica("failed to remove file({})", file_name);
+                            ec = ERR_FILE_OPERATION_FAILED;
+                        } else {
+                            ec = _stub->_block_service_manager.download_file(
+                                remote_dir, local_dir, f_meta.name, fs, f_size);
+                        }
                     }
+                }
+                if (ec == ERR_OK && !verified &&
+                    !utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
+                    ec = ERR_CORRUPTION;
                 }
                 if (ec != ERR_OK) {
                     try_decrease_bulk_load_download_count();
@@ -471,8 +506,11 @@ void replica_bulk_loader::update_bulk_load_download_progress(uint64_t file_size,
                                                              const std::string &file_name)
 {
     if (_metadata.file_total_size <= 0) {
-        derror_replica("bulk_load_metadata has invalid file_total_size({})",
-                       _metadata.file_total_size);
+        derror_replica("update downloading file({}) progress failed, metadata has invalid "
+                       "file_total_size({}), current status = {}",
+                       file_name,
+                       _metadata.file_total_size,
+                       enum_to_string(_status));
         return;
     }
 
@@ -579,27 +617,33 @@ void replica_bulk_loader::handle_bulk_load_finish(bulk_load_status::type new_sta
     // remove local bulk load dir
     std::string bulk_load_dir = utils::filesystem::path_combine(
         _replica->_dir, bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR);
-    error_code err = remove_local_bulk_load_dir(bulk_load_dir);
-    if (err != ERR_OK) {
-        tasking::enqueue(
-            LPC_REPLICATION_COMMON,
-            &_replica->_tracker,
-            std::bind(&replica_bulk_loader::remove_local_bulk_load_dir, this, bulk_load_dir),
-            get_gpid().thread_hash());
-    }
-
+    remove_local_bulk_load_dir(bulk_load_dir);
     clear_bulk_load_states();
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-error_code replica_bulk_loader::remove_local_bulk_load_dir(const std::string &bulk_load_dir)
+void replica_bulk_loader::remove_local_bulk_load_dir(const std::string &bulk_load_dir)
 {
-    if (!utils::filesystem::directory_exists(bulk_load_dir) ||
-        !utils::filesystem::remove_path(bulk_load_dir)) {
-        derror_replica("remove bulk_load dir({}) failed", bulk_load_dir);
-        return ERR_FILE_OPERATION_FAILED;
+    if (!utils::filesystem::directory_exists(bulk_load_dir)) {
+        return;
     }
-    return ERR_OK;
+    // Rename bulk_load_dir to ${replica_dir}.bulk_load.timestamp.gar before remove it.
+    // Because we download sst files asynchronously and couldn't remove a directory while writing
+    // files in it.
+    std::string garbage_dir = fmt::format("{}.{}.{}.{}",
+                                          _replica->_dir,
+                                          bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR,
+                                          std::to_string(dsn_now_ms()),
+                                          kFolderSuffixGar);
+    if (!utils::filesystem::rename_path(bulk_load_dir, garbage_dir)) {
+        derror_replica("rename bulk_load dir({}) failed.", bulk_load_dir);
+        return;
+    }
+    if (!utils::filesystem::remove_path(garbage_dir)) {
+        derror_replica(
+            "remove bulk_load gar dir({}) failed, disk cleaner would retry to remove it.",
+            garbage_dir);
+    }
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION

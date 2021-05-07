@@ -1,20 +1,19 @@
-// Copyright (c) 2019, Xiaomi, Inc.  All rights reserved.
-// This source code is licensed under the Apache License Version 2.0, which
-// can be found in the LICENSE file in the root directory of this source tree.
-
-// Copyright (c) 2014 Baidu, Inc.
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 #ifdef DSN_ENABLE_GPERF
 
@@ -474,9 +473,9 @@ void pprof_http_service::profile_handler(const http_request &req, http_response 
 
     useconds_t seconds = 60000000;
 
-    const char *req_url = req.full_url.to_string().data();
+    std::string req_url = req.full_url.to_string();
     size_t len = req.full_url.length();
-    string_splitter url_sp(req_url, req_url + len, '?');
+    string_splitter url_sp(req_url.data(), req_url.data() + len, '?');
     if (url_sp != NULL && ++url_sp != NULL) {
         string_splitter param_sp(url_sp.field(), url_sp.field() + url_sp.length(), '&');
         while (param_sp != NULL) {

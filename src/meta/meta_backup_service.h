@@ -296,6 +296,7 @@ mock_private :
 
     // backup related
     backup_info _cur_backup;
+    bool _is_backup_failed;
     // backup_id --> backup_info
     std::map<int64_t, backup_info> _backup_history;
     backup_progress _progress;
@@ -351,6 +352,7 @@ public:
     std::string get_backup_path(const std::string &policy_name, int64_t backup_id);
 
 private:
+    friend class backup_service_test;
     friend class meta_service_test_app;
 
     FRIEND_TEST(backup_service_test, test_init_backup);

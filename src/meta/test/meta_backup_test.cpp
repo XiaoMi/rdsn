@@ -15,6 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include <dsn/utility/fail_point.h>
+#include <dsn/utility/filesystem.h>
 #include <gtest/gtest.h>
 
 #include "common/backup_utils.h"
@@ -48,11 +50,15 @@ public:
         create_app(_app_name);
     }
 
-    start_backup_app_response start_backup(int32_t app_id, const std::string &provider)
+    start_backup_app_response
+    start_backup(int32_t app_id, const std::string &provider, const std::string &backup_path = "")
     {
         auto request = dsn::make_unique<start_backup_app_request>();
         request->app_id = app_id;
         request->backup_provider_type = provider;
+        if (!backup_path.empty()) {
+            request->__set_backup_path(backup_path);
+        }
 
         start_backup_app_rpc rpc(std::move(request), RPC_CM_START_BACKUP_APP);
         _backup_service->start_backup_app(rpc);
@@ -71,6 +77,41 @@ public:
         _backup_service->query_backup_status(rpc);
         wait_all();
         return rpc.response();
+    }
+
+    bool write_metadata_succeed(int32_t app_id,
+                                int64_t backup_id,
+                                const std::string &user_specified_path)
+    {
+        std::string backup_root = dsn::utils::filesystem::path_combine(
+            user_specified_path, _backup_service->backup_root());
+        auto app = _ms->_state->get_app(app_id);
+        std::string metadata_file =
+            cold_backup::get_app_metadata_file(backup_root, app->app_name, app_id, backup_id);
+
+        int64_t metadata_file_size = 0;
+        if (!dsn::utils::filesystem::file_size(metadata_file, metadata_file_size)) {
+            return false;
+        }
+        return metadata_file_size > 0;
+    }
+
+    void test_specific_backup_path(int32_t test_app_id, const std::string &user_specified_path = "")
+    {
+        auto resp = start_backup(test_app_id, "local_service_empty_root", user_specified_path);
+        ASSERT_EQ(ERR_OK, resp.err);
+        ASSERT_TRUE(resp.__isset.backup_id);
+        ASSERT_EQ(1, _backup_service->_backup_states.size());
+
+        auto backup_engine = _backup_service->_backup_states[0];
+        if (user_specified_path.empty()) {
+            ASSERT_TRUE(backup_engine->_backup_path.empty());
+        } else {
+            ASSERT_EQ(user_specified_path, backup_engine->_backup_path);
+        }
+
+        int64_t backup_id = resp.backup_id;
+        ASSERT_TRUE(write_metadata_succeed(test_app_id, backup_id, user_specified_path));
     }
 
 protected:
@@ -106,6 +147,25 @@ TEST_F(backup_service_test, test_init_backup)
 
     resp = start_backup(2, "local_service");
     ASSERT_EQ(ERR_OK, resp.err);
+}
+
+TEST_F(backup_service_test, test_write_backup_metadata_failed)
+{
+    fail::setup();
+    fail::cfg("mock_local_service_write_failed", "100%1*return(ERR_FS_INTERNAL)");
+
+    // we couldn't start backup an app if write backup metadata failed.
+    auto resp = start_backup(1, "local_service");
+    ASSERT_EQ(ERR_FS_INTERNAL, resp.err);
+
+    fail::teardown();
+}
+
+TEST_F(backup_service_test, test_backup_app_with_no_specific_path) { test_specific_backup_path(1); }
+
+TEST_F(backup_service_test, test_backup_app_with_user_specified_path)
+{
+    test_specific_backup_path(1, "test/backup");
 }
 
 TEST_F(backup_service_test, test_query_backup_status)
@@ -242,6 +302,25 @@ TEST_F(backup_engine_test, test_backup_completed)
     }
     ASSERT_FALSE(is_backup_failed());
     ASSERT_LE(_backup_engine->_cur_backup.start_time_ms, _backup_engine->_cur_backup.end_time_ms);
+}
+
+TEST_F(backup_engine_test, test_write_backup_info_failed)
+{
+    fail::setup();
+    fail::cfg("mock_local_service_write_failed", "100%1*return(ERR_FS_INTERNAL)");
+
+    // finish all partitions backup but write backup info failed.
+    mock_backup_app_partitions();
+    for (int i = 0; i < _partition_count; ++i) {
+        mock_on_backup_reply(/*partition_index=*/i,
+                             ERR_OK,
+                             ERR_OK,
+                             /*progress=*/cold_backup_constant::PROGRESS_FINISHED);
+    }
+    ASSERT_TRUE(is_backup_failed());
+    ASSERT_EQ(0, _backup_engine->_cur_backup.end_time_ms);
+
+    fail::teardown();
 }
 
 } // namespace replication

@@ -18,33 +18,15 @@
 #pragma once
 
 #include <string>
-#include <dsn/cpp/json_helper.h>
-#include <dsn/perf_counter/perf_counter.h>
 
 namespace dsn {
 
-struct perf_counter_metric
+struct service_version
 {
-    std::string name;
-    std::string type;
-    double value;
-    perf_counter_metric() : value(0) {}
-    perf_counter_metric(const char *n, dsn_perf_counter_type_t t, double v)
-        : name(n), type(dsn_counter_type_to_string(t)), value(v)
-    {
-    }
-    DEFINE_JSON_SERIALIZATION(name, type, value)
+    std::string version;
+    std::string git_commit;
 };
 
-/// used for command of querying perf counter
-struct perf_counter_info
-{
-    std::string result; // OK or ERROR
-    int64_t timestamp;  // in seconds
-    std::string timestamp_str;
-    std::vector<perf_counter_metric> counters;
-    perf_counter_info() : timestamp(0) {}
-    DEFINE_JSON_SERIALIZATION(result, timestamp, timestamp_str, counters)
-};
+extern service_version app_version;
 
 } // namespace dsn

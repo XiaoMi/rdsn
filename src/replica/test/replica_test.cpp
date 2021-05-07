@@ -1,14 +1,29 @@
-// Copyright (c) 2017-present, Xiaomi, Inc.  All rights reserved.
-// This source code is licensed under the Apache License Version 2.0, which
-// can be found in the LICENSE file in the root directory of this source tree.
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
+#include <dsn/dist/replication/replica_envs.h>
+#include <dsn/utility/defer.h>
+#include <dsn/utility/fail_point.h>
 #include <gtest/gtest.h>
 
-#include <dsn/utility/fail_point.h>
+#include "common/backup_utils.h"
 #include "replica_test_base.h"
-#include <dsn/utility/defer.h>
-#include <dsn/dist/replication/replica_envs.h>
 #include "replica/replica_http_service.h"
+#include "common/backup_utils.h"
 
 namespace dsn {
 namespace replication {
@@ -16,17 +31,25 @@ namespace replication {
 class replica_test : public replica_test_base
 {
 public:
-    dsn::app_info _app_info;
-    dsn::gpid pid = gpid(2, 1);
-    mock_replica_ptr _mock_replica;
+    replica_test()
+        : pid(gpid(2, 1)),
+          _backup_id(dsn_now_ms()),
+          _provider_name("local_service"),
+          _policy_name("mock_policy")
+    {
+    }
 
-public:
     void SetUp() override
     {
         FLAGS_enable_http_server = false;
         stub->install_perf_counters();
         mock_app_info();
         _mock_replica = stub->generate_replica(_app_info, pid, partition_status::PS_PRIMARY, 1);
+
+        // set cold_backup_root manually.
+        // `cold_backup_root` is set by configuration "replication.cold_backup_root",
+        // which is usually the cluster_name of production clusters.
+        _mock_replica->_options->cold_backup_root = "test_cluster";
     }
 
     int get_write_size_exceed_threshold_count()
@@ -64,6 +87,64 @@ public:
         _app_info.max_replica_count = 3;
         _app_info.partition_count = 8;
     }
+
+    void test_on_cold_backup(const std::string user_specified_path = "")
+    {
+        backup_request req;
+        req.pid = pid;
+        policy_info backup_policy_info;
+        backup_policy_info.__set_backup_provider_type(_provider_name);
+        backup_policy_info.__set_policy_name(_policy_name);
+        req.policy = backup_policy_info;
+        req.app_name = _app_info.app_name;
+        req.backup_id = _backup_id;
+        if (!user_specified_path.empty()) {
+            req.__set_backup_path(user_specified_path);
+        }
+
+        // test cold backup could complete.
+        backup_response resp;
+        do {
+            _mock_replica->on_cold_backup(req, resp);
+        } while (resp.err == ERR_BUSY);
+        ASSERT_EQ(ERR_OK, resp.err);
+
+        // test checkpoint files have been uploaded successfully.
+        std::string backup_root = dsn::utils::filesystem::path_combine(
+            user_specified_path, _mock_replica->_options->cold_backup_root);
+        std::string current_chkpt_file =
+            cold_backup::get_current_chkpt_file(backup_root, req.app_name, req.pid, req.backup_id);
+        ASSERT_TRUE(dsn::utils::filesystem::file_exists(current_chkpt_file));
+        int64_t size = 0;
+        dsn::utils::filesystem::file_size(current_chkpt_file, size);
+        ASSERT_LT(0, size);
+    }
+
+    error_code test_find_valid_checkpoint(const std::string user_specified_path = "")
+    {
+        configuration_restore_request req;
+        req.app_id = _app_info.app_id;
+        req.app_name = _app_info.app_name;
+        req.backup_provider_name = _provider_name;
+        req.cluster_name = _mock_replica->_options->cold_backup_root;
+        req.time_stamp = _backup_id;
+        if (!user_specified_path.empty()) {
+            req.__set_restore_path(user_specified_path);
+        }
+
+        std::string remote_chkpt_dir;
+        return _mock_replica->find_valid_checkpoint(req, remote_chkpt_dir);
+    }
+
+public:
+    dsn::app_info _app_info;
+    dsn::gpid pid;
+    mock_replica_ptr _mock_replica;
+
+private:
+    const int64_t _backup_id;
+    const std::string _provider_name;
+    const std::string _policy_name;
 };
 
 TEST_F(replica_test, write_size_limited)
@@ -112,7 +193,7 @@ TEST_F(replica_test, query_data_version_test)
                  {"wrong", http_status_code::bad_request, "invalid app_id=wrong"},
                  {"2",
                   http_status_code::ok,
-                  R"({"1":{"pidx":"1","data_version":"1"}})"},
+                  R"({"1":{"data_version":"1"}})"},
                  {"4", http_status_code::not_found, "app_id=4 not found"}};
     for (const auto &test : tests) {
         http_request req;
@@ -123,9 +204,6 @@ TEST_F(replica_test, query_data_version_test)
         http_svc.query_app_data_version_handler(req, resp);
         ASSERT_EQ(resp.status_code, test.expected_code);
         std::string expected_json = test.expected_response_json;
-        if (test.expected_code == http_status_code::ok) {
-            expected_json += "\n";
-        }
         ASSERT_EQ(resp.body, expected_json);
     }
 }
@@ -138,28 +216,23 @@ TEST_F(replica_test, query_compaction_test)
         std::string app_id;
         http_status_code expected_code;
         std::string expected_response_json;
-    } tests[] = {
-        {"", http_status_code::bad_request, "app_id should not be empty"},
-        {"xxx", http_status_code::bad_request, "invalid app_id=xxx"},
-        {"2",
-         http_status_code::ok,
-         R"({"status":{"CompactionRunning":"0","CompactionQueue":"0","CompactionFinish":"1"}})"},
-        {"4",
-         http_status_code::ok,
-         R"({"status":{"CompactionRunning":"0","CompactionQueue":"0","CompactionFinish":"0"}})"}};
+    } tests[] = {{"", http_status_code::bad_request, "app_id should not be empty"},
+                 {"xxx", http_status_code::bad_request, "invalid app_id=xxx"},
+                 {"2",
+                  http_status_code::ok,
+                  R"({"status":{"finished":0,"idle":1,"queuing":0,"running":0}})"},
+                 {"4",
+                  http_status_code::ok,
+                  R"({"status":{"finished":0,"idle":0,"queuing":0,"running":0}})"}};
     for (const auto &test : tests) {
         http_request req;
         http_response resp;
         if (!test.app_id.empty()) {
             req.query_args["app_id"] = test.app_id;
         }
-        http_svc.query_compaction_handler(req, resp);
+        http_svc.query_manual_compaction_handler(req, resp);
         ASSERT_EQ(resp.status_code, test.expected_code);
-        std::string expected_json = test.expected_response_json;
-        if (test.expected_code == http_status_code::ok) {
-            expected_json += "\n";
-        }
-        ASSERT_EQ(resp.body, expected_json);
+        ASSERT_EQ(resp.body, test.expected_response_json);
     }
 }
 
@@ -184,6 +257,21 @@ TEST_F(replica_test, update_validate_partition_hash_test)
         ASSERT_EQ(get_validate_partition_hash(), test.expected_value);
         reset_validate_partition_hash();
     }
+}
+
+TEST_F(replica_test, test_replica_backup_and_restore)
+{
+    test_on_cold_backup();
+    auto err = test_find_valid_checkpoint();
+    ASSERT_EQ(ERR_OK, err);
+}
+
+TEST_F(replica_test, test_replica_backup_and_restore_with_specific_path)
+{
+    std::string user_specified_path = "test/backup";
+    test_on_cold_backup(user_specified_path);
+    auto err = test_find_valid_checkpoint(user_specified_path);
+    ASSERT_EQ(ERR_OK, err);
 }
 
 } // namespace replication

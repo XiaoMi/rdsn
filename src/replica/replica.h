@@ -72,7 +72,7 @@ class replica_disk_migrator;
 
 class cold_backup_context;
 typedef dsn::ref_ptr<cold_backup_context> cold_backup_context_ptr;
-class cold_backup_metadata;
+struct cold_backup_metadata;
 
 namespace test {
 class test_checker;
@@ -80,9 +80,10 @@ class test_checker;
 
 enum manual_compaction_status
 {
-    kFinish = 0,
+    kIdle = 0,
+    kQueuing,
     kRunning,
-    kQueue
+    kFinished
 };
 const char *manual_compaction_status_to_string(manual_compaction_status status);
 
@@ -369,7 +370,7 @@ private:
 
     /////////////////////////////////////////////////////////////////
     // cold backup
-    void generate_backup_checkpoint(cold_backup_context_ptr backup_context);
+    virtual void generate_backup_checkpoint(cold_backup_context_ptr backup_context);
     void trigger_async_checkpoint_for_backup(cold_backup_context_ptr backup_context);
     void wait_async_checkpoint_for_backup(cold_backup_context_ptr backup_context);
     void local_create_backup_checkpoint(cold_backup_context_ptr backup_context);
@@ -408,10 +409,10 @@ private:
     // Used for remote command
     // TODO: remove this interface and only expose the http interface
     // now this remote commend will be used by `scripts/pegasus_manual_compact.sh`
-    std::string query_compact_state() const;
+    std::string query_manual_compact_state() const;
 
     // Used for http interface
-    manual_compaction_status get_compact_status() const;
+    manual_compaction_status get_manual_compact_status() const;
 
     void init_table_level_latency_counters();
 
@@ -529,7 +530,6 @@ private:
     throttling_controller _write_qps_throttling_controller;  // throttling by requests-per-second
     throttling_controller _write_size_throttling_controller; // throttling by bytes-per-second
     throttling_controller _read_qps_throttling_controller;
-    throttling_controller _read_size_throttling_controller;
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;

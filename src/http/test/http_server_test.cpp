@@ -1,6 +1,19 @@
-// Copyright (c) 2018, Xiaomi, Inc.  All rights reserved.
-// This source code is licensed under the Apache License Version 2.0, which
-// can be found in the LICENSE file in the root directory of this source tree.
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 #include <dsn/http/http_server.h>
 #include <gtest/gtest.h>
@@ -44,6 +57,17 @@ TEST(http_server, parse_url)
             ASSERT_EQ(res.get_error().code(), tt.err);
         }
     }
+}
+
+TEST(bultin_http_calls_test, meta_query)
+{
+    http_request req;
+    http_response resp;
+    get_recent_start_time_handler(req, resp);
+    ASSERT_EQ(resp.status_code, http_status_code::ok);
+
+    get_version_handler(req, resp);
+    ASSERT_EQ(resp.status_code, http_status_code::ok);
 }
 
 TEST(bultin_http_calls_test, get_help)
