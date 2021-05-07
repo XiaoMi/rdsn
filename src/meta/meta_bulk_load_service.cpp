@@ -1073,6 +1073,15 @@ void bulk_load_service::partition_ingestion(const std::string &app_name, const g
         primary_addr = app->partitions[pid.get_partition_index()].primary;
     }
 
+    auto app_status = get_app_bulk_load_status(pid.get_app_id());
+    if (app_status != bulk_load_status::BLS_INGESTING) {
+        dwarn_f("app({}) current status is {}, partition({}), ignore it",
+                app_name,
+                dsn::enum_to_string(app_status),
+                pid);
+        return;
+    }
+
     if (primary_addr.is_invalid()) {
         dwarn_f("app({}) partition({}) primary is invalid, try it later", app_name, pid);
         tasking::enqueue(LPC_META_STATE_NORMAL,
