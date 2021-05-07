@@ -1004,6 +1004,7 @@ void bulk_load_service::update_app_status_on_remote_storage_reply(const app_bulk
         _app_bulk_load_info[app_id] = ainfo;
         _apps_pending_sync_flag[app_id] = false;
         _apps_in_progress_count[app_id] = partition_count;
+        // when rollback from ingesting, ingesting_count should be reset
         if (old_status == bulk_load_status::BLS_INGESTING &&
             new_status == bulk_load_status::BLS_DOWNLOADING) {
             _apps_ingesting_count[app_id] = 0;
