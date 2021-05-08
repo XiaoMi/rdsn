@@ -77,6 +77,8 @@ void partition_resolver_simple::on_access_failure(int partition_index, error_cod
         err != ERR_OPERATION_DISABLED // operation disabled
         &&
         err != ERR_BUSY //  busy (rpc busy or throttling busy)
+        &&
+        err != ERR_DISK_INSUFFICIENT // replica disk space is insufficient
         ) {
         ddebug("clear partition configuration cache %d.%d due to access failure %s",
                _app_id,
