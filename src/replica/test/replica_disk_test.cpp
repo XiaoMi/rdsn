@@ -198,5 +198,23 @@ TEST_F(replica_disk_test, gc_disk_useless_dir)
     ASSERT_EQ(report.error_replica_count, 2);
 }
 
+TEST_F(replica_disk_test, broken_disk_test)
+{
+    // Test cases:
+    // create: true, check_rw: true
+    // create: true, check_rw: false
+    // create: false
+    struct broken_disk_test
+    {
+        std::string mock_create_dir;
+        std::string mock_rw_flag;
+        int32_t data_dir_size;
+    } tests[]{{"true", "true", 3}, {"true", "false", 2}, {"false", "false", 2}};
+    for (const auto &test : tests) {
+        ASSERT_EQ(test.data_dir_size,
+                  ignore_broken_disk_test(test.mock_create_dir, test.mock_rw_flag));
+    }
+}
+
 } // namespace replication
 } // namespace dsn

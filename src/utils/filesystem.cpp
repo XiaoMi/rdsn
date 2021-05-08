@@ -37,6 +37,7 @@
 
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/fail_point.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/safe_strerror_posix.h>
@@ -823,6 +824,78 @@ bool verify_file(const std::string &fname,
                  expected_md5);
         return false;
     }
+    return true;
+}
+
+bool create_directory(const std::string &path, std::string &absolute_path, std::string &err_msg)
+{
+    FAIL_POINT_INJECT_F("filesystem_create_directory", [path](string_view str) {
+        // when str contains 'false', and path contains broken_disk_dir, mock create fail(return
+        // false)
+        std::string broken_disk_dir = "disk1";
+        return str.find("false") == string_view::npos ||
+               path.find(broken_disk_dir) == std::string::npos;
+    });
+
+    if (!create_directory(path)) {
+        err_msg = fmt::format("Fail to create directory {}.", path);
+        return false;
+    }
+    if (!get_absolute_path(path, absolute_path)) {
+        err_msg = fmt::format("Fail to get absolute path from {}.", path);
+        return false;
+    }
+    return true;
+}
+
+bool write_file(const std::string &fname, std::string &buf)
+{
+    if (!file_exists(fname)) {
+        derror_f("file({}) doesn't exist", fname);
+        return false;
+    }
+
+    std::ofstream fstream;
+    fstream.open(fname.c_str());
+    fstream << buf;
+    fstream.close();
+    return true;
+}
+
+bool check_dir_rw(const std::string &path, std::string &err_msg)
+{
+    FAIL_POINT_INJECT_F("filesystem_check_dir_rw", [path](string_view str) {
+        // when str contains 'false', and path contains broken_disk_dir, mock check fail(return
+        // false)
+        std::string broken_disk_dir = "disk1";
+        return str.find("false") == string_view::npos ||
+               path.find(broken_disk_dir) == std::string::npos;
+    });
+
+    std::string fname = "read_write_test_file";
+    std::string fpath = path_combine(path, fname);
+    if (!create_file(fpath)) {
+        err_msg = fmt::format("Fail to create test file {}.", fpath);
+        return false;
+    }
+
+    std::string value = "test_value";
+    if (!write_file(fpath, value)) {
+        err_msg = fmt::format("Fail to write file {}.", fpath);
+        return false;
+    }
+
+    std::string buf;
+    if (read_file(fpath, buf) != ERR_OK) {
+        err_msg = fmt::format("Fail to read file {}.", fpath);
+        return false;
+    }
+
+    if (!remove_path(fpath)) {
+        err_msg = fmt::format("Fail to remove test file {}.", fpath);
+        return false;
+    }
+
     return true;
 }
 

@@ -136,6 +136,16 @@ bool verify_file(const std::string &fname,
                  const std::string &expected_md5,
                  const int64_t &expected_fsize);
 
+// create driectory and get absolute path
+bool create_directory(const std::string &path,
+                      /*out*/ std::string &absolute_path,
+                      /*out*/ std::string &err_msg);
+
+bool write_file(const std::string &fname, std::string &buf);
+
+// check if directory is readable and writable
+bool check_dir_rw(const std::string &path, /*out*/ std::string &err_msg);
+
 } // namespace filesystem
 } // namespace utils
 } // namespace dsn
