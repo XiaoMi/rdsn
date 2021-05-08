@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/rand.h>
 #include <dsn/tool-api/async_calls.h>
@@ -49,12 +50,12 @@ void partition_resolver_simple::resolve(uint64_t partition_hash,
         idx = get_partition_index(_app_partition_count, partition_hash);
         rpc_address target;
         auto err = get_address(idx, target);
-        if (err == ERR_CHILD_NOT_READY) {
+        if (dsn_unlikely(err == ERR_CHILD_NOT_READY)) {
             // child partition is not ready, its requests should be sent to parent partition
             idx -= _app_partition_count / 2;
             err = get_address(idx, target);
         }
-        if (err == ERR_OK) {
+        if (dsn_likely(err == ERR_OK)) {
             callback(resolve_result{ERR_OK, target, {_app_id, idx}});
             return;
         }
@@ -91,16 +92,16 @@ void partition_resolver_simple::on_access_failure(int partition_index, error_cod
 
     zauto_write_lock l(_config_lock);
     if (err == ERR_PARENT_PARTITION_MISUSED) {
-        ddebug("clear all partition configuration cache due to access failure %s at %d.%d",
-               err.to_string(),
-               _app_id,
-               partition_index);
+        ddebug_f("clear all partition configuration cache due to access failure {} at {}.{}",
+                 err,
+                 _app_id,
+                 partition_index);
         _app_partition_count = -1;
     } else {
-        ddebug("clear partition configuration cache %d.%d due to access failure %s",
-               _app_id,
-               partition_index,
-               err.to_string());
+        ddebug_f("clear partition configuration cache {}.{} due to access failure {}",
+                 _app_id,
+                 partition_index,
+                 err);
         auto it = _config_cache.find(partition_index);
         if (it != _config_cache.end()) {
             _config_cache.erase(it);
