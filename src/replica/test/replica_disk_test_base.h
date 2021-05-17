@@ -146,7 +146,7 @@ private:
             dir_node *node_disk =
                 new dir_node(fmt::format("tag_empty_{}", num), fmt::format("./tag_empty_{}", num));
             stub->_fs_manager._dir_nodes.emplace_back(node_disk);
-            stub->_options.data_dirs.push_back(node_disk->full_dir);
+            stub->_fs_manager._available_data_dirs.emplace_back(node_disk->full_dir);
             utils::filesystem::create_directory(node_disk->full_dir);
             num--;
         }
@@ -175,7 +175,7 @@ private:
                                                disk_available_mb,
                                                disk_available_ratio);
 
-            stub->_options.data_dirs.push_back(
+            stub->_fs_manager._available_data_dirs.emplace_back(
                 node_disk->full_dir); // open replica need the options
             utils::filesystem::create_directory(node_disk->full_dir);
 
