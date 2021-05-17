@@ -102,10 +102,7 @@ void partition_resolver_simple::on_access_failure(int partition_index, error_cod
                  _app_id,
                  partition_index,
                  err);
-        auto it = _config_cache.find(partition_index);
-        if (it != _config_cache.end()) {
-            _config_cache.erase(it);
-        }
+        _config_cache.erase(partition_index);
     }
 }
 
