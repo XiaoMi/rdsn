@@ -101,8 +101,8 @@ public:
     mock_node_status(int32_t node_index, disk_status::type old_status, disk_status::type new_status)
     {
         auto node = get_dir_nodes()[node_index];
-        for (auto &kv : node->holding_replicas) {
-            for (auto &pid : kv.second) {
+        for (const auto &kv : node->holding_replicas) {
+            for (const auto &pid : kv.second) {
                 update_replica_disk_status(pid, old_status);
             }
         }
