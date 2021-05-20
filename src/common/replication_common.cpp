@@ -553,7 +553,7 @@ replication_options::get_data_dir_and_tag(const std::string &config_dirs_str,
     }
 
     for (unsigned i = 0; i < dirs.size(); ++i) {
-        std::string &dir = dirs[i];
+        const std::string &dir = dirs[i];
         ddebug_f("data_dirs[{}] = {}, tag = {}", i + 1, dir, dir_tags[i]);
         data_dirs.push_back(utils::filesystem::path_combine(dir, "reps"));
         data_dir_tags.push_back(dir_tags[i]);
@@ -570,7 +570,7 @@ replication_options::get_data_dirs_in_black_list(const std::string &fname,
         return;
     }
 
-    ddebug_f("data_dirs_black_list_file[{}] found, apply it", fname.c_str());
+    ddebug_f("data_dirs_black_list_file[{}] found, apply it", fname);
     std::ifstream file(fname);
     if (!file) {
         dassert_f(false, "open data_dirs_black_list_file failed: {}", fname);
@@ -579,7 +579,7 @@ replication_options::get_data_dirs_in_black_list(const std::string &fname,
     std::string str;
     int count = 0;
     while (std::getline(file, str)) {
-        std::string str2 = utils::trim_string((char *)str.c_str());
+        std::string str2 = utils::trim_string(const_cast<char *>(str.c_str()));
         if (str2.empty())
             continue;
         if (str2.back() != '/')
