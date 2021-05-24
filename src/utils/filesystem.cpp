@@ -886,8 +886,8 @@ bool check_dir_rw(const std::string &path, std::string &err_msg)
     }
 
     std::string buf;
-    if (read_file(fpath, buf) != ERR_OK) {
-        err_msg = fmt::format("Fail to read file {}.", fpath);
+    if (read_file(fpath, buf) != ERR_OK || buf != value) {
+        err_msg = fmt::format("Fail to read file {} or get wrong value({}).", fpath, buf);
         return false;
     }
 
