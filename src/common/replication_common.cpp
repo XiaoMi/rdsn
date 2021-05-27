@@ -141,10 +141,7 @@ void replication_options::initialize()
         dsn_config_get_value_string("replication", "data_dirs", "", "replica directory list");
     std::vector<std::string> config_data_dirs;
     std::vector<std::string> config_data_dir_tags;
-    std::string error_msg = "";
-    bool flag = get_data_dir_and_tag(
-        dirs_str, app_dir, app_name, config_data_dirs, config_data_dir_tags, error_msg);
-    dassert_f(flag, error_msg);
+    get_data_dir_and_tag(dirs_str, app_dir, app_name, config_data_dirs, config_data_dir_tags);
 
     // check if data_dir in black list, data_dirs doesn't contain dir in black list
     std::string black_list_file =
@@ -498,13 +495,12 @@ void replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &se
     dassert(servers.size() > 0, "no meta server specified in config [%s].%s", section, key);
 }
 
-/*static*/ bool
+/*static*/ void
 replication_options::get_data_dir_and_tag(const std::string &config_dirs_str,
                                           const std::string &default_dir,
                                           const std::string &app_name,
                                           /*out*/ std::vector<std::string> &data_dirs,
-                                          /*out*/ std::vector<std::string> &data_dir_tags,
-                                          /*out*/ std::string &err_msg)
+                                          /*out*/ std::vector<std::string> &data_dir_tags)
 {
     // - if {config_dirs_str} is empty (return true):
     //   - dir = {default_dir}
@@ -527,25 +523,21 @@ replication_options::get_data_dir_and_tag(const std::string &config_dirs_str,
             std::vector<std::string> tag_and_dir;
             utils::split_args(dir.c_str(), tag_and_dir, ':');
             if (tag_and_dir.size() != 2) {
-                err_msg = fmt::format("invalid data_dir item({}) in config", dir);
-                return false;
+                dassert_f("invalid data_dir item({}) in config", dir);
             }
             if (tag_and_dir[0].empty() || tag_and_dir[1].empty()) {
-                err_msg = fmt::format("invalid data_dir item({}) in config", dir);
-                return false;
+                dassert_f("invalid data_dir item({}) in config", dir);
             }
             dir = utils::filesystem::path_combine(tag_and_dir[1], app_name);
             for (unsigned i = 0; i < dir_tags.size(); ++i) {
                 if (dirs[i] == dir) {
-                    err_msg = fmt::format("dir({}) and dir({}) conflict", dirs[i], dir);
-                    return false;
+                    dassert_f("dir({}) and dir({}) conflict", dirs[i], dir);
                 }
             }
             for (unsigned i = 0; i < dir_tags.size(); ++i) {
                 if (dir_tags[i] == tag_and_dir[0]) {
-                    err_msg = fmt::format(
+                    dassert_f(
                         "dir({}) and dir({}) have same tag({})", dirs[i], dir, tag_and_dir[0]);
-                    return false;
                 }
             }
             dir_tags.push_back(tag_and_dir[0]);
@@ -558,7 +550,6 @@ replication_options::get_data_dir_and_tag(const std::string &config_dirs_str,
         data_dirs.push_back(utils::filesystem::path_combine(dir, "reps"));
         data_dir_tags.push_back(dir_tags[i]);
     }
-    return true;
 }
 
 /*static*/ void

@@ -31,34 +31,18 @@ TEST(replication_common, get_data_dir_test)
 {
     std::vector<std::string> data_dirs;
     std::vector<std::string> data_dir_tags;
-    std::string err_msg = "";
-
-    // Test cases:
-    // - default dir: ""
-    // - invalid dir:
-    //   - "wrong_dir"
-    //   - "tag:dir:wrong"
-    //   - "tag:"
-    //   - "tag1:disk,tag2,disk"
-    //   - "tag:disk1,tag:disk2"
-    // - valid: "tag1:disk1,tag2:disk2"
     struct get_data_dir_test
     {
         std::string data_dir_str;
-        bool expected_val;
-    } tests[] = {{"", true},
-                 {"wrong_dir", false},
-                 {"tag:dir:wrong", false},
-                 {"tag:", false},
-                 {"tag1:disk,tag2,disk", false},
-                 {"tag:disk1,tag:disk2", false},
-                 {"tag1:disk1,tag2:disk2", true}};
+        int32_t expected_length;
+    } tests[] = {{"", 1}, {"tag1:disk1", 1}, {"tag1:disk1, ", 1}, {"tag1:disk1,tag2:disk2", 2}};
     for (const auto &test : tests) {
         data_dirs.clear();
         data_dir_tags.clear();
-        ASSERT_EQ(replication_options::get_data_dir_and_tag(
-                      test.data_dir_str, "test_dir", "replica", data_dirs, data_dir_tags, err_msg),
-                  test.expected_val);
+        replication_options::get_data_dir_and_tag(
+            test.data_dir_str, "test_dir", "replica", data_dirs, data_dir_tags);
+        ASSERT_EQ(data_dirs.size(), data_dir_tags.size());
+        ASSERT_EQ(data_dirs.size(), test.expected_length);
     }
 }
 
