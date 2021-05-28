@@ -591,8 +591,9 @@ replication_options::check_if_in_black_list(const std::vector<std::string> &blac
     bool in_black_list = false;
     std::string dir_str = dir;
     if (!black_list_dir.empty()) {
-        if (dir_str.back() != '/')
+        if (dir_str.back() != '/') {
             dir_str.append("/");
+        }
         for (const std::string &black : black_list_dir) {
             if (dir_str.find(black) == 0) {
                 in_black_list = true;
