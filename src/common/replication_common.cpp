@@ -580,7 +580,6 @@ replication_options::get_data_dirs_in_black_list(const std::string &fname,
         dirs.push_back(str2);
         count++;
         ddebug_f("black_list[{}] = [{}]", count, str2);
-        str.clear();
     }
 }
 
@@ -588,7 +587,6 @@ replication_options::get_data_dirs_in_black_list(const std::string &fname,
 replication_options::check_if_in_black_list(const std::vector<std::string> &black_list_dir,
                                             const std::string &dir)
 {
-    bool in_black_list = false;
     std::string dir_str = dir;
     if (!black_list_dir.empty()) {
         if (dir_str.back() != '/') {
@@ -596,12 +594,11 @@ replication_options::check_if_in_black_list(const std::vector<std::string> &blac
         }
         for (const std::string &black : black_list_dir) {
             if (dir_str.find(black) == 0) {
-                in_black_list = true;
-                break;
+                return true;
             }
         }
     }
-    return in_black_list;
+    return false;
 }
 
 const std::string backup_restore_constant::FORCE_RESTORE("restore.force_restore");
