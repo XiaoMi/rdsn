@@ -95,6 +95,7 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
 {
 #ifdef DSN_ENABLE_GPERF
     _release_tcmalloc_memory_command = nullptr;
+    _get_tcmalloc_status_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
 #endif
     _replica_state_subscriber = subscriber;
@@ -1880,6 +1881,7 @@ void replica_stub::on_disk_stat()
     dsn::replication::disk_remove_useless_dirs(_fs_manager.get_available_data_dirs(), report);
     _fs_manager.update_disk_stat();
     update_disk_holding_replicas();
+    update_disks_status();
 
     _counter_replicas_error_replica_dir_count->set(report.error_replica_count);
     _counter_replicas_garbage_replica_dir_count->set(report.garbage_replica_count);
@@ -2300,6 +2302,16 @@ void replica_stub::register_ctrl_command()
                     _release_tcmalloc_memory, "release-tcmalloc-memory", args);
             });
 
+        _get_tcmalloc_status_command = ::dsn::command_manager::instance().register_command(
+            {"replica.get-tcmalloc-status"},
+            "replica.get-tcmalloc-status",
+            "replica.get-tcmalloc-status - get status of tcmalloc",
+            [](const std::vector<std::string> &args) {
+                char buf[4096];
+                MallocExtension::instance()->GetStats(buf, 4096);
+                return std::string(buf);
+            });
+
         _max_reserved_memory_percentage_command = dsn::command_manager::instance().register_command(
             {"replica.mem-release-max-reserved-percentage"},
             "replica.mem-release-max-reserved-percentage [num | DEFAULT]",
@@ -2481,6 +2493,7 @@ void replica_stub::close()
     UNREGISTER_VALID_HANDLER(_query_app_envs_command);
 #ifdef DSN_ENABLE_GPERF
     UNREGISTER_VALID_HANDLER(_release_tcmalloc_memory_command);
+    UNREGISTER_VALID_HANDLER(_get_tcmalloc_status_command);
     UNREGISTER_VALID_HANDLER(_max_reserved_memory_percentage_command);
 #endif
     UNREGISTER_VALID_HANDLER(_max_concurrent_bulk_load_downloading_count_command);
@@ -2494,6 +2507,7 @@ void replica_stub::close()
     _query_app_envs_command = nullptr;
 #ifdef DSN_ENABLE_GPERF
     _release_tcmalloc_memory_command = nullptr;
+    _get_tcmalloc_status_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
 #endif
     _max_concurrent_bulk_load_downloading_count_command = nullptr;
@@ -2872,6 +2886,25 @@ void replica_stub::query_app_manual_compact_status(
     for (auto it = _replicas.begin(); it != _replicas.end(); ++it) {
         if (it->first.get_app_id() == app_id) {
             status[it->first] = it->second->get_manual_compact_status();
+        }
+    }
+}
+
+void replica_stub::update_disks_status()
+{
+    for (const auto &dir_node : _fs_manager._status_updated_dir_nodes) {
+        for (const auto &holding_replicas : dir_node->holding_replicas) {
+            const std::set<gpid> &pids = holding_replicas.second;
+            for (const auto &pid : pids) {
+                replica_ptr replica = get_replica(pid);
+                if (replica == nullptr) {
+                    continue;
+                }
+                replica->set_disk_status(dir_node->status);
+                ddebug_f("{} update disk_status to {}",
+                         replica->name(),
+                         enum_to_string(replica->get_disk_status()));
+            }
         }
     }
 }

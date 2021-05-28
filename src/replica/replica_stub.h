@@ -278,6 +278,8 @@ private:
                          error_code error);
     void update_disk_holding_replicas();
 
+    void update_disks_status();
+
     void register_ctrl_command();
 
     int get_app_id_from_replicas(std::string app_name)
@@ -366,6 +368,7 @@ private:
     dsn_handle_t _query_app_envs_command;
 #ifdef DSN_ENABLE_GPERF
     dsn_handle_t _release_tcmalloc_memory_command;
+    dsn_handle_t _get_tcmalloc_status_command;
     dsn_handle_t _max_reserved_memory_percentage_command;
 #endif
     dsn_handle_t _max_concurrent_bulk_load_downloading_count_command;
