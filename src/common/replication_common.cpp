@@ -556,7 +556,7 @@ replication_options::get_data_dir_and_tag(const std::string &config_dirs_str,
 replication_options::get_data_dirs_in_black_list(const std::string &fname,
                                                  /*out*/ std::vector<std::string> &dirs)
 {
-    if (fname.empty() || (!fname.empty() && !utils::filesystem::file_exists(fname))) {
+    if (fname.empty() || !utils::filesystem::file_exists(fname)) {
         ddebug_f("data_dirs_black_list_file[{}] not found, ignore it", fname);
         return;
     }
