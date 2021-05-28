@@ -571,10 +571,12 @@ replication_options::get_data_dirs_in_black_list(const std::string &fname,
     int count = 0;
     while (std::getline(file, str)) {
         std::string str2 = utils::trim_string(const_cast<char *>(str.c_str()));
-        if (str2.empty())
+        if (str2.empty()) {
             continue;
-        if (str2.back() != '/')
+        }
+        if (str2.back() != '/') {
             str2.append("/");
+        }
         dirs.push_back(str2);
         count++;
         ddebug_f("black_list[{}] = [{}]", count, str2);
