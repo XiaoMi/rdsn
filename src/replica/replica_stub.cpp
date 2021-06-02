@@ -786,8 +786,8 @@ void replica_stub::initialize_fs_manager(std::vector<std::string> &data_dirs,
     std::vector<std::string> available_dir_tags;
     for (int i = 0; i < data_dir_tags.size(); ++i) {
         std::string &dir = data_dirs[i];
-        if (!utils::filesystem::create_directory(dir, cdir, err_msg) ||
-            !utils::filesystem::check_dir_rw(dir, err_msg)) {
+        if (dsn_unlikely(!utils::filesystem::create_directory(dir, cdir, err_msg)) ||
+            dsn_unlikely(!utils::filesystem::check_dir_rw(dir, err_msg))) {
             if (FLAGS_ignore_broken_disk) {
                 dwarn_f("data dir[{}] is broken, ignore it, error:{}", dir, err_msg);
             } else {

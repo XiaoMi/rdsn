@@ -144,6 +144,7 @@ bool create_directory(const std::string &path,
 bool write_file(const std::string &fname, std::string &buf);
 
 // check if directory is readable and writable
+// call `create_directory` before to make `path` exist
 bool check_dir_rw(const std::string &path, /*out*/ std::string &err_msg);
 
 } // namespace filesystem

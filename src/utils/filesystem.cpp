@@ -882,12 +882,14 @@ bool check_dir_rw(const std::string &path, std::string &err_msg)
     std::string value = "test_value";
     if (!write_file(fpath, value)) {
         err_msg = fmt::format("Fail to write file {}.", fpath);
+        remove_path(fpath);
         return false;
     }
 
     std::string buf;
     if (read_file(fpath, buf) != ERR_OK || buf != value) {
         err_msg = fmt::format("Fail to read file {} or get wrong value({}).", fpath, buf);
+        remove_path(fpath);
         return false;
     }
 
