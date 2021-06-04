@@ -916,6 +916,25 @@ int64_t mutation_log::total_size_no_lock() const
     return _log_files.size() > 0 ? _global_end_offset - _global_start_offset : 0;
 }
 
+error_code mutation_log::reset_from(const std::string &dir,
+                                    io_failure_callback write_error_callback)
+{
+
+    if (utils::filesystem::remove_path(_dir)) {
+        derror_f("remove {} failed", _dir);
+        write_error_callback(ERR_FILE_OPERATION_FAILED);
+        return ERR_FILE_OPERATION_FAILED;
+    }
+    return ERR_OK;
+
+    if (utils::filesystem::rename_path(dir, _dir)) {
+        derror_f("rename {} to {} failed", dir, _dir);
+        write_error_callback(ERR_FILE_OPERATION_FAILED);
+        return ERR_FILE_OPERATION_FAILED;
+    }
+    return ERR_OK;
+}
+
 void mutation_log::set_valid_start_offset_on_open(gpid gpid, int64_t valid_start_offset)
 {
     zauto_lock l(_lock);
