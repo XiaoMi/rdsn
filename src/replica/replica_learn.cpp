@@ -579,7 +579,8 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
         return;
     }
 
-    ddebug("%s: on_learn_reply_start=>jiashuo_debug[%016" PRIx64 "]: learnee = %s, learn_duration = %" PRIu64
+    ddebug("%s: on_learn_reply_start=>jiashuo_debug[%016" PRIx64
+           "]: learnee = %s, learn_duration = %" PRIu64
            " ms, response_err = %s, remote_committed_decree = %" PRId64 ", "
            "prepare_start_decree = %" PRId64 ", learn_type = %s, learned_buffer_size = %u, "
            "learned_file_count = %u, to_decree_included = %" PRId64
@@ -1532,11 +1533,16 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     // after applied:    [---------------log----------------]
 
     bool step_back = false;
-    derror_replica("start=>jiashuo_debug: step back={}, start={}, last_commit_decree={}, dup={}",
-                   step_back,
-                   state.learn_start_decree,
-                   _app->last_committed_decree(),
-                   duplicating);
+
+    if (state.__isset.learn_start_decree) {
+        derror_replica(
+            "start=>jiashuo_debug: step back={}, start={}, last_commit_decree={}, dup={}",
+            step_back,
+            state.learn_start_decree,
+            _app->last_committed_decree(),
+            duplicating);
+    }
+    
     if (duplicating && state.__isset.learn_start_decree &&
         state.learn_start_decree < _app->last_committed_decree() + 1) {
         dwarn_replica("jiashuo_debug: learn_start_decree({}) < _app->last_committed_decree() + "
