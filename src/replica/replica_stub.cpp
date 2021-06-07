@@ -1162,16 +1162,16 @@ void replica_stub::on_add_new_disk(add_new_disk_rpc rpc)
             return;
         }
 
-        if (utils::filesystem::directory_exists(dir) &&
-            !utils::filesystem::is_directory_empty(dir).second) {
+        if (dsn_unlikely(utils::filesystem::directory_exists(dir) &&
+                         !utils::filesystem::is_directory_empty(dir).second)) {
             resp.err = ERR_DIR_NOT_EMPTY;
             resp.__set_err_hint(fmt::format("Disk({}) directory is not empty", dir));
             return;
         }
 
         std::string cdir;
-        if (!utils::filesystem::create_directory(dir, cdir, err_msg) ||
-            !utils::filesystem::check_dir_rw(dir, err_msg)) {
+        if (dsn_unlikely(!utils::filesystem::create_directory(dir, cdir, err_msg) ||
+                         !utils::filesystem::check_dir_rw(dir, err_msg))) {
             resp.err = ERR_FILE_OPERATION_FAILED;
             resp.__set_err_hint(err_msg);
             return;

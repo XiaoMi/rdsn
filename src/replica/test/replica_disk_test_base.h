@@ -222,7 +222,7 @@ private:
                                                disk_available_mb,
                                                disk_available_ratio);
 
-            stub->_fs_manager._available_data_dirs.emplace_back(
+            stub->_options.data_dirs.push_back(
                 node_disk->full_dir); // open replica need the options
             utils::filesystem::create_directory(node_disk->full_dir);
 
