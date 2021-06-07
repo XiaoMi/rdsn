@@ -1542,7 +1542,6 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
             _app->last_committed_decree(),
             duplicating);
     }
-    
     if (duplicating && state.__isset.learn_start_decree &&
         state.learn_start_decree < _app->last_committed_decree() + 1) {
         dwarn_replica("jiashuo_debug: learn_start_decree({}) < _app->last_committed_decree() + "

@@ -920,14 +920,13 @@ error_code mutation_log::reset_from(const std::string &dir,
                                     io_failure_callback write_error_callback)
 {
 
-    if (utils::filesystem::remove_path(_dir)) {
+    if (!utils::filesystem::remove_path(_dir)) {
         derror_f("remove {} failed", _dir);
         write_error_callback(ERR_FILE_OPERATION_FAILED);
         return ERR_FILE_OPERATION_FAILED;
     }
-    return ERR_OK;
 
-    if (utils::filesystem::rename_path(dir, _dir)) {
+    if (!utils::filesystem::rename_path(dir, _dir)) {
         derror_f("rename {} to {} failed", dir, _dir);
         write_error_callback(ERR_FILE_OPERATION_FAILED);
         return ERR_FILE_OPERATION_FAILED;
