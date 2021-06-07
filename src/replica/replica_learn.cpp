@@ -320,6 +320,17 @@ decree replica::get_learn_start_decree(const learn_request &request) // on prima
     }
     dcheck_le_replica(learn_start_decree, local_committed_decree + 1);
     dcheck_gt_replica(learn_start_decree, 0); // learn_start_decree can never be invalid_decree
+    derror_replica("get_learn_start=>dup={}, local_committed_decree={}, "
+                   "learn_start_decree_no_dup={}, min_confirmed_decree={}, "
+                   "learn_start_decree_for_dup={}, max_gced_decree_no_lock_local={}, "
+                   "request.max_gced_decree={}",
+                   is_duplicating(),
+                   local_committed_decree,
+                   learn_start_decree_no_dup,
+                   min_confirmed_decree,
+                   learn_start_decree_for_dup,
+                   max_gced_decree_no_lock(),
+                   request.max_gced_decree);
     return learn_start_decree;
 }
 
@@ -1594,9 +1605,9 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
 
             plist.prepare(mu, partition_status::PS_SECONDARY);
             derror_f("prepare=>jiashuo_debug: step back={}, last_commit_decree={}, dup={}",
-                           step_back,
-                           plist.last_committed_decree(),
-                           duplicating);
+                     step_back,
+                     plist.last_committed_decree(),
+                     duplicating);
             return true;
         },
         offset);
