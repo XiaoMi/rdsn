@@ -579,11 +579,11 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
         return;
     }
 
-    ddebug("%s: on_learn_reply[%016" PRIx64 "]: learnee = %s, learn_duration = %" PRIu64
+    ddebug("%s: on_learn_reply_start=>jiashuo_debug[%016" PRIx64 "]: learnee = %s, learn_duration = %" PRIu64
            " ms, response_err = %s, remote_committed_decree = %" PRId64 ", "
            "prepare_start_decree = %" PRId64 ", learn_type = %s, learned_buffer_size = %u, "
            "learned_file_count = %u, to_decree_included = %" PRId64
-           ", learn_start_decree = %" PRId64 ", current_learning_status = %s",
+           ", learn_start_decree = %" PRId64 "[%" PRId64 "], current_learning_status = %s",
            name(),
            req.signature,
            resp.config.primary.to_string(),
@@ -596,6 +596,7 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
            static_cast<uint32_t>(resp.state.files.size()),
            resp.state.to_decree_included,
            resp.state.learn_start_decree,
+           _app->last_committed_decree(),
            enum_to_string(_potential_secondary_states.learning_status));
 
     _potential_secondary_states.learning_copy_buffer_size += resp.state.meta.length();
@@ -1531,8 +1532,9 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     // after applied:    [---------------log----------------]
 
     bool step_back = false;
-    derror_replica("start=>jiashuo_debug: step back={}, last_commit_decree={}, dup={}",
+    derror_replica("start=>jiashuo_debug: step back={}, start={}, last_commit_decree={}, dup={}",
                    step_back,
+                   state.learn_start_decree,
                    _app->last_committed_decree(),
                    duplicating);
     if (duplicating && state.__isset.learn_start_decree &&
