@@ -661,6 +661,19 @@ void policy_context::sync_backup_to_remote_storage_unlocked(const backup_info &b
 
 void policy_context::continue_current_backup_unlocked()
 {
+    if (_policy.is_disable) {
+        ddebug_f("{}: policy is disable, ignore this backup and try it later", _policy.policy_name);
+        tasking::enqueue(LPC_DEFAULT_CALLBACK,
+                         &_tracker,
+                         [this]() {
+                             zauto_lock l(_lock);
+                             issue_new_backup_unlocked();
+                         },
+                         0,
+                         _backup_service->backup_option().issue_backup_interval_ms);
+        return;
+    }
+
     for (const int32_t &app : _cur_backup.app_ids) {
         if (_progress.unfinished_partitions_per_app.find(app) !=
             _progress.unfinished_partitions_per_app.end()) {
