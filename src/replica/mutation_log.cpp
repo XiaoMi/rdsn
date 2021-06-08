@@ -923,6 +923,13 @@ error_code mutation_log::reset_from(const std::string &dir,
     // close for flushing current log and be ready to open new log after reset
     close();
 
+      std::vector<std::string> children;
+      dsn::utils::filesystem::get_subfiles(dir, children, false);
+       derror_f("jiashuo_debug=>learn_path:{}",dir);
+        for (const std::string &file : children) {
+                   derror_f("jiashuo_debug=>subfile:\n\t{}", utils::filesystem::get_file_name(file));
+        }
+
    std::string temp_dir = _dir + '.' + std::to_string(dsn_now_ns());
     if (!utils::filesystem::rename_path(_dir,   temp_dir)) {
         derror_f("rename {} to {} failed", _dir, temp_dir);
