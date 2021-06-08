@@ -1550,7 +1550,6 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                       _app->last_committed_decree() + 1);
         // it means this round of learn must have been stepped back
         // to include all the unconfirmed.
-        step_back = true;
 
         // move the `learn/` dir to working dir (`plog/`).
         error_code err = _private_log->reset_from(_app->learn_dir(), [this](error_code err) {
@@ -1568,6 +1567,7 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
         learn_state tmp_state;
         _private_log->get_learn_state(get_gpid(), _app->last_committed_decree() + 1, tmp_state);
         state.files = tmp_state.files;
+        step_back = true;
     }
 
     int64_t offset;
