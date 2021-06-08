@@ -1552,12 +1552,15 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
         // to include all the unconfirmed.
 
         // move the `learn/` dir to working dir (`plog/`).
-        error_code err = _private_log->reset_from(_app->learn_dir(), [this](error_code err) {
-            tasking::enqueue(LPC_REPLICATION_ERROR,
-                             &_tracker,
-                             [this, err]() { handle_local_failure(err); },
-                             get_gpid().thread_hash());
-        });
+        error_code err = _private_log->reset_from(
+            _app->learn_dir(),
+            [](int log_length, mutation_ptr &mu) { return true; },
+            [this](error_code err) {
+                tasking::enqueue(LPC_REPLICATION_ERROR,
+                                 &_tracker,
+                                 [this, err]() { handle_local_failure(err); },
+                                 get_gpid().thread_hash());
+            });
         if (err != ERR_OK) {
             derror_replica("failed to reset this private log with logs in learn/ dir: {}", err);
             return err;
