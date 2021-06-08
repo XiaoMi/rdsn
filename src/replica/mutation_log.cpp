@@ -919,6 +919,8 @@ int64_t mutation_log::total_size_no_lock() const
 error_code mutation_log::reset_from(const std::string &dir,
                                     io_failure_callback log_error_callback)
 {
+    // close for flush current log and be ready to open new log after reset
+    close();
 
     if (!utils::filesystem::remove_path(_dir)) {
         derror_f("remove {} failed", _dir);
