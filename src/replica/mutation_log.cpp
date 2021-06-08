@@ -923,11 +923,18 @@ error_code mutation_log::reset_from(const std::string &dir,
     // close for flushing current log and be ready to open new log after reset
     close();
 
-    if (!utils::filesystem::remove_path(_dir)) {
-        derror_f("remove {} failed", _dir);
+   std::string temp_dir = _dir + '.' + std::to_string(dsn_now_ns());
+    if (!utils::filesystem::rename_path(_dir,   temp_dir)) {
+        derror_f("rename {} to {} failed", _dir, temp_dir);
         write_error_callback(ERR_FILE_OPERATION_FAILED);
         return ERR_FILE_OPERATION_FAILED;
     }
+
+  /*  if (!utils::filesystem::remove_path(_dir)) {
+        derror_f("remove {} failed", _dir);
+        write_error_callback(ERR_FILE_OPERATION_FAILED);
+        return ERR_FILE_OPERATION_FAILED;
+    }*/
 
     if (!utils::filesystem::rename_path(dir, _dir)) {
         derror_f("rename {} to {} failed", dir, _dir);
