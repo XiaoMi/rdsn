@@ -1517,6 +1517,7 @@ void replica::on_add_learner(const group_check_request &request)
 }
 
 // in non-replication thread
+bool first = false;
 error_code replica::apply_learned_state_from_private_log(learn_state &state)
 {
     bool duplicating = is_duplicating();
@@ -1542,12 +1543,24 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
             _app->last_committed_decree(),
             duplicating);
     }
-    if (duplicating && state.__isset.learn_start_decree &&
-        state.learn_start_decree < _app->last_committed_decree() + 1) {
-        dwarn_replica("jiashuo_debug: learn_start_decree({}) < _app->last_committed_decree() + "
-                      "1({}),   learn must stepped back to include all the unconfirmed ",
-                      state.learn_start_decree,
-                      _app->last_committed_decree() + 1);
+    if ((duplicating && state.__isset.learn_start_decree &&
+         state.learn_start_decree < _app->last_committed_decree() + 1) ||
+        (duplicating && state.__isset.learn_start_decree && first) /* only test */) {
+        first = false;
+        if (state.learn_start_decree < _app->last_committed_decree() + 1) {
+            dwarn_replica("jiashuo_debug: true step back learn_start_decree({}) < "
+                          "_app->last_committed_decree() + "
+                          "1({}),   learn must stepped back to include all the unconfirmed ",
+                          state.learn_start_decree,
+                          _app->last_committed_decree() + 1);
+        } else {
+            dwarn_replica("jiashuo_debug: mock step back learn_start_decree({}) < "
+                          "_app->last_committed_decree() + "
+                          "1({}),   learn must stepped back to include all the unconfirmed ",
+                          state.learn_start_decree,
+                          _app->last_committed_decree() + 1);
+        }
+
         // it means this round of learn must have been stepped back
         // to include all the unconfirmed.
 
