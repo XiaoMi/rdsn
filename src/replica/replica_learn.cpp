@@ -1524,8 +1524,14 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
 
     // this means this round of learn must have been stepped back
     // to include all the unconfirmed.
-    if (duplicating && state.__isset.learn_start_decree &&
-        state.learn_start_decree < _app->last_committed_decree() + 1) {
+    if ((duplicating && state.__isset.learn_start_decree &&
+         state.learn_start_decree < _app->last_committed_decree() + 1) ||
+        first /*only test, please delete before merge*/) {
+
+        // only test, please delete before merge
+        derror_replica("first={}", first);
+        first = false;
+
         ddebug_replica("learn_start_decree({}) < _app->last_committed_decree() + 1({}),   learn "
                        "must stepped back to include all the unconfirmed ",
                        state.learn_start_decree,

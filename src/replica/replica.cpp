@@ -69,6 +69,7 @@ replica::replica(
 {
     dassert(_app_info.app_type != "", "");
     dassert(stub != nullptr, "");
+    first = true; // only test, please delete before merge
     _stub = stub;
     _dir = dir;
     _options = &stub->options();
