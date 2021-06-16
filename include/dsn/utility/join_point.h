@@ -52,7 +52,7 @@ class join_point_base
 public:
     explicit join_point_base(const char *name) : _name(name) {}
 
-    ~join_point_base()
+    virtual ~join_point_base()
     {
         _advice_entries.clear();
         _ret_advice_entries.clear();
