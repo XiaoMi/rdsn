@@ -1508,6 +1508,9 @@ void replica::on_add_learner(const group_check_request &request)
 error_code replica::apply_learned_state_from_private_log(learn_state &state)
 {
     bool duplicating = is_duplicating();
+    // step_back means this round of learn must have been stepped back to include all the
+    // unconfirmed when duplicating. default is false
+    bool step_back = false;
 
     //              confirmed    gced          committed
     //                  |          |              |
@@ -1519,8 +1522,6 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     // ==>       learn_start_decree                         |
     // learner's plog    |                              committed
     // after applied:    [---------------log----------------]
-
-    bool step_back = false;
 
     // this means this round of learn must have been stepped back
     // to include all the unconfirmed.
