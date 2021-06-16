@@ -565,8 +565,6 @@ private:
     // the thread access checker
     dsn::thread_access_checker _checker;
 
-    bool first; //  only test, please delete before merge
-
     std::unique_ptr<security::access_controller> _access_controller;
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
