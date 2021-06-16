@@ -24,40 +24,39 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     Unit-test for command_manager.
- *
- * Revision history:
- *     Nov., 2015, @qinzuoyan (Zuoyan Qin), first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #include <dsn/tool-api/command_manager.h>
 #include <gtest/gtest.h>
 
-using namespace ::dsn;
+namespace dsn {
 
-void command_manager_module_init()
+struct command_manager_test : public ::testing::Test
 {
-    dsn::command_manager::instance().register_command(
-        {"test-cmd"},
-        "test-cmd - just for command_manager unit-test",
-        "test-cmd arg1 arg2 ...",
-        [](const std::vector<std::string> &args) {
-            std::stringstream ss;
-            ss << "test-cmd response: [";
-            for (size_t i = 0; i < args.size(); ++i) {
-                if (i != 0)
-                    ss << " ";
-                ss << args[i];
-            }
-            ss << "]";
-            return ss.str();
-        });
-}
+    command_manager_test()
+    {
+        _test_cmd = command_manager::instance().register_command(
+            {"test-cmd"},
+            "just for command_manager unit-test",
+            "test-cmd arg1 arg2 ...",
+            [](const std::vector<std::string> &args) {
+                std::stringstream ss;
+                ss << "test-cmd response: [";
+                for (size_t i = 0; i < args.size(); ++i) {
+                    if (i != 0)
+                        ss << " ";
+                    ss << args[i];
+                }
+                ss << "]";
+                return ss.str();
+            });
+    }
 
-TEST(command_manager, exist_command)
+    ~command_manager_test() override { command_manager::instance().deregister_command(_test_cmd); }
+
+private:
+    dsn_handle_t _test_cmd;
+};
+
+TEST_F(command_manager_test, exist_command)
 {
     const std::string cmd = "test-cmd";
     const std::vector<std::string> cmd_args{"this", "is", "test", "argument"};
@@ -68,7 +67,7 @@ TEST(command_manager, exist_command)
     ASSERT_EQ(output, expect_output);
 }
 
-TEST(command_manager, not_exist_command)
+TEST_F(command_manager_test, not_exist_command)
 {
     const std::string cmd = "not-exist-cmd";
     const std::vector<std::string> cmd_args{"arg1", "arg2"};
@@ -78,3 +77,5 @@ TEST(command_manager, not_exist_command)
     std::string expect_output = std::string("unknown command '") + cmd + "'";
     ASSERT_EQ(output, expect_output);
 }
+
+} // namespace dsn
