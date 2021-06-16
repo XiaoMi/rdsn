@@ -131,11 +131,8 @@ private:
     dsn_handle_t _get_runtime_info_cmd;
     dsn_handle_t _get_queue_info_cmd;
 
-    // <port, servicenode>
-    typedef std::map<int, service_node *>
-        node_engines_by_port; // multiple ports may share the same node
+    // map app_id to service_node
     service_nodes_by_app_id _nodes_by_app_id;
-    node_engines_by_port _nodes_by_app_port;
 };
 
 // ------------ inline impl ---------------------

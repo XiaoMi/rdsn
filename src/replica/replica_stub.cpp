@@ -85,7 +85,8 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _max_concurrent_bulk_load_downloading_count(5),
       _learn_app_concurrent_count(0),
       _fs_manager(false),
-      _bulk_load_downloading_count(0)
+      _bulk_load_downloading_count(0),
+      _is_running(false)
 {
 #ifdef DSN_ENABLE_GPERF
     _release_tcmalloc_memory_command = nullptr;
@@ -739,6 +740,10 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
 
 void replica_stub::initialize_start()
 {
+    if (_is_running) {
+        return;
+    }
+
     // start timer for configuration sync
     if (!_options.config_sync_disabled) {
         _config_sync_timer_task =
@@ -788,6 +793,8 @@ void replica_stub::initialize_start()
     } else {
         _state = NS_Connected;
     }
+
+    _is_running = true;
 }
 
 dsn::error_code replica_stub::on_kill_replica(gpid id)
@@ -2377,6 +2384,10 @@ replica_stub::exec_command_on_replica(const std::vector<std::string> &args,
 
 void replica_stub::close()
 {
+    if (!_is_running) {
+        return;
+    }
+
     _tracker.cancel_outstanding_tasks();
 
     // this replica may not be opened
@@ -2481,6 +2492,7 @@ void replica_stub::close()
             _replicas.erase(_replicas.begin());
         }
     }
+    _is_running = false;
 }
 
 std::string replica_stub::get_replica_dir(const char *app_type, gpid id, bool create_new)
