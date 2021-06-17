@@ -47,9 +47,9 @@ set(OSS_URL_PREFIX "http://pegasus-thirdparties.oss-cn-beijing.aliyuncs.com")
 message(STATUS "Setting up third-parties...")
 
 ExternalProject_Add(boost
-        URL ${OSS_URL_PREFIX}/boost_1_69_0.tar.bz2
-        https://dl.bintray.com/boostorg/release/1.69.0/source/boost_1_69_0.tar.bz2
-        URL_MD5 a1332494397bf48332cb152abfefcec2
+        URL ${OSS_URL_PREFIX}/boost_1_71_0.tar.bz2
+        https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.tar.bz2
+        URL_MD5 4cdf9b5c2dc01fb2b7b733d5af30e558
         CONFIGURE_COMMAND ./bootstrap.sh --prefix=. --with-libraries=system,filesystem,regex --with-toolset=gcc
         BUILD_COMMAND ./b2 toolset=gcc cxxflags=-fPIC cxxstd=11 install
         INSTALL_COMMAND cp -R include/boost ${TP_OUTPUT}/include && cp -R lib ${TP_OUTPUT}/
