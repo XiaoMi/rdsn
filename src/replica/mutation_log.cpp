@@ -950,10 +950,9 @@ error_code mutation_log::reset_from(const std::string &dir,
     }
     ddebug_f("move {} to {} as our new log directory", dir, _dir);
 
-    // make sure logs in moved dir(such as /plog) are valid and can be opened successfully. re-open
-    // new log files
-    // for loading the new log file and register the files into replica, please make sure the old
-    // log files has been closed
+    // - make sure logs in moved dir(such as /plog) are valid and can be opened successfully.
+    // - re-open new log files  for loading the new log file and register the files into replica,
+    // please make sure the old log files has been closed
     err = open(replay_error_callback, write_error_callback);
     if (err != ERR_OK) {
         derror_f(
