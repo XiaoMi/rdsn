@@ -198,5 +198,49 @@ TEST_F(replica_disk_test, gc_disk_useless_dir)
     ASSERT_EQ(report.error_replica_count, 2);
 }
 
+TEST_F(replica_disk_test, disk_status_test)
+{
+    int32_t node_index = 0;
+    struct disk_status_test
+    {
+        disk_status::type old_status;
+        disk_status::type new_status;
+    } tests[]{{disk_status::NORMAL, disk_status::NORMAL},
+              {disk_status::NORMAL, disk_status::SPACE_INSUFFICIENT},
+              {disk_status::SPACE_INSUFFICIENT, disk_status::SPACE_INSUFFICIENT},
+              {disk_status::SPACE_INSUFFICIENT, disk_status::NORMAL}};
+    for (const auto &test : tests) {
+        auto node = get_dir_nodes()[node_index];
+        mock_node_status(node_index, test.old_status, test.new_status);
+        update_disks_status();
+        for (auto &kv : node->holding_replicas) {
+            for (auto &pid : kv.second) {
+                bool flag;
+                ASSERT_EQ(replica_disk_space_insufficient(pid, flag), ERR_OK);
+                ASSERT_EQ(flag, test.new_status == disk_status::SPACE_INSUFFICIENT);
+            }
+        }
+    }
+    mock_node_status(node_index, disk_status::NORMAL, disk_status::NORMAL);
+}
+
+TEST_F(replica_disk_test, broken_disk_test)
+{
+    // Test cases:
+    // create: true, check_rw: true
+    // create: true, check_rw: false
+    // create: false
+    struct broken_disk_test
+    {
+        std::string mock_create_dir;
+        std::string mock_rw_flag;
+        int32_t data_dir_size;
+    } tests[]{{"true", "true", 3}, {"true", "false", 2}, {"false", "false", 2}};
+    for (const auto &test : tests) {
+        ASSERT_EQ(test.data_dir_size,
+                  ignore_broken_disk_test(test.mock_create_dir, test.mock_rw_flag));
+    }
+}
+
 } // namespace replication
 } // namespace dsn

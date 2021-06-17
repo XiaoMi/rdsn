@@ -97,6 +97,8 @@ public:
     //
     void initialize(const replication_options &opts, bool clear = false);
     void initialize(bool clear = false);
+    void initialize_fs_manager(std::vector<std::string> &data_dirs,
+                               std::vector<std::string> &data_dir_tags);
     void set_options(const replication_options &opts) { _options = opts; }
     void open_service();
     void close();
@@ -276,6 +278,8 @@ private:
                          error_code error);
     void update_disk_holding_replicas();
 
+    void update_disks_status();
+
     void register_ctrl_command();
 
     int get_app_id_from_replicas(std::string app_name)
@@ -395,6 +399,8 @@ private:
 
     // replica count exectuting bulk load downloading concurrently
     std::atomic_int _bulk_load_downloading_count;
+
+    bool _is_running;
 
     // performance counters
     perf_counter_wrapper _counter_replicas_count;
