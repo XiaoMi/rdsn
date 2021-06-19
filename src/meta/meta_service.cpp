@@ -383,6 +383,9 @@ error_code meta_service::start()
     // register control command to singleton-container for load balancer
     _balancer->register_ctrl_commands();
 
+    _partition_healer = std::make_shared<partition_healer>(this);
+    _partition_healer->register_ctrl_commands();
+
     // initializing the backup_handler should after remote_storage be initialized,
     // because we should use _cluster_root
     if (!_meta_opts.cold_backup_disabled) {
@@ -1005,7 +1008,7 @@ void meta_service::ddd_diagnose(ddd_diagnose_rpc rpc)
     }
 
     auto &response = rpc.response();
-    get_balancer()->get_ddd_partitions(rpc.request().pid, response.partitions);
+    get_partition_healer()->get_ddd_partitions(rpc.request().pid, response.partitions);
     response.err = ERR_OK;
 }
 

@@ -40,7 +40,7 @@
 namespace dsn {
 namespace replication {
 
-class greedy_load_balancer : public simple_load_balancer
+class greedy_load_balancer : public server_load_balancer
 {
 public:
     explicit greedy_load_balancer(meta_service *svc);

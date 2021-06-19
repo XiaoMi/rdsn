@@ -56,13 +56,13 @@ namespace dsn {
 namespace replication {
 namespace test {
 
-class checker_load_balancer : public simple_load_balancer
+class checker_load_balancer : public server_load_balancer
 {
 public:
     static bool s_disable_balancer;
 
 public:
-    checker_load_balancer(meta_service *svc) : simple_load_balancer(svc) {}
+    checker_load_balancer(meta_service *svc) : server_load_balancer(svc) {}
     pc_status
     cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action) override
     {

@@ -47,6 +47,7 @@
 #include "meta_backup_service.h"
 #include "meta_state_service_utils.h"
 #include "block_service/block_service_manager.h"
+#include "partition_healer.h"
 
 namespace dsn {
 namespace security {
@@ -83,6 +84,7 @@ public:
 
     server_state *get_server_state() { return _state.get(); }
     server_load_balancer *get_balancer() { return _balancer.get(); }
+    partition_healer *get_partition_healer() { return _partition_healer.get(); }
     dist::block_service::block_service_manager &get_block_service_manager()
     {
         return _block_service_manager;
@@ -249,6 +251,7 @@ private:
 
     std::shared_ptr<server_load_balancer> _balancer;
     std::shared_ptr<backup_service> _backup_handler;
+    std::shared_ptr<partition_healer> _partition_healer;
 
     std::unique_ptr<meta_duplication_service> _dup_svc;
 

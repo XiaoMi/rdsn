@@ -80,17 +80,11 @@ greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
 
 greedy_load_balancer::~greedy_load_balancer()
 {
-    UNREGISTER_VALID_HANDLER(_ctrl_balancer_in_turn);
-    UNREGISTER_VALID_HANDLER(_ctrl_only_primary_balancer);
-    UNREGISTER_VALID_HANDLER(_ctrl_only_move_primary);
-    UNREGISTER_VALID_HANDLER(_get_balance_operation_count);
+    unregister_ctrl_commands();
 }
 
 void greedy_load_balancer::register_ctrl_commands()
 {
-    // register command that belong to simple_load_balancer
-    simple_load_balancer::register_ctrl_commands();
-
     _ctrl_balancer_in_turn = dsn::command_manager::instance().register_command(
         {"meta.lb.balancer_in_turn"},
         "meta.lb.balancer_in_turn <true|false>",
@@ -138,8 +132,6 @@ void greedy_load_balancer::unregister_ctrl_commands()
     UNREGISTER_VALID_HANDLER(_ctrl_only_move_primary);
     UNREGISTER_VALID_HANDLER(_get_balance_operation_count);
     UNREGISTER_VALID_HANDLER(_ctrl_balancer_ignored_apps);
-
-    simple_load_balancer::unregister_ctrl_commands();
 }
 
 std::string greedy_load_balancer::get_balance_operation_count(const std::vector<std::string> &args)

@@ -890,7 +890,7 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
                         }
                     }
                 } else if (app->status == app_status::AS_AVAILABLE) {
-                    bool is_useful_replica = _meta_svc->get_balancer()->collect_replica(
+                    bool is_useful_replica = _meta_svc->get_partition_healer()->collect_replica(
                         {&_all_apps, &_nodes}, request.node, rep);
                     if (!is_useful_replica) {
                         if (level <= meta_function_level::fl_steady) {
@@ -1599,12 +1599,12 @@ void server_state::on_update_configuration_on_remote_reply(
             cc.msg = nullptr;
         }
 
-        _meta_svc->get_balancer()->reconfig({&_all_apps, &_nodes}, *config_request);
+        _meta_svc->get_partition_healer()->reconfig({&_all_apps, &_nodes}, *config_request);
         if (config_request->type == config_type::CT_DROP_PARTITION) {
             process_one_partition(app);
         } else {
             configuration_proposal_action action;
-            _meta_svc->get_balancer()->cure({&_all_apps, &_nodes}, gpid, action);
+            _meta_svc->get_partition_healer()->cure({&_all_apps, &_nodes}, gpid, action);
             if (action.type != config_type::CT_INVALID) {
                 if (_add_secondary_enable_flow_control &&
                     (action.type == config_type::CT_ADD_SECONDARY ||
@@ -2063,7 +2063,7 @@ error_code server_state::construct_partitions(
 
         for (replica_info &r : query_resp.replicas) {
             dassert(_all_apps.find(r.pid.get_app_id()) != _all_apps.end(), "");
-            bool is_accepted = _meta_svc->get_balancer()->collect_replica(
+            bool is_accepted = _meta_svc->get_partition_healer()->collect_replica(
                 {&_all_apps, &_nodes}, replica_nodes[i], r);
             if (is_accepted) {
                 ddebug("accept replica(%s) from node(%s)",
@@ -2088,7 +2088,7 @@ error_code server_state::construct_partitions(
             ddebug("ignore constructing partitions for dropping app(%d)", app->app_id);
         } else {
             for (partition_configuration &pc : app->partitions) {
-                bool is_succeed = _meta_svc->get_balancer()->construct_replica(
+                bool is_succeed = _meta_svc->get_partition_healer()->construct_replica(
                     {&_all_apps, &_nodes}, pc.pid, app->max_replica_count);
                 if (is_succeed) {
                     ddebug("construct partition(%d.%d) succeed: %s",
@@ -2364,7 +2364,7 @@ bool server_state::check_all_partitions()
            "add_secondary_max_count_for_one_node = %d",
            _add_secondary_enable_flow_control ? "true" : "false",
            _add_secondary_max_count_for_one_node);
-    _meta_svc->get_balancer()->clear_ddd_partitions();
+    _meta_svc->get_partition_healer()->clear_ddd_partitions();
     int send_proposal_count = 0;
     std::vector<configuration_proposal_action> add_secondary_actions;
     std::vector<gpid> add_secondary_gpids;
@@ -2386,7 +2386,7 @@ bool server_state::check_all_partitions()
             if (cc.stage != config_status::pending_remote_sync && pc.ballot != invalid_ballot) {
                 configuration_proposal_action action;
                 pc_status s =
-                    _meta_svc->get_balancer()->cure({&_all_apps, &_nodes}, pc.pid, action);
+                    _meta_svc->get_partition_healer()->cure({&_all_apps, &_nodes}, pc.pid, action);
                 dinfo("gpid(%d.%d) is in status(%s)",
                       pc.pid.get_app_id(),
                       pc.pid.get_partition_index(),
