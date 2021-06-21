@@ -928,7 +928,7 @@ error_code mutation_log::reset_from(const std::string &dir,
     // make sure logs in `dir` (such as /learn) are valid.
     error_s es = log_utils::check_log_files_continuity(dir);
     if (!es.is_ok()) {
-        derror_f("the log of source dir {} is invalid:{}, will remov it.", dir, es);
+        derror_f("the log of source dir {} is invalid:{}, will remove it.", dir, es);
         if (!utils::filesystem::remove_path(dir)) {
             derror_f("remove {} failed", dir);
             return err;
