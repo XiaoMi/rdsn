@@ -955,8 +955,9 @@ error_code mutation_log::reset_from(const std::string &dir,
     // please make sure the old log files has been closed
     err = open(replay_error_callback, write_error_callback);
     if (err != ERR_OK) {
-        derror_f(
-            "the logs of moved dir {} are invalid and open failed:{}, will rollback it.", _dir, err);
+        derror_f("the logs of moved dir {} are invalid and open failed:{}, will rollback it.",
+                 _dir,
+                 err);
         if (!utils::filesystem::rename_path(temp_dir, _dir)) {
             // rollback failed means old log files are not be recovered, it may be lost if only
             // derror,  dassert for manual resolve it
