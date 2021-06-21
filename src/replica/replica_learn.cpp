@@ -1508,10 +1508,12 @@ void replica::on_add_learner(const group_check_request &request)
 error_code replica::apply_learned_state_from_private_log(learn_state &state)
 {
     bool duplicating = is_duplicating();
-    // step_back means this round of learn must have been stepped back to include all the
-    // unconfirmed when duplicating. default is false
+    // step_back means `learn_start_decree` must have been stepped back to include all the
+    // unconfirmed when duplicating in this round of learn. default is false
     bool step_back = false;
 
+    // this means `learn_start_decree` must have been stepped back to include all the
+    // unconfirmed when duplicating in this round of learn.
     //              confirmed    gced          committed
     //                  |          |              |
     // learner's plog: ============[-----log------]
@@ -1522,9 +1524,6 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
     // ==>       learn_start_decree                         |
     // learner's plog    |                              committed
     // after applied:    [---------------log----------------]
-
-    // this means this round of learn must have been stepped back
-    // to include all the unconfirmed.
     if (duplicating && state.__isset.learn_start_decree &&
         state.learn_start_decree < _app->last_committed_decree() + 1) {
         ddebug_replica("learn_start_decree({}) < _app->last_committed_decree() + 1({}),   learn "
@@ -1577,7 +1576,7 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                        });
 
     err = mutation_log::replay(state.files,
-                               [step_back, duplicating, &plist](int log_length, mutation_ptr &mu) {
+                               [&plist](int log_length, mutation_ptr &mu) {
                                    auto d = mu->data.header.decree;
                                    if (d <= plist.last_committed_decree())
                                        return false;
