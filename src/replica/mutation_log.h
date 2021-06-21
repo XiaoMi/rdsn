@@ -151,7 +151,7 @@ public:
 
     // Resets mutation log with log files under `dir`.
     // The original log will be removed after this call.
-    // NOTE: log should be opened before this method called.
+    // NOTE: log should be opened before this method called. now it only be used private log
     error_code reset_from(const std::string &dir, replay_callback, io_failure_callback);
 
     //
