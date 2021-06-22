@@ -31,6 +31,7 @@
 #include <dsn/utils/latency_tracer.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/crc.h>
+#include <dsn/utility/defer.h>
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/async_calls.h>
@@ -942,15 +943,25 @@ error_code mutation_log::reset_from(const std::string &dir,
         return err;
     }
     ddebug_f("moved current log dir {}  to tmp_dir {}", _dir, temp_dir);
+    // define `defer` for rollback temp_dir when failed or remove temp_dir when success
+    auto temp_dir_resolve = dsn::defer([this, err, temp_dir]() {
+        if (err != ERR_OK) {
+            if (!utils::filesystem::rename_path(temp_dir, _dir)) {
+                // rollback failed means old log files are not be recovered, it may be lost if only
+                // derror,  dassert for manual resolve it
+                dassert_f("rollback {} to {} failed", temp_dir, _dir);
+            }
+        } else {
+            if (!dsn::utils::filesystem::remove_path(temp_dir)) {
+                // temp dir allow delete failed, it's only garbage
+                derror_f("remove temp dir {} failed", temp_dir);
+            }
+        }
+    });
 
     // move source dir to target dir
     if (!utils::filesystem::rename_path(dir, _dir)) {
-        derror_f("rename {} to {} failed, will rollback tmp_dir", dir, _dir);
-        if (!utils::filesystem::rename_path(temp_dir, _dir)) {
-            // rollback failed means old log files are not be recovered, it may be lost if only
-            // derror,  dassert for manual resolve it
-            dassert_f("rollback {} to {} failed", temp_dir, _dir);
-        }
+        derror_f("rename {} to {} failed", dir, _dir);
         return err;
     }
     ddebug_f("move {} to {} as our new log directory", dir, _dir);
@@ -960,22 +971,9 @@ error_code mutation_log::reset_from(const std::string &dir,
     // please make sure the old log files has been closed
     err = open(replay_error_callback, write_error_callback);
     if (err != ERR_OK) {
-        derror_f("the logs of moved dir {} are invalid and open failed:{}, will rollback it.",
-                 _dir,
-                 err);
-        if (!utils::filesystem::rename_path(temp_dir, _dir)) {
-            // rollback failed means old log files are not be recovered, it may be lost if only
-            // derror,  dassert for manual resolve it
-            dassert_f("rollback {} to {} failed", temp_dir, _dir);
-        }
-        return es.code();
-    } else {
-        if (!dsn::utils::filesystem::remove_path(temp_dir)) {
-            // temp dir allow delete failed, it's only garbage
-            derror_f("remove temp dir {} failed", temp_dir);
-        }
-        return err;
+        derror_f("the logs of moved dir {} are invalid and open failed:{}", _dir, err);
     }
+    return err;
 }
 
 void mutation_log::set_valid_start_offset_on_open(gpid gpid, int64_t valid_start_offset)
