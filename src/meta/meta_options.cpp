@@ -144,7 +144,7 @@ void meta_options::initialize()
     _lb_opts.server_load_balancer_type =
         dsn_config_get_value_string("meta_server",
                                     "server_load_balancer_type",
-                                    "simple_load_balancer",
+                                    "greedy_load_balancer",
                                     "server load balancer provider");
     _lb_opts.replica_assign_delay_ms_for_dropouts =
         dsn_config_get_value_uint64("meta_server",

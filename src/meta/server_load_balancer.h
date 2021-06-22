@@ -65,10 +65,6 @@ public:
     server_load_balancer(meta_service *svc);
     virtual ~server_load_balancer() {}
 
-    virtual void reconfig(meta_view view, const configuration_update_request &request) = 0;
-    virtual pc_status
-    cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action /*out*/) = 0;
-
     //
     // Make balancer proposals by round according to current meta-view
     // params:
@@ -107,28 +103,6 @@ public:
     //
     virtual void
     score(meta_view view, double &primary_stddev /*out*/, double &total_stddev /*out*/) = 0;
-
-    //
-    // When replica infos are collected from replica servers, meta-server
-    // will use this to check if a replica on a server is useful
-    // params:
-    //   node: the owner of the replica info
-    //   info: the replica info on node
-    // ret:
-    //   return true if the replica is accepted as an useful replica. Or-else false.
-    //   WARNING: if false is returned, the replica on node may be garbage-collected
-    //
-    virtual bool
-    collect_replica(meta_view view, const dsn::rpc_address &node, const replica_info &info) = 0;
-
-    //
-    // Try to construct a replica-group by current replica-infos of a gpid
-    // ret:
-    //   if construct the replica successfully, return true.
-    //   Notice: as long as we can construct something from current infos, we treat it as a
-    //   success
-    //
-    virtual bool construct_replica(meta_view view, const gpid &pid, int max_replica_count) = 0;
 
     void register_proposals(meta_view view,
                             const configuration_balancer_request &req,
@@ -216,9 +190,6 @@ public:
 protected:
     meta_service *_svc;
     perf_counter_wrapper _recent_choose_primary_fail_count;
-
-    mutable zlock _ddd_partitions_lock;
-    std::map<gpid, ddd_partition_info> _ddd_partitions;
 };
 }
 }

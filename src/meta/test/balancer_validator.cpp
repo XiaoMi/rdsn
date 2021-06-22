@@ -35,6 +35,9 @@ namespace replication {
 #endif
 #define ASSERT_FALSE(exp) dassert(!(exp), "")
 
+/***
+ * TBD(zlw)
+ * TBD(zhaoliwei)
 static void check_cure(server_load_balancer *lb,
                        app_mapper &apps,
                        node_mapper &nodes,
@@ -206,9 +209,10 @@ void meta_service_test_app::balancer_validator()
     int disk_on_node = 9;
 
     meta_service svc;
-    simple_load_balancer slb(&svc);
+    //simple_load_balancer slb(&svc);
     greedy_load_balancer glb(&svc);
-    std::vector<server_load_balancer *> lbs = {&slb, &glb};
+    std::vector<server_load_balancer *> lbs = {&glb};
+    //std::vector<server_load_balancer *> lbs = {&slb, &glb};
 
     for (int i = 0; i < lbs.size(); ++i) {
         std::cerr << "the " << i << "th balancer" << std::endl;
@@ -260,6 +264,7 @@ void meta_service_test_app::balancer_validator()
         check_cure(lb, apps, nodes, pc);
     }
 }
+ */
 
 dsn::rpc_address get_rpc_address(const std::string &ip_port)
 {

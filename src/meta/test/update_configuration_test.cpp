@@ -90,16 +90,6 @@ class dummy_balancer : public dsn::replication::server_load_balancer
 {
 public:
     dummy_balancer(meta_service *s) : server_load_balancer(s) {}
-    virtual pc_status
-    cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action)
-    {
-        action.type = config_type::CT_INVALID;
-        const dsn::partition_configuration &pc = *get_config(*view.apps, gpid);
-        if (!pc.primary.is_invalid() && pc.secondaries.size() == 2)
-            return pc_status::healthy;
-        return pc_status::ill;
-    }
-    virtual void reconfig(meta_view view, const configuration_update_request &request) {}
     virtual bool balance(meta_view view, migration_list &list) { return false; }
     virtual bool check(meta_view view, migration_list &list) { return false; }
     virtual void report(const migration_list &list, bool balance_checker) {}
@@ -108,12 +98,26 @@ public:
         return std::string("unknown");
     }
     virtual void score(meta_view view, double &primary_stddev, double &total_stddev) {}
-    virtual bool
-    collect_replica(meta_view view, const dsn::rpc_address &node, const replica_info &info)
+};
+
+class dummy_partition_healer : public partition_healer {
+public:
+    explicit dummy_partition_healer(meta_service *s) : partition_healer(s) {}
+
+    pc_status
+    cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action)
+    {
+        action.type = config_type::CT_INVALID;
+        const dsn::partition_configuration &pc = *get_config(*view.apps, gpid);
+        if (!pc.primary.is_invalid() && pc.secondaries.size() == 2)
+            return pc_status::healthy;
+        return pc_status::ill;
+    }
+    bool collect_replica(meta_view view, const dsn::rpc_address &node, const replica_info &info)
     {
         return false;
     }
-    virtual bool construct_replica(meta_view view, const dsn::gpid &pid, int max_replica_count)
+    bool construct_replica(meta_view view, const dsn::gpid &pid, int max_replica_count)
     {
         return false;
     }
@@ -179,7 +183,7 @@ void meta_service_test_app::update_configuration_test()
     svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(svc.get()));
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
-    svc->_balancer.reset(new simple_load_balancer(svc.get()));
+    svc->_partition_healer.reset(new partition_healer(svc.get()));
 
     server_state *ss = svc->_state.get();
     ss->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));
@@ -245,7 +249,7 @@ void meta_service_test_app::update_configuration_test()
     // the default delay for add node is 5 miniutes
     ASSERT_FALSE(wait_state(ss, validator3, 10));
     svc->_meta_opts._lb_opts.replica_assign_delay_ms_for_dropouts = 0;
-    svc->_balancer.reset(new simple_load_balancer(svc.get()));
+    svc->_partition_healer.reset(new partition_healer(svc.get()));
     ASSERT_TRUE(wait_state(ss, validator3, 10));
 }
 
@@ -256,7 +260,7 @@ void meta_service_test_app::adjust_dropped_size()
     svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(svc.get()));
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
-    svc->_balancer.reset(new simple_load_balancer(svc.get()));
+    svc->_partition_healer.reset(new partition_healer(svc.get()));
 
     server_state *ss = svc->_state.get();
     ss->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));
@@ -425,6 +429,7 @@ void meta_service_test_app::cannot_run_balancer_test()
     svc->_state->initialize(svc.get(), "/");
     svc->_failure_detector.reset(new meta_server_failure_detector(svc.get()));
     svc->_balancer.reset(new dummy_balancer(svc.get()));
+    svc->_partition_healer.reset(new dummy_partition_healer(svc.get()));
 
     std::vector<dsn::rpc_address> nodes;
     generate_node_list(nodes, 10, 10);

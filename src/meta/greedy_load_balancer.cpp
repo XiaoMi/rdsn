@@ -38,7 +38,7 @@ namespace dsn {
 namespace replication {
 
 greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
-    : simple_load_balancer(_svc),
+    : server_load_balancer(_svc),
       _ctrl_balancer_in_turn(nullptr),
       _ctrl_only_primary_balancer(nullptr),
       _ctrl_only_move_primary(nullptr),

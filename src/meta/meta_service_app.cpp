@@ -67,9 +67,6 @@ void meta_service_app::register_components()
                        dist::meta_state_service,
                        dist::meta_state_service_zookeeper);
 
-    register_component("simple_load_balancer",
-                       replication::server_load_balancer,
-                       replication::simple_load_balancer);
     register_component("greedy_load_balancer",
                        replication::server_load_balancer,
                        replication::greedy_load_balancer);

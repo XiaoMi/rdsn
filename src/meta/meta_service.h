@@ -229,7 +229,7 @@ private:
     friend class meta_duplication_service;
     friend class meta_http_service;
     friend class meta_http_service_test;
-    friend class meta_load_balance_test;
+    friend class meta_partition_healer_test;
     friend class meta_service_test;
     friend class meta_service_test_app;
     friend class meta_split_service_test;
