@@ -945,7 +945,12 @@ error_code mutation_log::reset_from(const std::string &dir,
 
     // move source dir to target dir
     if (!utils::filesystem::rename_path(dir, _dir)) {
-        derror_f("rename {} to {} failed", dir, _dir);
+        derror_f("rename {} to {} failed, will rollback tmp_dir", dir, _dir);
+        if (!utils::filesystem::rename_path(temp_dir, _dir)) {
+            // rollback failed means old log files are not be recovered, it may be lost if only
+            // derror,  dassert for manual resolve it
+            dassert_f("rollback {} to {} failed", temp_dir, _dir);
+        }
         return err;
     }
     ddebug_f("move {} to {} as our new log directory", dir, _dir);
