@@ -56,13 +56,13 @@ namespace dsn {
 namespace replication {
 namespace test {
 
-class checker_load_balancer : public server_load_balancer
+class checker_partition_healer : public partition_healer
 {
 public:
     static bool s_disable_balancer;
 
 public:
-    checker_load_balancer(meta_service *svc) : server_load_balancer(svc) {}
+    checker_partition_healer(meta_service *svc) : partition_healer(svc) {}
     pc_status
     cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action) override
     {
@@ -84,7 +84,7 @@ public:
 
             else if (pc.last_drops.size() == 0) {
                 std::vector<rpc_address> sort_result;
-                sort_alive_nodes(*view.nodes, primary_comparator(*view.nodes), sort_result);
+                sort_alive_nodes(*view.nodes, server_load_balancer::primary_comparator(*view.nodes), sort_result);
                 action.node = sort_result[0];
                 action.type = config_type::CT_ASSIGN_PRIMARY;
                 result = pc_status::ill;
@@ -106,7 +106,7 @@ public:
 
         else if (static_cast<int>(pc.secondaries.size()) + 1 < pc.max_replica_count) {
             std::vector<rpc_address> sort_result;
-            sort_alive_nodes(*view.nodes, partition_comparator(*view.nodes), sort_result);
+            sort_alive_nodes(*view.nodes, server_load_balancer::partition_comparator(*view.nodes), sort_result);
 
             for (auto &node : sort_result) {
                 if (!is_member(pc, node)) {
@@ -122,16 +122,32 @@ public:
         }
         return result;
     }
+
+    typedef std::function<bool(const rpc_address &addr1, const rpc_address &addr2)> node_comparator;
+    static void sort_alive_nodes(const node_mapper &nodes,
+                                 const node_comparator &cmp,
+                                 std::vector<rpc_address> &sorted_node)
+    {
+        sorted_node.clear();
+        sorted_node.reserve(nodes.size());
+        for (auto &iter : nodes) {
+            if (!iter.first.is_invalid() && iter.second.alive()) {
+                sorted_node.push_back(iter.first);
+            }
+        }
+        std::sort(sorted_node.begin(), sorted_node.end(), cmp);
+    }
+
 };
 
 bool test_checker::s_inited = false;
-bool checker_load_balancer::s_disable_balancer = false;
+bool checker_partition_healer::s_disable_balancer = false;
 
 test_checker::test_checker() {}
 
 void test_checker::control_balancer(bool disable_it)
 {
-    checker_load_balancer::s_disable_balancer = disable_it;
+    checker_partition_healer::s_disable_balancer = disable_it;
     if (disable_it && meta_leader()) {
         server_state *ss = meta_leader()->_service->_state.get();
         for (auto &kv : ss->_exist_apps) {
@@ -147,9 +163,9 @@ bool test_checker::init(const std::string &name, const std::vector<service_app *
         return false;
 
     _apps = apps;
-    utils::factory_store<replication::server_load_balancer>::register_factory(
-        "checker_load_balancer",
-        replication::server_load_balancer::create<checker_load_balancer>,
+    utils::factory_store<replication::partition_healer>::register_factory(
+        "checker_partition_healer",
+        replication::partition_healer::create<checker_partition_healer>,
         PROVIDER_TYPE_MAIN);
 
     for (auto &app : _apps) {
@@ -157,8 +173,8 @@ bool test_checker::init(const std::string &name, const std::vector<service_app *
             meta_service_app *meta_app = (meta_service_app *)app;
             meta_app->_service->_state->set_config_change_subscriber_for_test(
                 std::bind(&test_checker::on_config_change, this, std::placeholders::_1));
-            meta_app->_service->_meta_opts._lb_opts.server_load_balancer_type =
-                "checker_load_balancer";
+            meta_app->_service->_meta_opts.partition_healer_type =
+                "checker_partition_healer";
             _meta_servers.push_back(meta_app);
         } else if (0 == strcmp(app->info().type.c_str(), "replica")) {
             replication_service_app *replica_app = (replication_service_app *)app;

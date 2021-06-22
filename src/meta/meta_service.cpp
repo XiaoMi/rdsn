@@ -383,7 +383,9 @@ error_code meta_service::start()
     // register control command to singleton-container for load balancer
     _balancer->register_ctrl_commands();
 
-    _partition_healer = std::make_shared<partition_healer>(this);
+    partition_healer *healer = utils::factory_store<partition_healer>::create(
+            _meta_opts.partition_healer_type.c_str(), PROVIDER_TYPE_MAIN, this);
+    _partition_healer.reset(healer);
     _partition_healer->register_ctrl_commands();
 
     // initializing the backup_handler should after remote_storage be initialized,

@@ -80,6 +80,7 @@ public:
 
     fd_suboptions _fd_opts;
     lb_suboptions _lb_opts;
+    std::string partition_healer_type;
 
     bool cold_backup_disabled;
 

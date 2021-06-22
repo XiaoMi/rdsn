@@ -11,6 +11,7 @@
 #include "meta/test/misc/misc.h"
 
 #include "meta_service_test_app.h"
+#include "test_load_balancer.h"
 
 namespace dsn {
 namespace replication {
@@ -184,6 +185,7 @@ void meta_service_test_app::update_configuration_test()
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_partition_healer.reset(new partition_healer(svc.get()));
+    svc->_balancer.reset(new test_load_balancer(svc.get()));
 
     server_state *ss = svc->_state.get();
     ss->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));
@@ -250,6 +252,7 @@ void meta_service_test_app::update_configuration_test()
     ASSERT_FALSE(wait_state(ss, validator3, 10));
     svc->_meta_opts._lb_opts.replica_assign_delay_ms_for_dropouts = 0;
     svc->_partition_healer.reset(new partition_healer(svc.get()));
+    svc->_balancer.reset(new test_load_balancer(svc.get()));
     ASSERT_TRUE(wait_state(ss, validator3, 10));
 }
 
@@ -261,6 +264,7 @@ void meta_service_test_app::adjust_dropped_size()
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_partition_healer.reset(new partition_healer(svc.get()));
+    svc->_balancer.reset(new test_load_balancer(svc.get()));
 
     server_state *ss = svc->_state.get();
     ss->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));

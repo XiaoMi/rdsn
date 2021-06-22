@@ -28,6 +28,14 @@ class meta_service;
 class partition_healer
 {
 public:
+    template <typename T>
+    static partition_healer *create(meta_service *svc)
+    {
+        return new T(svc);
+    }
+    typedef partition_healer *(*factory)(meta_service *svc);
+
+public:
     explicit partition_healer(meta_service *svc);
     virtual ~partition_healer();
 

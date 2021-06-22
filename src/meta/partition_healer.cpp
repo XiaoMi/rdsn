@@ -197,7 +197,7 @@ partition_healer::partition_healer(meta_service *svc)
 }
 
 partition_healer::~partition_healer() {
-    unregister_ctrl_commands();
+    //unregister_ctrl_commands();
 }
 
 void partition_healer::reconfig(meta_view view, const configuration_update_request &request)
