@@ -11,7 +11,7 @@
 #include "meta/test/misc/misc.h"
 
 #include "meta_service_test_app.h"
-#include "test_load_balancer.h"
+#include "dummy_balancer.h"
 
 namespace dsn {
 namespace replication {
@@ -85,20 +85,6 @@ public:
         request->add_ref();
         request->release_ref();
     }
-};
-
-class dummy_balancer : public dsn::replication::server_load_balancer
-{
-public:
-    dummy_balancer(meta_service *s) : server_load_balancer(s) {}
-    virtual bool balance(meta_view view, migration_list &list) { return false; }
-    virtual bool check(meta_view view, migration_list &list) { return false; }
-    virtual void report(const migration_list &list, bool balance_checker) {}
-    virtual std::string get_balance_operation_count(const std::vector<std::string> &args)
-    {
-        return std::string("unknown");
-    }
-    virtual void score(meta_view view, double &primary_stddev, double &total_stddev) {}
 };
 
 class dummy_partition_healer : public partition_healer {
@@ -185,7 +171,7 @@ void meta_service_test_app::update_configuration_test()
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_partition_healer.reset(new partition_healer(svc.get()));
-    svc->_balancer.reset(new test_load_balancer(svc.get()));
+    svc->_balancer.reset(new dummy_balancer(svc.get()));
 
     server_state *ss = svc->_state.get();
     ss->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));
@@ -252,7 +238,7 @@ void meta_service_test_app::update_configuration_test()
     ASSERT_FALSE(wait_state(ss, validator3, 10));
     svc->_meta_opts._lb_opts.replica_assign_delay_ms_for_dropouts = 0;
     svc->_partition_healer.reset(new partition_healer(svc.get()));
-    svc->_balancer.reset(new test_load_balancer(svc.get()));
+    svc->_balancer.reset(new dummy_balancer(svc.get()));
     ASSERT_TRUE(wait_state(ss, validator3, 10));
 }
 
@@ -264,7 +250,7 @@ void meta_service_test_app::adjust_dropped_size()
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_partition_healer.reset(new partition_healer(svc.get()));
-    svc->_balancer.reset(new test_load_balancer(svc.get()));
+    svc->_balancer.reset(new dummy_balancer(svc.get()));
 
     server_state *ss = svc->_state.get();
     ss->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));

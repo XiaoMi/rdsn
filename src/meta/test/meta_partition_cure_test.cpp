@@ -13,7 +13,7 @@
 #include "meta/test/misc/misc.h"
 #include "meta_test_base.h"
 #include "meta_service_test_app.h"
-#include "test_load_balancer.h"
+#include "dummy_balancer.h"
 
 namespace dsn {
 namespace replication {
@@ -130,7 +130,7 @@ void meta_partition_healer_test::cure_test()
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_partition_healer.reset(new partition_healer(svc.get()));
-    svc->_balancer.reset(new test_load_balancer(svc.get()));
+    svc->_balancer.reset(new dummy_balancer(svc.get()));
 
     server_state *state = svc->_state.get();
     state->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));
