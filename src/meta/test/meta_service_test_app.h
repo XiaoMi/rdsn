@@ -105,7 +105,7 @@ public:
     virtual dsn::error_code stop(bool /*cleanup*/) { return dsn::ERR_OK; }
     void state_sync_test();
     void update_configuration_test();
-    //void balancer_validator();
+    void balancer_validator();
     void balance_config_file();
     void apply_balancer_test();
     void cannot_run_balancer_test();
