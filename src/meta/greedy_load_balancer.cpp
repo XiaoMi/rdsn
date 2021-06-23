@@ -80,7 +80,6 @@ greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
 
 greedy_load_balancer::~greedy_load_balancer()
 {
-    unregister_ctrl_commands();
 }
 
 void greedy_load_balancer::register_ctrl_commands()

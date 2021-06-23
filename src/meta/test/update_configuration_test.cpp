@@ -366,6 +366,7 @@ void meta_service_test_app::apply_balancer_test()
 
     meta_svc->_failure_detector.reset(
         new dsn::replication::meta_server_failure_detector(meta_svc.get()));
+    meta_svc->_partition_healer.reset(new partition_healer(meta_svc.get()));
     meta_svc->_balancer.reset(new greedy_load_balancer(meta_svc.get()));
 
     // initialize data structure
