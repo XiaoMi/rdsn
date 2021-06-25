@@ -429,6 +429,12 @@ error_code meta_service::start()
     return ERR_OK;
 }
 
+error_code meta_service::stop() {
+    _partition_healer->unregister_ctrl_commands();
+    _balancer->unregister_ctrl_commands();
+    return ERR_OK;
+}
+
 void meta_service::register_rpc_handlers()
 {
     register_rpc_handler_with_rpc_holder(

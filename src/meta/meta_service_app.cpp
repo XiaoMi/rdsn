@@ -104,6 +104,7 @@ error_code meta_service_app::start(const std::vector<std::string> &args)
 
 error_code meta_service_app::stop(bool /*cleanup*/)
 {
+    _service->stop();
     _service.reset(nullptr);
     return ERR_OK;
 }

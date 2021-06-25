@@ -74,6 +74,7 @@ public:
     virtual ~meta_service();
 
     error_code start();
+    error_code stop();
 
     const replication_options &get_options() const { return _opts; }
     const meta_options &get_meta_options() const { return _meta_opts; }
