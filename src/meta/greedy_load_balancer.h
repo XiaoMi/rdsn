@@ -136,6 +136,17 @@ private:
                       int replicas_low);
     bool primary_balancer_per_app(const std::shared_ptr<app_state> &app);
 
+    void calc_potential_moving(const std::shared_ptr<app_state> &app,
+                               const rpc_address &from,
+                               const rpc_address &to,
+                               std::list<dsn::gpid> &potential_moving);
+
+    std::list<dsn::gpid>::iterator select_gpid(std::list<dsn::gpid> &potential_moving,
+                                               disk_load *prev_load,
+                                               disk_load *current_load,
+                                               rpc_address from,
+                                               rpc_address to);
+
     bool primary_already_balanced(const std::shared_ptr<app_state> &app,
                                   uint32_t higher_count,
                                   uint32_t lower_count);

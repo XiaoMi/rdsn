@@ -564,15 +564,14 @@ bool greedy_load_balancer::calc_disk_load(app_id id,
         }
     };
 
+    bool result;
     if (only_primary) {
-        bool result = ns->for_each_primary(id, add_one_replica_to_disk_load);
-        dump_disk_load(id, node, only_primary, load);
-        return result;
+        result = ns->for_each_primary(id, add_one_replica_to_disk_load);
     } else {
-        bool result = ns->for_each_partition(id, add_one_replica_to_disk_load);
-        dump_disk_load(id, node, only_primary, load);
-        return result;
+        result = ns->for_each_partition(id, add_one_replica_to_disk_load);
     }
+    dump_disk_load(id, node, only_primary, load);
+    return result;
 }
 
 bool greedy_load_balancer::move_primary_based_on_flow(const std::shared_ptr<app_state> &app,
@@ -590,9 +589,9 @@ bool greedy_load_balancer::move_primary_based_on_flow(const std::shared_ptr<app_
     disk_load *current_load = &loads[1];
 
     if (!calc_disk_load(app->app_id, address_vec[current], true, *current_load)) {
-        dwarn("stop move primary as some replica infos aren't collected, node(%s), app(%s)",
-              address_vec[current].to_string(),
-              app->get_logname());
+        dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
+                address_vec[current].to_string(),
+                app->get_logname());
         return false;
     }
 
@@ -602,52 +601,28 @@ bool greedy_load_balancer::move_primary_based_on_flow(const std::shared_ptr<app_
         rpc_address to = address_vec[current];
 
         if (!calc_disk_load(app->app_id, from, true, *prev_load)) {
-            dwarn("stop move primary as some replica infos aren't collected, node(%s), app(%s)",
-                  from.to_string(),
-                  app->get_logname());
+            dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
+                    from.to_string(),
+                    app->get_logname());
             return false;
         }
 
-        const node_state &ns = t_global_view->nodes->find(from)->second;
         std::list<dsn::gpid> potential_moving;
-        int potential_moving_size = 0;
-        ns.for_each_primary(app->app_id, [&](const gpid &pid) {
-            const partition_configuration &pc = app->partitions[pid.get_partition_index()];
-            if (is_secondary(pc, to)) {
-                potential_moving.push_back(pid);
-                potential_moving_size++;
-            }
-            return true;
-        });
+        calc_potential_moving(app, from, to, potential_moving);
 
+        auto potential_moving_size = potential_moving.size();
         int plan_moving = flow[graph_nodes - 1];
-        dassert(plan_moving <= potential_moving_size,
-                "from(%s) to(%s) plan(%d), can_move(%d)",
-                from.to_string(),
-                to.to_string(),
-                plan_moving,
-                potential_moving_size);
+        dassert_f(plan_moving <= potential_moving_size,
+                  "from({}) to({}) plan({}), can_move({})",
+                  from.to_string(),
+                  to.to_string(),
+                  plan_moving,
+                  potential_moving_size);
 
         while (plan_moving > 0) {
-            std::list<dsn::gpid>::iterator selected = potential_moving.end();
-            int selected_score = std::numeric_limits<int>::min();
+            std::list<dsn::gpid>::iterator selected =
+                select_gpid(potential_moving, prev_load, current_load, from, to);
 
-            for (std::list<dsn::gpid>::iterator it = potential_moving.begin();
-                 it != potential_moving.end();
-                 ++it) {
-                const config_context &cc = app->helpers->contexts[it->get_partition_index()];
-                int score =
-                    (*prev_load)[get_disk_tag(from, *it)] - (*current_load)[get_disk_tag(to, *it)];
-                if (score > selected_score) {
-                    selected_score = score;
-                    selected = it;
-                }
-            }
-
-            dassert(selected != potential_moving.end(),
-                    "can't find gpid to move from(%s) to(%s)",
-                    from.to_string(),
-                    to.to_string());
             const partition_configuration &pc = app->partitions[selected->get_partition_index()];
             auto balancer_result = ml_this_turn.emplace(
                 *selected, generate_balancer_request(pc, balance_type::move_primary, from, to));
@@ -674,6 +649,47 @@ bool greedy_load_balancer::move_primary_based_on_flow(const std::shared_ptr<app_
                 kv.first.get_partition_index());
     }
     return true;
+}
+
+void greedy_load_balancer::calc_potential_moving(const std::shared_ptr<app_state> &app,
+                                                 const rpc_address &from,
+                                                 const rpc_address &to,
+                                                 std::list<dsn::gpid> &potential_moving)
+{
+    const node_state &ns = t_global_view->nodes->find(from)->second;
+    ns.for_each_primary(app->app_id, [&](const gpid &pid) {
+        const partition_configuration &pc = app->partitions[pid.get_partition_index()];
+        if (is_secondary(pc, to)) {
+            potential_moving.push_back(pid);
+        }
+        return true;
+    });
+}
+
+std::list<dsn::gpid>::iterator
+greedy_load_balancer::select_gpid(std::list<dsn::gpid> &potential_moving,
+                                  disk_load *prev_load,
+                                  disk_load *current_load,
+                                  rpc_address from,
+                                  rpc_address to)
+{
+    std::list<dsn::gpid>::iterator selected = potential_moving.end();
+    int max = std::numeric_limits<int>::min();
+
+    for (auto it = potential_moving.begin(); it != potential_moving.end(); ++it) {
+        int load_difference =
+            (*prev_load)[get_disk_tag(from, *it)] - (*current_load)[get_disk_tag(to, *it)];
+        if (load_difference > max) {
+            max = load_difference;
+            selected = it;
+        }
+    }
+
+    dassert_f(selected != potential_moving.end(),
+              "can't find gpid to move from({}) to({})",
+              from.to_string(),
+              to.to_string());
+    return selected;
 }
 
 // shortest path based on dijstra, to find an augmenting path
