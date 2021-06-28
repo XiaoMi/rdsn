@@ -677,19 +677,19 @@ bool greedy_load_balancer::move_primary_based_on_flow_per_app(const std::shared_
 }
 
 // shortest path based on dijstra, to find an augmenting path
-void greedy_load_balancer::shortest_path(std::vector<bool> &visit,
-                                         std::vector<int> &flow,
+bool greedy_load_balancer::shortest_path(std::vector<int> &flow,
                                          std::vector<int> &prev,
-                                         std::vector<std::vector<int>> &network)
+                                         const std::vector<std::vector<int>> &network)
 {
     int pos, max_value;
     flow[0] = INT_MAX;
 
     int graph_nodes = network.size();
+    std::vector<bool> visit(graph_nodes, false);
     while (!visit[graph_nodes - 1]) {
         pos = -1, max_value = 0;
         for (int i = 0; i != graph_nodes; ++i) {
-            if (visit[i] == false && flow[i] > max_value) {
+            if (!visit[i] && flow[i] > max_value) {
                 pos = i;
                 max_value = flow[i];
             }
@@ -706,19 +706,46 @@ void greedy_load_balancer::shortest_path(std::vector<bool> &visit,
             }
         }
     }
+    return visit[graph_nodes - 1] && flow[graph_nodes - 1] != 0;
 }
 
 // load balancer based on ford-fulkerson
 bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_state> &app)
 {
     dassert(t_alive_nodes > 2, "too few alive nodes will lead to freeze");
-    ddebug("primary balancer for app(%s:%d)", app->app_name.c_str(), app->app_id);
+    ddebug_f("primary balancer for app({}:{})", app->app_name, app->app_id);
 
-    const node_mapper &nodes = *(t_global_view->nodes);
+    uint32_t higher_count = 0, lower_count = 0;
+    if (primary_already_balanced(app, higher_count, lower_count)) {
+        dinfo_f("the primaries are balanced for app({}:{})", app->app_name, app->app_id);
+        return true;
+    }
+
+    std::vector<int> flow, prev;
+    bool found_path = primary_shortest_path(app, flow, prev, higher_count, lower_count);
+    if (found_path) {
+        dinfo_f("{} primaries are flew", flow.back());
+        return move_primary_based_on_flow_per_app(app, prev, flow);
+    }
+
+    // we can't make the server load more balanced
+    // by moving primaries to secondaries
+    if (!_only_move_primary) {
+        int replicas_low = app->partition_count / t_alive_nodes;
+        return copy_primary_per_app(app, lower_count != 0, replicas_low);
+    } else {
+        ddebug_f("stop to move primary for app({}) coz it is disabled", app->get_logname());
+        return true;
+    }
+}
+
+bool greedy_load_balancer::primary_already_balanced(const std::shared_ptr<app_state> &app,
+                                                    uint32_t higher_count,
+                                                    uint32_t lower_count)
+{
     int replicas_low = app->partition_count / t_alive_nodes;
     int replicas_high = (app->partition_count + t_alive_nodes - 1) / t_alive_nodes;
-
-    int lower_count = 0, higher_count = 0;
+    const node_mapper &nodes = *(t_global_view->nodes);
     for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
         int c = iter->second.primary_count(app->app_id);
         if (c > replicas_high)
@@ -726,15 +753,39 @@ bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_st
         else if (c < replicas_low)
             lower_count++;
     }
+
     if (higher_count == 0 && lower_count == 0) {
-        dinfo("the primaries are balanced for app(%s:%d)", app->app_name.c_str(), app->app_id);
         return true;
     }
+    return false;
+}
 
+bool greedy_load_balancer::primary_shortest_path(const std::shared_ptr<app_state> &app,
+                                                 std::vector<int> &flow,
+                                                 std::vector<int> &prev,
+                                                 uint32_t higher_count,
+                                                 uint32_t lower_count)
+{
     size_t graph_nodes = t_alive_nodes + 2;
     std::vector<std::vector<int>> network(graph_nodes, std::vector<int>(graph_nodes, 0));
+    make_primary_graph(app, network, higher_count, lower_count);
+
+    dinfo_f("{}: start to move primary", app->get_logname());
+    flow.resize(graph_nodes, 0);
+    prev.resize(graph_nodes, -1);
+    return shortest_path(flow, prev, network);
+}
+
+void greedy_load_balancer::make_primary_graph(const std::shared_ptr<app_state> &app,
+                                              std::vector<std::vector<int>> &network,
+                                              uint32_t higher_count,
+                                              uint32_t lower_count)
+{
+    const node_mapper &nodes = *(t_global_view->nodes);
+    int replicas_low = app->partition_count / t_alive_nodes;
 
     // make graph
+    size_t graph_nodes = t_alive_nodes + 2;
     for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
         int from = address_id[iter->first];
         const node_state &ns = iter->second;
@@ -765,25 +816,6 @@ bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_st
                 ++network[i][graph_nodes - 1];
         }
     }
-    dinfo("%s: start to move primary", app->get_logname());
-    std::vector<bool> visit(graph_nodes, false);
-    std::vector<int> flow(graph_nodes, 0);
-    std::vector<int> prev(graph_nodes, -1);
-
-    shortest_path(visit, flow, prev, network);
-    // we can't make the server load more balanced
-    // by moving primaries to secondaries
-    if (!visit[graph_nodes - 1] || flow[graph_nodes - 1] == 0) {
-        if (!_only_move_primary) {
-            return copy_primary_per_app(app, lower_count != 0, replicas_low);
-        } else {
-            ddebug("stop to move primary for app(%s) coz it is disabled", app->get_logname());
-            return true;
-        }
-    }
-
-    dinfo("%u primaries are flew", flow[graph_nodes - 1]);
-    return move_primary_based_on_flow_per_app(app, prev, flow);
 }
 
 bool greedy_load_balancer::all_replica_infos_collected(const node_state &ns)
@@ -853,8 +885,6 @@ bool greedy_load_balancer::continue_balance_secondaries(bool balance_checker)
 
 void greedy_load_balancer::greedy_balancer(const bool balance_checker)
 {
-    const app_mapper &apps = *t_global_view->apps;
-
     dassert(t_alive_nodes > 2, "too few nodes will be freezed");
     number_nodes(*t_global_view->nodes);
 
@@ -865,6 +895,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
         }
     }
 
+    const app_mapper &apps = *t_global_view->apps;
     if (!balancer_apps(balance_checker,
                        apps,
                        std::bind(&greedy_load_balancer::primary_balancer_per_app,

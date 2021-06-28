@@ -109,10 +109,9 @@ private:
 
 private:
     void number_nodes(const node_mapper &nodes);
-    void shortest_path(std::vector<bool> &visit,
-                       std::vector<int> &flow,
+    bool shortest_path(std::vector<int> &flow,
                        std::vector<int> &prev,
-                       std::vector<std::vector<int>> &network);
+                       const std::vector<std::vector<int>> &network);
 
     // balance decision generators. All these functions try to make balance decisions
     // and store them to t_migration_result.
@@ -129,6 +128,21 @@ private:
                               bool still_have_less_than_average,
                               int replicas_low);
     bool primary_balancer_per_app(const std::shared_ptr<app_state> &app);
+
+    bool primary_already_balanced(const std::shared_ptr<app_state> &app,
+                                  uint32_t higher_count,
+                                  uint32_t lower_count);
+
+    bool primary_shortest_path(const std::shared_ptr<app_state> &app,
+                               std::vector<int> &flow,
+                               std::vector<int> &prev,
+                               uint32_t higher_count,
+                               uint32_t lower_count);
+
+    void make_primary_graph(const std::shared_ptr<app_state> &app,
+                            std::vector<std::vector<int>> &network,
+                            uint32_t higher_count,
+                            uint32_t lower_count);
 
     bool copy_secondary_per_app(const std::shared_ptr<app_state> &app);
 
