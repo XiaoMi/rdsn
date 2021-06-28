@@ -78,9 +78,7 @@ greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
         "copy secondary count by balancer in the recent period");
 }
 
-greedy_load_balancer::~greedy_load_balancer()
-{
-}
+greedy_load_balancer::~greedy_load_balancer() {}
 
 void greedy_load_balancer::register_ctrl_commands()
 {
@@ -804,6 +802,55 @@ bool greedy_load_balancer::all_replica_infos_collected(const node_state &ns)
     });
 }
 
+bool greedy_load_balancer::balancer_apps(
+    const bool balance_checker,
+    const app_mapper &apps,
+    const std::function<bool(const std::shared_ptr<app_state> &)> &callback)
+{
+    for (const auto &kv : apps) {
+        const std::shared_ptr<app_state> &app = kv.second;
+        if (is_ignored_app(kv.first)) {
+            ddebug_f("skip to do primary balance for the ignored app[{}]", app->get_logname());
+            continue;
+        }
+        if (app->status != app_status::AS_AVAILABLE || app->is_bulk_loading || app->splitting())
+            continue;
+
+        bool enough_information = callback(app);
+        if (!enough_information) {
+            // Even if we don't have enough info for current app,
+            // the decisions made by previous apps are kept.
+            // t_migration_result->empty();
+            return false;
+        }
+        if (!balance_checker) {
+            if (!t_migration_result->empty()) {
+                if (_balancer_in_turn) {
+                    ddebug("stop to handle more apps after we found some actions for %s",
+                           app->get_logname());
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+bool greedy_load_balancer::continue_balance_secondaries(bool balance_checker)
+{
+    if (!balance_checker && !t_migration_result->empty()) {
+        ddebug("stop to do secondary balance coz we already has actions to do");
+        return false;
+    }
+    if (_only_primary_balancer) {
+        ddebug("stop to do secondary balancer coz it is not allowed");
+        return false;
+    }
+
+    return true;
+}
+
 void greedy_load_balancer::greedy_balancer(const bool balance_checker)
 {
     const app_mapper &apps = *t_global_view->apps;
@@ -818,45 +865,15 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
         }
     }
 
-    for (const auto &kv : apps) {
-        const std::shared_ptr<app_state> &app = kv.second;
-        if (is_ignored_app(kv.first)) {
-            ddebug_f("skip to do primary balance for the ignored app[{}]", app->get_logname());
-            continue;
-        }
-        if (app->status != app_status::AS_AVAILABLE || app->is_bulk_loading || app->splitting())
-            continue;
-
-        bool enough_information = primary_balancer_per_app(app);
-        if (!enough_information) {
-            // Even if we don't have enough info for current app,
-            // the decisions made by previous apps are kept.
-            // t_migration_result->empty();
-            return;
-        }
-        if (!balance_checker) {
-            if (!t_migration_result->empty()) {
-                if (_balancer_in_turn) {
-                    ddebug("stop to handle more apps after we found some actions for %s",
-                           app->get_logname());
-                    return;
-                }
-            }
-        }
+    if (!balancer_apps(balance_checker,
+                       apps,
+                       std::bind(&greedy_load_balancer::primary_balancer_per_app,
+                                 this,
+                                 std::placeholders::_1))) {
+        return;
     }
 
-    // TODO: do primary_balancer_globally when we find a good approach to
-    // make decision according to disk load.
-    // primary_balancer_globally();
-
-    if (!balance_checker) {
-        if (!t_migration_result->empty()) {
-            ddebug("stop to do secondary balance coz we already has actions to do");
-            return;
-        }
-    }
-    if (_only_primary_balancer) {
-        ddebug("stop to do secondary balancer coz it is not allowed");
+    if (!continue_balance_secondaries(balance_checker)) {
         return;
     }
 
@@ -864,33 +881,10 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     // 1. globally primary balancer may make secondary unbalanced
     // 2. in one-by-one mode, a secondary balance decision for an app may be prior than
     // another app's primary balancer if not seperated.
-    for (const auto &kv : apps) {
-        const std::shared_ptr<app_state> &app = kv.second;
-        if (is_ignored_app(kv.first)) {
-            ddebug_f("skip to do secondary balance for the ignored app[{}]", app->get_logname());
-            continue;
-        }
-
-        if (app->status != app_status::AS_AVAILABLE || app->is_bulk_loading || app->splitting())
-            continue;
-
-        bool enough_information = copy_secondary_per_app(app);
-        if (!enough_information) {
-            // Even if we don't have enough info for current app,
-            // the decisions made by previous apps are kept.
-            // t_migration_result->empty();
-            return;
-        }
-        if (!balance_checker) {
-            if (!t_migration_result->empty()) {
-                if (_balancer_in_turn) {
-                    ddebug("stop to handle more apps after we found some actions for %s",
-                           app->get_logname());
-                    return;
-                }
-            }
-        }
-    }
+    balancer_apps(
+        balance_checker,
+        apps,
+        std::bind(&greedy_load_balancer::copy_secondary_per_app, this, std::placeholders::_1));
 }
 
 bool greedy_load_balancer::balance(meta_view view, migration_list &list)
@@ -898,7 +892,6 @@ bool greedy_load_balancer::balance(meta_view view, migration_list &list)
     ddebug("balancer round");
     list.clear();
 
-    t_total_partitions = count_partitions(*(view.apps));
     t_alive_nodes = view.nodes->size();
     t_global_view = &view;
     t_migration_result = &list;
@@ -913,7 +906,6 @@ bool greedy_load_balancer::check(meta_view view, migration_list &list)
     ddebug("balance checker round");
     list.clear();
 
-    t_total_partitions = count_partitions(*(view.apps));
     t_alive_nodes = view.nodes->size();
     t_global_view = &view;
     t_migration_result = &list;

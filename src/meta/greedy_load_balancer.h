@@ -75,7 +75,6 @@ private:
     // these variables are temporarily assigned by interface "balance"
     const meta_view *t_global_view;
     migration_list *t_migration_result;
-    int t_total_partitions;
     int t_alive_nodes;
     int t_operation_counters[MAX_COUNT];
 
@@ -134,6 +133,12 @@ private:
     bool copy_secondary_per_app(const std::shared_ptr<app_state> &app);
 
     void greedy_balancer(bool balance_checker);
+
+    bool balancer_apps(const bool balance_checker,
+                       const app_mapper &apps,
+                       const std::function<bool(const std::shared_ptr<app_state> &)> &callback);
+
+    bool continue_balance_secondaries(bool balance_checker);
 
     bool all_replica_infos_collected(const node_state &ns);
     // using t_global_view to get disk_tag of node's pid
