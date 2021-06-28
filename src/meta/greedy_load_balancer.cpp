@@ -677,24 +677,15 @@ bool greedy_load_balancer::move_primary_based_on_flow_per_app(const std::shared_
 }
 
 // shortest path based on dijstra, to find an augmenting path
-bool greedy_load_balancer::shortest_path(std::vector<int> &flow,
-                                         std::vector<int> &prev,
-                                         const std::vector<std::vector<int>> &network)
+bool greedy_load_balancer::find_shortest_path(std::vector<int> &flow,
+                                              std::vector<int> &prev,
+                                              const std::vector<std::vector<int>> &network)
 {
-    int pos, max_value;
     flow[0] = INT_MAX;
-
     int graph_nodes = network.size();
     std::vector<bool> visit(graph_nodes, false);
     while (!visit[graph_nodes - 1]) {
-        pos = -1, max_value = 0;
-        for (int i = 0; i != graph_nodes; ++i) {
-            if (!visit[i] && flow[i] > max_value) {
-                pos = i;
-                max_value = flow[i];
-            }
-        }
-
+        auto pos = max_value_pos(visit, flow);
         if (pos == -1)
             break;
 
@@ -707,6 +698,19 @@ bool greedy_load_balancer::shortest_path(std::vector<int> &flow,
         }
     }
     return visit[graph_nodes - 1] && flow[graph_nodes - 1] != 0;
+}
+
+int greedy_load_balancer::max_value_pos(const std::vector<bool> &visit,
+                                        const std::vector<int> &flow)
+{
+    int pos = -1, max_value = 0;
+    auto graph_nodes = visit.size();
+    for (auto i = 0; i != graph_nodes; ++i) {
+        if (!visit[i] && flow[i] > max_value) {
+            pos = i;
+        }
+    }
+    return pos;
 }
 
 // load balancer based on ford-fulkerson
@@ -773,7 +777,7 @@ bool greedy_load_balancer::primary_shortest_path(const std::shared_ptr<app_state
     dinfo_f("{}: start to move primary", app->get_logname());
     flow.resize(graph_nodes, 0);
     prev.resize(graph_nodes, -1);
-    return shortest_path(flow, prev, network);
+    return find_shortest_path(flow, prev, network);
 }
 
 void greedy_load_balancer::make_primary_graph(const std::shared_ptr<app_state> &app,
