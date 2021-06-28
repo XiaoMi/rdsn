@@ -112,7 +112,13 @@ private:
     bool find_shortest_path(std::vector<int> &flow,
                             std::vector<int> &prev,
                             const std::vector<std::vector<int>> &network);
+    int select_node(std::vector<bool> &visit, const std::vector<int> &flow);
     int max_value_pos(const std::vector<bool> &visit, const std::vector<int> &flow);
+    int update_flow(int pos,
+                    const std::vector<bool> &visit,
+                    const std::vector<std::vector<int>> &network,
+                    std::vector<int> &flow,
+                    std::vector<int> &prev);
 
     // balance decision generators. All these functions try to make balance decisions
     // and store them to t_migration_result.

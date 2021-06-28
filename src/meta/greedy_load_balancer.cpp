@@ -681,23 +681,27 @@ bool greedy_load_balancer::find_shortest_path(std::vector<int> &flow,
                                               std::vector<int> &prev,
                                               const std::vector<std::vector<int>> &network)
 {
-    flow[0] = INT_MAX;
     int graph_nodes = network.size();
     std::vector<bool> visit(graph_nodes, false);
     while (!visit[graph_nodes - 1]) {
-        auto pos = max_value_pos(visit, flow);
-        if (pos == -1)
+        auto pos = select_node(visit, flow);
+        if (pos == -1) {
             break;
-
-        visit[pos] = true;
-        for (int i = 0; i != graph_nodes; ++i) {
-            if (!visit[i] && std::min(flow[pos], network[pos][i]) > flow[i]) {
-                flow[i] = std::min(flow[pos], network[pos][i]);
-                prev[i] = pos;
-            }
         }
+
+        update_flow(pos, visit, network, flow, prev);
     }
+
     return visit[graph_nodes - 1] && flow[graph_nodes - 1] != 0;
+}
+
+int greedy_load_balancer::select_node(std::vector<bool> &visit, const std::vector<int> &flow)
+{
+    auto pos = max_value_pos(visit, flow);
+    if (pos != -1) {
+        visit[pos] = true;
+    }
+    return pos;
 }
 
 int greedy_load_balancer::max_value_pos(const std::vector<bool> &visit,
@@ -711,6 +715,26 @@ int greedy_load_balancer::max_value_pos(const std::vector<bool> &visit,
         }
     }
     return pos;
+}
+
+int greedy_load_balancer::update_flow(int pos,
+                                      const std::vector<bool> &visit,
+                                      const std::vector<std::vector<int>> &network,
+                                      std::vector<int> &flow,
+                                      std::vector<int> &prev)
+{
+    auto graph_nodes = network.size();
+    for (auto i = 0; i != graph_nodes; ++i) {
+        if (visit[i]) {
+            continue;
+        }
+
+        auto min = std::min(flow[pos], network[pos][i]);
+        if (min > flow[i]) {
+            flow[i] = min;
+            prev[i] = pos;
+        }
+    }
 }
 
 // load balancer based on ford-fulkerson
@@ -776,6 +800,7 @@ bool greedy_load_balancer::primary_shortest_path(const std::shared_ptr<app_state
 
     dinfo_f("{}: start to move primary", app->get_logname());
     flow.resize(graph_nodes, 0);
+    flow[0] = INT_MAX;
     prev.resize(graph_nodes, -1);
     return find_shortest_path(flow, prev, network);
 }
