@@ -259,9 +259,9 @@ const std::string &greedy_load_balancer::get_disk_tag(const rpc_address &node, c
 }
 
 // assume all nodes are alive
-bool greedy_load_balancer::copy_primary_per_app(const std::shared_ptr<app_state> &app,
-                                                bool still_have_less_than_average,
-                                                int replicas_low)
+bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
+                                        bool still_have_less_than_average,
+                                        int replicas_low)
 {
     const node_mapper &nodes = *(t_global_view->nodes);
     std::vector<int> future_primaries(address_vec.size(), 0);
@@ -575,9 +575,9 @@ bool greedy_load_balancer::calc_disk_load(app_id id,
     }
 }
 
-bool greedy_load_balancer::move_primary_based_on_flow_per_app(const std::shared_ptr<app_state> &app,
-                                                              const std::vector<int> &prev,
-                                                              const std::vector<int> &flow)
+bool greedy_load_balancer::move_primary_based_on_flow(const std::shared_ptr<app_state> &app,
+                                                      const std::vector<int> &prev,
+                                                      const std::vector<int> &flow)
 {
     int graph_nodes = prev.size();
     int current = prev[graph_nodes - 1];
@@ -717,11 +717,11 @@ int greedy_load_balancer::max_value_pos(const std::vector<bool> &visit,
     return pos;
 }
 
-int greedy_load_balancer::update_flow(int pos,
-                                      const std::vector<bool> &visit,
-                                      const std::vector<std::vector<int>> &network,
-                                      std::vector<int> &flow,
-                                      std::vector<int> &prev)
+void greedy_load_balancer::update_flow(int pos,
+                                       const std::vector<bool> &visit,
+                                       const std::vector<std::vector<int>> &network,
+                                       std::vector<int> &flow,
+                                       std::vector<int> &prev)
 {
     auto graph_nodes = network.size();
     for (auto i = 0; i != graph_nodes; ++i) {
@@ -753,14 +753,14 @@ bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_st
     bool found_path = primary_shortest_path(app, flow, prev, higher_count, lower_count);
     if (found_path) {
         dinfo_f("{} primaries are flew", flow.back());
-        return move_primary_based_on_flow_per_app(app, prev, flow);
+        return move_primary_based_on_flow(app, prev, flow);
     }
 
     // we can't make the server load more balanced
     // by moving primaries to secondaries
     if (!_only_move_primary) {
         int replicas_low = app->partition_count / t_alive_nodes;
-        return copy_primary_per_app(app, lower_count != 0, replicas_low);
+        return copy_primary(app, lower_count != 0, replicas_low);
     } else {
         ddebug_f("stop to move primary for app({}) coz it is disabled", app->get_logname());
         return true;

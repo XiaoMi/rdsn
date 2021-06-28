@@ -114,11 +114,11 @@ private:
                             const std::vector<std::vector<int>> &network);
     int select_node(std::vector<bool> &visit, const std::vector<int> &flow);
     int max_value_pos(const std::vector<bool> &visit, const std::vector<int> &flow);
-    int update_flow(int pos,
-                    const std::vector<bool> &visit,
-                    const std::vector<std::vector<int>> &network,
-                    std::vector<int> &flow,
-                    std::vector<int> &prev);
+    void update_flow(int pos,
+                     const std::vector<bool> &visit,
+                     const std::vector<std::vector<int>> &network,
+                     std::vector<int> &flow,
+                     std::vector<int> &prev);
 
     // balance decision generators. All these functions try to make balance decisions
     // and store them to t_migration_result.
@@ -128,12 +128,12 @@ private:
     //
     // when return false, it means generators refuse to make decision coz
     // they think they need more informations.
-    bool move_primary_based_on_flow_per_app(const std::shared_ptr<app_state> &app,
-                                            const std::vector<int> &prev,
-                                            const std::vector<int> &flow);
-    bool copy_primary_per_app(const std::shared_ptr<app_state> &app,
-                              bool still_have_less_than_average,
-                              int replicas_low);
+    bool move_primary_based_on_flow(const std::shared_ptr<app_state> &app,
+                                    const std::vector<int> &prev,
+                                    const std::vector<int> &flow);
+    bool copy_primary(const std::shared_ptr<app_state> &app,
+                      bool still_have_less_than_average,
+                      int replicas_low);
     bool primary_balancer_per_app(const std::shared_ptr<app_state> &app);
 
     bool primary_already_balanced(const std::shared_ptr<app_state> &app,
