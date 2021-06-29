@@ -578,9 +578,6 @@ bool greedy_load_balancer::move_primary_based_on_flow(const std::shared_ptr<app_
                                                       const std::vector<int> &prev,
                                                       const std::vector<int> &flow)
 {
-    int graph_nodes = prev.size();
-    int current = prev[graph_nodes - 1];
-
     // used to calculate the primary disk loads of each server.
     // disk_load[disk_tag] means how many primaies on this "disk_tag".
     // IF disk_load.find(disk_tag) == disk_load.end(), means 0
@@ -588,6 +585,8 @@ bool greedy_load_balancer::move_primary_based_on_flow(const std::shared_ptr<app_
     disk_load *prev_load = &loads[0];
     disk_load *current_load = &loads[1];
 
+    int graph_nodes = prev.size();
+    int current = prev[graph_nodes - 1];
     if (!calc_disk_load(app->app_id, address_vec[current], true, *current_load)) {
         dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                 address_vec[current].to_string(),
@@ -595,11 +594,9 @@ bool greedy_load_balancer::move_primary_based_on_flow(const std::shared_ptr<app_
         return false;
     }
 
-    migration_list ml_this_turn;
     while (prev[current] != 0) {
         rpc_address from = address_vec[prev[current]];
         rpc_address to = address_vec[current];
-
         if (!calc_disk_load(app->app_id, from, true, *prev_load)) {
             dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                     from.to_string(),
@@ -607,55 +604,20 @@ bool greedy_load_balancer::move_primary_based_on_flow(const std::shared_ptr<app_
             return false;
         }
 
-        std::list<dsn::gpid> potential_moving;
-        calc_potential_moving(app, from, to, potential_moving);
-
-        auto potential_moving_size = potential_moving.size();
         int plan_moving = flow[graph_nodes - 1];
-        dassert_f(plan_moving <= potential_moving_size,
-                  "from({}) to({}) plan({}), can_move({})",
-                  from.to_string(),
-                  to.to_string(),
-                  plan_moving,
-                  potential_moving_size);
-
-        while (plan_moving > 0) {
-            std::list<dsn::gpid>::iterator selected =
-                select_gpid(potential_moving, prev_load, current_load, from, to);
-
-            const partition_configuration &pc = app->partitions[selected->get_partition_index()];
-            auto balancer_result = ml_this_turn.emplace(
-                *selected, generate_balancer_request(pc, balance_type::move_primary, from, to));
-            dassert(balancer_result.second,
-                    "gpid(%d.%d) already inserted as an action",
-                    (*selected).get_app_id(),
-                    (*selected).get_partition_index());
-
-            --(*prev_load)[get_disk_tag(from, *selected)];
-            ++(*current_load)[get_disk_tag(to, *selected)];
-            potential_moving.erase(selected);
-            --plan_moving;
-        }
+        start_moving(app, from, to, prev_load, current_load, plan_moving);
 
         current = prev[current];
         std::swap(current_load, prev_load);
     }
 
-    for (auto &kv : ml_this_turn) {
-        auto r = t_migration_result->emplace(kv.first, kv.second);
-        dassert(r.second,
-                "gpid(%d.%d) already inserted as an action",
-                kv.first.get_app_id(),
-                kv.first.get_partition_index());
-    }
     return true;
 }
 
-void greedy_load_balancer::calc_potential_moving(const std::shared_ptr<app_state> &app,
-                                                 const rpc_address &from,
-                                                 const rpc_address &to,
-                                                 std::list<dsn::gpid> &potential_moving)
+std::list<dsn::gpid> greedy_load_balancer::calc_potential_moving(
+    const std::shared_ptr<app_state> &app, const rpc_address &from, const rpc_address &to)
 {
+    std::list<dsn::gpid> potential_moving;
     const node_state &ns = t_global_view->nodes->find(from)->second;
     ns.for_each_primary(app->app_id, [&](const gpid &pid) {
         const partition_configuration &pc = app->partitions[pid.get_partition_index()];
@@ -664,14 +626,44 @@ void greedy_load_balancer::calc_potential_moving(const std::shared_ptr<app_state
         }
         return true;
     });
+
+    return potential_moving;
 }
 
-std::list<dsn::gpid>::iterator
-greedy_load_balancer::select_gpid(std::list<dsn::gpid> &potential_moving,
-                                  disk_load *prev_load,
-                                  disk_load *current_load,
-                                  rpc_address from,
-                                  rpc_address to)
+void greedy_load_balancer::start_moving(const std::shared_ptr<app_state> &app,
+                                        const rpc_address &from,
+                                        const rpc_address &to,
+                                        disk_load *prev_load,
+                                        disk_load *current_load,
+                                        int plan_moving)
+{
+    std::list<dsn::gpid> potential_moving = calc_potential_moving(app, from, to);
+    auto potential_moving_size = potential_moving.size();
+    dassert_f(plan_moving <= potential_moving_size,
+              "from({}) to({}) plan({}), can_move({})",
+              from.to_string(),
+              to.to_string(),
+              plan_moving,
+              potential_moving_size);
+
+    while (plan_moving-- > 0) {
+        dsn::gpid selected = select_moving(potential_moving, prev_load, current_load, from, to);
+
+        const partition_configuration &pc = app->partitions[selected.get_partition_index()];
+        auto balancer_result = t_migration_result->emplace(
+            selected, generate_balancer_request(pc, balance_type::move_primary, from, to));
+        dassert_f(balancer_result.second, "gpid({}) already inserted as an action", selected);
+
+        --(*prev_load)[get_disk_tag(from, selected)];
+        ++(*current_load)[get_disk_tag(to, selected)];
+    }
+}
+
+dsn::gpid greedy_load_balancer::select_moving(std::list<dsn::gpid> &potential_moving,
+                                              disk_load *prev_load,
+                                              disk_load *current_load,
+                                              rpc_address from,
+                                              rpc_address to)
 {
     std::list<dsn::gpid>::iterator selected = potential_moving.end();
     int max = std::numeric_limits<int>::min();
@@ -689,7 +681,8 @@ greedy_load_balancer::select_gpid(std::list<dsn::gpid> &potential_moving,
               "can't find gpid to move from({}) to({})",
               from.to_string(),
               to.to_string());
-    return selected;
+    potential_moving.erase(selected);
+    return *selected;
 }
 
 // shortest path based on dijstra, to find an augmenting path
