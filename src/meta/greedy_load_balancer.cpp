@@ -574,9 +574,9 @@ bool greedy_load_balancer::calc_disk_load(app_id id,
     return result;
 }
 
-bool greedy_load_balancer::move_primary_based_on_flow(const std::shared_ptr<app_state> &app,
-                                                      const std::vector<int> &prev,
-                                                      const std::vector<int> &flow)
+bool greedy_load_balancer::move_primary(const std::shared_ptr<app_state> &app,
+                                        const std::vector<int> &prev,
+                                        const std::vector<int> &flow)
 {
     // used to calculate the primary disk loads of each server.
     // disk_load[disk_tag] means how many primaies on this "disk_tag".
@@ -762,7 +762,7 @@ bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_st
     bool found_path = primary_shortest_path(app, flow, prev, higher_count, lower_count);
     if (found_path) {
         dinfo_f("{} primaries are flew", flow.back());
-        return move_primary_based_on_flow(app, prev, flow);
+        return move_primary(app, prev, flow);
     }
 
     // we can't make the server load more balanced

@@ -128,9 +128,9 @@ private:
     //
     // when return false, it means generators refuse to make decision coz
     // they think they need more informations.
-    bool move_primary_based_on_flow(const std::shared_ptr<app_state> &app,
-                                    const std::vector<int> &prev,
-                                    const std::vector<int> &flow);
+    bool move_primary(const std::shared_ptr<app_state> &app,
+                      const std::vector<int> &prev,
+                      const std::vector<int> &flow);
     bool copy_primary(const std::shared_ptr<app_state> &app,
                       bool still_have_less_than_average,
                       int replicas_low);
