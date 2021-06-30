@@ -609,9 +609,8 @@ struct ford_fulkerson
     std::unique_ptr<flow_path> find_shortest_path()
     {
         std::vector<int> flow, prev;
-        int graph_nodes = _network.size();
-        std::vector<bool> visit(graph_nodes, false);
-        while (!visit[graph_nodes - 1]) {
+        std::vector<bool> visit(_network.size(), false);
+        while (!visit.back()) {
             auto pos = select_node(visit, flow);
             if (pos == -1) {
                 break;
@@ -620,7 +619,7 @@ struct ford_fulkerson
             update_flow(pos, visit, _network, flow, prev);
         }
 
-        if (visit[graph_nodes - 1] && flow[graph_nodes - 1] != 0) {
+        if (visit.back() && flow.back() != 0) {
             return dsn::make_unique<struct flow_path>(_app, std::move(flow), std::move(prev));
         } else {
             return nullptr;
@@ -661,9 +660,12 @@ private:
     void handle_corner_case()
     {
         // Suppose you have an 8-shard app in a cluster with 3 nodes(which name is node1, node2,
-        // node3). The distribution of primaries among these nodes is as follow: node1 : [0, 1, 2,
-        // 3] node2 : [4, 5] node2 : [6, 7] This is obviously unbalanced. But if we don't handle
-        // this corner case, primary migration will not be triggered
+        // node3). The distribution of primaries among these nodes is as follow:
+        // node1 : [0, 1, 2,3]
+        // node2 : [4, 5]
+        // node2 : [6, 7]
+        // This is obviously unbalanced.
+        // But if we don't handle this corner case, primary migration will not be triggered
         auto nodes_count = _nodes.size();
         size_t graph_nodes = nodes_count + 2;
         if (_higher_count > 0 && _lower_count == 0) {
@@ -685,8 +687,7 @@ private:
         if (primary_count > replicas_low) {
             _network[0][node_id] = primary_count - replicas_low;
         } else {
-            size_t graph_nodes = nodes_count + 2;
-            _network[node_id][graph_nodes - 1] = replicas_low - primary_count;
+            _network[node_id].back() = replicas_low - primary_count;
         }
     }
 
