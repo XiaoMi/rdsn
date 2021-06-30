@@ -302,8 +302,7 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
                    app->get_logname());
             break;
         }
-        if (!have_less_than_average &&
-            future_primaries[id_max] - future_primaries[id_min] <= 1) {
+        if (!have_less_than_average && future_primaries[id_max] - future_primaries[id_min] <= 1) {
             ddebug("%s: stop the copy due to the primary will be balanced later.",
                    app->get_logname());
             break;
@@ -648,32 +647,18 @@ private:
 
     void make_graph()
     {
-        auto nodes_count = _nodes.size();
-        int replicas_low = _app->partition_count / nodes_count;
+        for (const auto &pair : _nodes) {
+            int node_id = _address_id.at(pair.first);
+            add_edge_for_source_sink(node_id, pair.second);
 
-        size_t graph_nodes = nodes_count + 2;
-        for (auto iter = _nodes.begin(); iter != _nodes.end(); ++iter) {
-            int from = _address_id.at(iter->first);
-            const node_state &ns = iter->second;
-            int c = ns.primary_count(_app->app_id);
-            if (c > replicas_low)
-                _network[0][from] = c - replicas_low;
-            else
-                _network[from][graph_nodes - 1] = replicas_low - c;
-
-            ns.for_each_primary(_app->app_id, [&, this](const gpid &pid) {
-                const partition_configuration &pc = _app->partitions[pid.get_partition_index()];
-                for (auto &target : pc.secondaries) {
-                    auto i = _address_id.find(target);
-                    dassert_f(i != _address_id.end(),
-                              "invalid secondary address, address = {}",
-                              target.to_string());
-                    _network[from][i->second]++;
-                }
-                return true;
-            });
+            add_decree_to_secondaries(node_id, pair.second);
         }
 
+        // handling edge case.
+        // Actually I don't understand the purpose of this code, so I can't refactor it. Leave it as
+        // it is :(
+        auto nodes_count = _nodes.size();
+        size_t graph_nodes = nodes_count + 2;
         if (_higher_count > 0 && _lower_count == 0) {
             for (int i = 0; i != graph_nodes; ++i) {
                 if (_network[0][i] > 0)
@@ -683,6 +668,35 @@ private:
             }
         }
     };
+
+    void add_edge_for_source_sink(int node_id, const node_state &ns)
+    {
+        auto nodes_count = _nodes.size();
+        int replicas_low = _app->partition_count / nodes_count;
+        int primary_count = ns.primary_count(_app->app_id);
+
+        if (primary_count > replicas_low) {
+            _network[0][node_id] = primary_count - replicas_low;
+        } else {
+            size_t graph_nodes = nodes_count + 2;
+            _network[node_id][graph_nodes - 1] = replicas_low - primary_count;
+        }
+    }
+
+    void add_decree_to_secondaries(int node_id, const node_state &ns)
+    {
+        ns.for_each_primary(_app->app_id, [&, this](const gpid &pid) {
+            const partition_configuration &pc = _app->partitions[pid.get_partition_index()];
+            for (auto &target : pc.secondaries) {
+                auto i = _address_id.find(target);
+                dassert_f(i != _address_id.end(),
+                          "invalid secondary address, address = {}",
+                          target.to_string());
+                _network[node_id][i->second]++;
+            }
+            return true;
+        });
+    }
 
     int select_node(std::vector<bool> &visit, const std::vector<int> &flow)
     {
