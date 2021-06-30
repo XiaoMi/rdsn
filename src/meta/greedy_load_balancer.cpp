@@ -652,7 +652,7 @@ private:
             int node_id = _address_id.at(pair.first);
             add_edge_with_source_sink(node_id, pair.second);
 
-            add_decree_to_secondaries(node_id, pair.second);
+            increase_decree_to_secondaries(node_id, pair.second);
         }
 
         handle_corner_case();
@@ -690,7 +690,7 @@ private:
         }
     }
 
-    void add_decree_to_secondaries(int node_id, const node_state &ns)
+    void increase_decree_to_secondaries(int node_id, const node_state &ns)
     {
         ns.for_each_primary(_app->app_id, [&, this](const gpid &pid) {
             const partition_configuration &pc = _app->partitions[pid.get_partition_index()];
