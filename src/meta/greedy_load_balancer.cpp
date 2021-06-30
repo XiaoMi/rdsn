@@ -587,7 +587,8 @@ struct flow_path
     std::vector<int> _flow, _prev;
 };
 
-// only used for primary, to get shortest path
+// Fold Fulkerson is used for primary balance.
+// For more details: https://levy5307.github.io/blog/pegasus-balancer/
 struct fold_fulkerson
 {
     fold_fulkerson() = delete;
