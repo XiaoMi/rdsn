@@ -27,9 +27,11 @@
 #include <algorithm>
 #include <iostream>
 #include <queue>
+#include <utility>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/utility/math.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/smart_pointers.h>
 #include "greedy_load_balancer.h"
 #include "meta_data.h"
 #include "meta_admin_types.h"
@@ -573,10 +575,167 @@ bool greedy_load_balancer::calc_disk_load(app_id id,
     dump_disk_load(id, node, only_primary, load);
     return result;
 }
+struct flow_path
+{
+    flow_path(const std::shared_ptr<app_state> &app,
+              std::vector<int> &&flow,
+              std::vector<int> &&prev)
+        : _app(app), _flow(std::move(flow)), _prev(std::move(prev))
+    {
+    }
 
-bool greedy_load_balancer::move_primary(const std::shared_ptr<app_state> &app,
-                                        const std::vector<int> &prev,
-                                        const std::vector<int> &flow)
+    const std::shared_ptr<app_state> &_app;
+    std::vector<int> _flow, _prev;
+};
+
+// only used for primary, to get shortest path
+struct fold_fulkerson
+{
+    fold_fulkerson() = delete;
+
+    fold_fulkerson(const std::shared_ptr<app_state> &app,
+                   const node_mapper &nodes,
+                   const std::unordered_map<dsn::rpc_address, int> &address_id)
+        : _app(app), _nodes(nodes), _address_id(address_id), _higher_count(0), _lower_count(0)
+    {
+        init();
+    }
+
+    bool already_balanced() const { return _higher_count == 0 && _lower_count == 0; }
+
+    bool have_less_than_average() const { return _lower_count != 0; }
+
+    // using dijstra to find shortest path
+    std::unique_ptr<flow_path> find_shortest_path()
+    {
+        std::vector<int> flow, prev;
+        int graph_nodes = _network.size();
+        std::vector<bool> visit(graph_nodes, false);
+        while (!visit[graph_nodes - 1]) {
+            auto pos = select_node(visit, flow);
+            if (pos == -1) {
+                break;
+            }
+
+            update_flow(pos, visit, _network, flow, prev);
+        }
+
+        if (visit[graph_nodes - 1] && flow[graph_nodes - 1] != 0) {
+            return dsn::make_unique<struct flow_path>(_app, std::move(flow), std::move(prev));
+        } else {
+            return nullptr;
+        }
+    };
+
+private:
+    void init()
+    {
+        auto nodes_count = _nodes.size();
+        int replicas_low = _app->partition_count / nodes_count;
+        int replicas_high = (_app->partition_count + nodes_count - 1) / nodes_count;
+
+        for (const auto &node : _nodes) {
+            int primary_count = node.second.primary_count(_app->app_id);
+            if (primary_count > replicas_high) {
+                _higher_count++;
+            } else if (primary_count < replicas_low) {
+                _lower_count++;
+            }
+        }
+
+        make_graph();
+    }
+
+    void make_graph()
+    {
+        auto nodes_count = _nodes.size();
+        int replicas_low = _app->partition_count / nodes_count;
+
+        // make graph
+        size_t graph_nodes = nodes_count + 2;
+        for (auto iter = _nodes.begin(); iter != _nodes.end(); ++iter) {
+            int from = _address_id.at(iter->first);
+            const node_state &ns = iter->second;
+            int c = ns.primary_count(_app->app_id);
+            if (c > replicas_low)
+                _network[0][from] = c - replicas_low;
+            else
+                _network[from][graph_nodes - 1] = replicas_low - c;
+
+            ns.for_each_primary(_app->app_id, [&, this](const gpid &pid) {
+                const partition_configuration &pc = _app->partitions[pid.get_partition_index()];
+                for (auto &target : pc.secondaries) {
+                    auto i = _address_id.find(target);
+                    dassert_f(i != _address_id.end(),
+                              "invalid secondary address, address = {}",
+                              target.to_string());
+                    _network[from][i->second]++;
+                }
+                return true;
+            });
+        }
+
+        if (_higher_count > 0 && _lower_count == 0) {
+            for (int i = 0; i != graph_nodes; ++i) {
+                if (_network[0][i] > 0)
+                    --_network[0][i];
+                else
+                    ++_network[i][graph_nodes - 1];
+            }
+        }
+    };
+
+    int select_node(std::vector<bool> &visit, const std::vector<int> &flow)
+    {
+        auto pos = max_value_pos(visit, flow);
+        if (pos != -1) {
+            visit[pos] = true;
+        }
+        return pos;
+    }
+
+    int max_value_pos(const std::vector<bool> &visit, const std::vector<int> &flow)
+    {
+        int pos = -1, max_value = 0;
+        auto graph_nodes = visit.size();
+        for (auto i = 0; i != graph_nodes; ++i) {
+            if (!visit[i] && flow[i] > max_value) {
+                pos = i;
+            }
+        }
+
+        return pos;
+    }
+
+    void update_flow(int pos,
+                     const std::vector<bool> &visit,
+                     const std::vector<std::vector<int>> &network,
+                     std::vector<int> &flow,
+                     std::vector<int> &prev)
+    {
+        auto graph_nodes = network.size();
+        for (auto i = 0; i != graph_nodes; ++i) {
+            if (visit[i]) {
+                continue;
+            }
+
+            auto min = std::min(flow[pos], network[pos][i]);
+            if (min > flow[i]) {
+                flow[i] = min;
+                prev[i] = pos;
+            }
+        }
+    }
+
+    const std::shared_ptr<app_state> &_app;
+    const node_mapper &_nodes;
+    const std::unordered_map<dsn::rpc_address, int> &_address_id;
+    std::vector<std::vector<int>> _network;
+    uint32_t _higher_count;
+    uint32_t _lower_count;
+};
+
+bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
 {
     // used to calculate the primary disk loads of each server.
     // disk_load[disk_tag] means how many primaies on this "disk_tag".
@@ -585,32 +744,31 @@ bool greedy_load_balancer::move_primary(const std::shared_ptr<app_state> &app,
     disk_load *prev_load = &loads[0];
     disk_load *current_load = &loads[1];
 
-    int graph_nodes = prev.size();
-    int current = prev[graph_nodes - 1];
-    if (!calc_disk_load(app->app_id, address_vec[current], true, *current_load)) {
+    int graph_nodes = path->_prev.size();
+    int current = path->_prev[graph_nodes - 1];
+    if (!calc_disk_load(path->_app->app_id, address_vec[current], true, *current_load)) {
         dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                 address_vec[current].to_string(),
-                app->get_logname());
+                path->_app->get_logname());
         return false;
     }
 
-    while (prev[current] != 0) {
-        rpc_address from = address_vec[prev[current]];
+    while (path->_prev[current] != 0) {
+        rpc_address from = address_vec[path->_prev[current]];
         rpc_address to = address_vec[current];
-        if (!calc_disk_load(app->app_id, from, true, *prev_load)) {
+        if (!calc_disk_load(path->_app->app_id, from, true, *prev_load)) {
             dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                     from.to_string(),
-                    app->get_logname());
+                    path->_app->get_logname());
             return false;
         }
 
-        int plan_moving = flow[graph_nodes - 1];
-        start_moving(app, from, to, prev_load, current_load, plan_moving);
+        int plan_moving = path->_flow[graph_nodes - 1];
+        start_moving(path->_app, from, to, prev_load, current_load, plan_moving);
 
-        current = prev[current];
+        current = path->_prev[current];
         std::swap(current_load, prev_load);
     }
-
     return true;
 }
 
@@ -685,174 +843,32 @@ dsn::gpid greedy_load_balancer::select_moving(std::list<dsn::gpid> &potential_mo
     return *selected;
 }
 
-// shortest path based on dijstra, to find an augmenting path
-bool greedy_load_balancer::find_shortest_path(std::vector<int> &flow,
-                                              std::vector<int> &prev,
-                                              const std::vector<std::vector<int>> &network)
-{
-    int graph_nodes = network.size();
-    std::vector<bool> visit(graph_nodes, false);
-    while (!visit[graph_nodes - 1]) {
-        auto pos = select_node(visit, flow);
-        if (pos == -1) {
-            break;
-        }
-
-        update_flow(pos, visit, network, flow, prev);
-    }
-
-    return visit[graph_nodes - 1] && flow[graph_nodes - 1] != 0;
-}
-
-int greedy_load_balancer::select_node(std::vector<bool> &visit, const std::vector<int> &flow)
-{
-    auto pos = max_value_pos(visit, flow);
-    if (pos != -1) {
-        visit[pos] = true;
-    }
-    return pos;
-}
-
-int greedy_load_balancer::max_value_pos(const std::vector<bool> &visit,
-                                        const std::vector<int> &flow)
-{
-    int pos = -1, max_value = 0;
-    auto graph_nodes = visit.size();
-    for (auto i = 0; i != graph_nodes; ++i) {
-        if (!visit[i] && flow[i] > max_value) {
-            pos = i;
-        }
-    }
-    return pos;
-}
-
-void greedy_load_balancer::update_flow(int pos,
-                                       const std::vector<bool> &visit,
-                                       const std::vector<std::vector<int>> &network,
-                                       std::vector<int> &flow,
-                                       std::vector<int> &prev)
-{
-    auto graph_nodes = network.size();
-    for (auto i = 0; i != graph_nodes; ++i) {
-        if (visit[i]) {
-            continue;
-        }
-
-        auto min = std::min(flow[pos], network[pos][i]);
-        if (min > flow[i]) {
-            flow[i] = min;
-            prev[i] = pos;
-        }
-    }
-}
-
 // load balancer based on ford-fulkerson
 bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_state> &app)
 {
     dassert(t_alive_nodes > 2, "too few alive nodes will lead to freeze");
     ddebug_f("primary balancer for app({}:{})", app->app_name, app->app_id);
 
-    uint32_t higher_count = 0, lower_count = 0;
-    if (primary_already_balanced(app, higher_count, lower_count)) {
+    fold_fulkerson graph(app, *t_global_view->nodes, address_id);
+    if (graph.already_balanced()) {
         dinfo_f("the primaries are balanced for app({}:{})", app->app_name, app->app_id);
         return true;
     }
 
-    std::vector<int> flow, prev;
-    bool found_path = primary_shortest_path(app, flow, prev, higher_count, lower_count);
-    if (found_path) {
-        dinfo_f("{} primaries are flew", flow.back());
-        return move_primary(app, prev, flow);
+    auto path = graph.find_shortest_path();
+    if (path != nullptr) {
+        dinfo_f("{} primaries are flew", path->_flow.back());
+        return move_primary(std::move(path));
     }
 
     // we can't make the server load more balanced
     // by moving primaries to secondaries
     if (!_only_move_primary) {
         int replicas_low = app->partition_count / t_alive_nodes;
-        return copy_primary(app, lower_count != 0, replicas_low);
+        return copy_primary(app, graph.have_less_than_average(), replicas_low);
     } else {
         ddebug_f("stop to move primary for app({}) coz it is disabled", app->get_logname());
         return true;
-    }
-}
-
-bool greedy_load_balancer::primary_already_balanced(const std::shared_ptr<app_state> &app,
-                                                    uint32_t higher_count,
-                                                    uint32_t lower_count)
-{
-    int replicas_low = app->partition_count / t_alive_nodes;
-    int replicas_high = (app->partition_count + t_alive_nodes - 1) / t_alive_nodes;
-    const node_mapper &nodes = *(t_global_view->nodes);
-    for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
-        int c = iter->second.primary_count(app->app_id);
-        if (c > replicas_high)
-            higher_count++;
-        else if (c < replicas_low)
-            lower_count++;
-    }
-
-    if (higher_count == 0 && lower_count == 0) {
-        return true;
-    }
-    return false;
-}
-
-bool greedy_load_balancer::primary_shortest_path(const std::shared_ptr<app_state> &app,
-                                                 std::vector<int> &flow,
-                                                 std::vector<int> &prev,
-                                                 uint32_t higher_count,
-                                                 uint32_t lower_count)
-{
-    size_t graph_nodes = t_alive_nodes + 2;
-    std::vector<std::vector<int>> network(graph_nodes, std::vector<int>(graph_nodes, 0));
-    make_primary_graph(app, network, higher_count, lower_count);
-
-    dinfo_f("{}: start to move primary", app->get_logname());
-    flow.resize(graph_nodes, 0);
-    flow[0] = INT_MAX;
-    prev.resize(graph_nodes, -1);
-    return find_shortest_path(flow, prev, network);
-}
-
-void greedy_load_balancer::make_primary_graph(const std::shared_ptr<app_state> &app,
-                                              std::vector<std::vector<int>> &network,
-                                              uint32_t higher_count,
-                                              uint32_t lower_count)
-{
-    const node_mapper &nodes = *(t_global_view->nodes);
-    int replicas_low = app->partition_count / t_alive_nodes;
-
-    // make graph
-    size_t graph_nodes = t_alive_nodes + 2;
-    for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
-        int from = address_id[iter->first];
-        const node_state &ns = iter->second;
-        int c = ns.primary_count(app->app_id);
-        if (c > replicas_low)
-            network[0][from] = c - replicas_low;
-        else
-            network[from][graph_nodes - 1] = replicas_low - c;
-
-        ns.for_each_primary(app->app_id, [&, this](const gpid &pid) {
-            const partition_configuration &pc = app->partitions[pid.get_partition_index()];
-            for (auto &target : pc.secondaries) {
-                auto i = address_id.find(target);
-                dassert(i != address_id.end(),
-                        "invalid secondary address, address = %s",
-                        target.to_string());
-                network[from][i->second]++;
-            }
-            return true;
-        });
-    }
-
-    if (higher_count > 0 && lower_count == 0) {
-        for (int i = 0; i != graph_nodes; ++i) {
-            if (network[0][i] > 0)
-                --network[0][i];
-            else
-                ++network[i][graph_nodes - 1];
-        }
     }
 }
 

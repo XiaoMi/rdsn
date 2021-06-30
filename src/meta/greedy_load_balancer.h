@@ -39,6 +39,7 @@
 
 namespace dsn {
 namespace replication {
+struct flow_path;
 
 class greedy_load_balancer : public server_load_balancer
 {
@@ -109,16 +110,6 @@ private:
 
 private:
     void number_nodes(const node_mapper &nodes);
-    bool find_shortest_path(std::vector<int> &flow,
-                            std::vector<int> &prev,
-                            const std::vector<std::vector<int>> &network);
-    int select_node(std::vector<bool> &visit, const std::vector<int> &flow);
-    int max_value_pos(const std::vector<bool> &visit, const std::vector<int> &flow);
-    void update_flow(int pos,
-                     const std::vector<bool> &visit,
-                     const std::vector<std::vector<int>> &network,
-                     std::vector<int> &flow,
-                     std::vector<int> &prev);
 
     // balance decision generators. All these functions try to make balance decisions
     // and store them to t_migration_result.
@@ -128,9 +119,7 @@ private:
     //
     // when return false, it means generators refuse to make decision coz
     // they think they need more informations.
-    bool move_primary(const std::shared_ptr<app_state> &app,
-                      const std::vector<int> &prev,
-                      const std::vector<int> &flow);
+    bool move_primary(std::unique_ptr<flow_path> path);
     bool copy_primary(const std::shared_ptr<app_state> &app,
                       bool still_have_less_than_average,
                       int replicas_low);
@@ -152,21 +141,6 @@ private:
                             disk_load *current_load,
                             rpc_address from,
                             rpc_address to);
-
-    bool primary_already_balanced(const std::shared_ptr<app_state> &app,
-                                  uint32_t higher_count,
-                                  uint32_t lower_count);
-
-    bool primary_shortest_path(const std::shared_ptr<app_state> &app,
-                               std::vector<int> &flow,
-                               std::vector<int> &prev,
-                               uint32_t higher_count,
-                               uint32_t lower_count);
-
-    void make_primary_graph(const std::shared_ptr<app_state> &app,
-                            std::vector<std::vector<int>> &network,
-                            uint32_t higher_count,
-                            uint32_t lower_count);
 
     bool copy_secondary_per_app(const std::shared_ptr<app_state> &app);
 
