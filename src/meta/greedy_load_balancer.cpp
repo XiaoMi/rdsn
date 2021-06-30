@@ -262,8 +262,7 @@ const std::string &greedy_load_balancer::get_disk_tag(const rpc_address &node, c
 
 // assume all nodes are alive
 bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
-                                        bool have_less_than_average,
-                                        int replicas_low)
+                                        bool have_less_than_average)
 {
     const node_mapper &nodes = *(t_global_view->nodes);
     std::vector<int> future_primaries(address_vec.size(), 0);
@@ -288,6 +287,7 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
         pri_queue.insert(address_id[iter->first]);
     }
 
+    int replicas_low = app->partition_count / t_alive_nodes;
     ddebug("start to do copy primary for app(%s), expected minimal primaries(%d), %s all have "
            "reached the value",
            app->get_logname(),
@@ -587,13 +587,13 @@ struct flow_path
     std::vector<int> _flow, _prev;
 };
 
-// Fold Fulkerson is used for primary balance.
+// Ford Fulkerson is used for primary balance.
 // For more details: https://levy5307.github.io/blog/pegasus-balancer/
-struct fold_fulkerson
+struct ford_fulkerson
 {
-    fold_fulkerson() = delete;
+    ford_fulkerson() = delete;
 
-    fold_fulkerson(const std::shared_ptr<app_state> &app,
+    ford_fulkerson(const std::shared_ptr<app_state> &app,
                    const node_mapper &nodes,
                    const std::unordered_map<dsn::rpc_address, int> &address_id)
         : _app(app), _nodes(nodes), _address_id(address_id), _higher_count(0), _lower_count(0)
@@ -658,14 +658,12 @@ private:
         handle_corner_case();
     };
 
-    void handle_corner_case() {
-        // Suppose you have an 8-shard app in a cluster with 3 nodes(which name is node1, node2, node3).
-        // The distribution of primaries among these nodes is as follow:
-        // node1 : [0, 1, 2, 3]
-        // node2 : [4, 5]
-        // node2 : [6, 7]
-        // This is obviously unbalanced.
-        // But if we don't handle this corner case, primary migration will not be triggered
+    void handle_corner_case()
+    {
+        // Suppose you have an 8-shard app in a cluster with 3 nodes(which name is node1, node2,
+        // node3). The distribution of primaries among these nodes is as follow: node1 : [0, 1, 2,
+        // 3] node2 : [4, 5] node2 : [6, 7] This is obviously unbalanced. But if we don't handle
+        // this corner case, primary migration will not be triggered
         auto nodes_count = _nodes.size();
         size_t graph_nodes = nodes_count + 2;
         if (_higher_count > 0 && _lower_count == 0) {
@@ -775,6 +773,7 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
         return false;
     }
 
+    int plan_moving = path->_flow[graph_nodes - 1];
     while (path->_prev[current] != 0) {
         rpc_address from = address_vec[path->_prev[current]];
         rpc_address to = address_vec[current];
@@ -785,8 +784,7 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
             return false;
         }
 
-        int plan_moving = path->_flow[graph_nodes - 1];
-        start_moving(path->_app, from, to, prev_load, current_load, plan_moving);
+        start_moving_primary(path->_app, from, to, plan_moving, prev_load, current_load);
 
         current = path->_prev[current];
         std::swap(current_load, prev_load);
@@ -810,12 +808,12 @@ std::list<dsn::gpid> greedy_load_balancer::calc_potential_moving(
     return potential_moving;
 }
 
-void greedy_load_balancer::start_moving(const std::shared_ptr<app_state> &app,
-                                        const rpc_address &from,
-                                        const rpc_address &to,
-                                        disk_load *prev_load,
-                                        disk_load *current_load,
-                                        int plan_moving)
+void greedy_load_balancer::start_moving_primary(const std::shared_ptr<app_state> &app,
+                                                const rpc_address &from,
+                                                const rpc_address &to,
+                                                int plan_moving,
+                                                disk_load *prev_load,
+                                                disk_load *current_load)
 {
     std::list<dsn::gpid> potential_moving = calc_potential_moving(app, from, to);
     auto potential_moving_size = potential_moving.size();
@@ -871,7 +869,7 @@ bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_st
     dassert(t_alive_nodes > 2, "too few alive nodes will lead to freeze");
     ddebug_f("primary balancer for app({}:{})", app->app_name, app->app_id);
 
-    fold_fulkerson graph(app, *t_global_view->nodes, address_id);
+    ford_fulkerson graph(app, *t_global_view->nodes, address_id);
     if (graph.already_balanced()) {
         dinfo_f("the primaries are balanced for app({}:{})", app->app_name, app->app_id);
         return true;
@@ -881,16 +879,15 @@ bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_st
     if (path != nullptr) {
         dinfo_f("{} primaries are flew", path->_flow.back());
         return move_primary(std::move(path));
-    }
-
-    // we can't make the server load more balanced
-    // by moving primaries to secondaries
-    if (!_only_move_primary) {
-        int replicas_low = app->partition_count / t_alive_nodes;
-        return copy_primary(app, graph.have_less_than_average(), replicas_low);
     } else {
-        ddebug_f("stop to move primary for app({}) coz it is disabled", app->get_logname());
-        return true;
+        // we can't make the server load more balanced
+        // by moving primaries to secondaries
+        if (!_only_move_primary) {
+            return copy_primary(app, graph.have_less_than_average());
+        } else {
+            ddebug_f("stop to move primary for app({}) coz it is disabled", app->get_logname());
+            return true;
+        }
     }
 }
 

@@ -120,21 +120,19 @@ private:
     // when return false, it means generators refuse to make decision coz
     // they think they need more informations.
     bool move_primary(std::unique_ptr<flow_path> path);
-    bool copy_primary(const std::shared_ptr<app_state> &app,
-                      bool still_have_less_than_average,
-                      int replicas_low);
+    bool copy_primary(const std::shared_ptr<app_state> &app, bool still_have_less_than_average);
     bool primary_balancer_per_app(const std::shared_ptr<app_state> &app);
 
     std::list<dsn::gpid> calc_potential_moving(const std::shared_ptr<app_state> &app,
                                                const rpc_address &from,
                                                const rpc_address &to);
 
-    void start_moving(const std::shared_ptr<app_state> &app,
-                      const rpc_address &from,
-                      const rpc_address &to,
-                      disk_load *prev_load,
-                      disk_load *current_load,
-                      int plan_moving);
+    void start_moving_primary(const std::shared_ptr<app_state> &app,
+                              const rpc_address &from,
+                              const rpc_address &to,
+                              int plan_moving,
+                              disk_load *prev_load,
+                              disk_load *current_load);
 
     dsn::gpid select_moving(std::list<dsn::gpid> &potential_moving,
                             disk_load *prev_load,
