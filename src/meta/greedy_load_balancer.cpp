@@ -654,9 +654,17 @@ private:
             add_decree_to_secondaries(node_id, pair.second);
         }
 
-        // handling edge case.
-        // Actually I don't understand the purpose of this code, so I can't refactor it. Leave it as
-        // it is :(
+        handle_corner_case();
+    };
+
+    void handle_corner_case() {
+        // Suppose you have an 8-shard app in a cluster with 3 nodes(which name is node1, node2, node3).
+        // The distribution of primaries among these nodes is as follow:
+        // node1 : [0, 1, 2, 3]
+        // node2 : [4, 5]
+        // node2 : [6, 7]
+        // This is obviously unbalanced.
+        // But if we don't handle this corner case, primary migration will not be triggered
         auto nodes_count = _nodes.size();
         size_t graph_nodes = nodes_count + 2;
         if (_higher_count > 0 && _lower_count == 0) {
@@ -667,7 +675,7 @@ private:
                     ++_network[i][graph_nodes - 1];
             }
         }
-    };
+    }
 
     void add_edge_with_source_sink(int node_id, const node_state &ns)
     {
