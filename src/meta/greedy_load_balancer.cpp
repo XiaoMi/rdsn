@@ -687,11 +687,11 @@ private:
     {
         ns.for_each_primary(_app->app_id, [&, this](const gpid &pid) {
             const partition_configuration &pc = _app->partitions[pid.get_partition_index()];
-            for (auto &target : pc.secondaries) {
-                auto i = _address_id.find(target);
+            for (const auto &secondary : pc.secondaries) {
+                auto i = _address_id.find(secondary);
                 dassert_f(i != _address_id.end(),
                           "invalid secondary address, address = {}",
-                          target.to_string());
+                          secondary.to_string());
                 _network[node_id][i->second]++;
             }
             return true;
