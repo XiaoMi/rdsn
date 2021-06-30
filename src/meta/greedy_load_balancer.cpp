@@ -262,7 +262,7 @@ const std::string &greedy_load_balancer::get_disk_tag(const rpc_address &node, c
 
 // assume all nodes are alive
 bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
-                                        bool still_have_less_than_average,
+                                        bool have_less_than_average,
                                         int replicas_low)
 {
     const node_mapper &nodes = *(t_global_view->nodes);
@@ -292,17 +292,17 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
            "reached the value",
            app->get_logname(),
            replicas_low,
-           still_have_less_than_average ? "not" : "");
+           have_less_than_average ? "not" : "");
     while (true) {
         int id_min = *pri_queue.begin();
         int id_max = *pri_queue.rbegin();
 
-        if (still_have_less_than_average && future_primaries[id_min] >= replicas_low) {
+        if (have_less_than_average && future_primaries[id_min] >= replicas_low) {
             ddebug("%s: stop the copy due to primaries on all nodes will reach low later.",
                    app->get_logname());
             break;
         }
-        if (!still_have_less_than_average &&
+        if (!have_less_than_average &&
             future_primaries[id_max] - future_primaries[id_min] <= 1) {
             ddebug("%s: stop the copy due to the primary will be balanced later.",
                    app->get_logname());
@@ -651,7 +651,6 @@ private:
         auto nodes_count = _nodes.size();
         int replicas_low = _app->partition_count / nodes_count;
 
-        // make graph
         size_t graph_nodes = nodes_count + 2;
         for (auto iter = _nodes.begin(); iter != _nodes.end(); ++iter) {
             int from = _address_id.at(iter->first);
