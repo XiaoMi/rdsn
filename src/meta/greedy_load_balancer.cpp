@@ -763,9 +763,7 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
     disk_load loads[2];
     disk_load *prev_load = &loads[0];
     disk_load *current_load = &loads[1];
-
-    int graph_nodes = path->_prev.size();
-    int current = path->_prev[graph_nodes - 1];
+    int current = path->_prev.back();
     if (!calc_disk_load(path->_app->app_id, address_vec[current], true, *current_load)) {
         dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                 address_vec[current].to_string(),
@@ -773,10 +771,9 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
         return false;
     }
 
-    int plan_moving = path->_flow[graph_nodes - 1];
+    int plan_moving = path->_flow.back();
     while (path->_prev[current] != 0) {
         rpc_address from = address_vec[path->_prev[current]];
-        rpc_address to = address_vec[current];
         if (!calc_disk_load(path->_app->app_id, from, true, *prev_load)) {
             dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                     from.to_string(),
@@ -784,6 +781,7 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
             return false;
         }
 
+        rpc_address to = address_vec[current];
         start_moving_primary(path->_app, from, to, plan_moving, prev_load, current_load);
 
         current = path->_prev[current];
