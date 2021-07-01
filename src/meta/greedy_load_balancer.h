@@ -40,6 +40,20 @@
 namespace dsn {
 namespace replication {
 struct flow_path;
+// disk_tag -> targets(primaries/partitions)_on_this_disk
+typedef std::map<std::string, int> disk_load;
+enum class balance_type
+{
+    move_primary,
+    copy_primary,
+    copy_secondary
+};
+
+std::shared_ptr<configuration_balancer_request>
+generate_balancer_request(const partition_configuration &pc,
+                          const balance_type &type,
+                          const rpc_address &from,
+                          const rpc_address &to);
 
 class greedy_load_balancer : public server_load_balancer
 {
@@ -57,13 +71,6 @@ public:
     std::string get_balance_operation_count(const std::vector<std::string> &args) override;
 
 private:
-    enum class balance_type
-    {
-        move_primary,
-        copy_primary,
-        copy_secondary
-    };
-
     enum operation_counters
     {
         MOVE_PRI_COUNT = 0,
@@ -83,9 +90,6 @@ private:
     // and these are generated from the above data, which are tempory too
     std::unordered_map<dsn::rpc_address, int> address_id;
     std::vector<dsn::rpc_address> address_vec;
-
-    // disk_tag -> targets(primaries/partitions)_on_this_disk
-    typedef std::map<std::string, int> disk_load;
 
     // options
     bool _balancer_in_turn;
@@ -161,12 +165,6 @@ private:
                         /*out*/ disk_load &load);
     void
     dump_disk_load(app_id id, const rpc_address &node, bool only_primary, const disk_load &load);
-
-    std::shared_ptr<configuration_balancer_request>
-    generate_balancer_request(const partition_configuration &pc,
-                              const balance_type &type,
-                              const rpc_address &from,
-                              const rpc_address &to);
 
     std::string remote_command_balancer_ignored_app_ids(const std::vector<std::string> &args);
     std::string set_balancer_ignored_app_ids(const std::vector<std::string> &args);

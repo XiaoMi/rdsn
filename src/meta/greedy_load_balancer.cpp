@@ -198,10 +198,10 @@ void greedy_load_balancer::score(meta_view view, double &primary_stddev, double 
 }
 
 std::shared_ptr<configuration_balancer_request>
-greedy_load_balancer::generate_balancer_request(const partition_configuration &pc,
-                                                const balance_type &type,
-                                                const rpc_address &from,
-                                                const rpc_address &to)
+generate_balancer_request(const partition_configuration &pc,
+                          const balance_type &type,
+                          const rpc_address &from,
+                          const rpc_address &to)
 {
     configuration_balancer_request result;
     result.gpid = pc.pid;
@@ -238,12 +238,11 @@ greedy_load_balancer::generate_balancer_request(const partition_configuration &p
     default:
         dassert(false, "");
     }
-    ddebug("generate balancer: %d.%d %s from %s of disk_tag(%s) to %s",
+    ddebug("generate balancer: %d.%d %s from %s to %s",
            pc.pid.get_app_id(),
            pc.pid.get_partition_index(),
            ans.c_str(),
            from.to_string(),
-           get_disk_tag(from, pc.pid).c_str(),
            to.to_string());
     return std::make_shared<configuration_balancer_request>(std::move(result));
 }
@@ -259,6 +258,299 @@ const std::string &greedy_load_balancer::get_disk_tag(const rpc_address &node, c
             node.to_string());
     return iter->disk_tag;
 }
+
+const std::string &get_disk_tag(const rpc_address &node, const gpid &pid)
+{
+    //// TBD(zlw)
+}
+
+class copy_replica_operation
+{
+public:
+    copy_replica_operation(const std::shared_ptr<app_state> &app,
+                           const node_mapper &nodes,
+                           const std::vector<dsn::rpc_address> &address_vec,
+                           const std::unordered_map<dsn::rpc_address, int> &address_id,
+                           const std::unordered_map<dsn::rpc_address, disk_load> &node_loads)
+        : _app(app),
+          _nodes(nodes),
+          _address_vec(address_vec),
+          _address_id(address_id),
+          _node_loads(node_loads)
+    {
+        init_ordered_address_ids();
+    }
+
+    void start(migration_list *result)
+    {
+        while (true) {
+            if (!can_continue()) {
+                break;
+            }
+
+            gpid selected_pid = select_partition(result);
+            bool select_succeed = selected_pid.get_app_id() != -1;
+            if (select_succeed) {
+                int id_min = *_ordered_address_ids.begin();
+                int id_max = *_ordered_address_ids.rbegin();
+                copy_once(selected_pid, _address_vec[id_max], _address_vec[id_min], result);
+            }
+
+            update_ordered_address_ids(select_succeed);
+        }
+    }
+
+    void
+    copy_once(gpid selected_pid, dsn::rpc_address from, dsn::rpc_address to, migration_list *result)
+    {
+        auto pc = _app->partitions[selected_pid.get_partition_index()];
+        auto request = generate_balancer_request(pc, balance_type(), from, to);
+        result->emplace(selected_pid, request);
+    }
+
+    void update_ordered_address_ids(bool select_succeed)
+    {
+        if (!select_succeed) {
+            _ordered_address_ids.erase(--_ordered_address_ids.end());
+        } else {
+            _ordered_address_ids.erase(_ordered_address_ids.begin());
+            _ordered_address_ids.erase(--_ordered_address_ids.end());
+
+            int id_min = *_ordered_address_ids.begin();
+            int id_max = *_ordered_address_ids.rbegin();
+            --_partition_counts[id_max];
+            ++_partition_counts[id_min];
+
+            _ordered_address_ids.insert(id_max);
+            _ordered_address_ids.insert(id_min);
+        }
+    }
+
+private:
+    virtual bool can_continue() = 0;
+    virtual gpid select_partition(migration_list *result) = 0;
+    virtual int get_partition_count(const node_state &ns) = 0;
+    virtual enum balance_type balance_type() = 0;
+
+    void init_ordered_address_ids()
+    {
+        _partition_counts.resize(_address_vec.size(), 0);
+        for (const auto &iter : _nodes) {
+            _partition_counts[_address_id.at(iter.first)] = get_partition_count(iter.second);
+        }
+
+        std::set<int, std::function<bool(int a, int b)>> ordered_queue([this](int a, int b) {
+            return _partition_counts[a] != _partition_counts[b]
+                       ? _partition_counts[a] < _partition_counts[b]
+                       : a < b;
+        });
+        for (const auto &iter : _nodes) {
+            ordered_queue.insert(_address_id.at(iter.first));
+        }
+        _ordered_address_ids.swap(ordered_queue);
+    }
+
+protected:
+    std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
+    const std::shared_ptr<app_state> &_app;
+    const node_mapper &_nodes;
+    const std::vector<dsn::rpc_address> &_address_vec;
+    const std::unordered_map<dsn::rpc_address, int> &_address_id;
+    std::unordered_map<dsn::rpc_address, disk_load> _node_loads;
+    std::vector<int> _partition_counts;
+};
+
+class copy_primary_operation : public copy_replica_operation
+{
+public:
+    copy_primary_operation(const std::shared_ptr<app_state> &app,
+                           const node_mapper &nodes,
+                           const std::vector<dsn::rpc_address> &address_vec,
+                           const std::unordered_map<dsn::rpc_address, int> &address_id,
+                           const std::unordered_map<dsn::rpc_address, disk_load> &node_loads,
+                           bool have_lower_than_average,
+                           int replicas_low)
+        : copy_replica_operation(app, nodes, address_vec, address_id, node_loads)
+    {
+        _have_lower_than_average = have_lower_than_average;
+        _replicas_low = replicas_low;
+    }
+
+private:
+    bool can_continue()
+    {
+        int id_min = *_ordered_address_ids.begin();
+        if (_have_lower_than_average && _partition_counts[id_min] >= _replicas_low) {
+            ddebug_f("{}: stop the copy due to primaries on all nodes will reach low later.",
+                     _app->get_logname());
+            return false;
+        }
+
+        int id_max = *_ordered_address_ids.rbegin();
+        if (!_have_lower_than_average &&
+            _partition_counts[id_max] - _partition_counts[id_min] <= 1) {
+            ddebug_f("{}: stop the copy due to the primary will be balanced later.",
+                     _app->get_logname());
+            return false;
+        }
+        return true;
+    }
+
+    gpid select_partition(migration_list *result)
+    {
+        int id_max = *_ordered_address_ids.rbegin();
+        const node_state &ns = _nodes.find(_address_vec[id_max])->second;
+        const partition_set *pri = ns.partitions(_app->app_id, true);
+        dassert_f(
+            pri != nullptr && !pri->empty(), "max load({}) shouldn't empty", ns.addr().to_string());
+        disk_load &load_on_max = _node_loads[_address_vec[id_max]];
+
+        // select a primary on id_max and copy it to id_min.
+        // the selected primary should on a disk which have
+        // most amount of primaries for current app.
+        gpid selected_pid(-1, -1);
+        int max_load = -1;
+        for (const gpid &pid : *pri) {
+            if (result->find(pid) != result->end()) {
+                continue;
+            }
+
+            const std::string &dtag = get_disk_tag(_address_vec[id_max], pid);
+            if (load_on_max[dtag] > max_load) {
+                selected_pid = pid;
+                max_load = load_on_max[dtag];
+            }
+            dinfo_f("{}: select gpid({}) on disk({}), load({})",
+                    _app->get_logname(),
+                    pid,
+                    dtag,
+                    max_load);
+        }
+
+        int id_min = *_ordered_address_ids.begin();
+        dassert(selected_pid.get_app_id() != -1 && max_load != -1,
+                "can't find primry to copy from(%s) to(%s)",
+                _address_vec[id_max].to_string(),
+                _address_vec[id_min].to_string());
+        const partition_configuration &pc = _app->partitions[selected_pid.get_partition_index()];
+        dassert(!is_member(pc, _address_vec[id_min]),
+                "gpid(%d.%d) can move from %s to %s",
+                pc.pid.get_app_id(),
+                pc.pid.get_partition_index(),
+                _address_vec[id_max].to_string(),
+                _address_vec[id_min].to_string());
+
+        return selected_pid;
+    }
+
+    enum balance_type balance_type() { return balance_type::copy_primary; }
+
+    int get_partition_count(const node_state &ns) { return ns.primary_count(_app->app_id); }
+
+    bool _have_lower_than_average;
+    int _replicas_low;
+};
+
+class copy_secondary_operation : public copy_replica_operation
+{
+public:
+    copy_secondary_operation(const std::shared_ptr<app_state> &app,
+                             const node_mapper &nodes,
+                             const std::vector<dsn::rpc_address> &address_vec,
+                             const std::unordered_map<dsn::rpc_address, int> &address_id,
+                             const std::unordered_map<dsn::rpc_address, disk_load> &node_loads)
+        : copy_replica_operation(app, nodes, address_vec, address_id, node_loads)
+    {
+    }
+
+private:
+    bool can_continue()
+    {
+        int id_min = *_ordered_address_ids.begin();
+        int id_max = *_ordered_address_ids.rbegin();
+        if (_partition_counts[id_max] <= _replicas_low ||
+            _partition_counts[id_max] - _partition_counts[id_min] <= 1) {
+            ddebug_f("{}: stop copy secondary coz it will be balanced later", _app->get_logname());
+            return false;
+        }
+        return true;
+    }
+
+    gpid select_partition(migration_list *result)
+    {
+        int id_min = *_ordered_address_ids.begin();
+        int id_max = *_ordered_address_ids.rbegin();
+        const node_state &max_ns = _nodes.at(_address_vec[id_max]);
+        const partition_set *all_partitions_max_load = max_ns.partitions(_app->app_id, false);
+        disk_load &load_on_max = _node_loads[_address_vec[id_max]];
+
+        ddebug("%s: server with min/max load: (%s have %d), (%s have %d)",
+               _app->get_logname(),
+               _address_vec[id_min].to_string(),
+               _partition_counts[id_min],
+               _address_vec[id_max].to_string(),
+               _partition_counts[id_max]);
+
+        int max_load = -1;
+        gpid selected_pid(-1, -1);
+        for (const gpid &pid : *all_partitions_max_load) {
+            if (!can_select(pid, result)) {
+                continue;
+            }
+
+            int load = load_on_max[get_disk_tag(max_ns.addr(), pid)];
+            if (load > max_load) {
+                dinfo("%s: select gpid(%d.%d) as target, load(%d)",
+                      _app->get_logname(),
+                      pid.get_app_id(),
+                      pid.get_partition_index(),
+                      max_load);
+                max_load = load;
+            }
+            return selected_pid;
+        }
+    }
+
+    int get_partition_count(const node_state &ns) { return ns.secondary_count(_app->app_id); }
+
+    enum balance_type balance_type() { return balance_type::copy_secondary; }
+
+    bool can_select(gpid pid, migration_list *result)
+    {
+        int id_max = *_ordered_address_ids.rbegin();
+        const node_state &max_ns = _nodes.at(_address_vec[id_max]);
+        if (max_ns.served_as(pid) == partition_status::PS_PRIMARY) {
+            dinfo_f("{}: skip gpid({}.{}) coz it is primary",
+                    _app->get_logname(),
+                    pid.get_app_id(),
+                    pid.get_partition_index());
+            return false;
+        }
+
+        // if the pid have been used
+        if (result->find(pid) != result->end()) {
+            dinfo_f("{}: skip gpid({}.{}) coz it is already copyed",
+                    _app->get_logname(),
+                    pid.get_app_id(),
+                    pid.get_partition_index());
+            return false;
+        }
+
+        int id_min = *_ordered_address_ids.begin();
+        const node_state &min_ns = _nodes.at(_address_vec[id_min]);
+        if (min_ns.served_as(pid) != partition_status::PS_INACTIVE) {
+            dinfo_f("{}: skip gpid({}.{}) coz it is already a member on the target node",
+                    _app->get_logname(),
+                    pid.get_app_id(),
+                    pid.get_partition_index());
+            return false;
+        }
+
+        return true;
+    }
+
+    int _replicas_low;
+};
 
 // assume all nodes are alive
 bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
