@@ -289,20 +289,21 @@ public:
             }
 
             gpid selected_pid = select_partition(result);
+
             bool select_succeed = selected_pid.get_app_id() != -1;
             if (select_succeed) {
-                int id_min = *_ordered_address_ids.begin();
-                int id_max = *_ordered_address_ids.rbegin();
-                copy_once(selected_pid, _address_vec[id_max], _address_vec[id_min], result);
+                copy_once(selected_pid,  result);
             }
 
             update_ordered_address_ids(select_succeed);
         }
     }
 
-    void
-    copy_once(gpid selected_pid, dsn::rpc_address from, dsn::rpc_address to, migration_list *result)
+    void copy_once(gpid selected_pid, migration_list *result)
     {
+        auto from = _address_vec[*_ordered_address_ids.begin()];
+        auto to = _address_vec[*_ordered_address_ids.rbegin()];
+
         auto pc = _app->partitions[selected_pid.get_partition_index()];
         auto request = generate_balancer_request(pc, balance_type(), from, to);
         result->emplace(selected_pid, request);
