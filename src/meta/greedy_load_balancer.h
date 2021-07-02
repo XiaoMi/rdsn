@@ -125,7 +125,9 @@ private:
     // they think they need more informations.
     bool move_primary(std::unique_ptr<flow_path> path);
     bool copy_primary(const std::shared_ptr<app_state> &app, bool still_have_less_than_average);
-    bool primary_balancer_per_app(const std::shared_ptr<app_state> &app);
+    bool primary_balancer(const std::shared_ptr<app_state> &app);
+    std::unordered_map<dsn::rpc_address, disk_load> get_node_loads(const std::shared_ptr<app_state> &app,
+                                         const node_mapper &nodes);
 
     std::list<dsn::gpid> calc_potential_moving(const std::shared_ptr<app_state> &app,
                                                const rpc_address &from,
@@ -144,7 +146,7 @@ private:
                             rpc_address from,
                             rpc_address to);
 
-    bool copy_secondary_per_app(const std::shared_ptr<app_state> &app);
+    bool copy_secondary(const std::shared_ptr<app_state> &app);
 
     void greedy_balancer(bool balance_checker);
 

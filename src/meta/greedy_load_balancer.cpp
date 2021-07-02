@@ -561,7 +561,7 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
     return true;
 }
 
-bool greedy_load_balancer::copy_secondary_per_app(const std::shared_ptr<app_state> &app)
+bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app)
 {
     const node_mapper &nodes = *(t_global_view->nodes);
     std::unordered_map<dsn::rpc_address, disk_load> node_loads = get_node_loads(app, nodes);
@@ -934,7 +934,7 @@ dsn::gpid greedy_load_balancer::select_moving(std::list<dsn::gpid> &potential_mo
 }
 
 // load balancer based on ford-fulkerson
-bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_state> &app)
+bool greedy_load_balancer::primary_balancer(const std::shared_ptr<app_state> &app)
 {
     dassert(t_alive_nodes > 2, "too few alive nodes will lead to freeze");
     ddebug_f("primary balancer for app({}:{})", app->app_name, app->app_id);
@@ -1041,7 +1041,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     const app_mapper &apps = *t_global_view->apps;
     if (!balancer_apps(balance_checker,
                        apps,
-                       std::bind(&greedy_load_balancer::primary_balancer_per_app,
+                       std::bind(&greedy_load_balancer::primary_balancer,
                                  this,
                                  std::placeholders::_1))) {
         return;
@@ -1058,7 +1058,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     balancer_apps(
         balance_checker,
         apps,
-        std::bind(&greedy_load_balancer::copy_secondary_per_app, this, std::placeholders::_1));
+        std::bind(&greedy_load_balancer::copy_secondary, this, std::placeholders::_1));
 }
 
 bool greedy_load_balancer::balance(meta_view view, migration_list &list)
