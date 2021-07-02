@@ -20,31 +20,60 @@ namespace dsn {
 namespace replication {
 partition_guardian::partition_guardian(meta_service *svc) : _svc(svc) {}
 
-bool partition_guardian::collect_replica(meta_view view,
-                                         const rpc_address &node,
-                                         const replica_info &info)
+pc_status partition_guardian::cure(meta_view view,
+                                   const dsn::gpid &gpid,
+                                   configuration_proposal_action &action)
 {
-    partition_configuration &pc = *get_config(*view.apps, info.pid);
-    // current partition is during partition split
-    if (pc.ballot == invalid_ballot) {
-        return false;
+    if (from_proposals(view, gpid, action))
+        return pc_status::ill;
+
+    std::shared_ptr<app_state> &app = (*view.apps)[gpid.get_app_id()];
+    const partition_configuration &pc = *get_config(*(view.apps), gpid);
+    const proposal_actions &acts = get_config_context(*view.apps, gpid)->lb_actions;
+
+    dassert(app->is_stateful, "");
+    dassert(acts.empty(), "");
+
+    pc_status status;
+    if (pc.primary.is_invalid())
+        status = on_missing_primary(view, gpid);
+    else if (static_cast<int>(pc.secondaries.size()) + 1 < pc.max_replica_count)
+        status = on_missing_secondary(view, gpid);
+    else if (static_cast<int>(pc.secondaries.size()) >= pc.max_replica_count)
+        status = on_redundant_secondary(view, gpid);
+    else
+        status = pc_status::healthy;
+
+    if (!acts.empty()) {
+        action = *acts.front();
     }
+    return status;
+}
 
-    config_context &cc = *get_config_context(*view.apps, info.pid);
-    if (is_member(pc, node)) {
-        cc.collect_serving_replica(node, info);
-        return true;
-    }
+bool partition_guardian::from_proposals(meta_view &view,
+                                        const dsn::gpid &gpid,
+                                        configuration_proposal_action &action)
+{
+    // TBD(zlw)
+    return false;
+}
 
-    // compare current node's replica information with current proposal,
-    // and try to find abnormal situations in send proposal
-    cc.adjust_proposal(node, info);
+pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpid &gpid)
+{
+    // TBD(zlw)
+    return pc_status::invalid;
+}
 
-    // adjust the drop list
-    int ans = cc.collect_drop_replica(node, info);
-    dassert(cc.check_order(), "");
+pc_status partition_guardian::on_missing_secondary(meta_view &view, const dsn::gpid &gpid)
+{
+    // TBD(zlw)
+    return pc_status::invalid;
+}
 
-    return info.status == partition_status::PS_POTENTIAL_SECONDARY || ans != -1;
+pc_status partition_guardian::on_redundant_secondary(meta_view &view, const dsn::gpid &gpid)
+{
+    // TBD(zlw)
+    return pc_status::invalid;
 }
 } // namespace replication
 } // namespace dsn

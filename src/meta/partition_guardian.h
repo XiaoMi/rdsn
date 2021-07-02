@@ -29,19 +29,15 @@ public:
     explicit partition_guardian(meta_service *svc);
     ~partition_guardian() = default;
 
-    //
-    // When replica infos are collected from replica servers, meta-server
-    // will use this to check if a replica on a server is useful
-    // params:
-    //   node: the owner of the replica info
-    //   info: the replica info on node
-    // ret:
-    //   return true if the replica is accepted as an useful replica. Or-else false.
-    //   WARNING: if false is returned, the replica on node may be garbage-collected
-    //
-    bool collect_replica(meta_view view, const rpc_address &node, const replica_info &info);
+    pc_status cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action);
 
 private:
+    bool
+    from_proposals(meta_view &view, const dsn::gpid &gpid, configuration_proposal_action &action);
+    pc_status on_missing_primary(meta_view &view, const dsn::gpid &gpid);
+    pc_status on_missing_secondary(meta_view &view, const dsn::gpid &gpid);
+    pc_status on_redundant_secondary(meta_view &view, const dsn::gpid &gpid);
+
     meta_service *_svc;
 };
 
