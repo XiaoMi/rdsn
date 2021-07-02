@@ -679,6 +679,8 @@ struct ford_fulkerson
     // using dijstra to find shortest path
     std::unique_ptr<flow_path> find_shortest_path()
     {
+        make_graph();
+
         std::vector<int> flow, prev;
         std::vector<bool> visit(_network.size(), false);
         while (!visit.back()) {
@@ -712,8 +714,6 @@ private:
                 _lower_count++;
             }
         }
-
-        make_graph();
     }
 
     void make_graph()
