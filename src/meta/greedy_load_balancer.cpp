@@ -555,7 +555,7 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
     std::unordered_map<dsn::rpc_address, disk_load> node_loads = get_node_loads(app, nodes);
 
     int replicas_low = app->partition_count / t_alive_nodes;
-    auto operation = dsn::make_unique<copy_primary_operation>(
+    copy_replica_operation *operation = new copy_primary_operation(
         app, nodes, address_vec, address_id, node_loads, have_less_than_average, replicas_low);
     operation->start(t_migration_result);
     return true;
@@ -566,8 +566,8 @@ bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app)
     const node_mapper &nodes = *(t_global_view->nodes);
     std::unordered_map<dsn::rpc_address, disk_load> node_loads = get_node_loads(app, nodes);
 
-    auto operation = dsn::make_unique<copy_secondary_operation>(
-        app, nodes, address_vec, address_id, node_loads);
+    copy_replica_operation *operation =
+        new copy_secondary_operation(app, nodes, address_vec, address_id, node_loads);
     operation->start(t_migration_result);
 }
 
