@@ -292,7 +292,7 @@ public:
 
             bool select_succeed = selected_pid.get_app_id() != -1;
             if (select_succeed) {
-                copy_once(selected_pid,  result);
+                copy_once(selected_pid, result);
             }
 
             update_ordered_address_ids(select_succeed);
@@ -329,9 +329,10 @@ public:
 
 private:
     virtual bool can_continue() = 0;
-    virtual gpid select_partition(migration_list *result) = 0;
     virtual int get_partition_count(const node_state &ns) = 0;
     virtual enum balance_type balance_type() = 0;
+    virtual bool can_select(gpid pid, migration_list *result) = 0;
+    virtual const partition_set *get_all_partitions();
 
     void init_ordered_address_ids()
     {
@@ -349,6 +350,37 @@ private:
             ordered_queue.insert(_address_id.at(iter.first));
         }
         _ordered_address_ids.swap(ordered_queue);
+    }
+
+    gpid select_partition(migration_list *result)
+    {
+        const partition_set *partitions = get_all_partitions();
+        dassert_f(partitions != nullptr && !partitions->empty(),
+                  "max load({}) shouldn't empty",
+                  ns.addr().to_string());
+
+        return select_max_load_gpid(partitions, result);
+    }
+
+    gpid select_max_load_gpid(const partition_set *partitions, migration_list *result)
+    {
+        int id_max = *_ordered_address_ids.rbegin();
+        disk_load &load_on_max = _node_loads[_address_vec[id_max]];
+
+        gpid selected_pid(-1, -1);
+        int max_load = -1;
+        for (const gpid &pid : *partitions) {
+            if (!can_select(pid, result)) {
+                continue;
+            }
+
+            const std::string &dtag = get_disk_tag(_address_vec[id_max], pid);
+            if (load_on_max[dtag] > max_load) {
+                selected_pid = pid;
+                max_load = load_on_max[dtag];
+            }
+        }
+        return selected_pid;
     }
 
 protected:
@@ -397,51 +429,20 @@ private:
         return true;
     }
 
-    gpid select_partition(migration_list *result)
+    bool can_select(gpid pid, migration_list *result)
+    {
+        if (result->find(pid) != result->end()) {
+            return false;
+        }
+        return true;
+    }
+
+    const partition_set *get_all_partitions()
     {
         int id_max = *_ordered_address_ids.rbegin();
         const node_state &ns = _nodes.find(_address_vec[id_max])->second;
-        const partition_set *pri = ns.partitions(_app->app_id, true);
-        dassert_f(
-            pri != nullptr && !pri->empty(), "max load({}) shouldn't empty", ns.addr().to_string());
-        disk_load &load_on_max = _node_loads[_address_vec[id_max]];
-
-        // select a primary on id_max and copy it to id_min.
-        // the selected primary should on a disk which have
-        // most amount of primaries for current app.
-        gpid selected_pid(-1, -1);
-        int max_load = -1;
-        for (const gpid &pid : *pri) {
-            if (result->find(pid) != result->end()) {
-                continue;
-            }
-
-            const std::string &dtag = get_disk_tag(_address_vec[id_max], pid);
-            if (load_on_max[dtag] > max_load) {
-                selected_pid = pid;
-                max_load = load_on_max[dtag];
-            }
-            dinfo_f("{}: select gpid({}) on disk({}), load({})",
-                    _app->get_logname(),
-                    pid,
-                    dtag,
-                    max_load);
-        }
-
-        int id_min = *_ordered_address_ids.begin();
-        dassert(selected_pid.get_app_id() != -1 && max_load != -1,
-                "can't find primry to copy from(%s) to(%s)",
-                _address_vec[id_max].to_string(),
-                _address_vec[id_min].to_string());
-        const partition_configuration &pc = _app->partitions[selected_pid.get_partition_index()];
-        dassert(!is_member(pc, _address_vec[id_min]),
-                "gpid(%d.%d) can move from %s to %s",
-                pc.pid.get_app_id(),
-                pc.pid.get_partition_index(),
-                _address_vec[id_max].to_string(),
-                _address_vec[id_min].to_string());
-
-        return selected_pid;
+        const partition_set *partitions = ns.partitions(_app->app_id, true);
+        return partitions;
     }
 
     enum balance_type balance_type() { return balance_type::copy_primary; }
@@ -477,44 +478,17 @@ private:
         return true;
     }
 
-    gpid select_partition(migration_list *result)
-    {
-        int id_min = *_ordered_address_ids.begin();
-        int id_max = *_ordered_address_ids.rbegin();
-        const node_state &max_ns = _nodes.at(_address_vec[id_max]);
-        const partition_set *all_partitions_max_load = max_ns.partitions(_app->app_id, false);
-        disk_load &load_on_max = _node_loads[_address_vec[id_max]];
-
-        ddebug("%s: server with min/max load: (%s have %d), (%s have %d)",
-               _app->get_logname(),
-               _address_vec[id_min].to_string(),
-               _partition_counts[id_min],
-               _address_vec[id_max].to_string(),
-               _partition_counts[id_max]);
-
-        int max_load = -1;
-        gpid selected_pid(-1, -1);
-        for (const gpid &pid : *all_partitions_max_load) {
-            if (!can_select(pid, result)) {
-                continue;
-            }
-
-            int load = load_on_max[get_disk_tag(max_ns.addr(), pid)];
-            if (load > max_load) {
-                dinfo("%s: select gpid(%d.%d) as target, load(%d)",
-                      _app->get_logname(),
-                      pid.get_app_id(),
-                      pid.get_partition_index(),
-                      max_load);
-                max_load = load;
-            }
-            return selected_pid;
-        }
-    }
-
     int get_partition_count(const node_state &ns) { return ns.secondary_count(_app->app_id); }
 
     enum balance_type balance_type() { return balance_type::copy_secondary; }
+
+    const partition_set *get_all_partitions()
+    {
+        int id_max = *_ordered_address_ids.rbegin();
+        const node_state &ns = _nodes.find(_address_vec[id_max])->second;
+        const partition_set *partitions = ns.partitions(_app->app_id, false);
+        return partitions;
+    }
 
     bool can_select(gpid pid, migration_list *result)
     {
