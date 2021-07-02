@@ -355,6 +355,9 @@ private:
     gpid select_partition(migration_list *result)
     {
         const partition_set *partitions = get_all_partitions();
+
+        int id_max = *_ordered_address_ids.rbegin();
+        const node_state &ns = _nodes.find(_address_vec[id_max])->second;
         dassert_f(partitions != nullptr && !partitions->empty(),
                   "max load({}) shouldn't empty",
                   ns.addr().to_string());
