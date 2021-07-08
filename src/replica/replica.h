@@ -303,6 +303,12 @@ private:
                                     /*out*/ learn_response &response,
                                     /*out*/ bool &delayed_replay_prepare_list);
 
+    // Prepares the files on disk that will participate in the replica's learning.
+    void prepare_durable_learn_state(decree learn_start_decree,
+                                     const learn_request &request,
+                                     /*out*/ learn_response &response,
+                                     /*out*/ remote_learner_state &learn_state);
+
     // Gets the position where this round of the learning process should begin.
     // This method is called on primary-side.
     // TODO(wutao1): mark it const
