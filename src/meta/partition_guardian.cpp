@@ -24,6 +24,7 @@ pc_status partition_guardian::cure(meta_view view,
                                    const dsn::gpid &gpid,
                                    configuration_proposal_action &action)
 {
+
     if (from_proposals(view, gpid, action))
         return pc_status::ill;
 
