@@ -78,12 +78,14 @@ bool replica::throttle_backup_request(message_ex *request)
     auto type = _backup_request_qps_throttling_controller.control(
         request->header->client.timeout_ms, 1, delay_ms);
     if (type != throttling_controller::PASS) {
+        _counter_recent_backup_request_throttling_reject_count->increment();
         return false;
     }
 
     type = _backup_request_size_throttling_controller.control(
         request->header->client.timeout_ms, request->body_size(), delay_ms);
     if (type != throttling_controller::PASS) {
+        _counter_recent_backup_request_throttling_reject_count->increment();
         return false;
     }
 

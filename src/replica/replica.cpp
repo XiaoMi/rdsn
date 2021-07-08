@@ -98,6 +98,10 @@ replica::replica(
     _counter_recent_read_throttling_reject_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
+    counter_str = fmt::format("recent.backup.request.throttling.reject.count@{}", gpid);
+    _counter_recent_backup_request_throttling_reject_count.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
+
     counter_str = fmt::format("dup.disabled_non_idempotent_write_count@{}", _app_info.app_name);
     _counter_dup_disabled_non_idempotent_write_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
