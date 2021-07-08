@@ -929,7 +929,7 @@ void greedy_load_balancer::app_balancer(bool balance_checker)
 
 void greedy_load_balancer::cluster_balancer()
 {
-    /// TODO(zlw)
+    /// TBD(zlw)
 }
 
 bool greedy_load_balancer::balance(meta_view view, migration_list &list)
