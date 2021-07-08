@@ -50,7 +50,7 @@ public:
         _current_op_count = 0;
     }
 
-    ~work_queue()
+    virtual ~work_queue()
     {
         scope_lk l(_lock);
         assert(_hdr.is_empty());

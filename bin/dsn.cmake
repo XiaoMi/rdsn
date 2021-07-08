@@ -199,6 +199,8 @@ function(dsn_setup_compiler_flags)
     add_compile_options(-Wno-deprecated-declarations)
     add_compile_options(-Wno-inconsistent-missing-override)
     add_compile_options(-Wno-attributes)
+    # Must add virtual on all base destructors.
+    add_compile_options(-Wnon-virtual-dtor)
     # -fno-omit-frame-pointer
     #   use frame pointers to allow simple stack frame walking for backtraces.
     #   This has a small perf hit but worth it for the ability to profile in production
