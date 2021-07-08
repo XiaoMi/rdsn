@@ -42,7 +42,8 @@ greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
       _ctrl_balancer_in_turn(nullptr),
       _ctrl_only_primary_balancer(nullptr),
       _ctrl_only_move_primary(nullptr),
-      _get_balance_operation_count(nullptr)
+      _get_balance_operation_count(nullptr),
+      _ctrl_balance_cluster(nullptr)
 {
     if (_svc != nullptr) {
         _balancer_in_turn = _svc->get_meta_options()._lb_opts.balancer_in_turn;
@@ -53,6 +54,7 @@ greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
         _only_primary_balancer = false;
         _only_move_primary = false;
     }
+    _balance_cluster = false;
 
     ::memset(t_operation_counters, 0, sizeof(t_operation_counters));
 
@@ -84,6 +86,8 @@ greedy_load_balancer::~greedy_load_balancer()
     UNREGISTER_VALID_HANDLER(_ctrl_only_primary_balancer);
     UNREGISTER_VALID_HANDLER(_ctrl_only_move_primary);
     UNREGISTER_VALID_HANDLER(_get_balance_operation_count);
+    UNREGISTER_VALID_HANDLER(_ctrl_balancer_ignored_apps);
+    UNREGISTER_VALID_HANDLER(_ctrl_balance_cluster);
 }
 
 void greedy_load_balancer::register_ctrl_commands()
@@ -129,6 +133,14 @@ void greedy_load_balancer::register_ctrl_commands()
         [this](const std::vector<std::string> &args) {
             return remote_command_balancer_ignored_app_ids(args);
         });
+
+    _ctrl_balance_cluster = dsn::command_manager::instance().register_command(
+        {"meta.lb.balance_cluster"},
+        "lb.balance_cluster <true|false>",
+        "control whether balance whole cluster",
+        [this](const std::vector<std::string> &args) {
+            return remote_command_set_bool_flag(_balance_cluster, "lb.balance_cluster", args);
+        });
 }
 
 void greedy_load_balancer::unregister_ctrl_commands()
@@ -138,6 +150,7 @@ void greedy_load_balancer::unregister_ctrl_commands()
     UNREGISTER_VALID_HANDLER(_ctrl_only_move_primary);
     UNREGISTER_VALID_HANDLER(_get_balance_operation_count);
     UNREGISTER_VALID_HANDLER(_ctrl_balancer_ignored_apps);
+    UNREGISTER_VALID_HANDLER(_ctrl_balance_cluster);
 
     simple_load_balancer::unregister_ctrl_commands();
 }
@@ -815,8 +828,6 @@ bool greedy_load_balancer::all_replica_infos_collected(const node_state &ns)
 
 void greedy_load_balancer::greedy_balancer(const bool balance_checker)
 {
-    const app_mapper &apps = *t_global_view->apps;
-
     dassert(t_alive_nodes > 2, "too few nodes will be freezed");
     number_nodes(*t_global_view->nodes);
 
@@ -826,6 +837,20 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
             return;
         }
     }
+
+    if (!_balance_cluster) {
+        app_balancer(balance_checker);
+        return;
+    }
+
+    if (!balance_checker) {
+        cluster_balancer();
+    }
+}
+
+void greedy_load_balancer::app_balancer(bool balance_checker)
+{
+    const app_mapper &apps = *t_global_view->apps;
 
     for (const auto &kv : apps) {
         const std::shared_ptr<app_state> &app = kv.second;
@@ -900,6 +925,11 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
             }
         }
     }
+}
+
+void greedy_load_balancer::cluster_balancer()
+{
+    /// TODO(zlw)
 }
 
 bool greedy_load_balancer::balance(meta_view view, migration_list &list)

@@ -91,6 +91,7 @@ private:
     bool _balancer_in_turn;
     bool _only_primary_balancer;
     bool _only_move_primary;
+    bool _balance_cluster;
 
     // the app set which won't be re-balanced
     std::set<app_id> _balancer_ignored_apps;
@@ -101,6 +102,7 @@ private:
     dsn_handle_t _ctrl_only_primary_balancer;
     dsn_handle_t _ctrl_only_move_primary;
     dsn_handle_t _get_balance_operation_count;
+    dsn_handle_t _ctrl_balance_cluster;
 
     // perf counters
     perf_counter_wrapper _balance_operation_count;
@@ -134,6 +136,10 @@ private:
     bool copy_secondary_per_app(const std::shared_ptr<app_state> &app);
 
     void greedy_balancer(bool balance_checker);
+
+    void app_balancer(bool balance_checker);
+
+    void cluster_balancer();
 
     bool all_replica_infos_collected(const node_state &ns);
     // using t_global_view to get disk_tag of node's pid
