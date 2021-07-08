@@ -182,8 +182,7 @@ void app_env_validator::register_all_validators()
         {replica_envs::BACKUP_REQUEST_QPS_THROTTLING,
          std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2, false)},
         {replica_envs::BACKUP_REQUEST_SIZE_THROTTLING,
-         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2, false)}
-    }
+         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2, false)}};
 }
 
 } // namespace replication
