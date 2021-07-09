@@ -189,12 +189,12 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
-    if (!ignore_throttling && throttle_read_request(request)) {
-        return;
-    }
-
     if (!request->is_backup_request()) {
         // only backup request is allowed to read from a stale replica
+
+        if (!ignore_throttling && throttle_read_request(request)) {
+            return;
+        }
 
         if (status() != partition_status::PS_PRIMARY) {
             response_client_read(request, ERR_INVALID_STATE);
@@ -211,7 +211,7 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
             return;
         }
     } else {
-        if (!throttle_backup_request(request)) {
+        if (!ignore_throttling && throttle_backup_request(request)) {
             return;
         }
         _counter_backup_request_qps->increment();

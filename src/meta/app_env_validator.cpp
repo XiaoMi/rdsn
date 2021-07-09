@@ -54,7 +54,7 @@ bool check_rocksdb_iteration(const std::string &env_value, std::string &hint_mes
     return true;
 }
 
-bool check_throttling(const std::string &env_value, std::string &hint_message, bool delay_allowed)
+bool check_throttling(const std::string &env_value, std::string &hint_message)
 {
     std::vector<std::string> sargs;
     utils::split_args(env_value.c_str(), sargs, ',');
@@ -87,10 +87,6 @@ bool check_throttling(const std::string &env_value, std::string &hint_message, b
 
         // check the second part, which is must be "delay" or "reject"
         if (sub_sargs[1] == "delay") {
-            if (!delay_allowed) {
-                hint_message = "delay is not allowed";
-                return false;
-            }
             if (delay_parsed) {
                 hint_message = "duplicate delay config";
                 return false;
@@ -153,9 +149,9 @@ void app_env_validator::register_all_validators()
         {replica_envs::SLOW_QUERY_THRESHOLD,
          std::bind(&check_slow_query, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::WRITE_QPS_THROTTLING,
-         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2, true)},
+         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::WRITE_SIZE_THROTTLING,
-         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2, true)},
+         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::ROCKSDB_ITERATION_THRESHOLD_TIME_MS,
          std::bind(&check_rocksdb_iteration, std::placeholders::_1, std::placeholders::_2)},
         // TODO(zhaoliwei): not implemented
@@ -175,14 +171,14 @@ void app_env_validator::register_all_validators()
         {replica_envs::MANUAL_COMPACT_PERIODIC_BOTTOMMOST_LEVEL_COMPACTION, nullptr},
         {replica_envs::REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS, nullptr},
         {replica_envs::READ_QPS_THROTTLING,
-         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2, true)},
+         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::SPLIT_VALIDATE_PARTITION_HASH,
          std::bind(&check_split_validation, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::USER_SPECIFIED_COMPACTION, nullptr},
         {replica_envs::BACKUP_REQUEST_QPS_THROTTLING,
-         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2, false)},
+         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::BACKUP_REQUEST_SIZE_THROTTLING,
-         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2, false)}};
+         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)}};
 }
 
 } // namespace replication
