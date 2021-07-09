@@ -98,11 +98,13 @@ replica::replica(
     _counter_recent_read_throttling_reject_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
-    counter_str = fmt::format("recent.backup.request.throttling.delay.count@{}", _app_info.app_name);
+    counter_str =
+        fmt::format("recent.backup.request.throttling.delay.count@{}", _app_info.app_name);
     _counter_recent_backup_request_throttling_delay_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
-    counter_str = fmt::format("recent.backup.request.throttling.reject.count@{}", _app_info.app_name);
+    counter_str =
+        fmt::format("recent.backup.request.throttling.reject.count@{}", _app_info.app_name);
     _counter_recent_backup_request_throttling_reject_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
