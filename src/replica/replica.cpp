@@ -100,7 +100,7 @@ replica::replica(
 
     counter_str = fmt::format("recent.backup.request.throttling.delay.count@{}", gpid);
     _counter_recent_backup_request_throttling_delay_count.init_app_counter(
-            "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 
     counter_str = fmt::format("recent.backup.request.throttling.reject.count@{}", gpid);
     _counter_recent_backup_request_throttling_reject_count.init_app_counter(
