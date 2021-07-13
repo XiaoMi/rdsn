@@ -538,7 +538,6 @@ private:
     throttling_controller _write_size_throttling_controller; // throttling by bytes-per-second
     throttling_controller _read_qps_throttling_controller;
     throttling_controller _backup_request_qps_throttling_controller;
-    throttling_controller _backup_request_size_throttling_controller;
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;

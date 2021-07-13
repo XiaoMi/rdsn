@@ -72,31 +72,24 @@ bool replica::throttle_read_request(message_ex *request)
     return false;
 }
 
-#define THROTTLE_BACKUP_REQUEST(throttling_type, request, request_units)                           \
-    do {                                                                                           \
-        int64_t delay_ms = 0;                                                                      \
-        auto type = _backup_request_##throttling_type##_throttling_controller.control(             \
-            request->header->client.timeout_ms, request_units, delay_ms);                          \
-        if (type != throttling_controller::PASS) {                                                 \
-            if (type == throttling_controller::DELAY) {                                            \
-                tasking::enqueue(                                                                  \
-                    LPC_read_THROTTLING_DELAY,                                                     \
-                    &_tracker,                                                                     \
-                    [ this, req = message_ptr(request) ]() { on_client_read(req, true); },         \
-                    get_gpid().thread_hash(),                                                      \
-                    std::chrono::milliseconds(delay_ms));                                          \
-                _counter_recent_backup_request_throttling_delay_count->increment();                \
-            } else { /** type == throttling_controller::REJECT **/                                 \
-                _counter_recent_backup_request_throttling_reject_count->increment();               \
-            }                                                                                      \
-            return true;                                                                           \
-        }                                                                                          \
-    } while (0)
-
 bool replica::throttle_backup_request(message_ex *request)
 {
-    THROTTLE_BACKUP_REQUEST(qps, request, 1);
-    THROTTLE_BACKUP_REQUEST(size, request, request->body_size());
+    int64_t delay_ms = 0;
+    auto type = _backup_request_qps_throttling_controller.control(
+        request->header->client.timeout_ms, 1, delay_ms);
+    if (type != throttling_controller::PASS) {
+        if (type == throttling_controller::DELAY) {
+            tasking::enqueue(LPC_read_THROTTLING_DELAY,
+                             &_tracker,
+                             [this, req = message_ptr(request)]() { on_client_read(req, true); },
+                             get_gpid().thread_hash(),
+                             std::chrono::milliseconds(delay_ms));
+            _counter_recent_backup_request_throttling_delay_count->increment();
+        } else { /** type == throttling_controller::REJECT **/
+            _counter_recent_backup_request_throttling_reject_count->increment();
+        }
+        return true;
+    }
     return false;
 }
 
@@ -111,9 +104,6 @@ void replica::update_throttle_envs(const std::map<std::string, std::string> &env
     update_throttle_env_internal(envs,
                                  replica_envs::BACKUP_REQUEST_QPS_THROTTLING,
                                  _backup_request_qps_throttling_controller);
-    update_throttle_env_internal(envs,
-                                 replica_envs::BACKUP_REQUEST_SIZE_THROTTLING,
-                                 _backup_request_size_throttling_controller);
 }
 
 void replica::update_throttle_env_internal(const std::map<std::string, std::string> &envs,

@@ -176,8 +176,6 @@ void app_env_validator::register_all_validators()
          std::bind(&check_split_validation, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::USER_SPECIFIED_COMPACTION, nullptr},
         {replica_envs::BACKUP_REQUEST_QPS_THROTTLING,
-         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)},
-        {replica_envs::BACKUP_REQUEST_SIZE_THROTTLING,
          std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)}};
 }
 
