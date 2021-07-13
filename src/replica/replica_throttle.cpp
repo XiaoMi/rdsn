@@ -81,7 +81,7 @@ bool replica::throttle_backup_request(message_ex *request)
         if (type == throttling_controller::DELAY) {
             tasking::enqueue(LPC_read_THROTTLING_DELAY,
                              &_tracker,
-                             [this, req = message_ptr(request)]() { on_client_read(req, true); },
+                             [ this, req = message_ptr(request) ]() { on_client_read(req, true); },
                              get_gpid().thread_hash(),
                              std::chrono::milliseconds(delay_ms));
             _counter_recent_backup_request_throttling_delay_count->increment();
