@@ -91,7 +91,6 @@ private:
     bool _balancer_in_turn;
     bool _only_primary_balancer;
     bool _only_move_primary;
-    bool _balance_cluster;
 
     // the app set which won't be re-balanced
     std::set<app_id> _balancer_ignored_apps;
@@ -102,7 +101,6 @@ private:
     dsn_handle_t _ctrl_only_primary_balancer;
     dsn_handle_t _ctrl_only_move_primary;
     dsn_handle_t _get_balance_operation_count;
-    dsn_handle_t _ctrl_balance_cluster;
 
     // perf counters
     perf_counter_wrapper _balance_operation_count;
