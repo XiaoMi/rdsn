@@ -64,9 +64,13 @@ public:
     uint32_t read(uint8_t *buf, uint32_t len)
     {
         int l = _reader.read((char *)buf, static_cast<int>(len));
-        if (l == 0) {
+        if (dsn_unlikely(l == 0)) {
             throw TTransportException(TTransportException::END_OF_FILE,
                                       "no more data to read after end-of-buffer");
+        }
+        if (dsn_unlikely(l < 0)) {
+            throw TTransportException(TTransportException::CORRUPTED_DATA,
+                                      "the data to read is corrupted");
         }
         return (uint32_t)l;
     }
@@ -712,4 +716,4 @@ inline void unmarshall_thrift_json(binary_reader &reader, T &val)
     ::apache::thrift::protocol::TJSONProtocol proto(transport);
     unmarshall_thrift_internal(val, &proto);
 }
-}
+} // namespace dsn
