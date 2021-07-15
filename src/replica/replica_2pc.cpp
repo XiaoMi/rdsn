@@ -76,7 +76,7 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     }
 
     task_spec *spec = task_spec::get(request->rpc_code());
-    if (nullptr == spec) {
+    if (dsn_unlikely(nullptr == spec || request->rpc_code() == TASK_CODE_INVALID)) {
         dwarn_f("recv message with unhandled rpc name {} from {}, trace_id = {}",
                 request->rpc_code().to_string(),
                 request->header->from_address.to_string(),
