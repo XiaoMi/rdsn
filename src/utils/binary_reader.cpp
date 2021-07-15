@@ -94,7 +94,7 @@ int binary_reader::internal_read(char *buffer, int sz)
         _remaining_size -= sz;
         return sz;
     } else {
-        return 0;
+        return -1;
     }
 }
 } // namespace dsn
