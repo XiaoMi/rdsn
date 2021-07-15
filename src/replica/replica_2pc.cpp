@@ -76,6 +76,13 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     }
 
     task_spec *spec = task_spec::get(request->rpc_code());
+    if (nullptr == spec) {
+        ddebug_f("request received from {} has invalid rpc code",
+                 request->header->from_address.to_string());
+        response_client_write(request, ERR_INVALID_DATA);
+        return;
+    }
+
     if (is_duplicating() && !spec->rpc_request_is_write_idempotent) {
         // Ignore non-idempotent write, because duplication provides no guarantee of atomicity to
         // make this write produce the same result on multiple clusters.
