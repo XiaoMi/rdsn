@@ -50,7 +50,7 @@ int binary_reader::read(blob &blob)
 
 int binary_reader::read(blob &blob, int len)
 {
-    auto res = internal_read(blob, len);
+    auto res = inner_read(blob, len);
     if (dsn_unlikely(res < 0)) {
         assert(false);
     }
@@ -59,14 +59,14 @@ int binary_reader::read(blob &blob, int len)
 
 int binary_reader::read(char *buffer, int sz)
 {
-    auto res = internal_read(buffer, sz);
+    auto res = inner_read(buffer, sz);
     if (dsn_unlikely(res < 0)) {
         assert(false);
     }
     return res;
 }
 
-int binary_reader::internal_read(blob &blob, int len)
+int binary_reader::inner_read(blob &blob, int len)
 {
     if (len <= get_remaining_size()) {
         blob = _blob.range(static_cast<int>(_ptr - _blob.data()), len);
@@ -86,7 +86,7 @@ int binary_reader::internal_read(blob &blob, int len)
     }
 }
 
-int binary_reader::internal_read(char *buffer, int sz)
+int binary_reader::inner_read(char *buffer, int sz)
 {
     if (sz <= get_remaining_size()) {
         memcpy((void *)buffer, _ptr, sz);

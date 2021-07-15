@@ -50,8 +50,8 @@ public:
     int get_remaining_size() const { return _remaining_size; }
 
 protected:
-    int internal_read(blob &blob, int len);
-    int internal_read(char *buffer, int sz);
+    int inner_read(blob &blob, int len);
+    int inner_read(char *buffer, int sz);
 
     blob _blob;
     int _size;
