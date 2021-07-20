@@ -936,12 +936,38 @@ void greedy_load_balancer::cluster_balancer()
             return;
         }
         if (!t_migration_result->empty()) {
-            ddebug("migration count of move primary = {}", t_migration_result->size());
+            ddebug_f("migration count of move primary = {}", t_migration_result->size());
             return;
         }
     }
 
-    // TODO(zlw): copy secondary
+    migration_list list;
+    bool need_continue = cluster_replica_balance(cluster_balance_type::kTotal, list);
+    if (!need_continue) {
+        return;
+    }
+
+    // TODO(zlw): copy primary
+}
+
+bool greedy_load_balancer::cluster_replica_balance(const cluster_balance_type type,
+                                                   /*out*/ migration_list &list)
+{
+    bool enough_information = do_cluster_replica_balance(type, list);
+    if (!enough_information) {
+        return false;
+    }
+    if (!t_migration_result->empty()) {
+        ddebug_f("migration count of copy primary/secondary = {}", t_migration_result->size());
+        return false;
+    }
+    return true;
+}
+
+bool greedy_load_balancer::do_cluster_replica_balance(const cluster_balance_type type,
+                                                      /*out*/ migration_list &list)
+{
+    /// TBD(zlw)
 }
 
 bool greedy_load_balancer::balance(meta_view view, migration_list &list)
