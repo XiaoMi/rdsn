@@ -941,8 +941,7 @@ void greedy_load_balancer::cluster_balancer()
         }
     }
 
-    migration_list list;
-    bool need_continue = cluster_replica_balance(cluster_balance_type::Total, list);
+    bool need_continue = cluster_replica_balance(cluster_balance_type::Total);
     if (!need_continue) {
         return;
     }
@@ -950,10 +949,9 @@ void greedy_load_balancer::cluster_balancer()
     // TODO(zlw): copy primary
 }
 
-bool greedy_load_balancer::cluster_replica_balance(const cluster_balance_type type,
-                                                   /*out*/ migration_list &list)
+bool greedy_load_balancer::cluster_replica_balance(const cluster_balance_type type)
 {
-    bool enough_information = do_cluster_replica_balance(type, list);
+    bool enough_information = do_cluster_replica_balance(type);
     if (!enough_information) {
         return false;
     }
@@ -965,8 +963,7 @@ bool greedy_load_balancer::cluster_replica_balance(const cluster_balance_type ty
     return true;
 }
 
-bool greedy_load_balancer::do_cluster_replica_balance(const cluster_balance_type type,
-                                                      /*out*/ migration_list &list)
+bool greedy_load_balancer::do_cluster_replica_balance(const cluster_balance_type type)
 {
     return true;
     /// TBD(zlw)

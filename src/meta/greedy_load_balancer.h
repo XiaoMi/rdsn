@@ -150,11 +150,9 @@ private:
 
     void cluster_balancer();
 
-    bool cluster_replica_balance(const cluster_balance_type type,
-                                 /*out*/ migration_list &list);
+    bool cluster_replica_balance(const cluster_balance_type type);
 
-    bool do_cluster_replica_balance(const cluster_balance_type type,
-                                    /*out*/ migration_list &list);
+    bool do_cluster_replica_balance(const cluster_balance_type type);
 
     bool all_replica_infos_collected(const node_state &ns);
     // using t_global_view to get disk_tag of node's pid
