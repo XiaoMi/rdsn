@@ -140,18 +140,6 @@ private:
 
     void cluster_balancer();
 
-    enum class cluster_balance_type
-    {
-        kTotal = 0,
-        kPrimary
-    };
-
-    bool cluster_replica_balance(const cluster_balance_type type,
-                                 /*out*/ migration_list &list);
-
-    bool do_cluster_replica_balance(const cluster_balance_type type,
-                                    /*out*/ migration_list &list);
-
     bool all_replica_infos_collected(const node_state &ns);
     // using t_global_view to get disk_tag of node's pid
     const std::string &get_disk_tag(const dsn::rpc_address &node, const dsn::gpid &pid);
