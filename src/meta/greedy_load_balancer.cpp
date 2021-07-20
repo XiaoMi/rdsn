@@ -967,6 +967,7 @@ bool greedy_load_balancer::cluster_replica_balance(const cluster_balance_type ty
 bool greedy_load_balancer::do_cluster_replica_balance(const cluster_balance_type type,
                                                       /*out*/ migration_list &list)
 {
+    return true;
     /// TBD(zlw)
 }
 
