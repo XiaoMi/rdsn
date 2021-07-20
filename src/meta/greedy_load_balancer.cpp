@@ -941,7 +941,7 @@ void greedy_load_balancer::cluster_balancer()
         }
     }
 
-    bool need_continue = cluster_replica_balance(cluster_balance_type::Total);
+    bool need_continue = cluster_replica_balance(cluster_balance_type::Secondary);
     if (!need_continue) {
         return;
     }

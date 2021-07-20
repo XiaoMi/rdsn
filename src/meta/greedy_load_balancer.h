@@ -41,13 +41,13 @@ namespace dsn {
 namespace replication {
 enum class cluster_balance_type
 {
-    Total = 0,
-    Primary,
+    Primary = 0,
+    Secondary,
     Invalid,
 };
 ENUM_BEGIN(cluster_balance_type, cluster_balance_type::Invalid)
-ENUM_REG(cluster_balance_type::Total)
 ENUM_REG(cluster_balance_type::Primary)
+ENUM_REG(cluster_balance_type::Secondary)
 ENUM_END(cluster_balance_type)
 
 class greedy_load_balancer : public simple_load_balancer
