@@ -39,6 +39,16 @@
 
 namespace dsn {
 namespace replication {
+enum class cluster_balance_type
+{
+    Total = 0,
+    Primary,
+    Invalid,
+};
+ENUM_BEGIN(cluster_balance_type, cluster_balance_type::Invalid)
+ENUM_REG(cluster_balance_type::Total)
+ENUM_REG(cluster_balance_type::Primary)
+ENUM_END(cluster_balance_type)
 
 class greedy_load_balancer : public simple_load_balancer
 {
@@ -139,12 +149,6 @@ private:
     void app_balancer(bool balance_checker);
 
     void cluster_balancer();
-
-    enum class cluster_balance_type
-    {
-        kTotal = 0,
-        kPrimary
-    };
 
     bool cluster_replica_balance(const cluster_balance_type type,
                                  /*out*/ migration_list &list);

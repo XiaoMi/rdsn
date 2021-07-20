@@ -942,7 +942,7 @@ void greedy_load_balancer::cluster_balancer()
     }
 
     migration_list list;
-    bool need_continue = cluster_replica_balance(cluster_balance_type::kTotal, list);
+    bool need_continue = cluster_replica_balance(cluster_balance_type::Total, list);
     if (!need_continue) {
         return;
     }
@@ -958,7 +958,8 @@ bool greedy_load_balancer::cluster_replica_balance(const cluster_balance_type ty
         return false;
     }
     if (!t_migration_result->empty()) {
-        ddebug_f("migration count of copy primary/secondary = {}", t_migration_result->size());
+        ddebug_f(
+            "migration count of copy {} = {}", enum_to_string(type), t_migration_result->size());
         return false;
     }
     return true;
