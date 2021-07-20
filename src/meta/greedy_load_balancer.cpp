@@ -725,7 +725,7 @@ void greedy_load_balancer::shortest_path(std::vector<bool> &visit,
 
 // load balancer based on ford-fulkerson
 bool greedy_load_balancer::primary_balancer_per_app(const std::shared_ptr<app_state> &app,
-        bool only_move_primary)
+                                                    bool only_move_primary)
 {
     dassert(t_alive_nodes > 2, "too few alive nodes will lead to freeze");
     ddebug("primary balancer for app(%s:%d)", app->app_name.c_str(), app->app_id);
