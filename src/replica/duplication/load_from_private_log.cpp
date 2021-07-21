@@ -69,6 +69,20 @@ void load_from_private_log::run()
     dassert_replica(_start_decree != invalid_decree, "{}", _start_decree);
     _duplicator->verify_start_decree(_start_decree);
 
+    if (_mutation_batch.last_decree() == invalid_decree) {
+        if (_duplicator->progress().confirmed_decree == invalid_decree) {
+            dwarn_replica("duplication status hasn't sync completed, try next for delay 1s, "
+                          "last_commit_decree={}, "
+                          "confirmed_decree={}",
+                          _duplicator->progress().last_decree,
+                          _duplicator->progress().confirmed_decree);
+            repeat(1_s);
+            return;
+        } else {
+            _mutation_batch.reset_mutation_buffer(_duplicator->progress().confirmed_decree);
+        }
+    }
+
     if (_current == nullptr) {
         find_log_file_to_start();
         if (_current == nullptr) {
