@@ -18,14 +18,27 @@
 #pragma once
 
 #include <dsn/dist/replication/mutation_duplicator.h>
+#include <dsn/dist/replication/replica_base.h>
 
 #include "replica/mutation.h"
-
+#include "replica/prepare_list.h"
 namespace dsn {
 namespace replication {
 
 class replica_duplicator;
 class prepare_list;
+class replica_base;
+
+class mutation_buffer : public prepare_list
+{
+public:
+    mutation_buffer(replica_base *r,
+                    decree init_decree,
+                    int max_count,
+                    mutation_committer committer);
+
+    void commit(decree d, commit_type ct);
+};
 
 // A sorted array of committed mutations that are ready for duplication.
 // Not thread-safe.
@@ -50,7 +63,7 @@ public:
 private:
     friend class replica_duplicator_test;
 
-    std::unique_ptr<prepare_list> _mutation_buffer;
+    std::unique_ptr<mutation_buffer> _mutation_buffer;
     mutation_tuple_set _loaded_mutations;
     decree _start_decree{invalid_decree};
 };

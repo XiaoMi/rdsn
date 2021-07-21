@@ -20,12 +20,51 @@
 
 #include "replica_duplicator.h"
 #include "mutation_batch.h"
-#include "replica/prepare_list.h"
 
 namespace dsn {
 namespace replication {
 
 /*static*/ constexpr int64_t mutation_batch::PREPARE_LIST_NUM_ENTRIES;
+
+mutation_buffer::mutation_buffer(replica_base *r,
+                                 decree init_decree,
+                                 int max_count,
+                                 mutation_committer committer)
+    : prepare_list(r, init_decree, max_count, committer)
+{
+}
+
+void mutation_buffer::commit(decree d, commit_type ct)
+{
+    if (d <= last_committed_decree())
+        return;
+
+    if (ct != COMMIT_TO_DECREE_HARD) {
+        dassert_replica(false, "invalid commit type %d", (int)ct);
+    }
+
+    ballot last_bt = 0;
+    for (decree d0 = last_committed_decree() + 1; d0 <= d; d0++) {
+        mutation_ptr next_commit_mutation = get_mutation_by_decree(d0);
+        if (next_commit_mutation == nullptr || !next_commit_mutation->is_logged()) {
+            derror_replica("mutation[decree={}, last_commit_decree={}] is lost: "
+                           "prepare_last_commit_decree={}, prepare_min_decree={}, "
+                           "prepare_max_decree={}",
+                           next_commit_mutation->data.header.last_committed_decree,
+                           next_commit_mutation->data.header.decree,
+                           last_committed_decree(),
+                           min_decree(),
+                           max_decree());
+            _last_committed_decree = d - 1;
+            return;
+        }
+
+        dcheck_ge_replica(next_commit_mutation->data.header.ballot, last_bt);
+        _last_committed_decree++;
+        last_bt = next_commit_mutation->data.header.ballot;
+        _committer(next_commit_mutation);
+    }
+}
 
 error_s mutation_batch::add(mutation_ptr mu)
 {
@@ -74,7 +113,7 @@ mutation_batch::mutation_batch(replica_duplicator *r) : replica_base(r)
     replica_base base(
         r->get_gpid(), std::string("mutation_batch@") + r->replica_name(), r->app_name());
     _mutation_buffer =
-        make_unique<prepare_list>(&base, 0, PREPARE_LIST_NUM_ENTRIES, [this](mutation_ptr &mu) {
+        make_unique<mutation_buffer>(&base, 0, PREPARE_LIST_NUM_ENTRIES, [this](mutation_ptr &mu) {
             // committer
             add_mutation_if_valid(mu, _loaded_mutations, _start_decree);
         });

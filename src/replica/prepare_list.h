@@ -71,6 +71,7 @@ public:
     void commit(decree decree, commit_type ct);                   // ordered commit
 
 private:
+    friend class mutation_buffer;
     decree _last_committed_decree;
     mutation_committer _committer;
 };
