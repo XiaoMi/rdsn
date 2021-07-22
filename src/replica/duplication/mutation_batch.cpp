@@ -50,11 +50,10 @@ void mutation_buffer::commit(decree d, commit_type ct)
     for (decree d0 = last_committed_decree() + 1; d0 <= d; d0++) {
         mutation_ptr next_commit_mutation = get_mutation_by_decree(d0);
         if (next_commit_mutation == nullptr || !next_commit_mutation->is_logged()) {
-            derror_replica("mutation[decree={}, last_commit_decree={}] is lost: "
+            derror_replica("mutation[{}] is lost: "
                            "prepare_last_commit_decree={}, prepare_min_decree={}, "
                            "prepare_max_decree={}",
-                           next_commit_mutation->data.header.last_committed_decree,
-                           next_commit_mutation->data.header.decree,
+                           d, 
                            last_committed_decree(),
                            min_decree(),
                            max_decree());
