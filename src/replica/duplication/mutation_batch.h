@@ -19,7 +19,6 @@
 
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/dist/replication/mutation_duplicator.h>
-#include <dsn/dist/replication/replica_base.h>
 
 #include "replica/mutation.h"
 #include "replica/prepare_list.h"
@@ -27,8 +26,6 @@ namespace dsn {
 namespace replication {
 
 class replica_duplicator;
-class prepare_list;
-class replica_base;
 
 class mutation_buffer : public prepare_list
 {
