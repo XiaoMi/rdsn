@@ -49,6 +49,19 @@ void mutation_buffer::commit(decree d, commit_type ct)
     ballot last_bt = 0;
     for (decree d0 = last_committed_decree() + 1; d0 <= d; d0++) {
         mutation_ptr next_commit_mutation = get_mutation_by_decree(d0);
+        // The unexpected case as follow:
+        //
+        // last_commit_decree - next_commit_decree
+        //                         |                                       |
+        //                        n                                    n+1
+        //
+        //  [min_decree------max_decree]
+        //                |                                |
+        //             n+m(m>1)            n+k(k>=m)
+        //
+        // just derror but not dassert if mutation loss or other problem, it's different from base
+        // class implement. And from the error and perf-counter, we can choose restart duplication
+        // or ignore the loss.
         if (next_commit_mutation == nullptr || !next_commit_mutation->is_logged()) {
             derror_replica("mutation[{}] is lost: "
                            "prepare_last_commit_decree={}, prepare_min_decree={}, "
@@ -58,6 +71,8 @@ void mutation_buffer::commit(decree d, commit_type ct)
                            min_decree(),
                            max_decree());
             _counter_dulication_mutation_loss_count->set(min_decree() - last_committed_decree());
+            // if next_commit_mutation loss, let last_commit_decree catch up  with min_decree, and
+            // the next loop will commit from min_decree
             _last_committed_decree = min_decree() - 1;
             return;
         }
