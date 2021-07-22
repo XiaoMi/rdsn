@@ -54,12 +54,12 @@ protected:
     int inner_read(blob &blob, int len);
     int inner_read(char *buffer, int sz);
 
+private:
     blob _blob;
     int _size;
     const char *_ptr;
     int _remaining_size;
 
-private:
     FRIEND_TEST(binary_reader_test, inner_read);
 };
 
