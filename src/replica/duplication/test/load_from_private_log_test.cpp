@@ -107,10 +107,18 @@ public:
         mutation_log_ptr mlog = create_private_log(private_log_size_mb, _replica->get_gpid());
 
         {
+            int last_commit_decree_start = 5;
+            int current_decree_start = 10;
             for (int i = 1; i <= num_entries; i++) {
                 std::string msg = "hello!";
                 mutations.push_back(msg);
-                mutation_ptr mu = create_test_mutation(i, msg);
+                mutation_ptr mu = create_test_mutation(
+                    i + current_decree_start, msg); //  decree - last_commit_decree  = 1 by default
+                // mock the last_commit_decree of first mu equal with `last_commit_decree_start` and
+                // decree - last_commit_decree  = 1
+                if (i == 0) {
+                    mu->data.header.last_committed_decree = last_commit_decree_start;
+                }
                 mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
             }
 
