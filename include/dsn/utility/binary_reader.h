@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <dsn/utility/blob.h>
+#include <gtest/gtest_prod.h>
 
 namespace dsn {
 class binary_reader
@@ -57,6 +58,9 @@ protected:
     int _size;
     const char *_ptr;
     int _remaining_size;
+
+private:
+    FRIEND_TEST(binary_reader_test, inner_read);
 };
 
 template <typename T>
