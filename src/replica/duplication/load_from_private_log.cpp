@@ -131,17 +131,30 @@ void load_from_private_log::find_log_file_to_start(std::map<int, log_file_ptr> l
 
 void load_from_private_log::replay_log_block()
 {
-    error_s err =
-        mutation_log::replay_block(_current,
-                                   [this](int log_bytes_length, mutation_ptr &mu) -> bool {
-                                       auto es = _mutation_batch.add(std::move(mu));
-                                       dassert_replica(es.is_ok(), es.description());
-                                       _counter_dup_log_read_bytes_rate->add(log_bytes_length);
-                                       _counter_dup_log_read_mutations_rate->increment();
-                                       return true;
-                                   },
-                                   _start_offset,
-                                   _current_global_end_offset);
+    error_s err = mutation_log::replay_block(
+        _current,
+        [this](int log_bytes_length, mutation_ptr &mu) -> bool {
+            derror_f("jiashuo_debug_add_before=={}: last_commit_decree = {}, min.max={}|{} ||||| "
+                     "mu_last_commit_decree={}[{}]",
+                     replica_name(),
+                     _mutation_batch.last_decree(),
+                     _mutation_batch._mutation_buffer->min_decree(),
+                     _mutation_batch._mutation_buffer->max_decree(),
+                     mu->data.header.last_committed_decree,
+                     mu->data.header.decree);
+            auto es = _mutation_batch.add(std::move(mu));
+            derror_f("jiashuo_debug_add_after=={}: last_commit_decree = {}, min.max={}|{}",
+                     replica_name(),
+                     _mutation_batch.last_decree(),
+                     _mutation_batch._mutation_buffer->min_decree(),
+                     _mutation_batch._mutation_buffer->max_decree());
+            dassert_replica(es.is_ok(), es.description());
+            _counter_dup_log_read_bytes_rate->add(log_bytes_length);
+            _counter_dup_log_read_mutations_rate->increment();
+            return true;
+        },
+        _start_offset,
+        _current_global_end_offset);
     if (!err.is_ok()) {
         if (err.code() == ERR_HANDLE_EOF && switch_to_next_log_file()) {
             repeat();
