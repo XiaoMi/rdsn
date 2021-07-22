@@ -50,7 +50,6 @@ TEST(binary_reader_test, inner_read)
         blob input = blob::create_from_bytes(std::string("test10086"));
         binary_reader reader(input);
 
-        blob output;
         int size = 4;
         char *output_str = new char[size + 1];
         auto cleanup = dsn::defer([&output_str]() { delete[] output_str; });
@@ -64,7 +63,6 @@ TEST(binary_reader_test, inner_read)
         blob input = blob::create_from_bytes(std::string("test10086"));
         binary_reader reader(input);
 
-        blob output;
         int size = 10;
         char *output_str = new char[size];
         auto cleanup = dsn::defer([&output_str]() { delete[] output_str; });
