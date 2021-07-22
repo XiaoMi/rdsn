@@ -112,8 +112,7 @@ public:
                 std::string msg = "hello!";
                 //  decree - last_commit_decree  = 1 by default
                 mutation_ptr mu = create_test_mutation(i, msg);
-                // mock the last_commit_decree of first mu equal with `last_commit_decree_start` and
-                // decree - last_commit_decree  = 1
+                // mock the last_commit_decree of first mu equal with `last_commit_decree_start`
                 if (i == decree_start) {
                     mu->data.header.last_committed_decree = last_commit_decree_start;
                 }
