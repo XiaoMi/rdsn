@@ -64,13 +64,9 @@ public:
     uint32_t read(uint8_t *buf, uint32_t len)
     {
         int l = _reader.read((char *)buf, static_cast<int>(len));
-        if (dsn_unlikely(l == 0)) {
+        if (dsn_unlikely(l <= 0)) {
             throw TTransportException(TTransportException::END_OF_FILE,
                                       "no more data to read after end-of-buffer");
-        }
-        if (dsn_unlikely(l < 0)) {
-            throw TTransportException(TTransportException::CORRUPTED_DATA,
-                                      "the data to read is corrupted");
         }
         return (uint32_t)l;
     }
