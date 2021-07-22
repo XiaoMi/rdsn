@@ -116,7 +116,7 @@ error_code prepare_list::prepare(mutation_ptr &mu,
     //    dassert (err == ERR_OK, "");
     //    return err;
 
-    case partition_status::PS_INACTIVE: // only possible during init 
+    case partition_status::PS_INACTIVE: // only possible during init
         if (mu->data.header.last_committed_decree > max_decree()) {
             reset(mu->data.header.last_committed_decree);
         } else if (mu->data.header.last_committed_decree > _last_committed_decree) {
