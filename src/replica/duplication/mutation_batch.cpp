@@ -32,6 +32,9 @@ mutation_buffer::mutation_buffer(replica_base *r,
                                  mutation_committer committer)
     : prepare_list(r, init_decree, max_count, committer)
 {
+    auto counter_str = fmt::format("recent.duplication.mutation.loss.count@{}", r->get_gpid());
+    _counter_dulication_mutation_loss_count.init_app_counter(
+        "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 }
 
 void mutation_buffer::commit(decree d, commit_type ct)
@@ -55,7 +58,8 @@ void mutation_buffer::commit(decree d, commit_type ct)
                            last_committed_decree(),
                            min_decree(),
                            max_decree());
-            _last_committed_decree = d - 1;
+            _counter_dulication_mutation_loss_count->set(min_decree() - _last_committed_decree);
+            _last_committed_decree = min_decree() - 1;
             return;
         }
 

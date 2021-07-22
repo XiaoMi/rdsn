@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/dist/replication/mutation_duplicator.h>
 #include <dsn/dist/replication/replica_base.h>
 
@@ -38,6 +39,9 @@ public:
                     mutation_committer committer);
 
     void commit(decree d, commit_type ct);
+
+private:
+    perf_counter_wrapper _counter_dulication_mutation_loss_count;
 };
 
 // A sorted array of committed mutations that are ready for duplication.
@@ -63,7 +67,7 @@ public:
 private:
     friend class replica_duplicator_test;
 
-    std::unique_ptr<mutation_buffer> _mutation_buffer;
+    std::unique_ptr<prepare_list> _mutation_buffer;
     mutation_tuple_set _loaded_mutations;
     decree _start_decree{invalid_decree};
 };
