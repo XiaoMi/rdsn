@@ -22,6 +22,7 @@
 #include "replica/mutation_log_utils.h"
 #include "load_from_private_log.h"
 #include "replica_duplicator.h"
+#include <dsn/utility/fail_point.h>
 
 namespace dsn {
 namespace replication {
@@ -77,6 +78,14 @@ void load_from_private_log::run()
                           _duplicator->progress().last_decree,
                           _duplicator->progress().confirmed_decree);
             repeat(1_s);
+
+            FAIL_POINT_INJECT_VOID_F("duplication_sync_complete", [&]() -> void {
+                if (_duplicator->progress().confirmed_decree == invalid_decree) {
+                    // set_confirmed_decree(9), the value must be equal (decree_start of
+                    // `test_start_duplication` in `load_from_private_log_test.cpp`) -1
+                    _duplicator->update_progress(_duplicator->progress().set_confirmed_decree(9));
+                }
+            });
             return;
         } else {
             _mutation_batch.reset_mutation_buffer(_duplicator->progress().confirmed_decree);
