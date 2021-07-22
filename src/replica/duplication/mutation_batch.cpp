@@ -53,11 +53,11 @@ void mutation_buffer::commit(decree d, commit_type ct)
             derror_replica("mutation[{}] is lost: "
                            "prepare_last_commit_decree={}, prepare_min_decree={}, "
                            "prepare_max_decree={}",
-                           d, 
+                           d0, 
                            last_committed_decree(),
                            min_decree(),
                            max_decree());
-            _counter_dulication_mutation_loss_count->set(min_decree() - _last_committed_decree);
+            _counter_dulication_mutation_loss_count->set(min_decree() - last_committed_decree());
             _last_committed_decree = min_decree() - 1;
             return;
         }
