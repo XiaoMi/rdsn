@@ -64,10 +64,12 @@ public:
 
     size_t size() const { return _loaded_mutations.size(); }
 
+     std::unique_ptr<prepare_list> _mutation_buffer;
+
 private:
     friend class replica_duplicator_test;
 
-    std::unique_ptr<prepare_list> _mutation_buffer;
+    
     mutation_tuple_set _loaded_mutations;
     decree _start_decree{invalid_decree};
 };
