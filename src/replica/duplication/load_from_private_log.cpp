@@ -70,9 +70,12 @@ void load_from_private_log::run()
     dassert_replica(_start_decree != invalid_decree, "{}", _start_decree);
     _duplicator->verify_start_decree(_start_decree);
 
+    // last_decree() == invalid_decree is the init status of mutation_buffer when create _mutation_batch, which means
+    // the duplication sync hasn't been completed, so need wait sync complete and the confirmed_decree
+    // != invalid_decree, and then reset mutation_buffer to valid status
     if (_mutation_batch.last_decree() == invalid_decree) {
         if (_duplicator->progress().confirmed_decree == invalid_decree) {
-            dwarn_replica("duplication status hasn't sync completed, try next for delay 1s, "
+            dwarn_replica("duplication status hasn't been sync completed, try next for delay 1s, "
                           "last_commit_decree={}, "
                           "confirmed_decree={}",
                           _duplicator->progress().last_decree,
