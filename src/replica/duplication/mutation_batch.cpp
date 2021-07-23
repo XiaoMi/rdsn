@@ -49,7 +49,7 @@ void mutation_buffer::commit(decree d, commit_type ct)
     ballot last_bt = 0;
     for (decree d0 = last_committed_decree() + 1; d0 <= d; d0++) {
         mutation_ptr next_commit_mutation = get_mutation_by_decree(d0);
-        // The unexpected case as follow:
+        // The unexpected case as follow: next_commit_decree is out of [start~end]
         //
         // last_commit_decree - next_commit_decree
         //                         |                                       |
