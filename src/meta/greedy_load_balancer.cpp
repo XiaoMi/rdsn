@@ -836,7 +836,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     }
 
     if (!balance_checker) {
-        cluster_balancer();
+        balance_cluster();
     }
 }
 
@@ -919,7 +919,7 @@ void greedy_load_balancer::app_balancer(bool balance_checker)
     }
 }
 
-void greedy_load_balancer::cluster_balancer()
+void greedy_load_balancer::balance_cluster()
 {
     const app_mapper &apps = *t_global_view->apps;
     for (const auto &kv : apps) {

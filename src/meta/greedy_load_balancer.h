@@ -148,7 +148,7 @@ private:
 
     void app_balancer(bool balance_checker);
 
-    void cluster_balancer();
+    void balance_cluster();
 
     bool cluster_replica_balance(const cluster_balance_type type);
 
