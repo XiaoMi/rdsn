@@ -300,7 +300,7 @@ private:
 #ifdef DSN_ENABLE_GPERF
     // Try to release tcmalloc memory back to operating system
     // If release_all = true, it will release all reserved-not-used memory
-    int64_t gc_tcmalloc_memory(bool release_all);
+    uint64_t gc_tcmalloc_memory(bool release_all);
 #endif
 
 private:

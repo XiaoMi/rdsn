@@ -2661,9 +2661,9 @@ static int64_t get_tcmalloc_numeric_property(const char *prop)
     return value;
 }
 
-int64_t replica_stub::gc_tcmalloc_memory(bool release_all)
+uint64_t replica_stub::gc_tcmalloc_memory(bool release_all)
 {
-    int64_t tcmalloc_released_bytes = 0;
+    auto tcmalloc_released_bytes = 0;
     if (!_release_tcmalloc_memory) {
         _is_releasing_memory.store(false);
         _counter_tcmalloc_release_memory_size->set(tcmalloc_released_bytes);
