@@ -63,6 +63,7 @@ public:
 
 private:
     friend class replica_duplicator_test;
+    friend class mutation_batch_test;
 
     std::unique_ptr<prepare_list> _mutation_buffer;
     mutation_tuple_set _loaded_mutations;
