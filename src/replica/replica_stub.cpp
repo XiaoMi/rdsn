@@ -2313,8 +2313,8 @@ void replica_stub::register_ctrl_command()
 
         _get_tcmalloc_status_command = ::dsn::command_manager::instance().register_command(
             {"replica.get-tcmalloc-status"},
-            "replica.get-tcmalloc-status",
             "replica.get-tcmalloc-status - get status of tcmalloc",
+            "get status of tcmalloc",
             [](const std::vector<std::string> &args) {
                 char buf[4096];
                 MallocExtension::instance()->GetStats(buf, 4096);
@@ -2350,8 +2350,8 @@ void replica_stub::register_ctrl_command()
 
         _release_all_reserved_memory_command = ::dsn::command_manager::instance().register_command(
             {"replica.release-all-reserved-memory"},
-            "replica.release-all-reserved-memory",
             "replica.release-all-reserved-memory - release tcmalloc all reserved-not-used memory",
+            "release tcmalloc all reserverd not-used memory back to operating system",
             [this](const std::vector<std::string> &args) {
                 auto release_bytes = gc_tcmalloc_memory(true);
                 return "OK, release_bytes=" + std::to_string(release_bytes);
