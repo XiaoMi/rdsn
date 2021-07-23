@@ -32,7 +32,7 @@ mutation_buffer::mutation_buffer(replica_base *r,
                                  mutation_committer committer)
     : prepare_list(r, init_decree, max_count, committer)
 {
-    auto counter_str = fmt::format("recent.duplication.mutation.loss.count@{}", r->get_gpid());
+    auto counter_str = fmt::format("dup_recent_mutation_loss_count@{}", r->get_gpid());
     _counter_dulication_mutation_loss_count.init_app_counter(
         "eon.replica", counter_str.c_str(), COUNTER_TYPE_VOLATILE_NUMBER, counter_str.c_str());
 }
