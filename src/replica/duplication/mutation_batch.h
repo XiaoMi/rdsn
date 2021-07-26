@@ -54,6 +54,8 @@ public:
     // mutations with decree < d will be ignored.
     void set_start_decree(decree d);
 
+    void reset_mutation_buffer(decree d);
+
     size_t size() const { return _loaded_mutations.size(); }
 
 private:
