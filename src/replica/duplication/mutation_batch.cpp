@@ -48,12 +48,12 @@ void mutation_buffer::commit(decree d, commit_type ct)
 
     ballot last_bt = 0;
     for (decree d0 = last_committed_decree() + 1; d0 <= d; d0++) {
-        mutation_ptr next_commit_mutation = get_mutation_by_decree(d0);
-        // The unexpected case as follow: next_commit_decree is out of [start~end]
+        mutation_ptr next_committed_mutation = get_mutation_by_decree(d0);
+        // The unexpected case as follow: next_committed_decree is out of prepare_list[start~end]
         //
-        // last_commit_decree - next_commit_decree
-        //                         |                                       |
-        //                        n                                    n+1
+        // last_committed_decree - next_committed_decree
+        //                         |                                                  |
+        //                        n                                              n+1
         //
         //  [min_decree------max_decree]
         //                |                                |
@@ -62,9 +62,9 @@ void mutation_buffer::commit(decree d, commit_type ct)
         // just derror but not dassert if mutation loss or other problem, it's different from base
         // class implement. And from the error and perf-counter, we can choose restart duplication
         // or ignore the loss.
-        if (next_commit_mutation == nullptr || !next_commit_mutation->is_logged()) {
-            derror_replica("mutation[{}] is lost: "
-                           "prepare_last_commit_decree={}, prepare_min_decree={}, "
+        if (next_committed_mutation == nullptr || !next_committed_mutation->is_logged()) {
+            derror_replica("mutation[{}] is lost in prepare_list: "
+                           "prepare_last_committed_decree={}, prepare_min_decree={}, "
                            "prepare_max_decree={}",
                            d0,
                            last_committed_decree(),
@@ -77,10 +77,10 @@ void mutation_buffer::commit(decree d, commit_type ct)
             return;
         }
 
-        dcheck_ge_replica(next_commit_mutation->data.header.ballot, last_bt);
+        dcheck_ge_replica(next_committed_mutation->data.header.ballot, last_bt);
         _last_committed_decree++;
-        last_bt = next_commit_mutation->data.header.ballot;
-        _committer(next_commit_mutation);
+        last_bt = next_committed_mutation->data.header.ballot;
+        _committer(next_committed_mutation);
     }
 }
 
