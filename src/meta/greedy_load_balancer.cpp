@@ -39,7 +39,7 @@ namespace replication {
 DSN_DEFINE_bool("meta_server", balance_cluster, false, "whether to enable cluster balancer");
 DSN_TAG_VARIABLE(balance_cluster, FT_MUTABLE);
 
-int32_t get_count(const node_state &ns, cluster_balance_type type, int32_t app_id)
+uint32_t get_count(const node_state &ns, cluster_balance_type type, int32_t app_id)
 {
     unsigned count = 0;
     switch (type) {
@@ -60,12 +60,12 @@ int32_t get_count(const node_state &ns, cluster_balance_type type, int32_t app_i
     default:
         break;
     }
-    return (int32_t)count;
+    return (uint32_t)count;
 }
 
-int32_t get_skew(const std::map<rpc_address, int32_t> &count_map)
+uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map)
 {
-    int32_t min = INT_MAX, max = 0;
+    uint32_t min = UINT_MAX, max = 0;
     for (const auto &kv : count_map) {
         if (kv.second < min) {
             min = kv.second;

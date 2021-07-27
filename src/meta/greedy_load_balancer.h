@@ -50,8 +50,8 @@ ENUM_REG(cluster_balance_type::Primary)
 ENUM_REG(cluster_balance_type::Secondary)
 ENUM_END(cluster_balance_type)
 
-int32_t get_count(const node_state &ns, cluster_balance_type type, int32_t app_id);
-int32_t get_skew(const std::map<rpc_address, int32_t> &count_map);
+uint32_t get_count(const node_state &ns, cluster_balance_type type, int32_t app_id);
+uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map);
 
 class greedy_load_balancer : public simple_load_balancer
 {
@@ -162,7 +162,7 @@ private:
         int32_t app_id;
         std::string app_name;
         std::vector<std::map<rpc_address, partition_status::type>> partitions;
-        std::map<rpc_address, int32_t> replicas_count;
+        std::map<rpc_address, uint32_t> replicas_count;
         bool operator<(const app_migration_info &another) const
         {
             if (app_id < another.app_id)
@@ -204,10 +204,10 @@ private:
     struct cluster_migration_info
     {
         cluster_balance_type type;
-        std::map<int32_t, int32_t> apps_skew;
+        std::map<int32_t, uint32_t> apps_skew;
         std::map<int32_t, app_migration_info> apps_info;
         std::map<rpc_address, node_migration_info> nodes_info;
-        std::map<rpc_address, int32_t> replicas_count;
+        std::map<rpc_address, uint32_t> replicas_count;
     };
 
     bool get_cluster_migration_info(const meta_view *global_view,
