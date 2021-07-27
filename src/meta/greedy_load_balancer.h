@@ -251,6 +251,7 @@ private:
     FRIEND_TEST(greedy_load_balancer, app_migration_info);
     FRIEND_TEST(greedy_load_balancer, node_migration_info);
     FRIEND_TEST(greedy_load_balancer, get_skew);
+    FRIEND_TEST(greedy_load_balancer, get_count);
 };
 
 inline configuration_proposal_action

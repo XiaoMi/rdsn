@@ -77,5 +77,18 @@ TEST(greedy_load_balancer, get_skew)
 
     ASSERT_EQ(get_skew(count_map), count_map.rbegin()->second - count_map.begin()->second);
 }
+
+TEST(greedy_load_balancer, get_count)
+{
+    node_state ns;
+    int apid = 1;
+    ns.put_partition(gpid(apid, 0), true);
+    ns.put_partition(gpid(apid, 1), false);
+    ns.put_partition(gpid(apid, 2), false);
+    ns.put_partition(gpid(apid, 3), false);
+
+    ASSERT_EQ(get_count(ns, cluster_balance_type::Primary, apid), 1);
+    ASSERT_EQ(get_count(ns, cluster_balance_type::Secondary, apid), 3);
+}
 } // namespace replication
 } // namespace dsn
