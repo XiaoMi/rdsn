@@ -90,5 +90,47 @@ TEST(greedy_load_balancer, get_count)
     ASSERT_EQ(get_count(ns, cluster_balance_type::Primary, apid), 1);
     ASSERT_EQ(get_count(ns, cluster_balance_type::Secondary, apid), 3);
 }
+
+TEST(greedy_load_balancer, get_app_migration_info)
+{
+    greedy_load_balancer balancer(nullptr);
+
+    int appid = 1;
+    std::string appname = "test";
+    auto address = rpc_address(1, 10086);
+    app_info info;
+    info.app_id = appid;
+    info.app_name = appname;
+    info.partition_count = 1;
+    auto app = std::make_shared<app_state>(info);
+    app->partitions[0].primary = address;
+
+    node_state ns1;
+    ns1.set_addr(address);
+    ns1.put_partition(gpid(appid, 0), true);
+    node_mapper nodes;
+    nodes[address] = ns1;
+
+    greedy_load_balancer::app_migration_info migration_info;
+    {
+        app->partitions[0].max_replica_count = 100;
+        auto res = balancer.get_app_migration_info(
+            app, nodes, cluster_balance_type::Primary, migration_info);
+        ASSERT_FALSE(res);
+    }
+
+    {
+        app->partitions[0].max_replica_count = 1;
+        auto res = balancer.get_app_migration_info(
+            app, nodes, cluster_balance_type::Primary, migration_info);
+        ASSERT_TRUE(res);
+        ASSERT_EQ(migration_info.app_id, appid);
+        ASSERT_EQ(migration_info.app_name, appname);
+        std::map<rpc_address, partition_status::type> pstatus_map;
+        pstatus_map[address] = partition_status::type::PS_PRIMARY;
+        ASSERT_EQ(migration_info.partitions[0], pstatus_map);
+        ASSERT_EQ(migration_info.replicas_count[address], 1);
+    }
+}
 } // namespace replication
 } // namespace dsn
