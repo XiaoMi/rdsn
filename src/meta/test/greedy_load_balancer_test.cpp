@@ -16,6 +16,7 @@
 // under the License.
 
 #include <gtest/gtest.h>
+#include <dsn/utility/defer.h>
 #include "meta/greedy_load_balancer.h"
 
 namespace dsn {
@@ -105,11 +106,11 @@ TEST(greedy_load_balancer, get_app_migration_info)
     auto app = std::make_shared<app_state>(info);
     app->partitions[0].primary = address;
 
-    node_state ns1;
-    ns1.set_addr(address);
-    ns1.put_partition(gpid(appid, 0), true);
+    node_state ns;
+    ns.set_addr(address);
+    ns.put_partition(gpid(appid, 0), true);
     node_mapper nodes;
-    nodes[address] = ns1;
+    nodes[address] = ns;
 
     greedy_load_balancer::app_migration_info migration_info;
     {
@@ -131,6 +132,47 @@ TEST(greedy_load_balancer, get_app_migration_info)
         ASSERT_EQ(migration_info.partitions[0], pstatus_map);
         ASSERT_EQ(migration_info.replicas_count[address], 1);
     }
+}
+
+TEST(greedy_load_balancer, get_node_migration_info)
+{
+    greedy_load_balancer balancer(nullptr);
+
+    int appid = 1;
+    std::string appname = "test";
+    auto address = rpc_address(1, 10086);
+    app_info info;
+    info.app_id = appid;
+    info.app_name = appname;
+    info.partition_count = 1;
+    auto app = std::make_shared<app_state>(info);
+    app->partitions[0].primary = address;
+    serving_replica sr;
+    sr.node = address;
+    std::string disk_tag = "disk1";
+    sr.disk_tag = disk_tag;
+    config_context context;
+    context.config_owner = new partition_configuration();
+    auto cleanup = dsn::defer([&context]() { delete context.config_owner; });
+    context.config_owner->pid = gpid(appid, 0);
+    context.serving.emplace_back(std::move(sr));
+    app->helpers->contexts.emplace_back(std::move(context));
+
+    app_mapper all_apps;
+    all_apps[appid] = app;
+
+    node_state ns;
+    ns.set_addr(address);
+    gpid pid = gpid(appid, 0);
+    ns.put_partition(pid, true);
+
+    greedy_load_balancer::node_migration_info migration_info;
+    balancer.get_node_migration_info(ns, all_apps, migration_info);
+
+    ASSERT_EQ(migration_info.address, address);
+    ASSERT_NE(migration_info.partitions.find(disk_tag), migration_info.partitions.end());
+    ASSERT_EQ(migration_info.partitions.at(disk_tag).size(), 1);
+    ASSERT_EQ(*migration_info.partitions.at(disk_tag).begin(), pid);
 }
 } // namespace replication
 } // namespace dsn

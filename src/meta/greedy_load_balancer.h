@@ -221,7 +221,7 @@ private:
 
     void get_node_migration_info(const node_state &ns,
                                  const app_mapper &all_apps,
-                                 /*out*/ node_migration_info &cluster_info);
+                                 /*out*/ node_migration_info &info);
 
     bool all_replica_infos_collected(const node_state &ns);
     // using t_global_view to get disk_tag of node's pid
@@ -253,6 +253,7 @@ private:
     FRIEND_TEST(greedy_load_balancer, get_skew);
     FRIEND_TEST(greedy_load_balancer, get_count);
     FRIEND_TEST(greedy_load_balancer, get_app_migration_info);
+    FRIEND_TEST(greedy_load_balancer, get_node_migration_info);
 };
 
 inline configuration_proposal_action
