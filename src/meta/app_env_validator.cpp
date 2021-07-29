@@ -165,7 +165,8 @@ void app_env_validator::register_all_validators()
         {replica_envs::ROCKSDB_ITERATION_THRESHOLD_TIME_MS,
          std::bind(&check_rocksdb_iteration, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::ROCKSDB_BLOCK_CACHE_ENABLED,
-         std::bind(&check_rocksdb_block_cache_enabled, std::placeholders::_1, std::placeholders::_2)},
+         std::bind(
+             &check_rocksdb_block_cache_enabled, std::placeholders::_1, std::placeholders::_2)},
         // TODO(zhaoliwei): not implemented
         {replica_envs::BUSINESS_INFO, nullptr},
         {replica_envs::DENY_CLIENT_WRITE, nullptr},
