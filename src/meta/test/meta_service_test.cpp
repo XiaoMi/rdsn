@@ -6,7 +6,6 @@
 #include "meta/meta_service.h"
 
 #include <dsn/utility/fail_point.h>
-#include <boost/asio/ip/tcp.hpp>
 #include <runtime/rpc/network.sim.h>
 
 namespace dsn {
