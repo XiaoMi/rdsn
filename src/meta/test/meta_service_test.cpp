@@ -72,8 +72,8 @@ private:
 
         dsn::message_ex *recvd_request = fake_request->copy(true, true);
         std::unique_ptr<tools::sim_network_provider> sim_net(
-                new tools::sim_network_provider(nullptr, nullptr));
-        recvd_request ->io_session = sim_net->create_client_session(rpc_address());
+            new tools::sim_network_provider(nullptr, nullptr));
+        recvd_request->io_session = sim_net->create_client_session(rpc_address());
         return app_env_rpc::auto_reply(recvd_request);
     }
 };
