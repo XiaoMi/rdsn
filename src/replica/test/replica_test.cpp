@@ -159,7 +159,7 @@ TEST_F(replica_test, write_size_limited)
     auto cleanup = dsn::defer([=]() { delete write_request; });
     write_request->header = &header;
     std::unique_ptr<tools::sim_network_provider> sim_net(
-            new tools::sim_network_provider(nullptr, nullptr));
+        new tools::sim_network_provider(nullptr, nullptr));
     write_request->io_session = sim_net->create_client_session(rpc_address());
 
     for (int i = 0; i < count; i++) {
@@ -177,7 +177,7 @@ TEST_F(replica_test, backup_request_qps)
     message_ptr backup_request = dsn::message_ex::create_request(task_code());
     backup_request->header = &header;
     std::unique_ptr<tools::sim_network_provider> sim_net(
-            new tools::sim_network_provider(nullptr, nullptr));
+        new tools::sim_network_provider(nullptr, nullptr));
     backup_request->io_session = sim_net->create_client_session(rpc_address());
 
     _mock_replica->on_client_read(backup_request);
