@@ -52,7 +52,7 @@ protected:
     virtual void SetUp() override;
     virtual void TearDown() override;
     void generate_test_file(const char *filename);
-    void write_test_files_async(task_tracker *tracker = nullptr);
+    void write_test_files_async(task_tracker *tracker);
     std::string name_node;
     std::string backup_path;
     std::string local_test_dir;
