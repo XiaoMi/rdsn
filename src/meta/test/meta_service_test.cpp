@@ -6,6 +6,8 @@
 #include "meta/meta_service.h"
 
 #include <dsn/utility/fail_point.h>
+#include <boost/asio/ip/tcp.hpp>
+#include <runtime/rpc/network.sim.h>
 
 namespace dsn {
 namespace replication {
@@ -70,6 +72,9 @@ private:
         ::dsn::marshall(fake_request, request);
 
         dsn::message_ex *recvd_request = fake_request->copy(true, true);
+        std::unique_ptr<tools::sim_network_provider> sim_net(
+                new tools::sim_network_provider(nullptr, nullptr));
+        recvd_request ->io_session = sim_net->create_client_session(rpc_address());
         return app_env_rpc::auto_reply(recvd_request);
     }
 };
