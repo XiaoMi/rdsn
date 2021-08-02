@@ -88,8 +88,8 @@ TEST(greedy_load_balancer, get_partition_count)
     ns.put_partition(gpid(apid, 2), false);
     ns.put_partition(gpid(apid, 3), false);
 
-    ASSERT_EQ(get_partition_count(ns, cluster_balance_type::Primary, apid), 1);
-    ASSERT_EQ(get_partition_count(ns, cluster_balance_type::Secondary, apid), 3);
+    ASSERT_EQ(get_partition_count(ns, cluster_balance_type::COPY_PRIMARY, apid), 1);
+    ASSERT_EQ(get_partition_count(ns, cluster_balance_type::COPY_SECONDARY, apid), 3);
 }
 
 TEST(greedy_load_balancer, get_app_migration_info)
@@ -116,14 +116,14 @@ TEST(greedy_load_balancer, get_app_migration_info)
     {
         app->partitions[0].max_replica_count = 100;
         auto res = balancer.get_app_migration_info(
-            app, nodes, cluster_balance_type::Primary, migration_info);
+            app, nodes, cluster_balance_type::COPY_PRIMARY, migration_info);
         ASSERT_FALSE(res);
     }
 
     {
         app->partitions[0].max_replica_count = 1;
         auto res = balancer.get_app_migration_info(
-            app, nodes, cluster_balance_type::Primary, migration_info);
+            app, nodes, cluster_balance_type::COPY_PRIMARY, migration_info);
         ASSERT_TRUE(res);
         ASSERT_EQ(migration_info.app_id, appid);
         ASSERT_EQ(migration_info.app_name, appname);
