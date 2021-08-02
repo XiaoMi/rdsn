@@ -52,6 +52,20 @@ ENUM_END(cluster_balance_type)
 
 uint32_t get_partition_count(const node_state &ns, cluster_balance_type type, int32_t app_id);
 uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map);
+template <typename A, typename B>
+void flip_map(const std::map<A, B> &ori, /*out*/ std::multimap<B, A> &target);
+template <typename A, typename B>
+void get_value_set(const std::multimap<A, B> &map_struct,
+                   bool get_first,
+                   /*out*/ std::set<B> &target_set);
+void get_min_max_set(const std::map<rpc_address, uint32_t> &node_count_map,
+                     /*out*/ std::set<rpc_address> &min_set,
+                     /*out*/ std::set<rpc_address> &max_set);
+
+template <typename A>
+void get_intersection(const std::set<A> &set1,
+                      const std::set<A> &set2,
+                      /*out*/ std::set<A> &intersection);
 
 class greedy_load_balancer : public simple_load_balancer
 {
@@ -153,9 +167,13 @@ private:
 
     void balance_cluster();
 
-    bool cluster_replica_balance(const meta_view *global_view, const cluster_balance_type type);
+    bool cluster_replica_balance(const meta_view *global_view,
+                                 const cluster_balance_type type,
+                                 /*out*/ migration_list &list);
 
-    bool do_cluster_replica_balance(const meta_view *global_view, const cluster_balance_type type);
+    bool do_cluster_replica_balance(const meta_view *global_view,
+                                    const cluster_balance_type type,
+                                    /*out*/ migration_list &list);
 
     struct app_migration_info
     {
@@ -209,6 +227,15 @@ private:
         std::map<rpc_address, uint32_t> replicas_count;
     };
 
+    struct move_info
+    {
+        gpid pid;
+        rpc_address source_node;
+        std::string source_disk_tag;
+        rpc_address target_node;
+        balance_type type;
+    };
+
     bool get_cluster_migration_info(const meta_view *global_view,
                                     const cluster_balance_type type,
                                     /*out*/ cluster_migration_info &cluster_info);
@@ -221,6 +248,22 @@ private:
     void get_node_migration_info(const node_state &ns,
                                  const app_mapper &all_apps,
                                  /*out*/ node_migration_info &info);
+
+    bool get_next_move(const cluster_migration_info &cluster_info,
+                       const partition_set &selected_pid,
+                       /*out*/ move_info &next_move);
+
+    bool pick_up_move(const cluster_migration_info &cluster_info,
+                      const std::set<rpc_address> &max_nodes,
+                      const std::set<rpc_address> &min_nodes,
+                      const int32_t app_id,
+                      const partition_set &selected_pid,
+                      /*out*/ move_info &move_info);
+
+    bool apply_move(const move_info &move,
+                    /*out*/ partition_set &selected_pids,
+                    /*out*/ migration_list &list,
+                    /*out*/ cluster_migration_info &cluster_info);
 
     bool all_replica_infos_collected(const node_state &ns);
     // using t_global_view to get disk_tag of node's pid

@@ -77,6 +77,49 @@ uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map)
     return max - min;
 }
 
+template <typename A, typename B>
+void flip_map(const std::map<A, B> &ori, /*out*/ std::multimap<B, A> &target)
+{
+    std::transform(ori.begin(),
+                   ori.end(),
+                   std::inserter(target, target.begin()),
+                   [](const std::pair<A, B> &p) { return std::pair<B, A>(p.second, p.first); });
+}
+
+template <typename A, typename B>
+void get_value_set(const std::multimap<A, B> &map_struct,
+                   bool get_first,
+                   /*out*/ std::set<B> &target_set)
+{
+    auto value = get_first ? map_struct.begin()->first : map_struct.rbegin()->first;
+    auto range = map_struct.equal_range(value);
+    for (auto iter = range.first; iter != range.second; ++iter) {
+        target_set.insert(iter->second);
+    }
+}
+
+void get_min_max_set(const std::map<rpc_address, uint32_t> &node_count_map,
+                     /*out*/ std::set<rpc_address> &min_set,
+                     /*out*/ std::set<rpc_address> &max_set)
+{
+    std::multimap<uint32_t, rpc_address> count_multimap;
+    flip_map(node_count_map, count_multimap);
+    get_value_set(count_multimap, true, min_set);
+    get_value_set(count_multimap, false, max_set);
+}
+
+template <typename A>
+void get_intersection(const std::set<A> &set1,
+                      const std::set<A> &set2,
+                      /*out*/ std::set<A> &intersection)
+{
+    std::set_intersection(set1.begin(),
+                          set1.end(),
+                          set2.begin(),
+                          set2.end(),
+                          std::inserter(intersection, intersection.begin()));
+}
+
 greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
     : simple_load_balancer(_svc),
       _ctrl_balancer_ignored_apps(nullptr),
@@ -979,33 +1022,50 @@ void greedy_load_balancer::balance_cluster()
         }
     }
 
-    bool need_continue = cluster_replica_balance(t_global_view, cluster_balance_type::Secondary);
+    // copy secondary
+    bool need_continue = cluster_replica_balance(
+        t_global_view, cluster_balance_type::Secondary, *t_migration_result);
     if (!need_continue) {
         return;
     }
+
+    // TBD(zlw): copy primary
 }
 
 bool greedy_load_balancer::cluster_replica_balance(const meta_view *global_view,
-                                                   const cluster_balance_type type)
+                                                   const cluster_balance_type type,
+                                                   /*out*/ migration_list &list)
 {
-    bool enough_information = do_cluster_replica_balance(global_view, type);
+    bool enough_information = do_cluster_replica_balance(global_view, type, list);
     if (!enough_information) {
         return false;
     }
-    if (!t_migration_result->empty()) {
-        ddebug_f(
-            "migration count of copy {} = {}", enum_to_string(type), t_migration_result->size());
+    if (!list.empty()) {
+        ddebug_f("migration count of copy {} = {}", enum_to_string(type), list.size());
         return false;
     }
     return true;
 }
 
 bool greedy_load_balancer::do_cluster_replica_balance(const meta_view *global_view,
-                                                      const cluster_balance_type type)
+                                                      const cluster_balance_type type,
+                                                      /*out*/ migration_list &list)
 {
     cluster_migration_info cluster_info;
     if (!get_cluster_migration_info(global_view, type, cluster_info)) {
         return false;
+    }
+
+    int32_t count_per_round = 10;
+    partition_set selected_pid;
+    move_info next_move;
+    while (get_next_move(cluster_info, selected_pid, next_move)) {
+        if (!apply_move(next_move, selected_pid, list, cluster_info)) {
+            break;
+        }
+        if (list.size() >= count_per_round) {
+            break;
+        }
     }
 
     /// TBD(zlw)
@@ -1114,6 +1174,107 @@ void greedy_load_balancer::get_node_migration_info(const node_state &ns,
             }
         }
     }
+}
+
+bool greedy_load_balancer::get_next_move(const cluster_migration_info &cluster_info,
+                                         const partition_set &selected_pid,
+                                         /*out*/ move_info &next_move)
+{
+    std::multimap<uint32_t, int32_t> app_skew_multimap;
+    flip_map(cluster_info.apps_skew, app_skew_multimap);
+    auto max_app_skew = app_skew_multimap.rbegin()->first;
+    if (max_app_skew == 0) {
+        ddebug_f("every app is balanced and any move will unbalance a app");
+        return false;
+    }
+
+    auto server_skew = get_skew(cluster_info.replicas_count);
+    if (max_app_skew <= 1 && server_skew <= 1) {
+        ddebug_f("every app is balanced and the cluster as a whole is balanced");
+        return false;
+    }
+
+    /**
+     * Among the apps with maximum skew, attempt to pick a app where there is
+     * a move that improves the app skew and the cluster skew, if possible. If
+     * not, attempt to pick a move that improves the app skew.
+     **/
+    std::set<rpc_address> cluster_min_count_nodes;
+    std::set<rpc_address> cluster_max_count_nodes;
+    get_min_max_set(cluster_info.replicas_count, cluster_min_count_nodes, cluster_max_count_nodes);
+
+    bool found = false;
+    auto app_range = app_skew_multimap.equal_range(max_app_skew);
+    for (auto iter = app_range.first; iter != app_range.second; ++iter) {
+        auto app_id = iter->second;
+        auto it = cluster_info.apps_info.find(app_id);
+        if (it == cluster_info.apps_info.end()) {
+            continue;
+        }
+        auto app_map = it->second.replicas_count;
+        std::set<rpc_address> app_min_count_nodes;
+        std::set<rpc_address> app_max_count_nodes;
+        get_min_max_set(app_map, app_min_count_nodes, app_max_count_nodes);
+
+        /**
+         * Compute the intersection of the replica servers most loaded for the app
+         * with the replica servers most loaded overall, and likewise for least loaded.
+         * These are our ideal candidates for moving from and to, respectively.
+         **/
+        std::set<rpc_address> app_cluster_min_set;
+        get_intersection(app_min_count_nodes, cluster_min_count_nodes, app_cluster_min_set);
+        std::set<rpc_address> app_cluster_max_set;
+        get_intersection(app_max_count_nodes, cluster_max_count_nodes, app_cluster_max_set);
+
+        /**
+         * Do not move replicas of a balanced app if the least (most) loaded
+         * servers overall do not intersect the servers hosting the least (most)
+         * replicas of the app. Moving a replica in that case might keep the
+         * cluster skew the same or make it worse while keeping the app balanced.
+         **/
+        std::multimap<uint32_t, rpc_address> app_count_multimap;
+        flip_map(app_map, app_count_multimap);
+        if (app_count_multimap.rbegin()->first <= app_count_multimap.begin()->first + 1 &&
+            (app_cluster_min_set.empty() || app_cluster_max_set.empty())) {
+            ddebug_f(
+                "do not move replicas of a balanced app if the least (most) loaded servers overall "
+                "do not intersect the servers hosting the least (most) replicas of the app");
+            continue;
+        }
+
+        if (pick_up_move(cluster_info,
+                         app_cluster_max_set.empty() ? app_max_count_nodes : app_cluster_max_set,
+                         app_cluster_min_set.empty() ? app_min_count_nodes : app_cluster_min_set,
+                         app_id,
+                         selected_pid,
+                         next_move)) {
+            ddebug_f("found a move to make cluster more balanced");
+            found = true;
+            break;
+        }
+    }
+
+    return found;
+}
+
+bool greedy_load_balancer::pick_up_move(const cluster_migration_info &cluster_info,
+                                        const std::set<rpc_address> &max_nodes,
+                                        const std::set<rpc_address> &min_nodes,
+                                        const int32_t app_id,
+                                        const partition_set &selected_pid,
+                                        /*out*/ move_info &move_info)
+{
+    // TBD(zlw)
+    return false;
+}
+
+bool greedy_load_balancer::apply_move(const move_info &move,
+                                      /*out*/ partition_set &selected_pids,
+                                      /*out*/ migration_list &list,
+                                      /*out*/ cluster_migration_info &cluster_info)
+{
+    // TBD(zlw)
+    return false;
 }
 
 bool greedy_load_balancer::balance(meta_view view, migration_list &list)
