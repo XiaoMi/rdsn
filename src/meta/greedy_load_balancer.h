@@ -52,10 +52,6 @@ ENUM_END(cluster_balance_type)
 
 uint32_t get_partition_count(const node_state &ns, cluster_balance_type type, int32_t app_id);
 uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map);
-template <typename A, typename B>
-void get_value_set(const std::multimap<A, B> &map_struct,
-                   bool get_first,
-                   /*out*/ std::set<B> &target_set);
 void get_min_max_set(const std::map<rpc_address, uint32_t> &node_count_map,
                      /*out*/ std::set<rpc_address> &min_set,
                      /*out*/ std::set<rpc_address> &max_set);

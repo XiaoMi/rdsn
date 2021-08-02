@@ -174,5 +174,24 @@ TEST(greedy_load_balancer, get_node_migration_info)
     ASSERT_EQ(migration_info.partitions.at(disk_tag).size(), 1);
     ASSERT_EQ(*migration_info.partitions.at(disk_tag).begin(), pid);
 }
+
+TEST(greedy_load_balancer, get_min_max_set)
+{
+
+    std::map<rpc_address, uint32_t> node_count_map;
+    node_count_map.emplace(rpc_address(1, 10086), 1);
+    node_count_map.emplace(rpc_address(2, 10086), 3);
+    node_count_map.emplace(rpc_address(3, 10086), 5);
+    node_count_map.emplace(rpc_address(4, 10086), 5);
+
+    std::set<rpc_address> min_set, max_set;
+    get_min_max_set(node_count_map, min_set, max_set);
+
+    ASSERT_EQ(min_set.size(), 1);
+    ASSERT_EQ(*min_set.begin(), rpc_address(1, 10086));
+    ASSERT_EQ(max_set.size(), 2);
+    ASSERT_EQ(*max_set.begin(), rpc_address(3, 10086));
+    ASSERT_EQ(*max_set.rbegin(), rpc_address(4, 10086));
+}
 } // namespace replication
 } // namespace dsn

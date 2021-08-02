@@ -84,25 +84,21 @@ uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map)
     return max - min;
 }
 
-template <typename A, typename B>
-void get_value_set(const std::multimap<A, B> &map,
-                   bool get_first,
-                   /*out*/ std::set<B> &target_set)
-{
-    auto value = get_first ? map.begin()->first : map.rbegin()->first;
-    auto range = map.equal_range(value);
-    for (auto iter = range.first; iter != range.second; ++iter) {
-        target_set.insert(iter->second);
-    }
-}
-
 void get_min_max_set(const std::map<rpc_address, uint32_t> &node_count_map,
                      /*out*/ std::set<rpc_address> &min_set,
                      /*out*/ std::set<rpc_address> &max_set)
 {
     std::multimap<uint32_t, rpc_address> count_multimap = utils::flip_map(node_count_map);
-    get_value_set(count_multimap, true, min_set);
-    get_value_set(count_multimap, false, max_set);
+
+    auto range = count_multimap.equal_range(count_multimap.begin()->first);
+    for (auto iter = range.first; iter != range.second; ++iter) {
+        min_set.insert(iter->second);
+    }
+
+    range = count_multimap.equal_range(count_multimap.rbegin()->first);
+    for (auto iter = range.first; iter != range.second; ++iter) {
+        max_set.insert(iter->second);
+    }
 }
 
 greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
