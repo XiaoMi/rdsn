@@ -39,7 +39,7 @@ namespace replication {
 DSN_DEFINE_bool("meta_server", balance_cluster, false, "whether to enable cluster balancer");
 DSN_TAG_VARIABLE(balance_cluster, FT_MUTABLE);
 
-uint32_t get_count(const node_state &ns, cluster_balance_type type, int32_t app_id)
+uint32_t get_partition_count(const node_state &ns, cluster_balance_type type, int32_t app_id)
 {
     unsigned count = 0;
     switch (type) {
@@ -1031,7 +1031,7 @@ bool greedy_load_balancer::get_cluster_migration_info(const meta_view *global_vi
     for (const auto &kv : all_apps) {
         const std::shared_ptr<app_state> &app = kv.second;
         if (is_ignored_app(app->app_id) || app->is_bulk_loading || app->splitting()) {
-            return false;
+            continue;
         }
         if (app->status == app_status::AS_AVAILABLE) {
             apps[app->app_id] = app;
@@ -1054,7 +1054,7 @@ bool greedy_load_balancer::get_cluster_migration_info(const meta_view *global_vi
         get_node_migration_info(ns, apps, info);
         cluster_info.nodes_info.emplace(kv.first, std::move(info));
 
-        auto count = get_count(ns, type, -1);
+        auto count = get_partition_count(ns, type, -1);
         cluster_info.replicas_count[kv.first] = count;
     }
 
@@ -1085,7 +1085,7 @@ bool greedy_load_balancer::get_app_migration_info(std::shared_ptr<app_state> app
 
     for (const auto &it : nodes) {
         const node_state &ns = it.second;
-        auto count = get_count(ns, type, app->app_id);
+        auto count = get_partition_count(ns, type, app->app_id);
         info.replicas_count[ns.addr()] = count;
     }
 

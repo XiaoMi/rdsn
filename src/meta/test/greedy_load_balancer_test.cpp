@@ -71,13 +71,15 @@ TEST(greedy_load_balancer, node_migration_info)
 TEST(greedy_load_balancer, get_skew)
 {
     std::map<rpc_address, uint32_t> count_map = {
-        {rpc_address(1, 10086), 1}, {rpc_address(2, 10086), 3}, {rpc_address(3, 10086), 5},
+        {rpc_address(1, 10086), 1},
+        {rpc_address(2, 10086), 3},
+        {rpc_address(3, 10086), 5},
     };
 
     ASSERT_EQ(get_skew(count_map), count_map.rbegin()->second - count_map.begin()->second);
 }
 
-TEST(greedy_load_balancer, get_count)
+TEST(greedy_load_balancer, get_partition_count)
 {
     node_state ns;
     int apid = 1;
@@ -86,8 +88,8 @@ TEST(greedy_load_balancer, get_count)
     ns.put_partition(gpid(apid, 2), false);
     ns.put_partition(gpid(apid, 3), false);
 
-    ASSERT_EQ(get_count(ns, cluster_balance_type::Primary, apid), 1);
-    ASSERT_EQ(get_count(ns, cluster_balance_type::Secondary, apid), 3);
+    ASSERT_EQ(get_partition_count(ns, cluster_balance_type::Primary, apid), 1);
+    ASSERT_EQ(get_partition_count(ns, cluster_balance_type::Secondary, apid), 3);
 }
 
 TEST(greedy_load_balancer, get_app_migration_info)

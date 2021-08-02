@@ -50,7 +50,7 @@ ENUM_REG(cluster_balance_type::Primary)
 ENUM_REG(cluster_balance_type::Secondary)
 ENUM_END(cluster_balance_type)
 
-uint32_t get_count(const node_state &ns, cluster_balance_type type, int32_t app_id);
+uint32_t get_partition_count(const node_state &ns, cluster_balance_type type, int32_t app_id);
 uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map);
 
 class greedy_load_balancer : public simple_load_balancer
@@ -187,13 +187,12 @@ private:
     struct node_migration_info
     {
         rpc_address address;
+        // key-disk tag, value-partition set
         std::map<std::string, partition_set> partitions;
         partition_set future_partitions;
         bool operator<(const node_migration_info &another) const
         {
-            if (address < another.address)
-                return true;
-            return false;
+            return address < another.address;
         }
         bool operator==(const node_migration_info &another) const
         {
@@ -251,7 +250,7 @@ private:
     FRIEND_TEST(greedy_load_balancer, app_migration_info);
     FRIEND_TEST(greedy_load_balancer, node_migration_info);
     FRIEND_TEST(greedy_load_balancer, get_skew);
-    FRIEND_TEST(greedy_load_balancer, get_count);
+    FRIEND_TEST(greedy_load_balancer, get_partition_count);
     FRIEND_TEST(greedy_load_balancer, get_app_migration_info);
     FRIEND_TEST(greedy_load_balancer, get_node_migration_info);
 };
