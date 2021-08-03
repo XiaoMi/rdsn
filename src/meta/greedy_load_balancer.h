@@ -157,8 +157,6 @@ private:
     bool continue_balance_secondaries(bool balance_checker);
 
     bool all_replica_infos_collected(const node_state &ns);
-    // using t_global_view to get disk_tag of node's pid
-    const std::string &get_disk_tag(const dsn::rpc_address &node, const dsn::gpid &pid);
 
     // return false if can't get the replica_info for some replicas on this node
     bool calc_disk_load(app_id id,

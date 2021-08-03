@@ -247,9 +247,9 @@ generate_balancer_request(const partition_configuration &pc,
     return std::make_shared<configuration_balancer_request>(std::move(result));
 }
 
-const std::string &greedy_load_balancer::get_disk_tag(const rpc_address &node, const gpid &pid)
+const std::string get_disk_tag(const app_mapper &apps, const rpc_address &node, const gpid &pid)
 {
-    config_context &cc = *get_config_context(*(t_global_view->apps), pid);
+    const config_context &cc = *get_config_context(apps, pid);
     auto iter = cc.find_from_serving(node);
     dassert(iter != cc.serving.end(),
             "can't find disk tag of gpid(%d.%d) for %s",
@@ -257,12 +257,6 @@ const std::string &greedy_load_balancer::get_disk_tag(const rpc_address &node, c
             pid.get_partition_index(),
             node.to_string());
     return iter->disk_tag;
-}
-
-const std::string get_disk_tag(const rpc_address &node, const gpid &pid)
-{
-    //// TBD(zlw)
-    return "";
 }
 
 std::unordered_map<dsn::rpc_address, disk_load>
@@ -275,10 +269,11 @@ class copy_replica_operation
 {
 public:
     copy_replica_operation(const std::shared_ptr<app_state> &app,
+                           const app_mapper &apps,
                            const node_mapper &nodes,
                            const std::vector<dsn::rpc_address> &address_vec,
                            const std::unordered_map<dsn::rpc_address, int> &address_id)
-        : _app(app), _nodes(nodes), _address_vec(address_vec), _address_id(address_id)
+        : _app(app), _apps(apps), _nodes(nodes), _address_vec(address_vec), _address_id(address_id)
     {
         init_ordered_address_ids();
     }
@@ -382,7 +377,7 @@ private:
                 continue;
             }
 
-            auto load = load_on_max.at(get_disk_tag(_address_vec[id_max], pid));
+            auto load = load_on_max.at(get_disk_tag(_apps, _address_vec[id_max], pid));
             if (load > max_load) {
                 selected_pid = pid;
                 max_load = load;
@@ -394,6 +389,7 @@ private:
 protected:
     std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
     const std::shared_ptr<app_state> &_app;
+    const app_mapper &_apps;
     const node_mapper &_nodes;
     const std::vector<dsn::rpc_address> &_address_vec;
     const std::unordered_map<dsn::rpc_address, int> &_address_id;
@@ -405,12 +401,13 @@ class copy_primary_operation : public copy_replica_operation
 {
 public:
     copy_primary_operation(const std::shared_ptr<app_state> &app,
+                           const app_mapper &apps,
                            const node_mapper &nodes,
                            const std::vector<dsn::rpc_address> &address_vec,
                            const std::unordered_map<dsn::rpc_address, int> &address_id,
                            bool have_lower_than_average,
                            int replicas_low)
-        : copy_replica_operation(app, nodes, address_vec, address_id)
+        : copy_replica_operation(app, apps, nodes, address_vec, address_id)
     {
         _have_lower_than_average = have_lower_than_average;
         _replicas_low = replicas_low;
@@ -461,10 +458,11 @@ class copy_secondary_operation : public copy_replica_operation
 {
 public:
     copy_secondary_operation(const std::shared_ptr<app_state> &app,
+                             const app_mapper &apps,
                              const node_mapper &nodes,
                              const std::vector<dsn::rpc_address> &address_vec,
                              const std::unordered_map<dsn::rpc_address, int> &address_id)
-        : copy_replica_operation(app, nodes, address_vec, address_id)
+        : copy_replica_operation(app, apps, nodes, address_vec, address_id)
     {
     }
     ~copy_secondary_operation() = default;
@@ -554,19 +552,21 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
                                         bool have_less_than_average)
 {
     const node_mapper &nodes = *(t_global_view->nodes);
+    const app_mapper &apps = *t_global_view->apps;
     int replicas_low = app->partition_count / t_alive_nodes;
 
     std::unique_ptr<copy_replica_operation> operation = dsn::make_unique<copy_primary_operation>(
-        app, nodes, address_vec, address_id, have_less_than_average, replicas_low);
+        app, apps, nodes, address_vec, address_id, have_less_than_average, replicas_low);
     return operation->start(t_migration_result);
 }
 
 bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app)
 {
     const node_mapper &nodes = *(t_global_view->nodes);
+    const app_mapper &apps = *t_global_view->apps;
 
     std::unique_ptr<copy_replica_operation> operation =
-        dsn::make_unique<copy_secondary_operation>(app, nodes, address_vec, address_id);
+        dsn::make_unique<copy_secondary_operation>(app, apps, nodes, address_vec, address_id);
     return operation->start(t_migration_result);
 }
 
@@ -901,8 +901,8 @@ void greedy_load_balancer::start_moving_primary(const std::shared_ptr<app_state>
             selected, generate_balancer_request(pc, balance_type::move_primary, from, to));
         dassert_f(balancer_result.second, "gpid({}) already inserted as an action", selected);
 
-        --(*prev_load)[get_disk_tag(from, selected)];
-        ++(*current_load)[get_disk_tag(to, selected)];
+        --(*prev_load)[get_disk_tag(*t_global_view->apps, from, selected)];
+        ++(*current_load)[get_disk_tag(*t_global_view->apps, to, selected)];
     }
 }
 
@@ -916,8 +916,8 @@ dsn::gpid greedy_load_balancer::select_moving(std::list<dsn::gpid> &potential_mo
     int max = std::numeric_limits<int>::min();
 
     for (auto it = potential_moving.begin(); it != potential_moving.end(); ++it) {
-        int load_difference =
-            (*prev_load)[get_disk_tag(from, *it)] - (*current_load)[get_disk_tag(to, *it)];
+        int load_difference = (*prev_load)[get_disk_tag(*t_global_view->apps, from, *it)] -
+                              (*current_load)[get_disk_tag(*t_global_view->apps, to, *it)];
         if (load_difference > max) {
             max = load_difference;
             selected = it;
