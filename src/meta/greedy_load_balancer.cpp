@@ -437,13 +437,7 @@ private:
         return true;
     }
 
-    bool can_select(gpid pid, migration_list *result)
-    {
-        if (result->find(pid) != result->end()) {
-            return false;
-        }
-        return true;
-    }
+    bool can_select(gpid pid, migration_list *result) { return result->find(pid) == result->end(); }
 
     const partition_set *get_all_partitions()
     {
