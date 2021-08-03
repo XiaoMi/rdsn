@@ -259,9 +259,16 @@ const std::string &greedy_load_balancer::get_disk_tag(const rpc_address &node, c
     return iter->disk_tag;
 }
 
-const std::string &get_disk_tag(const rpc_address &node, const gpid &pid)
+const std::string get_disk_tag(const rpc_address &node, const gpid &pid)
 {
     //// TBD(zlw)
+    return "";
+}
+
+std::unordered_map<dsn::rpc_address, disk_load>
+get_node_loads(const std::shared_ptr<app_state> &app, const node_mapper &nodes, bool only_primary)
+{
+    return std::unordered_map<dsn::rpc_address, disk_load>();
 }
 
 class copy_replica_operation
@@ -270,33 +277,34 @@ public:
     copy_replica_operation(const std::shared_ptr<app_state> &app,
                            const node_mapper &nodes,
                            const std::vector<dsn::rpc_address> &address_vec,
-                           const std::unordered_map<dsn::rpc_address, int> &address_id,
-                           const std::unordered_map<dsn::rpc_address, disk_load> &node_loads)
-        : _app(app),
-          _nodes(nodes),
-          _address_vec(address_vec),
-          _address_id(address_id),
-          _node_loads(node_loads)
+                           const std::unordered_map<dsn::rpc_address, int> &address_id)
+        : _app(app), _nodes(nodes), _address_vec(address_vec), _address_id(address_id)
     {
         init_ordered_address_ids();
     }
+    virtual ~copy_replica_operation() = default;
 
-    void start(migration_list *result)
+    bool start(migration_list *result)
     {
+        _node_loads = get_node_loads(_app, _nodes, is_primary());
+        if (_node_loads.size() != _nodes.size()) {
+            return false;
+        }
+
         while (true) {
             if (!can_continue()) {
                 break;
             }
 
             gpid selected_pid = select_partition(result);
-
-            bool select_succeed = selected_pid.get_app_id() != -1;
-            if (select_succeed) {
+            if (selected_pid.get_app_id() != -1) {
                 copy_once(selected_pid, result);
+                update_ordered_address_ids();
+            } else {
+                _ordered_address_ids.erase(--_ordered_address_ids.end());
             }
-
-            update_ordered_address_ids(select_succeed);
         }
+        return true;
     }
 
 private:
@@ -310,29 +318,26 @@ private:
         result->emplace(selected_pid, request);
     }
 
-    void update_ordered_address_ids(bool select_succeed)
+    void update_ordered_address_ids()
     {
-        if (!select_succeed) {
-            _ordered_address_ids.erase(--_ordered_address_ids.end());
-        } else {
-            _ordered_address_ids.erase(_ordered_address_ids.begin());
-            _ordered_address_ids.erase(--_ordered_address_ids.end());
+        _ordered_address_ids.erase(_ordered_address_ids.begin());
+        _ordered_address_ids.erase(--_ordered_address_ids.end());
 
-            int id_min = *_ordered_address_ids.begin();
-            int id_max = *_ordered_address_ids.rbegin();
-            --_partition_counts[id_max];
-            ++_partition_counts[id_min];
+        int id_min = *_ordered_address_ids.begin();
+        int id_max = *_ordered_address_ids.rbegin();
+        --_partition_counts[id_max];
+        ++_partition_counts[id_min];
 
-            _ordered_address_ids.insert(id_max);
-            _ordered_address_ids.insert(id_min);
-        }
+        _ordered_address_ids.insert(id_max);
+        _ordered_address_ids.insert(id_min);
     }
 
     virtual bool can_continue() = 0;
     virtual int get_partition_count(const node_state &ns) = 0;
     virtual enum balance_type balance_type() = 0;
     virtual bool can_select(gpid pid, migration_list *result) = 0;
-    virtual const partition_set *get_all_partitions();
+    virtual const partition_set *get_all_partitions() = 0;
+    virtual bool is_primary() = 0;
 
     void init_ordered_address_ids()
     {
@@ -368,7 +373,7 @@ private:
     gpid select_max_load_gpid(const partition_set *partitions, migration_list *result)
     {
         int id_max = *_ordered_address_ids.rbegin();
-        disk_load &load_on_max = _node_loads[_address_vec[id_max]];
+        const disk_load &load_on_max = _node_loads.at(_address_vec[id_max]);
 
         gpid selected_pid(-1, -1);
         int max_load = -1;
@@ -377,10 +382,10 @@ private:
                 continue;
             }
 
-            const std::string &dtag = get_disk_tag(_address_vec[id_max], pid);
-            if (load_on_max[dtag] > max_load) {
+            auto load = load_on_max.at(get_disk_tag(_address_vec[id_max], pid));
+            if (load > max_load) {
                 selected_pid = pid;
-                max_load = load_on_max[dtag];
+                max_load = load;
             }
         }
         return selected_pid;
@@ -403,14 +408,14 @@ public:
                            const node_mapper &nodes,
                            const std::vector<dsn::rpc_address> &address_vec,
                            const std::unordered_map<dsn::rpc_address, int> &address_id,
-                           const std::unordered_map<dsn::rpc_address, disk_load> &node_loads,
                            bool have_lower_than_average,
                            int replicas_low)
-        : copy_replica_operation(app, nodes, address_vec, address_id, node_loads)
+        : copy_replica_operation(app, nodes, address_vec, address_id)
     {
         _have_lower_than_average = have_lower_than_average;
         _replicas_low = replicas_low;
     }
+    ~copy_primary_operation() = default;
 
 private:
     bool can_continue()
@@ -448,6 +453,8 @@ private:
         return partitions;
     }
 
+    bool is_primary() { return true; }
+
     enum balance_type balance_type() { return balance_type::copy_primary; }
 
     int get_partition_count(const node_state &ns) { return ns.primary_count(_app->app_id); }
@@ -462,11 +469,11 @@ public:
     copy_secondary_operation(const std::shared_ptr<app_state> &app,
                              const node_mapper &nodes,
                              const std::vector<dsn::rpc_address> &address_vec,
-                             const std::unordered_map<dsn::rpc_address, int> &address_id,
-                             const std::unordered_map<dsn::rpc_address, disk_load> &node_loads)
-        : copy_replica_operation(app, nodes, address_vec, address_id, node_loads)
+                             const std::unordered_map<dsn::rpc_address, int> &address_id)
+        : copy_replica_operation(app, nodes, address_vec, address_id)
     {
     }
+    ~copy_secondary_operation() = default;
 
 private:
     bool can_continue()
@@ -482,6 +489,8 @@ private:
     }
 
     int get_partition_count(const node_state &ns) { return ns.secondary_count(_app->app_id); }
+
+    bool is_primary() { return false; }
 
     enum balance_type balance_type() { return balance_type::copy_secondary; }
 
@@ -530,13 +539,12 @@ private:
     int _replicas_low;
 };
 
-std::unordered_map<dsn::rpc_address, disk_load>
-greedy_load_balancer::get_node_loads(const std::shared_ptr<app_state> &app,
-                                     const node_mapper &nodes)
+std::unordered_map<dsn::rpc_address, disk_load> greedy_load_balancer::get_node_loads(
+    const std::shared_ptr<app_state> &app, const node_mapper &nodes, bool only_primary)
 {
     std::unordered_map<dsn::rpc_address, disk_load> node_loads;
     for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
-        if (!calc_disk_load(app->app_id, iter->first, true, node_loads[iter->first])) {
+        if (!calc_disk_load(app->app_id, iter->first, only_primary, node_loads[iter->first])) {
             dwarn("stop the balancer as some replica infos aren't collected, node(%s), app(%s)",
                   iter->first.to_string(),
                   app->get_logname());
@@ -552,23 +560,20 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
                                         bool have_less_than_average)
 {
     const node_mapper &nodes = *(t_global_view->nodes);
-    std::unordered_map<dsn::rpc_address, disk_load> node_loads = get_node_loads(app, nodes);
-
     int replicas_low = app->partition_count / t_alive_nodes;
-    copy_replica_operation *operation = new copy_primary_operation(
-        app, nodes, address_vec, address_id, node_loads, have_less_than_average, replicas_low);
-    operation->start(t_migration_result);
-    return true;
+
+    std::unique_ptr<copy_replica_operation> operation = dsn::make_unique<copy_primary_operation>(
+        app, nodes, address_vec, address_id, have_less_than_average, replicas_low);
+    return operation->start(t_migration_result);
 }
 
 bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app)
 {
     const node_mapper &nodes = *(t_global_view->nodes);
-    std::unordered_map<dsn::rpc_address, disk_load> node_loads = get_node_loads(app, nodes);
 
-    copy_replica_operation *operation =
-        new copy_secondary_operation(app, nodes, address_vec, address_id, node_loads);
-    operation->start(t_migration_result);
+    std::unique_ptr<copy_replica_operation> operation =
+        dsn::make_unique<copy_secondary_operation>(app, nodes, address_vec, address_id);
+    return operation->start(t_migration_result);
 }
 
 void greedy_load_balancer::number_nodes(const node_mapper &nodes)
@@ -1039,11 +1044,10 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     }
 
     const app_mapper &apps = *t_global_view->apps;
-    if (!balancer_apps(balance_checker,
-                       apps,
-                       std::bind(&greedy_load_balancer::primary_balancer,
-                                 this,
-                                 std::placeholders::_1))) {
+    if (!balancer_apps(
+            balance_checker,
+            apps,
+            std::bind(&greedy_load_balancer::primary_balancer, this, std::placeholders::_1))) {
         return;
     }
 
@@ -1055,10 +1059,9 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     // 1. globally primary balancer may make secondary unbalanced
     // 2. in one-by-one mode, a secondary balance decision for an app may be prior than
     // another app's primary balancer if not seperated.
-    balancer_apps(
-        balance_checker,
-        apps,
-        std::bind(&greedy_load_balancer::copy_secondary, this, std::placeholders::_1));
+    balancer_apps(balance_checker,
+                  apps,
+                  std::bind(&greedy_load_balancer::copy_secondary, this, std::placeholders::_1));
 }
 
 bool greedy_load_balancer::balance(meta_view view, migration_list &list)

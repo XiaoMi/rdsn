@@ -126,8 +126,8 @@ private:
     bool move_primary(std::unique_ptr<flow_path> path);
     bool copy_primary(const std::shared_ptr<app_state> &app, bool still_have_less_than_average);
     bool primary_balancer(const std::shared_ptr<app_state> &app);
-    std::unordered_map<dsn::rpc_address, disk_load> get_node_loads(const std::shared_ptr<app_state> &app,
-                                         const node_mapper &nodes);
+    std::unordered_map<dsn::rpc_address, disk_load> get_node_loads(
+        const std::shared_ptr<app_state> &app, const node_mapper &nodes, bool only_primary);
 
     std::list<dsn::gpid> calc_potential_moving(const std::shared_ptr<app_state> &app,
                                                const rpc_address &from,
