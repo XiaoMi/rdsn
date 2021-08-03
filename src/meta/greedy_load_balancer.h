@@ -126,8 +126,6 @@ private:
     bool move_primary(std::unique_ptr<flow_path> path);
     bool copy_primary(const std::shared_ptr<app_state> &app, bool still_have_less_than_average);
     bool primary_balancer(const std::shared_ptr<app_state> &app);
-    std::unordered_map<dsn::rpc_address, disk_load> get_node_loads(
-        const std::shared_ptr<app_state> &app, const node_mapper &nodes, bool only_primary);
 
     std::list<dsn::gpid> calc_potential_moving(const std::shared_ptr<app_state> &app,
                                                const rpc_address &from,
@@ -157,14 +155,6 @@ private:
     bool continue_balance_secondaries(bool balance_checker);
 
     bool all_replica_infos_collected(const node_state &ns);
-
-    // return false if can't get the replica_info for some replicas on this node
-    bool calc_disk_load(app_id id,
-                        const dsn::rpc_address &node,
-                        bool only_primary,
-                        /*out*/ disk_load &load);
-    void
-    dump_disk_load(app_id id, const rpc_address &node, bool only_primary, const disk_load &load);
 
     std::string remote_command_balancer_ignored_app_ids(const std::vector<std::string> &args);
     std::string set_balancer_ignored_app_ids(const std::vector<std::string> &args);

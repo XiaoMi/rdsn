@@ -259,10 +259,83 @@ const std::string get_disk_tag(const app_mapper &apps, const rpc_address &node, 
     return iter->disk_tag;
 }
 
-std::unordered_map<dsn::rpc_address, disk_load>
-get_node_loads(const std::shared_ptr<app_state> &app, const node_mapper &nodes, bool only_primary)
+void dump_disk_load(app_id id, const rpc_address &node, bool only_primary, const disk_load &load)
 {
-    return std::unordered_map<dsn::rpc_address, disk_load>();
+    std::ostringstream load_string;
+    load_string << std::endl << "<<<<<<<<<<" << std::endl;
+    load_string << "load for " << node.to_string() << ", "
+                << "app id: " << id;
+    if (only_primary) {
+        load_string << ", only for primary";
+    }
+    load_string << std::endl;
+
+    for (const auto &kv : load) {
+        load_string << kv.first << ": " << kv.second << std::endl;
+    }
+    load_string << ">>>>>>>>>>";
+    dinfo("%s", load_string.str().c_str());
+}
+
+// return false if can't get the replica_info for some replicas on this node
+bool calc_disk_load(node_mapper &nodes,
+                    const app_mapper &apps,
+                    app_id id,
+                    const rpc_address &node,
+                    bool only_primary,
+                    /*out*/ disk_load &load)
+{
+    load.clear();
+    const node_state *ns = get_node_state(nodes, node, false);
+    dassert(ns != nullptr, "can't find node(%s) from node_state", node.to_string());
+
+    auto add_one_replica_to_disk_load = [&](const gpid &pid) {
+        dinfo("add gpid(%d.%d) to node(%s) disk load",
+              pid.get_app_id(),
+              pid.get_partition_index(),
+              node.to_string());
+        const config_context &cc = *get_config_context(apps, pid);
+        auto iter = cc.find_from_serving(node);
+        if (iter == cc.serving.end()) {
+            dwarn("can't collect gpid(%d.%d)'s info from %s, which should be primary",
+                  pid.get_app_id(),
+                  pid.get_partition_index(),
+                  node.to_string());
+            return false;
+        } else {
+            load[iter->disk_tag]++;
+            return true;
+        }
+    };
+
+    bool result;
+    if (only_primary) {
+        result = ns->for_each_primary(id, add_one_replica_to_disk_load);
+    } else {
+        result = ns->for_each_partition(id, add_one_replica_to_disk_load);
+    }
+    dump_disk_load(id, node, only_primary, load);
+    return result;
+}
+
+std::unordered_map<dsn::rpc_address, disk_load>
+get_node_loads(const std::shared_ptr<app_state> &app,
+               const app_mapper &apps,
+               node_mapper &nodes,
+               bool only_primary)
+{
+    std::unordered_map<dsn::rpc_address, disk_load> node_loads;
+    for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
+        if (!calc_disk_load(
+                nodes, apps, app->app_id, iter->first, only_primary, node_loads[iter->first])) {
+            dwarn("stop the balancer as some replica infos aren't collected, node(%s), app(%s)",
+                  iter->first.to_string(),
+                  app->get_logname());
+            return node_loads;
+        }
+    }
+
+    return node_loads;
 }
 
 class copy_replica_operation
@@ -270,7 +343,7 @@ class copy_replica_operation
 public:
     copy_replica_operation(const std::shared_ptr<app_state> &app,
                            const app_mapper &apps,
-                           const node_mapper &nodes,
+                           node_mapper &nodes,
                            const std::vector<dsn::rpc_address> &address_vec,
                            const std::unordered_map<dsn::rpc_address, int> &address_id)
         : _app(app), _apps(apps), _nodes(nodes), _address_vec(address_vec), _address_id(address_id)
@@ -281,7 +354,7 @@ public:
 
     bool start(migration_list *result)
     {
-        _node_loads = get_node_loads(_app, _nodes, is_primary());
+        _node_loads = get_node_loads(_app, _apps, _nodes, is_primary());
         if (_node_loads.size() != _nodes.size()) {
             return false;
         }
@@ -390,7 +463,7 @@ protected:
     std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
     const std::shared_ptr<app_state> &_app;
     const app_mapper &_apps;
-    const node_mapper &_nodes;
+    node_mapper &_nodes;
     const std::vector<dsn::rpc_address> &_address_vec;
     const std::unordered_map<dsn::rpc_address, int> &_address_id;
     std::unordered_map<dsn::rpc_address, disk_load> _node_loads;
@@ -402,7 +475,7 @@ class copy_primary_operation : public copy_replica_operation
 public:
     copy_primary_operation(const std::shared_ptr<app_state> &app,
                            const app_mapper &apps,
-                           const node_mapper &nodes,
+                           node_mapper &nodes,
                            const std::vector<dsn::rpc_address> &address_vec,
                            const std::unordered_map<dsn::rpc_address, int> &address_id,
                            bool have_lower_than_average,
@@ -459,7 +532,7 @@ class copy_secondary_operation : public copy_replica_operation
 public:
     copy_secondary_operation(const std::shared_ptr<app_state> &app,
                              const app_mapper &apps,
-                             const node_mapper &nodes,
+                             node_mapper &nodes,
                              const std::vector<dsn::rpc_address> &address_vec,
                              const std::unordered_map<dsn::rpc_address, int> &address_id)
         : copy_replica_operation(app, apps, nodes, address_vec, address_id)
@@ -531,28 +604,12 @@ private:
     int _replicas_low;
 };
 
-std::unordered_map<dsn::rpc_address, disk_load> greedy_load_balancer::get_node_loads(
-    const std::shared_ptr<app_state> &app, const node_mapper &nodes, bool only_primary)
-{
-    std::unordered_map<dsn::rpc_address, disk_load> node_loads;
-    for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
-        if (!calc_disk_load(app->app_id, iter->first, only_primary, node_loads[iter->first])) {
-            dwarn("stop the balancer as some replica infos aren't collected, node(%s), app(%s)",
-                  iter->first.to_string(),
-                  app->get_logname());
-            return node_loads;
-        }
-    }
-
-    return node_loads;
-}
-
 // assume all nodes are alive
 bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
                                         bool have_less_than_average)
 {
-    const node_mapper &nodes = *(t_global_view->nodes);
-    const app_mapper &apps = *t_global_view->apps;
+    node_mapper &nodes = *(t_global_view->nodes);
+    app_mapper &apps = *t_global_view->apps;
     int replicas_low = app->partition_count / t_alive_nodes;
 
     std::unique_ptr<copy_replica_operation> operation = dsn::make_unique<copy_primary_operation>(
@@ -562,8 +619,8 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
 
 bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app)
 {
-    const node_mapper &nodes = *(t_global_view->nodes);
-    const app_mapper &apps = *t_global_view->apps;
+    node_mapper &nodes = *(t_global_view->nodes);
+    app_mapper &apps = *t_global_view->apps;
 
     std::unique_ptr<copy_replica_operation> operation =
         dsn::make_unique<copy_secondary_operation>(app, apps, nodes, address_vec, address_id);
@@ -586,64 +643,6 @@ void greedy_load_balancer::number_nodes(const node_mapper &nodes)
     }
 }
 
-void greedy_load_balancer::dump_disk_load(app_id id,
-                                          const rpc_address &node,
-                                          bool only_primary,
-                                          const disk_load &load)
-{
-    std::ostringstream load_string;
-    load_string << std::endl << "<<<<<<<<<<" << std::endl;
-    load_string << "load for " << node.to_string() << ", "
-                << "app id: " << id;
-    if (only_primary) {
-        load_string << ", only for primary";
-    }
-    load_string << std::endl;
-
-    for (const auto &kv : load) {
-        load_string << kv.first << ": " << kv.second << std::endl;
-    }
-    load_string << ">>>>>>>>>>";
-    dinfo("%s", load_string.str().c_str());
-}
-
-bool greedy_load_balancer::calc_disk_load(app_id id,
-                                          const rpc_address &node,
-                                          bool only_primary,
-                                          /*out*/ disk_load &load)
-{
-    load.clear();
-    const node_state *ns = get_node_state(*(t_global_view->nodes), node, false);
-    dassert(ns != nullptr, "can't find node(%s) from node_state", node.to_string());
-
-    auto add_one_replica_to_disk_load = [&, this](const gpid &pid) {
-        dinfo("add gpid(%d.%d) to node(%s) disk load",
-              pid.get_app_id(),
-              pid.get_partition_index(),
-              node.to_string());
-        config_context &cc = *get_config_context(*(t_global_view->apps), pid);
-        auto iter = cc.find_from_serving(node);
-        if (iter == cc.serving.end()) {
-            dwarn("can't collect gpid(%d.%d)'s info from %s, which should be primary",
-                  pid.get_app_id(),
-                  pid.get_partition_index(),
-                  node.to_string());
-            return false;
-        } else {
-            load[iter->disk_tag]++;
-            return true;
-        }
-    };
-
-    bool result;
-    if (only_primary) {
-        result = ns->for_each_primary(id, add_one_replica_to_disk_load);
-    } else {
-        result = ns->for_each_partition(id, add_one_replica_to_disk_load);
-    }
-    dump_disk_load(id, node, only_primary, load);
-    return result;
-}
 struct flow_path
 {
     flow_path(const std::shared_ptr<app_state> &app,
@@ -834,8 +833,11 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
     disk_load loads[2];
     disk_load *prev_load = &loads[0];
     disk_load *current_load = &loads[1];
+    auto &nodes = *t_global_view->nodes;
+    auto &apps = *t_global_view->apps;
     int current = path->_prev.back();
-    if (!calc_disk_load(path->_app->app_id, address_vec[current], true, *current_load)) {
+    if (!calc_disk_load(
+            nodes, apps, path->_app->app_id, address_vec[current], true, *current_load)) {
         dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                 address_vec[current].to_string(),
                 path->_app->get_logname());
@@ -845,7 +847,7 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
     int plan_moving = path->_flow.back();
     while (path->_prev[current] != 0) {
         rpc_address from = address_vec[path->_prev[current]];
-        if (!calc_disk_load(path->_app->app_id, from, true, *prev_load)) {
+        if (!calc_disk_load(nodes, apps, path->_app->app_id, from, true, *prev_load)) {
             dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                     from.to_string(),
                     path->_app->get_logname());
