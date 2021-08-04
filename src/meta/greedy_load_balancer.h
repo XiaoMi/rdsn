@@ -148,9 +148,9 @@ private:
 
     void greedy_balancer(bool balance_checker);
 
-    bool balancer_apps(const bool balance_checker,
-                       const app_mapper &apps,
-                       const std::function<bool(const std::shared_ptr<app_state> &)> &callback);
+    bool balance_apps(const bool balance_checker,
+                      const app_mapper &apps,
+                      const std::function<bool(const std::shared_ptr<app_state> &)> &callback);
 
     bool continue_balance_secondaries(bool balance_checker);
 
