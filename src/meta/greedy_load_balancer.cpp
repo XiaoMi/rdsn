@@ -978,7 +978,7 @@ bool greedy_load_balancer::all_replica_infos_collected(const node_state &ns)
     });
 }
 
-bool greedy_load_balancer::balance_apps(
+bool greedy_load_balancer::apps_balance(
     const bool balance_checker,
     const app_mapper &apps,
     const std::function<bool(const std::shared_ptr<app_state> &)> &callback)
@@ -1040,7 +1040,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     }
 
     const app_mapper &apps = *t_global_view->apps;
-    if (!balance_apps(
+    if (!apps_balance(
             balance_checker,
             apps,
             std::bind(&greedy_load_balancer::primary_balancer, this, std::placeholders::_1))) {
@@ -1055,7 +1055,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     // 1. globally primary balancer may make secondary unbalanced
     // 2. in one-by-one mode, a secondary balance decision for an app may be prior than
     // another app's primary balancer if not seperated.
-    balance_apps(balance_checker,
+    apps_balance(balance_checker,
                  apps,
                  std::bind(&greedy_load_balancer::copy_secondary, this, std::placeholders::_1));
 }
