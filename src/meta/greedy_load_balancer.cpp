@@ -410,8 +410,8 @@ private:
     void init_ordered_address_ids()
     {
         _partition_counts.resize(_address_vec.size(), 0);
-        for (const auto &iter : _nodes) {
-            _partition_counts[_address_id.at(iter.first)] = get_partition_count(iter.second);
+        for (const auto &node : _nodes) {
+            _partition_counts[_address_id.at(node.first)] = get_partition_count(node.second);
         }
 
         std::set<int, std::function<bool(int a, int b)>> ordered_queue([this](int a, int b) {
@@ -717,11 +717,7 @@ private:
     void make_graph()
     {
         _graph_nodes = _nodes.size() + 2;
-        _network.resize(_graph_nodes);
-        for (auto iter : _network) {
-            iter.resize(_graph_nodes);
-        }
-
+        _network.resize(_graph_nodes, std::vector<int>(_graph_nodes, 0));
         for (const auto &pair : _nodes) {
             int node_id = _address_id.at(pair.first);
             add_edge(node_id, pair.second);
