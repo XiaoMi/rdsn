@@ -719,11 +719,9 @@ private:
     {
         for (const auto &pair : _nodes) {
             int node_id = _address_id.at(pair.first);
-            add_edge_for_source_sink(node_id, pair.second);
-
-            increase_decree_to_secondaries(node_id, pair.second);
+            add_edge(node_id, pair.second);
+            increase_decree(node_id, pair.second);
         }
-
         handle_corner_case();
     };
 
@@ -748,7 +746,7 @@ private:
         }
     }
 
-    void add_edge_for_source_sink(int node_id, const node_state &ns)
+    void add_edge(int node_id, const node_state &ns)
     {
         auto nodes_count = _nodes.size();
         int replicas_low = _app->partition_count / nodes_count;
@@ -761,7 +759,7 @@ private:
         }
     }
 
-    void increase_decree_to_secondaries(int node_id, const node_state &ns)
+    void increase_decree(int node_id, const node_state &ns)
     {
         ns.for_each_primary(_app->app_id, [&, this](const gpid &pid) {
             const partition_configuration &pc = _app->partitions[pid.get_partition_index()];
