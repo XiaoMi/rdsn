@@ -936,7 +936,7 @@ dsn::gpid greedy_load_balancer::select_moving(std::list<dsn::gpid> &potential_mo
 }
 
 // load balancer based on ford-fulkerson
-bool greedy_load_balancer::primary_balancer(const std::shared_ptr<app_state> &app)
+bool greedy_load_balancer::primary_balance(const std::shared_ptr<app_state> &app)
 {
     dassert(t_alive_nodes > 2, "too few alive nodes will lead to freeze");
     ddebug_f("primary balancer for app({}:{})", app->app_name, app->app_id);
@@ -1044,7 +1044,7 @@ void greedy_load_balancer::greedy_balancer(const bool balance_checker)
     if (!apps_balance(
             balance_checker,
             apps,
-            std::bind(&greedy_load_balancer::primary_balancer, this, std::placeholders::_1))) {
+            std::bind(&greedy_load_balancer::primary_balance, this, std::placeholders::_1))) {
         return;
     }
 

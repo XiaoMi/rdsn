@@ -125,7 +125,7 @@ private:
     // they think they need more informations.
     bool move_primary(std::unique_ptr<flow_path> path);
     bool copy_primary(const std::shared_ptr<app_state> &app, bool still_have_less_than_average);
-    bool primary_balancer(const std::shared_ptr<app_state> &app);
+    bool primary_balance(const std::shared_ptr<app_state> &app);
 
     std::list<dsn::gpid> calc_potential_moving(const std::shared_ptr<app_state> &app,
                                                const rpc_address &from,
