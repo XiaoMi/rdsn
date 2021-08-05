@@ -341,7 +341,7 @@ get_node_loads(const std::shared_ptr<app_state> &app,
 class copy_replica_operation
 {
 public:
-    copy_replica_operation(const std::shared_ptr<app_state> &app,
+    copy_replica_operation(const std::shared_ptr<app_state> app,
                            const app_mapper &apps,
                            node_mapper &nodes,
                            const std::vector<dsn::rpc_address> &address_vec,
@@ -462,7 +462,7 @@ private:
 
 protected:
     std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
-    const std::shared_ptr<app_state> &_app;
+    const std::shared_ptr<app_state> _app;
     const app_mapper &_apps;
     node_mapper &_nodes;
     const std::vector<dsn::rpc_address> &_address_vec;
@@ -474,7 +474,7 @@ protected:
 class copy_primary_operation : public copy_replica_operation
 {
 public:
-    copy_primary_operation(const std::shared_ptr<app_state> &app,
+    copy_primary_operation(const std::shared_ptr<app_state> app,
                            const app_mapper &apps,
                            node_mapper &nodes,
                            const std::vector<dsn::rpc_address> &address_vec,
@@ -531,7 +531,7 @@ private:
 class copy_secondary_operation : public copy_replica_operation
 {
 public:
-    copy_secondary_operation(const std::shared_ptr<app_state> &app,
+    copy_secondary_operation(const std::shared_ptr<app_state> app,
                              const app_mapper &apps,
                              node_mapper &nodes,
                              const std::vector<dsn::rpc_address> &address_vec,
@@ -718,10 +718,10 @@ private:
     {
         _graph_nodes = _nodes.size() + 2;
         _network.resize(_graph_nodes, std::vector<int>(_graph_nodes, 0));
-        for (const auto &pair : _nodes) {
-            int node_id = _address_id.at(pair.first);
-            add_edge(node_id, pair.second);
-            update_decree(node_id, pair.second);
+        for (const auto &node : _nodes) {
+            int node_id = _address_id.at(node.first);
+            add_edge(node_id, node.second);
+            update_decree(node_id, node.second);
         }
         handle_corner_case();
     };
