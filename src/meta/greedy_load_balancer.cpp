@@ -1158,6 +1158,7 @@ bool greedy_load_balancer::get_next_move(const cluster_migration_info &cluster_i
                                          const partition_set &selected_pid,
                                          /*out*/ move_info &next_move)
 {
+    // key-app skew, value-app id
     std::multimap<uint32_t, int32_t> app_skew_multimap = utils::flip_map(cluster_info.apps_skew);
     auto max_app_skew = app_skew_multimap.rbegin()->first;
     if (max_app_skew == 0) {
