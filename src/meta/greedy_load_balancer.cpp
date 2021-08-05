@@ -702,7 +702,6 @@ private:
         auto nodes_count = _nodes.size();
         int replicas_low = _app->partition_count / nodes_count;
         int replicas_high = (_app->partition_count + nodes_count - 1) / nodes_count;
-
         for (const auto &node : _nodes) {
             int primary_count = node.second.primary_count(_app->app_id);
             if (primary_count > replicas_high) {
@@ -720,7 +719,7 @@ private:
         for (const auto &pair : _nodes) {
             int node_id = _address_id.at(pair.first);
             add_edge(node_id, pair.second);
-            increase_decree(node_id, pair.second);
+            update_decree(node_id, pair.second);
         }
         handle_corner_case();
     };
@@ -759,7 +758,7 @@ private:
         }
     }
 
-    void increase_decree(int node_id, const node_state &ns)
+    void update_decree(int node_id, const node_state &ns)
     {
         ns.for_each_primary(_app->app_id, [&, this](const gpid &pid) {
             const partition_configuration &pc = _app->partitions[pid.get_partition_index()];
