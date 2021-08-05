@@ -649,14 +649,14 @@ void greedy_load_balancer::number_nodes(const node_mapper &nodes)
 
 struct flow_path
 {
-    flow_path(const std::shared_ptr<app_state> &app,
+    flow_path(const std::shared_ptr<app_state> app,
               std::vector<int> &&flow,
               std::vector<int> &&prev)
         : _app(app), _flow(std::move(flow)), _prev(std::move(prev))
     {
     }
 
-    const std::shared_ptr<app_state> &_app;
+    const std::shared_ptr<app_state> _app;
     std::vector<int> _flow, _prev;
 };
 
@@ -681,8 +681,9 @@ struct ford_fulkerson
     // using dijstra to find shortest path
     std::unique_ptr<flow_path> find_shortest_path()
     {
-        std::vector<int> flow, prev;
-        std::vector<bool> visit(_network.size(), false);
+        std::vector<int> flow(_graph_nodes, 0);
+        std::vector<int> prev(_graph_nodes, -1);
+        std::vector<bool> visit(_graph_nodes, false);
         while (!visit.back()) {
             auto pos = select_node(visit, flow);
             if (pos == -1) {
