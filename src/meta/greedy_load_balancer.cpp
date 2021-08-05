@@ -348,12 +348,13 @@ public:
                            const std::unordered_map<dsn::rpc_address, int> &address_id)
         : _app(app), _apps(apps), _nodes(nodes), _address_vec(address_vec), _address_id(address_id)
     {
-        init_ordered_address_ids();
     }
     virtual ~copy_replica_operation() = default;
 
     bool start(migration_list *result)
     {
+        init_ordered_address_ids();
+
         _node_loads = get_node_loads(_app, _apps, _nodes, is_primary());
         if (_node_loads.size() != _nodes.size()) {
             return false;
@@ -411,7 +412,7 @@ private:
     {
         _partition_counts.resize(_address_vec.size(), 0);
         for (const auto &node : _nodes) {
-            int id = _address_id.at(node.first);
+            auto id = _address_id.at(node.first);
             _partition_counts[id] = get_partition_count(node.second);
         }
 
@@ -421,7 +422,7 @@ private:
                        : a < b;
         });
         for (const auto &node : _nodes) {
-            int id = _address_id.at(node.first);
+            auto id = _address_id.at(node.first);
             ordered_queue.insert(id);
         }
         _ordered_address_ids.swap(ordered_queue);
