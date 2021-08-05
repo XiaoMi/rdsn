@@ -719,7 +719,7 @@ private:
     {
         for (const auto &pair : _nodes) {
             int node_id = _address_id.at(pair.first);
-            add_edge_with_source_sink(node_id, pair.second);
+            add_edge_for_source_sink(node_id, pair.second);
 
             increase_decree_to_secondaries(node_id, pair.second);
         }
@@ -748,7 +748,7 @@ private:
         }
     }
 
-    void add_edge_with_source_sink(int node_id, const node_state &ns)
+    void add_edge_for_source_sink(int node_id, const node_state &ns)
     {
         auto nodes_count = _nodes.size();
         int replicas_low = _app->partition_count / nodes_count;
