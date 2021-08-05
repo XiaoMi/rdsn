@@ -717,6 +717,11 @@ private:
     void make_graph()
     {
         _graph_nodes = _nodes.size() + 2;
+        _network.resize(_graph_nodes);
+        for (auto iter : _network) {
+            iter.resize(_graph_nodes);
+        }
+
         for (const auto &pair : _nodes) {
             int node_id = _address_id.at(pair.first);
             add_edge(node_id, pair.second);
