@@ -700,13 +700,13 @@ private:
     void init()
     {
         auto nodes_count = _nodes.size();
-        int replicas_low = _app->partition_count / nodes_count;
+        _replicas_low = _app->partition_count / nodes_count;
         int replicas_high = (_app->partition_count + nodes_count - 1) / nodes_count;
         for (const auto &node : _nodes) {
             int primary_count = node.second.primary_count(_app->app_id);
             if (primary_count > replicas_high) {
                 _higher_count++;
-            } else if (primary_count < replicas_low) {
+            } else if (primary_count < _replicas_low) {
                 _lower_count++;
             }
         }
@@ -747,14 +747,11 @@ private:
 
     void add_edge(int node_id, const node_state &ns)
     {
-        auto nodes_count = _nodes.size();
-        int replicas_low = _app->partition_count / nodes_count;
         int primary_count = ns.primary_count(_app->app_id);
-
-        if (primary_count > replicas_low) {
-            _network[0][node_id] = primary_count - replicas_low;
+        if (primary_count > _replicas_low) {
+            _network[0][node_id] = primary_count - _replicas_low;
         } else {
-            _network[node_id].back() = replicas_low - primary_count;
+            _network[node_id].back() = _replicas_low - primary_count;
         }
     }
 
@@ -821,6 +818,8 @@ private:
     std::vector<std::vector<int>> _network;
     uint32_t _higher_count;
     uint32_t _lower_count;
+    int _replicas_low;
+    int _replicas_high;
 };
 
 bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
