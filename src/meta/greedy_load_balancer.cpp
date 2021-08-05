@@ -1021,7 +1021,7 @@ bool greedy_load_balancer::cluster_replica_balance(const meta_view *global_view,
         return false;
     }
     if (!list.empty()) {
-        ddebug_f("migration count of copy {} = {}", enum_to_string(type), list.size());
+        ddebug_f("migration count of {} = {}", enum_to_string(type), list.size());
         return false;
     }
     return true;
@@ -1225,7 +1225,6 @@ bool greedy_load_balancer::get_next_move(const cluster_migration_info &cluster_i
                          app_id,
                          selected_pid,
                          next_move)) {
-            ddebug_f("found a move to make cluster more balanced");
             found = true;
             break;
         }
