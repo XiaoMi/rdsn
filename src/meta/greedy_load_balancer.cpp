@@ -716,6 +716,7 @@ private:
 
     void make_graph()
     {
+        _graph_nodes = _nodes.size() + 2;
         for (const auto &pair : _nodes) {
             int node_id = _address_id.at(pair.first);
             add_edge(node_id, pair.second);
@@ -733,14 +734,12 @@ private:
         // node2 : [6, 7]
         // This is obviously unbalanced.
         // But if we don't handle this corner case, primary migration will not be triggered
-        auto nodes_count = _nodes.size();
-        size_t graph_nodes = nodes_count + 2;
         if (_higher_count > 0 && _lower_count == 0) {
-            for (int i = 0; i != graph_nodes; ++i) {
+            for (int i = 0; i != _graph_nodes; ++i) {
                 if (_network[0][i] > 0)
                     --_network[0][i];
                 else
-                    ++_network[i][graph_nodes - 1];
+                    ++_network[i][_graph_nodes - 1];
             }
         }
     }
@@ -781,11 +780,11 @@ private:
 
     int max_value_pos(const std::vector<bool> &visit, const std::vector<int> &flow)
     {
-        int pos = -1, max_value = 0;
-        auto graph_nodes = visit.size();
-        for (auto i = 0; i != graph_nodes; ++i) {
+        int pos = -1, max_value = -1;
+        for (auto i = 0; i != _graph_nodes; ++i) {
             if (!visit[i] && flow[i] > max_value) {
                 pos = i;
+                max_value = flow[i];
             }
         }
 
@@ -798,8 +797,7 @@ private:
                      std::vector<int> &flow,
                      std::vector<int> &prev)
     {
-        auto graph_nodes = network.size();
-        for (auto i = 0; i != graph_nodes; ++i) {
+        for (auto i = 0; i != _graph_nodes; ++i) {
             if (visit[i]) {
                 continue;
             }
@@ -819,7 +817,7 @@ private:
     uint32_t _higher_count;
     uint32_t _lower_count;
     int _replicas_low;
-    int _replicas_high;
+    size_t _graph_nodes;
 };
 
 bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
