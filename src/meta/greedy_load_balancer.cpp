@@ -411,7 +411,8 @@ private:
     {
         _partition_counts.resize(_address_vec.size(), 0);
         for (const auto &node : _nodes) {
-            _partition_counts[_address_id.at(node.first)] = get_partition_count(node.second);
+            int id = _address_id.at(node.first);
+            _partition_counts[id] = get_partition_count(node.second);
         }
 
         std::set<int, std::function<bool(int a, int b)>> ordered_queue([this](int a, int b) {
@@ -419,8 +420,9 @@ private:
                        ? _partition_counts[a] < _partition_counts[b]
                        : a < b;
         });
-        for (const auto &iter : _nodes) {
-            ordered_queue.insert(_address_id.at(iter.first));
+        for (const auto &node : _nodes) {
+            int id = _address_id.at(node.first);
+            ordered_queue.insert(id);
         }
         _ordered_address_ids.swap(ordered_queue);
     }
