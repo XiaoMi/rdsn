@@ -328,9 +328,9 @@ get_node_loads(const std::shared_ptr<app_state> &app,
     for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
         if (!calc_disk_load(
                 nodes, apps, app->app_id, iter->first, only_primary, node_loads[iter->first])) {
-            dwarn("stop the balancer as some replica infos aren't collected, node(%s), app(%s)",
-                  iter->first.to_string(),
-                  app->get_logname());
+            dwarn_f("stop the balancer as some replica infos aren't collected, node({}), app({})",
+                    iter->first.to_string(),
+                    app->get_logname());
             return node_loads;
         }
     }
@@ -450,7 +450,8 @@ private:
                 continue;
             }
 
-            auto load = load_on_max.at(get_disk_tag(_apps, _address_vec[id_max], pid));
+            const std::string &disk_tag = get_disk_tag(_apps, _address_vec[id_max], pid);
+            auto load = load_on_max.at(disk_tag);
             if (load > max_load) {
                 selected_pid = pid;
                 max_load = load;
