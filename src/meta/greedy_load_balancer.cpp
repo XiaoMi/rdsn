@@ -1068,7 +1068,13 @@ bool greedy_load_balancer::get_cluster_migration_info(const meta_view *global_vi
     app_mapper apps;
     for (const auto &kv : all_apps) {
         const std::shared_ptr<app_state> &app = kv.second;
-        if (is_ignored_app(app->app_id) || app->is_bulk_loading || app->splitting()) {
+        auto ignored = is_ignored_app(app->app_id);
+        if (ignored || app->is_bulk_loading || app->splitting()) {
+            ddebug_f("skip to balance app({}), ignored={}, bulk loading={}, splitting={}",
+                     app->app_name,
+                     ignored,
+                     app->is_bulk_loading,
+                     app->splitting());
             continue;
         }
         if (app->status == app_status::AS_AVAILABLE) {
