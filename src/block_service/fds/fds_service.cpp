@@ -442,8 +442,6 @@ error_code fds_file_object::get_content_in_batches(uint64_t start,
                                                    /*out*/ std::ostream &os,
                                                    /*out*/ uint64_t &transfered_bytes)
 {
-    const uint64_t BATCH_SIZE = std::min(FLAGS_fds_read_limit_rate, FLAGS_fds_read_batch_size)
-                                << 20;
     error_code err = ERR_OK;
     transfered_bytes = 0;
 
@@ -461,17 +459,20 @@ error_code fds_file_object::get_content_in_batches(uint64_t start,
     uint64_t pos = start;
     uint64_t once_transfered_bytes = 0;
     while (pos < start + to_transfer_bytes) {
-        uint64_t batch_len = std::min(BATCH_SIZE, start + to_transfer_bytes - pos);
+        const uint64_t BATCH_SIZE = FLAGS_fds_read_batch_size << 20;
+        uint64_t batch_size = std::min(BATCH_SIZE, start + to_transfer_bytes - pos);
+
         // burst size should not be less than consume size
         const uint64_t rate = FLAGS_fds_read_limit_rate << 20;
-        _service->_read_token_bucket->consumeWithBorrowAndWait(batch_len, rate, rate);
+        _service->_read_token_bucket->consumeWithBorrowAndWait(
+            batch_size, rate, std::max(2 * rate, batch_size));
 
-        err = get_content(pos, batch_len, os, once_transfered_bytes);
+        err = get_content(pos, batch_size, os, once_transfered_bytes);
         transfered_bytes += once_transfered_bytes;
-        if (err != ERR_OK || once_transfered_bytes < batch_len) {
+        if (err != ERR_OK || once_transfered_bytes < batch_size) {
             return err;
         }
-        pos += batch_len;
+        pos += batch_size;
     }
 
     return ERR_OK;
