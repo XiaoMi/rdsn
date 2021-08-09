@@ -301,6 +301,7 @@ private:
     FRIEND_TEST(greedy_load_balancer, get_partition_count);
     FRIEND_TEST(greedy_load_balancer, get_app_migration_info);
     FRIEND_TEST(greedy_load_balancer, get_node_migration_info);
+    FRIEND_TEST(greedy_load_balancer, get_disk_partitions_map);
 };
 
 inline configuration_proposal_action

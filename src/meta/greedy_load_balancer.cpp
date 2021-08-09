@@ -1308,10 +1308,10 @@ std::map<std::string, partition_set> greedy_load_balancer::get_disk_partitions_m
     if (app_iter == cluster_info.apps_info.end() || node_iter == cluster_info.nodes_info.end()) {
         return disk_partitions;
     }
+
     auto status = cluster_info.type == cluster_balance_type::COPY_SECONDARY
                       ? partition_status::PS_SECONDARY
                       : partition_status::PS_PRIMARY;
-
     auto app_partition = app_iter->second.partitions;
     auto disk_partition = node_iter->second.partitions;
     for (const auto &kv : disk_partition) {
