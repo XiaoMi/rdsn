@@ -464,7 +464,7 @@ error_code fds_file_object::get_content_in_batches(uint64_t start,
         uint64_t batch_len = std::min(BATCH_SIZE, start + to_transfer_bytes - pos);
         // burst size should not be less than consume size
         const uint64_t rate = FLAGS_fds_read_limit_rate << 20;
-        _service->_read_token_bucket->consumeWithBorrowAndWait(batch_len, rate, 2 * rate);
+        _service->_read_token_bucket->consumeWithBorrowAndWait(batch_len, rate, rate);
 
         err = get_content(pos, batch_len, os, once_transfered_bytes);
         transfered_bytes += once_transfered_bytes;
