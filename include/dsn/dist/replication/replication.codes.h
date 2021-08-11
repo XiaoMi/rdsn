@@ -45,7 +45,7 @@ DEFINE_THREAD_POOL_CODE(THREAD_POOL_SCAN)
 #define DEFINE_STORAGE_READ_RPC_CODE(x)                                                            \
     DEFINE_STORAGE_RPC_CODE(x, TASK_PRIORITY_COMMON, THREAD_POOL_LOCAL_APP, false, true, true)
 #define DEFINE_STORAGE_SCAN_RPC_CODE(x)                                                            \
-    DEFINE_STORAGE_RPC_CODE(x, TASK_PRIORITY_COMMON, THREAD_SLOW_QUERY, false, true, true)
+    DEFINE_STORAGE_RPC_CODE(x, TASK_PRIORITY_COMMON, THREAD_POOL_SCAN, false, true, true)
 
 #define MAKE_EVENT_CODE(x, pri) DEFINE_TASK_CODE(x, pri, CURRENT_THREAD_POOL)
 #define MAKE_EVENT_CODE_AIO(x, pri) DEFINE_TASK_CODE_AIO(x, pri, CURRENT_THREAD_POOL)
