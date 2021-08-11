@@ -951,8 +951,7 @@ bool greedy_load_balancer::primary_balance(const std::shared_ptr<app_state> &app
         dinfo_f("{} primaries are flew", path->_flow.back());
         return move_primary(std::move(path));
     } else {
-        // we can't make the server load more balanced
-        // by moving primaries to secondaries
+        ddebug_f("we can't make the server load more balanced by moving primaries to secondaries");
         if (!_only_move_primary) {
             return copy_primary(app, graph.have_less_than_average());
         } else {
