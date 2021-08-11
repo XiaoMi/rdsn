@@ -383,7 +383,7 @@ private:
         auto to = _address_vec[*_ordered_address_ids.rbegin()];
 
         auto pc = _app->partitions[selected_pid.get_partition_index()];
-        auto request = generate_balancer_request(pc, balance_type(), from, to);
+        auto request = generate_balancer_request(pc, get_balance_type(), from, to);
         result->emplace(selected_pid, request);
     }
 
@@ -403,7 +403,7 @@ private:
 
     virtual bool can_continue() = 0;
     virtual int get_partition_count(const node_state &ns) = 0;
-    virtual enum balance_type balance_type() = 0;
+    virtual enum balance_type get_balance_type() = 0;
     virtual bool can_select(gpid pid, migration_list *result) = 0;
     virtual const partition_set *get_all_partitions() = 0;
     virtual bool is_primary() = 0;
@@ -523,7 +523,7 @@ private:
 
     bool is_primary() { return true; }
 
-    enum balance_type balance_type() { return balance_type::copy_primary; }
+    enum balance_type get_balance_type() { return balance_type::copy_primary; }
 
     int get_partition_count(const node_state &ns) { return ns.primary_count(_app->app_id); }
 
@@ -561,7 +561,7 @@ private:
 
     bool is_primary() { return false; }
 
-    enum balance_type balance_type() { return balance_type::copy_secondary; }
+    enum balance_type get_balance_type() { return balance_type::copy_secondary; }
 
     const partition_set *get_all_partitions()
     {
