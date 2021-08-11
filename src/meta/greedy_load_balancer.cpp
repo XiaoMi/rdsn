@@ -684,6 +684,7 @@ struct ford_fulkerson
         std::vector<int> flow(_graph_nodes, 0);
         std::vector<int> prev(_graph_nodes, -1);
         std::vector<bool> visit(_graph_nodes, false);
+        flow[0] = INT_MAX;
         while (!visit.back()) {
             auto pos = select_node(visit, flow);
             if (pos == -1) {
@@ -734,7 +735,7 @@ private:
     {
         // Suppose you have an 8-shard app in a cluster with 3 nodes(which name is node1, node2,
         // node3). The distribution of primaries among these nodes is as follow:
-        // node1 : [0, 1, 2,3]
+        // node1 : [0, 1, 2, 3]
         // node2 : [4, 5]
         // node2 : [6, 7]
         // This is obviously unbalanced.
@@ -785,7 +786,7 @@ private:
 
     int max_value_pos(const std::vector<bool> &visit, const std::vector<int> &flow)
     {
-        int pos = -1, max_value = -1;
+        int pos = -1, max_value = 0;
         for (auto i = 0; i != _graph_nodes; ++i) {
             if (!visit[i] && flow[i] > max_value) {
                 pos = i;
