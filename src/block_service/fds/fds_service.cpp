@@ -537,7 +537,7 @@ error_code fds_file_object::put_content(/*in-out*/ std::istream &is,
                                                                  FLAGS_fds_write_limit_rate << 20,
                                                                  FLAGS_fds_write_burst_size
                                                                      << 20)) {
-        ddebug_f("the transfer count({}) is greater than burst size({}MB), so it is rejected by "
+        ddebug_f("the transfer count({}B) is greater than burst size({}MB), so it is rejected by "
                  "token bucket",
                  to_transfer_bytes,
                  FLAGS_fds_write_burst_size);
