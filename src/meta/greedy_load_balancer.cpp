@@ -1282,6 +1282,8 @@ void greedy_load_balancer::get_max_load_disk(const cluster_migration_info &clust
 {
     int32_t max_load_size = 0;
     for (const auto &node_addr : max_nodes) {
+        // key: disk_tag
+        // value: partition set for app(app id=app_id) in node(addr=node_addr)
         std::map<std::string, partition_set> disk_partitions =
             get_disk_partitions_map(cluster_info, node_addr, app_id);
         for (const auto &kv : disk_partitions) {
@@ -1293,7 +1295,7 @@ void greedy_load_balancer::get_max_load_disk(const cluster_migration_info &clust
             }
         }
     }
-    ddebug_f("most load is node({}), tag({}), count = {}",
+    ddebug_f("most load is node({}), disk_tag({}), target partition count = {}",
              picked_node.to_string(),
              picked_disk,
              target_partitions.size());
