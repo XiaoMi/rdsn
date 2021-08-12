@@ -379,8 +379,8 @@ public:
 private:
     void copy_once(gpid selected_pid, migration_list *result)
     {
-        auto from = _address_vec[*_ordered_address_ids.begin()];
-        auto to = _address_vec[*_ordered_address_ids.rbegin()];
+        auto from = _address_vec[*_ordered_address_ids.rbegin()];
+        auto to = _address_vec[*_ordered_address_ids.begin()];
 
         auto pc = _app->partitions[selected_pid.get_partition_index()];
         auto request = generate_balancer_request(pc, get_balance_type(), from, to);
