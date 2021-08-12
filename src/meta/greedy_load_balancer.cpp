@@ -956,7 +956,7 @@ bool greedy_load_balancer::primary_balance(const std::shared_ptr<app_state> &app
         if (!_only_move_primary) {
             return copy_primary(app, graph.have_less_than_average());
         } else {
-            ddebug_f("stop to move primary for app({}) coz it is disabled", app->get_logname());
+            ddebug_f("stop to copy primary for app({}) coz it is disabled", app->get_logname());
             return true;
         }
     }
