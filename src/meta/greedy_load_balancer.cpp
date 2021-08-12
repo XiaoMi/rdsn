@@ -681,9 +681,9 @@ struct ford_fulkerson
     // using dijstra to find shortest path
     std::unique_ptr<flow_path> find_shortest_path()
     {
+        std::vector<bool> visit(_graph_nodes, false);
         std::vector<int> flow(_graph_nodes, 0);
         std::vector<int> prev(_graph_nodes, -1);
-        std::vector<bool> visit(_graph_nodes, false);
         flow[0] = INT_MAX;
         while (!visit.back()) {
             auto pos = select_node(visit, flow);
