@@ -945,7 +945,7 @@ bool greedy_load_balancer::primary_balance(const std::shared_ptr<app_state> &app
 
     ford_fulkerson graph(app, *t_global_view->nodes, address_id);
     if (graph.already_balanced()) {
-        dinfo_f("the primaries are balanced for app({}:{})", app->app_name, app->app_id);
+        ddebug_f("the primaries are balanced for app({}:{})", app->app_name, app->app_id);
         return true;
     }
 
