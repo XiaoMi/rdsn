@@ -389,13 +389,13 @@ private:
 
     void update_ordered_address_ids()
     {
-        _ordered_address_ids.erase(_ordered_address_ids.begin());
-        _ordered_address_ids.erase(--_ordered_address_ids.end());
-
         int id_min = *_ordered_address_ids.begin();
         int id_max = *_ordered_address_ids.rbegin();
         --_partition_counts[id_max];
         ++_partition_counts[id_min];
+
+        _ordered_address_ids.erase(_ordered_address_ids.begin());
+        _ordered_address_ids.erase(--_ordered_address_ids.end());
 
         _ordered_address_ids.insert(id_max);
         _ordered_address_ids.insert(id_min);
