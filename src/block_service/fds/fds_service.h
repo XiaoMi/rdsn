@@ -5,16 +5,16 @@
 
 namespace folly {
 template <typename Clock>
-class BasicTokenBucket;
+class BasicDynamicTokenBucket;
 
-using TokenBucket = BasicTokenBucket<std::chrono::steady_clock>;
-}
+using DynamicTokenBucket = BasicDynamicTokenBucket<std::chrono::steady_clock>;
+} // namespace folly
 
 namespace galaxy {
 namespace fds {
 class GalaxyFDSClient;
 }
-}
+} // namespace galaxy
 
 namespace dsn {
 namespace dist {
@@ -58,8 +58,8 @@ public:
 private:
     std::shared_ptr<galaxy::fds::GalaxyFDSClient> _client;
     std::string _bucket_name;
-    std::unique_ptr<folly::TokenBucket> _read_token_bucket;
-    std::unique_ptr<folly::TokenBucket> _write_token_bucket;
+    std::unique_ptr<folly::DynamicTokenBucket> _write_token_bucket;
+    std::unique_ptr<folly::DynamicTokenBucket> _read_token_bucket;
 
     friend class fds_file_object;
 };
@@ -120,7 +120,7 @@ private:
 
     static const size_t PIECE_SIZE = 16384; // 16k
 };
-}
-}
-}
+} // namespace block_service
+} // namespace dist
+} // namespace dsn
 #endif // FDS_SERVICE_H
