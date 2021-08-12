@@ -540,9 +540,8 @@ public:
                              const std::vector<dsn::rpc_address> &address_vec,
                              const std::unordered_map<dsn::rpc_address, int> &address_id,
                              int replicas_low)
-        : copy_replica_operation(app, apps, nodes, address_vec, address_id)
+        : copy_replica_operation(app, apps, nodes, address_vec, address_id), _replicas_low(replicas_low)
     {
-        _replica_low = replicas_low;
     }
     ~copy_secondary_operation() = default;
 
@@ -607,7 +606,7 @@ private:
         return true;
     }
 
-    int _replica_low;
+    int _replicas_low;
 };
 
 // assume all nodes are alive
