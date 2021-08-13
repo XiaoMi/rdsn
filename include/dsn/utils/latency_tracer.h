@@ -93,6 +93,8 @@ public:
     // stageA[rpc_message]--stageB[rpc_message]--
     void set_sub_tracer(const std::shared_ptr<latency_tracer> &tracer);
 
+    void set_name(const std::string &name) { _name = name; }
+
 private:
     void dump_trace_points(/*out*/ std::string &traces);
 
