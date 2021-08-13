@@ -64,6 +64,7 @@ mutation::mutation()
         std::make_shared<dsn::utils::latency_tracer>(fmt::format("{}[{}]", "mutation", _tid),
                                                      false,
                                                      FLAGS_abnormal_write_trace_latency_threshold);
+                                                     
 }
 
 mutation_ptr mutation::copy_no_reply(const mutation_ptr &old_mu)
