@@ -72,7 +72,7 @@ jobs:
           export LD_LIBRARY_PATH=`pwd`/thirdparty/output/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server          
           ./run.sh test --skip_thirdparty
 
-  test-with-sanitizer-address:
+  test:
     name: Test With Sanitizer Address
     needs: lint
     runs-on: self-hosted
