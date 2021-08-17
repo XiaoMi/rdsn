@@ -1009,7 +1009,7 @@ void greedy_load_balancer::balance_cluster()
         return;
     }
 
-    // TBD(zlw): copy primary
+    cluster_replica_balance(t_global_view, cluster_balance_type::COPY_PRIMARY, *t_migration_result);
 }
 
 bool greedy_load_balancer::cluster_replica_balance(const meta_view *global_view,
@@ -1358,26 +1358,27 @@ bool greedy_load_balancer::apply_move(const move_info &move,
     if (cluster_info.apps_info.find(app_id) == cluster_info.apps_info.end()) {
         return false;
     }
-    app_migration_info aInfo = cluster_info.apps_info[app_id];
-    auto iter1 = aInfo.replicas_count.find(source);
-    auto iter2 = aInfo.replicas_count.find(target);
-    if (iter1 == aInfo.replicas_count.end() || iter2 == aInfo.replicas_count.end()) {
+    app_migration_info app_info = cluster_info.apps_info[app_id];
+    auto iter1 = app_info.replicas_count.find(source);
+    auto iter2 = app_info.replicas_count.find(target);
+    if (iter1 == app_info.replicas_count.end() || iter2 == app_info.replicas_count.end()) {
         return false;
     }
-    aInfo.replicas_count[source]--;
-    aInfo.replicas_count[target]++;
-    if (aInfo.partitions.size() <= move.pid.get_partition_index()) {
+    app_info.replicas_count[source]--;
+    app_info.replicas_count[target]++;
+    if (app_info.partitions.size() <= move.pid.get_partition_index()) {
         return false;
     }
-    auto &pmap = aInfo.partitions[move.pid.get_partition_index()];
+    auto &pmap = app_info.partitions[move.pid.get_partition_index()];
     rpc_address primary_addr;
     for (const auto &kv : pmap) {
         if (kv.second == partition_status::PS_PRIMARY) {
             primary_addr = kv.first;
         }
     }
-    auto status = cluster_info.type == cluster_balance_type::COPY_SECONDARY ? partition_status::PS_SECONDARY
-                                                                        : partition_status::PS_PRIMARY;
+    auto status = cluster_info.type == cluster_balance_type::COPY_SECONDARY
+                      ? partition_status::PS_SECONDARY
+                      : partition_status::PS_PRIMARY;
     auto iter = pmap.find(source);
     if (iter == pmap.end() || iter->second != status) {
         return false;
@@ -1407,8 +1408,8 @@ bool greedy_load_balancer::apply_move(const move_info &move,
     t_migration_result->emplace(move.pid, generate_balancer_request(pc, move.type, source, target));
     selected_pids.insert(move.pid);
 
-    cluster_info.apps_skew[app_id] = get_skew(aInfo.replicas_count);
-    cluster_info.apps_info[app_id] = aInfo;
+    cluster_info.apps_skew[app_id] = get_skew(app_info.replicas_count);
+    cluster_info.apps_info[app_id] = app_info;
     cluster_info.nodes_info[source] = node_source;
     cluster_info.nodes_info[target] = node_target;
     cluster_info.replicas_count[source]--;
