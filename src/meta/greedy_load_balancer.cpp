@@ -31,6 +31,7 @@
 #include <dsn/utility/math.h>
 #include <dsn/utility/utils.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/fail_point.h>
 #include "greedy_load_balancer.h"
 #include "meta_data.h"
 #include "meta_admin_types.h"
@@ -278,6 +279,8 @@ greedy_load_balancer::generate_balancer_request(const partition_configuration &p
                                                 const rpc_address &from,
                                                 const rpc_address &to)
 {
+    FAIL_POINT_INJECT_F("generate_balancer_request", [](string_view name) { return nullptr; });
+
     configuration_balancer_request result;
     result.gpid = pc.pid;
 
