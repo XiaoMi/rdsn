@@ -72,7 +72,7 @@ jobs:
           export LD_LIBRARY_PATH=`pwd`/thirdparty/output/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server          
           ./run.sh test --skip_thirdparty
 
-  test with sanitizer address:
+  test-with-sanitizer-address:
     name: Test With Sanitizer Address
     needs: lint
     runs-on: self-hosted
@@ -98,6 +98,8 @@ jobs:
           mkdir build
           cmake -DCMAKE_BUILD_TYPE=Release -B build/
           cmake --build build/ -j $(($(nproc)/2+1))
+      - name: Compilation
+        run: ./run.sh build -c --sanitizer address --skip_thirdparty --disable_gperf
       - name: Unit Testing
         run: |
           export LD_LIBRARY_PATH=`pwd`/thirdparty/output/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server          
