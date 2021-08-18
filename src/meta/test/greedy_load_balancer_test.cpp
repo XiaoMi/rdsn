@@ -277,6 +277,7 @@ TEST(greedy_load_balancer, apply_move)
 
     greedy_load_balancer balancer(nullptr);
     greedy_load_balancer::cluster_migration_info cluster_info;
+    cluster_info.type = cluster_balance_type::COPY_SECONDARY;
     partition_set selected_pids;
     migration_list list;
     balancer.t_migration_result = &list;
@@ -318,14 +319,12 @@ TEST(greedy_load_balancer, apply_move)
     partition_status[source_node] = partition_status::type::PS_PRIMARY;
     cluster_info.apps_info[app_id].partitions.push_back(partition_status);
     cluster_info.apps_info[app_id].partitions.push_back(partition_status);
-    cluster_info.apps_info[app_id].partitions.push_back(partition_status);
     res = balancer.apply_move(minfo, selected_pids, list, cluster_info);
     ASSERT_FALSE(res);
 
     // target_node and source_node are not found in cluster_info.nodes_info
-    cluster_info.apps_info[app_id].partitions.clear();
     partition_status[source_node] = partition_status::type::PS_SECONDARY;
-    cluster_info.apps_info[app_id].partitions.push_back(partition_status);
+    cluster_info.apps_info[app_id].partitions.clear();
     cluster_info.apps_info[app_id].partitions.push_back(partition_status);
     cluster_info.apps_info[app_id].partitions.push_back(partition_status);
     res = balancer.apply_move(minfo, selected_pids, list, cluster_info);
