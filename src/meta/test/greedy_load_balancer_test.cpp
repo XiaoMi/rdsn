@@ -344,8 +344,8 @@ TEST(greedy_load_balancer, apply_move)
     partition_set source_partition_set;
     cluster_info.nodes_info[source_node].partitions[disk_tag] = source_partition_set;
     res = balancer.apply_move(minfo, selected_pids, list, cluster_info);
-    ASSERT_TRUE(res);
     fail::teardown();
+    ASSERT_TRUE(res);
 }
 } // namespace replication
 } // namespace dsn
