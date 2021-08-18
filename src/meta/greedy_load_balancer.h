@@ -304,6 +304,7 @@ private:
     FRIEND_TEST(greedy_load_balancer, get_disk_partitions_map);
     FRIEND_TEST(greedy_load_balancer, get_max_load_disk);
     FRIEND_TEST(greedy_load_balancer, apply_move);
+    FRIEND_TEST(greedy_load_balancer, pick_up_partition);
 };
 
 inline configuration_proposal_action
