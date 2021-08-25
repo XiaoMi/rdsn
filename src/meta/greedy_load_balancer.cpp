@@ -1376,24 +1376,20 @@ bool greedy_load_balancer::apply_move(const move_info &move,
     rpc_address source = move.source_node, target = move.target_node;
     if (cluster_info.apps_skew.find(app_id) == cluster_info.apps_skew.end() ||
         cluster_info.replicas_count.find(source) == cluster_info.replicas_count.end() ||
-        cluster_info.replicas_count.find(target) == cluster_info.replicas_count.end()) {
+        cluster_info.replicas_count.find(target) == cluster_info.replicas_count.end() ||
+        cluster_info.apps_info.find(app_id) == cluster_info.apps_info.end()) {
         return false;
     }
 
-    if (cluster_info.apps_info.find(app_id) == cluster_info.apps_info.end()) {
-        return false;
-    }
     app_migration_info app_info = cluster_info.apps_info[app_id];
-    auto iter1 = app_info.replicas_count.find(source);
-    auto iter2 = app_info.replicas_count.find(target);
-    if (iter1 == app_info.replicas_count.end() || iter2 == app_info.replicas_count.end()) {
+    if (app_info.partitions.size() <= move.pid.get_partition_index() ||
+        app_info.replicas_count.find(source) == app_info.replicas_count.end() ||
+        app_info.replicas_count.find(target) == app_info.replicas_count.end()) {
         return false;
     }
     app_info.replicas_count[source]--;
     app_info.replicas_count[target]++;
-    if (app_info.partitions.size() <= move.pid.get_partition_index()) {
-        return false;
-    }
+
     auto &pmap = app_info.partitions[move.pid.get_partition_index()];
     rpc_address primary_addr;
     for (const auto &kv : pmap) {
