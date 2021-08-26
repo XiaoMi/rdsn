@@ -86,29 +86,29 @@ bool partition_guardian::from_proposals(meta_view &view,
     }
 
     switch (action.type) {
-        case config_type::CT_ASSIGN_PRIMARY:
-            is_action_valid = (action.node == action.target && pc.primary.is_invalid() &&
-                               !is_secondary(pc, action.node));
-            break;
-        case config_type::CT_UPGRADE_TO_PRIMARY:
-            is_action_valid = (action.node == action.target && pc.primary.is_invalid() &&
-                               is_secondary(pc, action.node));
-            break;
-        case config_type::CT_ADD_SECONDARY:
-        case config_type::CT_ADD_SECONDARY_FOR_LB:
-            is_action_valid = (is_primary(pc, action.target) && !is_secondary(pc, action.node));
-            is_action_valid = (is_action_valid && is_node_alive(*(view.nodes), action.node));
-            break;
-        case config_type::CT_DOWNGRADE_TO_INACTIVE:
-        case config_type::CT_REMOVE:
-            is_action_valid = (is_primary(pc, action.target) && is_member(pc, action.node));
-            break;
-        case config_type::CT_DOWNGRADE_TO_SECONDARY:
-            is_action_valid = (action.target == action.node && is_primary(pc, action.target));
-            break;
-        default:
-            is_action_valid = false;
-            break;
+    case config_type::CT_ASSIGN_PRIMARY:
+        is_action_valid = (action.node == action.target && pc.primary.is_invalid() &&
+                           !is_secondary(pc, action.node));
+        break;
+    case config_type::CT_UPGRADE_TO_PRIMARY:
+        is_action_valid = (action.node == action.target && pc.primary.is_invalid() &&
+                           is_secondary(pc, action.node));
+        break;
+    case config_type::CT_ADD_SECONDARY:
+    case config_type::CT_ADD_SECONDARY_FOR_LB:
+        is_action_valid = (is_primary(pc, action.target) && !is_secondary(pc, action.node));
+        is_action_valid = (is_action_valid && is_node_alive(*(view.nodes), action.node));
+        break;
+    case config_type::CT_DOWNGRADE_TO_INACTIVE:
+    case config_type::CT_REMOVE:
+        is_action_valid = (is_primary(pc, action.target) && is_member(pc, action.node));
+        break;
+    case config_type::CT_DOWNGRADE_TO_SECONDARY:
+        is_action_valid = (action.target == action.node && is_primary(pc, action.target));
+        break;
+    default:
+        is_action_valid = false;
+        break;
     }
 
     if (is_action_valid)
@@ -116,7 +116,7 @@ bool partition_guardian::from_proposals(meta_view &view,
     else
         sprintf(reason, "action is invalid");
 
-    invalid_action:
+invalid_action:
     std::stringstream ss;
     ss << action;
     ddebug("proposal action(%s) for gpid(%d.%d) is invalid, clear all proposal actions: %s",
@@ -173,8 +173,8 @@ pc_status partition_guardian::on_redundant_secondary(meta_view &view, const dsn:
 }
 
 void partition_guardian::finish_cure_proposal(meta_view &view,
-                                                const dsn::gpid &gpid,
-                                                const configuration_proposal_action &act)
+                                              const dsn::gpid &gpid,
+                                              const configuration_proposal_action &act)
 {
     // TBD(zlw):
 }
