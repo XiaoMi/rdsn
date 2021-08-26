@@ -38,7 +38,16 @@ private:
     pc_status on_missing_secondary(meta_view &view, const dsn::gpid &gpid);
     pc_status on_redundant_secondary(meta_view &view, const dsn::gpid &gpid);
 
+    void set_ddd_partition(ddd_partition_info &&partition)
+    {
+        zauto_lock l(_ddd_partitions_lock);
+        _ddd_partitions[partition.config.pid] = std::move(partition);
+    }
+
+    perf_counter_wrapper _recent_choose_primary_fail_count;
     meta_service *_svc;
+    mutable zlock _ddd_partitions_lock;
+    std::map<gpid, ddd_partition_info> _ddd_partitions;
 };
 
 } // namespace replication
