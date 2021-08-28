@@ -91,14 +91,18 @@ public:
     // returns:
     //   - non-null if open succeed
     //   - null if open failed
-    static log_file_ptr open_read(const char *path, /*out*/ error_code &err);
+    static log_file_ptr
+    open_read(const char *path, /*out*/ error_code &err, size_t block_bytes = 1024 * 1024);
 
     // open the log file for write
     // the file path is '{dir}/log.{index}.{start_offset}'
     // returns:
     //   - non-null if open succeed
     //   - null if open failed
-    static log_file_ptr create_write(const char *dir, int index, int64_t start_offset);
+    static log_file_ptr create_write(const char *dir,
+                                     int index,
+                                     int64_t start_offset,
+                                     size_t block_bytes = 1024 * 1024);
 
     // close the log file
     void close();
@@ -186,7 +190,12 @@ public:
 
 private:
     // make private, user should create log_file through open_read() or open_write()
-    log_file(const char *path, disk_file *handle, int index, int64_t start_offset, bool is_read);
+    log_file(const char *path,
+             disk_file *handle,
+             int index,
+             int64_t start_offset,
+             bool is_read,
+             size_t block_bytes = 1024 * 1024);
 
 private:
     friend class mock_log_file;
@@ -203,6 +212,7 @@ private:
     int _index;                // file index
     log_file_header _header;   // file header
     uint64_t _last_write_time; // seconds from epoch time
+    const size_t _block_bytes; // file block bytes
 
     mutable zlock _write_lock;
 

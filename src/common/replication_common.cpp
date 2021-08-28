@@ -95,6 +95,7 @@ replication_options::replication_options()
     log_private_batch_buffer_flush_interval_ms = 10000;
     log_private_reserve_max_size_mb = 0;
     log_private_reserve_max_time_seconds = 0;
+    log_private_block_bytes = 1024 * 1024;
 
     log_shared_file_size_mb = 32;
     log_shared_file_count_limit = 100;
@@ -102,6 +103,7 @@ replication_options::replication_options()
     log_shared_force_flush = false;
     log_shared_pending_size_throttling_threshold_kb = 0;
     log_shared_pending_size_throttling_delay_ms = 0;
+    log_shared_block_bytes = 1024 * 1024;
 
     config_sync_disabled = false;
     config_sync_interval_ms = 30000;
@@ -348,6 +350,10 @@ void replication_options::initialize()
         "log_private_reserve_max_time_seconds",
         log_private_reserve_max_time_seconds,
         "max time in seconds of useless private log to be reserved");
+    log_private_block_bytes = dsn_config_get_value_int64("replication",
+                                                         "log_private_block_bytes",
+                                                         log_private_block_bytes,
+                                                         "block size by bytes for private log");
 
     log_shared_file_size_mb =
         (int)dsn_config_get_value_uint64("replication",
@@ -378,6 +384,10 @@ void replication_options::initialize()
                                          "log_shared_pending_size_throttling_delay_ms",
                                          log_shared_pending_size_throttling_delay_ms,
                                          "log_shared_pending_size_throttling_delay_ms");
+    log_shared_block_bytes = dsn_config_get_value_int64("replication",
+                                                        "log_shared_block_bytes",
+                                                        log_shared_block_bytes,
+                                                        "block size by bytes for shared log");
 
     config_sync_disabled = dsn_config_get_value_bool(
         "replication",

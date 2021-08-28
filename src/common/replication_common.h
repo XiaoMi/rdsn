@@ -106,6 +106,7 @@ public:
     int32_t log_private_batch_buffer_flush_interval_ms;
     int32_t log_private_reserve_max_size_mb;
     int32_t log_private_reserve_max_time_seconds;
+    int64_t log_private_block_bytes;
 
     int32_t log_shared_file_size_mb;
     int32_t log_shared_file_count_limit;
@@ -113,6 +114,7 @@ public:
     bool log_shared_force_flush;
     int32_t log_shared_pending_size_throttling_threshold_kb;
     int32_t log_shared_pending_size_throttling_delay_ms;
+    int64_t log_shared_block_bytes;
 
     bool config_sync_disabled;
     int32_t config_sync_interval_ms;

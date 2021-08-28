@@ -198,8 +198,9 @@ mutation_log_private::mutation_log_private(const std::string &dir,
                                            replica *r,
                                            uint32_t batch_buffer_bytes,
                                            uint32_t batch_buffer_max_count,
-                                           uint64_t batch_buffer_flush_interval_ms)
-    : mutation_log(dir, max_log_file_mb, gpid, r),
+                                           uint64_t batch_buffer_flush_interval_ms,
+                                           size_t block_bytes)
+    : mutation_log(dir, max_log_file_mb, gpid, r, block_bytes),
       replica_base(r),
       _batch_buffer_bytes(batch_buffer_bytes),
       _batch_buffer_max_count(batch_buffer_max_count),
@@ -446,7 +447,9 @@ void mutation_log_private::commit_pending_mutations(log_file_ptr &lf,
 
 ///////////////////////////////////////////////////////////////
 
-mutation_log::mutation_log(const std::string &dir, int32_t max_log_file_mb, gpid gpid, replica *r)
+mutation_log::mutation_log(
+    const std::string &dir, int32_t max_log_file_mb, gpid gpid, replica *r, size_t block_bytes)
+    : _block_bytes(block_bytes)
 {
     _dir = dir;
     _is_private = (gpid.value() != 0);
@@ -525,7 +528,7 @@ error_code mutation_log::open(replay_callback read_callback,
 
     error_code err = ERR_OK;
     for (auto &fpath : file_list) {
-        log_file_ptr log = log_file::open_read(fpath.c_str(), err);
+        log_file_ptr log = log_file::open_read(fpath.c_str(), err, _block_bytes);
         if (log == nullptr) {
             if (err == ERR_HANDLE_EOF || err == ERR_INCOMPLETE_DATA ||
                 err == ERR_INVALID_PARAMETERS) {
@@ -713,8 +716,8 @@ error_code mutation_log::create_new_log_file()
 {
     // create file
     uint64_t start = dsn_now_ns();
-    log_file_ptr logf =
-        log_file::create_write(_dir.c_str(), _last_file_index + 1, _global_end_offset);
+    log_file_ptr logf = log_file::create_write(
+        _dir.c_str(), _last_file_index + 1, _global_end_offset, _block_bytes);
     if (logf == nullptr) {
         derror("cannot create log file with index %d", _last_file_index + 1);
         return ERR_FILE_OPERATION_FAILED;

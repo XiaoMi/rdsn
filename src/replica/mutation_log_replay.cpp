@@ -114,12 +114,13 @@ namespace replication {
 
 /*static*/ error_code mutation_log::replay(std::vector<std::string> &log_files,
                                            replay_callback callback,
-                                           /*out*/ int64_t &end_offset)
+                                           /*out*/ int64_t &end_offset,
+                                           size_t block_bytes)
 {
     std::map<int, log_file_ptr> logs;
     for (auto &fpath : log_files) {
         error_code err;
-        log_file_ptr log = log_file::open_read(fpath.c_str(), err);
+        log_file_ptr log = log_file::open_read(fpath.c_str(), err, block_bytes);
         if (log == nullptr) {
             if (err == ERR_HANDLE_EOF || err == ERR_INCOMPLETE_DATA ||
                 err == ERR_INVALID_PARAMETERS) {

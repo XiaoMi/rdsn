@@ -37,8 +37,11 @@ namespace replication {
 class log_file::file_streamer
 {
 public:
-    explicit file_streamer(disk_file *fd, size_t file_offset)
-        : _file_dispatched_bytes(file_offset), _file_handle(fd)
+    explicit file_streamer(disk_file *fd, size_t file_offset, size_t block_bytes)
+        : _block_bytes(block_bytes),
+          _buffers{buffer_t(block_bytes), buffer_t(block_bytes)},
+          _file_dispatched_bytes(file_offset),
+          _file_handle(fd)
     {
         _current_buffer = _buffers + 0;
         _next_buffer = _buffers + 1;
@@ -130,29 +133,31 @@ private:
             _current_buffer->_have_ongoing_task = true;
             _current_buffer->_task = file::read(_file_handle,
                                                 _current_buffer->_buffer.get(),
-                                                block_size_bytes,
+                                                _block_bytes,
                                                 _file_dispatched_bytes,
                                                 LPC_AIO_IMMEDIATE_CALLBACK,
                                                 nullptr,
                                                 nullptr);
-            _file_dispatched_bytes += block_size_bytes;
+            _file_dispatched_bytes += _block_bytes;
             std::swap(_current_buffer, _next_buffer);
         }
     }
 
     // buffer size, in bytes
-    // TODO(wutao1): call it BLOCK_BYTES_SIZE
-    static constexpr size_t block_size_bytes = 1024 * 1024; // 1MB
+    const size_t _block_bytes;
+
     struct buffer_t
     {
+        const size_t _block_bytes;
         std::unique_ptr<char[]> _buffer; // with block_size
         size_t _begin, _end;             // [buffer[begin]..buffer[end]) contains unconsumed_data
         size_t _file_offset_of_buffer;   // file offset projected to buffer[0]
         bool _have_ongoing_task;
         aio_task_ptr _task;
 
-        buffer_t()
-            : _buffer(new char[block_size_bytes]),
+        buffer_t(size_t block_bytes)
+            : _block_bytes(block_bytes),
+              _buffer(new char[block_bytes]),
               _begin(0),
               _end(0),
               _file_offset_of_buffer(0),
@@ -178,7 +183,7 @@ private:
                 _task->wait();
                 _have_ongoing_task = false;
                 _end += _task->get_transferred_size();
-                dassert(_end <= block_size_bytes, "invalid io_size.");
+                dassert(_end <= _block_bytes, "invalid io_size.");
                 return _task->error();
             } else {
                 return ERR_OK;

@@ -243,7 +243,8 @@ error_code replica::init_app_and_prepare_list(bool create_new)
                                          this,
                                          _options->log_private_batch_buffer_kb * 1024,
                                          _options->log_private_batch_buffer_count,
-                                         _options->log_private_batch_buffer_flush_interval_ms);
+                                         _options->log_private_batch_buffer_flush_interval_ms,
+                                         _options->log_private_block_bytes);
             ddebug("%s: plog_dir = %s", name(), log_dir.c_str());
 
             // sync valid_start_offset between app and logs
@@ -342,7 +343,8 @@ error_code replica::init_app_and_prepare_list(bool create_new)
                                          this,
                                          _options->log_private_batch_buffer_kb * 1024,
                                          _options->log_private_batch_buffer_count,
-                                         _options->log_private_batch_buffer_flush_interval_ms);
+                                         _options->log_private_batch_buffer_flush_interval_ms,
+                                         _options->log_private_block_bytes);
             ddebug("%s: plog_dir = %s", name(), log_dir.c_str());
 
             err = _private_log->open(nullptr, [this](error_code err) {

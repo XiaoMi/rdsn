@@ -1591,7 +1591,8 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                                    plist.prepare(mu, partition_status::PS_SECONDARY);
                                    return true;
                                },
-                               offset);
+                               offset,
+                               _options->log_private_block_bytes);
 
     // update first_learn_start_decree, the position where the first round of LT_LOG starts from.
     // we use this value to determine whether to learn back from min_confirmed_decree
