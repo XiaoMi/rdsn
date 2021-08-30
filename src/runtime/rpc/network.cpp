@@ -590,6 +590,11 @@ connection_oriented_network::connection_oriented_network(rpc_engine *srv, networ
     : network(srv, inner_provider)
 {
     _cfg_conn_threshold_per_ip = 0;
+    _client_session_count.init_app_counter(
+        "eon.network",
+        "client_session_count",
+        COUNTER_TYPE_NUMBER,
+        "current session count on server");
 }
 
 void connection_oriented_network::inject_drop_message(message_ex *msg, bool is_send)
@@ -647,6 +652,7 @@ void connection_oriented_network::send_message(message_ex *request)
         ddebug("client session created, remote_server = %s, current_count = %d",
                client->remote_address().to_string(),
                scount);
+        _client_session_count->set(scount);
         client->connect();
     }
 
@@ -693,6 +699,8 @@ void connection_oriented_network::on_server_session_accepted(rpc_session_ptr &s)
            ecount == 1 ? "inserted" : "increased",
            s->remote_address().to_string(),
            ecount);
+
+    _client_session_count->set(scount);
 }
 
 void connection_oriented_network::on_server_session_disconnected(rpc_session_ptr &s)
@@ -785,6 +793,7 @@ void connection_oriented_network::on_client_session_connected(rpc_session_ptr &s
         ddebug("client session connected, remote_server = %s, current_count = %d",
                s->remote_address().to_string(),
                scount);
+        _client_session_count->set(scount);
     }
 }
 
@@ -806,6 +815,7 @@ void connection_oriented_network::on_client_session_disconnected(rpc_session_ptr
         ddebug("client session disconnected, remote_server = %s, current_count = %d",
                s->remote_address().to_string(),
                scount);
+        _client_session_count->set(scount);
     }
 }
 
