@@ -593,7 +593,7 @@ connection_oriented_network::connection_oriented_network(rpc_engine *srv, networ
     _client_session_count.init_global_counter(
         "replica",
         "network",
-        "client_session_count",
+        "server_session_count",
         COUNTER_TYPE_NUMBER,
         "current session count on server");
 }
