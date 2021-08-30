@@ -2077,7 +2077,6 @@ error_code server_state::construct_partitions(
         }
     }
 
-
     int succeed_count = 0;
     int failed_count = 0;
     for (auto &app_kv : _all_apps) {
