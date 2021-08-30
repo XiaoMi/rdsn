@@ -538,6 +538,14 @@ void maintain_drops(/*inout*/ std::vector<dsn::rpc_address> &drops,
                     const dsn::rpc_address &node,
                     config_type::type t);
 
+//
+// Try to construct a replica-group by current replica-infos of a gpid
+// ret:
+//   if construct the replica successfully, return true.
+//   Notice: as long as we can construct something from current infos, we treat it as a
+//   success
+bool construct_replica(meta_view view, const gpid &pid, int max_replica_count);
+
 inline bool has_seconds_expired(uint64_t second_ts) { return second_ts * 1000 < dsn_now_ms(); }
 
 inline bool has_milliseconds_expired(uint64_t milliseconds_ts)
