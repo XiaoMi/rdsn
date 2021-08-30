@@ -70,7 +70,7 @@ static bool vec_equal(const std::vector<dropped_replica> &vec1,
     return true;
 }
 
-TEST(meta_data, simple_lb_collect_replica)
+TEST(meta_data, collect_replica)
 {
     app_mapper app;
     node_mapper nodes;
