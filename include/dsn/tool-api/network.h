@@ -41,7 +41,6 @@ class rpc_engine;
 class service_node;
 class task_worker_pool;
 class task_queue;
-class perf_counter_wrapper;
 
 /*!
 @addtogroup tool-api-providers
