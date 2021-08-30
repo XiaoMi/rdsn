@@ -71,7 +71,6 @@ public:
     void simple_lb_balanced_cure();
     void simple_lb_from_proposal_test();
     void simple_lb_collect_replica();
-    void simple_lb_construct_replica();
 
     void call_update_configuration(
         meta_service *svc, std::shared_ptr<dsn::replication::configuration_update_request> &request)
@@ -1176,8 +1175,6 @@ TEST_F(meta_load_balance_test, simple_lb_cure_test) { simple_lb_cure_test(); }
 TEST_F(meta_load_balance_test, simple_lb_from_proposal_test) { simple_lb_from_proposal_test(); }
 
 TEST_F(meta_load_balance_test, simple_lb_collect_replica) { simple_lb_collect_replica(); }
-
-TEST_F(meta_load_balance_test, simple_lb_construct_replica) { simple_lb_construct_replica(); }
 
 } // namespace replication
 } // namespace dsn
