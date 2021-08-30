@@ -590,8 +590,9 @@ connection_oriented_network::connection_oriented_network(rpc_engine *srv, networ
     : network(srv, inner_provider)
 {
     _cfg_conn_threshold_per_ip = 0;
-    _client_session_count.init_app_counter(
-        "eon.network",
+    _client_session_count.init_global_counter(
+        "replica",
+        "network",
         "client_session_count",
         COUNTER_TYPE_NUMBER,
         "current session count on server");
@@ -632,7 +633,7 @@ void connection_oriented_network::send_message(message_ex *request)
         }
     }
 
-    int scount = 0;
+    int ip_count = 0;
     bool new_client = false;
     if (nullptr == client.get()) {
         utils::auto_write_lock l(_clients_lock);
@@ -644,15 +645,15 @@ void connection_oriented_network::send_message(message_ex *request)
             _clients.insert(client_sessions::value_type(to, client));
             new_client = true;
         }
-        scount = (int)_clients.size();
+        ip_count = (int)_clients.size();
     }
 
     // init connection if necessary
     if (new_client) {
         ddebug("client session created, remote_server = %s, current_count = %d",
                client->remote_address().to_string(),
-               scount);
-        _client_session_count->set(scount);
+               ip_count);
+        _client_session_count->set(ip_count);
         client->connect();
     }
 
@@ -669,8 +670,8 @@ rpc_session_ptr connection_oriented_network::get_server_session(::dsn::rpc_addre
 
 void connection_oriented_network::on_server_session_accepted(rpc_session_ptr &s)
 {
-    int scount = 0;
-    int ecount = 1;
+    int ip_count = 0;
+    int ip_conn_count = 1;
     {
         utils::auto_write_lock l(_servers_lock);
 
@@ -682,25 +683,25 @@ void connection_oriented_network::on_server_session_accepted(rpc_session_ptr &s)
             dwarn("server session already exists, remote_client = %s, preempted",
                   s->remote_address().to_string());
         }
-        scount = (int)_servers.size();
+        ip_count = (int)_servers.size();
 
         auto pr2 =
             _ip_conn_count.insert(ip_connection_count::value_type(s->remote_address().ip(), 1));
         if (!pr2.second) {
-            ecount = ++pr2.first->second;
+            ip_conn_count = ++pr2.first->second;
         }
     }
 
     ddebug("server session accepted, remote_client = %s, current_count = %d",
            s->remote_address().to_string(),
-           scount);
+           ip_count);
 
     ddebug("ip session %s, remote_client = %s, current_count = %d",
-           ecount == 1 ? "inserted" : "increased",
+           ip_conn_count == 1 ? "inserted" : "increased",
            s->remote_address().to_string(),
-           ecount);
+           ip_conn_count);
 
-    _client_session_count->set(scount);
+    _client_session_count->set(ip_count);
 }
 
 void connection_oriented_network::on_server_session_disconnected(rpc_session_ptr &s)
@@ -732,6 +733,7 @@ void connection_oriented_network::on_server_session_disconnected(rpc_session_ptr
         ddebug("session %s disconnected, the total client sessions count remains %d",
                s->remote_address().to_string(),
                ip_count);
+        _client_session_count->set(ip_count);
     }
 
     if (ip_conn_count == 0) {
@@ -778,7 +780,7 @@ bool connection_oriented_network::check_if_conn_threshold_exceeded(::dsn::rpc_ad
 
 void connection_oriented_network::on_client_session_connected(rpc_session_ptr &s)
 {
-    int scount = 0;
+    int ip_count = 0;
     bool r = false;
     {
         utils::auto_read_lock l(_clients_lock);
@@ -786,20 +788,20 @@ void connection_oriented_network::on_client_session_connected(rpc_session_ptr &s
         if (it != _clients.end() && it->second.get() == s.get()) {
             r = true;
         }
-        scount = (int)_clients.size();
+        ip_count = (int)_clients.size();
     }
 
     if (r) {
         ddebug("client session connected, remote_server = %s, current_count = %d",
                s->remote_address().to_string(),
-               scount);
-        _client_session_count->set(scount);
+               ip_count);
+        _client_session_count->set(ip_count);
     }
 }
 
 void connection_oriented_network::on_client_session_disconnected(rpc_session_ptr &s)
 {
-    int scount = 0;
+    int ip_count = 0;
     bool r = false;
     {
         utils::auto_write_lock l(_clients_lock);
@@ -808,14 +810,14 @@ void connection_oriented_network::on_client_session_disconnected(rpc_session_ptr
             _clients.erase(it);
             r = true;
         }
-        scount = (int)_clients.size();
+        ip_count = (int)_clients.size();
     }
 
     if (r) {
         ddebug("client session disconnected, remote_server = %s, current_count = %d",
                s->remote_address().to_string(),
-               scount);
-        _client_session_count->set(scount);
+               ip_count);
+        _client_session_count->set(ip_count);
     }
 }
 
