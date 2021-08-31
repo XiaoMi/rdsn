@@ -161,6 +161,12 @@ void meta_options::initialize()
     _lb_opts.only_move_primary = dsn_config_get_value_bool(
         "meta_server", "only_move_primary", false, "only try to make the primary balanced by move");
 
+    partition_guardian_type =
+            dsn_config_get_value_string("meta_server",
+                                        "partition_guardian_type",
+                                        "partition_guardian",
+                                        "partition guardian provider");
+
     cold_backup_disabled = dsn_config_get_value_bool(
         "meta_server", "cold_backup_disabled", true, "whether to disable cold backup");
 

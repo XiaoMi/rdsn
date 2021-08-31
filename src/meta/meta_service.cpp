@@ -288,6 +288,8 @@ void meta_service::register_ctrl_commands()
 void meta_service::unregister_ctrl_commands()
 {
     UNREGISTER_VALID_HANDLER(_ctrl_node_live_percentage_threshold_for_update);
+    _partition_guardian->unregister_ctrl_commands();
+    _balancer->unregister_ctrl_commands();
 }
 
 void meta_service::start_service()
@@ -389,6 +391,11 @@ error_code meta_service::start()
     _balancer.reset(balancer);
     // register control command to singleton-container for load balancer
     _balancer->register_ctrl_commands();
+
+    partition_guardian *guardian = utils::factory_store<partition_guardian>::create(
+            _meta_opts.partition_guardian_type.c_str(), PROVIDER_TYPE_MAIN, this);
+    _partition_guardian.reset(guardian);
+    _partition_guardian->register_ctrl_commands();
 
     // initializing the backup_handler should after remote_storage be initialized,
     // because we should use _cluster_root
