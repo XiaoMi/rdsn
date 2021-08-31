@@ -140,10 +140,10 @@ TEST(meta_data, collect_replica)
         // drop_list all have timestamp, full
         CLEAR_ALL;
         cc.dropped = {
-                dropped_replica{node_list[0], 5, 1, 1, 2},
-                dropped_replica{node_list[1], 6, 1, 1, 2},
-                dropped_replica{node_list[2], 7, 1, 1, 2},
-                dropped_replica{node_list[3], 8, 1, 1, 2},
+            dropped_replica{node_list[0], 5, 1, 1, 2},
+            dropped_replica{node_list[1], 6, 1, 1, 2},
+            dropped_replica{node_list[2], 7, 1, 1, 2},
+            dropped_replica{node_list[3], 8, 1, 1, 2},
         };
         rep.ballot = 10;
         rep.last_prepared_decree = 10;
@@ -154,9 +154,9 @@ TEST(meta_data, collect_replica)
         // drop_list all have timestamp, not full
         CLEAR_ALL;
         cc.dropped = {
-                dropped_replica{node_list[0], 5, 1, 1, 2},
-                dropped_replica{node_list[1], 6, 1, 1, 2},
-                dropped_replica{node_list[2], 7, 1, 1, 2},
+            dropped_replica{node_list[0], 5, 1, 1, 2},
+            dropped_replica{node_list[1], 6, 1, 1, 2},
+            dropped_replica{node_list[2], 7, 1, 1, 2},
         };
         rep.ballot = 10;
         rep.last_durable_decree = 6;
@@ -173,10 +173,10 @@ TEST(meta_data, collect_replica)
         // drop_list mixed, full, minimal position
         CLEAR_ALL;
         cc.dropped = {
-                dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 3, 5},
-                dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 5},
-                dropped_replica{node_list[2], 7, 1, 1, 5},
-                dropped_replica{node_list[3], 8, 1, 1, 5},
+            dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 3, 5},
+            dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 5},
+            dropped_replica{node_list[2], 7, 1, 1, 5},
+            dropped_replica{node_list[3], 8, 1, 1, 5},
         };
 
         rep.ballot = 1;
@@ -189,9 +189,9 @@ TEST(meta_data, collect_replica)
         // drop_list mixed, not full, minimal position
         CLEAR_ALL;
         cc.dropped = {
-                dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 3, 5},
-                dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 5},
-                dropped_replica{node_list[2], 7, 1, 1, 6},
+            dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 3, 5},
+            dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 5},
+            dropped_replica{node_list[2], 7, 1, 1, 6},
         };
 
         rep.ballot = 1;
@@ -208,10 +208,10 @@ TEST(meta_data, collect_replica)
         // drop_list mixed, full, not minimal position
         CLEAR_ALL;
         cc.dropped = {
-                dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 2, 6},
-                dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 6},
-                dropped_replica{node_list[2], 7, 1, 1, 6},
-                dropped_replica{node_list[3], 8, 1, 1, 6},
+            dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 2, 6},
+            dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 6},
+            dropped_replica{node_list[2], 7, 1, 1, 6},
+            dropped_replica{node_list[3], 8, 1, 1, 6},
         };
 
         rep.ballot = 2;
@@ -238,10 +238,10 @@ TEST(meta_data, collect_replica)
         ASSERT_TRUE(collect_replica(view, node_list[5], rep));
 
         std::vector<dropped_replica> result_dropped = {
-                dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 2, 6},
-                dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 6},
-                dropped_replica{node_list[5], dropped_replica::INVALID_TIMESTAMP, 3, 1, 6},
-                dropped_replica{node_list[2], 7, 1, 1, 6}};
+            dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 2, 6},
+            dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 6},
+            dropped_replica{node_list[5], dropped_replica::INVALID_TIMESTAMP, 3, 1, 6},
+            dropped_replica{node_list[2], 7, 1, 1, 6}};
 
         ASSERT_TRUE(vec_equal(result_dropped, cc.dropped));
     }
@@ -250,10 +250,10 @@ TEST(meta_data, collect_replica)
         // drop_list no timestamp, full, minimal position
         CLEAR_ALL;
         cc.dropped = {
-                dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 2, 8},
-                dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 8},
-                dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 2, 6, 8},
-                dropped_replica{node_list[3], dropped_replica::INVALID_TIMESTAMP, 4, 2, 8},
+            dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 2, 8},
+            dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 8},
+            dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 2, 6, 8},
+            dropped_replica{node_list[3], dropped_replica::INVALID_TIMESTAMP, 4, 2, 8},
         };
 
         rep.ballot = 1;
@@ -266,10 +266,10 @@ TEST(meta_data, collect_replica)
         // drop_list no timestamp, full, middle position
         CLEAR_ALL;
         cc.dropped = {
-                dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 2, 8},
-                dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 8},
-                dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 2, 6, 8},
-                dropped_replica{node_list[3], dropped_replica::INVALID_TIMESTAMP, 4, 2, 8},
+            dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 2, 2, 8},
+            dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 8},
+            dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 2, 6, 8},
+            dropped_replica{node_list[3], dropped_replica::INVALID_TIMESTAMP, 4, 2, 8},
         };
 
         rep.ballot = 3;
@@ -278,10 +278,10 @@ TEST(meta_data, collect_replica)
         ASSERT_TRUE(collect_replica(view, node_list[5], rep));
 
         std::vector<dropped_replica> result_dropped = {
-                dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 8},
-                dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 2, 6, 8},
-                dropped_replica{node_list[5], dropped_replica::INVALID_TIMESTAMP, 3, 6, 8},
-                dropped_replica{node_list[3], dropped_replica::INVALID_TIMESTAMP, 4, 2, 8},
+            dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 2, 4, 8},
+            dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 2, 6, 8},
+            dropped_replica{node_list[5], dropped_replica::INVALID_TIMESTAMP, 3, 6, 8},
+            dropped_replica{node_list[3], dropped_replica::INVALID_TIMESTAMP, 4, 2, 8},
         };
 
         ASSERT_TRUE(vec_equal(result_dropped, cc.dropped));
@@ -301,10 +301,10 @@ TEST(meta_data, collect_replica)
         ASSERT_TRUE(collect_replica(view, node_list[5], rep));
 
         std::vector<dropped_replica> result_dropped = {
-                dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 2, 6, 8},
-                dropped_replica{node_list[3], dropped_replica::INVALID_TIMESTAMP, 4, 2, 8},
-                dropped_replica{node_list[4], dropped_replica::INVALID_TIMESTAMP, 4, 6, 8},
-                dropped_replica{node_list[5], dropped_replica::INVALID_TIMESTAMP, 4, 8, 8}};
+            dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 2, 6, 8},
+            dropped_replica{node_list[3], dropped_replica::INVALID_TIMESTAMP, 4, 2, 8},
+            dropped_replica{node_list[4], dropped_replica::INVALID_TIMESTAMP, 4, 6, 8},
+            dropped_replica{node_list[5], dropped_replica::INVALID_TIMESTAMP, 4, 8, 8}};
 
         ASSERT_TRUE(vec_equal(result_dropped, cc.dropped));
     }
