@@ -30,6 +30,7 @@
 #include <iostream>
 #include <dsn/cpp/serverlet.h>
 #include <dsn/utility/flags.h>
+#include <dsn/tool-api/command_manager.h>
 
 #include "nfs_code_definition.h"
 #include "nfs_types.h"
@@ -37,6 +38,9 @@
 
 namespace dsn {
 namespace service {
+
+using TokenBucket = folly::BasicTokenBucket<std::chrono::steady_clock>;
+
 class nfs_service_impl : public ::dsn::serverlet<nfs_service_impl>
 {
 public:
@@ -50,10 +54,13 @@ public:
             RPC_NFS_GET_FILE_SIZE, "get_file_size", &nfs_service_impl::on_get_file_size);
     }
 
+    void register_cli_commands();
+
     void close_service()
     {
         unregister_rpc_handler(RPC_NFS_COPY);
         unregister_rpc_handler(RPC_NFS_GET_FILE_SIZE);
+        UNREGISTER_VALID_HANDLER(_nfs_max_send_rate_megabytes_cmd);
     }
 
 protected:
@@ -122,11 +129,12 @@ private:
 
     ::dsn::task_ptr _file_close_timer;
 
-    std::unique_ptr<folly::DynamicTokenBucket>
-        _send_token_bucket; // rate limiter of copy from remote
+    std::unique_ptr<folly::TokenBucket> _send_token_bucket; // rate limiter of copy from remote
 
     perf_counter_wrapper _recent_copy_data_size;
     perf_counter_wrapper _recent_copy_fail_count;
+
+    dsn_handle_t _nfs_max_send_rate_megabytes_cmd;
 
     dsn::task_tracker _tracker;
 };
