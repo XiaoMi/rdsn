@@ -148,19 +148,6 @@ public:
     virtual void
     score(meta_view view, double &primary_stddev /*out*/, double &total_stddev /*out*/) = 0;
 
-    //
-    // When replica infos are collected from replica servers, meta-server
-    // will use this to check if a replica on a server is useful
-    // params:
-    //   node: the owner of the replica info
-    //   info: the replica info on node
-    // ret:
-    //   return true if the replica is accepted as an useful replica. Or-else false.
-    //   WARNING: if false is returned, the replica on node may be garbage-collected
-    //
-    virtual bool
-    collect_replica(meta_view view, const dsn::rpc_address &node, const replica_info &info) = 0;
-
     void register_proposals(meta_view view,
                             const configuration_balancer_request &req,
                             configuration_balancer_response &resp);
@@ -295,9 +282,6 @@ public:
 
     pc_status
     cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action) override;
-
-    bool
-    collect_replica(meta_view view, const rpc_address &node, const replica_info &info) override;
 
     void register_ctrl_commands() override;
 
