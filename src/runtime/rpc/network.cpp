@@ -590,9 +590,9 @@ connection_oriented_network::connection_oriented_network(rpc_engine *srv, networ
     : network(srv, inner_provider)
 {
     _cfg_conn_threshold_per_ip = 0;
-    _client_session_count.init_global_counter("replica",
+    _client_session_count.init_global_counter("server",
                                               "network",
-                                              "server_session_count",
+                                              "client_session_count",
                                               COUNTER_TYPE_NUMBER,
                                               "current session count on server");
 }
