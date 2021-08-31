@@ -33,6 +33,7 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 #include <cstdlib>
+#include <memory>
 #include <sys/stat.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/tool-api/async_calls.h>
@@ -41,6 +42,8 @@
 
 namespace dsn {
 namespace service {
+
+DSN_DEFINE_int32("nfs", max_send_rate_megabytes, 50, "max rate of send to remote node(MB/s)");
 
 DSN_DECLARE_int32(file_close_timer_interval_ms_on_server);
 DSN_DECLARE_int32(file_close_expire_time_ms);
@@ -62,6 +65,8 @@ nfs_service_impl::nfs_service_impl() : ::dsn::serverlet<nfs_service_impl>("nfs")
         "recent_copy_fail_count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "nfs server copy fail count count in the recent period");
+
+    _send_token_bucket = std::make_unique<folly::DynamicTokenBucket>();
 }
 
 void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
@@ -131,6 +136,8 @@ void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
 
 void nfs_service_impl::internal_read_callback(error_code err, size_t sz, callback_para &cp)
 {
+    _send_token_bucket->consumeWithBorrowAndWait(
+        sz, FLAGS_max_send_rate_megabytes << 20, 1.5 * (FLAGS_max_send_rate_megabytes << 20));
     {
         zauto_lock l(_handles_map_lock);
         auto it = _handles_map.find(cp.file_path);

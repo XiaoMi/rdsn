@@ -122,6 +122,9 @@ private:
 
     ::dsn::task_ptr _file_close_timer;
 
+    std::unique_ptr<folly::DynamicTokenBucket>
+        _send_token_bucket; // rate limiter of copy from remote
+
     perf_counter_wrapper _recent_copy_data_size;
     perf_counter_wrapper _recent_copy_fail_count;
 
