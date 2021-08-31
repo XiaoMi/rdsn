@@ -284,7 +284,7 @@ void nfs_service_impl::register_cli_commands()
                     return std::string("ERR: invalid arguments");
                 }
 
-                _send_token_bucket->reset(max_send_rate_megabytes, 1.5 * max_send_rate_megabytes);
+                _send_token_bucket->reset(max_send_rate_megabytes << 20, 1.5 * (max_send_rate_megabytes <<20));
                 current_send_copy_rate_megabytes = max_send_rate_megabytes;
                 return result;
             });
