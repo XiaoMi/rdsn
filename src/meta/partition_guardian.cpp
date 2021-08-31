@@ -754,7 +754,8 @@ partition_guardian::ctrl_assign_secondary_black_list(const std::vector<std::stri
     return "set ok";
 }
 
-void partition_guardian::get_ddd_partitions(const gpid &pid, std::vector<ddd_partition_info> &partitions)
+void partition_guardian::get_ddd_partitions(const gpid &pid,
+                                            std::vector<ddd_partition_info> &partitions)
 {
     zauto_lock l(_ddd_partitions_lock);
     if (pid.get_app_id() == -1) {
