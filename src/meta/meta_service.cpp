@@ -288,8 +288,6 @@ void meta_service::register_ctrl_commands()
 void meta_service::unregister_ctrl_commands()
 {
     UNREGISTER_VALID_HANDLER(_ctrl_node_live_percentage_threshold_for_update);
-    _partition_guardian->unregister_ctrl_commands();
-    _balancer->unregister_ctrl_commands();
 }
 
 void meta_service::start_service()
@@ -1019,7 +1017,7 @@ void meta_service::ddd_diagnose(ddd_diagnose_rpc rpc)
     }
 
     auto &response = rpc.response();
-    get_balancer()->get_ddd_partitions(rpc.request().pid, response.partitions);
+    get_partition_guardian()->get_ddd_partitions(rpc.request().pid, response.partitions);
     response.err = ERR_OK;
 }
 

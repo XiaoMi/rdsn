@@ -32,9 +32,11 @@ public:
         return new T(svc);
     }
     typedef partition_guardian *(*factory)(meta_service *svc);
+
+    explicit partition_guardian(meta_service *svc);
     ~partition_guardian() = default;
 
-    pc_status cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action);
+    virtual pc_status cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action);
     void reconfig(meta_view view, const configuration_update_request &request);
     void register_ctrl_commands();
     void unregister_ctrl_commands();
@@ -46,8 +48,6 @@ public:
     }
 
 private:
-    explicit partition_guardian(meta_service *svc);
-
     bool
     from_proposals(meta_view &view, const dsn::gpid &gpid, configuration_proposal_action &action);
     pc_status on_missing_primary(meta_view &view, const dsn::gpid &gpid);
@@ -93,6 +93,8 @@ private:
     int32_t _mutation_2pc_min_replica_count;
     dsn_handle_t _ctrl_assign_delay_ms;
     uint64_t _replica_assign_delay_ms_for_dropouts;
+
+    friend class meta_partition_guardian_test;
 };
 
 } // namespace replication

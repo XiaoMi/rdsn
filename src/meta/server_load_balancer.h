@@ -175,36 +175,6 @@ public:
 
 public:
     typedef std::function<bool(const rpc_address &addr1, const rpc_address &addr2)> node_comparator;
-    typedef std::function<bool(const node_state &ns)> node_filter;
-    static void sort_node(const node_mapper &nodes,
-                          const node_comparator &cmp,
-                          const node_filter &filter,
-                          std::vector<rpc_address> &result)
-    {
-        result.clear();
-        result.reserve(nodes.size());
-        for (auto &iter : nodes) {
-            if (filter(iter.second)) {
-                result.push_back(iter.first);
-            }
-        }
-        std::sort(result.begin(), result.end(), cmp);
-    }
-
-    static void sort_alive_nodes(const node_mapper &nodes,
-                                 const node_comparator &cmp,
-                                 std::vector<rpc_address> &sorted_node)
-    {
-        sorted_node.clear();
-        sorted_node.reserve(nodes.size());
-        for (auto &iter : nodes) {
-            if (!iter.first.is_invalid() && iter.second.alive()) {
-                sorted_node.push_back(iter.first);
-            }
-        }
-        std::sort(sorted_node.begin(), sorted_node.end(), cmp);
-    }
-
     static node_comparator primary_comparator(const node_mapper &nodes)
     {
         return [&nodes](const rpc_address &r1, const rpc_address &r2) {
