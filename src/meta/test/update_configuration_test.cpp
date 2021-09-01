@@ -87,12 +87,12 @@ public:
     }
 };
 
-class dummy_partition_guardian : public partition_guardian {
+class dummy_partition_guardian : public partition_guardian
+{
 public:
     explicit dummy_partition_guardian(meta_service *s) : partition_guardian(s) {}
 
-    pc_status
-    cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action)
+    pc_status cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action)
     {
         action.type = config_type::CT_INVALID;
         const dsn::partition_configuration &pc = *get_config(*view.apps, gpid);

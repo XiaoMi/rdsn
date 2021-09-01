@@ -35,10 +35,7 @@ namespace replication {
 #endif
 #define ASSERT_FALSE(exp) dassert(!(exp), "")
 
-static void check_cure(
-                       app_mapper &apps,
-                       node_mapper &nodes,
-                       ::dsn::partition_configuration &pc)
+static void check_cure(app_mapper &apps, node_mapper &nodes, ::dsn::partition_configuration &pc)
 {
     meta_service svc;
     partition_guardian guardian(&svc);
@@ -211,7 +208,7 @@ void meta_service_test_app::balancer_validator()
     greedy_load_balancer glb(&svc);
 
     generate_apps(
-            apps, node_list, 5, disk_on_node, std::pair<uint32_t, uint32_t>(1000, 2000), true);
+        apps, node_list, 5, disk_on_node, std::pair<uint32_t, uint32_t>(1000, 2000), true);
     generate_node_mapper(nodes, apps, node_list);
     generate_node_fs_manager(apps, nodes, manager, disk_on_node);
     migration_list ml;

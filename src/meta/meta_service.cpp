@@ -397,7 +397,7 @@ error_code meta_service::start()
     _balancer->register_ctrl_commands();
 
     partition_guardian *guardian = utils::factory_store<partition_guardian>::create(
-            _meta_opts.partition_guardian_type.c_str(), PROVIDER_TYPE_MAIN, this);
+        _meta_opts.partition_guardian_type.c_str(), PROVIDER_TYPE_MAIN, this);
     _partition_guardian.reset(guardian);
     _partition_guardian->register_ctrl_commands();
 

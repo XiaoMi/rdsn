@@ -84,7 +84,9 @@ public:
 
             else if (pc.last_drops.size() == 0) {
                 std::vector<rpc_address> sort_result;
-                sort_alive_nodes(*view.nodes, server_load_balancer::primary_comparator(*view.nodes), sort_result);
+                sort_alive_nodes(*view.nodes,
+                                 server_load_balancer::primary_comparator(*view.nodes),
+                                 sort_result);
                 action.node = sort_result[0];
                 action.type = config_type::CT_ASSIGN_PRIMARY;
                 result = pc_status::ill;
@@ -106,7 +108,8 @@ public:
 
         else if (static_cast<int>(pc.secondaries.size()) + 1 < pc.max_replica_count) {
             std::vector<rpc_address> sort_result;
-            sort_alive_nodes(*view.nodes, server_load_balancer::partition_comparator(*view.nodes), sort_result);
+            sort_alive_nodes(
+                *view.nodes, server_load_balancer::partition_comparator(*view.nodes), sort_result);
 
             for (auto &node : sort_result) {
                 if (!is_member(pc, node)) {
@@ -383,6 +386,6 @@ void install_checkers()
     dsn::tools::simulator::register_checker("simple_kv.checker",
                                             dsn::tools::checker::create<wrap_checker>);
 }
-}
-}
-}
+} // namespace test
+} // namespace replication
+} // namespace dsn

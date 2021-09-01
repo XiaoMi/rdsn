@@ -70,9 +70,8 @@ void meta_service_app::register_components()
     register_component("greedy_load_balancer",
                        replication::server_load_balancer,
                        replication::greedy_load_balancer);
-    register_component("partition_guardian",
-                       replication::partition_guardian,
-                       replication::partition_guardian);
+    register_component(
+        "partition_guardian", replication::partition_guardian, replication::partition_guardian);
 }
 
 void meta_service_app::register_all()
