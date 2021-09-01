@@ -2384,8 +2384,8 @@ bool server_state::check_all_partitions()
             // partition is under re-configuration or is child partition
             if (cc.stage != config_status::pending_remote_sync && pc.ballot != invalid_ballot) {
                 configuration_proposal_action action;
-                pc_status s =
-                    _meta_svc->get_partition_guardian()->cure({&_all_apps, &_nodes}, pc.pid, action);
+                pc_status s = _meta_svc->get_partition_guardian()->cure(
+                    {&_all_apps, &_nodes}, pc.pid, action);
                 dinfo("gpid(%d.%d) is in status(%s)",
                       pc.pid.get_app_id(),
                       pc.pid.get_partition_index(),
