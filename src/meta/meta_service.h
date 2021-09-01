@@ -252,7 +252,7 @@ private:
 
     std::shared_ptr<server_load_balancer> _balancer;
     std::shared_ptr<backup_service> _backup_handler;
-    std::shared_ptr<partition_guardian> _partition_guardian;
+    std::shared_ptr<partition_guardian> _partition_guardian = nullptr;
 
     std::unique_ptr<meta_duplication_service> _dup_svc;
 

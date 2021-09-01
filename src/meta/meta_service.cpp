@@ -288,6 +288,12 @@ void meta_service::register_ctrl_commands()
 void meta_service::unregister_ctrl_commands()
 {
     UNREGISTER_VALID_HANDLER(_ctrl_node_live_percentage_threshold_for_update);
+    if (_partition_guardian != nullptr) {
+        _partition_guardian->unregister_ctrl_commands();
+    }
+    if (_balancer != nullptr) {
+        _balancer->unregister_ctrl_commands();
+    }
 }
 
 void meta_service::start_service()
