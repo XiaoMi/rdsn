@@ -45,9 +45,7 @@
 namespace dsn {
 namespace service {
 
-static uint32_t current_send_copy_rate_megabytes = 0;
-
-DSN_DEFINE_int32("nfs", max_send_rate_megabytes, 50, "max rate of send to remote node(MB/s)");
+DSN_DEFINE_int32("nfs", max_send_rate_megabytes, 100, "max rate of send to remote node(MB/s)");
 DSN_TAG_VARIABLE(max_send_rate_megabytes, FT_MUTABLE);
 
 DSN_DECLARE_int32(file_close_timer_interval_ms_on_server);
@@ -71,9 +69,7 @@ nfs_service_impl::nfs_service_impl() : ::dsn::serverlet<nfs_service_impl>("nfs")
         COUNTER_TYPE_VOLATILE_NUMBER,
         "nfs server copy fail count count in the recent period");
 
-    _send_token_bucket = std::make_unique<TokenBucket>(FLAGS_max_send_rate_megabytes << 20,
-                                                       1.5 * (FLAGS_max_send_rate_megabytes << 20));
-    current_send_copy_rate_megabytes = FLAGS_max_send_rate_megabytes;
+    _send_token_bucket = std::make_unique<folly::DynamicTokenBucket>();
     register_cli_commands();
 }
 
@@ -144,7 +140,8 @@ void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
 
 void nfs_service_impl::internal_read_callback(error_code err, size_t sz, callback_para &cp)
 {
-    _send_token_bucket->consumeWithBorrowAndWait(sz);
+    _send_token_bucket->consumeWithBorrowAndWait(
+        sz, FLAGS_max_send_rate_megabytes << 20, 1.5 * (FLAGS_max_send_rate_megabytes << 20));
     {
         zauto_lock l(_handles_map_lock);
         auto it = _handles_map.find(cp.file_path);
@@ -256,26 +253,20 @@ void nfs_service_impl::close_file() // release out-of-date file handle
     }
 }
 
+// TODO(jiashuo1): just for compatibility, ready to delete it later
 void nfs_service_impl::register_cli_commands()
 {
     static std::once_flag flag;
     std::call_once(flag, [&]() {
         _nfs_max_send_rate_megabytes_cmd = dsn::command_manager::instance().register_command(
             {"nfs.max_send_rate_megabytes"},
-            "nfs.max_send_rate_megabytes [num | DEFAULT]",
-            "control the max rate(MB/s) to copy file from remote node",
-            [this](const std::vector<std::string> &args) {
+            "nfs.max_send_rate_megabytes [num]",
+            "control the max rate(MB/s) to send file to remote node",
+            [](const std::vector<std::string> &args) {
                 std::string result("OK");
 
                 if (args.empty()) {
-                    return std::to_string(current_send_copy_rate_megabytes);
-                }
-
-                if (args[0] == "DEFAULT") {
-                    uint32_t max_send_rate_bytes = FLAGS_max_send_rate_megabytes << 20;
-                    _send_token_bucket->reset(max_send_rate_bytes, 1.5 * max_send_rate_bytes);
-                    current_send_copy_rate_megabytes = FLAGS_max_send_rate_megabytes;
-                    return result;
+                    return std::to_string(FLAGS_max_send_rate_megabytes);
                 }
 
                 int32_t max_send_rate_megabytes = 0;
@@ -284,8 +275,7 @@ void nfs_service_impl::register_cli_commands()
                     return std::string("ERR: invalid arguments");
                 }
 
-                _send_token_bucket->reset(max_send_rate_megabytes << 20, 1.5 * (max_send_rate_megabytes <<20));
-                current_send_copy_rate_megabytes = max_send_rate_megabytes;
+                FLAGS_max_send_rate_megabytes = max_send_rate_megabytes;
                 return result;
             });
     });
