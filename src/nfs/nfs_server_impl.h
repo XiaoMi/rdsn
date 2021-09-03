@@ -38,7 +38,6 @@
 
 namespace dsn {
 namespace service {
-
 class nfs_service_impl : public ::dsn::serverlet<nfs_service_impl>
 {
 public:

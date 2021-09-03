@@ -33,11 +33,9 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 #include <cstdlib>
-#include <memory>
 #include <sys/stat.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/tool-api/async_calls.h>
-#include <dsn/utility/singleton.h>
 #include <dsn/tool-api/command_manager.h>
 
 #include "nfs_server_impl.h"
