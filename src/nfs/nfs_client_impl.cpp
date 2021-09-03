@@ -75,7 +75,7 @@ DSN_DEFINE_int32("nfs",
                  "maximum retry count when copy failed");
 DSN_DEFINE_int32("nfs",
                  rpc_timeout_ms,
-                 200000,
+                 100000,
                  "rpc timeout in milliseconds for nfs copy, "
                  "0 means use default timeout of rpc engine");
 
