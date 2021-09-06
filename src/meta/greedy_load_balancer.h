@@ -153,7 +153,7 @@ private:
 
     void app_balancer(bool balance_checker);
 
-    bool continue_balance_secondaries(bool balance_checker);
+    bool need_balance_secondaries(bool balance_checker);
 
     bool
     execute_balance(const app_mapper &apps,

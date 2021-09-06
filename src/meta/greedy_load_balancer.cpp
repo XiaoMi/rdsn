@@ -914,7 +914,7 @@ void greedy_load_balancer::app_balancer(bool balance_checker)
         return;
     }
 
-    if (!continue_balance_secondaries(balance_checker)) {
+    if (!need_balance_secondaries(balance_checker)) {
         return;
     }
 
@@ -932,7 +932,7 @@ void greedy_load_balancer::app_balancer(bool balance_checker)
                               std::placeholders::_2));
 }
 
-bool greedy_load_balancer::continue_balance_secondaries(bool balance_checker)
+bool greedy_load_balancer::need_balance_secondaries(bool balance_checker)
 {
     if (!balance_checker && !t_migration_result->empty()) {
         ddebug("stop to do secondary balance coz we already has actions to do");
