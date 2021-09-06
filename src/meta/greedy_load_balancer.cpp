@@ -955,7 +955,7 @@ bool greedy_load_balancer::execute_balance(
     for (const auto &kv : apps) {
         const std::shared_ptr<app_state> &app = kv.second;
         if (is_ignored_app(kv.first)) {
-            ddebug_f("skip to do primary balance for the ignored app[{}]", app->get_logname());
+            ddebug_f("skip to do balance for the ignored app[{}]", app->get_logname());
             continue;
         }
         if (app->status != app_status::AS_AVAILABLE || app->is_bulk_loading || app->splitting())
