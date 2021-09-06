@@ -705,8 +705,11 @@ void connection_oriented_network::on_server_session_accepted(rpc_session_ptr &s)
 
 void connection_oriented_network::on_server_session_disconnected(rpc_session_ptr &s)
 {
-    int ip_count = 0;      // how many unique client IPs
-    int ip_conn_count = 0; // how many connections bound to the IP of `s`
+    int ip_count =
+        0; // how many unique client(the same ip:port is considered to be a unique client)
+    int ip_conn_count =
+        0; // one unique client may remain more than one connection on the server, which
+           // is a unexpected behavior of client, we should record it in logs.
     bool session_removed = false;
     {
         utils::auto_write_lock l(_servers_lock);
