@@ -145,14 +145,22 @@ private:
     bool copy_primary_per_app(const std::shared_ptr<app_state> &app,
                               bool still_have_less_than_average,
                               int replicas_low);
-    bool primary_balancer_per_app(const std::shared_ptr<app_state> &app,
-                                  bool only_move_primary = false);
+    bool primary_balance(const std::shared_ptr<app_state> &app, bool only_move_primary);
 
-    bool copy_secondary_per_app(const std::shared_ptr<app_state> &app);
+    bool copy_secondary(const std::shared_ptr<app_state> &app, bool place_holder);
 
     void greedy_balancer(bool balance_checker);
 
     void app_balancer(bool balance_checker);
+
+    bool continue_balance_secondaries(bool balance_checker);
+
+    bool
+    execute_balance(const app_mapper &apps,
+                    bool balance_checker,
+                    bool balance_in_turn,
+                    bool only_move_primary,
+                    const std::function<bool(const std::shared_ptr<app_state> &, bool)> &callback);
 
     void balance_cluster();
 
