@@ -411,5 +411,58 @@ TEST(greedy_load_balancer, pick_up_partition)
         ASSERT_EQ(pid, picked_pid);
     }
 }
+
+bool balance_func(const std::shared_ptr<app_state> &app, bool only_move_primary)
+{
+    return only_move_primary;
+}
+
+TEST(greedy_load_balancer, execute_balance)
+{
+    int32_t app_id = 1;
+    std::string app_name = "test";
+    app_info info;
+    info.app_id = app_id;
+    info.app_name = app_name;
+    info.partition_count = 1;
+    info.status = app_status::AS_AVAILABLE;
+    info.is_bulk_loading = false;
+    auto app = std::make_shared<app_state>(info);
+    app->helpers->split_states.splitting_count = 0;
+    app_mapper apps;
+    apps[app_id] = app;
+    greedy_load_balancer balancer(nullptr);
+
+    app->status = app_status::AS_DROPPED;
+    auto res = balancer.execute_balance(apps, false, false, true, balance_func);
+    app->status = app_status::AS_AVAILABLE;
+    ASSERT_EQ(res, true);
+
+    app->is_bulk_loading = true;
+    res = balancer.execute_balance(apps, false, false, true, balance_func);
+    app->is_bulk_loading = false;
+    ASSERT_EQ(res, true);
+
+    app->helpers->split_states.splitting_count = 1;
+    res = balancer.execute_balance(apps, false, false, true, balance_func);
+    app->helpers->split_states.splitting_count = 0;
+    ASSERT_EQ(res, true);
+
+    res = balancer.execute_balance(apps, false, true, false, balance_func);
+    ASSERT_EQ(res, false);
+
+    res = balancer.execute_balance(apps, true, false, true, balance_func);
+    ASSERT_EQ(res, true);
+
+    /**
+    gpid _gpid(1, 1);
+    auto req = std::make_shared<configuration_balancer_request>();
+    */
+    migration_list migration_result;
+    migration_result.emplace(gpid(1, 1), std::make_shared<configuration_balancer_request>());
+    balancer.t_migration_result = &migration_result;
+    res = balancer.execute_balance(apps, false, true, true, balance_func);
+    ASSERT_EQ(res, false);
+}
 } // namespace replication
 } // namespace dsn
