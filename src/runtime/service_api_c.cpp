@@ -45,6 +45,8 @@
 
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
+#elif defined(DSN_USE_JEMALLOC)
+#include "utils/je_ctl.h"
 #endif
 
 #include "service_engine.h"
@@ -438,6 +440,10 @@ bool run(const char *config_file,
 
     // init logging
     dsn_log_init(spec.logging_factory_name, spec.dir_log, dsn_log_prefixed_message_func);
+
+#if !defined(DSN_ENABLE_GPERF) && defined(DSN_USE_JEMALLOC)
+    dsn::utils::je_initialize();
+#endif
 
     // prepare minimum necessary
     ::dsn::service_engine::instance().init_before_toollets(spec);

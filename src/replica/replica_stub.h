@@ -375,6 +375,15 @@ private:
     dsn_handle_t _get_tcmalloc_status_command;
     dsn_handle_t _max_reserved_memory_percentage_command;
     dsn_handle_t _release_all_reserved_memory_command;
+#elif defined(DSN_USE_JEMALLOC)
+    dsn_handle_t _set_jemalloc_all_arenas_dirty_decay_ms_command;
+    dsn_handle_t _set_jemalloc_all_arenas_muzzy_decay_ms_command;
+    dsn_handle_t _decay_jemalloc_all_arenas_command;
+    dsn_handle_t _purge_jemalloc_all_arenas_command;
+    dsn_handle_t _get_jemalloc_configs_command;
+    dsn_handle_t _get_jemalloc_summary_stats_command;
+    dsn_handle_t _get_jemalloc_brief_arena_stats_command;
+    dsn_handle_t _get_jemalloc_detailed_stats_command;
 #endif
     dsn_handle_t _max_concurrent_bulk_load_downloading_count_command;
 

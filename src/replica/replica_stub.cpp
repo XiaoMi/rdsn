@@ -57,6 +57,8 @@
 #include <dsn/dist/fmt_logging.h>
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
+#elif defined(DSN_USE_JEMALLOC)
+#include "utils/je_ctl.h"
 #endif
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/remote_command.h>
@@ -99,6 +101,15 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
     _get_tcmalloc_status_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
     _release_all_reserved_memory_command = nullptr;
+#elif defined(DSN_USE_JEMALLOC)
+    _set_jemalloc_all_arenas_dirty_decay_ms_command = nullptr;
+    _set_jemalloc_all_arenas_muzzy_decay_ms_command = nullptr;
+    _decay_jemalloc_all_arenas_command = nullptr;
+    _purge_jemalloc_all_arenas_command = nullptr;
+    _get_jemalloc_configs_command = nullptr;
+    _get_jemalloc_summary_stats_command = nullptr;
+    _get_jemalloc_brief_arena_stats_command = nullptr;
+    _get_jemalloc_detailed_stats_command = nullptr;
 #endif
     _replica_state_subscriber = subscriber;
     _is_long_subscriber = is_long_subscriber;
@@ -2404,6 +2415,116 @@ void replica_stub::register_ctrl_command()
                 auto release_bytes = gc_tcmalloc_memory(true);
                 return "OK, release_bytes=" + std::to_string(release_bytes);
             });
+#elif defined(DSN_USE_JEMALLOC)
+        _set_jemalloc_all_arenas_dirty_decay_ms_command = ::dsn::command_manager::instance().register_command(
+            {"replica.set-jemalloc-all-arenas-dirty-decay-ms"},
+            "replica.set-jemalloc-all-arenas-dirty-decay-ms [num | DEFAULT]",
+            "set dirty decay ms for all arenas memory of jemalloc",
+            [](const std::vector<std::string> &args) {
+                if (args.empty()) {
+                    // show current value
+                    std::string info;
+                    dsn::utils::je_ctl_get_all_arenas_dirty_decay_ms_info(&info);
+                    return info;
+                }
+
+                int64_t dirty_decay_ms = 0;
+                if (args[0] == "DEFAULT") {
+                    // set to default value
+                    dirty_decay_ms = 10000;
+                } else if (!dsn::buf2int64(args[0], dirty_decay_ms)) {
+                    return std::string("ERR: invalid arguments");
+                }
+
+                std::string msg;
+                dsn::utils::je_ctl_set_all_arenas_dirty_decay_ms(static_cast<ssize_t>(dirty_decay_ms), &msg);
+                return msg;
+            });
+
+        _set_jemalloc_all_arenas_muzzy_decay_ms_command = ::dsn::command_manager::instance().register_command(
+            {"replica.set-jemalloc-all-arenas-muzzy-decay-ms"},
+            "replica.set-jemalloc-all-arenas-muzzy-decay-ms [num | DEFAULT]",
+            "set muzzy decay ms for all arenas memory of jemalloc",
+            [](const std::vector<std::string> &args) {
+                if (args.empty()) {
+                    // show current value
+                    std::string info;
+                    dsn::utils::je_ctl_get_all_arenas_muzzy_decay_ms_info(&info);
+                    return info;
+                }
+
+                int64_t muzzy_decay_ms = 0;
+                if (args[0] == "DEFAULT") {
+                    // set to default value
+                    muzzy_decay_ms = 10000;
+                } else if (!dsn::buf2int64(args[0], muzzy_decay_ms)) {
+                    return std::string("ERR: invalid arguments");
+                }
+
+                std::string msg;
+                dsn::utils::je_ctl_set_all_arenas_muzzy_decay_ms(static_cast<ssize_t>(muzzy_decay_ms), &msg);
+                return msg;
+            });
+
+        _decay_jemalloc_all_arenas_command = ::dsn::command_manager::instance().register_command(
+            {"replica.decay-jemalloc-all-arenas"},
+            "replica.decay-jemalloc-all-arenas - decay all arenas memory of jemalloc",
+            "decay all arenas memory of jemalloc",
+            [](const std::vector<std::string> &args) {
+                std::string msg;
+                dsn::utils::je_ctl_decay_all_arenas(&msg);
+                return msg;
+            });
+
+        _purge_jemalloc_all_arenas_command = ::dsn::command_manager::instance().register_command(
+            {"replica.purge-jemalloc-all-arenas"},
+            "replica.purge-jemalloc-all-arenas - purge all arenas memory of jemalloc",
+            "purge all arenas memory of jemalloc",
+            [](const std::vector<std::string> &args) {
+                std::string msg;
+                dsn::utils::je_ctl_purge_all_arenas(&msg);
+                return msg;
+            });
+
+        _get_jemalloc_configs_command = ::dsn::command_manager::instance().register_command(
+            {"replica.get-jemalloc-configs"},
+            "replica.get-jemalloc-configs - get configs of jemalloc",
+            "get configs of jemalloc",
+            [](const std::vector<std::string> &args) {
+                std::string stats("\n");
+                dsn::utils::je_dump_configs(&stats);
+                return stats;
+            });
+
+        _get_jemalloc_summary_stats_command = ::dsn::command_manager::instance().register_command(
+            {"replica.get-jemalloc-summary-stats"},
+            "replica.get-jemalloc-summary-stats - get summary stats of jemalloc",
+            "get summary stats of jemalloc",
+            [](const std::vector<std::string> &args) {
+                std::string stats("\n");
+                dsn::utils::je_dump_summary_stats(&stats);
+                return stats;
+            });
+
+        _get_jemalloc_brief_arena_stats_command = ::dsn::command_manager::instance().register_command(
+            {"replica.get-jemalloc-brief-arena-stats"},
+            "replica.get-jemalloc-brief-arena-stats - get brief_arena stats of jemalloc",
+            "get brief arena stats of jemalloc",
+            [](const std::vector<std::string> &args) {
+                std::string stats("\n");
+                dsn::utils::je_dump_brief_arena_stats(&stats);
+                return stats;
+            });
+
+        _get_jemalloc_detailed_stats_command = ::dsn::command_manager::instance().register_command(
+            {"replica.get-jemalloc-detailed-stats"},
+            "replica.get-jemalloc-detailed-stats - get detailed stats of jemalloc",
+            "get detailed stats of jemalloc",
+            [](const std::vector<std::string> &args) {
+                std::string stats("\n");
+                dsn::utils::je_dump_detailed_stats(&stats);
+                return stats;
+            });
 #endif
         _max_concurrent_bulk_load_downloading_count_command =
             dsn::command_manager::instance().register_command(
@@ -2566,6 +2687,15 @@ void replica_stub::close()
     UNREGISTER_VALID_HANDLER(_get_tcmalloc_status_command);
     UNREGISTER_VALID_HANDLER(_max_reserved_memory_percentage_command);
     UNREGISTER_VALID_HANDLER(_release_all_reserved_memory_command);
+#elif defined(DSN_USE_JEMALLOC)
+    UNREGISTER_VALID_HANDLER(_set_jemalloc_all_arenas_dirty_decay_ms_command);
+    UNREGISTER_VALID_HANDLER(_set_jemalloc_all_arenas_muzzy_decay_ms_command);
+    UNREGISTER_VALID_HANDLER(_decay_jemalloc_all_arenas_command);
+    UNREGISTER_VALID_HANDLER(_purge_jemalloc_all_arenas_command);
+    UNREGISTER_VALID_HANDLER(_get_jemalloc_configs_command);
+    UNREGISTER_VALID_HANDLER(_get_jemalloc_summary_stats_command);
+    UNREGISTER_VALID_HANDLER(_get_jemalloc_brief_arena_stats_command);
+    UNREGISTER_VALID_HANDLER(_get_jemalloc_detailed_stats_command);
 #endif
     UNREGISTER_VALID_HANDLER(_max_concurrent_bulk_load_downloading_count_command);
 
@@ -2581,6 +2711,15 @@ void replica_stub::close()
     _get_tcmalloc_status_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
     _release_all_reserved_memory_command = nullptr;
+#elif defined(DSN_USE_JEMALLOC)
+    _set_jemalloc_all_arenas_dirty_decay_ms_command = nullptr;
+    _set_jemalloc_all_arenas_muzzy_decay_ms_command = nullptr;
+    _decay_jemalloc_all_arenas_command = nullptr;
+    _purge_jemalloc_all_arenas_command = nullptr;
+    _get_jemalloc_configs_command = nullptr;
+    _get_jemalloc_summary_stats_command = nullptr;
+    _get_jemalloc_brief_arena_stats_command = nullptr;
+    _get_jemalloc_detailed_stats_command = nullptr;
 #endif
     _max_concurrent_bulk_load_downloading_count_command = nullptr;
 
