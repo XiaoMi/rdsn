@@ -985,9 +985,9 @@ void greedy_load_balancer::balance_cluster()
 {
     const app_mapper &apps = *t_global_view->apps;
     if (!execute_balance(apps,
-                         false,
-                         true,
-                         true,
+                         false, /* balance_checker */
+                         true,  /* balance_in_turn */
+                         true,  /* only_move_primary */
                          std::bind(&greedy_load_balancer::primary_balance,
                                    this,
                                    std::placeholders::_1,
