@@ -322,7 +322,7 @@ message(STATUS "USE_JEMALLOC = ${USE_JEMALLOC}")
 ExternalProject_Add(jemalloc
         URL https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2
         URL_MD5 3d41fbf006e6ebffd489bdb304d009ae
-        CONFIGURE_COMMAND ./configure --prefix=${TP_OUTPUT} --enable-cxx --enable-stats --enable-prof --with-malloc-conf=background_thread:true,percpu_arena:percpu,dirty_decay_ms:10000,muzzy_decay_ms:10000
+        CONFIGURE_COMMAND ./configure --prefix=${TP_OUTPUT} --enable-cxx --enable-stats --enable-prof --with-malloc-conf=background_thread:true,dirty_decay_ms:10000,muzzy_decay_ms:10000
         BUILD_COMMAND make
         INSTALL_COMMAND make install
         BUILD_IN_SOURCE 1

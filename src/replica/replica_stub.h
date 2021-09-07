@@ -384,6 +384,12 @@ private:
     dsn_handle_t _get_jemalloc_summary_stats_command;
     dsn_handle_t _get_jemalloc_brief_arena_stats_command;
     dsn_handle_t _get_jemalloc_detailed_stats_command;
+    dsn_handle_t _activate_jemalloc_prof_command;
+    dsn_handle_t _deactivate_jemalloc_prof_command;
+    dsn_handle_t _dump_jemalloc_prof_command;
+    dsn_handle_t _enable_jemalloc_prof_gdump_command;
+    dsn_handle_t _disable_jemalloc_prof_gdump_command;
+    dsn_handle_t _reset_jemalloc_prof_command;
 #endif
     dsn_handle_t _max_concurrent_bulk_load_downloading_count_command;
 

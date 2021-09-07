@@ -36,7 +36,7 @@ if(ENABLE_GPERF AND USE_JEMALLOC)
 endif()
 
 if(USE_JEMALLOC)
-    set(JEMALLOC_LIB_TYPE "STATIC")
+    set(JEMALLOC_LIB_TYPE "SHARED")
 endif()
 
 # ================================================================== #

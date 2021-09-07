@@ -55,6 +55,18 @@ void je_dump_brief_arena_stats(std::string *stats);
 
 void je_dump_detailed_stats(std::string *stats);
 
+bool je_ctl_activate_prof(std::string *err_msg);
+
+bool je_ctl_deactivate_prof(std::string *err_msg);
+
+bool je_ctl_dump_prof(const char *path, std::string *err_msg);
+
+bool je_ctl_enable_prof_gdump(std::string *err_msg);
+
+bool je_ctl_disable_prof_gdump(std::string *err_msg);
+
+bool je_ctl_reset_prof(size_t lg_sample, std::string *err_msg);
+
 } // namespace utils
 } // namespace dsn
 

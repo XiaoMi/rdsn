@@ -110,6 +110,13 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
     _get_jemalloc_summary_stats_command = nullptr;
     _get_jemalloc_brief_arena_stats_command = nullptr;
     _get_jemalloc_detailed_stats_command = nullptr;
+    _activate_jemalloc_prof_command = nullptr;
+    _deactivate_jemalloc_prof_command = nullptr;
+    _dump_jemalloc_prof_command = nullptr;
+    _enable_jemalloc_prof_gdump_command = nullptr;
+    _disable_jemalloc_prof_gdump_command = nullptr;
+    _reset_jemalloc_prof_command = nullptr;
+
 #endif
     _replica_state_subscriber = subscriber;
     _is_long_subscriber = is_long_subscriber;
@@ -2525,6 +2532,78 @@ void replica_stub::register_ctrl_command()
                 dsn::utils::je_dump_detailed_stats(&stats);
                 return stats;
             });
+
+        _activate_jemalloc_prof_command = ::dsn::command_manager::instance().register_command(
+            {"replica.activate-jemalloc-prof"},
+            "replica.activate-jemalloc-prof - activate jemalloc prof",
+            "activate jemalloc prof",
+            [](const std::vector<std::string> &args) {
+                std::string msg;
+                dsn::utils::je_ctl_activate_prof(&msg);
+                return msg;
+            });
+
+        _deactivate_jemalloc_prof_command = ::dsn::command_manager::instance().register_command(
+            {"replica.deactivate-jemalloc-prof"},
+            "replica.deactivate-jemalloc-prof - deactivate jemalloc prof",
+            "deactivate jemalloc prof",
+            [](const std::vector<std::string> &args) {
+                std::string msg;
+                dsn::utils::je_ctl_deactivate_prof(&msg);
+                return msg;
+            });
+
+        _dump_jemalloc_prof_command = ::dsn::command_manager::instance().register_command(
+            {"replica.dump-jemalloc-prof"},
+            "replica.dump-jemalloc-prof [path]",
+            "dump jemalloc prof",
+            [](const std::vector<std::string> &args) {
+                const char *path = nullptr;
+                if (!args.empty()) {
+                    path = args[0].c_str();
+                }
+
+                std::string msg;
+                dsn::utils::je_ctl_dump_prof(path, &msg);
+                return msg;
+            });
+
+        _enable_jemalloc_prof_gdump_command = ::dsn::command_manager::instance().register_command(
+            {"replica.enable-jemalloc-prof-gdump"},
+            "replica.enable-jemalloc-prof-gdump - enable prof gdump for jemalloc",
+            "enable prof gdump for jemalloc",
+            [](const std::vector<std::string> &args) {
+                std::string msg;
+                dsn::utils::je_ctl_enable_prof_gdump(&msg);
+                return msg;
+            });
+
+        _disable_jemalloc_prof_gdump_command = ::dsn::command_manager::instance().register_command(
+            {"replica.disable-jemalloc-prof-gdump"},
+            "replica.disable-jemalloc-prof-gdump - disable prof gdump for jemalloc",
+            "disable prof gdump for jemalloc",
+            [](const std::vector<std::string> &args) {
+                std::string msg;
+                dsn::utils::je_ctl_disable_prof_gdump(&msg);
+                return msg;
+            });
+
+        _reset_jemalloc_prof_command = ::dsn::command_manager::instance().register_command(
+            {"replica.reset-jemalloc-prof"},
+            "replica.reset-jemalloc-prof [lg_sample]",
+            "reset jemalloc prof",
+            [](const std::vector<std::string> &args) {
+                uint64_t lg_sample = 19;
+                if (!args.empty()) {
+                    if (!dsn::buf2uint64(args[0], lg_sample)) {
+                        return std::string("ERR: invalid arguments");
+                    }
+                }
+
+                std::string msg;
+                dsn::utils::je_ctl_reset_prof(static_cast<size_t>(lg_sample), &msg);
+                return msg;
+            });
 #endif
         _max_concurrent_bulk_load_downloading_count_command =
             dsn::command_manager::instance().register_command(
@@ -2696,6 +2775,12 @@ void replica_stub::close()
     UNREGISTER_VALID_HANDLER(_get_jemalloc_summary_stats_command);
     UNREGISTER_VALID_HANDLER(_get_jemalloc_brief_arena_stats_command);
     UNREGISTER_VALID_HANDLER(_get_jemalloc_detailed_stats_command);
+    UNREGISTER_VALID_HANDLER(_activate_jemalloc_prof_command);
+    UNREGISTER_VALID_HANDLER(_deactivate_jemalloc_prof_command);
+    UNREGISTER_VALID_HANDLER(_dump_jemalloc_prof_command);
+    UNREGISTER_VALID_HANDLER(_enable_jemalloc_prof_gdump_command);
+    UNREGISTER_VALID_HANDLER(_disable_jemalloc_prof_gdump_command);
+    UNREGISTER_VALID_HANDLER(_reset_jemalloc_prof_command);
 #endif
     UNREGISTER_VALID_HANDLER(_max_concurrent_bulk_load_downloading_count_command);
 
@@ -2720,6 +2805,12 @@ void replica_stub::close()
     _get_jemalloc_summary_stats_command = nullptr;
     _get_jemalloc_brief_arena_stats_command = nullptr;
     _get_jemalloc_detailed_stats_command = nullptr;
+    _activate_jemalloc_prof_command = nullptr;
+    _deactivate_jemalloc_prof_command = nullptr;
+    _dump_jemalloc_prof_command = nullptr;
+    _enable_jemalloc_prof_gdump_command = nullptr;
+    _disable_jemalloc_prof_gdump_command = nullptr;
+    _reset_jemalloc_prof_command = nullptr;
 #endif
     _max_concurrent_bulk_load_downloading_count_command = nullptr;
 

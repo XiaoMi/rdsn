@@ -50,73 +50,75 @@ static bool je_ctl_check_err(const char *action, int err, std::string *err_msg)
 }
 
 template <typename T>
-static bool je_ctl_check_set_err(const char *name, T val, int err, std::string *err_msg)
+static inline bool je_ctl_check_set_err(const char *name, T val, int err, std::string *err_msg)
 {
     std::string action(fmt::format("set {} to {}", name, val));
     return je_ctl_check_err(action.c_str(), err, err_msg);
 }
 
 template <typename T>
-static bool je_ctl_set_num(const char *name, T val, std::string *err_msg)
+static inline bool je_ctl_set_num(const char *name, T val, std::string *err_msg)
 {
     int je_ret = mallctl(name, nullptr, nullptr, &val, sizeof(val));
     return je_ctl_check_set_err(name, val, je_ret, err_msg);
 }
 
-/*
-static bool je_ctl_set_str(const char *name, const char *val, std::string *err_msg)
+static inline bool je_ctl_set_str(const char *name, const char *val, std::string *err_msg)
 {
-    void *v = static_cast<void *>(const_cast<char *>(val));
-    int je_ret = mallctl(name, nullptr, nullptr, v, sizeof(val));
-    return je_ctl_check_set_err(name, val, je_ret, err_msg);
-}
-*/
+    void *p = nullptr;
+    size_t sz = 0;
+    if (val != nullptr) {
+        p = static_cast<void *>(&val);
+        sz = sizeof(val);
+    }
 
-static bool je_ctl_set_void(const char *name, std::string *err_msg)
+    int je_ret = mallctl(name, nullptr, nullptr, p, sz);
+    return je_ctl_check_set_err(name, val == nullptr ? "nullptr" : val, je_ret, err_msg);
+}
+
+static inline bool je_ctl_set_void(const char *name, std::string *err_msg)
 {
     int je_ret = mallctl(name, nullptr, nullptr, nullptr, 0);
     return je_ctl_check_err(name, je_ret, err_msg);
 }
 
-static bool je_ctl_check_get_err(const char *name, int err, std::string *err_msg)
+static inline bool je_ctl_check_get_err(const char *name, int err, std::string *err_msg)
 {
     std::string action(fmt::format("get {}", name));
     return je_ctl_check_err(action.c_str(), err, err_msg);
 }
 
 template <typename T>
-static bool je_ctl_get_num(const char *name, T &val, std::string *err_msg)
+static inline bool je_ctl_get_num(const char *name, T &val, std::string *err_msg)
 {
-    size_t size = sizeof(val);
-    int je_ret = mallctl(name, &val, &size, nullptr, 0);
+    size_t sz = sizeof(val);
+    int je_ret = mallctl(name, &val, &sz, nullptr, 0);
     return je_ctl_check_get_err(name, je_ret, err_msg);
 }
 
-void je_initialize()
-{
-    bool enable_je_bg_thread = true;
-    je_ctl_set_num("background_thread", enable_je_bg_thread, nullptr);
-}
+void je_initialize() { je_ctl_set_num("background_thread", true, nullptr); }
 
-static bool je_ctl_get_narenas(unsigned &narenas, std::string *err_msg)
+static inline bool je_ctl_get_narenas(unsigned &narenas, std::string *err_msg)
 {
     return je_ctl_get_num("arenas.narenas", narenas, err_msg);
 }
 
-static std::string build_arena_name(unsigned index, const char *sub_name)
+static inline std::string build_arena_name(unsigned index, const char *sub_name)
 {
     return fmt::format("arena.{}.{}", index, sub_name);
 }
 
 template <typename T>
-static bool je_ctl_set_arena_num(unsigned index, const char *sub_name, T val, std::string *err_msg)
+static inline bool
+je_ctl_set_arena_num(unsigned index, const char *sub_name, T val, std::string *err_msg)
 {
     std::string name(build_arena_name(index, sub_name));
     return je_ctl_set_num(name.c_str(), val, err_msg);
 }
 
 template <typename T>
-static bool je_ctl_get_arena_num(unsigned index, const char *sub_name, T &val, std::string *err_msg)
+static inline bool
+je_ctl_get_arena_num(unsigned index, const char *sub_name, T &val, std::string *err_msg)
 {
     std::string name(build_arena_name(index, sub_name));
     return je_ctl_get_num(name.c_str(), val, err_msg);
@@ -225,8 +227,6 @@ static void je_stats_cb(void *opaque, const char *str)
         return;
     }
 
-    ddebug_f("{}", str);
-
     auto stats = reinterpret_cast<std::string *>(opaque);
     auto len = strlen(str);
     if (stats->size() + len > stats->capacity()) {
@@ -260,6 +260,59 @@ void je_dump_brief_arena_stats(std::string *stats)
 void je_dump_detailed_stats(std::string *stats)
 {
     je_dump_malloc_stats("", 2 * 1024 * 1024, stats);
+}
+
+static inline bool je_ctl_get_prof(bool &prof, std::string *err_msg)
+{
+    return je_ctl_get_num("opt.prof", prof, err_msg);
+}
+
+#define CHECK_IF_PROF(err_msg)                                                                     \
+    do {                                                                                           \
+        bool prof = false;                                                                         \
+        if (!je_ctl_get_prof(prof, err_msg)) {                                                     \
+            return false;                                                                          \
+        }                                                                                          \
+        if (!prof) {                                                                               \
+            *err_msg = "<jemalloc> prof is disabled now, enable it by "                            \
+                       "`export MALLOC_CONF=\"prof:true,prof_prefix:...\"`";                       \
+            return false;                                                                          \
+        }                                                                                          \
+    } while (0)
+
+static inline bool je_ctl_set_prof_active(bool active, std::string *err_msg)
+{
+    CHECK_IF_PROF(err_msg);
+    return je_ctl_set_num("prof.active", active, err_msg);
+}
+
+bool je_ctl_activate_prof(std::string *err_msg) { return je_ctl_set_prof_active(true, err_msg); }
+
+bool je_ctl_deactivate_prof(std::string *err_msg) { return je_ctl_set_prof_active(false, err_msg); }
+
+bool je_ctl_dump_prof(const char *path, std::string *err_msg)
+{
+    CHECK_IF_PROF(err_msg);
+    return je_ctl_set_str("prof.dump", path, err_msg);
+}
+
+static inline bool je_ctl_set_prof_gdump(bool gdump, std::string *err_msg)
+{
+    CHECK_IF_PROF(err_msg);
+    return je_ctl_set_num("prof.gdump", gdump, err_msg);
+}
+
+bool je_ctl_enable_prof_gdump(std::string *err_msg) { return je_ctl_set_prof_gdump(true, err_msg); }
+
+bool je_ctl_disable_prof_gdump(std::string *err_msg)
+{
+    return je_ctl_set_prof_gdump(false, err_msg);
+}
+
+bool je_ctl_reset_prof(size_t lg_sample, std::string *err_msg)
+{
+    CHECK_IF_PROF(err_msg);
+    return je_ctl_set_num("prof.reset", lg_sample, err_msg);
 }
 
 } // namespace utils
