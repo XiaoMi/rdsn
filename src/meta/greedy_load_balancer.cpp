@@ -950,7 +950,7 @@ bool greedy_load_balancer::execute_balance(
     bool balance_checker,
     bool balance_in_turn,
     bool only_move_primary,
-    const std::function<bool(const std::shared_ptr<app_state> &, bool)> &callback)
+    const std::function<bool(const std::shared_ptr<app_state> &, bool)> &balance_operation)
 {
     for (const auto &kv : apps) {
         const std::shared_ptr<app_state> &app = kv.second;
@@ -961,7 +961,7 @@ bool greedy_load_balancer::execute_balance(
         if (app->status != app_status::AS_AVAILABLE || app->is_bulk_loading || app->splitting())
             continue;
 
-        bool enough_information = callback(app, only_move_primary);
+        bool enough_information = balance_operation(app, only_move_primary);
         if (!enough_information) {
             // Even if we don't have enough info for current app,
             // the decisions made by previous apps are kept.

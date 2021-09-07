@@ -155,12 +155,12 @@ private:
 
     bool need_balance_secondaries(bool balance_checker);
 
-    bool
-    execute_balance(const app_mapper &apps,
-                    bool balance_checker,
-                    bool balance_in_turn,
-                    bool only_move_primary,
-                    const std::function<bool(const std::shared_ptr<app_state> &, bool)> &callback);
+    bool execute_balance(
+        const app_mapper &apps,
+        bool balance_checker,
+        bool balance_in_turn,
+        bool only_move_primary,
+        const std::function<bool(const std::shared_ptr<app_state> &, bool)> &balance_operation);
 
     void balance_cluster();
 
