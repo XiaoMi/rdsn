@@ -983,8 +983,7 @@ bool greedy_load_balancer::execute_balance(
 
 void greedy_load_balancer::balance_cluster()
 {
-    const app_mapper &apps = *t_global_view->apps;
-    if (!execute_balance(apps,
+    if (!execute_balance(*t_global_view->apps,
                          false, /* balance_checker */
                          true,  /* balance_in_turn */
                          true,  /* only_move_primary */
@@ -1001,8 +1000,7 @@ void greedy_load_balancer::balance_cluster()
         return;
     }
 
-    cluster_replica_balance(
-        t_global_view, cluster_balance_type::COPY_PRIMARY, *t_migration_result);
+    cluster_replica_balance(t_global_view, cluster_balance_type::COPY_PRIMARY, *t_migration_result);
 }
 
 bool greedy_load_balancer::cluster_replica_balance(const meta_view *global_view,
