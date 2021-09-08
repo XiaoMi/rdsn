@@ -659,19 +659,24 @@ struct flow_path
 
 // Ford Fulkerson is used for primary balance.
 // For more details: https://levy5307.github.io/blog/pegasus-balancer/
-struct ford_fulkerson
+class ford_fulkerson
 {
+public:
     ford_fulkerson() = delete;
-
     ford_fulkerson(const std::shared_ptr<app_state> &app,
                    const node_mapper &nodes,
-                   const std::unordered_map<dsn::rpc_address, int> &address_id)
-        : _app(app), _nodes(nodes), _address_id(address_id), _higher_count(0), _lower_count(0)
+                   const std::unordered_map<dsn::rpc_address, int> &address_id,
+                   uint32_t higher_count,
+                   uint32_t lower_count,
+                   int replicas_low)
+        : _app(app),
+          _nodes(nodes),
+          _address_id(address_id),
+          _higher_count(higher_count),
+          _lower_count(lower_count)
     {
-        init();
+        make_graph();
     }
-
-    bool already_balanced() const { return _higher_count == 0 && _lower_count == 0; }
 
     bool have_less_than_average() const { return _lower_count != 0; }
 
@@ -696,24 +701,46 @@ struct ford_fulkerson
         }
     };
 
-private:
-    void init()
+    class Builder
     {
-        auto nodes_count = _nodes.size();
-        _replicas_low = _app->partition_count / nodes_count;
-        int replicas_high = (_app->partition_count + nodes_count - 1) / nodes_count;
-        for (const auto &node : _nodes) {
-            int primary_count = node.second.primary_count(_app->app_id);
-            if (primary_count > replicas_high) {
-                _higher_count++;
-            } else if (primary_count < _replicas_low) {
-                _lower_count++;
-            }
+    public:
+        Builder(const std::shared_ptr<app_state> &app,
+                const node_mapper &nodes,
+                const std::unordered_map<dsn::rpc_address, int> &address_id)
+            : _app(app), _nodes(nodes), _address_id(address_id)
+        {
         }
 
-        make_graph();
-    }
+        std::unique_ptr<ford_fulkerson> build()
+        {
+            auto nodes_count = _nodes.size();
+            int replicas_low = _app->partition_count / nodes_count;
+            int replicas_high = (_app->partition_count + nodes_count - 1) / nodes_count;
 
+            uint32_t higher_count = 0, lower_count = 0;
+            for (const auto &node : _nodes) {
+                int primary_count = node.second.primary_count(_app->app_id);
+                if (primary_count > replicas_high) {
+                    higher_count++;
+                } else if (primary_count < replicas_low) {
+                    lower_count++;
+                }
+            }
+
+            if (0 == higher_count && 0 == lower_count) {
+                return nullptr;
+            }
+            return dsn::make_unique<ford_fulkerson>(
+                _app, _nodes, _address_id, higher_count, lower_count, replicas_low);
+        }
+
+    private:
+        const std::shared_ptr<app_state> &_app;
+        const node_mapper &_nodes;
+        const std::unordered_map<dsn::rpc_address, int> &_address_id;
+    };
+
+private:
     void make_graph()
     {
         _graph_nodes = _nodes.size() + 2;
@@ -935,13 +962,13 @@ bool greedy_load_balancer::primary_balance(const std::shared_ptr<app_state> &app
     dassert(t_alive_nodes > 2, "too few alive nodes will lead to freeze");
     ddebug_f("primary balancer for app({}:{})", app->app_name, app->app_id);
 
-    ford_fulkerson graph(app, *t_global_view->nodes, address_id);
-    if (graph.already_balanced()) {
+    auto graph = ford_fulkerson::Builder(app, *t_global_view->nodes, address_id).build();
+    if (nullptr == graph) {
         dinfo_f("the primaries are balanced for app({}:{})", app->app_name, app->app_id);
         return true;
     }
 
-    auto path = graph.find_shortest_path();
+    auto path = graph->find_shortest_path();
     if (path != nullptr) {
         dinfo_f("{} primaries are flew", path->_flow.back());
         return move_primary(std::move(path));
@@ -949,7 +976,7 @@ bool greedy_load_balancer::primary_balance(const std::shared_ptr<app_state> &app
         // we can't make the server load more balanced
         // by moving primaries to secondaries
         if (!_only_move_primary) {
-            return copy_primary(app, graph.have_less_than_average());
+            return copy_primary(app, graph->have_less_than_average());
         } else {
             ddebug_f("stop to move primary for app({}) coz it is disabled", app->get_logname());
             return true;
