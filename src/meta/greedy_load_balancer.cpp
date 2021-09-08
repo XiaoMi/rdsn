@@ -652,14 +652,14 @@ bool greedy_load_balancer::calc_disk_load(app_id id,
 
 struct flow_path
 {
-    flow_path(const std::shared_ptr<app_state> app,
+    flow_path(const std::shared_ptr<app_state> &app,
               std::vector<int> &&flow,
               std::vector<int> &&prev)
         : _app(app), _flow(std::move(flow)), _prev(std::move(prev))
     {
     }
 
-    const std::shared_ptr<app_state> _app;
+    const std::shared_ptr<app_state> &_app;
     std::vector<int> _flow, _prev;
 };
 
@@ -669,7 +669,7 @@ class ford_fulkerson
 {
 public:
     ford_fulkerson() = delete;
-    ford_fulkerson(const std::shared_ptr<app_state> app,
+    ford_fulkerson(const std::shared_ptr<app_state> &app,
                    const node_mapper &nodes,
                    const std::unordered_map<dsn::rpc_address, int> &address_id,
                    uint32_t higher_count,
@@ -695,7 +695,7 @@ public:
     class Builder
     {
     public:
-        Builder(const std::shared_ptr<app_state> app,
+        Builder(const std::shared_ptr<app_state> &app,
                 const node_mapper &nodes,
                 const std::unordered_map<dsn::rpc_address, int> &address_id)
             : _app(app), _nodes(nodes), _address_id(address_id)
@@ -726,7 +726,7 @@ public:
         }
 
     private:
-        const std::shared_ptr<app_state> _app;
+        const std::shared_ptr<app_state> &_app;
         const node_mapper &_nodes;
         const std::unordered_map<dsn::rpc_address, int> &_address_id;
     };
@@ -737,7 +737,7 @@ private:
         // TBD(zlw)
     }
 
-    const std::shared_ptr<app_state> _app;
+    const std::shared_ptr<app_state> &_app;
     const node_mapper &_nodes;
     const std::unordered_map<dsn::rpc_address, int> &_address_id;
     uint32_t _higher_count;
