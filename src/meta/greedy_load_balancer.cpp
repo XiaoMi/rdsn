@@ -650,6 +650,100 @@ bool greedy_load_balancer::calc_disk_load(app_id id,
     }
 }
 
+struct flow_path
+{
+    flow_path(const std::shared_ptr<app_state> app,
+              std::vector<int> &&flow,
+              std::vector<int> &&prev)
+        : _app(app), _flow(std::move(flow)), _prev(std::move(prev))
+    {
+    }
+
+    const std::shared_ptr<app_state> _app;
+    std::vector<int> _flow, _prev;
+};
+
+// Ford Fulkerson is used for primary balance.
+// For more details: https://levy5307.github.io/blog/pegasus-balancer/
+class ford_fulkerson
+{
+public:
+    ford_fulkerson() = delete;
+    ford_fulkerson(const std::shared_ptr<app_state> &app,
+                   const node_mapper &nodes,
+                   const std::unordered_map<dsn::rpc_address, int> &address_id,
+                   uint32_t higher_count,
+                   uint32_t lower_count,
+                   int replicas_low)
+        : _app(app),
+          _nodes(nodes),
+          _address_id(address_id),
+          _higher_count(higher_count),
+          _lower_count(lower_count),
+          _replicas_low(replicas_low)
+    {
+        make_graph();
+    }
+
+    // using dijstra to find shortest path
+    std::unique_ptr<flow_path> find_shortest_path()
+    {
+        // TBD(zlw)
+    }
+
+    class Builder
+    {
+    public:
+        Builder(const std::shared_ptr<app_state> &app,
+                const node_mapper &nodes,
+                const std::unordered_map<dsn::rpc_address, int> &address_id)
+            : _app(app), _nodes(nodes), _address_id(address_id)
+        {
+        }
+
+        std::unique_ptr<ford_fulkerson> build()
+        {
+            auto nodes_count = _nodes.size();
+            int replicas_low = _app->partition_count / nodes_count;
+            int replicas_high = (_app->partition_count + nodes_count - 1) / nodes_count;
+
+            uint32_t higher_count = 0, lower_count = 0;
+            for (const auto &node : _nodes) {
+                int primary_count = node.second.primary_count(_app->app_id);
+                if (primary_count > replicas_high) {
+                    higher_count++;
+                } else if (primary_count < replicas_low) {
+                    lower_count++;
+                }
+            }
+
+            if (0 == higher_count && 0 == lower_count) {
+                return nullptr;
+            }
+            return dsn::make_unique<ford_fulkerson>(
+                _app, _nodes, _address_id, higher_count, lower_count, replicas_low);
+        }
+
+    private:
+        const std::shared_ptr<app_state> &_app;
+        const node_mapper &_nodes;
+        const std::unordered_map<dsn::rpc_address, int> &_address_id;
+    };
+
+private:
+    void make_graph()
+    {
+        // TBD(zlw)
+    }
+
+    const std::shared_ptr<app_state> &_app;
+    const node_mapper &_nodes;
+    const std::unordered_map<dsn::rpc_address, int> &_address_id;
+    uint32_t _higher_count;
+    uint32_t _lower_count;
+    int _replicas_low;
+};
+
 bool greedy_load_balancer::move_primary_based_on_flow_per_app(const std::shared_ptr<app_state> &app,
                                                               const std::vector<int> &prev,
                                                               const std::vector<int> &flow)
