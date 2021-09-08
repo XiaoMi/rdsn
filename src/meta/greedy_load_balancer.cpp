@@ -341,19 +341,20 @@ get_node_loads(const std::shared_ptr<app_state> &app,
 class copy_replica_operation
 {
 public:
-    copy_replica_operation(const std::shared_ptr<app_state> &app,
+    copy_replica_operation(const std::shared_ptr<app_state> app,
                            const app_mapper &apps,
                            node_mapper &nodes,
                            const std::vector<dsn::rpc_address> &address_vec,
                            const std::unordered_map<dsn::rpc_address, int> &address_id)
         : _app(app), _apps(apps), _nodes(nodes), _address_vec(address_vec), _address_id(address_id)
     {
-        init_ordered_address_ids();
     }
     virtual ~copy_replica_operation() = default;
 
     bool start(migration_list *result)
     {
+        init_ordered_address_ids();
+
         _node_loads = get_node_loads(_app, _apps, _nodes, is_primary());
         if (_node_loads.size() != _nodes.size()) {
             return false;
@@ -378,23 +379,23 @@ public:
 private:
     void copy_once(gpid selected_pid, migration_list *result)
     {
-        auto from = _address_vec[*_ordered_address_ids.begin()];
-        auto to = _address_vec[*_ordered_address_ids.rbegin()];
+        auto from = _address_vec[*_ordered_address_ids.rbegin()];
+        auto to = _address_vec[*_ordered_address_ids.begin()];
 
         auto pc = _app->partitions[selected_pid.get_partition_index()];
-        auto request = generate_balancer_request(pc, balance_type(), from, to);
+        auto request = generate_balancer_request(pc, get_balance_type(), from, to);
         result->emplace(selected_pid, request);
     }
 
     void update_ordered_address_ids()
     {
-        _ordered_address_ids.erase(_ordered_address_ids.begin());
-        _ordered_address_ids.erase(--_ordered_address_ids.end());
-
         int id_min = *_ordered_address_ids.begin();
         int id_max = *_ordered_address_ids.rbegin();
         --_partition_counts[id_max];
         ++_partition_counts[id_min];
+
+        _ordered_address_ids.erase(_ordered_address_ids.begin());
+        _ordered_address_ids.erase(--_ordered_address_ids.end());
 
         _ordered_address_ids.insert(id_max);
         _ordered_address_ids.insert(id_min);
@@ -402,7 +403,7 @@ private:
 
     virtual bool can_continue() = 0;
     virtual int get_partition_count(const node_state &ns) = 0;
-    virtual enum balance_type balance_type() = 0;
+    virtual enum balance_type get_balance_type() = 0;
     virtual bool can_select(gpid pid, migration_list *result) = 0;
     virtual const partition_set *get_all_partitions() = 0;
     virtual bool is_primary() = 0;
@@ -410,8 +411,9 @@ private:
     void init_ordered_address_ids()
     {
         _partition_counts.resize(_address_vec.size(), 0);
-        for (const auto &iter : _nodes) {
-            _partition_counts[_address_id.at(iter.first)] = get_partition_count(iter.second);
+        for (const auto &node : _nodes) {
+            auto id = _address_id.at(node.first);
+            _partition_counts[id] = get_partition_count(node.second);
         }
 
         std::set<int, std::function<bool(int a, int b)>> ordered_queue([this](int a, int b) {
@@ -419,8 +421,9 @@ private:
                        ? _partition_counts[a] < _partition_counts[b]
                        : a < b;
         });
-        for (const auto &iter : _nodes) {
-            ordered_queue.insert(_address_id.at(iter.first));
+        for (const auto &node : _nodes) {
+            auto id = _address_id.at(node.first);
+            ordered_queue.insert(id);
         }
         _ordered_address_ids.swap(ordered_queue);
     }
@@ -462,7 +465,7 @@ private:
 
 protected:
     std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
-    const std::shared_ptr<app_state> &_app;
+    const std::shared_ptr<app_state> _app;
     const app_mapper &_apps;
     node_mapper &_nodes;
     const std::vector<dsn::rpc_address> &_address_vec;
@@ -474,7 +477,7 @@ protected:
 class copy_primary_operation : public copy_replica_operation
 {
 public:
-    copy_primary_operation(const std::shared_ptr<app_state> &app,
+    copy_primary_operation(const std::shared_ptr<app_state> app,
                            const app_mapper &apps,
                            node_mapper &nodes,
                            const std::vector<dsn::rpc_address> &address_vec,
@@ -520,7 +523,7 @@ private:
 
     bool is_primary() { return true; }
 
-    enum balance_type balance_type() { return balance_type::copy_primary; }
+    enum balance_type get_balance_type() { return balance_type::copy_primary; }
 
     int get_partition_count(const node_state &ns) { return ns.primary_count(_app->app_id); }
 
@@ -531,12 +534,13 @@ private:
 class copy_secondary_operation : public copy_replica_operation
 {
 public:
-    copy_secondary_operation(const std::shared_ptr<app_state> &app,
+    copy_secondary_operation(const std::shared_ptr<app_state> app,
                              const app_mapper &apps,
                              node_mapper &nodes,
                              const std::vector<dsn::rpc_address> &address_vec,
-                             const std::unordered_map<dsn::rpc_address, int> &address_id)
-        : copy_replica_operation(app, apps, nodes, address_vec, address_id)
+                             const std::unordered_map<dsn::rpc_address, int> &address_id,
+                             int replicas_low)
+        : copy_replica_operation(app, apps, nodes, address_vec, address_id), _replicas_low(replicas_low)
     {
     }
     ~copy_secondary_operation() = default;
@@ -558,7 +562,7 @@ private:
 
     bool is_primary() { return false; }
 
-    enum balance_type balance_type() { return balance_type::copy_secondary; }
+    enum balance_type get_balance_type() { return balance_type::copy_secondary; }
 
     const partition_set *get_all_partitions()
     {
@@ -622,9 +626,10 @@ bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app)
 {
     node_mapper &nodes = *(t_global_view->nodes);
     app_mapper &apps = *t_global_view->apps;
+    int replicas_low = app->partition_count / t_alive_nodes;
 
     std::unique_ptr<copy_replica_operation> operation =
-        dsn::make_unique<copy_secondary_operation>(app, apps, nodes, address_vec, address_id);
+        dsn::make_unique<copy_secondary_operation>(app, apps, nodes, address_vec, address_id, replicas_low);
     return operation->start(t_migration_result);
 }
 
@@ -646,14 +651,14 @@ void greedy_load_balancer::number_nodes(const node_mapper &nodes)
 
 struct flow_path
 {
-    flow_path(const std::shared_ptr<app_state> &app,
+    flow_path(const std::shared_ptr<app_state> app,
               std::vector<int> &&flow,
               std::vector<int> &&prev)
         : _app(app), _flow(std::move(flow)), _prev(std::move(prev))
     {
     }
 
-    const std::shared_ptr<app_state> &_app;
+    const std::shared_ptr<app_state> _app;
     std::vector<int> _flow, _prev;
 };
 
@@ -683,8 +688,10 @@ public:
     // using dijstra to find shortest path
     std::unique_ptr<flow_path> find_shortest_path()
     {
-        std::vector<int> flow, prev;
-        std::vector<bool> visit(_network.size(), false);
+        std::vector<bool> visit(_graph_nodes, false);
+        std::vector<int> flow(_graph_nodes, 0);
+        std::vector<int> prev(_graph_nodes, -1);
+        flow[0] = INT_MAX;
         while (!visit.back()) {
             auto pos = select_node(visit, flow);
             if (pos == -1) {
@@ -744,10 +751,11 @@ private:
     void make_graph()
     {
         _graph_nodes = _nodes.size() + 2;
-        for (const auto &pair : _nodes) {
-            int node_id = _address_id.at(pair.first);
-            add_edge(node_id, pair.second);
-            update_decree(node_id, pair.second);
+        _network.resize(_graph_nodes, std::vector<int>(_graph_nodes, 0));
+        for (const auto &node : _nodes) {
+            int node_id = _address_id.at(node.first);
+            add_edge(node_id, node.second);
+            update_decree(node_id, node.second);
         }
         handle_corner_case();
     };
@@ -756,7 +764,7 @@ private:
     {
         // Suppose you have an 8-shard app in a cluster with 3 nodes(which name is node1, node2,
         // node3). The distribution of primaries among these nodes is as follow:
-        // node1 : [0, 1, 2,3]
+        // node1 : [0, 1, 2, 3]
         // node2 : [4, 5]
         // node2 : [6, 7]
         // This is obviously unbalanced.
@@ -807,7 +815,7 @@ private:
 
     int max_value_pos(const std::vector<bool> &visit, const std::vector<int> &flow)
     {
-        int pos = -1, max_value = -1;
+        int pos = -1, max_value = 0;
         for (auto i = 0; i != _graph_nodes; ++i) {
             if (!visit[i] && flow[i] > max_value) {
                 pos = i;
@@ -973,12 +981,11 @@ bool greedy_load_balancer::primary_balance(const std::shared_ptr<app_state> &app
         dinfo_f("{} primaries are flew", path->_flow.back());
         return move_primary(std::move(path));
     } else {
-        // we can't make the server load more balanced
-        // by moving primaries to secondaries
+        ddebug_f("we can't make the server load more balanced by moving primaries to secondaries");
         if (!_only_move_primary) {
             return copy_primary(app, graph->have_less_than_average());
         } else {
-            ddebug_f("stop to move primary for app({}) coz it is disabled", app->get_logname());
+            ddebug_f("stop to copy primary for app({}) coz it is disabled", app->get_logname());
             return true;
         }
     }
