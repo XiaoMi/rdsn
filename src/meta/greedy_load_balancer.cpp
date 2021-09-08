@@ -692,10 +692,10 @@ public:
         return nullptr;
     }
 
-    class Builder
+    class builder
     {
     public:
-        Builder(const std::shared_ptr<app_state> &app,
+        builder(const std::shared_ptr<app_state> &app,
                 const node_mapper &nodes,
                 const std::unordered_map<dsn::rpc_address, int> &address_id)
             : _app(app), _nodes(nodes), _address_id(address_id)
