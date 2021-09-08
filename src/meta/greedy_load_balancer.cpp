@@ -669,7 +669,7 @@ class ford_fulkerson
 {
 public:
     ford_fulkerson() = delete;
-    ford_fulkerson(const std::shared_ptr<app_state> &app,
+    ford_fulkerson(const std::shared_ptr<app_state> app,
                    const node_mapper &nodes,
                    const std::unordered_map<dsn::rpc_address, int> &address_id,
                    uint32_t higher_count,
@@ -689,12 +689,13 @@ public:
     std::unique_ptr<flow_path> find_shortest_path()
     {
         // TBD(zlw)
+        return nullptr;
     }
 
     class Builder
     {
     public:
-        Builder(const std::shared_ptr<app_state> &app,
+        Builder(const std::shared_ptr<app_state> app,
                 const node_mapper &nodes,
                 const std::unordered_map<dsn::rpc_address, int> &address_id)
             : _app(app), _nodes(nodes), _address_id(address_id)
@@ -725,7 +726,7 @@ public:
         }
 
     private:
-        const std::shared_ptr<app_state> &_app;
+        const std::shared_ptr<app_state> _app;
         const node_mapper &_nodes;
         const std::unordered_map<dsn::rpc_address, int> &_address_id;
     };
@@ -736,7 +737,7 @@ private:
         // TBD(zlw)
     }
 
-    const std::shared_ptr<app_state> &_app;
+    const std::shared_ptr<app_state> _app;
     const node_mapper &_nodes;
     const std::unordered_map<dsn::rpc_address, int> &_address_id;
     uint32_t _higher_count;
