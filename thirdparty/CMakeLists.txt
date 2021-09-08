@@ -199,7 +199,7 @@ ExternalProject_Add(poco
         )
 
 ExternalProject_Add(fds
-        GIT_REPOSITORY https://github.com/XiaoMi/galaxy-fds-sdk-cpp.git https://gitee.com/mirrors_XiaoMi/galaxy-fds-sdk-cpp
+        GIT_REPOSITORY https://gitee.com/mirrors_XiaoMi/galaxy-fds-sdk-cpp
         GIT_TAG 2d813e0f0d1bae871f584030101366bdf29dc36c
         CMAKE_ARGS -DPOCO_INCLUDE=${TP_OUTPUT}/include
         -DPOCO_LIB=${TP_OUTPUT}/lib
