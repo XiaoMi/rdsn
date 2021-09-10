@@ -650,6 +650,34 @@ bool greedy_load_balancer::calc_disk_load(app_id id,
     }
 }
 
+ford_fulkerson::ford_fulkerson(const std::shared_ptr<app_state> &app,
+                               const node_mapper &nodes,
+                               const std::unordered_map<dsn::rpc_address, int> &address_id,
+                               uint32_t higher_count,
+                               uint32_t lower_count,
+                               int replicas_low)
+    : _app(app),
+      _nodes(nodes),
+      _address_id(address_id),
+      _higher_count(higher_count),
+      _lower_count(lower_count),
+      _replicas_low(replicas_low)
+{
+    make_graph();
+}
+
+// using dijstra to find shortest path
+std::unique_ptr<flow_path> ford_fulkerson::find_shortest_path()
+{
+    // TBD(zlw)
+    return nullptr;
+}
+
+void ford_fulkerson::make_graph()
+{
+    // TBD(zlw)
+}
+
 bool greedy_load_balancer::move_primary_based_on_flow_per_app(const std::shared_ptr<app_state> &app,
                                                               const std::vector<int> &prev,
                                                               const std::vector<int> &flow)
