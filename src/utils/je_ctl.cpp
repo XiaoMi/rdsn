@@ -108,10 +108,25 @@ static inline std::string build_arena_name(unsigned index, const char *sub_name)
     return fmt::format("arena.{}.{}", index, sub_name);
 }
 
+#define CHECK_ARENA_INDEX_OUT_OF_RANGE(index, err_msg)                                             \
+    do {                                                                                           \
+        unsigned narenas = 0;                                                                      \
+        if (!je_ctl_get_narenas(narenas, err_msg)) {                                               \
+            return false;                                                                          \
+        }                                                                                          \
+        if (index >= narenas) {                                                                    \
+            *err_msg = fmt::format(                                                                \
+                "<jemalloc> arena index out of range: index = {}, narenas = {}", index, narenas);  \
+            return false;                                                                          \
+        }                                                                                          \
+    } while (0)
+
 template <typename T>
 static inline bool
 je_ctl_set_arena_num(unsigned index, const char *sub_name, T val, std::string *err_msg)
 {
+    CHECK_ARENA_INDEX_OUT_OF_RANGE(index, err_msg);
+
     std::string name(build_arena_name(index, sub_name));
     return je_ctl_set_num(name.c_str(), val, err_msg);
 }
@@ -120,6 +135,8 @@ template <typename T>
 static inline bool
 je_ctl_get_arena_num(unsigned index, const char *sub_name, T &val, std::string *err_msg)
 {
+    CHECK_ARENA_INDEX_OUT_OF_RANGE(index, err_msg);
+
     std::string name(build_arena_name(index, sub_name));
     return je_ctl_get_num(name.c_str(), val, err_msg);
 }
@@ -166,6 +183,18 @@ je_ctl_get_all_arenas_num(const char *sub_name, std::vector<T> &nums, std::strin
 }
 
 template <typename T>
+static bool je_ctl_get_arena_num_info(unsigned index, const char *sub_name, std::string *info)
+{
+    T num;
+    if (!je_ctl_get_arena_num(index, sub_name, num, info)) {
+        return false;
+    }
+
+    info->append(fmt::format("\narena[{}]: {}", index, num));
+    return true;
+}
+
+template <typename T>
 static bool je_ctl_get_all_arenas_num_info(const char *sub_name, std::string *info)
 {
     std::vector<T> nums;
@@ -179,45 +208,93 @@ static bool je_ctl_get_all_arenas_num_info(const char *sub_name, std::string *in
     return true;
 }
 
-bool je_ctl_set_all_arenas_dirty_decay_ms(ssize_t dirty_decay_ms, std::string *err_msg)
+static inline bool je_ctl_set_arena_void(unsigned index, const char *sub_name, std::string *err_msg)
 {
-    return je_ctl_set_all_arenas_num("dirty_decay_ms", dirty_decay_ms, err_msg);
+    CHECK_ARENA_INDEX_OUT_OF_RANGE(index, err_msg);
+
+    std::string name(build_arena_name(index, sub_name));
+    return je_ctl_set_void(name.c_str(), err_msg);
 }
 
-bool je_ctl_get_all_arenas_dirty_decay_ms(std::vector<ssize_t> &nums, std::string *err_msg)
+static const char *je_decay_type_to_ms_name(je_decay_type type)
 {
-    return je_ctl_get_all_arenas_num("dirty_decay_ms", nums, err_msg);
+    static const char *name_map[] = {
+        "dirty_decay_ms", "muzzy_decay_ms",
+    };
+
+    dassert_f(type < sizeof(name_map) / sizeof(name_map[0]), "invalid je_decay_type: {}", type);
+    return name_map[type];
 }
 
-bool je_ctl_get_all_arenas_dirty_decay_ms_info(std::string *info)
+bool je_ctl_set_arena_decay_ms(unsigned index,
+                               je_decay_type decay_type,
+                               ssize_t decay_ms,
+                               std::string *err_msg)
 {
-    return je_ctl_get_all_arenas_num_info<ssize_t>("dirty_decay_ms", info);
+    return je_ctl_set_arena_num(index, je_decay_type_to_ms_name(decay_type), decay_ms, err_msg);
 }
 
-bool je_ctl_set_all_arenas_muzzy_decay_ms(ssize_t muzzy_decay_ms, std::string *err_msg)
+bool je_ctl_set_all_arenas_decay_ms(je_decay_type decay_type,
+                                    ssize_t decay_ms,
+                                    std::string *err_msg)
 {
-    return je_ctl_set_all_arenas_num("muzzy_decay_ms", muzzy_decay_ms, err_msg);
+    return je_ctl_set_all_arenas_num(je_decay_type_to_ms_name(decay_type), decay_ms, err_msg);
 }
 
-bool je_ctl_get_all_arenas_muzzy_decay_ms(std::vector<ssize_t> &nums, std::string *err_msg)
+bool je_ctl_get_arena_decay_ms(unsigned index,
+                               je_decay_type decay_type,
+                               ssize_t &decay_ms,
+                               std::string *err_msg)
 {
-    return je_ctl_get_all_arenas_num("muzzy_decay_ms", nums, err_msg);
+    return je_ctl_get_arena_num(index, je_decay_type_to_ms_name(decay_type), decay_ms, err_msg);
 }
 
-bool je_ctl_get_all_arenas_muzzy_decay_ms_info(std::string *info)
+bool je_ctl_get_all_arenas_decay_ms(je_decay_type decay_type,
+                                    std::vector<ssize_t> &decay_ms_list,
+                                    std::string *err_msg)
 {
-    return je_ctl_get_all_arenas_num_info<ssize_t>("muzzy_decay_ms", info);
+    return je_ctl_get_all_arenas_num(je_decay_type_to_ms_name(decay_type), decay_ms_list, err_msg);
 }
 
-bool je_ctl_decay_all_arenas(std::string *err_msg)
+bool je_ctl_get_arena_decay_ms_info(unsigned index, je_decay_type decay_type, std::string *info)
 {
-    const char *name = "arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".decay";
-    return je_ctl_set_void(name, err_msg);
+    return je_ctl_get_arena_num_info<ssize_t>(index, je_decay_type_to_ms_name(decay_type), info);
 }
 
-bool je_ctl_purge_all_arenas(std::string *err_msg)
+bool je_ctl_get_all_arenas_decay_ms_info(je_decay_type decay_type, std::string *info)
 {
-    const char *name = "arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".purge";
+    return je_ctl_get_all_arenas_num_info<ssize_t>(je_decay_type_to_ms_name(decay_type), info);
+}
+
+static const char *je_gc_type_to_name(je_gc_type type)
+{
+    static const char *name_map[] = {
+        "decay", "purge",
+    };
+
+    dassert_f(type < sizeof(name_map) / sizeof(name_map[0]), "invalid je_gc_type: {}", type);
+    return name_map[type];
+}
+
+bool je_ctl_gc_arena(unsigned index, je_gc_type gc_type, std::string *err_msg)
+{
+    return je_ctl_set_arena_void(index, je_gc_type_to_name(gc_type), err_msg);
+}
+
+static const char *je_gc_type_to_all_arenas_full_name(je_gc_type type)
+{
+    static const char *name_map[] = {
+        "arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".decay",
+        "arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".purge",
+    };
+
+    dassert_f(type < sizeof(name_map) / sizeof(name_map[0]), "invalid je_gc_type: {}", type);
+    return name_map[type];
+}
+
+bool je_ctl_gc_all_arenas(je_gc_type gc_type, std::string *err_msg)
+{
+    const char *name = je_gc_type_to_all_arenas_full_name(gc_type);
     return je_ctl_set_void(name, err_msg);
 }
 

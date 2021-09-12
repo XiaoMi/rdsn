@@ -284,7 +284,8 @@ function(dsn_setup_system_libs)
 
     if(USE_JEMALLOC)
         find_package(Jemalloc REQUIRED)
-        set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} JeMalloc::JeMalloc)
+        # also use cpu profiler provided by gperftools
+        set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} JeMalloc::JeMalloc profiler)
         add_definitions(-DDSN_USE_JEMALLOC)
     endif()
 

@@ -31,21 +31,43 @@ namespace utils {
 
 void je_initialize();
 
-bool je_ctl_set_all_arenas_dirty_decay_ms(ssize_t dirty_decay_ms, std::string *err_msg);
+enum je_decay_type
+{
+    JE_DIRTY_DECAY = 0,
+    JE_MUZZY_DECAY = 1,
+};
 
-bool je_ctl_get_all_arenas_dirty_decay_ms(std::vector<ssize_t> &nums, std::string *err_msg);
+bool je_ctl_set_arena_decay_ms(unsigned index,
+                               je_decay_type decay_type,
+                               ssize_t decay_ms,
+                               std::string *err_msg);
 
-bool je_ctl_get_all_arenas_dirty_decay_ms_info(std::string *info);
+bool je_ctl_set_all_arenas_decay_ms(je_decay_type decay_type,
+                                    ssize_t decay_ms,
+                                    std::string *err_msg);
 
-bool je_ctl_set_all_arenas_muzzy_decay_ms(ssize_t muzzy_decay_ms, std::string *err_msg);
+bool je_ctl_get_arena_decay_ms(unsigned index,
+                               je_decay_type decay_type,
+                               ssize_t &decay_ms,
+                               std::string *err_msg);
 
-bool je_ctl_get_all_arenas_muzzy_decay_ms(std::vector<ssize_t> &nums, std::string *err_msg);
+bool je_ctl_get_all_arenas_decay_ms(je_decay_type decay_type,
+                                    std::vector<ssize_t> &decay_ms_list,
+                                    std::string *err_msg);
 
-bool je_ctl_get_all_arenas_muzzy_decay_ms_info(std::string *info);
+bool je_ctl_get_arena_decay_ms_info(unsigned index, je_decay_type decay_type, std::string *info);
 
-bool je_ctl_decay_all_arenas(std::string *err_msg);
+bool je_ctl_get_all_arenas_decay_ms_info(je_decay_type decay_type, std::string *info);
 
-bool je_ctl_purge_all_arenas(std::string *err_msg);
+enum je_gc_type
+{
+    JE_DECAY_GC = 0,
+    JE_PURGE_GC = 1,
+};
+
+bool je_ctl_gc_arena(unsigned index, je_gc_type gc_type, std::string *err_msg);
+
+bool je_ctl_gc_all_arenas(je_gc_type gc_type, std::string *err_msg);
 
 void je_dump_configs(std::string *stats);
 
