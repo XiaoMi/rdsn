@@ -318,7 +318,6 @@ static void je_dump_malloc_stats(const char *opts, size_t max_bytes, std::string
     // Avoid malloc in callback
     stats->reserve(max_bytes);
 
-    ddebug_f("<jemalloc> malloc stats:");
     malloc_stats_print(je_stats_cb, stats, opts);
 }
 
