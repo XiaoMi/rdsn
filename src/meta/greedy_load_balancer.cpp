@@ -675,6 +675,33 @@ std::unique_ptr<flow_path> ford_fulkerson::find_shortest_path()
 
 void ford_fulkerson::make_graph()
 {
+    _graph_nodes = _nodes.size() + 2;
+    _network.resize(_graph_nodes, std::vector<int>(_graph_nodes, 0));
+    for (const auto &node : _nodes) {
+        int node_id = _address_id.at(node.first);
+        add_edge(node_id, node.second);
+        update_decree(node_id, node.second);
+    }
+    handle_corner_case();
+}
+
+void ford_fulkerson::add_edge(int node_id, const node_state &ns)
+{
+    int primary_count = ns.primary_count(_app->app_id);
+    if (primary_count > _replicas_low) {
+        _network[0][node_id] = primary_count - _replicas_low;
+    } else {
+        _network[node_id].back() = _replicas_low - primary_count;
+    }
+}
+
+void ford_fulkerson::update_decree(int node_id, const node_state &ns)
+{
+    // TBD(zlw)
+}
+
+void ford_fulkerson::handle_corner_case()
+{
     // TBD(zlw)
 }
 

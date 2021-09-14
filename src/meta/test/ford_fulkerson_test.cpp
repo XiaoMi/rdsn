@@ -1,0 +1,76 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+#include <gtest/gtest.h>
+#include "meta/greedy_load_balancer.h"
+
+namespace dsn {
+namespace replication {
+TEST(ford_fulkerson, build)
+{
+    int32_t app_id = 1;
+    dsn::app_info info;
+    info.app_id = app_id;
+    info.partition_count = 4;
+    std::shared_ptr<app_state> app = app_state::create(info);
+
+    node_mapper nodes;
+    node_state ns;
+    ns.put_partition(gpid(app_id, 0), true);
+    nodes[rpc_address(1, 1)] = ns;
+    nodes[rpc_address(2, 2)] = ns;
+    nodes[rpc_address(3, 3)] = ns;
+
+    std::unordered_map<dsn::rpc_address, int> address_id;
+    auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
+    ASSERT_EQ(ff, nullptr);
+}
+
+TEST(ford_fulkerson, add_edge)
+{
+    int32_t app_id = 1;
+    dsn::app_info info;
+    info.app_id = app_id;
+    info.partition_count = 4;
+    std::shared_ptr<app_state> app = app_state::create(info);
+
+    std::unordered_map<dsn::rpc_address, int> address_id;
+    auto addr1 = rpc_address(1, 1);
+    auto addr2 = rpc_address(1, 2);
+    auto addr3 = rpc_address(1, 3);
+    address_id[addr1] = 1;
+    address_id[addr2] = 2;
+    address_id[addr3] = 3;
+
+    node_mapper nodes;
+    node_state ns;
+    nodes[addr1] = ns;
+    nodes[addr2] = ns;
+    nodes[addr3] = ns;
+
+    auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
+    ff->add_edge(1, ns);
+    ASSERT_EQ(ff->_network[1].back(), 1);
+
+    ns.put_partition(gpid(app_id, 0), true);
+    ns.put_partition(gpid(app_id, 1), true);
+    ns.put_partition(gpid(app_id, 2), true);
+    ff->add_edge(3, ns);
+    ASSERT_EQ(ff->_network[0][3], 2);
+}
+} // namespace replication
+} // namespace dsn

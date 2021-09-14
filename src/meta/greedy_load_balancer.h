@@ -126,6 +126,9 @@ public:
 
 private:
     void make_graph();
+    void add_edge(int node_id, const node_state &ns);
+    void update_decree(int node_id, const node_state &ns);
+    void handle_corner_case();
 
     const std::shared_ptr<app_state> &_app;
     const node_mapper &_nodes;
@@ -133,6 +136,10 @@ private:
     uint32_t _higher_count;
     uint32_t _lower_count;
     int _replicas_low;
+    size_t _graph_nodes;
+    std::vector<std::vector<int>> _network;
+
+    FRIEND_TEST(ford_fulkerson, add_edge);
 };
 
 class greedy_load_balancer : public server_load_balancer
