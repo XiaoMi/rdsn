@@ -73,7 +73,8 @@ TEST(ford_fulkerson, add_edge)
     ASSERT_EQ(ff->_network[0][3], 2);
 }
 
-TEST(ford_fulkerson, update_decree) {
+TEST(ford_fulkerson, update_decree)
+{
     auto addr1 = rpc_address(1, 1);
     auto addr2 = rpc_address(2, 2);
     auto addr3 = rpc_address(3, 3);
@@ -86,8 +87,8 @@ TEST(ford_fulkerson, update_decree) {
     partition_configuration pc;
     pc.secondaries.push_back(addr2);
     pc.secondaries.push_back(addr3);
-    app->partitions[0] = pc;
-    app->partitions[1] = pc;
+    app->partitions.push_back(pc);
+    app->partitions.push_back(pc);
 
     node_mapper nodes;
     node_state ns;
@@ -98,15 +99,15 @@ TEST(ford_fulkerson, update_decree) {
     nodes[addr3] = ns;
 
     std::unordered_map<dsn::rpc_address, int> address_id;
-    address_id[addr1] = 0;
-    address_id[addr2] = 1;
-    address_id[addr3] = 2;
+    address_id[addr1] = 1;
+    address_id[addr2] = 2;
+    address_id[addr3] = 3;
 
-    auto node_id = 0;
+    auto node_id = 1;
     auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
     ff->update_decree(node_id, ns);
-    ASSERT_EQ(ff->_network[0][1], 2);
-    ASSERT_EQ(ff->_network[0][2], 2);
+    ASSERT_EQ(ff->_network[1][2], 2);
+    ASSERT_EQ(ff->_network[1][3], 2);
 }
 } // namespace replication
 } // namespace dsn
