@@ -72,5 +72,41 @@ TEST(ford_fulkerson, add_edge)
     ff->add_edge(3, ns);
     ASSERT_EQ(ff->_network[0][3], 2);
 }
+
+TEST(ford_fulkerson, update_decree) {
+    auto addr1 = rpc_address(1, 1);
+    auto addr2 = rpc_address(2, 2);
+    auto addr3 = rpc_address(3, 3);
+
+    int32_t app_id = 1;
+    dsn::app_info info;
+    info.app_id = app_id;
+    info.partition_count = 1;
+    std::shared_ptr<app_state> app = app_state::create(info);
+    partition_configuration pc;
+    pc.secondaries.push_back(addr2);
+    pc.secondaries.push_back(addr3);
+    app->partitions[0] = pc;
+    app->partitions[1] = pc;
+
+    node_mapper nodes;
+    node_state ns;
+    ns.put_partition(gpid(app_id, 0), true);
+    ns.put_partition(gpid(app_id, 1), true);
+    nodes[addr1] = ns;
+    nodes[addr2] = ns;
+    nodes[addr3] = ns;
+
+    std::unordered_map<dsn::rpc_address, int> address_id;
+    address_id[addr1] = 0;
+    address_id[addr2] = 1;
+    address_id[addr3] = 2;
+
+    auto node_id = 0;
+    auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
+    ff->update_decree(node_id, ns);
+    ASSERT_EQ(ff->_network[0][1], 2);
+    ASSERT_EQ(ff->_network[0][2], 2);
+}
 } // namespace replication
 } // namespace dsn

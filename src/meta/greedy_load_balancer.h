@@ -140,6 +140,7 @@ private:
     std::vector<std::vector<int>> _network;
 
     FRIEND_TEST(ford_fulkerson, add_edge);
+    FRIEND_TEST(ford_fulkerson, update_decree);
 };
 
 class greedy_load_balancer : public server_load_balancer
