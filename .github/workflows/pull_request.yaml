@@ -71,8 +71,7 @@ jobs:
         run: |
           export LD_LIBRARY_PATH=`pwd`/thirdparty/output/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server          
           ./run.sh test --skip_thirdparty
-      - uses: codecov/codecov-action@v1
-        run: bash <(curl -s https://codecov.io/bash)
+      - uses: codecov/codecov-action@v2
 
   test-with-sanitizer-address:
     name: Test With Sanitizer Address
