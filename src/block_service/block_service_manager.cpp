@@ -54,6 +54,7 @@ block_service_manager::block_service_manager()
 block_service_manager::~block_service_manager()
 {
     ddebug("close block service manager.");
+
     zauto_write_lock l(_fs_lock);
     _fs_map.clear();
 }
