@@ -712,7 +712,21 @@ void ford_fulkerson::update_decree(int node_id, const node_state &ns)
 
 void ford_fulkerson::handle_corner_case()
 {
-    // TBD(zlw)
+    // Suppose you have an 8-shard app in a cluster with 3 nodes(which name are node1, node2,
+    // node3). The distribution of primaries among these nodes is as follow:
+    // node1 : [0, 1, 2, 3]
+    // node2 : [4, 5]
+    // node2 : [6, 7]
+    // This is obviously unbalanced.
+    // But if we don't handle this corner case, primary migration will not be triggered
+    if (_higher_count > 0 && _lower_count == 0) {
+        for (int i = 0; i != _graph_nodes; ++i) {
+            if (_network[0][i] > 0)
+                --_network[0][i];
+            else
+                ++_network[i][_graph_nodes - 1];
+        }
+    }
 }
 
 bool greedy_load_balancer::move_primary_based_on_flow_per_app(const std::shared_ptr<app_state> &app,

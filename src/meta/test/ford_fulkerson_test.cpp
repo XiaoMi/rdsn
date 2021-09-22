@@ -20,7 +20,7 @@
 
 namespace dsn {
 namespace replication {
-TEST(ford_fulkerson, build)
+TEST(ford_fulkerson, build_failure)
 {
     int32_t app_id = 1;
     dsn::app_info info;
@@ -108,6 +108,74 @@ TEST(ford_fulkerson, update_decree)
     ff->update_decree(node_id, ns);
     ASSERT_EQ(ff->_network[1][2], 2);
     ASSERT_EQ(ff->_network[1][3], 2);
+}
+
+TEST(ford_fulkerson, build_succ)
+{
+    auto addr1 = rpc_address(1, 1);
+    auto addr2 = rpc_address(2, 2);
+    auto addr3 = rpc_address(3, 3);
+
+    int32_t app_id = 1;
+    dsn::app_info info;
+    info.app_id = app_id;
+    info.partition_count = 2;
+    std::shared_ptr<app_state> app = app_state::create(info);
+
+    partition_configuration pc;
+    pc.primary = addr1;
+    pc.secondaries.push_back(addr2);
+    pc.secondaries.push_back(addr3);
+    app->partitions[0] = pc;
+    app->partitions[1] = pc;
+
+    node_mapper nodes;
+    node_state ns1;
+    ns1.put_partition(gpid(app_id, 0), true);
+    ns1.put_partition(gpid(app_id, 1), true);
+    nodes[addr1] = ns1;
+
+    node_state ns2;
+    ns2.put_partition(gpid(app_id, 0), false);
+    ns2.put_partition(gpid(app_id, 1), false);
+    nodes[addr2] = ns2;
+    nodes[addr3] = ns2;
+
+    std::unordered_map<dsn::rpc_address, int> address_id;
+    address_id[addr1] = 1;
+    address_id[addr2] = 2;
+    address_id[addr3] = 3;
+
+    auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
+    ASSERT_EQ(ff->_network[0][0], 0);
+    ASSERT_EQ(ff->_network[0][1], 1);
+    ASSERT_EQ(ff->_network[0][2], 0);
+    ASSERT_EQ(ff->_network[0][3], 0);
+    ASSERT_EQ(ff->_network[0][4], 0);
+
+    ASSERT_EQ(ff->_network[1][0], 0);
+    ASSERT_EQ(ff->_network[1][1], 0);
+    ASSERT_EQ(ff->_network[1][2], 2);
+    ASSERT_EQ(ff->_network[1][3], 2);
+    ASSERT_EQ(ff->_network[1][4], 0);
+
+    ASSERT_EQ(ff->_network[2][0], 0);
+    ASSERT_EQ(ff->_network[2][1], 0);
+    ASSERT_EQ(ff->_network[2][2], 0);
+    ASSERT_EQ(ff->_network[2][3], 0);
+    ASSERT_EQ(ff->_network[2][4], 1);
+
+    ASSERT_EQ(ff->_network[3][0], 0);
+    ASSERT_EQ(ff->_network[3][1], 0);
+    ASSERT_EQ(ff->_network[3][2], 0);
+    ASSERT_EQ(ff->_network[3][3], 0);
+    ASSERT_EQ(ff->_network[3][4], 1);
+
+    ASSERT_EQ(ff->_network[4][0], 0);
+    ASSERT_EQ(ff->_network[4][1], 0);
+    ASSERT_EQ(ff->_network[4][2], 0);
+    ASSERT_EQ(ff->_network[4][3], 0);
+    ASSERT_EQ(ff->_network[4][4], 0);
 }
 } // namespace replication
 } // namespace dsn

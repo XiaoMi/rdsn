@@ -141,6 +141,7 @@ private:
 
     FRIEND_TEST(ford_fulkerson, add_edge);
     FRIEND_TEST(ford_fulkerson, update_decree);
+    FRIEND_TEST(ford_fulkerson, build_succ);
 };
 
 class greedy_load_balancer : public server_load_balancer
