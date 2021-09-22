@@ -20,7 +20,6 @@
 
 namespace dsn {
 namespace replication {
-    /**
 TEST(ford_fulkerson, build_failure)
 {
     int32_t app_id = 1;
@@ -110,7 +109,6 @@ TEST(ford_fulkerson, update_decree)
     ASSERT_EQ(ff->_network[1][2], 2);
     ASSERT_EQ(ff->_network[1][3], 2);
 }
-     */
 
 TEST(ford_fulkerson, build_succ)
 {
