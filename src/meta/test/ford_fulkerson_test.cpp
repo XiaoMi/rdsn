@@ -40,9 +40,7 @@ TEST(ford_fulkerson, build_failure)
     ASSERT_EQ(ff, nullptr);
 }
 
-TEST(ford_fulkerson, add_edge)
-{
-    int32_t app_id = 1;
+std::unique_ptr<ford_fulkerson> get_ford_fulkerson(int app_id) {
     dsn::app_info info;
     info.app_id = app_id;
     info.partition_count = 4;
@@ -62,7 +60,15 @@ TEST(ford_fulkerson, add_edge)
     nodes[addr2] = ns;
     nodes[addr3] = ns;
 
-    auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
+    return ford_fulkerson::builder(app, nodes, address_id).build();
+}
+
+TEST(ford_fulkerson, add_edge)
+{
+    node_state ns;
+    int32_t app_id = 1;
+    auto ff = get_ford_fulkerson(app_id);
+
     ff->add_edge(1, ns);
     ASSERT_EQ(ff->_network[1].back(), 1);
 
@@ -181,25 +187,7 @@ TEST(ford_fulkerson, build_succ)
 TEST(ford_fulkerson, max_value_pos)
 {
     int32_t app_id = 1;
-    dsn::app_info info;
-    info.app_id = app_id;
-    info.partition_count = 4;
-    std::shared_ptr<app_state> app = app_state::create(info);
-
-    std::unordered_map<dsn::rpc_address, int> address_id;
-    auto addr1 = rpc_address(1, 1);
-    auto addr2 = rpc_address(1, 2);
-    auto addr3 = rpc_address(1, 3);
-    address_id[addr1] = 1;
-    address_id[addr2] = 2;
-    address_id[addr3] = 3;
-
-    node_mapper nodes;
-    node_state ns;
-    nodes[addr1] = ns;
-    nodes[addr2] = ns;
-    nodes[addr3] = ns;
-    auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
+    auto ff = get_ford_fulkerson(app_id);
 
     std::vector<bool> visit(5, false);
     std::vector<int> flow(5, 0);
@@ -219,25 +207,7 @@ TEST(ford_fulkerson, max_value_pos)
 TEST(ford_fulkerson, select_node)
 {
     int32_t app_id = 1;
-    dsn::app_info info;
-    info.app_id = app_id;
-    info.partition_count = 4;
-    std::shared_ptr<app_state> app = app_state::create(info);
-
-    std::unordered_map<dsn::rpc_address, int> address_id;
-    auto addr1 = rpc_address(1, 1);
-    auto addr2 = rpc_address(1, 2);
-    auto addr3 = rpc_address(1, 3);
-    address_id[addr1] = 1;
-    address_id[addr2] = 2;
-    address_id[addr3] = 3;
-
-    node_mapper nodes;
-    node_state ns;
-    nodes[addr1] = ns;
-    nodes[addr2] = ns;
-    nodes[addr3] = ns;
-    auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
+    auto ff = get_ford_fulkerson(app_id);
 
     std::vector<bool> visit(5, false);
     std::vector<int> flow(5, 0);
