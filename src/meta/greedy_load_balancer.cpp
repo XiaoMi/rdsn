@@ -669,8 +669,23 @@ ford_fulkerson::ford_fulkerson(const std::shared_ptr<app_state> &app,
 // using dijstra to find shortest path
 std::unique_ptr<flow_path> ford_fulkerson::find_shortest_path()
 {
-    // TBD(zlw)
-    return nullptr;
+    std::vector<bool> visit(_graph_nodes, false);
+    std::vector<int> flow(_graph_nodes, 0);
+    std::vector<int> prev(_graph_nodes, -1);
+    flow[0] = INT_MAX;
+    while (!visit.back()) {
+        auto pos = select_node(visit, flow);
+        if (pos == -1) {
+            break;
+        }
+        update_flow(pos, visit, _network, flow, prev);
+    }
+
+    if (visit.back() && flow.back() != 0) {
+        return dsn::make_unique<struct flow_path>(_app, std::move(flow), std::move(prev));
+    } else {
+        return nullptr;
+    }
 }
 
 void ford_fulkerson::make_graph()
@@ -727,6 +742,36 @@ void ford_fulkerson::handle_corner_case()
                 ++_network[i][_graph_nodes - 1];
         }
     }
+}
+
+int ford_fulkerson::select_node(std::vector<bool> &visit, const std::vector<int> &flow)
+{
+    auto pos = max_value_pos(visit, flow);
+    if (pos != -1) {
+        visit[pos] = true;
+    }
+    return pos;
+}
+
+int ford_fulkerson::max_value_pos(const std::vector<bool> &visit, const std::vector<int> &flow)
+{
+    int pos = -1, max_value = 0;
+    for (auto i = 0; i != _graph_nodes; ++i) {
+        if (!visit[i] && flow[i] > max_value) {
+            pos = i;
+            max_value = flow[i];
+        }
+    }
+    return pos;
+}
+
+void ford_fulkerson::update_flow(int pos,
+                                 const std::vector<bool> &visit,
+                                 const std::vector<std::vector<int>> &network,
+                                 std::vector<int> &flow,
+                                 std::vector<int> &prev)
+{
+    // TBD(zlw)
 }
 
 bool greedy_load_balancer::move_primary_based_on_flow_per_app(const std::shared_ptr<app_state> &app,

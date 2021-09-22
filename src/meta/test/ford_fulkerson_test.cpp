@@ -177,5 +177,83 @@ TEST(ford_fulkerson, build_succ)
     ASSERT_EQ(ff->_network[4][3], 0);
     ASSERT_EQ(ff->_network[4][4], 0);
 }
+
+TEST(ford_fulkerson, max_value_pos)
+{
+    int32_t app_id = 1;
+    dsn::app_info info;
+    info.app_id = app_id;
+    info.partition_count = 4;
+    std::shared_ptr<app_state> app = app_state::create(info);
+
+    std::unordered_map<dsn::rpc_address, int> address_id;
+    auto addr1 = rpc_address(1, 1);
+    auto addr2 = rpc_address(1, 2);
+    auto addr3 = rpc_address(1, 3);
+    address_id[addr1] = 1;
+    address_id[addr2] = 2;
+    address_id[addr3] = 3;
+
+    node_mapper nodes;
+    node_state ns;
+    nodes[addr1] = ns;
+    nodes[addr2] = ns;
+    nodes[addr3] = ns;
+    auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
+
+    std::vector<bool> visit(5, false);
+    std::vector<int> flow(5, 0);
+    auto pos = ff->max_value_pos(visit, flow);
+    ASSERT_EQ(pos, -1);
+
+    flow[1] = 3;
+    flow[2] = 5;
+    pos = ff->max_value_pos(visit, flow);
+    ASSERT_EQ(pos, 2);
+
+    visit[2] = true;
+    pos = ff->max_value_pos(visit, flow);
+    ASSERT_EQ(pos, 1);
+}
+
+TEST(ford_fulkerson, select_node)
+{
+    int32_t app_id = 1;
+    dsn::app_info info;
+    info.app_id = app_id;
+    info.partition_count = 4;
+    std::shared_ptr<app_state> app = app_state::create(info);
+
+    std::unordered_map<dsn::rpc_address, int> address_id;
+    auto addr1 = rpc_address(1, 1);
+    auto addr2 = rpc_address(1, 2);
+    auto addr3 = rpc_address(1, 3);
+    address_id[addr1] = 1;
+    address_id[addr2] = 2;
+    address_id[addr3] = 3;
+
+    node_mapper nodes;
+    node_state ns;
+    nodes[addr1] = ns;
+    nodes[addr2] = ns;
+    nodes[addr3] = ns;
+    auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
+
+    std::vector<bool> visit(5, false);
+    std::vector<int> flow(5, 0);
+    auto pos = ff->select_node(visit, flow);
+    ASSERT_EQ(pos, -1);
+
+    flow[1] = 3;
+    flow[2] = 5;
+    pos = ff->select_node(visit, flow);
+    ASSERT_EQ(pos, 2);
+    ASSERT_EQ(visit[pos], true);
+
+    visit[2] = true;
+    pos = ff->select_node(visit, flow);
+    ASSERT_EQ(pos, 1);
+    ASSERT_EQ(visit[pos], true);
+}
 } // namespace replication
 } // namespace dsn
