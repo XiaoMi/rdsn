@@ -40,7 +40,8 @@ TEST(ford_fulkerson, build_failure)
     ASSERT_EQ(ff, nullptr);
 }
 
-std::unique_ptr<ford_fulkerson> get_ford_fulkerson(int app_id) {
+std::unique_ptr<ford_fulkerson> get_ford_fulkerson(int app_id)
+{
     dsn::app_info info;
     info.app_id = app_id;
     info.partition_count = 4;
