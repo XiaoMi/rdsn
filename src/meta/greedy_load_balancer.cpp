@@ -1225,9 +1225,10 @@ bool greedy_load_balancer::get_next_move(const cluster_migration_info &cluster_i
         std::multimap<uint32_t, rpc_address> app_count_multimap = utils::flip_map(app_map);
         if (app_count_multimap.rbegin()->first <= app_count_multimap.begin()->first + 1 &&
             (app_cluster_min_set.empty() || app_cluster_max_set.empty())) {
-            ddebug_f(
-                "do not move replicas of a balanced app if the least (most) loaded servers overall "
-                "do not intersect the servers hosting the least (most) replicas of the app");
+            ddebug_f("do not move replicas of a balanced app({}) if the least (most) loaded "
+                     "servers overall do not intersect the servers hosting the least (most) "
+                     "replicas of the app",
+                     app_id);
             continue;
         }
 
