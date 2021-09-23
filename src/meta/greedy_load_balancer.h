@@ -149,7 +149,7 @@ private:
 
     FRIEND_TEST(ford_fulkerson, add_edge);
     FRIEND_TEST(ford_fulkerson, update_decree);
-    FRIEND_TEST(ford_fulkerson, build_succ);
+    FRIEND_TEST(ford_fulkerson, find_shortest_path);
     FRIEND_TEST(ford_fulkerson, max_value_pos);
     FRIEND_TEST(ford_fulkerson, select_node);
 };
