@@ -38,7 +38,6 @@
 #include <dsn/tool-api/task.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/utility/dlib.h>
-#include <dsn/utility/flags.h>
 
 namespace dsn {
 
