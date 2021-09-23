@@ -38,6 +38,7 @@
 #include <dsn/tool-api/task.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/utility/dlib.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 
@@ -99,8 +100,10 @@ private:
     int _index;
     std::atomic<int> _queue_length;
     dsn::perf_counter_wrapper _queue_length_counter;
+    dsn::perf_counter_wrapper _delay_task_counter;
+    dsn::perf_counter_wrapper _reject_task_counter;
     threadpool_spec *_spec;
     volatile int _virtual_queue_length;
 };
 /*@}*/
-} // end namespace
+} // namespace dsn

@@ -25,6 +25,9 @@
  */
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/tool-api/command_manager.h>
+#include <dsn/tool-api/command_manager.h>
+#include <fmt/format.h>
 
 #include "task_engine.h"
 
@@ -208,6 +211,7 @@ task_engine::task_engine(service_node *node)
 {
     _is_running = false;
     _node = node;
+    register_cli_commands();
 }
 
 void task_engine::create(const std::list<threadpool_code> &pools)
@@ -288,4 +292,49 @@ void task_engine::get_queue_info(/*out*/ std::stringstream &ss)
         }
     }
 }
-} // end namespace
+
+void task_engine::register_cli_commands()
+{
+    static std::once_flag flag;
+    std::call_once(flag, [&]() {
+        _task_queue_max_length_cmd = dsn::command_manager::instance().register_command(
+            {"task.queue_max_length"},
+            "task.queue_max_length <pool_code> [queue_max_length]",
+            "get/set the max task queue length of specific thread_pool, -1 means no limit",
+            [this](const std::vector<std::string> &args) {
+                if (args.size() < 1) {
+                    return std::string("ERR: invalid arguments, task.queue_max_length <pool_code> "
+                                       "[queue_max_length]");
+                }
+
+                for (auto &it : _pools)
+                    if (it) {
+                        if (it->_spec.pool_code.to_string() == args[0]) {
+                            if (args.size() == 1) {
+                                return fmt::format("task queue {}, length {}",
+                                                   args[0],
+                                                   it->_spec.queue_length_throttling_threshold);
+                            }
+                            if (args.size() == 2) {
+                                int queue_length = INT_MAX;
+                                if ((args[1] != "INT_MAX") &&
+                                    (!dsn::buf2int32(args[1], queue_length))) {
+                                    return fmt::format(
+                                        "queue_max_length must >= 0, or set `INT_MAX`");
+                                }
+                                if (queue_length < 0) {
+                                    queue_length = INT_MAX;
+                                }
+                                it->_spec.queue_length_throttling_threshold = queue_length;
+                                return fmt::format("task queue {}, length {}",
+                                                   args[0],
+                                                   it->_spec.queue_length_throttling_threshold);
+                            }
+                        }
+                    }
+                return std::string("ERR: thread_pool not found");
+            });
+    });
+}
+
+} // namespace dsn
