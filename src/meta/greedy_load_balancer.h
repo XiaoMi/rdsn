@@ -130,6 +130,14 @@ private:
     void update_decree(int node_id, const node_state &ns);
     void handle_corner_case();
 
+    int select_node(std::vector<bool> &visit, const std::vector<int> &flow);
+    int max_value_pos(const std::vector<bool> &visit, const std::vector<int> &flow);
+    void update_flow(int pos,
+                     const std::vector<bool> &visit,
+                     const std::vector<std::vector<int>> &network,
+                     std::vector<int> &flow,
+                     std::vector<int> &prev);
+
     const std::shared_ptr<app_state> &_app;
     const node_mapper &_nodes;
     const std::unordered_map<dsn::rpc_address, int> &_address_id;
@@ -142,6 +150,8 @@ private:
     FRIEND_TEST(ford_fulkerson, add_edge);
     FRIEND_TEST(ford_fulkerson, update_decree);
     FRIEND_TEST(ford_fulkerson, build_succ);
+    FRIEND_TEST(ford_fulkerson, max_value_pos);
+    FRIEND_TEST(ford_fulkerson, select_node);
 };
 
 class greedy_load_balancer : public server_load_balancer
