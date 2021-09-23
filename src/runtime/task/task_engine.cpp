@@ -26,7 +26,6 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/tool-api/command_manager.h>
-#include <dsn/tool-api/command_manager.h>
 #include <fmt/format.h>
 
 #include "task_engine.h"
