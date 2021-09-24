@@ -186,20 +186,20 @@ for MODULE in `echo $TEST_MODULE | sed 's/,/ /g'`; do
     fi
 done
 
-if [ "$ENABLE_GCOV" == "YES" ]
-then
-    echo "Generating gcov report..."
-    cd $ROOT
-    mkdir -p $GCOV_DIR
+#if [ "$ENABLE_GCOV" == "YES" ]
+#then
+#    echo "Generating gcov report..."
+#    cd $ROOT
+#    mkdir -p $GCOV_DIR
 
-    echo "Running gcovr to produce HTML code coverage report."
-    gcovr --html --html-details -r $ROOT --object-directory=$BUILD_DIR \
-          -o $GCOV_DIR/index.html
-    if [ $? -ne 0 ]
-    then
-        exit 1
-    fi
-fi
+#    echo "Running gcovr to produce HTML code coverage report."
+#    gcovr --html --html-details -r $ROOT --object-directory=$BUILD_DIR \
+#          -o $GCOV_DIR/index.html
+#    if [ $? -ne 0 ]
+#    then
+#        exit 1
+#    fi
+#fi
 
 echo "Test succeed"
 
