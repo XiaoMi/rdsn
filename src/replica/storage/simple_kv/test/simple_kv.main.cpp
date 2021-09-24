@@ -82,6 +82,5 @@ int main(int argc, char **argv)
     }
 
     dsn_exit(0);
-#endif
     return 0;
 }
