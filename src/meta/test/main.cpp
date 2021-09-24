@@ -50,7 +50,7 @@ TEST(meta, state_sync) { g_app->state_sync_test(); }
 
 TEST(meta, update_configuration) { g_app->update_configuration_test(); }
 
-TEST(meta, balancer_validator) { g_app->balancer_validator(); }
+//TEST(meta, balancer_validator) { g_app->balancer_validator(); }
 
 TEST(meta, apply_balancer) { g_app->apply_balancer_test(); }
 
@@ -101,8 +101,6 @@ GTEST_API_ int main(int argc, char **argv)
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-#ifndef ENABLE_GCOV
     dsn_exit(gtest_ret);
-#endif
     return gtest_ret;
 }
