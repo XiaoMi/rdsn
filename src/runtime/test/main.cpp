@@ -76,7 +76,7 @@ GTEST_API_ int main(int argc, char **argv)
         }
     }
 
-// exit without any destruction
+    // exit without any destruction
     dsn_exit(0);
     return 0;
 }
