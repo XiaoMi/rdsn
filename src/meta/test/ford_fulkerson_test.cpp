@@ -110,7 +110,7 @@ TEST(ford_fulkerson, update_decree)
     ASSERT_EQ(ff->_network[1][3], 2);
 }
 
-TEST(ford_fulkerson, build_succ)
+TEST(ford_fulkerson, find_shortest_path)
 {
     auto addr1 = rpc_address(1, 1);
     auto addr2 = rpc_address(2, 2);
@@ -146,6 +146,15 @@ TEST(ford_fulkerson, build_succ)
     address_id[addr2] = 2;
     address_id[addr3] = 3;
 
+    /**
+     * ford fulkerson graph:
+     *             1      2      1
+     * (source) 0 ---> 1 ---> 3 ---
+     *               2 |           |
+     *                 v           v
+     *                 2 --------> 4 (sink)
+     *                      1
+     */
     auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
     ASSERT_EQ(ff->_network[0][0], 0);
     ASSERT_EQ(ff->_network[0][1], 1);
@@ -176,6 +185,20 @@ TEST(ford_fulkerson, build_succ)
     ASSERT_EQ(ff->_network[4][2], 0);
     ASSERT_EQ(ff->_network[4][3], 0);
     ASSERT_EQ(ff->_network[4][4], 0);
+
+    /**
+     * shortest path:
+     *         1      1      1
+     *      0 ---> 1 ---> 2 ---> 4
+     *  (source)               (sink)
+     */
+    auto flow_path = ff->find_shortest_path();
+    ASSERT_EQ(flow_path->_prev[4], 2);
+    ASSERT_EQ(flow_path->_flow[4], 1);
+    ASSERT_EQ(flow_path->_prev[2], 1);
+    ASSERT_EQ(flow_path->_flow[2], 1);
+    ASSERT_EQ(flow_path->_prev[1], 0);
+    ASSERT_EQ(flow_path->_flow[1], 1);
 }
 
 TEST(ford_fulkerson, max_value_pos)

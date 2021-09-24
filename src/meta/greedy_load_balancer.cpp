@@ -771,7 +771,17 @@ void ford_fulkerson::update_flow(int pos,
                                  std::vector<int> &flow,
                                  std::vector<int> &prev)
 {
-    // TBD(zlw)
+    for (auto i = 0; i != _graph_nodes; ++i) {
+        if (visit[i]) {
+            continue;
+        }
+
+        auto min = std::min(flow[pos], network[pos][i]);
+        if (min > flow[i]) {
+            flow[i] = min;
+            prev[i] = pos;
+        }
+    }
 }
 
 bool greedy_load_balancer::move_primary_based_on_flow_per_app(const std::shared_ptr<app_state> &app,
