@@ -334,9 +334,8 @@ const std::string &greedy_load_balancer::get_disk_tag(const rpc_address &node, c
 }
 
 // assume all nodes are alive
-bool greedy_load_balancer::copy_primary_per_app(const std::shared_ptr<app_state> &app,
-                                                bool still_have_less_than_average,
-                                                int replicas_low)
+bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
+                                        bool still_have_less_than_average)
 {
     const node_mapper &nodes = *(t_global_view->nodes);
     std::vector<int> future_primaries(address_vec.size(), 0);
@@ -361,6 +360,7 @@ bool greedy_load_balancer::copy_primary_per_app(const std::shared_ptr<app_state>
         pri_queue.insert(address_id[iter->first]);
     }
 
+    int replicas_low = app->partition_count / t_alive_nodes;
     ddebug("start to do copy primary for app(%s), expected minimal primaries(%d), %s all have "
            "reached the value",
            app->get_logname(),
@@ -784,9 +784,9 @@ void ford_fulkerson::update_flow(int pos,
     }
 }
 
-bool greedy_load_balancer::move_primary_based_on_flow_per_app(const std::shared_ptr<app_state> &app,
-                                                              const std::vector<int> &prev,
-                                                              const std::vector<int> &flow)
+bool greedy_load_balancer::move_primary(const std::shared_ptr<app_state> &app,
+                                        const std::vector<int> &prev,
+                                        const std::vector<int> &flow)
 {
     int graph_nodes = prev.size();
     int current = prev[graph_nodes - 1];
@@ -885,115 +885,32 @@ bool greedy_load_balancer::move_primary_based_on_flow_per_app(const std::shared_
     return true;
 }
 
-// shortest path based on dijstra, to find an augmenting path
-void greedy_load_balancer::shortest_path(std::vector<bool> &visit,
-                                         std::vector<int> &flow,
-                                         std::vector<int> &prev,
-                                         std::vector<std::vector<int>> &network)
-{
-    int pos, max_value;
-    flow[0] = INT_MAX;
-
-    int graph_nodes = network.size();
-    while (!visit[graph_nodes - 1]) {
-        pos = -1, max_value = 0;
-        for (int i = 0; i != graph_nodes; ++i) {
-            if (visit[i] == false && flow[i] > max_value) {
-                pos = i;
-                max_value = flow[i];
-            }
-        }
-
-        if (pos == -1)
-            break;
-
-        visit[pos] = true;
-        for (int i = 0; i != graph_nodes; ++i) {
-            if (!visit[i] && std::min(flow[pos], network[pos][i]) > flow[i]) {
-                flow[i] = std::min(flow[pos], network[pos][i]);
-                prev[i] = pos;
-            }
-        }
-    }
-}
-
 // load balancer based on ford-fulkerson
 bool greedy_load_balancer::primary_balance(const std::shared_ptr<app_state> &app,
                                            bool only_move_primary)
 {
     dassert(t_alive_nodes > 2, "too few alive nodes will lead to freeze");
-    ddebug("primary balancer for app(%s:%d)", app->app_name.c_str(), app->app_id);
+    ddebug_f("primary balancer for app({}:{})", app->app_name, app->app_id);
 
-    const node_mapper &nodes = *(t_global_view->nodes);
-    int replicas_low = app->partition_count / t_alive_nodes;
-    int replicas_high = (app->partition_count + t_alive_nodes - 1) / t_alive_nodes;
-
-    int lower_count = 0, higher_count = 0;
-    for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
-        int c = iter->second.primary_count(app->app_id);
-        if (c > replicas_high)
-            higher_count++;
-        else if (c < replicas_low)
-            lower_count++;
-    }
-    if (higher_count == 0 && lower_count == 0) {
-        dinfo("the primaries are balanced for app(%s:%d)", app->app_name.c_str(), app->app_id);
+    auto graph = ford_fulkerson::builder(app, *t_global_view->nodes, address_id).build();
+    if (nullptr == graph) {
+        dinfo_f("the primaries are balanced for app({}:{})", app->app_name, app->app_id);
         return true;
     }
 
-    size_t graph_nodes = t_alive_nodes + 2;
-    std::vector<std::vector<int>> network(graph_nodes, std::vector<int>(graph_nodes, 0));
-
-    // make graph
-    for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
-        int from = address_id[iter->first];
-        const node_state &ns = iter->second;
-        int c = ns.primary_count(app->app_id);
-        if (c > replicas_low)
-            network[0][from] = c - replicas_low;
-        else
-            network[from][graph_nodes - 1] = replicas_low - c;
-
-        ns.for_each_primary(app->app_id, [&, this](const gpid &pid) {
-            const partition_configuration &pc = app->partitions[pid.get_partition_index()];
-            for (auto &target : pc.secondaries) {
-                auto i = address_id.find(target);
-                dassert(i != address_id.end(),
-                        "invalid secondary address, address = %s",
-                        target.to_string());
-                network[from][i->second]++;
-            }
-            return true;
-        });
-    }
-
-    if (higher_count > 0 && lower_count == 0) {
-        for (int i = 0; i != graph_nodes; ++i) {
-            if (network[0][i] > 0)
-                --network[0][i];
-            else
-                ++network[i][graph_nodes - 1];
-        }
-    }
-    dinfo("%s: start to move primary", app->get_logname());
-    std::vector<bool> visit(graph_nodes, false);
-    std::vector<int> flow(graph_nodes, 0);
-    std::vector<int> prev(graph_nodes, -1);
-
-    shortest_path(visit, flow, prev, network);
-    // we can't make the server load more balanced
-    // by moving primaries to secondaries
-    if (!visit[graph_nodes - 1] || flow[graph_nodes - 1] == 0) {
-        if (!only_move_primary) {
-            return copy_primary_per_app(app, lower_count != 0, replicas_low);
+    auto path = graph->find_shortest_path();
+    if (path != nullptr) {
+        dinfo_f("{} primaries are flew", path->_flow.back());
+        return move_primary(app, path->_prev, path->_flow);
+    } else {
+        ddebug_f("we can't make the server load more balanced by moving primaries to secondaries");
+        if (!_only_move_primary) {
+            return copy_primary(app, graph->have_less_than_average());
         } else {
-            ddebug("stop to move primary for app(%s) coz it is disabled", app->get_logname());
+            ddebug_f("stop to copy primary for app({}) coz it is disabled", app->get_logname());
             return true;
         }
     }
-
-    dinfo("%u primaries are flew", flow[graph_nodes - 1]);
-    return move_primary_based_on_flow_per_app(app, prev, flow);
 }
 
 bool greedy_load_balancer::all_replica_infos_collected(const node_state &ns)

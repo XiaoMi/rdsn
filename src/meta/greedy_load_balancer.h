@@ -84,6 +84,7 @@ public:
 
     // using dijstra to find shortest path
     std::unique_ptr<flow_path> find_shortest_path();
+    bool have_less_than_average() const { return _lower_count != 0; }
 
     class builder
     {
@@ -237,13 +238,11 @@ private:
     //
     // when return false, it means generators refuse to make decision coz
     // they think they need more informations.
-    bool move_primary_based_on_flow_per_app(const std::shared_ptr<app_state> &app,
-                                            const std::vector<int> &prev,
-                                            const std::vector<int> &flow);
-    bool copy_primary_per_app(const std::shared_ptr<app_state> &app,
-                              bool still_have_less_than_average,
-                              int replicas_low);
     bool primary_balance(const std::shared_ptr<app_state> &app, bool only_move_primary);
+    bool move_primary(const std::shared_ptr<app_state> &app,
+                      const std::vector<int> &prev,
+                      const std::vector<int> &flow);
+    bool copy_primary(const std::shared_ptr<app_state> &app, bool still_have_less_than_average);
 
     bool copy_secondary(const std::shared_ptr<app_state> &app, bool place_holder);
 
