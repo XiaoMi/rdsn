@@ -10,17 +10,6 @@ dsn_common_setup()
 
 # add custom target for gcov
 if(ENABLE_GCOV)
-    find_program(GCOV_PATH gcov)
-    find_program(GCOVR_PATH gcovr)
-
-    if(NOT GCOV_PATH)
-        message(FATAL_ERROR "gcov not found! Aborting...")
-    endif() # NOT GCOV_PATH
-
-    if(NOT GCOVR_PATH)
-        message(FATAL_ERROR "gcovr not found! Aborting...")
-    endif() # NOT GCOVR_PATH
-
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
         message(WARNING "Code coverage results with an optimised (non-Debug) build may be misleading")
     endif() # NOT CMAKE_BUILD_TYPE STREQUAL "Debug"

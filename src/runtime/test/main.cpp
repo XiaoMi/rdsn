@@ -56,9 +56,7 @@ GTEST_API_ int main(int argc, char **argv)
     }
 
     if (g_test_ret != 0) {
-#ifndef ENABLE_GCOV
         dsn_exit(g_test_ret);
-#endif
         return g_test_ret;
     }
 
@@ -73,16 +71,12 @@ GTEST_API_ int main(int argc, char **argv)
         });
         t.join();
         if (g_test_ret != 0) {
-#ifndef ENABLE_GCOV
             dsn_exit(g_test_ret);
-#endif
             return g_test_ret;
         }
     }
 
-// exit without any destruction
-#ifndef ENABLE_GCOV
+    // exit without any destruction
     dsn_exit(0);
-#endif
     return 0;
 }
