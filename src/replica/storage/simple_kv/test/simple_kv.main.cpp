@@ -86,5 +86,6 @@ int main(int argc, char **argv)
 #ifndef ENABLE_GCOV
     dsn_exit(0);
 #endif
+
     return 0;
 }

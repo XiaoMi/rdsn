@@ -578,7 +578,6 @@ TEST_F(mutation_log_test, reset_from_while_writing)
         mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, mlog->tracker(), nullptr, 0);
     }
 
-
     // reset from the tmp log dir.
     std::vector<mutation_ptr> actual;
     auto err = mlog->reset_from(_log_dir + ".test",
@@ -587,7 +586,6 @@ TEST_F(mutation_log_test, reset_from_while_writing)
                                     return true;
                                 },
                                 [](error_code err) { ASSERT_EQ(err, ERR_OK); });
-
     ASSERT_EQ(err, ERR_OK);
 
     mlog->flush();
