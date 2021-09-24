@@ -148,9 +148,9 @@ TEST(ford_fulkerson, find_shortest_path)
 
     /**
      * ford fulkerson graph:
-     *            1      2      1
+     *             1      2      1
      * (source) 0 ---> 1 ---> 3 ---
-     *               2 |           | 1
+     *               2 |           |
      *                 v           v
      *          -----> 2 --------- 4 (sink)
      *                      1
