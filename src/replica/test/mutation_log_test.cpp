@@ -592,6 +592,7 @@ TEST_F(mutation_log_test, reset_from_while_writing)
 
     mlog->flush();
     ASSERT_EQ(actual.size(), expected.size());
+
 }
 } // namespace replication
 } // namespace dsn
