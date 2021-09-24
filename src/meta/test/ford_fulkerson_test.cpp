@@ -152,7 +152,7 @@ TEST(ford_fulkerson, find_shortest_path)
      * (source) 0 ---> 1 ---> 3 ---
      *               2 |           |
      *                 v           v
-     *                 2 --------- 4 (sink)
+     *                 2 --------> 4 (sink)
      *                      1
      */
     auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
