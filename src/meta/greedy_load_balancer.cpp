@@ -808,8 +808,10 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
     }
 
     int plan_moving = path->_flow.back();
-    while (path->_prev[current] != 0) {
-        rpc_address from = address_vec[path->_prev[current]];
+    int prev = path->_prev[current];
+    while (prev != 0) {
+        rpc_address from = address_vec[prev];
+        rpc_address to = address_vec[current];
         if (!calc_disk_load(nodes, apps, path->_app->app_id, from, true, *prev_load)) {
             dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                     from.to_string(),
@@ -817,10 +819,9 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
             return false;
         }
 
-        rpc_address to = address_vec[current];
         start_moving_primaries(path->_app, from, to, plan_moving, prev_load, current_load);
 
-        current = path->_prev[current];
+        current = prev;
         std::swap(current_load, prev_load);
     }
     return true;
