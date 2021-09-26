@@ -239,12 +239,12 @@ private:
 
     bool copy_secondary(const std::shared_ptr<app_state> &app, bool place_holder);
 
-    void start_moving_primary(const std::shared_ptr<app_state> &app,
-                              const rpc_address &from,
-                              const rpc_address &to,
-                              int plan_moving,
-                              disk_load *prev_load,
-                              disk_load *current_load);
+    void start_moving_primaries(const std::shared_ptr<app_state> &app,
+                                const rpc_address &from,
+                                const rpc_address &to,
+                                int plan_moving,
+                                disk_load *prev_load,
+                                disk_load *current_load);
 
     void greedy_balancer(bool balance_checker);
 

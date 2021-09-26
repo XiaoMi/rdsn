@@ -818,7 +818,7 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
         }
 
         rpc_address to = address_vec[current];
-        start_moving_primary(path->_app, from, to, plan_moving, prev_load, current_load);
+        start_moving_primaries(path->_app, from, to, plan_moving, prev_load, current_load);
 
         current = path->_prev[current];
         std::swap(current_load, prev_load);
@@ -826,12 +826,12 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
     return true;
 }
 
-void greedy_load_balancer::start_moving_primary(const std::shared_ptr<app_state> &app,
-                                                const rpc_address &from,
-                                                const rpc_address &to,
-                                                int plan_moving,
-                                                disk_load *prev_load,
-                                                disk_load *current_load)
+void greedy_load_balancer::start_moving_primaries(const std::shared_ptr<app_state> &app,
+                                                  const rpc_address &from,
+                                                  const rpc_address &to,
+                                                  int plan_moving,
+                                                  disk_load *prev_load,
+                                                  disk_load *current_load)
 {
     // TBD(zlw)
 }
