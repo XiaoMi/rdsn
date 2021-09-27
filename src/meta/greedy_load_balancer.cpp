@@ -834,7 +834,67 @@ void greedy_load_balancer::start_moving_primaries(const std::shared_ptr<app_stat
                                                   disk_load *prev_load,
                                                   disk_load *current_load)
 {
-    // TBD(zlw)
+    std::list<dsn::gpid> potential_moving = calc_potential_moving(app, from, to);
+    dassert_f(plan_moving <= potential_moving.size(),
+              "from({}) to({}) plan({}), can_move({})",
+              from.to_string(),
+              to.to_string(),
+              plan_moving,
+              potential_moving.size());
+
+    while (plan_moving-- > 0) {
+        dsn::gpid selected = select_moving(potential_moving, prev_load, current_load, from, to);
+
+        const partition_configuration &pc = app->partitions[selected.get_partition_index()];
+        auto balancer_result = t_migration_result->emplace(
+            selected, generate_balancer_request(pc, balance_type::move_primary, from, to));
+        dassert_f(balancer_result.second, "gpid({}) already inserted as an action", selected);
+
+        --(*prev_load)[get_disk_tag(from, selected)];
+        ++(*current_load)[get_disk_tag(to, selected)];
+    }
+}
+
+std::list<dsn::gpid> greedy_load_balancer::calc_potential_moving(
+    const std::shared_ptr<app_state> &app, const rpc_address &from, const rpc_address &to)
+{
+    std::list<dsn::gpid> potential_moving;
+    const node_state &ns = t_global_view->nodes->find(from)->second;
+    ns.for_each_primary(app->app_id, [&](const gpid &pid) {
+        const partition_configuration &pc = app->partitions[pid.get_partition_index()];
+        if (is_secondary(pc, to)) {
+            potential_moving.push_back(pid);
+        }
+        return true;
+    });
+
+    return potential_moving;
+}
+
+dsn::gpid greedy_load_balancer::select_moving(std::list<dsn::gpid> &potential_moving,
+                                              disk_load *prev_load,
+                                              disk_load *current_load,
+                                              rpc_address from,
+                                              rpc_address to)
+{
+    std::list<dsn::gpid>::iterator selected = potential_moving.end();
+    int max = std::numeric_limits<int>::min();
+
+    for (auto it = potential_moving.begin(); it != potential_moving.end(); ++it) {
+        int load_difference =
+            (*prev_load)[get_disk_tag(from, *it)] - (*current_load)[get_disk_tag(to, *it)];
+        if (load_difference > max) {
+            max = load_difference;
+            selected = it;
+        }
+    }
+
+    dassert_f(selected != potential_moving.end(),
+              "can't find gpid to move from({}) to({})",
+              from.to_string(),
+              to.to_string());
+    potential_moving.erase(selected);
+    return *selected;
 }
 
 // load balancer based on ford-fulkerson

@@ -245,6 +245,14 @@ private:
                                 int plan_moving,
                                 disk_load *prev_load,
                                 disk_load *current_load);
+    std::list<dsn::gpid> calc_potential_moving(const std::shared_ptr<app_state> &app,
+                                               const rpc_address &from,
+                                               const rpc_address &to);
+    dsn::gpid select_moving(std::list<dsn::gpid> &potential_moving,
+                            disk_load *prev_load,
+                            disk_load *current_load,
+                            rpc_address from,
+                            rpc_address to);
 
     void greedy_balancer(bool balance_checker);
 
@@ -403,6 +411,7 @@ private:
     FRIEND_TEST(greedy_load_balancer, apply_move);
     FRIEND_TEST(greedy_load_balancer, pick_up_partition);
     FRIEND_TEST(greedy_load_balancer, execute_balance);
+    FRIEND_TEST(greedy_load_balancer, calc_potential_moving);
 };
 
 inline configuration_proposal_action
