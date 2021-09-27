@@ -304,8 +304,6 @@ private:
     // Try to release tcmalloc memory back to operating system
     // If release_all = true, it will release all reserved-not-used memory
     uint64_t gc_tcmalloc_memory(bool release_all);
-#elif defined(DSN_USE_JEMALLOC)
-    void register_jemalloc_ctrl_command();
 #endif
 
 private:
@@ -377,20 +375,6 @@ private:
     dsn_handle_t _get_tcmalloc_status_command;
     dsn_handle_t _max_reserved_memory_percentage_command;
     dsn_handle_t _release_all_reserved_memory_command;
-#elif defined(DSN_USE_JEMALLOC)
-    dsn_handle_t _set_jemalloc_arena_dirty_decay_ms_command;
-    dsn_handle_t _set_jemalloc_arena_muzzy_decay_ms_command;
-    dsn_handle_t _gc_jemalloc_arena_command;
-    dsn_handle_t _get_jemalloc_configs_command;
-    dsn_handle_t _get_jemalloc_summary_stats_command;
-    dsn_handle_t _get_jemalloc_brief_arena_stats_command;
-    dsn_handle_t _get_jemalloc_detailed_stats_command;
-    dsn_handle_t _activate_jemalloc_prof_command;
-    dsn_handle_t _deactivate_jemalloc_prof_command;
-    dsn_handle_t _dump_jemalloc_prof_command;
-    dsn_handle_t _enable_jemalloc_prof_gdump_command;
-    dsn_handle_t _disable_jemalloc_prof_gdump_command;
-    dsn_handle_t _reset_jemalloc_prof_command;
 #endif
     dsn_handle_t _max_concurrent_bulk_load_downloading_count_command;
 

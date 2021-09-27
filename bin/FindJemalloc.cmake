@@ -57,8 +57,6 @@ mark_as_advanced(
     Jemalloc_STATIC_LIBRARIES
 )
 
-# Reuse JeMalloc::JeMalloc from RocksDB::rocksdb
-# as the only exposed target
 if(Jemalloc_FOUND AND NOT (TARGET JeMalloc::JeMalloc))
     if("${JEMALLOC_LIB_TYPE}" STREQUAL "SHARED")
         add_library(JeMalloc::JeMalloc SHARED IMPORTED)
