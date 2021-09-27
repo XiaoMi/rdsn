@@ -424,7 +424,6 @@ private:
     FRIEND_TEST(greedy_load_balancer, pick_up_partition);
     FRIEND_TEST(greedy_load_balancer, execute_balance);
     FRIEND_TEST(greedy_load_balancer, calc_potential_moving);
-    FRIEND_TEST(greedy_load_balancer, select_moving);
 };
 
 inline configuration_proposal_action
