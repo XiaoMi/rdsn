@@ -39,6 +39,9 @@
 
 namespace dsn {
 namespace replication {
+
+// disk_tag -> targets(primaries/partitions)_on_this_disk
+typedef std::map<std::string, int> disk_load;
 enum class cluster_balance_type
 {
     COPY_PRIMARY = 0,
@@ -199,9 +202,6 @@ private:
     std::unordered_map<dsn::rpc_address, int> address_id;
     std::vector<dsn::rpc_address> address_vec;
 
-    // disk_tag -> targets(primaries/partitions)_on_this_disk
-    typedef std::map<std::string, int> disk_load;
-
     // options
     bool _balancer_in_turn;
     bool _only_primary_balancer;
@@ -242,7 +242,14 @@ private:
     bool move_primary(const std::shared_ptr<app_state> &app,
                       const std::vector<int> &prev,
                       const std::vector<int> &flow);
+    bool move_primary(std::unique_ptr<flow_path> path);
     bool copy_primary(const std::shared_ptr<app_state> &app, bool still_have_less_than_average);
+    void start_moving_primaries(const std::shared_ptr<app_state> &app,
+                                const rpc_address &from,
+                                const rpc_address &to,
+                                int plan_moving,
+                                disk_load *prev_load,
+                                disk_load *current_load);
 
     bool copy_secondary(const std::shared_ptr<app_state> &app, bool place_holder);
 
@@ -378,14 +385,6 @@ private:
     bool all_replica_infos_collected(const node_state &ns);
     // using t_global_view to get disk_tag of node's pid
     const std::string &get_disk_tag(const dsn::rpc_address &node, const dsn::gpid &pid);
-
-    // return false if can't get the replica_info for some replicas on this node
-    bool calc_disk_load(app_id id,
-                        const dsn::rpc_address &node,
-                        bool only_primary,
-                        /*out*/ disk_load &load);
-    void
-    dump_disk_load(app_id id, const rpc_address &node, bool only_primary, const disk_load &load);
 
     std::shared_ptr<configuration_balancer_request>
     generate_balancer_request(const partition_configuration &pc,
