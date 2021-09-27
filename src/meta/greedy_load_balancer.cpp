@@ -887,8 +887,9 @@ dsn::gpid greedy_load_balancer::select_moving(std::list<dsn::gpid> &potential_mo
               "can't find gpid to move from({}) to({})",
               from.to_string(),
               to.to_string());
+    auto res = *selected;
     potential_moving.erase(selected);
-    return *selected;
+    return res;
 }
 
 // load balancer based on ford-fulkerson
