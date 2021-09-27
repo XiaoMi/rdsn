@@ -909,7 +909,6 @@ std::list<dsn::gpid> greedy_load_balancer::calc_potential_moving(
     return potential_moving;
 }
 
-
 void greedy_load_balancer::start_moving_primary(const std::shared_ptr<app_state> &app,
                                                 const rpc_address &from,
                                                 const rpc_address &to,
