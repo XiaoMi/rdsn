@@ -225,10 +225,6 @@ private:
 
 private:
     void number_nodes(const node_mapper &nodes);
-    void shortest_path(std::vector<bool> &visit,
-                       std::vector<int> &flow,
-                       std::vector<int> &prev,
-                       std::vector<std::vector<int>> &network);
 
     // balance decision generators. All these functions try to make balance decisions
     // and store them to t_migration_result.
