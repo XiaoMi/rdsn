@@ -313,6 +313,7 @@ void task_engine::register_cli_commands()
                         continue;
                     }
                     if (it->_spec.pool_code.to_string() == args[0]) {
+                        // when args length is 1, return current value
                         if (args.size() == 1) {
                             return fmt::format("task queue {}, length {}",
                                                args[0],
