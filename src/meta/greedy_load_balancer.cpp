@@ -540,7 +540,8 @@ public:
                              const std::vector<dsn::rpc_address> &address_vec,
                              const std::unordered_map<dsn::rpc_address, int> &address_id,
                              int replicas_low)
-        : copy_replica_operation(app, apps, nodes, address_vec, address_id), _replicas_low(replicas_low)
+        : copy_replica_operation(app, apps, nodes, address_vec, address_id),
+          _replicas_low(replicas_low)
     {
     }
     ~copy_secondary_operation() = default;
@@ -628,8 +629,8 @@ bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app)
     app_mapper &apps = *t_global_view->apps;
     int replicas_low = app->partition_count / t_alive_nodes;
 
-    std::unique_ptr<copy_replica_operation> operation =
-        dsn::make_unique<copy_secondary_operation>(app, apps, nodes, address_vec, address_id, replicas_low);
+    std::unique_ptr<copy_replica_operation> operation = dsn::make_unique<copy_secondary_operation>(
+        app, apps, nodes, address_vec, address_id, replicas_low);
     return operation->start(t_migration_result);
 }
 
