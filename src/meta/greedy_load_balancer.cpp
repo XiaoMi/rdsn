@@ -784,13 +784,8 @@ void ford_fulkerson::update_flow(int pos,
     }
 }
 
-bool greedy_load_balancer::move_primary(const std::shared_ptr<app_state> &app,
-                                        const std::vector<int> &prev,
-                                        const std::vector<int> &flow)
+bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
 {
-    int graph_nodes = prev.size();
-    int current = prev[graph_nodes - 1];
-
     // used to calculate the primary disk loads of each server.
     // disk_load[disk_tag] means how many primaies on this "disk_tag".
     // IF disk_load.find(disk_tag) == disk_load.end(), means 0
@@ -798,91 +793,102 @@ bool greedy_load_balancer::move_primary(const std::shared_ptr<app_state> &app,
     disk_load *prev_load = &loads[0];
     disk_load *current_load = &loads[1];
 
-    if (!calc_disk_load(app->app_id, address_vec[current], true, *current_load)) {
-        dwarn("stop move primary as some replica infos aren't collected, node(%s), app(%s)",
-              address_vec[current].to_string(),
-              app->get_logname());
+    int current = path->_prev.back();
+    if (!calc_disk_load(path->_app->app_id, address_vec[current], true, *current_load)) {
+        dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
+                address_vec[current].to_string(),
+                path->_app->get_logname());
         return false;
     }
 
-    migration_list ml_this_turn;
-    while (prev[current] != 0) {
-        rpc_address from = address_vec[prev[current]];
+    int plan_moving = path->_flow.back();
+    while (path->_prev[current] != 0) {
+        rpc_address from = address_vec[path->_prev[current]];
         rpc_address to = address_vec[current];
-
-        if (!calc_disk_load(app->app_id, from, true, *prev_load)) {
-            dwarn("stop move primary as some replica infos aren't collected, node(%s), app(%s)",
-                  from.to_string(),
-                  app->get_logname());
+        if (!calc_disk_load(path->_app->app_id, from, true, *prev_load)) {
+            dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
+                    from.to_string(),
+                    path->_app->get_logname());
             return false;
         }
 
-        const node_state &ns = t_global_view->nodes->find(from)->second;
-        std::list<dsn::gpid> potential_moving;
-        int potential_moving_size = 0;
-        ns.for_each_primary(app->app_id, [&](const gpid &pid) {
-            const partition_configuration &pc = app->partitions[pid.get_partition_index()];
-            if (is_secondary(pc, to)) {
-                potential_moving.push_back(pid);
-                potential_moving_size++;
-            }
-            return true;
-        });
+        start_moving_primary(path->_app, from, to, plan_moving, prev_load, current_load);
 
-        int plan_moving = flow[graph_nodes - 1];
-        dassert(plan_moving <= potential_moving_size,
-                "from(%s) to(%s) plan(%d), can_move(%d)",
-                from.to_string(),
-                to.to_string(),
-                plan_moving,
-                potential_moving_size);
-
-        while (plan_moving > 0) {
-            std::list<dsn::gpid>::iterator selected = potential_moving.end();
-            int selected_score = std::numeric_limits<int>::min();
-
-            for (std::list<dsn::gpid>::iterator it = potential_moving.begin();
-                 it != potential_moving.end();
-                 ++it) {
-                const config_context &cc = app->helpers->contexts[it->get_partition_index()];
-                int score =
-                    (*prev_load)[get_disk_tag(from, *it)] - (*current_load)[get_disk_tag(to, *it)];
-                if (score > selected_score) {
-                    selected_score = score;
-                    selected = it;
-                }
-            }
-
-            dassert(selected != potential_moving.end(),
-                    "can't find gpid to move from(%s) to(%s)",
-                    from.to_string(),
-                    to.to_string());
-            const partition_configuration &pc = app->partitions[selected->get_partition_index()];
-            auto balancer_result = ml_this_turn.emplace(
-                *selected, generate_balancer_request(pc, balance_type::move_primary, from, to));
-            dassert(balancer_result.second,
-                    "gpid(%d.%d) already inserted as an action",
-                    (*selected).get_app_id(),
-                    (*selected).get_partition_index());
-
-            --(*prev_load)[get_disk_tag(from, *selected)];
-            ++(*current_load)[get_disk_tag(to, *selected)];
-            potential_moving.erase(selected);
-            --plan_moving;
-        }
-
-        current = prev[current];
+        current = path->_prev[current];
         std::swap(current_load, prev_load);
     }
-
-    for (auto &kv : ml_this_turn) {
-        auto r = t_migration_result->emplace(kv.first, kv.second);
-        dassert(r.second,
-                "gpid(%d.%d) already inserted as an action",
-                kv.first.get_app_id(),
-                kv.first.get_partition_index());
-    }
     return true;
+}
+
+void greedy_load_balancer::start_moving_primary(const std::shared_ptr<app_state> &app,
+                                                const rpc_address &from,
+                                                const rpc_address &to,
+                                                int plan_moving,
+                                                disk_load *prev_load,
+                                                disk_load *current_load)
+{
+    std::list<dsn::gpid> potential_moving = calc_potential_moving(app, from, to);
+    auto potential_moving_size = potential_moving.size();
+    dassert_f(plan_moving <= potential_moving_size,
+              "from({}) to({}) plan({}), can_move({})",
+              from.to_string(),
+              to.to_string(),
+              plan_moving,
+              potential_moving_size);
+
+    while (plan_moving-- > 0) {
+        dsn::gpid selected = select_moving(potential_moving, prev_load, current_load, from, to);
+
+        const partition_configuration &pc = app->partitions[selected.get_partition_index()];
+        auto balancer_result = t_migration_result->emplace(
+            selected, generate_balancer_request(pc, balance_type::move_primary, from, to));
+        dassert_f(balancer_result.second, "gpid({}) already inserted as an action", selected);
+
+        --(*prev_load)[get_disk_tag(from, selected)];
+        ++(*current_load)[get_disk_tag(to, selected)];
+    }
+}
+
+std::list<dsn::gpid> greedy_load_balancer::calc_potential_moving(
+    const std::shared_ptr<app_state> &app, const rpc_address &from, const rpc_address &to)
+{
+    std::list<dsn::gpid> potential_moving;
+    const node_state &ns = t_global_view->nodes->find(from)->second;
+    ns.for_each_primary(app->app_id, [&](const gpid &pid) {
+        const partition_configuration &pc = app->partitions[pid.get_partition_index()];
+        if (is_secondary(pc, to)) {
+            potential_moving.push_back(pid);
+        }
+        return true;
+    });
+
+    return potential_moving;
+}
+
+dsn::gpid greedy_load_balancer::select_moving(std::list<dsn::gpid> &potential_moving,
+                                              disk_load *prev_load,
+                                              disk_load *current_load,
+                                              rpc_address from,
+                                              rpc_address to)
+{
+    std::list<dsn::gpid>::iterator selected = potential_moving.end();
+    int max = std::numeric_limits<int>::min();
+
+    for (auto it = potential_moving.begin(); it != potential_moving.end(); ++it) {
+        int load_difference =
+            (*prev_load)[get_disk_tag(from, *it)] - (*current_load)[get_disk_tag(to, *it)];
+        if (load_difference > max) {
+            max = load_difference;
+            selected = it;
+        }
+    }
+
+    dassert_f(selected != potential_moving.end(),
+              "can't find gpid to move from({}) to({})",
+              from.to_string(),
+              to.to_string());
+    potential_moving.erase(selected);
+    return *selected;
 }
 
 // load balancer based on ford-fulkerson
@@ -901,7 +907,7 @@ bool greedy_load_balancer::primary_balance(const std::shared_ptr<app_state> &app
     auto path = graph->find_shortest_path();
     if (path != nullptr) {
         dinfo_f("{} primaries are flew", path->_flow.back());
-        return move_primary(app, path->_prev, path->_flow);
+        return move_primary(std::move(path));
     } else {
         ddebug_f("we can't make the server load more balanced by moving primaries to secondaries");
         if (!_only_move_primary) {
