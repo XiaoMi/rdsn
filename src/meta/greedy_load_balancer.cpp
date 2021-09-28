@@ -911,7 +911,7 @@ bool greedy_load_balancer::primary_balance(const std::shared_ptr<app_state> &app
         return move_primary(std::move(path));
     } else {
         ddebug_f("we can't make the server load more balanced by moving primaries to secondaries");
-        if (!_only_move_primary) {
+        if (!only_move_primary) {
             return copy_primary(app, graph->have_less_than_average());
         } else {
             ddebug_f("stop to copy primary for app({}) coz it is disabled", app->get_logname());
