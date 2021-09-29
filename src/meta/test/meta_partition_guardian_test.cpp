@@ -13,6 +13,7 @@
 #include "meta/test/misc/misc.h"
 #include "meta_test_base.h"
 #include "meta_service_test_app.h"
+#include "dummy_balancer.h"
 
 namespace dsn {
 namespace replication {
@@ -64,13 +65,12 @@ static auto default_filter = [](const dsn::rpc_address &target, dsn::message_ex 
     return update_req;
 };
 
-class meta_load_balance_test : public meta_test_base
+class meta_partition_guardian_test : public meta_test_base
 {
 public:
-    void simple_lb_cure_test();
-    void simple_lb_balanced_cure();
-    void simple_lb_from_proposal_test();
-    void simple_lb_construct_replica();
+    void cure_test();
+    void cure();
+    void from_proposal_test();
 
     void call_update_configuration(
         meta_service *svc, std::shared_ptr<dsn::replication::configuration_update_request> &request)
@@ -93,7 +93,7 @@ class message_filter : public dsn::replication::meta_service
 {
 public:
     typedef std::function<cur_ptr(const dsn::rpc_address &target, dsn::message_ex *request)> filter;
-    message_filter(meta_load_balance_test *app) : meta_service(), _app(app) {}
+    message_filter(meta_partition_guardian_test *app) : meta_service(), _app(app) {}
     void set_filter(const filter &f) { _filter = f; }
     virtual void reply_message(dsn::message_ex *request, dsn::message_ex *response) override
     {
@@ -112,11 +112,11 @@ public:
     }
 
 private:
-    meta_load_balance_test *_app;
+    meta_partition_guardian_test *_app;
     filter _filter;
 };
 
-void meta_load_balance_test::simple_lb_cure_test()
+void meta_partition_guardian_test::cure_test()
 {
     dsn::error_code ec;
     dsn::task_ptr t;
@@ -127,7 +127,8 @@ void meta_load_balance_test::simple_lb_cure_test()
 
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
-    svc->_balancer.reset(new simple_load_balancer(svc.get()));
+    svc->_partition_guardian.reset(new partition_guardian(svc.get()));
+    svc->_balancer.reset(new dummy_balancer(svc.get()));
 
     server_state *state = svc->_state.get();
     state->initialize(svc.get(), meta_options::concat_path_unix_style(svc->_cluster_root, "apps"));
@@ -718,7 +719,7 @@ static void check_nodes_loads(node_mapper &nodes)
     ASSERT_TRUE(max_partitions - min_partitions <= 1);
 }
 
-void meta_load_balance_test::simple_lb_balanced_cure()
+void meta_partition_guardian_test::cure()
 {
     std::vector<dsn::rpc_address> node_list;
     generate_node_list(node_list, 20, 100);
@@ -726,7 +727,7 @@ void meta_load_balance_test::simple_lb_balanced_cure()
     app_mapper app;
     node_mapper nodes;
     meta_service svc;
-    simple_load_balancer simple_lb(&svc);
+    partition_guardian guardian(&svc);
 
     dsn::app_info info;
     info.app_id = 1;
@@ -751,7 +752,7 @@ void meta_load_balance_test::simple_lb_balanced_cure()
 
         for (int i = 0; i != the_app->partition_count; ++i) {
             dsn::gpid &pid = the_app->partitions[i].pid;
-            status = simple_lb.cure({&app, &nodes}, pid, action);
+            status = guardian.cure({&app, &nodes}, pid, action);
             if (status != pc_status::healthy) {
                 all_partitions_healthy = false;
                 proposal_action_check_and_apply(action, pid, app, nodes, nullptr);
@@ -763,25 +764,15 @@ void meta_load_balance_test::simple_lb_balanced_cure()
                 fake_request.node = action.node;
                 fake_request.host_node = action.node;
 
-                simple_lb.reconfig({&app, &nodes}, fake_request);
+                guardian.reconfig({&app, &nodes}, fake_request);
                 check_nodes_loads(nodes);
             }
         }
     }
 }
 
-void meta_load_balance_test::simple_lb_from_proposal_test()
+void meta_partition_guardian_test::from_proposal_test()
 {
-    class simple_balancer_for_test : public simple_load_balancer
-    {
-    public:
-        simple_balancer_for_test(meta_service *svc) : simple_load_balancer(svc) {}
-        bool from_proposals(meta_view &view, const dsn::gpid &pid, configuration_proposal_action &a)
-        {
-            return simple_load_balancer::from_proposals(view, pid, a);
-        }
-    };
-
     std::vector<dsn::rpc_address> node_list;
     generate_node_list(node_list, 3, 3);
 
@@ -789,7 +780,7 @@ void meta_load_balance_test::simple_lb_from_proposal_test()
     node_mapper nodes;
     meta_service svc;
 
-    simple_balancer_for_test simple_lb(&svc);
+    partition_guardian guardian(&svc);
 
     dsn::app_info info;
     info.app_id = 1;
@@ -815,28 +806,28 @@ void meta_load_balance_test::simple_lb_from_proposal_test()
     config_context &cc = *get_config_context(app, p);
 
     std::cerr << "Case 1: test no proposals in config_context" << std::endl;
-    ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 2: test invalid proposal: invalid target" << std::endl;
     cpa2 =
         new_proposal_action(dsn::rpc_address(), node_list[0], config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
-    ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 3: test invalid proposal: invalid node" << std::endl;
     cpa2 =
         new_proposal_action(node_list[0], dsn::rpc_address(), config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
-    ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 4: test invalid proposal: dead target" << std::endl;
     cpa2 = new_proposal_action(node_list[0], node_list[0], config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     get_node_state(nodes, node_list[0], false)->set_alive(false);
-    ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
     get_node_state(nodes, node_list[0], false)->set_alive(true);
 
@@ -844,7 +835,7 @@ void meta_load_balance_test::simple_lb_from_proposal_test()
     cpa2 = new_proposal_action(node_list[0], node_list[1], config_type::CT_ADD_SECONDARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     get_node_state(nodes, node_list[1], false)->set_alive(false);
-    ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
     get_node_state(nodes, node_list[1], false)->set_alive(true);
 
@@ -852,14 +843,14 @@ void meta_load_balance_test::simple_lb_from_proposal_test()
     cpa2 = new_proposal_action(node_list[0], node_list[0], config_type::CT_ASSIGN_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     pc.primary = node_list[1];
-    ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 7: test invalid proposal: upgrade non-secondary" << std::endl;
     cpa2 = new_proposal_action(node_list[0], node_list[0], config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     pc.primary.set_invalid();
-    ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 8: test invalid proposal: add exist secondary" << std::endl;
@@ -867,7 +858,7 @@ void meta_load_balance_test::simple_lb_from_proposal_test()
     cc.lb_actions.assign_balancer_proposals({cpa2});
     pc.primary = node_list[0];
     pc.secondaries = {node_list[1]};
-    ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 9: test invalid proposal: downgrade non member" << std::endl;
@@ -875,7 +866,7 @@ void meta_load_balance_test::simple_lb_from_proposal_test()
     cc.lb_actions.assign_balancer_proposals({cpa2});
     pc.primary = node_list[0];
     pc.secondaries.clear();
-    ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 10: test abnormal learning detect" << std::endl;
@@ -893,140 +884,13 @@ void meta_load_balance_test::simple_lb_from_proposal_test()
     i.last_prepared_decree = 10;
 
     collect_replica(mv, node_list[1], i);
-    ASSERT_TRUE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_TRUE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_ADD_SECONDARY, cpa.type);
 
     i.status = partition_status::PS_ERROR;
     collect_replica(mv, node_list[1], i);
-    ASSERT_FALSE(simple_lb.from_proposals(mv, p, cpa));
+    ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 }
-
-void meta_load_balance_test::simple_lb_construct_replica()
-{
-    app_mapper app;
-    node_mapper nodes;
-
-    dsn::app_info info;
-    info.app_id = 1;
-    info.is_stateful = true;
-    info.status = dsn::app_status::AS_AVAILABLE;
-    info.app_name = "test";
-    info.app_type = "test";
-    info.max_replica_count = 3;
-    info.partition_count = 1024;
-    std::shared_ptr<app_state> the_app = app_state::create(info);
-    app.emplace(the_app->app_id, the_app);
-    meta_view view = {&app, &nodes};
-
-    replica_info rep;
-    rep.app_type = "test";
-    rep.pid = dsn::gpid(1, 0);
-
-    dsn::partition_configuration &pc = *get_config(app, rep.pid);
-    config_context &cc = *get_config_context(app, rep.pid);
-
-    meta_service svc;
-    simple_load_balancer simple_lb(&svc);
-
-    std::vector<dsn::rpc_address> node_list;
-    generate_node_list(node_list, 10, 10);
-
-#define CLEAR_REPLICA                                                                              \
-    do {                                                                                           \
-        pc.primary.set_invalid();                                                                  \
-        pc.secondaries.clear();                                                                    \
-        pc.last_drops.clear();                                                                     \
-    } while (false)
-
-#define CLEAR_DROP_LIST                                                                            \
-    do {                                                                                           \
-        cc.dropped.clear();                                                                        \
-    } while (false)
-
-#define CLEAR_ALL                                                                                  \
-    CLEAR_REPLICA;                                                                                 \
-    CLEAR_DROP_LIST
-
-    // drop_list is empty, can't construct replica
-    {
-        CLEAR_ALL;
-        ASSERT_FALSE(simple_lb.construct_replica(view, rep.pid, 3));
-        ASSERT_EQ(0, replica_count(pc));
-    }
-
-    // only have one node in drop_list
-    {
-        CLEAR_ALL;
-        cc.dropped = {dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 5, 10, 12}};
-        ASSERT_TRUE(simple_lb.construct_replica(view, rep.pid, 3));
-        ASSERT_EQ(node_list[0], pc.primary);
-        ASSERT_TRUE(pc.secondaries.empty());
-        ASSERT_TRUE(cc.dropped.empty());
-        ASSERT_EQ(-1, cc.prefered_dropped);
-    }
-
-    // have multiple nodes, ballots are not same
-    {
-        CLEAR_ALL;
-        cc.dropped = {dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 6, 10, 12},
-                      dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 7, 10, 12},
-                      dropped_replica{node_list[3], dropped_replica::INVALID_TIMESTAMP, 8, 10, 12},
-                      dropped_replica{node_list[4], dropped_replica::INVALID_TIMESTAMP, 9, 11, 12}};
-        ASSERT_TRUE(simple_lb.construct_replica(view, rep.pid, 3));
-        ASSERT_EQ(node_list[4], pc.primary);
-        ASSERT_TRUE(pc.secondaries.empty());
-
-        std::vector<dsn::rpc_address> nodes = {node_list[2], node_list[3]};
-        ASSERT_EQ(nodes, pc.last_drops);
-        ASSERT_EQ(3, cc.dropped.size());
-        ASSERT_EQ(2, cc.prefered_dropped);
-    }
-
-    // have multiple node, two have same ballots
-    {
-        CLEAR_ALL;
-        cc.dropped = {dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 5, 10, 12},
-                      dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 7, 11, 12},
-                      dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 7, 12, 12}};
-
-        ASSERT_TRUE(simple_lb.construct_replica(view, rep.pid, 3));
-        ASSERT_EQ(node_list[2], pc.primary);
-        ASSERT_TRUE(pc.secondaries.empty());
-
-        std::vector<dsn::rpc_address> nodes = {node_list[0], node_list[1]};
-        ASSERT_EQ(nodes, pc.last_drops);
-        ASSERT_EQ(2, cc.dropped.size());
-        ASSERT_EQ(1, cc.prefered_dropped);
-    }
-
-    // have multiple nodes, all have same ballots
-    {
-        CLEAR_ALL;
-        cc.dropped = {dropped_replica{node_list[0], dropped_replica::INVALID_TIMESTAMP, 7, 11, 14},
-                      dropped_replica{node_list[1], dropped_replica::INVALID_TIMESTAMP, 7, 12, 14},
-                      dropped_replica{node_list[2], dropped_replica::INVALID_TIMESTAMP, 7, 13, 14},
-                      dropped_replica{node_list[3], dropped_replica::INVALID_TIMESTAMP, 7, 14, 14}};
-
-        ASSERT_TRUE(simple_lb.construct_replica(view, rep.pid, 3));
-        ASSERT_EQ(node_list[3], pc.primary);
-        ASSERT_TRUE(pc.secondaries.empty());
-
-        std::vector<dsn::rpc_address> nodes = {node_list[1], node_list[2]};
-        ASSERT_EQ(nodes, pc.last_drops);
-
-        ASSERT_EQ(3, cc.dropped.size());
-        ASSERT_EQ(2, cc.prefered_dropped);
-    }
-}
-
-TEST_F(meta_load_balance_test, simple_lb_balanced_cure) { simple_lb_balanced_cure(); }
-
-TEST_F(meta_load_balance_test, simple_lb_cure_test) { simple_lb_cure_test(); }
-
-TEST_F(meta_load_balance_test, simple_lb_from_proposal_test) { simple_lb_from_proposal_test(); }
-
-TEST_F(meta_load_balance_test, simple_lb_construct_replica) { simple_lb_construct_replica(); }
-
 } // namespace replication
 } // namespace dsn

@@ -71,6 +71,53 @@ pc_status partition_guardian::cure(meta_view view,
     return status;
 }
 
+void partition_guardian::reconfig(meta_view view, const configuration_update_request &request)
+{
+    const dsn::gpid &gpid = request.config.pid;
+    if (!((*view.apps)[gpid.get_app_id()]->is_stateful)) {
+        return;
+    }
+
+    config_context *cc = get_config_context(*(view.apps), gpid);
+    if (!cc->lb_actions.empty()) {
+        const configuration_proposal_action *current = cc->lb_actions.front();
+        dassert(current != nullptr && current->type != config_type::CT_INVALID,
+                "invalid proposal for gpid(%d.%d)",
+                gpid.get_app_id(),
+                gpid.get_partition_index());
+        // if the valid proposal is from cure
+        if (!cc->lb_actions.is_from_balancer()) {
+            finish_cure_proposal(view, gpid, *current);
+        }
+        cc->lb_actions.pop_front();
+    }
+
+    // handle the dropped out servers
+    if (request.type == config_type::CT_DROP_PARTITION) {
+        cc->serving.clear();
+
+        const std::vector<rpc_address> &config_dropped = request.config.last_drops;
+        for (const rpc_address &drop_node : config_dropped) {
+            cc->record_drop_history(drop_node);
+        }
+    } else {
+        when_update_replicas(request.type, [cc, &request](bool is_adding) {
+            if (is_adding) {
+                cc->remove_from_dropped(request.node);
+                // when some replicas are added to partition_config
+                // we should try to adjust the size of drop_list
+                cc->check_size();
+            } else {
+                cc->remove_from_serving(request.node);
+
+                dassert(cc->record_drop_history(request.node),
+                        "node(%s) has been in the dropped",
+                        request.node.to_string());
+            }
+        });
+    }
+}
+
 bool partition_guardian::from_proposals(meta_view &view,
                                         const dsn::gpid &gpid,
                                         configuration_proposal_action &action)
@@ -705,6 +752,29 @@ partition_guardian::ctrl_assign_secondary_black_list(const std::vector<std::stri
     }
     _assign_secondary_black_list = std::move(addr_list);
     return "set ok";
+}
+
+void partition_guardian::get_ddd_partitions(const gpid &pid,
+                                            std::vector<ddd_partition_info> &partitions)
+{
+    zauto_lock l(_ddd_partitions_lock);
+    if (pid.get_app_id() == -1) {
+        partitions.reserve(_ddd_partitions.size());
+        for (const auto &kv : _ddd_partitions) {
+            partitions.push_back(kv.second);
+        }
+    } else if (pid.get_partition_index() == -1) {
+        for (const auto &kv : _ddd_partitions) {
+            if (kv.first.get_app_id() == pid.get_app_id()) {
+                partitions.push_back(kv.second);
+            }
+        }
+    } else {
+        auto find = _ddd_partitions.find(pid);
+        if (find != _ddd_partitions.end()) {
+            partitions.push_back(find->second);
+        }
+    }
 }
 } // namespace replication
 } // namespace dsn
