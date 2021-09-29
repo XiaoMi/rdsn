@@ -23,7 +23,8 @@
 namespace dsn {
 namespace utils {
 
-class rate_limiter {
+class rate_limiter
+{
 
 public:
     std::unique_ptr<folly::DynamicTokenBucket> &get_or_create_token_bucket(const std::string &name);
@@ -32,6 +33,5 @@ private:
     mutable zrwlock_nr _limiter_lock;
     std::map<std::string, std::unique_ptr<folly::DynamicTokenBucket>> _token_buckets;
 };
-
 }
 }

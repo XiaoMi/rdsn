@@ -6,9 +6,9 @@
 
 namespace dsn {
 
-std::unique_ptr<nfs_node> nfs_node::create()
+std::unique_ptr<nfs_node> nfs_node::create(const dsn::replication::replica_stub *stub)
 {
-    return dsn::make_unique<dsn::service::nfs_node_simple>();
+    return dsn::make_unique<dsn::service::nfs_node_simple>(stub);
 }
 
 aio_task_ptr nfs_node::copy_remote_directory(rpc_address remote,

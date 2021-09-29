@@ -748,7 +748,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
         _fs_manager.add_replica(kv.first, kv.second->dir());
     }
 
-    _nfs = dsn::nfs_node::create();
+    _nfs = dsn::nfs_node::create(this);
     _nfs->start();
 
     dist::cmd::register_remote_command_rpc();

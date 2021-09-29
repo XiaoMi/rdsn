@@ -136,7 +136,9 @@ void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
 
 void nfs_service_impl::internal_read_callback(error_code err, size_t sz, callback_para &cp)
 {
-    _send_token_bucket->consumeWithBorrowAndWait(
+    auto disk_tag = get_disk_tag_by_path(cp.file_path);
+    auto send_token_bucket = _send_token_buckets->get_or_create_token_bucket(disk_tag).get();
+    send_token_bucket->consumeWithBorrowAndWait(
         sz, FLAGS_max_send_rate_megabytes << 20, 1.5 * (FLAGS_max_send_rate_megabytes << 20));
     {
         zauto_lock l(_handles_map_lock);

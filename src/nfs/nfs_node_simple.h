@@ -36,6 +36,7 @@
 
 #include <dsn/tool_api.h>
 #include <dsn/dist/nfs_node.h>
+#include <replica/replica_stub.h>
 
 namespace dsn {
 namespace service {
@@ -46,7 +47,7 @@ class nfs_client_impl;
 class nfs_node_simple : public nfs_node
 {
 public:
-    nfs_node_simple();
+    nfs_node_simple(const dsn::replication::replica_stub *stub);
 
     virtual ~nfs_node_simple();
 
@@ -56,7 +57,11 @@ public:
 
     virtual error_code stop() override;
 
+    virtual std::string get_disk_tag_by_path(std::string &file_path);
+
 private:
+    const dsn::replication::replica_stub *_stub;
+
     nfs_service_impl *_server;
     nfs_client_impl *_client;
 };

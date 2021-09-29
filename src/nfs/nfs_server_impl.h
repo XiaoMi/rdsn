@@ -33,14 +33,14 @@
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/utils/rate_limiter.h>
 
-
 #include "nfs_code_definition.h"
 #include "nfs_types.h"
 #include "nfs_client_impl.h"
+#include "nfs_node_simple.h"
 
 namespace dsn {
 namespace service {
-class nfs_service_impl : public ::dsn::serverlet<nfs_service_impl>
+class nfs_service_impl : public ::dsn::serverlet<nfs_service_impl>, nfs_node_simple
 {
 public:
     nfs_service_impl();
@@ -128,12 +128,7 @@ private:
 
     ::dsn::task_ptr _file_close_timer;
 
-<<<<<<< HEAD
     std::unique_ptr<dsn::utils::rate_limiter> _send_token_buckets; // rate limiter of send to remote
-=======
-    std::unique_ptr<folly::DynamicTokenBucket> _send_token_bucket; // rate limiter of send to remote
-
->>>>>>> master
     perf_counter_wrapper _recent_copy_data_size;
     perf_counter_wrapper _recent_copy_fail_count;
 

@@ -88,6 +88,8 @@ class replica_stub : public serverlet<replica_stub>, public ref_counter
 {
 public:
     static bool s_not_exit_on_log_failure; // for test
+    // handle all the data dirs
+    fs_manager _fs_manager;
 
 public:
     replica_stub(replica_state_subscriber subscriber = nullptr, bool is_long_subscriber = true);
@@ -388,9 +390,6 @@ private:
     // we limit LT_APP max concurrent count, because nfs service implementation is
     // too simple, it do not support priority.
     std::atomic_int _learn_app_concurrent_count;
-
-    // handle all the data dirs
-    fs_manager _fs_manager;
 
     // handle all the block filesystems for current replica stub
     // (in other words, current service node)

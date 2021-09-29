@@ -40,8 +40,9 @@
 namespace dsn {
 namespace service {
 
-nfs_node_simple::nfs_node_simple() : nfs_node()
+nfs_node_simple::nfs_node_simple(const dsn::replication::replica_stub *stub) : nfs_node()
 {
+    _stub = stub;
     _server = nullptr;
     _client = nullptr;
 }
@@ -52,6 +53,8 @@ void nfs_node_simple::call(std::shared_ptr<remote_copy_request> rci, aio_task *c
 {
     _client->begin_remote_copy(rci, callback); // copy file request entry
 }
+
+std::string nfs_node_simple::get_disk_tag_by_path(std::string &file_path) { return ""; }
 
 error_code nfs_node_simple::start()
 {

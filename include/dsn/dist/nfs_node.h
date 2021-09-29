@@ -32,6 +32,7 @@
 #include <dsn/utility/binary_reader.h>
 #include <dsn/utility/binary_writer.h>
 #include <dsn/tool-api/aio_task.h>
+#include <replica/replica_stub.h>
 
 namespace dsn {
 
@@ -48,7 +49,7 @@ struct remote_copy_request
 class nfs_node
 {
 public:
-    static std::unique_ptr<nfs_node> create();
+    static std::unique_ptr<nfs_node> create(const dsn::replication::replica_stub *stub);
 
 public:
     aio_task_ptr copy_remote_directory(rpc_address remote,

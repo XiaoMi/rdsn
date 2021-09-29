@@ -3,7 +3,8 @@
 namespace dsn {
 namespace utils {
 
-std::unique_ptr<folly::DynamicTokenBucket> &rate_limiter::get_or_create_token_bucket(const std::string &name)
+std::unique_ptr<folly::DynamicTokenBucket> &
+rate_limiter::get_or_create_token_bucket(const std::string &name)
 {
     zauto_write_lock l(_limiter_lock);
     auto iter = _token_buckets.find(name);
