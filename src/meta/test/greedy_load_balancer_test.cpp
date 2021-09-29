@@ -454,15 +454,64 @@ TEST(greedy_load_balancer, execute_balance)
     res = balancer.execute_balance(apps, true, false, true, balance_func);
     ASSERT_EQ(res, true);
 
-    /**
-    gpid _gpid(1, 1);
-    auto req = std::make_shared<configuration_balancer_request>();
-    */
     migration_list migration_result;
     migration_result.emplace(gpid(1, 1), std::make_shared<configuration_balancer_request>());
     balancer.t_migration_result = &migration_result;
     res = balancer.execute_balance(apps, false, true, true, balance_func);
     ASSERT_EQ(res, false);
+}
+
+TEST(greedy_load_balancer, calc_potential_moving)
+{
+    auto addr1 = rpc_address(1, 1);
+    auto addr2 = rpc_address(1, 2);
+    auto addr3 = rpc_address(1, 3);
+
+    int32_t app_id = 1;
+    dsn::app_info info;
+    info.app_id = app_id;
+    info.partition_count = 4;
+    std::shared_ptr<app_state> app = app_state::create(info);
+    partition_configuration pc;
+    pc.primary = addr1;
+    pc.secondaries.push_back(addr2);
+    pc.secondaries.push_back(addr3);
+    app->partitions[0] = pc;
+    app->partitions[1] = pc;
+
+    app_mapper apps;
+    apps[app_id] = app;
+
+    node_mapper nodes;
+    node_state ns1;
+    ns1.put_partition(gpid(app_id, 0), true);
+    ns1.put_partition(gpid(app_id, 1), true);
+    nodes[addr1] = ns1;
+
+    node_state ns2;
+    ns2.put_partition(gpid(app_id, 0), false);
+    ns2.put_partition(gpid(app_id, 1), false);
+    nodes[addr2] = ns2;
+    nodes[addr3] = ns2;
+
+    struct meta_view view;
+    view.nodes = &nodes;
+    view.apps = &apps;
+    greedy_load_balancer balancer(nullptr);
+    balancer.t_global_view = &view;
+
+    auto gpids = balancer.calc_potential_moving(app, addr1, addr2);
+    ASSERT_EQ(gpids.size(), 2);
+    ASSERT_EQ(*gpids.begin(), gpid(app_id, 0));
+    ASSERT_EQ(*gpids.rbegin(), gpid(app_id, 1));
+
+    gpids = balancer.calc_potential_moving(app, addr1, addr3);
+    ASSERT_EQ(gpids.size(), 2);
+    ASSERT_EQ(*gpids.begin(), gpid(app_id, 0));
+    ASSERT_EQ(*gpids.rbegin(), gpid(app_id, 1));
+
+    gpids = balancer.calc_potential_moving(app, addr2, addr3);
+    ASSERT_EQ(gpids.size(), 0);
 }
 } // namespace replication
 } // namespace dsn

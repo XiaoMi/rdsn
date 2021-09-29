@@ -225,10 +225,6 @@ private:
 
 private:
     void number_nodes(const node_mapper &nodes);
-    void shortest_path(std::vector<bool> &visit,
-                       std::vector<int> &flow,
-                       std::vector<int> &prev,
-                       std::vector<std::vector<int>> &network);
 
     // balance decision generators. All these functions try to make balance decisions
     // and store them to t_migration_result.
@@ -239,9 +235,21 @@ private:
     // when return false, it means generators refuse to make decision coz
     // they think they need more informations.
     bool primary_balance(const std::shared_ptr<app_state> &app, bool only_move_primary);
-    bool move_primary(const std::shared_ptr<app_state> &app,
-                      const std::vector<int> &prev,
-                      const std::vector<int> &flow);
+    bool move_primary(std::unique_ptr<flow_path> path);
+    void start_moving_primary(const std::shared_ptr<app_state> &app,
+                              const rpc_address &from,
+                              const rpc_address &to,
+                              int plan_moving,
+                              disk_load *prev_load,
+                              disk_load *current_load);
+    std::list<dsn::gpid> calc_potential_moving(const std::shared_ptr<app_state> &app,
+                                               const rpc_address &from,
+                                               const rpc_address &to);
+    dsn::gpid select_moving(std::list<dsn::gpid> &potential_moving,
+                            disk_load *prev_load,
+                            disk_load *current_load,
+                            rpc_address from,
+                            rpc_address to);
     bool copy_primary(const std::shared_ptr<app_state> &app, bool still_have_less_than_average);
 
     bool copy_secondary(const std::shared_ptr<app_state> &app, bool place_holder);
@@ -411,6 +419,7 @@ private:
     FRIEND_TEST(greedy_load_balancer, apply_move);
     FRIEND_TEST(greedy_load_balancer, pick_up_partition);
     FRIEND_TEST(greedy_load_balancer, execute_balance);
+    FRIEND_TEST(greedy_load_balancer, calc_potential_moving);
 };
 
 inline configuration_proposal_action
