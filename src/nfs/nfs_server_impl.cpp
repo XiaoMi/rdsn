@@ -62,6 +62,8 @@ nfs_service_impl::nfs_service_impl() : ::dsn::serverlet<nfs_service_impl>("nfs")
         "recent_copy_fail_count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "nfs server copy fail count count in the recent period");
+    _send_token_buckets = std::make_unique<dsn::utils::rate_limiter>();
+    register_cli_commands();
 }
 
 void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,

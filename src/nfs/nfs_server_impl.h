@@ -30,6 +30,8 @@
 #include <iostream>
 #include <dsn/cpp/serverlet.h>
 #include <dsn/utility/flags.h>
+#include <dsn/tool-api/command_manager.h>
+#include <dsn/utils/rate_limiter.h>
 
 #include "nfs_code_definition.h"
 #include "nfs_types.h"
@@ -122,6 +124,7 @@ private:
 
     ::dsn::task_ptr _file_close_timer;
 
+    std::unique_ptr<dsn::utils::rate_limiter> _send_token_buckets; // rate limiter of send to remote
     perf_counter_wrapper _recent_copy_data_size;
     perf_counter_wrapper _recent_copy_fail_count;
 
