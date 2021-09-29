@@ -57,6 +57,8 @@
 #include <dsn/dist/fmt_logging.h>
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
+#elif defined(DSN_USE_JEMALLOC)
+#include "utils/je_ctl.h"
 #endif
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/remote_command.h>
@@ -99,6 +101,10 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
     _get_tcmalloc_status_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
     _release_all_reserved_memory_command = nullptr;
+#elif defined(DSN_USE_JEMALLOC)
+    _set_jemalloc_arena_dirty_decay_ms_command = nullptr;
+    _set_jemalloc_arena_muzzy_decay_ms_command = nullptr;
+
 #endif
     _replica_state_subscriber = subscriber;
     _is_long_subscriber = is_long_subscriber;
@@ -2249,6 +2255,82 @@ void replica_stub::open_service()
     register_ctrl_command();
 }
 
+#if !defined(DSN_ENABLE_GPERF) && defined(DSN_USE_JEMALLOC)
+static std::string process_jemalloc_arena_decay_ms_command(const std::vector<std::string> &args,
+                                                           dsn::utils::je_decay_state decay_state)
+{
+    if (args.empty()) {
+        return std::string("ERR: invalid arguments");
+    }
+
+    bool all = false;
+    int32_t index = 0;
+    if (args[0] == "ALL") {
+        all = true;
+    } else if (!dsn::buf2int32(args[0], index)) {
+        return std::string("ERR: invalid arena index");
+    } else if (index < 0) {
+        return std::string("ERR: invalid arena index");
+    }
+
+    if (args.size() < 2) {
+        // show current value
+        std::string info;
+        if (all) {
+            dsn::utils::je_get_all_arenas_decay_ms_info(decay_state, &info);
+        } else {
+            dsn::utils::je_get_arena_decay_ms_info(
+                static_cast<unsigned>(index), decay_state, &info);
+        }
+        return info;
+    }
+
+    int64_t decay_ms = 0;
+    if (args[1] == "DEFAULT") {
+        // set to default value
+        if (decay_state == dsn::utils::JE_DIRTY_DECAY) {
+            decay_ms = 10000;
+        }
+    } else if (args[1] == "DISABLE") {
+        decay_ms = -1;
+    } else if (!dsn::buf2int64(args[1], decay_ms)) {
+        return std::string("ERR: invalid decay ms");
+    }
+
+    std::string msg;
+    if (all) {
+        dsn::utils::je_set_all_arenas_decay_ms(decay_state, static_cast<ssize_t>(decay_ms), &msg);
+    } else {
+        dsn::utils::je_set_arena_decay_ms(
+            static_cast<unsigned>(index), decay_state, static_cast<ssize_t>(decay_ms), &msg);
+    }
+    return msg;
+}
+
+void replica_stub::register_jemalloc_ctrl_command()
+{
+    _set_jemalloc_arena_dirty_decay_ms_command =
+        ::dsn::command_manager::instance().register_command(
+            {"replica.set-jemalloc-arena-dirty-decay-ms"},
+            "replica.set-jemalloc-arena-dirty-decay-ms <arena_index | ALL> [decay_ms | DEFAULT | "
+            "DISABLE]",
+            "set jemalloc dirty_decay_ms for each arena or all arenas",
+            [](const std::vector<std::string> &args) {
+                return process_jemalloc_arena_decay_ms_command(args, dsn::utils::JE_DIRTY_DECAY);
+            });
+
+    _set_jemalloc_arena_muzzy_decay_ms_command =
+        ::dsn::command_manager::instance().register_command(
+            {"replica.set-jemalloc-arena-muzzy-decay-ms"},
+            "replica.set-jemalloc-arena-muzzy-decay-ms <arena_index | ALL> [decay_ms | DEFAULT | "
+            "DISABLE]",
+            "set jemalloc muzzy_decay_ms for each arena or all arenas",
+            [](const std::vector<std::string> &args) {
+                return process_jemalloc_arena_decay_ms_command(args, dsn::utils::JE_MUZZY_DECAY);
+            });
+}
+#endif
+
 void replica_stub::register_ctrl_command()
 {
     /// In simple_kv test, three replica apps are created, which means that three replica_stubs are
@@ -2399,6 +2481,8 @@ void replica_stub::register_ctrl_command()
                 auto release_bytes = gc_tcmalloc_memory(true);
                 return "OK, release_bytes=" + std::to_string(release_bytes);
             });
+#elif defined(DSN_USE_JEMALLOC)
+        register_jemalloc_ctrl_command();
 #endif
         _max_concurrent_bulk_load_downloading_count_command =
             dsn::command_manager::instance().register_command(
@@ -2561,6 +2645,9 @@ void replica_stub::close()
     UNREGISTER_VALID_HANDLER(_get_tcmalloc_status_command);
     UNREGISTER_VALID_HANDLER(_max_reserved_memory_percentage_command);
     UNREGISTER_VALID_HANDLER(_release_all_reserved_memory_command);
+#elif defined(DSN_USE_JEMALLOC)
+    UNREGISTER_VALID_HANDLER(_set_jemalloc_arena_dirty_decay_ms_command);
+    UNREGISTER_VALID_HANDLER(_set_jemalloc_arena_muzzy_decay_ms_command);
 #endif
     UNREGISTER_VALID_HANDLER(_max_concurrent_bulk_load_downloading_count_command);
 
@@ -2576,6 +2663,9 @@ void replica_stub::close()
     _get_tcmalloc_status_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
     _release_all_reserved_memory_command = nullptr;
+#elif defined(DSN_USE_JEMALLOC)
+    _set_jemalloc_arena_dirty_decay_ms_command = nullptr;
+    _set_jemalloc_arena_muzzy_decay_ms_command = nullptr;
 #endif
     _max_concurrent_bulk_load_downloading_count_command = nullptr;
 
