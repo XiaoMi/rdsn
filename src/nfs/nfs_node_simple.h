@@ -57,8 +57,6 @@ public:
 
     virtual error_code stop() override;
 
-    virtual std::string get_disk_tag_by_path(std::string &file_path);
-
 private:
     nfs_service_impl *_server;
     nfs_client_impl *_client;

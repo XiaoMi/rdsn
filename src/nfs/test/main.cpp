@@ -110,8 +110,10 @@ TEST(nfs, basic)
 
         aio_result r;
         dsn::aio_task_ptr t = nfs->copy_remote_directory(dsn::rpc_address("localhost", 20101),
+                                                         "default",
                                                          "nfs_test_dir",
                                                          "nfs_test_dir_copy",
+                                                         "default",
                                                          false,
                                                          false,
                                                          LPC_AIO_TEST_NFS,

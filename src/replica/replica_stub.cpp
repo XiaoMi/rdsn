@@ -74,6 +74,7 @@ bool replica_stub::s_not_exit_on_log_failure = false;
 replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
                            bool is_long_subscriber /* = true*/)
     : serverlet("replica_stub"),
+      _fs_manager(false),
       _kill_partition_command(nullptr),
       _deny_client_command(nullptr),
       _verbose_client_log_command(nullptr),
@@ -89,7 +90,6 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _mem_release_max_reserved_mem_percentage(10),
       _max_concurrent_bulk_load_downloading_count(5),
       _learn_app_concurrent_count(0),
-      _fs_manager(false),
       _bulk_load_downloading_count(0),
       _is_running(false)
 {

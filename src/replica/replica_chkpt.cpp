@@ -231,12 +231,14 @@ void replica::on_copy_checkpoint_ack(error_code err,
     if (utils::filesystem::path_exists(ldir))
         utils::filesystem::remove_path(ldir);
 
+    auto dest_disk_tag = get_replica_disk_tag();
     _primary_states.checkpoint_task = _stub->_nfs->copy_remote_files(
         resp->address,
         resp->replica_disk_tag,
         resp->base_local_dir,
         resp->state.files,
         ldir,
+        dest_disk_tag,
         false,
         false,
         LPC_REPLICA_COPY_LAST_CHECKPOINT_DONE,
