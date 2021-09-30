@@ -40,7 +40,6 @@
 #include <dsn/utils/rate_limiter.h>
 
 #include "nfs_types.h"
-#include "nfs_node_simple.h"
 #include "nfs_code_definition.h"
 
 namespace dsn {

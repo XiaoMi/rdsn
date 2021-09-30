@@ -133,7 +133,7 @@ private:
     perf_counter_wrapper _recent_copy_data_size;
     perf_counter_wrapper _recent_copy_fail_count;
 
-    dsn_handle_t _nfs_max_send_rate_megabytes_cmd{};
+    dsn_handle_t _nfs_max_send_rate_megabytes_cmd;
 
     dsn::task_tracker _tracker;
 };

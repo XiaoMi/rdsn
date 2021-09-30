@@ -32,7 +32,6 @@
 #include <dsn/utility/binary_reader.h>
 #include <dsn/utility/binary_writer.h>
 #include <dsn/tool-api/aio_task.h>
-#include <replica/replica_stub.h>
 
 namespace dsn {
 
