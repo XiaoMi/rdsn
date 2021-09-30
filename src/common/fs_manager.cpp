@@ -150,7 +150,7 @@ fs_manager::fs_manager(bool for_test)
     }
 }
 
-dir_node *fs_manager::get_dir_node(const std::string &subdir)
+dir_node *fs_manager::get_dir_node(const std::string &subdir) const
 {
     std::string norm_subdir;
     utils::filesystem::get_normalized_path(subdir, norm_subdir);
@@ -193,7 +193,7 @@ dsn::error_code fs_manager::initialize(const std::vector<std::string> &data_dirs
     return dsn::ERR_OK;
 }
 
-dsn::error_code fs_manager::get_disk_tag(const std::string &dir, std::string &tag)
+dsn::error_code fs_manager::get_disk_tag(const std::string &dir, std::string &tag) const
 {
     dir_node *n = get_dir_node(dir);
     if (nullptr == n) {

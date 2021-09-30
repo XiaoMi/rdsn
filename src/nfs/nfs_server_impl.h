@@ -40,10 +40,10 @@
 
 namespace dsn {
 namespace service {
-class nfs_service_impl : public ::dsn::serverlet<nfs_service_impl>, nfs_node_simple
+class nfs_service_impl : public ::dsn::serverlet<nfs_service_impl>
 {
 public:
-    nfs_service_impl();
+    nfs_service_impl(const replication::replica_stub *stub);
     virtual ~nfs_service_impl() { _tracker.cancel_outstanding_tasks(); }
 
     void open_service()
@@ -73,6 +73,7 @@ private:
     struct callback_para
     {
         dsn_handle_t hfile;
+        std::string file_disk_tag;
         std::string file_path;
         std::string dst_dir;
         blob bb;
@@ -122,6 +123,8 @@ private:
     void close_file();
 
 private:
+    const dsn::replication::replica_stub *_stub;
+
     zlock _handles_map_lock;
     std::unordered_map<std::string, std::shared_ptr<file_handle_info_on_server>>
         _handles_map; // cache file handles
@@ -132,7 +135,7 @@ private:
     perf_counter_wrapper _recent_copy_data_size;
     perf_counter_wrapper _recent_copy_fail_count;
 
-    dsn_handle_t _nfs_max_send_rate_megabytes_cmd;
+    dsn_handle_t _nfs_max_send_rate_megabytes_cmd{};
 
     dsn::task_tracker _tracker;
 };

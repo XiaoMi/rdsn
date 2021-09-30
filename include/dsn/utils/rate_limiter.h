@@ -27,7 +27,7 @@ class rate_limiter
 {
 
 public:
-    std::unique_ptr<folly::DynamicTokenBucket> &get_or_create_token_bucket(const std::string &name);
+    folly::DynamicTokenBucket *get_or_create_token_bucket(const std::string &name);
 
 private:
     mutable zrwlock_nr _limiter_lock;

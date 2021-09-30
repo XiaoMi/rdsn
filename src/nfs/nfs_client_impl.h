@@ -37,14 +37,14 @@
 #include <dsn/utility/TokenBucket.h>
 #include <dsn/utility/flags.h>
 #include <dsn/tool-api/async_calls.h>
+#include <dsn/utils/rate_limiter.h>
 
 #include "nfs_types.h"
+#include "nfs_node_simple.h"
 #include "nfs_code_definition.h"
 
 namespace dsn {
 namespace service {
-
-using TokenBucket = folly::BasicTokenBucket<std::chrono::steady_clock>;
 
 template <typename TCallback>
 task_ptr async_nfs_get_file_size(const get_file_size_request &request,
@@ -250,7 +250,7 @@ public:
     };
 
 public:
-    nfs_client_impl();
+    nfs_client_impl(const replication::replica_stub *stub);
     virtual ~nfs_client_impl();
 
     // copy file request entry
@@ -275,7 +275,9 @@ private:
     void register_cli_commands();
 
 private:
-    std::unique_ptr<folly::TokenBucket> _copy_token_bucket; // rate limiter of copy from remote
+    const dsn::replication::replica_stub *_stub;
+    std::unique_ptr<dsn::utils::rate_limiter>
+        _copy_token_buckets; // rate limiter of copy from remote
 
     std::atomic<int> _concurrent_copy_request_count; // record concurrent request count, limited
                                                      // by max_concurrent_remote_copy_requests.

@@ -54,14 +54,12 @@ void nfs_node_simple::call(std::shared_ptr<remote_copy_request> rci, aio_task *c
     _client->begin_remote_copy(rci, callback); // copy file request entry
 }
 
-std::string nfs_node_simple::get_disk_tag_by_path(std::string &file_path) { return ""; }
-
 error_code nfs_node_simple::start()
 {
-    _server = new nfs_service_impl();
+    _server = new nfs_service_impl(_stub);
     _server->open_service();
 
-    _client = new nfs_client_impl();
+    _client = new nfs_client_impl(_stub);
     return ERR_OK;
 }
 

@@ -78,7 +78,7 @@ public:
                                const std::vector<std::string> &tags,
                                bool for_test);
 
-    dsn::error_code get_disk_tag(const std::string &dir, /*out*/ std::string &tag);
+    dsn::error_code get_disk_tag(const std::string &dir, /*out*/ std::string &tag) const;
     void allocate_dir(const dsn::gpid &pid,
                       const std::string &type,
                       /*out*/ std::string &dir);
@@ -106,7 +106,7 @@ private:
         _status_updated_dir_nodes.clear();
     }
 
-    dir_node *get_dir_node(const std::string &subdir);
+    dir_node *get_dir_node(const std::string &subdir) const;
 
     // when visit the tag/storage of the _dir_nodes map, there's no need to protect by the lock.
     // but when visit the holding_replicas, you must take care.

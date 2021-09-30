@@ -11,7 +11,8 @@ std::unique_ptr<nfs_node> nfs_node::create(const dsn::replication::replica_stub 
     return dsn::make_unique<dsn::service::nfs_node_simple>(stub);
 }
 
-aio_task_ptr nfs_node::copy_remote_directory(rpc_address remote,
+aio_task_ptr nfs_node::copy_remote_directory(rpc_address &remote,
+                                             const std::string &disk_tag,
                                              const std::string &source_dir,
                                              const std::string &dest_dir,
                                              bool overwrite,
@@ -33,7 +34,8 @@ aio_task_ptr nfs_node::copy_remote_directory(rpc_address remote,
                              hash);
 }
 
-aio_task_ptr nfs_node::copy_remote_files(rpc_address remote,
+aio_task_ptr nfs_node::copy_remote_files(rpc_address &remote,
+                                         const std::string &disk_tag,
                                          const std::string &source_dir,
                                          const std::vector<std::string> &files,
                                          const std::string &dest_dir,
@@ -47,6 +49,7 @@ aio_task_ptr nfs_node::copy_remote_files(rpc_address remote,
     auto cb = dsn::file::create_aio_task(callback_code, tracker, std::move(callback), hash);
 
     std::shared_ptr<remote_copy_request> rci = std::make_shared<remote_copy_request>();
+    rci->disk_tag = disk_tag;
     rci->source = remote;
     rci->source_dir = source_dir;
     rci->files = files;

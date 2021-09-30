@@ -79,7 +79,7 @@ DSN_DEFINE_int32("nfs",
                  "rpc timeout in milliseconds for nfs copy, "
                  "0 means use default timeout of rpc engine");
 
-nfs_client_impl::nfs_client_impl()
+nfs_client_impl::nfs_client_impl(const replication::replica_stub *stub)
     : _concurrent_copy_request_count(0),
       _concurrent_local_write_count(0),
       _buffered_local_write_count(0),
@@ -110,9 +110,10 @@ nfs_client_impl::nfs_client_impl()
     // size once
     dassert(max_copy_rate_bytes > FLAGS_nfs_copy_block_bytes,
             "max_copy_rate_bytes should be greater than nfs_copy_block_bytes");
-    _copy_token_bucket.reset(new TokenBucket(max_copy_rate_bytes, 1.5 * max_copy_rate_bytes));
+    _copy_token_buckets = std::make_unique<utils::rate_limiter>();
     current_max_copy_rate_megabytes = FLAGS_max_copy_rate_megabytes;
 
+    _stub = stub;
     register_cli_commands();
 }
 
@@ -132,6 +133,7 @@ void nfs_client_impl::begin_remote_copy(std::shared_ptr<remote_copy_request> &rc
     req->file_size_req.file_list = rci->files;
     req->file_size_req.source_dir = rci->source_dir;
     req->file_size_req.overwrite = rci->overwrite;
+    req->file_size_req.file_disk_tag = rci->disk_tag;
     req->nfs_task = nfs_task;
     req->is_finished = false;
 
@@ -270,9 +272,15 @@ void nfs_client_impl::continue_copy()
             const user_request_ptr &ureq = req->file_ctx->user_req;
             if (req->is_valid) {
                 // todo(jiashuo1) use non-block api `consumeWithBorrowNonBlocking` or `consume`
-                _copy_token_bucket->consumeWithBorrowAndWait(req->size);
+                auto disk_tag = get_disk_tag_by_path(ureq->file_size_req.dst_dir);
+                auto copy_token_bucket = _copy_token_buckets->get_or_create_token_bucket(disk_tag);
+                copy_token_bucket->consumeWithBorrowAndWait(
+                    req->size,
+                    FLAGS_max_copy_rate_megabytes << 20,
+                    1.5 * (FLAGS_max_copy_rate_megabytes << 20));
 
                 copy_request copy_req;
+                copy_req.file_disk_tag =ureq->file_size_req.file_disk_tag;
                 copy_req.source = ureq->file_size_req.source;
                 copy_req.file_name = req->file_ctx->file_name;
                 copy_req.offset = req->offset;
