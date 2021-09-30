@@ -568,6 +568,16 @@ void replica::init_table_level_latency_counters()
     }
 }
 
+std::string replica::get_replica_disk_tag() const
+{
+    std::string disk_tag = "default";
+    dsn::error_code err = _stub->_fs_manager.get_disk_tag(dir(), disk_tag);
+    if (dsn::ERR_OK != err) {
+        derror_replica("get disk tag of %s failed: %s", dir(), err);
+    }
+    return disk_tag;
+}
+
 void replica::on_detect_hotkey(const detect_hotkey_request &req, detect_hotkey_response &resp)
 {
     _app->on_detect_hotkey(req, resp);

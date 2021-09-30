@@ -40,9 +40,8 @@
 namespace dsn {
 namespace service {
 
-nfs_node_simple::nfs_node_simple(const dsn::replication::replica_stub *stub) : nfs_node()
+nfs_node_simple::nfs_node_simple() : nfs_node()
 {
-    _stub = stub;
     _server = nullptr;
     _client = nullptr;
 }
@@ -56,10 +55,10 @@ void nfs_node_simple::call(std::shared_ptr<remote_copy_request> rci, aio_task *c
 
 error_code nfs_node_simple::start()
 {
-    _server = new nfs_service_impl(_stub);
+    _server = new nfs_service_impl();
     _server->open_service();
 
-    _client = new nfs_client_impl(_stub);
+    _client = new nfs_client_impl();
     return ERR_OK;
 }
 

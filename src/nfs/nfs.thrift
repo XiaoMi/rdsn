@@ -30,7 +30,8 @@ struct get_file_size_request
     3: list<string> file_list;
     4: string source_dir;
     5: bool overwrite;
-    6: optional string file_disk_tag;
+    6: optional string remote_file_disk_tag;
+    7: optional string local_file_disk_tag;
 }
 
 struct get_file_size_response

@@ -47,7 +47,7 @@ class nfs_client_impl;
 class nfs_node_simple : public nfs_node
 {
 public:
-    nfs_node_simple(const dsn::replication::replica_stub *stub);
+    nfs_node_simple();
 
     virtual ~nfs_node_simple();
 
@@ -60,8 +60,6 @@ public:
     virtual std::string get_disk_tag_by_path(std::string &file_path);
 
 private:
-    const dsn::replication::replica_stub *_stub;
-
     nfs_service_impl *_server;
     nfs_client_impl *_client;
 };

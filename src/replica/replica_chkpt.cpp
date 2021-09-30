@@ -233,6 +233,7 @@ void replica::on_copy_checkpoint_ack(error_code err,
 
     _primary_states.checkpoint_task = _stub->_nfs->copy_remote_files(
         resp->address,
+        resp->replica_disk_tag,
         resp->base_local_dir,
         resp->state.files,
         ldir,

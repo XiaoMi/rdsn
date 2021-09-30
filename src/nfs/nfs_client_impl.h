@@ -250,7 +250,7 @@ public:
     };
 
 public:
-    nfs_client_impl(const replication::replica_stub *stub);
+    nfs_client_impl();
     virtual ~nfs_client_impl();
 
     // copy file request entry
@@ -275,7 +275,6 @@ private:
     void register_cli_commands();
 
 private:
-    const dsn::replication::replica_stub *_stub;
     std::unique_ptr<dsn::utils::rate_limiter>
         _copy_token_buckets; // rate limiter of copy from remote
 

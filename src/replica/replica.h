@@ -238,6 +238,7 @@ public:
     void set_disk_status(disk_status::type status) { _disk_status = status; }
     bool disk_space_insufficient() { return _disk_status == disk_status::SPACE_INSUFFICIENT; }
     disk_status::type get_disk_status() { return _disk_status; }
+    std::string get_replica_disk_tag() const;
 
 protected:
     // this method is marked protected to enable us to mock it in unit tests.

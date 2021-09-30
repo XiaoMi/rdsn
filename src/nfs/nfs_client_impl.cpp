@@ -79,7 +79,7 @@ DSN_DEFINE_int32("nfs",
                  "rpc timeout in milliseconds for nfs copy, "
                  "0 means use default timeout of rpc engine");
 
-nfs_client_impl::nfs_client_impl(const replication::replica_stub *stub)
+nfs_client_impl::nfs_client_impl()
     : _concurrent_copy_request_count(0),
       _concurrent_local_write_count(0),
       _buffered_local_write_count(0),
@@ -113,7 +113,6 @@ nfs_client_impl::nfs_client_impl(const replication::replica_stub *stub)
     _copy_token_buckets = std::make_unique<utils::rate_limiter>();
     current_max_copy_rate_megabytes = FLAGS_max_copy_rate_megabytes;
 
-    _stub = stub;
     register_cli_commands();
 }
 
@@ -133,7 +132,8 @@ void nfs_client_impl::begin_remote_copy(std::shared_ptr<remote_copy_request> &rc
     req->file_size_req.file_list = rci->files;
     req->file_size_req.source_dir = rci->source_dir;
     req->file_size_req.overwrite = rci->overwrite;
-    req->file_size_req.file_disk_tag = rci->disk_tag;
+    req->file_size_req.remote_file_disk_tag = rci->remote_disk_tag;
+    req->file_size_req.local_file_disk_tag = rci->dest_disk_tag;
     req->nfs_task = nfs_task;
     req->is_finished = false;
 
@@ -272,15 +272,15 @@ void nfs_client_impl::continue_copy()
             const user_request_ptr &ureq = req->file_ctx->user_req;
             if (req->is_valid) {
                 // todo(jiashuo1) use non-block api `consumeWithBorrowNonBlocking` or `consume`
-                auto disk_tag = get_disk_tag_by_path(ureq->file_size_req.dst_dir);
-                auto copy_token_bucket = _copy_token_buckets->get_or_create_token_bucket(disk_tag);
+                auto copy_token_bucket = _copy_token_buckets->get_or_create_token_bucket(
+                    ureq->file_size_req.local_file_disk_tag);
                 copy_token_bucket->consumeWithBorrowAndWait(
                     req->size,
                     FLAGS_max_copy_rate_megabytes << 20,
                     1.5 * (FLAGS_max_copy_rate_megabytes << 20));
 
                 copy_request copy_req;
-                copy_req.file_disk_tag =ureq->file_size_req.file_disk_tag;
+                copy_req.file_disk_tag = ureq->file_size_req.remote_file_disk_tag;
                 copy_req.source = ureq->file_size_req.source;
                 copy_req.file_name = req->file_ctx->file_name;
                 copy_req.offset = req->offset;
@@ -571,20 +571,13 @@ void nfs_client_impl::register_cli_commands()
     std::call_once(flag, [&]() {
         _nfs_max_copy_rate_megabytes_cmd = dsn::command_manager::instance().register_command(
             {"nfs.max_copy_rate_megabytes"},
-            "nfs.max_copy_rate_megabytes [num | DEFAULT]",
+            "nfs.max_copy_rate_megabytes [num]",
             "control the max rate(MB/s) to copy file from remote node",
             [this](const std::vector<std::string> &args) {
                 std::string result("OK");
 
                 if (args.empty()) {
-                    return std::to_string(current_max_copy_rate_megabytes);
-                }
-
-                if (args[0] == "DEFAULT") {
-                    uint32_t max_copy_rate_bytes = FLAGS_max_copy_rate_megabytes << 20;
-                    _copy_token_bucket->reset(max_copy_rate_bytes, 1.5 * max_copy_rate_bytes);
-                    current_max_copy_rate_megabytes = FLAGS_max_copy_rate_megabytes;
-                    return result;
+                    return std::to_string(FLAGS_max_copy_rate_megabytes);
                 }
 
                 int32_t max_copy_rate_megabytes = 0;
@@ -600,8 +593,7 @@ void nfs_client_impl::register_cli_commands()
                                  .append(std::to_string(FLAGS_nfs_copy_block_bytes));
                     return result;
                 }
-                _copy_token_bucket->reset(max_copy_rate_bytes, 1.5 * max_copy_rate_bytes);
-                current_max_copy_rate_megabytes = max_copy_rate_megabytes;
+                FLAGS_max_copy_rate_megabytes = max_copy_rate_bytes;
                 return result;
             });
     });

@@ -48,8 +48,7 @@ DSN_TAG_VARIABLE(max_send_rate_megabytes, FT_MUTABLE);
 DSN_DECLARE_int32(file_close_timer_interval_ms_on_server);
 DSN_DECLARE_int32(file_close_expire_time_ms);
 
-nfs_service_impl::nfs_service_impl(const dsn::replication::replica_stub *stub)
-    : dsn::serverlet<nfs_service_impl>("nfs")
+nfs_service_impl::nfs_service_impl() : dsn::serverlet<nfs_service_impl>("nfs")
 {
     _file_close_timer = ::dsn::tasking::enqueue_timer(
         LPC_NFS_FILE_CLOSE_TIMER,
@@ -67,7 +66,6 @@ nfs_service_impl::nfs_service_impl(const dsn::replication::replica_stub *stub)
         COUNTER_TYPE_VOLATILE_NUMBER,
         "nfs server copy fail count count in the recent period");
     _send_token_buckets = std::make_unique<dsn::utils::rate_limiter>();
-    _stub = stub;
     register_cli_commands();
 }
 

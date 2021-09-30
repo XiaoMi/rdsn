@@ -38,6 +38,7 @@ TEST(nfs, basic)
 
         aio_result r;
         dsn::aio_task_ptr t = nfs->copy_remote_files(dsn::rpc_address("localhost", 20101),
+                                                     "default",
                                                      ".",
                                                      files,
                                                      "nfs_test_dir",
@@ -77,6 +78,7 @@ TEST(nfs, basic)
 
         aio_result r;
         dsn::aio_task_ptr t = nfs->copy_remote_files(dsn::rpc_address("localhost", 20101),
+                                                     "default",
                                                      ".",
                                                      files,
                                                      "nfs_test_dir",

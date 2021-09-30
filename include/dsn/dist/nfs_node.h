@@ -40,9 +40,10 @@ struct remote_copy_request
 {
     dsn::rpc_address source;
     std::string source_dir;
-    std::string disk_tag;
+    std::string remote_disk_tag;
     std::vector<std::string> files;
     std::string dest_dir;
+    std::string dest_disk_tag;
     bool overwrite;
     bool high_priority;
 };
@@ -50,24 +51,26 @@ struct remote_copy_request
 class nfs_node
 {
 public:
-    static std::unique_ptr<nfs_node> create(const dsn::replication::replica_stub *stub);
+    static std::unique_ptr<nfs_node> create();
 
 public:
-    aio_task_ptr copy_remote_directory(rpc_address remote,
-                                       const std::string &disk_tag,
+    aio_task_ptr copy_remote_directory(const rpc_address &remote,
+                                       const std::string &remote_disk_tag,
                                        const std::string &source_dir,
                                        const std::string &dest_dir,
+                                       const std::string &dest_disk_tag,
                                        bool overwrite,
                                        bool high_priority,
                                        task_code callback_code,
                                        task_tracker *tracker,
                                        aio_handler &&callback,
                                        int hash = 0);
-    aio_task_ptr copy_remote_files(rpc_address remote,
-                                   const std::string &disk_tag,
+    aio_task_ptr copy_remote_files(const rpc_address &remote,
+                                   const std::string &remote_disk_tag,
                                    const std::string &source_dir,
                                    const std::vector<std::string> &files, // empty for all
                                    const std::string &dest_dir,
+                                   const std::string &dest_disk_tag,
                                    bool overwrite,
                                    bool high_priority,
                                    task_code callback_code,

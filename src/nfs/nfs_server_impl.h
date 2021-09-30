@@ -43,7 +43,7 @@ namespace service {
 class nfs_service_impl : public ::dsn::serverlet<nfs_service_impl>
 {
 public:
-    nfs_service_impl(const replication::replica_stub *stub);
+    nfs_service_impl();
     virtual ~nfs_service_impl() { _tracker.cancel_outstanding_tasks(); }
 
     void open_service()
@@ -123,8 +123,6 @@ private:
     void close_file();
 
 private:
-    const dsn::replication::replica_stub *_stub;
-
     zlock _handles_map_lock;
     std::unordered_map<std::string, std::shared_ptr<file_handle_info_on_server>>
         _handles_map; // cache file handles
