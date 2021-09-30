@@ -42,7 +42,7 @@
 namespace dsn {
 namespace service {
 
-DSN_DEFINE_int32("nfs", max_send_rate_megabytes, 100, "max rate of send to remote node(MB/s)");
+DSN_DEFINE_int32("nfs", max_send_rate_megabytes, 50, "max rate of send to remote node(MB/s)");
 DSN_TAG_VARIABLE(max_send_rate_megabytes, FT_MUTABLE);
 
 DSN_DECLARE_int32(file_close_timer_interval_ms_on_server);

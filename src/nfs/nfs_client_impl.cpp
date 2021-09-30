@@ -45,7 +45,8 @@ DSN_DEFINE_uint32("nfs",
                   nfs_copy_block_bytes,
                   4 * 1024 * 1024,
                   "max block size (bytes) for each network copy");
-DSN_DEFINE_int32("nfs", max_copy_rate_megabytes, 500, "max rate of copying from remote node(MB/s)");
+DSN_DEFINE_int32("nfs", max_copy_rate_megabytes, 50, "max rate per disk of copying from remote node(MB/s)");
+DSN_TAG_VARIABLE(max_copy_rate_megabytes, FT_MUTABLE);
 DSN_DEFINE_int32("nfs",
                  max_concurrent_remote_copy_requests,
                  50,
