@@ -1622,5 +1622,53 @@ bool greedy_load_balancer::is_ignored_app(app_id app_id)
     return _balancer_ignored_apps.find(app_id) != _balancer_ignored_apps.end();
 }
 
+copy_replica_operation::copy_replica_operation(
+    const std::shared_ptr<app_state> app,
+    const app_mapper &apps,
+    node_mapper &nodes,
+    const std::vector<dsn::rpc_address> &address_vec,
+    const std::unordered_map<dsn::rpc_address, int> &address_id)
+    : _app(app), _apps(apps), _nodes(nodes), _address_vec(address_vec), _address_id(address_id)
+{
+}
+
+void copy_replica_operation::init_ordered_address_ids()
+{
+    _partition_counts.resize(_address_vec.size(), 0);
+    for (const auto &iter : _nodes) {
+        auto id = _address_id.at(iter.first);
+        _partition_counts[id] = get_partition_count(iter.second);
+    }
+
+    std::set<int, std::function<bool(int a, int b)>> ordered_queue([this](int a, int b) {
+        return _partition_counts[a] != _partition_counts[b]
+                   ? _partition_counts[a] < _partition_counts[b]
+                   : a < b;
+    });
+    for (const auto &iter : _nodes) {
+        auto id = _address_id.at(iter.first);
+        ordered_queue.insert(id);
+    }
+    _ordered_address_ids.swap(ordered_queue);
+}
+
+copy_primary_operation::copy_primary_operation(
+    const std::shared_ptr<app_state> app,
+    const app_mapper &apps,
+    node_mapper &nodes,
+    const std::vector<dsn::rpc_address> &address_vec,
+    const std::unordered_map<dsn::rpc_address, int> &address_id,
+    bool have_lower_than_average,
+    int replicas_low)
+    : copy_replica_operation(app, apps, nodes, address_vec, address_id)
+{
+    _have_lower_than_average = have_lower_than_average;
+    _replicas_low = replicas_low;
+}
+
+int copy_primary_operation::get_partition_count(const node_state &ns) const
+{
+    return ns.primary_count(_app->app_id);
+}
 } // namespace replication
 } // namespace dsn
