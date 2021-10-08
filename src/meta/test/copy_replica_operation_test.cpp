@@ -50,17 +50,17 @@ TEST(copy_replica_operation, init_ordered_address_ids)
 
     std::vector<dsn::rpc_address> address_vec{addr1, addr2, addr3};
     std::unordered_map<dsn::rpc_address, int> address_id;
-    address_id[addr1] = 1;
-    address_id[addr2] = 2;
-    address_id[addr3] = 3;
+    address_id[addr1] = 0;
+    address_id[addr2] = 1;
+    address_id[addr3] = 2;
 
     copy_primary_operation op(app, apps, nodes, address_vec, address_id, false, false);
     op.init_ordered_address_ids();
 
     ASSERT_EQ(op._ordered_address_ids.size(), 3);
-    ASSERT_EQ(*op._ordered_address_ids.begin(), 3);
-    ASSERT_EQ(*(++op._ordered_address_ids.begin()), 1);
-    ASSERT_EQ(*op._ordered_address_ids.rbegin(), 2);
+    ASSERT_EQ(*op._ordered_address_ids.begin(), 2);
+    ASSERT_EQ(*(++op._ordered_address_ids.begin()), 0);
+    ASSERT_EQ(*op._ordered_address_ids.rbegin(), 1);
 }
 } // namespace replication
 } // namespace dsn
