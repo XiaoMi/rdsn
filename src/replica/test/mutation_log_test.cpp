@@ -268,10 +268,7 @@ namespace replication {
 class mutation_log_test : public replica_test_base
 {
 public:
-    gpid _gpid;
-
-public:
-    mutation_log_test() : _gpid(_replica->get_gpid()) {}
+    mutation_log_test() {}
 
     void SetUp() override
     {
