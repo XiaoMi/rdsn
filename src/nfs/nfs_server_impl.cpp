@@ -139,6 +139,11 @@ void nfs_service_impl::internal_read_callback(error_code err, size_t sz, callbac
 {
 
     auto send_token_bucket = _send_token_buckets->get_or_create_token_bucket(cp.file_disk_tag);
+    auto ava = send_token_bucket->available(FLAGS_max_send_rate_megabytes << 20,
+                                            1.5 * (FLAGS_max_send_rate_megabytes << 20));
+    if (ava <= 1 << 20) {
+        derror_f("jiashuo_debug: send folly {} = {}", cp.file_disk_tag, ava);
+    }
     send_token_bucket->consumeWithBorrowAndWait(
         sz, FLAGS_max_send_rate_megabytes << 20, 1.5 * (FLAGS_max_send_rate_megabytes << 20));
     {

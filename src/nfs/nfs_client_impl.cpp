@@ -36,6 +36,7 @@
 #include <queue>
 #include <dsn/tool-api/command_manager.h>
 #include "nfs_client_impl.h"
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace service {
@@ -45,7 +46,10 @@ DSN_DEFINE_uint32("nfs",
                   nfs_copy_block_bytes,
                   4 * 1024 * 1024,
                   "max block size (bytes) for each network copy");
-DSN_DEFINE_int32("nfs", max_copy_rate_megabytes, 50, "max rate per disk of copying from remote node(MB/s)");
+DSN_DEFINE_int32("nfs",
+                 max_copy_rate_megabytes,
+                 50,
+                 "max rate per disk of copying from remote node(MB/s)");
 DSN_TAG_VARIABLE(max_copy_rate_megabytes, FT_MUTABLE);
 DSN_DEFINE_int32("nfs",
                  max_concurrent_remote_copy_requests,
@@ -275,6 +279,14 @@ void nfs_client_impl::continue_copy()
                 // todo(jiashuo1) use non-block api `consumeWithBorrowNonBlocking` or `consume`
                 auto copy_token_bucket = _copy_token_buckets->get_or_create_token_bucket(
                     ureq->file_size_req.local_file_disk_tag);
+                auto ava =
+                    copy_token_bucket->available(FLAGS_max_copy_rate_megabytes << 20,
+                                                 1.5 * (FLAGS_max_copy_rate_megabytes << 20));
+                if (ava <= 1 << 20) {
+                    derror_f("jiashuo_debug: copy folly {} = {}",
+                             ureq->file_size_req.local_file_disk_tag,
+                             ava);
+                }
                 copy_token_bucket->consumeWithBorrowAndWait(
                     req->size,
                     FLAGS_max_copy_rate_megabytes << 20,
