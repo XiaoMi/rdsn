@@ -26,10 +26,27 @@ class meta_service;
 class partition_guardian
 {
 public:
-    explicit partition_guardian(meta_service *svc);
-    ~partition_guardian() = default;
+    template <typename T>
+    static partition_guardian *create(meta_service *svc)
+    {
+        return new T(svc);
+    }
+    typedef partition_guardian *(*factory)(meta_service *svc);
 
-    pc_status cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action);
+    explicit partition_guardian(meta_service *svc);
+    virtual ~partition_guardian() = default;
+
+    virtual pc_status
+    cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action);
+    void reconfig(meta_view view, const configuration_update_request &request);
+    void register_ctrl_commands();
+    void unregister_ctrl_commands();
+    void get_ddd_partitions(const gpid &pid, std::vector<ddd_partition_info> &partitions);
+    void clear_ddd_partitions()
+    {
+        zauto_lock l(_ddd_partitions_lock);
+        _ddd_partitions.clear();
+    }
 
 private:
     bool
@@ -44,6 +61,8 @@ private:
     void finish_cure_proposal(meta_view &view,
                               const dsn::gpid &gpid,
                               const configuration_proposal_action &action);
+    std::string ctrl_assign_delay_ms(const std::vector<std::string> &args);
+    std::string ctrl_assign_secondary_black_list(const std::vector<std::string> &args);
 
     void set_ddd_partition(ddd_partition_info &&partition)
     {
@@ -51,10 +70,32 @@ private:
         _ddd_partitions[partition.config.pid] = std::move(partition);
     }
 
-    perf_counter_wrapper _recent_choose_primary_fail_count;
+    bool in_black_list(dsn::rpc_address addr)
+    {
+        dsn::zauto_read_lock l(_black_list_lock);
+        return _assign_secondary_black_list.count(addr) != 0;
+    }
+
     meta_service *_svc;
-    mutable zlock _ddd_partitions_lock;
+    perf_counter_wrapper _recent_choose_primary_fail_count;
+
+    mutable zlock _ddd_partitions_lock; // [
     std::map<gpid, ddd_partition_info> _ddd_partitions;
+    // ]
+
+    // NOTICE: the command handler is called in THREADPOOL_DEFAULT
+    // but when adding secondary, the black list is accessed in THREADPOOL_META_STATE
+    // so we need a lock to protect it
+    dsn::zrwlock_nr _black_list_lock; // [
+    std::set<dsn::rpc_address> _assign_secondary_black_list;
+    // ]
+    dsn_handle_t _ctrl_assign_secondary_black_list = nullptr;
+
+    int32_t _mutation_2pc_min_replica_count;
+    dsn_handle_t _ctrl_assign_delay_ms = nullptr;
+    uint64_t _replica_assign_delay_ms_for_dropouts;
+
+    friend class meta_partition_guardian_test;
 };
 
 } // namespace replication

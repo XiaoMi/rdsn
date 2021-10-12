@@ -34,8 +34,18 @@
  */
 #include "meta_options.h"
 
+#include <dsn/utility/flags.h>
+
 namespace dsn {
 namespace replication {
+
+DSN_DEFINE_uint64("meta_server",
+                  min_live_node_count_for_unfreeze,
+                  3,
+                  "minimum live node count without which the state is freezed");
+DSN_TAG_VARIABLE(min_live_node_count_for_unfreeze, FT_MUTABLE);
+DSN_DEFINE_validator(min_live_node_count_for_unfreeze,
+                     [](uint64_t min_live_node_count) -> bool { return min_live_node_count > 0; });
 
 std::string meta_options::concat_path_unix_style(const std::string &prefix,
                                                  const std::string &postfix)
@@ -72,11 +82,7 @@ void meta_options::initialize()
         "if live_node_count * 100 < total_node_count * node_live_percentage_threshold_for_update, "
         "then freeze the cluster; default is 65");
 
-    min_live_node_count_for_unfreeze =
-        dsn_config_get_value_uint64("meta_server",
-                                    "min_live_node_count_for_unfreeze",
-                                    3,
-                                    "minimum live node count without which the state is freezed");
+    min_live_node_count_for_unfreeze = FLAGS_min_live_node_count_for_unfreeze;
 
     meta_function_level_on_start = meta_function_level::fl_invalid;
     const char *level_str = dsn_config_get_value_string(
@@ -144,7 +150,7 @@ void meta_options::initialize()
     _lb_opts.server_load_balancer_type =
         dsn_config_get_value_string("meta_server",
                                     "server_load_balancer_type",
-                                    "simple_load_balancer",
+                                    "greedy_load_balancer",
                                     "server load balancer provider");
     _lb_opts.replica_assign_delay_ms_for_dropouts =
         dsn_config_get_value_uint64("meta_server",
@@ -161,6 +167,11 @@ void meta_options::initialize()
     _lb_opts.only_move_primary = dsn_config_get_value_bool(
         "meta_server", "only_move_primary", false, "only try to make the primary balanced by move");
 
+    partition_guardian_type = dsn_config_get_value_string("meta_server",
+                                                          "partition_guardian_type",
+                                                          "partition_guardian",
+                                                          "partition guardian provider");
+
     cold_backup_disabled = dsn_config_get_value_bool(
         "meta_server", "cold_backup_disabled", true, "whether to disable cold backup");
 
@@ -174,5 +185,5 @@ void meta_options::initialize()
         "meta_server", "replica_white_list", "", "white list of replica-servers in meta-server");
     utils::split_args(replica_white_list_raw, replica_white_list, ',');
 }
-}
-}
+} // namespace replication
+} // namespace dsn
