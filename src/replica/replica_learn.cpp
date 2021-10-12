@@ -526,7 +526,7 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
                        err.to_string());
             } else {
                 response.base_local_dir = _app->data_dir();
-                response.replica_disk_tag = get_replica_disk_tag();
+                response.__set_replica_disk_tag(get_replica_disk_tag());
                 ddebug(
                     "%s: on_learn[%016" PRIx64 "]: learner = %s, get app learn state succeed, "
                     "learned_meta_size = %u, learned_file_count = %u, learned_to_decree = %" PRId64,
@@ -925,6 +925,7 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
                static_cast<int>(resp.state.files.size()),
                high_priority ? "high" : "low");
 
+        // todo(jiashuo1): init in constructor
         auto dest_disk_tag = get_replica_disk_tag();
         _potential_secondary_states.learn_remote_files_task = _stub->_nfs->copy_remote_files(
             resp.config.primary,

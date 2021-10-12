@@ -137,8 +137,8 @@ void nfs_client_impl::begin_remote_copy(std::shared_ptr<remote_copy_request> &rc
     req->file_size_req.file_list = rci->files;
     req->file_size_req.source_dir = rci->source_dir;
     req->file_size_req.overwrite = rci->overwrite;
-    req->file_size_req.remote_file_disk_tag = rci->remote_disk_tag;
-    req->file_size_req.local_file_disk_tag = rci->dest_disk_tag;
+    req->file_size_req.__set_remote_file_disk_tag(rci->remote_disk_tag);
+    req->file_size_req.__set_local_file_disk_tag(rci->dest_disk_tag);
     req->nfs_task = nfs_task;
     req->is_finished = false;
 
@@ -282,9 +282,10 @@ void nfs_client_impl::continue_copy()
                 auto ava =
                     copy_token_bucket->available(FLAGS_max_copy_rate_megabytes << 20,
                                                  1.5 * (FLAGS_max_copy_rate_megabytes << 20));
-                if (ava <= 1 << 20) {
-                    derror_f("jiashuo_debug: copy folly {} = {}",
+                if (ava <= 0) {
+                    derror_f("jiashuo_debug: copy folly {}->{} = {}",
                              ureq->file_size_req.local_file_disk_tag,
+                             ureq->file_size_req.remote_file_disk_tag,
                              ava);
                 }
                 copy_token_bucket->consumeWithBorrowAndWait(
@@ -293,7 +294,7 @@ void nfs_client_impl::continue_copy()
                     1.5 * (FLAGS_max_copy_rate_megabytes << 20));
 
                 copy_request copy_req;
-                copy_req.file_disk_tag = ureq->file_size_req.remote_file_disk_tag;
+                copy_req.__set_file_disk_tag(ureq->file_size_req.remote_file_disk_tag);
                 copy_req.source = ureq->file_size_req.source;
                 copy_req.file_name = req->file_ctx->file_name;
                 copy_req.offset = req->offset;
