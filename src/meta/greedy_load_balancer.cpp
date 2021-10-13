@@ -323,7 +323,7 @@ greedy_load_balancer::generate_balancer_request(const partition_configuration &p
     default:
         dassert(false, "");
     }
-    ddebug("generate balancer: %d.%d %s from %s  to %s",
+    ddebug("generate balancer: %d.%d %s from %s of disk_tag(%s) to %s",
            pc.pid.get_app_id(),
            pc.pid.get_partition_index(),
            ans.c_str(),
