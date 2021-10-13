@@ -300,7 +300,7 @@ private:
         int32_t app_id,
         /*pidx => data_version*/ std::unordered_map<int32_t, uint32_t> &version_map);
 
-#ifdef DSN_ENABLE_GPERF
+#if defined(DSN_ENABLE_GPERF)
     // Try to release tcmalloc memory back to operating system
     // If release_all = true, it will release all reserved-not-used memory
     uint64_t gc_tcmalloc_memory(bool release_all);
@@ -372,7 +372,7 @@ private:
     dsn_handle_t _trigger_chkpt_command;
     dsn_handle_t _query_compact_command;
     dsn_handle_t _query_app_envs_command;
-#ifdef DSN_ENABLE_GPERF
+#if defined(DSN_ENABLE_GPERF)
     dsn_handle_t _release_tcmalloc_memory_command;
     dsn_handle_t _get_tcmalloc_status_command;
     dsn_handle_t _max_reserved_memory_percentage_command;

@@ -55,7 +55,7 @@
 #include <vector>
 #include <deque>
 #include <dsn/dist/fmt_logging.h>
-#ifdef DSN_ENABLE_GPERF
+#if defined(DSN_ENABLE_GPERF)
 #include <gperftools/malloc_extension.h>
 #elif defined(DSN_USE_JEMALLOC)
 #include "utils/je_ctl.h"
@@ -95,7 +95,7 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _bulk_load_downloading_count(0),
       _is_running(false)
 {
-#ifdef DSN_ENABLE_GPERF
+#if defined(DSN_ENABLE_GPERF)
     _is_releasing_memory = false;
     _release_tcmalloc_memory_command = nullptr;
     _get_tcmalloc_status_command = nullptr;
@@ -2426,7 +2426,7 @@ void replica_stub::register_ctrl_command()
                 });
             });
 
-#ifdef DSN_ENABLE_GPERF
+#if defined(DSN_ENABLE_GPERF)
         _release_tcmalloc_memory_command = ::dsn::command_manager::instance().register_command(
             {"replica.release-tcmalloc-memory"},
             "replica.release-tcmalloc-memory <true|false>",
@@ -2640,7 +2640,7 @@ void replica_stub::close()
     UNREGISTER_VALID_HANDLER(_trigger_chkpt_command);
     UNREGISTER_VALID_HANDLER(_query_compact_command);
     UNREGISTER_VALID_HANDLER(_query_app_envs_command);
-#ifdef DSN_ENABLE_GPERF
+#if defined(DSN_ENABLE_GPERF)
     UNREGISTER_VALID_HANDLER(_release_tcmalloc_memory_command);
     UNREGISTER_VALID_HANDLER(_get_tcmalloc_status_command);
     UNREGISTER_VALID_HANDLER(_max_reserved_memory_percentage_command);
@@ -2658,7 +2658,7 @@ void replica_stub::close()
     _trigger_chkpt_command = nullptr;
     _query_compact_command = nullptr;
     _query_app_envs_command = nullptr;
-#ifdef DSN_ENABLE_GPERF
+#if defined(DSN_ENABLE_GPERF)
     _release_tcmalloc_memory_command = nullptr;
     _get_tcmalloc_status_command = nullptr;
     _max_reserved_memory_percentage_command = nullptr;
