@@ -68,6 +68,8 @@ struct flow_path
     const std::shared_ptr<app_state> &_app;
     std::vector<int> _flow, _prev;
 };
+// disk_tag -> targets(primaries/partitions)_on_this_disk
+typedef std::map<std::string, int> disk_load;
 
 // Ford Fulkerson is used for primary balance.
 // For more details: https://levy5307.github.io/blog/pegasus-balancer/
@@ -198,9 +200,6 @@ private:
     // and these are generated from the above data, which are tempory too
     std::unordered_map<dsn::rpc_address, int> address_id;
     std::vector<dsn::rpc_address> address_vec;
-
-    // disk_tag -> targets(primaries/partitions)_on_this_disk
-    typedef std::map<std::string, int> disk_load;
 
     // options
     bool _balancer_in_turn;
@@ -420,6 +419,51 @@ private:
     FRIEND_TEST(greedy_load_balancer, pick_up_partition);
     FRIEND_TEST(greedy_load_balancer, execute_balance);
     FRIEND_TEST(greedy_load_balancer, calc_potential_moving);
+};
+
+class copy_replica_operation
+{
+public:
+    copy_replica_operation(const std::shared_ptr<app_state> app,
+                           const app_mapper &apps,
+                           node_mapper &nodes,
+                           const std::vector<dsn::rpc_address> &address_vec,
+                           const std::unordered_map<dsn::rpc_address, int> &address_id);
+    virtual ~copy_replica_operation() = default;
+
+protected:
+    void init_ordered_address_ids();
+    virtual int get_partition_count(const node_state &ns) const = 0;
+
+    std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
+    const std::shared_ptr<app_state> _app;
+    const app_mapper &_apps;
+    node_mapper &_nodes;
+    const std::vector<dsn::rpc_address> &_address_vec;
+    const std::unordered_map<dsn::rpc_address, int> &_address_id;
+    std::unordered_map<dsn::rpc_address, disk_load> _node_loads;
+    std::vector<int> _partition_counts;
+
+    FRIEND_TEST(copy_replica_operation, init_ordered_address_ids);
+};
+
+class copy_primary_operation : public copy_replica_operation
+{
+public:
+    copy_primary_operation(const std::shared_ptr<app_state> app,
+                           const app_mapper &apps,
+                           node_mapper &nodes,
+                           const std::vector<dsn::rpc_address> &address_vec,
+                           const std::unordered_map<dsn::rpc_address, int> &address_id,
+                           bool have_lower_than_average,
+                           int replicas_low);
+    ~copy_primary_operation() = default;
+
+private:
+    int get_partition_count(const node_state &ns) const;
+
+    bool _have_lower_than_average;
+    int _replicas_low;
 };
 
 inline configuration_proposal_action
