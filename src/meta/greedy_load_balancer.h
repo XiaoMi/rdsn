@@ -383,8 +383,6 @@ private:
                     /*out*/ cluster_migration_info &cluster_info);
 
     bool all_replica_infos_collected(const node_state &ns);
-    // using t_global_view to get disk_tag of node's pid
-    const std::string &get_disk_tag(const dsn::rpc_address &node, const dsn::gpid &pid);
 
     // return false if can't get the replica_info for some replicas on this node
     bool calc_disk_load(app_id id,
@@ -435,6 +433,12 @@ protected:
     void init_ordered_address_ids();
     virtual int get_partition_count(const node_state &ns) const = 0;
 
+    gpid select_partition(migration_list *result);
+    const partition_set *get_all_partitions();
+    gpid select_max_load_gpid(const partition_set *partitions, migration_list *result);
+    virtual bool only_copy_primary() = 0;
+    virtual bool can_select(gpid pid, migration_list *result) = 0;
+
     std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
     const std::shared_ptr<app_state> _app;
     const app_mapper &_apps;
@@ -444,7 +448,8 @@ protected:
     std::unordered_map<dsn::rpc_address, disk_load> _node_loads;
     std::vector<int> _partition_counts;
 
-    FRIEND_TEST(copy_replica_operation, init_ordered_address_ids);
+    FRIEND_TEST(copy_replica_operation, select_partition);
+    FRIEND_TEST(copy_replica_operation, get_all_partitions);
 };
 
 class copy_primary_operation : public copy_replica_operation
@@ -462,8 +467,15 @@ public:
 private:
     int get_partition_count(const node_state &ns) const;
 
+    bool only_copy_primary() { return true; }
+    bool can_select(gpid pid, migration_list *result);
+
     bool _have_lower_than_average;
     int _replicas_low;
+
+    FRIEND_TEST(copy_replica_operation, select_partition);
+    FRIEND_TEST(copy_primary_operation, can_select);
+    FRIEND_TEST(copy_primary_operation, only_copy_primary);
 };
 
 inline configuration_proposal_action
