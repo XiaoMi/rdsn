@@ -607,7 +607,7 @@ void nfs_client_impl::register_cli_commands()
                                  .append(std::to_string(FLAGS_nfs_copy_block_bytes));
                     return result;
                 }
-                FLAGS_max_copy_rate_megabytes = max_copy_rate_bytes;
+                FLAGS_max_copy_rate_megabytes = max_copy_rate_megabytes;
                 return result;
             });
     });
