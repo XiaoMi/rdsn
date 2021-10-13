@@ -102,6 +102,18 @@ void get_min_max_set(const std::map<rpc_address, uint32_t> &node_count_map,
     }
 }
 
+const std::string &get_disk_tag(const app_mapper &apps, const rpc_address &node, const gpid &pid)
+{
+    const config_context &cc = *get_config_context(apps, pid);
+    auto iter = cc.find_from_serving(node);
+    dassert(iter != cc.serving.end(),
+            "can't find disk tag of gpid(%d.%d) for %s",
+            pid.get_app_id(),
+            pid.get_partition_index(),
+            node.to_string());
+    return iter->disk_tag;
+}
+
 greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
     : server_load_balancer(_svc),
       _ctrl_balancer_ignored_apps(nullptr),
@@ -311,26 +323,14 @@ greedy_load_balancer::generate_balancer_request(const partition_configuration &p
     default:
         dassert(false, "");
     }
-    ddebug("generate balancer: %d.%d %s from %s of disk_tag(%s) to %s",
+    ddebug("generate balancer: %d.%d %s from %s  to %s",
            pc.pid.get_app_id(),
            pc.pid.get_partition_index(),
            ans.c_str(),
            from.to_string(),
-           get_disk_tag(from, pc.pid).c_str(),
+           get_disk_tag(*t_global_view->apps, from, pc.pid).c_str(),
            to.to_string());
     return std::make_shared<configuration_balancer_request>(std::move(result));
-}
-
-const std::string &greedy_load_balancer::get_disk_tag(const rpc_address &node, const gpid &pid)
-{
-    config_context &cc = *get_config_context(*(t_global_view->apps), pid);
-    auto iter = cc.find_from_serving(node);
-    dassert(iter != cc.serving.end(),
-            "can't find disk tag of gpid(%d.%d) for %s",
-            pid.get_app_id(),
-            pid.get_partition_index(),
-            node.to_string());
-    return iter->disk_tag;
 }
 
 // assume all nodes are alive
@@ -411,7 +411,8 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
         int *selected_load = nullptr;
         for (const gpid &pid : *pri) {
             if (t_migration_result->find(pid) == t_migration_result->end()) {
-                const std::string &dtag = get_disk_tag(address_vec[id_max], pid);
+                const std::string &dtag =
+                    get_disk_tag(*t_global_view->apps, address_vec[id_max], pid);
                 if (selected_load == nullptr || load_on_max[dtag] > *selected_load) {
                     dinfo("%s: select gpid(%d.%d) on disk(%s), load(%d)",
                           app->get_logname(),
@@ -538,13 +539,13 @@ bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app,
                 continue;
             }
 
-            int &load = node_loads[max_id][get_disk_tag(max_ns.addr(), pid)];
+            int &load = node_loads[max_id][get_disk_tag(*t_global_view->apps, max_ns.addr(), pid)];
             if (selected_load == nullptr || *selected_load < load) {
                 dinfo("%s: select gpid(%d.%d) as target, tag(%s), load(%d)",
                       app->get_logname(),
                       pid.get_app_id(),
                       pid.get_partition_index(),
-                      get_disk_tag(max_ns.addr(), pid).c_str(),
+                      get_disk_tag(*t_global_view->apps, max_ns.addr(), pid).c_str(),
                       load);
                 selected_load = &load;
                 selected_pid = pid;
@@ -844,8 +845,8 @@ void greedy_load_balancer::start_moving_primary(const std::shared_ptr<app_state>
             selected, generate_balancer_request(pc, balance_type::move_primary, from, to));
         dassert_f(balancer_result.second, "gpid({}) already inserted as an action", selected);
 
-        --(*prev_load)[get_disk_tag(from, selected)];
-        ++(*current_load)[get_disk_tag(to, selected)];
+        --(*prev_load)[get_disk_tag(*t_global_view->apps, from, selected)];
+        ++(*current_load)[get_disk_tag(*t_global_view->apps, to, selected)];
     }
 }
 
@@ -875,8 +876,8 @@ dsn::gpid greedy_load_balancer::select_moving(std::list<dsn::gpid> &potential_mo
     int max = std::numeric_limits<int>::min();
 
     for (auto it = potential_moving.begin(); it != potential_moving.end(); ++it) {
-        int load_difference =
-            (*prev_load)[get_disk_tag(from, *it)] - (*current_load)[get_disk_tag(to, *it)];
+        int load_difference = (*prev_load)[get_disk_tag(*t_global_view->apps, from, *it)] -
+                              (*current_load)[get_disk_tag(*t_global_view->apps, to, *it)];
         if (load_difference > max) {
             max = load_difference;
             selected = it;
@@ -1632,6 +1633,37 @@ copy_replica_operation::copy_replica_operation(
 {
 }
 
+const partition_set *copy_replica_operation::get_all_partitions()
+{
+    int id_max = *_ordered_address_ids.rbegin();
+    const node_state &ns = _nodes.find(_address_vec[id_max])->second;
+    const partition_set *partitions = ns.partitions(_app->app_id, only_copy_primary());
+    return partitions;
+}
+
+gpid copy_replica_operation::select_max_load_gpid(const partition_set *partitions,
+                                                  migration_list *result)
+{
+    int id_max = *_ordered_address_ids.rbegin();
+    const disk_load &load_on_max = _node_loads.at(_address_vec[id_max]);
+
+    gpid selected_pid(-1, -1);
+    int max_load = -1;
+    for (const gpid &pid : *partitions) {
+        if (!can_select(pid, result)) {
+            continue;
+        }
+
+        const std::string &disk_tag = get_disk_tag(_apps, _address_vec[id_max], pid);
+        auto load = load_on_max.at(disk_tag);
+        if (load > max_load) {
+            selected_pid = pid;
+            max_load = load;
+        }
+    }
+    return selected_pid;
+}
+
 void copy_replica_operation::init_ordered_address_ids()
 {
     _partition_counts.resize(_address_vec.size(), 0);
@@ -1652,6 +1684,19 @@ void copy_replica_operation::init_ordered_address_ids()
     _ordered_address_ids.swap(ordered_queue);
 }
 
+gpid copy_replica_operation::select_partition(migration_list *result)
+{
+    const partition_set *partitions = get_all_partitions();
+
+    int id_max = *_ordered_address_ids.rbegin();
+    const node_state &ns = _nodes.find(_address_vec[id_max])->second;
+    dassert_f(partitions != nullptr && !partitions->empty(),
+              "max load({}) shouldn't empty",
+              ns.addr().to_string());
+
+    return select_max_load_gpid(partitions, result);
+}
+
 copy_primary_operation::copy_primary_operation(
     const std::shared_ptr<app_state> app,
     const app_mapper &apps,
@@ -1669,6 +1714,11 @@ copy_primary_operation::copy_primary_operation(
 int copy_primary_operation::get_partition_count(const node_state &ns) const
 {
     return ns.primary_count(_app->app_id);
+}
+
+bool copy_primary_operation::can_select(gpid pid, migration_list *result)
+{
+    return result->find(pid) == result->end();
 }
 } // namespace replication
 } // namespace dsn
