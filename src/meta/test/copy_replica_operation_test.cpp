@@ -53,7 +53,7 @@ TEST(copy_replica_operation, select_partition)
     address_id[addr1] = 0;
     address_id[addr2] = 1;
     address_id[addr3] = 2;
-    copy_primary_operation op(app, apps, nodes, address_vec, address_id, false, false);
+    copy_primary_operation op(app, apps, nodes, address_vec, address_id, false, 0);
 
     /**
      * Test init_ordered_address_ids
@@ -63,6 +63,9 @@ TEST(copy_replica_operation, select_partition)
     ASSERT_EQ(*op._ordered_address_ids.begin(), 2);
     ASSERT_EQ(*(++op._ordered_address_ids.begin()), 0);
     ASSERT_EQ(*op._ordered_address_ids.rbegin(), 1);
+    ASSERT_EQ(op._partition_counts[0], 1);
+    ASSERT_EQ(op._partition_counts[1], 2);
+    ASSERT_EQ(op._partition_counts[2], 0);
 
     /**
      * Test get_all_partitions
@@ -93,6 +96,41 @@ TEST(copy_replica_operation, select_partition)
     migration_list list;
     auto res_gpid = op.select_partition(&list);
     ASSERT_EQ(res_gpid.get_partition_index(), 1);
+
+    /**
+     * Test can_continue
+     **/
+    op._have_lower_than_average = true;
+    ASSERT_FALSE(op.can_continue());
+
+    op._have_lower_than_average = false;
+    ASSERT_TRUE(op.can_continue());
+    op._have_lower_than_average = true;
+
+    op._replicas_low = 1;
+    ASSERT_TRUE(op.can_continue());
+    op._replicas_low = 0;
+
+    nodes[addr2].remove_partition(gpid(app_id, 1), false);
+    op.init_ordered_address_ids();
+    ASSERT_FALSE(op.can_continue());
+    nodes[addr2].put_partition(gpid(app_id, 1), true);
+
+    /**
+     * Test update_ordered_address_ids
+     */
+    nodes[addr1].put_partition(gpid(app_id, 3), true);
+    nodes[addr2].put_partition(gpid(app_id, 4), true);
+    nodes[addr2].put_partition(gpid(app_id, 5), true);
+    op.init_ordered_address_ids();
+    op.update_ordered_address_ids();
+    ASSERT_EQ(op._ordered_address_ids.size(), 3);
+    ASSERT_EQ(*op._ordered_address_ids.begin(), 2);
+    ASSERT_EQ(*(++op._ordered_address_ids.begin()), 0);
+    ASSERT_EQ(*op._ordered_address_ids.rbegin(), 1);
+    ASSERT_EQ(op._partition_counts[0], 2);
+    ASSERT_EQ(op._partition_counts[1], 3);
+    ASSERT_EQ(op._partition_counts[2], 1);
 }
 
 TEST(copy_primary_operation, can_select)

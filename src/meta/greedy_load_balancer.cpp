@@ -1623,6 +1623,16 @@ bool greedy_load_balancer::is_ignored_app(app_id app_id)
     return _balancer_ignored_apps.find(app_id) != _balancer_ignored_apps.end();
 }
 
+std::unordered_map<dsn::rpc_address, disk_load>
+get_node_loads(const std::shared_ptr<app_state> &app,
+               const app_mapper &apps,
+               node_mapper &nodes,
+               bool only_primary)
+{
+    // TBD(zlw)
+    return std::unordered_map<dsn::rpc_address, disk_load>();
+}
+
 copy_replica_operation::copy_replica_operation(
     const std::shared_ptr<app_state> app,
     const app_mapper &apps,
@@ -1631,6 +1641,30 @@ copy_replica_operation::copy_replica_operation(
     const std::unordered_map<dsn::rpc_address, int> &address_id)
     : _app(app), _apps(apps), _nodes(nodes), _address_vec(address_vec), _address_id(address_id)
 {
+}
+
+bool copy_replica_operation::start(migration_list *result)
+{
+    init_ordered_address_ids();
+    _node_loads = get_node_loads(_app, _apps, _nodes, only_copy_primary());
+    if (_node_loads.size() != _nodes.size()) {
+        return false;
+    }
+
+    while (true) {
+        if (!can_continue()) {
+            break;
+        }
+
+        gpid selected_pid = select_partition(result);
+        if (selected_pid.get_app_id() != -1) {
+            copy_once(selected_pid, result);
+            update_ordered_address_ids();
+        } else {
+            _ordered_address_ids.erase(--_ordered_address_ids.end());
+        }
+    }
+    return true;
 }
 
 const partition_set *copy_replica_operation::get_all_partitions()
@@ -1662,6 +1696,25 @@ gpid copy_replica_operation::select_max_load_gpid(const partition_set *partition
         }
     }
     return selected_pid;
+}
+
+void copy_replica_operation::copy_once(gpid selected_pid, migration_list *result)
+{
+    // TBD(zlw)
+}
+
+void copy_replica_operation::update_ordered_address_ids()
+{
+    int id_min = *_ordered_address_ids.begin();
+    int id_max = *_ordered_address_ids.rbegin();
+    --_partition_counts[id_max];
+    ++_partition_counts[id_min];
+
+    _ordered_address_ids.erase(_ordered_address_ids.begin());
+    _ordered_address_ids.erase(--_ordered_address_ids.end());
+
+    _ordered_address_ids.insert(id_max);
+    _ordered_address_ids.insert(id_min);
 }
 
 void copy_replica_operation::init_ordered_address_ids()
@@ -1719,6 +1772,24 @@ int copy_primary_operation::get_partition_count(const node_state &ns) const
 bool copy_primary_operation::can_select(gpid pid, migration_list *result)
 {
     return result->find(pid) == result->end();
+}
+
+bool copy_primary_operation::can_continue()
+{
+    int id_min = *_ordered_address_ids.begin();
+    if (_have_lower_than_average && _partition_counts[id_min] >= _replicas_low) {
+        ddebug_f("{}: stop the copy due to primaries on all nodes will reach low later.",
+                 _app->get_logname());
+        return false;
+    }
+
+    int id_max = *_ordered_address_ids.rbegin();
+    if (!_have_lower_than_average && _partition_counts[id_max] - _partition_counts[id_min] <= 1) {
+        ddebug_f("{}: stop the copy due to the primary will be balanced later.",
+                 _app->get_logname());
+        return false;
+    }
+    return true;
 }
 } // namespace replication
 } // namespace dsn

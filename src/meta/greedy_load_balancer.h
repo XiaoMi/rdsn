@@ -429,6 +429,8 @@ public:
                            const std::unordered_map<dsn::rpc_address, int> &address_id);
     virtual ~copy_replica_operation() = default;
 
+    bool start(migration_list *result);
+
 protected:
     void init_ordered_address_ids();
     virtual int get_partition_count(const node_state &ns) const = 0;
@@ -436,8 +438,11 @@ protected:
     gpid select_partition(migration_list *result);
     const partition_set *get_all_partitions();
     gpid select_max_load_gpid(const partition_set *partitions, migration_list *result);
+    void copy_once(gpid selected_pid, migration_list *result);
+    void update_ordered_address_ids();
     virtual bool only_copy_primary() = 0;
     virtual bool can_select(gpid pid, migration_list *result) = 0;
+    virtual bool can_continue() = 0;
 
     std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
     const std::shared_ptr<app_state> _app;
@@ -469,6 +474,7 @@ private:
 
     bool only_copy_primary() { return true; }
     bool can_select(gpid pid, migration_list *result);
+    bool can_continue();
 
     bool _have_lower_than_average;
     int _replicas_low;
