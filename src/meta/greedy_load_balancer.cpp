@@ -114,6 +114,119 @@ const std::string &get_disk_tag(const app_mapper &apps, const rpc_address &node,
     return iter->disk_tag;
 }
 
+std::shared_ptr<configuration_balancer_request>
+generate_balancer_request(const app_mapper &apps,
+                          const partition_configuration &pc,
+                          const balance_type &type,
+                          const rpc_address &from,
+                          const rpc_address &to)
+{
+    FAIL_POINT_INJECT_F("generate_balancer_request", [](string_view name) { return nullptr; });
+
+    configuration_balancer_request result;
+    result.gpid = pc.pid;
+
+    std::string ans;
+    switch (type) {
+    case balance_type::move_primary:
+        ans = "move_primary";
+        result.balance_type = balancer_request_type::move_primary;
+        result.action_list.emplace_back(
+            new_proposal_action(from, from, config_type::CT_DOWNGRADE_TO_SECONDARY));
+        result.action_list.emplace_back(
+            new_proposal_action(to, to, config_type::CT_UPGRADE_TO_PRIMARY));
+        break;
+    case balance_type::copy_primary:
+        ans = "copy_primary";
+        result.balance_type = balancer_request_type::copy_primary;
+        result.action_list.emplace_back(
+            new_proposal_action(from, to, config_type::CT_ADD_SECONDARY_FOR_LB));
+        result.action_list.emplace_back(
+            new_proposal_action(from, from, config_type::CT_DOWNGRADE_TO_SECONDARY));
+        result.action_list.emplace_back(
+            new_proposal_action(to, to, config_type::CT_UPGRADE_TO_PRIMARY));
+        result.action_list.emplace_back(new_proposal_action(to, from, config_type::CT_REMOVE));
+        break;
+    case balance_type::copy_secondary:
+        ans = "copy_secondary";
+        result.balance_type = balancer_request_type::copy_secondary;
+        result.action_list.emplace_back(
+            new_proposal_action(pc.primary, to, config_type::CT_ADD_SECONDARY_FOR_LB));
+        result.action_list.emplace_back(
+            new_proposal_action(pc.primary, from, config_type::CT_REMOVE));
+        break;
+    default:
+        dassert(false, "");
+    }
+    ddebug("generate balancer: %d.%d %s from %s of disk_tag(%s) to %s",
+           pc.pid.get_app_id(),
+           pc.pid.get_partition_index(),
+           ans.c_str(),
+           from.to_string(),
+           get_disk_tag(apps, from, pc.pid).c_str(),
+           to.to_string());
+    return std::make_shared<configuration_balancer_request>(std::move(result));
+}
+
+void dump_disk_load(app_id id, const rpc_address &node, bool only_primary, const disk_load &load)
+{
+    std::ostringstream load_string;
+    load_string << std::endl << "<<<<<<<<<<" << std::endl;
+    load_string << "load for " << node.to_string() << ", "
+                << "app id: " << id;
+    if (only_primary) {
+        load_string << ", only for primary";
+    }
+    load_string << std::endl;
+
+    for (const auto &kv : load) {
+        load_string << kv.first << ": " << kv.second << std::endl;
+    }
+    load_string << ">>>>>>>>>>";
+    dinfo("%s", load_string.str().c_str());
+}
+
+bool calc_disk_load(node_mapper &nodes,
+                    const app_mapper &apps,
+                    app_id id,
+                    const rpc_address &node,
+                    bool only_primary,
+                    /*out*/ disk_load &load)
+{
+    load.clear();
+    const node_state *ns = get_node_state(nodes, node, false);
+    dassert(ns != nullptr, "can't find node(%s) from node_state", node.to_string());
+
+    auto add_one_replica_to_disk_load = [&](const gpid &pid) {
+        dinfo("add gpid(%d.%d) to node(%s) disk load",
+              pid.get_app_id(),
+              pid.get_partition_index(),
+              node.to_string());
+        const config_context &cc = *get_config_context(apps, pid);
+        auto iter = cc.find_from_serving(node);
+        if (iter == cc.serving.end()) {
+            dwarn("can't collect gpid(%d.%d)'s info from %s, which should be primary",
+                  pid.get_app_id(),
+                  pid.get_partition_index(),
+                  node.to_string());
+            return false;
+        } else {
+            load[iter->disk_tag]++;
+            return true;
+        }
+    };
+
+    if (only_primary) {
+        bool result = ns->for_each_primary(id, add_one_replica_to_disk_load);
+        dump_disk_load(id, node, only_primary, load);
+        return result;
+    } else {
+        bool result = ns->for_each_partition(id, add_one_replica_to_disk_load);
+        dump_disk_load(id, node, only_primary, load);
+        return result;
+    }
+}
+
 greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
     : server_load_balancer(_svc),
       _ctrl_balancer_ignored_apps(nullptr),
@@ -280,70 +393,18 @@ void greedy_load_balancer::score(meta_view view, double &primary_stddev, double 
     total_stddev = utils::mean_stddev(partition_count, partial_sample);
 }
 
-std::shared_ptr<configuration_balancer_request>
-greedy_load_balancer::generate_balancer_request(const partition_configuration &pc,
-                                                const balance_type &type,
-                                                const rpc_address &from,
-                                                const rpc_address &to)
-{
-    FAIL_POINT_INJECT_F("generate_balancer_request", [](string_view name) { return nullptr; });
-
-    configuration_balancer_request result;
-    result.gpid = pc.pid;
-
-    std::string ans;
-    switch (type) {
-    case balance_type::move_primary:
-        ans = "move_primary";
-        result.balance_type = balancer_request_type::move_primary;
-        result.action_list.emplace_back(
-            new_proposal_action(from, from, config_type::CT_DOWNGRADE_TO_SECONDARY));
-        result.action_list.emplace_back(
-            new_proposal_action(to, to, config_type::CT_UPGRADE_TO_PRIMARY));
-        break;
-    case balance_type::copy_primary:
-        ans = "copy_primary";
-        result.balance_type = balancer_request_type::copy_primary;
-        result.action_list.emplace_back(
-            new_proposal_action(from, to, config_type::CT_ADD_SECONDARY_FOR_LB));
-        result.action_list.emplace_back(
-            new_proposal_action(from, from, config_type::CT_DOWNGRADE_TO_SECONDARY));
-        result.action_list.emplace_back(
-            new_proposal_action(to, to, config_type::CT_UPGRADE_TO_PRIMARY));
-        result.action_list.emplace_back(new_proposal_action(to, from, config_type::CT_REMOVE));
-        break;
-    case balance_type::copy_secondary:
-        ans = "copy_secondary";
-        result.balance_type = balancer_request_type::copy_secondary;
-        result.action_list.emplace_back(
-            new_proposal_action(pc.primary, to, config_type::CT_ADD_SECONDARY_FOR_LB));
-        result.action_list.emplace_back(
-            new_proposal_action(pc.primary, from, config_type::CT_REMOVE));
-        break;
-    default:
-        dassert(false, "");
-    }
-    ddebug("generate balancer: %d.%d %s from %s of disk_tag(%s) to %s",
-           pc.pid.get_app_id(),
-           pc.pid.get_partition_index(),
-           ans.c_str(),
-           from.to_string(),
-           get_disk_tag(*t_global_view->apps, from, pc.pid).c_str(),
-           to.to_string());
-    return std::make_shared<configuration_balancer_request>(std::move(result));
-}
-
 // assume all nodes are alive
 bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
                                         bool still_have_less_than_average)
 {
-    const node_mapper &nodes = *(t_global_view->nodes);
+    node_mapper &nodes = *(t_global_view->nodes);
+    const app_mapper &apps = *(t_global_view->apps);
     std::vector<int> future_primaries(address_vec.size(), 0);
     std::unordered_map<dsn::rpc_address, disk_load> node_loads;
 
     for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
         future_primaries[address_id[iter->first]] = iter->second.primary_count(app->app_id);
-        if (!calc_disk_load(app->app_id, iter->first, true, node_loads[iter->first])) {
+        if (!calc_disk_load(nodes, apps, app->app_id, iter->first, true, node_loads[iter->first])) {
             dwarn("stop the balancer as some replica infos aren't collected, node(%s), app(%s)",
                   iter->first.to_string(),
                   app->get_logname());
@@ -441,7 +502,7 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
         t_migration_result->emplace(
             selected_pid,
             generate_balancer_request(
-                pc, balance_type::copy_primary, address_vec[id_max], address_vec[id_min]));
+                apps, pc, balance_type::copy_primary, address_vec[id_max], address_vec[id_min]));
 
         --(*selected_load);
         --future_primaries[id_max];
@@ -456,6 +517,8 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
 
 bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app, bool place_holder)
 {
+    node_mapper &nodes = *(t_global_view->nodes);
+    const app_mapper &apps = *(t_global_view->apps);
     std::vector<int> future_partitions(address_vec.size(), 0);
     std::vector<disk_load> node_loads(address_vec.size());
 
@@ -465,7 +528,8 @@ bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app,
         future_partitions[address_id[ns.addr()]] = ns.partition_count(app->app_id);
         total_partitions += ns.partition_count(app->app_id);
 
-        if (!calc_disk_load(app->app_id, ns.addr(), false, node_loads[address_id[ns.addr()]])) {
+        if (!calc_disk_load(
+                nodes, apps, app->app_id, ns.addr(), false, node_loads[address_id[ns.addr()]])) {
             dwarn("stop copy secondary as some replica infos aren't collected, node(%s), app(%s)",
                   ns.addr().to_string(),
                   app->get_logname());
@@ -560,7 +624,8 @@ bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app,
         } else {
             t_migration_result->emplace(
                 selected_pid,
-                generate_balancer_request(app->partitions[selected_pid.get_partition_index()],
+                generate_balancer_request(*t_global_view->apps,
+                                          app->partitions[selected_pid.get_partition_index()],
                                           balance_type::copy_secondary,
                                           max_ns.addr(),
                                           min_ns.addr()));
@@ -588,66 +653,6 @@ void greedy_load_balancer::number_nodes(const node_mapper &nodes)
         address_id[iter->first] = current_id;
         address_vec[current_id] = iter->first;
         ++current_id;
-    }
-}
-
-void greedy_load_balancer::dump_disk_load(app_id id,
-                                          const rpc_address &node,
-                                          bool only_primary,
-                                          const disk_load &load)
-{
-    std::ostringstream load_string;
-    load_string << std::endl << "<<<<<<<<<<" << std::endl;
-    load_string << "load for " << node.to_string() << ", "
-                << "app id: " << id;
-    if (only_primary) {
-        load_string << ", only for primary";
-    }
-    load_string << std::endl;
-
-    for (const auto &kv : load) {
-        load_string << kv.first << ": " << kv.second << std::endl;
-    }
-    load_string << ">>>>>>>>>>";
-    dinfo("%s", load_string.str().c_str());
-}
-
-bool greedy_load_balancer::calc_disk_load(app_id id,
-                                          const rpc_address &node,
-                                          bool only_primary,
-                                          /*out*/ disk_load &load)
-{
-    load.clear();
-    const node_state *ns = get_node_state(*(t_global_view->nodes), node, false);
-    dassert(ns != nullptr, "can't find node(%s) from node_state", node.to_string());
-
-    auto add_one_replica_to_disk_load = [&, this](const gpid &pid) {
-        dinfo("add gpid(%d.%d) to node(%s) disk load",
-              pid.get_app_id(),
-              pid.get_partition_index(),
-              node.to_string());
-        config_context &cc = *get_config_context(*(t_global_view->apps), pid);
-        auto iter = cc.find_from_serving(node);
-        if (iter == cc.serving.end()) {
-            dwarn("can't collect gpid(%d.%d)'s info from %s, which should be primary",
-                  pid.get_app_id(),
-                  pid.get_partition_index(),
-                  node.to_string());
-            return false;
-        } else {
-            load[iter->disk_tag]++;
-            return true;
-        }
-    };
-
-    if (only_primary) {
-        bool result = ns->for_each_primary(id, add_one_replica_to_disk_load);
-        dump_disk_load(id, node, only_primary, load);
-        return result;
-    } else {
-        bool result = ns->for_each_partition(id, add_one_replica_to_disk_load);
-        dump_disk_load(id, node, only_primary, load);
-        return result;
     }
 }
 
@@ -793,9 +798,12 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
     disk_load loads[2];
     disk_load *prev_load = &loads[0];
     disk_load *current_load = &loads[1];
+    node_mapper &nodes = *(t_global_view->nodes);
+    const app_mapper &apps = *(t_global_view->apps);
 
     int current = path->_prev.back();
-    if (!calc_disk_load(path->_app->app_id, address_vec[current], true, *current_load)) {
+    if (!calc_disk_load(
+            nodes, apps, path->_app->app_id, address_vec[current], true, *current_load)) {
         dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                 address_vec[current].to_string(),
                 path->_app->get_logname());
@@ -806,7 +814,7 @@ bool greedy_load_balancer::move_primary(std::unique_ptr<flow_path> path)
     while (path->_prev[current] != 0) {
         rpc_address from = address_vec[path->_prev[current]];
         rpc_address to = address_vec[current];
-        if (!calc_disk_load(path->_app->app_id, from, true, *prev_load)) {
+        if (!calc_disk_load(nodes, apps, path->_app->app_id, from, true, *prev_load)) {
             dwarn_f("stop move primary as some replica infos aren't collected, node({}), app({})",
                     from.to_string(),
                     path->_app->get_logname());
@@ -842,7 +850,9 @@ void greedy_load_balancer::start_moving_primary(const std::shared_ptr<app_state>
 
         const partition_configuration &pc = app->partitions[selected.get_partition_index()];
         auto balancer_result = t_migration_result->emplace(
-            selected, generate_balancer_request(pc, balance_type::move_primary, from, to));
+            selected,
+            generate_balancer_request(
+                *t_global_view->apps, pc, balance_type::move_primary, from, to));
         dassert_f(balancer_result.second, "gpid({}) already inserted as an action", selected);
 
         --(*prev_load)[get_disk_tag(*t_global_view->apps, from, selected)];
@@ -1472,8 +1482,9 @@ bool greedy_load_balancer::apply_move(const move_info &move,
     partition_configuration pc;
     pc.pid = move.pid;
     pc.primary = primary_addr;
-    list[move.pid] = generate_balancer_request(pc, move.type, source, target);
-    t_migration_result->emplace(move.pid, generate_balancer_request(pc, move.type, source, target));
+    list[move.pid] = generate_balancer_request(*t_global_view->apps, pc, move.type, source, target);
+    t_migration_result->emplace(
+        move.pid, generate_balancer_request(*t_global_view->apps, pc, move.type, source, target));
     selected_pids.insert(move.pid);
 
     cluster_info.apps_skew[app_id] = get_skew(app_info.replicas_count);
@@ -1629,8 +1640,17 @@ get_node_loads(const std::shared_ptr<app_state> &app,
                node_mapper &nodes,
                bool only_primary)
 {
-    // TBD(zlw)
-    return std::unordered_map<dsn::rpc_address, disk_load>();
+    std::unordered_map<dsn::rpc_address, disk_load> node_loads;
+    for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
+        if (!calc_disk_load(
+                nodes, apps, app->app_id, iter->first, only_primary, node_loads[iter->first])) {
+            dwarn_f("stop the balancer as some replica infos aren't collected, node({}), app({})",
+                    iter->first.to_string(),
+                    app->get_logname());
+            return node_loads;
+        }
+    }
+    return node_loads;
 }
 
 copy_replica_operation::copy_replica_operation(
@@ -1700,7 +1720,12 @@ gpid copy_replica_operation::select_max_load_gpid(const partition_set *partition
 
 void copy_replica_operation::copy_once(gpid selected_pid, migration_list *result)
 {
-    // TBD(zlw)
+    auto from = _address_vec[*_ordered_address_ids.rbegin()];
+    auto to = _address_vec[*_ordered_address_ids.begin()];
+
+    auto pc = _app->partitions[selected_pid.get_partition_index()];
+    auto request = generate_balancer_request(_apps, pc, get_balance_type(), from, to);
+    result->emplace(selected_pid, request);
 }
 
 void copy_replica_operation::update_ordered_address_ids()
@@ -1791,5 +1816,7 @@ bool copy_primary_operation::can_continue()
     }
     return true;
 }
+
+enum balance_type copy_primary_operation::get_balance_type() { return balance_type::copy_primary; }
 } // namespace replication
 } // namespace dsn

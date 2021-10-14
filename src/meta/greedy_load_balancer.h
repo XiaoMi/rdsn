@@ -50,6 +50,14 @@ ENUM_REG(cluster_balance_type::COPY_PRIMARY)
 ENUM_REG(cluster_balance_type::COPY_SECONDARY)
 ENUM_END(cluster_balance_type)
 
+// TODO: combine with cluster_balance_type
+enum class balance_type
+{
+    move_primary,
+    copy_primary,
+    copy_secondary
+};
+
 uint32_t get_partition_count(const node_state &ns, cluster_balance_type type, int32_t app_id);
 uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map);
 void get_min_max_set(const std::map<rpc_address, uint32_t> &node_count_map,
@@ -173,13 +181,6 @@ public:
     std::string get_balance_operation_count(const std::vector<std::string> &args) override;
 
 private:
-    enum class balance_type
-    {
-        move_primary,
-        copy_primary,
-        copy_secondary
-    };
-
     enum operation_counters
     {
         MOVE_PRI_COUNT = 0,
@@ -384,20 +385,6 @@ private:
 
     bool all_replica_infos_collected(const node_state &ns);
 
-    // return false if can't get the replica_info for some replicas on this node
-    bool calc_disk_load(app_id id,
-                        const dsn::rpc_address &node,
-                        bool only_primary,
-                        /*out*/ disk_load &load);
-    void
-    dump_disk_load(app_id id, const rpc_address &node, bool only_primary, const disk_load &load);
-
-    std::shared_ptr<configuration_balancer_request>
-    generate_balancer_request(const partition_configuration &pc,
-                              const balance_type &type,
-                              const rpc_address &from,
-                              const rpc_address &to);
-
     std::string remote_command_balancer_ignored_app_ids(const std::vector<std::string> &args);
     std::string set_balancer_ignored_app_ids(const std::vector<std::string> &args);
     std::string get_balancer_ignored_app_ids();
@@ -443,6 +430,7 @@ protected:
     virtual bool only_copy_primary() = 0;
     virtual bool can_select(gpid pid, migration_list *result) = 0;
     virtual bool can_continue() = 0;
+    virtual enum balance_type get_balance_type() = 0;
 
     std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
     const std::shared_ptr<app_state> _app;
@@ -453,7 +441,7 @@ protected:
     std::unordered_map<dsn::rpc_address, disk_load> _node_loads;
     std::vector<int> _partition_counts;
 
-    FRIEND_TEST(copy_replica_operation, select_partition);
+    FRIEND_TEST(copy_replica_operation, misc);
     FRIEND_TEST(copy_replica_operation, get_all_partitions);
 };
 
@@ -475,11 +463,12 @@ private:
     bool only_copy_primary() { return true; }
     bool can_select(gpid pid, migration_list *result);
     bool can_continue();
+    enum balance_type get_balance_type();
 
     bool _have_lower_than_average;
     int _replicas_low;
 
-    FRIEND_TEST(copy_replica_operation, select_partition);
+    FRIEND_TEST(copy_replica_operation, misc);
     FRIEND_TEST(copy_primary_operation, can_select);
     FRIEND_TEST(copy_primary_operation, only_copy_primary);
 };

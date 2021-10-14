@@ -16,12 +16,13 @@
 // under the License.
 
 #include <gtest/gtest.h>
+#include <dsn/utility/fail_point.h>
 #include "meta/greedy_load_balancer.h"
 
 namespace dsn {
 namespace replication {
 
-TEST(copy_replica_operation, select_partition)
+TEST(copy_replica_operation, misc)
 {
     int32_t app_id = 1;
     dsn::app_info info;
@@ -131,6 +132,20 @@ TEST(copy_replica_operation, select_partition)
     ASSERT_EQ(op._partition_counts[0], 2);
     ASSERT_EQ(op._partition_counts[1], 3);
     ASSERT_EQ(op._partition_counts[2], 1);
+
+    /**
+     * Test copy_once
+     */
+    fail::setup();
+    fail::cfg("generate_balancer_request", "return()");
+    gpid gpid1(1, 0);
+    gpid gpid2(1, 1);
+    list.clear();
+    op.copy_once(gpid1, &list);
+    ASSERT_EQ(list.size(), 1);
+    ASSERT_EQ(list.count(gpid1), 1);
+    ASSERT_EQ(list.count(gpid2), 0);
+    fail::teardown();
 }
 
 TEST(copy_primary_operation, can_select)
