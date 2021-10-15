@@ -51,21 +51,23 @@ class optional
 public:
     optional() : _is_some(false) {}
     /*implicit*/ optional(none_placeholder_t) : optional() {}
-    /*implicit*/ optional(const optional &that) : _is_some(true)
+    /*implicit*/ optional(const optional &that)
     {
-        new (_data_placeholder) T{reinterpret_cast<const T &>(that._data_placeholder)};
+        _is_some = that._is_some;
+        if (that._is_some) {
+            new (_data_placeholder) T{reinterpret_cast<const T &>(that._data_placeholder)};
+        }
     }
 
-    /*implicit*/ optional(optional &&that) : _is_some(true)
+    /*implicit*/ optional(optional &&that)
     {
-        new (_data_placeholder) T{std::move(reinterpret_cast<T &&>(that._data_placeholder))};
-        that.reset();
+        _is_some = that._is_some;
+        if (that._is_some) {
+            new (_data_placeholder) T{std::move(reinterpret_cast<T &&>(that._data_placeholder))};
+            that.reset();
+        }
     }
-    template <typename... Args>
-    /*implicit*/ optional(Args &&... args) : _is_some(true)
-    {
-        new (_data_placeholder) T{std::forward<Args>(args)...};
-    }
+    /*implicit*/ optional(const T &data) : _is_some(true) { new (_data_placeholder) T{data}; }
 
     // please use explicit reset
     optional &operator=(const optional &that) = delete;

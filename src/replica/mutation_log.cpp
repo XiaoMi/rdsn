@@ -39,6 +39,45 @@
 namespace dsn {
 namespace replication {
 
+DSN_DEFINE_int64("replication",
+                 log_default_block_bytes,
+                 1024 * 1024,
+                 "default block size in bytes for reading log file");
+DSN_TAG_VARIABLE(log_default_block_bytes, FT_MUTABLE);
+DSN_DEFINE_validator(log_default_block_bytes,
+                     [](int64_t block_bytes) -> bool { return block_bytes > 0; });
+
+DSN_DEFINE_int64("replication",
+                 log_private_block_bytes,
+                 FLAGS_log_default_block_bytes,
+                 "block size in bytes for reading private log file");
+DSN_TAG_VARIABLE(log_private_block_bytes, FT_MUTABLE);
+DSN_DEFINE_validator(log_private_block_bytes,
+                     [](int64_t block_bytes) -> bool { return block_bytes > 0; });
+
+DSN_DEFINE_int64("replication",
+                 log_shared_block_bytes,
+                 FLAGS_log_default_block_bytes,
+                 "block size in bytes for reading shared log file");
+DSN_TAG_VARIABLE(log_shared_block_bytes, FT_MUTABLE);
+DSN_DEFINE_validator(log_shared_block_bytes,
+                     [](int64_t block_bytes) -> bool { return block_bytes > 0; });
+
+mutation_log_shared::mutation_log_shared(const std::string &dir,
+                                         int32_t max_log_file_mb,
+                                         bool force_flush,
+                                         perf_counter_wrapper *write_size_counter)
+    : mutation_log(dir,
+                   max_log_file_mb,
+                   dsn::gpid(),
+                   nullptr,
+                   static_cast<size_t>(FLAGS_log_shared_block_bytes)),
+      _is_writing(false),
+      _force_flush(force_flush),
+      _write_size_counter(write_size_counter)
+{
+}
+
 ::dsn::task_ptr mutation_log_shared::append(mutation_ptr &mu,
                                             dsn::task_code callback_code,
                                             dsn::task_tracker *tracker,
@@ -198,9 +237,9 @@ mutation_log_private::mutation_log_private(const std::string &dir,
                                            replica *r,
                                            uint32_t batch_buffer_bytes,
                                            uint32_t batch_buffer_max_count,
-                                           uint64_t batch_buffer_flush_interval_ms,
-                                           size_t block_bytes)
-    : mutation_log(dir, max_log_file_mb, gpid, r, block_bytes),
+                                           uint64_t batch_buffer_flush_interval_ms)
+    : mutation_log(
+          dir, max_log_file_mb, gpid, r, static_cast<size_t>(FLAGS_log_private_block_bytes)),
       replica_base(r),
       _batch_buffer_bytes(batch_buffer_bytes),
       _batch_buffer_max_count(batch_buffer_max_count),
@@ -447,8 +486,11 @@ void mutation_log_private::commit_pending_mutations(log_file_ptr &lf,
 
 ///////////////////////////////////////////////////////////////
 
-mutation_log::mutation_log(
-    const std::string &dir, int32_t max_log_file_mb, gpid gpid, replica *r, size_t block_bytes)
+mutation_log::mutation_log(const std::string &dir,
+                           int32_t max_log_file_mb,
+                           gpid gpid,
+                           replica *r,
+                           const dsn::optional<size_t> &block_bytes)
     : _block_bytes(block_bytes)
 {
     _dir = dir;
@@ -716,8 +758,8 @@ error_code mutation_log::create_new_log_file()
 {
     // create file
     uint64_t start = dsn_now_ns();
-    log_file_ptr logf = log_file::create_write(
-        _dir.c_str(), _last_file_index + 1, _global_end_offset, _block_bytes);
+    log_file_ptr logf =
+        log_file::create_write(_dir.c_str(), _last_file_index + 1, _global_end_offset);
     if (logf == nullptr) {
         derror("cannot create log file with index %d", _last_file_index + 1);
         return ERR_FILE_OPERATION_FAILED;

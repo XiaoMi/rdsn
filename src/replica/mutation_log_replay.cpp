@@ -115,7 +115,7 @@ namespace replication {
 /*static*/ error_code mutation_log::replay(std::vector<std::string> &log_files,
                                            replay_callback callback,
                                            /*out*/ int64_t &end_offset,
-                                           size_t block_bytes)
+                                           const dsn::optional<size_t> &block_bytes)
 {
     std::map<int, log_file_ptr> logs;
     for (auto &fpath : log_files) {

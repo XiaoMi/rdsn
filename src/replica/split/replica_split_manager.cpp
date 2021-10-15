@@ -26,6 +26,8 @@
 namespace dsn {
 namespace replication {
 
+DSN_DECLARE_int64(log_private_block_bytes);
+
 replica_split_manager::replica_split_manager(replica *r)
     : replica_base(r), _replica(r), _stub(r->get_replica_stub())
 {
@@ -423,7 +425,8 @@ replica_split_manager::child_apply_private_logs(std::vector<std::string> plog_fi
                                   plist.prepare(mu, partition_status::PS_SECONDARY);
                                   return true;
                               },
-                              offset);
+                              offset,
+                              static_cast<size_t>(FLAGS_log_private_block_bytes));
     if (ec != ERR_OK) {
         derror_replica(
             "replay private_log files failed, file count={}, app last_committed_decree={}",

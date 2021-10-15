@@ -33,14 +33,15 @@ namespace dsn {
 namespace replication {
 namespace log_utils {
 
-/*extern*/ error_s open_read(string_view path, /*out*/ log_file_ptr &file)
+/*extern*/ error_s
+open_read(string_view path, /*out*/ log_file_ptr &file, const dsn::optional<size_t> &block_bytes)
 {
     FAIL_POINT_INJECT_F("open_read", [](string_view) -> error_s {
         return error_s::make(ERR_FILE_OPERATION_FAILED, "open_read");
     });
 
     error_code ec;
-    file = log_file::open_read(path.data(), ec);
+    file = log_file::open_read(path.data(), ec, block_bytes);
     if (ec != ERR_OK) {
         return FMT_ERR(ec, "failed to open the log file ({})", path);
     }

@@ -27,6 +27,8 @@
 namespace dsn {
 namespace replication {
 
+DSN_DECLARE_int64(log_private_block_bytes);
+
 /*static*/ constexpr int load_from_private_log::MAX_ALLOWED_BLOCK_REPEATS;
 /*static*/ constexpr int load_from_private_log::MAX_ALLOWED_FILE_REPEATS;
 
@@ -50,7 +52,8 @@ bool load_from_private_log::switch_to_next_log_file()
     auto next_file_it = file_map.find(_current->index() + 1);
     if (next_file_it != file_map.end()) {
         log_file_ptr file;
-        error_s es = log_utils::open_read(next_file_it->second->path(), file);
+        error_s es = log_utils::open_read(
+            next_file_it->second->path(), file, static_cast<size_t>(FLAGS_log_private_block_bytes));
         if (!es.is_ok()) {
             derror_replica("{}", es);
             _current = nullptr;
@@ -118,7 +121,8 @@ void load_from_private_log::find_log_file_to_start()
     std::map<int, log_file_ptr> new_file_map;
     for (const auto &pr : file_map) {
         log_file_ptr file;
-        error_s es = log_utils::open_read(pr.second->path(), file);
+        error_s es = log_utils::open_read(
+            pr.second->path(), file, static_cast<size_t>(FLAGS_log_private_block_bytes));
         if (!es.is_ok()) {
             derror_replica("{}", es);
             return;

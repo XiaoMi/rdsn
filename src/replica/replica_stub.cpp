@@ -518,8 +518,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     _log = new mutation_log_shared(_options.slog_dir,
                                    _options.log_shared_file_size_mb,
                                    _options.log_shared_force_flush,
-                                   &_counter_shared_log_recent_write_size,
-                                   _options.log_shared_block_bytes);
+                                   &_counter_shared_log_recent_write_size);
     ddebug("slog_dir = %s", _options.slog_dir.c_str());
 
     // init rps
@@ -647,8 +646,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
         _log = new mutation_log_shared(_options.slog_dir,
                                        _options.log_shared_file_size_mb,
                                        _options.log_shared_force_flush,
-                                       &_counter_shared_log_recent_write_size,
-                                       _options.log_shared_block_bytes);
+                                       &_counter_shared_log_recent_write_size);
         auto lerr = _log->open(nullptr, [this](error_code err) { this->handle_log_failure(err); });
         dassert(lerr == ERR_OK, "restart log service must succeed");
     }

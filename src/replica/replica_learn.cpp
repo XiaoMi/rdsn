@@ -46,6 +46,8 @@
 namespace dsn {
 namespace replication {
 
+DSN_DECLARE_int64(log_private_block_bytes);
+
 void replica::init_learn(uint64_t signature)
 {
     _checker.only_one_thread_access();
@@ -1592,7 +1594,7 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
                                    return true;
                                },
                                offset,
-                               _options->log_private_block_bytes);
+                               static_cast<size_t>(FLAGS_log_private_block_bytes));
 
     // update first_learn_start_decree, the position where the first round of LT_LOG starts from.
     // we use this value to determine whether to learn back from min_confirmed_decree

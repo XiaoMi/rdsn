@@ -115,8 +115,7 @@ public:
                                      this,
                                      _options->log_private_batch_buffer_kb * 1024,
                                      _options->log_private_batch_buffer_count,
-                                     _options->log_private_batch_buffer_flush_interval_ms,
-                                     _options->log_private_block_bytes);
+                                     _options->log_private_batch_buffer_flush_interval_ms);
 
         error_code err =
             _private_log->open(nullptr, [this](error_code err) { dcheck_eq_replica(err, ERR_OK); });

@@ -28,6 +28,7 @@
 
 #include <dsn/utility/errors.h>
 #include <dsn/utility/filesystem.h>
+#include <dsn/utility/optional.h>
 #include <dsn/dist/fmt_logging.h>
 
 #include "mutation_log.h"
@@ -36,7 +37,9 @@ namespace dsn {
 namespace replication {
 namespace log_utils {
 
-extern error_s open_read(string_view path, /*out*/ log_file_ptr &file);
+extern error_s open_read(string_view path,
+                         /*out*/ log_file_ptr &file,
+                         const dsn::optional<size_t> &block_bytes = dsn::none);
 
 extern error_s list_all_files(const std::string &dir, /*out*/ std::vector<std::string> &files);
 

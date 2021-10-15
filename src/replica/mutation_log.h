@@ -101,7 +101,7 @@ public:
                  int32_t max_log_file_mb,
                  gpid gpid,
                  replica *r = nullptr,
-                 size_t block_bytes = 1024 * 1024);
+                 const dsn::optional<size_t> &block_bytes = dsn::none);
 
     virtual ~mutation_log() = default;
 
@@ -126,7 +126,7 @@ public:
     static error_code replay(std::vector<std::string> &log_files,
                              replay_callback callback,
                              /*out*/ int64_t &end_offset,
-                             size_t block_bytes = 1024 * 1024);
+                             const dsn::optional<size_t> &block_bytes = dsn::none);
 
     // Reads a series of mutations from the log file (from `start_offset` of `log`),
     // and iterates over the mutations, executing the provided `callback` for each
@@ -341,7 +341,7 @@ protected:
     int64_t _max_log_file_size_in_bytes;
     int64_t _min_log_file_size_in_bytes;
     bool _force_flush;
-    const size_t _block_bytes;
+    const dsn::optional<size_t> _block_bytes;
 
     dsn::task_tracker _tracker;
 
@@ -388,14 +388,7 @@ public:
     mutation_log_shared(const std::string &dir,
                         int32_t max_log_file_mb,
                         bool force_flush,
-                        perf_counter_wrapper *write_size_counter = nullptr,
-                        size_t block_bytes = 1024 * 1024)
-        : mutation_log(dir, max_log_file_mb, dsn::gpid(), nullptr, block_bytes),
-          _is_writing(false),
-          _force_flush(force_flush),
-          _write_size_counter(write_size_counter)
-    {
-    }
+                        perf_counter_wrapper *write_size_counter = nullptr);
 
     virtual ~mutation_log_shared() override
     {
@@ -452,8 +445,7 @@ public:
                          replica *r,
                          uint32_t batch_buffer_bytes,
                          uint32_t batch_buffer_max_count,
-                         uint64_t batch_buffer_flush_interval_ms,
-                         size_t block_bytes = 1024 * 1024);
+                         uint64_t batch_buffer_flush_interval_ms);
 
     ~mutation_log_private() override
     {

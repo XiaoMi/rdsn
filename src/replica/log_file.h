@@ -29,6 +29,7 @@
 #include "log_block.h"
 
 #include <dsn/tool-api/zlocks.h>
+#include <dsn/utility/optional.h>
 
 namespace dsn {
 namespace replication {
@@ -91,18 +92,16 @@ public:
     // returns:
     //   - non-null if open succeed
     //   - null if open failed
-    static log_file_ptr
-    open_read(const char *path, /*out*/ error_code &err, size_t block_bytes = 1024 * 1024);
+    static log_file_ptr open_read(const char *path,
+                                  /*out*/ error_code &err,
+                                  const dsn::optional<size_t> &block_bytes = dsn::none);
 
     // open the log file for write
     // the file path is '{dir}/log.{index}.{start_offset}'
     // returns:
     //   - non-null if open succeed
     //   - null if open failed
-    static log_file_ptr create_write(const char *dir,
-                                     int index,
-                                     int64_t start_offset,
-                                     size_t block_bytes = 1024 * 1024);
+    static log_file_ptr create_write(const char *dir, int index, int64_t start_offset);
 
     // close the log file
     void close();
@@ -189,13 +188,13 @@ public:
     const disk_file *file_handle() const { return _handle; }
 
 private:
-    // make private, user should create log_file through open_read() or open_write()
+    // make private, user should create log_file through open_read() or create_write()
     log_file(const char *path,
              disk_file *handle,
              int index,
              int64_t start_offset,
              bool is_read,
-             size_t block_bytes = 1024 * 1024);
+             const dsn::optional<size_t> &block_bytes = dsn::none);
 
 private:
     friend class mock_log_file;

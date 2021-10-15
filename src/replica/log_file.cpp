@@ -34,9 +34,13 @@
 namespace dsn {
 namespace replication {
 
+DSN_DECLARE_int64(log_default_block_bytes);
+
 log_file::~log_file() { close(); }
-/*static */ log_file_ptr
-log_file::open_read(const char *path, /*out*/ error_code &err, size_t block_bytes)
+
+/*static */ log_file_ptr log_file::open_read(const char *path,
+                                             /*out*/ error_code &err,
+                                             const dsn::optional<size_t> &block_bytes)
 {
     char splitters[] = {'\\', '/', 0};
     std::string name = utils::get_last_component(std::string(path), splitters);
@@ -126,8 +130,7 @@ log_file::open_read(const char *path, /*out*/ error_code &err, size_t block_byte
     return lf;
 }
 
-/*static*/ log_file_ptr
-log_file::create_write(const char *dir, int index, int64_t start_offset, size_t block_bytes)
+/*static*/ log_file_ptr log_file::create_write(const char *dir, int index, int64_t start_offset)
 {
     char path[512];
     sprintf(path, "%s/log.%d.%" PRId64, dir, index, start_offset);
@@ -143,7 +146,7 @@ log_file::create_write(const char *dir, int index, int64_t start_offset, size_t 
         return nullptr;
     }
 
-    return new log_file(path, hfile, index, start_offset, false, block_bytes);
+    return new log_file(path, hfile, index, start_offset, false);
 }
 
 log_file::log_file(const char *path,
@@ -151,8 +154,9 @@ log_file::log_file(const char *path,
                    int index,
                    int64_t start_offset,
                    bool is_read,
-                   size_t block_bytes)
-    : _is_read(is_read), _block_bytes(block_bytes)
+                   const dsn::optional<size_t> &block_bytes)
+    : _is_read(is_read),
+      _block_bytes(block_bytes.unwrap_or(static_cast<size_t>(FLAGS_log_default_block_bytes)))
 {
     _start_offset = start_offset;
     _end_offset = start_offset;
