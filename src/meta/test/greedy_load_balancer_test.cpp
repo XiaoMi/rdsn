@@ -273,9 +273,16 @@ TEST(greedy_load_balancer, apply_move)
     minfo.source_disk_tag = disk_tag;
     rpc_address target_node(2, 10086);
     minfo.target_node = target_node;
-    minfo.type = greedy_load_balancer::balance_type::move_primary;
+    minfo.type = balance_type::move_primary;
+
+    node_mapper nodes;
+    app_mapper apps;
+    meta_view view;
+    view.apps = &apps;
+    view.nodes = &nodes;
 
     greedy_load_balancer balancer(nullptr);
+    balancer.t_global_view = &view;
     greedy_load_balancer::cluster_migration_info cluster_info;
     cluster_info.type = cluster_balance_type::COPY_SECONDARY;
     partition_set selected_pids;
