@@ -17,7 +17,6 @@
 
 #include <gtest/gtest.h>
 #include <dsn/utility/fail_point.h>
-#include <dsn/dist/fmt_logging.h>
 #include "meta/greedy_load_balancer.h"
 
 namespace dsn {
