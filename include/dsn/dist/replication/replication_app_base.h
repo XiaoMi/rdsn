@@ -261,6 +261,7 @@ public:
     const std::string &learn_dir() const { return _dir_learn; }
     const std::string &backup_dir() const { return _dir_backup; }
     const std::string &bulk_load_dir() const { return _dir_bulk_load; }
+    const app_info *get_app_info() const;
     ::dsn::replication::decree last_committed_decree() const
     {
         return _last_committed_decree.load();
@@ -294,6 +295,8 @@ protected:
     replica_init_info _info;
 
     explicit replication_app_base(::dsn::replication::replica *replica);
+
+    perf_counter_wrapper* get_counter_recent_read_throttling_reject_count();
 };
 
 } // namespace replication

@@ -48,6 +48,7 @@
 
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/dist/replication/replica_base.h>
+#include <dsn/dist/replication/replication_app_base.h>
 
 #include "common/replication_common.h"
 #include "mutation.h"
@@ -62,7 +63,6 @@ class access_controller;
 } // namespace security
 namespace replication {
 
-class replication_app_base;
 class replica_stub;
 class replica_duplicator_manager;
 class replica_backup_manager;
@@ -467,6 +467,7 @@ private:
     friend class replica_disk_migrator;
     friend class replica_disk_test;
     friend class replica_disk_migrate_test;
+    friend perf_counter_wrapper* replication_app_base::get_counter_recent_read_throttling_reject_count();
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;

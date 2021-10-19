@@ -1,0 +1,148 @@
+#include <dsn/utils/token_bucket_throttling_controller.h>
+
+namespace dsn {
+namespace utils {
+
+token_bucket_throttling_controller::token_bucket_throttling_controller()
+    : _enabled(false), _partition_count(0), _rate(0), _burstsize(0)
+{
+    _token_bucket = std::make_unique<DynamicTokenBucket>();
+}
+
+token_bucket_throttling_controller::token_bucket_throttling_controller(
+    dsn::perf_counter_wrapper *reject_task_counter)
+    : _enabled(false), _partition_count(0), _rate(0), _burstsize(0)
+    {
+        _token_bucket = std::make_unique<DynamicTokenBucket>();
+
+        dassert(reject_task_counter, "reject_task_counter == nullptr");
+        _reject_task_counter = reject_task_counter;
+    }
+
+    void token_bucket_throttling_controller::only_count(int32_t request_units)
+    {
+        if (!_enabled) {
+            return ;
+        }
+         _token_bucket->consumeWithBorrowNonBlocking((double)request_units, _rate, _burstsize);
+    }
+
+    bool token_bucket_throttling_controller::control(int32_t request_units = 1)
+    {
+        if (!_enabled) {
+            return true;
+        }
+        auto res =
+            _token_bucket->consumeWithBorrowNonBlocking((double)request_units, _rate, _burstsize);
+
+        if (res.get_value_or(0) > 0) {
+            if (_reject_task_counter){
+                _reject_task_counter->operator->()->increment();
+            }
+            return false;
+        }
+        return true;
+    }
+
+    void token_bucket_throttling_controller::reset(bool &changed, std::string &old_env_value)
+    {
+        if (_enabled) {
+            changed = true;
+            old_env_value = _env_value;
+            _enabled = false;
+            _env_value.clear();
+            _partition_count = 0;
+            _rate = 0;
+            _burstsize = 0;
+        } else {
+            changed = false;
+        }
+    }
+
+    // return the current env value.
+    const std::string &token_bucket_throttling_controller::env_value() const { return _env_value; }
+
+    bool token_bucket_throttling_controller::parse_from_env(const std::string &env_value,
+                                                            int partition_count,
+                                                            std::string &parse_error,
+                                                            bool &changed,
+                                                            std::string &old_env_value)
+    {
+        changed = false;
+        if (_enabled && env_value == _env_value && partition_count == _partition_count)
+            return true;
+
+        int64_t reject_size_value;
+        if (!transform_env_string(env_value, reject_size_value, parse_error)) {
+            return false;
+        }
+
+        changed = true;
+        old_env_value = _env_value;
+        _enabled = true;
+        _env_value = env_value;
+        _partition_count = partition_count;
+        _rate = reject_size_value / (partition_count > 0 ? partition_count : 1);
+        _burstsize = _rate;
+        return true;
+    }
+
+    bool token_bucket_throttling_controller::string_to_value(std::string str, int64_t &value)
+    {
+        int64_t unit_multiplier = 1;
+        if (*str.rbegin() == 'M') {
+            unit_multiplier = 1000 * 1000;
+        } else if (*str.rbegin() == 'K') {
+            unit_multiplier = 1000;
+        }
+        if (unit_multiplier != 1) {
+            str.pop_back();
+        }
+        if (!buf2int64(str, value) || value < 0) {
+            return false;
+        }
+        value *= unit_multiplier;
+        return true;
+    }
+
+    bool token_bucket_throttling_controller::validate(const std::string &env,
+                                                      std::string &hint_message)
+    {
+        int64_t temp;
+        bool validated = transform_env_string(env, temp, hint_message);
+        return validated;
+    };
+
+    bool token_bucket_throttling_controller::transform_env_string(const std::string &env,
+                                                                  int64_t &reject_size_value,
+                                                                  std::string &hint_message)
+    {
+
+        if (buf2int64(env, reject_size_value) && reject_size_value >= 0) {
+            return true;
+        }
+
+        // format like "200K"
+        if (string_to_value(env, reject_size_value)) {
+            return true;
+        }
+
+        // format like "20000*delay*100"
+        if (env.find("delay") != -1 && env.find("reject") == -1) {
+            reject_size_value = INT_MAX;
+            return true;
+        }
+
+        // format like "20000*delay*100,20000*reject*100"
+        auto comma_index = env.find(",");
+        auto star_index = env.find("*reject", comma_index + 1);
+        if (star_index < 0) {
+            return false;
+        }
+        auto reject_size = env.substr(comma_index + 1, star_index - comma_index - 1);
+
+        return string_to_value(reject_size, reject_size_value);
+    }
+
+    } // namespace utils
+    } // namespace dsn
