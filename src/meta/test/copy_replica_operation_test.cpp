@@ -211,6 +211,13 @@ TEST(copy_secondary_operation, misc)
     op.init_ordered_address_ids();
 
     /**
+     * Test copy_secondary_operation::get_partition_count
+     */
+    ASSERT_EQ(op.get_partition_count(ns1), 2);
+    ASSERT_EQ(op.get_partition_count(ns2), 2);
+    ASSERT_EQ(op.get_partition_count(ns3), 0);
+
+    /**
      * Test copy_secondary_operation::can_continue
      */
     auto res = op.can_continue();
