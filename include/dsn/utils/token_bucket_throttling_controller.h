@@ -44,12 +44,14 @@ private:
     int32_t _partition_count = 0;
     double _rate;
     double _burstsize;
-    dsn::perf_counter_wrapper* _reject_task_counter;
+
+    bool is_get_perfcounter = false;
+    dsn::perf_counter_wrapper *_reject_task_counter;
 
 public:
     token_bucket_throttling_controller();
 
-    token_bucket_throttling_controller(dsn::perf_counter_wrapper* reject_task_counter);
+    token_bucket_throttling_controller(dsn::perf_counter_wrapper *reject_task_counter);
 
     bool control(int32_t request_units);
 
@@ -65,13 +67,15 @@ public:
                         bool &changed,
                         std::string &old_env_value);
 
-    static bool string_to_value(std::string str,int64_t &value);
+    static bool string_to_value(std::string str, int64_t &value);
 
     static bool validate(const std::string &env, std::string &hint_message);
 
-    static bool transform_env_string(const std::string &env, int64_t &reject_size_value,std::string &hint_message);
-
+    static bool transform_env_string(const std::string &env,
+                                     int64_t &reject_size_value,
+                                     bool &enabled,
+                                     std::string &hint_message);
 };
 
-} // namespace replication
+} // namespace utils
 } // namespace dsn

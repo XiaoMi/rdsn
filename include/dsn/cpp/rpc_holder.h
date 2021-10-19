@@ -114,7 +114,7 @@ public:
         return _i->thrift_response;
     }
 
-    dsn::error_code  &error() const
+    dsn::error_code &error() const
     {
         dassert(_i, "rpc_holder is uninitialized");
         return _i->rpc_error;

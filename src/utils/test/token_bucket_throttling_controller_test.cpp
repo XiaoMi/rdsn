@@ -33,49 +33,71 @@ public:
         bool env_changed = false;
         std::string old_value;
 
+        int partition_count = 4;
+        std::string old_env = "";
+        std::string env = "20000*delay*100";
         // token_bucket_throttling_controller doesn't support delay only
-        ASSERT_TRUE(cntl.parse_from_env("20000*delay*100", 4, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(cntl._env_value, "20000*delay*100");
+        ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
+        ASSERT_EQ(cntl._env_value, env);
         ASSERT_EQ(cntl._partition_count, 4);
-        ASSERT_EQ(cntl._rate, INT_MAX);
-        ASSERT_EQ(cntl._burstsize, INT_MAX);
+        ASSERT_EQ(cntl._burstsize, 0);
+        ASSERT_EQ(cntl._rate, 0);
+        ASSERT_EQ(cntl._enabled, false);
         ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(old_value, "");
+        ASSERT_EQ(old_value, old_env);
         ASSERT_EQ(parse_err, "");
 
-        ASSERT_TRUE(cntl.parse_from_env("200K", 4, parse_err, env_changed, old_value));
+        old_env = env;
+        env = "200K";
+        ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
         ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(cntl._env_value, "200K");
+        ASSERT_EQ(cntl._env_value, env);
         ASSERT_EQ(cntl._partition_count, 4);
-        ASSERT_EQ(cntl._rate, 200000);
-        ASSERT_EQ(cntl._burstsize, 200000);
+        ASSERT_EQ(cntl._rate, 200000 / partition_count);
+        ASSERT_EQ(cntl._burstsize, 200000 / partition_count);
         ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(old_value, "20000*delay*100");
+        ASSERT_EQ(old_value, old_env);
         ASSERT_EQ(parse_err, "");
 
-        ASSERT_TRUE(cntl.parse_from_env(
-            "20000*delay*100,20000*reject*100", 4, parse_err, env_changed, old_value));
+        old_env = env;
+        env = "20000*delay*100,20000*reject*100";
+        ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
         ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(cntl._env_value, "20000*delay*100,20000*reject*100");
+        ASSERT_EQ(cntl._env_value, env);
         ASSERT_EQ(cntl._partition_count, 4);
-        ASSERT_EQ(cntl._rate, 20000);
-        ASSERT_EQ(cntl._burstsize, 20000);
+        ASSERT_EQ(cntl._rate, 20000 / partition_count);
+        ASSERT_EQ(cntl._burstsize, 20000 / partition_count);
         ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(old_value, "200K");
+        ASSERT_EQ(old_value, old_env);
+        ASSERT_EQ(parse_err, "");
+
+        old_env = env;
+        env = "20000*reject*100";
+        ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
+        ASSERT_EQ(cntl._enabled, true);
+        ASSERT_EQ(cntl._env_value, env);
+        ASSERT_EQ(cntl._partition_count, 4);
+        ASSERT_EQ(cntl._rate, 20000 / partition_count);
+        ASSERT_EQ(cntl._burstsize, 20000 / partition_count);
+        ASSERT_EQ(env_changed, true);
+        ASSERT_EQ(old_value, old_env);
         ASSERT_EQ(parse_err, "");
 
         // invalid argument
-
-        ASSERT_FALSE(cntl.parse_from_env("*delay*100", 4, parse_err, env_changed, old_value));
+        old_env = env;
+        env = "*deldday*100";
+        ASSERT_FALSE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
         ASSERT_EQ(env_changed, false);
-        ASSERT_NE(parse_err, "");
+        ASSERT_EQ(parse_err, "wrong format, you can set like 20000 or 20K");
         ASSERT_EQ(cntl._enabled, true); // ensure invalid env won't stop throttling
+        ASSERT_EQ(old_value, old_env);
 
         ASSERT_FALSE(cntl.parse_from_env("", 4, parse_err, env_changed, old_value));
         ASSERT_EQ(env_changed, false);
         ASSERT_NE(parse_err, "");
+        ASSERT_EQ(parse_err, "wrong format, you can set like 20000 or 20K");
         ASSERT_EQ(cntl._enabled, true);
+        ASSERT_EQ(old_value, old_env);
     }
 
     void throttle_test()
