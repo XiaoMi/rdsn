@@ -228,7 +228,7 @@ TEST(copy_secondary_operation, misc)
     nodes[addr3].remove_partition(gpid(app_id, 2), false);
 
     /**
-     * Test copy_secondary_operation::can_continue
+     * Test copy_secondary_operation::can_select
      */
     nodes[addr1].put_partition(gpid(app_id, 3), true);
     op.init_ordered_address_ids();
