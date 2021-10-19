@@ -493,7 +493,6 @@ private:
 
     int _replicas_low;
 
-    FRIEND_TEST(copy_secondary_operation, only_copy_primary);
     FRIEND_TEST(copy_secondary_operation, misc);
 };
 
