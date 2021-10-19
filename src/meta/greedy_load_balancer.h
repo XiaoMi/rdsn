@@ -441,7 +441,7 @@ protected:
     std::unordered_map<dsn::rpc_address, disk_load> _node_loads;
     std::vector<int> _partition_counts;
 
-    FRIEND_TEST(copy_replica_operation, misc);
+    FRIEND_TEST(copy_primary_operation, misc);
     FRIEND_TEST(copy_replica_operation, get_all_partitions);
 };
 
@@ -468,9 +468,33 @@ private:
     bool _have_lower_than_average;
     int _replicas_low;
 
-    FRIEND_TEST(copy_replica_operation, misc);
+    FRIEND_TEST(copy_primary_operation, misc);
     FRIEND_TEST(copy_primary_operation, can_select);
     FRIEND_TEST(copy_primary_operation, only_copy_primary);
+};
+
+class copy_secondary_operation : public copy_replica_operation
+{
+public:
+    copy_secondary_operation(const std::shared_ptr<app_state> app,
+                             const app_mapper &apps,
+                             node_mapper &nodes,
+                             const std::vector<dsn::rpc_address> &address_vec,
+                             const std::unordered_map<dsn::rpc_address, int> &address_id,
+                             int replicas_low);
+    ~copy_secondary_operation() = default;
+
+private:
+    bool can_continue();
+    int get_partition_count(const node_state &ns) const;
+    bool can_select(gpid pid, migration_list *result);
+    enum balance_type get_balance_type();
+    bool only_copy_primary() { return false; }
+
+    int _replicas_low;
+
+    FRIEND_TEST(copy_secondary_operation, only_copy_primary);
+    FRIEND_TEST(copy_secondary_operation, misc);
 };
 
 inline configuration_proposal_action
