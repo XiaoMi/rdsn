@@ -251,16 +251,15 @@ TEST(copy_secondary_operation, misc)
     op.init_ordered_address_ids();
     res = op.can_select(secondary_gpid, &list);
     ASSERT_TRUE(res);
-}
 
-TEST(copy_secondary_operation, only_copy_primary)
-{
-    app_mapper apps;
-    node_mapper nodes;
-    std::vector<dsn::rpc_address> address_vec;
-    std::unordered_map<dsn::rpc_address, int> address_id;
-    copy_secondary_operation op(nullptr, apps, nodes, address_vec, address_id, 0);
+    /**
+     * Test copy_secondary_operation::get_balance_type
+     */
+    ASSERT_EQ(op.get_balance_type(), balance_type::copy_secondary);
 
+    /**
+     * Test copy_secondary_operation::only_copy_primary
+     */
     ASSERT_FALSE(op.only_copy_primary());
 }
 } // namespace replication
