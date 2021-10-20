@@ -22,7 +22,7 @@
 namespace dsn {
 namespace replication {
 
-TEST(copy_replica_operation, misc)
+TEST(copy_primary_operation, misc)
 {
     int32_t app_id = 1;
     dsn::app_info info;
@@ -174,6 +174,100 @@ TEST(copy_primary_operation, only_copy_primary)
     copy_primary_operation op(nullptr, apps, nodes, address_vec, address_id, false, false);
 
     ASSERT_TRUE(op.only_copy_primary());
+}
+
+TEST(copy_secondary_operation, misc)
+{
+    int32_t app_id = 1;
+    dsn::app_info info;
+    info.app_id = app_id;
+    info.partition_count = 4;
+    std::shared_ptr<app_state> app = app_state::create(info);
+    app_mapper apps;
+    apps[app_id] = app;
+
+    auto addr1 = rpc_address(1, 1);
+    auto addr2 = rpc_address(1, 2);
+    auto addr3 = rpc_address(1, 3);
+
+    node_mapper nodes;
+    node_state ns1;
+    ns1.put_partition(gpid(app_id, 2), true);
+    ns1.put_partition(gpid(app_id, 0), false);
+    nodes[addr1] = ns1;
+    node_state ns2;
+    ns2.put_partition(gpid(app_id, 0), true);
+    ns2.put_partition(gpid(app_id, 1), true);
+    nodes[addr2] = ns2;
+    node_state ns3;
+    nodes[addr3] = ns3;
+
+    std::vector<dsn::rpc_address> address_vec{addr1, addr2, addr3};
+    std::unordered_map<dsn::rpc_address, int> address_id;
+    address_id[addr1] = 0;
+    address_id[addr2] = 1;
+    address_id[addr3] = 2;
+    copy_secondary_operation op(app, apps, nodes, address_vec, address_id, 0);
+    op.init_ordered_address_ids();
+
+    /**
+     * Test copy_secondary_operation::get_partition_count
+     */
+    ASSERT_EQ(op.get_partition_count(ns1), 2);
+    ASSERT_EQ(op.get_partition_count(ns2), 2);
+    ASSERT_EQ(op.get_partition_count(ns3), 0);
+
+    /**
+     * Test copy_secondary_operation::can_continue
+     */
+    auto res = op.can_continue();
+    ASSERT_TRUE(res);
+
+    op._replicas_low = 100;
+    res = op.can_continue();
+    ASSERT_FALSE(res);
+    op._replicas_low = 0;
+
+    nodes[addr3].put_partition(gpid(app_id, 2), false);
+    op.init_ordered_address_ids();
+    res = op.can_continue();
+    ASSERT_FALSE(res);
+    nodes[addr3].remove_partition(gpid(app_id, 2), false);
+
+    /**
+     * Test copy_secondary_operation::can_select
+     */
+    nodes[addr1].put_partition(gpid(app_id, 3), true);
+    op.init_ordered_address_ids();
+    migration_list list;
+    res = op.can_select(gpid(app_id, 3), &list);
+    ASSERT_FALSE(res);
+
+    auto secondary_gpid = gpid(app_id, 0);
+    list[secondary_gpid] = nullptr;
+    res = op.can_select(secondary_gpid, &list);
+    ASSERT_FALSE(res);
+    list.clear();
+
+    nodes[addr3].put_partition(secondary_gpid, true);
+    op.init_ordered_address_ids();
+    res = op.can_select(secondary_gpid, &list);
+    ASSERT_FALSE(res);
+
+    nodes[addr3].remove_partition(secondary_gpid, false);
+    op.init_ordered_address_ids();
+    res = op.can_select(secondary_gpid, &list);
+    ASSERT_TRUE(res);
+
+    /**
+     * Test copy_secondary_operation::get_balance_type
+     */
+    ASSERT_EQ(op.get_balance_type(), balance_type::copy_secondary);
+
+    /**
+     * Test copy_secondary_operation::only_copy_primary
+     */
+    ASSERT_FALSE(op.only_copy_primary());
 }
 } // namespace replication
 } // namespace dsn
