@@ -295,7 +295,7 @@ protected:
 
     explicit replication_app_base(::dsn::replication::replica *replica);
 
-    perf_counter_wrapper *get_counter_recent_read_throttling_reject_count();
+    dsn::perf_counter *get_counter_recent_read_throttling_reject_count();
 };
 
 } // namespace replication

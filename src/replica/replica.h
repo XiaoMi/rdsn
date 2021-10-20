@@ -467,7 +467,7 @@ private:
     friend class replica_disk_migrator;
     friend class replica_disk_test;
     friend class replica_disk_migrate_test;
-    friend perf_counter_wrapper *
+    friend  dsn::perf_counter *
     replication_app_base::get_counter_recent_read_throttling_reject_count();
 
     // replica configuration, updated by update_local_configuration ONLY
