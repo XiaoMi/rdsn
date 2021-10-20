@@ -24,18 +24,6 @@ token_bucket_throttling_controller::token_bucket_throttling_controller()
     : _enabled(false), _partition_count(0), _rate(0), _burstsize(0)
 {
     _token_bucket = std::make_unique<DynamicTokenBucket>();
-    is_get_perfcounter = false;
-}
-
-token_bucket_throttling_controller::token_bucket_throttling_controller(
-    dsn::perf_counter_wrapper *reject_task_counter)
-    : _enabled(false), _partition_count(0), _rate(0), _burstsize(0)
-{
-    _token_bucket = std::make_unique<DynamicTokenBucket>();
-
-    dassert(reject_task_counter, "reject_task_counter == nullptr");
-    _reject_task_counter = reject_task_counter;
-    is_get_perfcounter = true;
 }
 
 void token_bucket_throttling_controller::only_count(int32_t request_units)
@@ -55,9 +43,6 @@ bool token_bucket_throttling_controller::control(int32_t request_units = 1)
         _token_bucket->consumeWithBorrowNonBlocking((double)request_units, _rate, _burstsize);
 
     if (res.get_value_or(0) > 0) {
-        if (is_get_perfcounter) {
-            _reject_task_counter->operator->()->increment();
-        }
         return false;
     }
     return true;
