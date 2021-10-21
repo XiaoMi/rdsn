@@ -606,7 +606,6 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
 
 dsn::perf_counter *replication_app_base::get_counter_recent_read_throttling_reject_count()
 {
-    ;
     dassert(_replica->_counter_recent_read_throttling_reject_count.get(),
             "_counter_recent_read_throttling_reject_count is null");
 
