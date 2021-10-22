@@ -16,7 +16,8 @@
 // under the License.
 #pragma once
 
-#include <dsn/dist/block_service.h>
+#include <chrono>
+#include <memory>
 
 namespace folly {
 template <typename Clock>
