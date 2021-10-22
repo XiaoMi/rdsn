@@ -16,6 +16,11 @@
 // under the License.
 
 #include <dsn/utils/token_bucket_throttling_controller.h>
+#include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/strings.h>
+#include <dsn/utility/string_conv.h>
+#include <dsn/c/api_layer1.h>
+#include <dsn/utility/TokenBucket.h>
 
 namespace dsn {
 namespace utils {
@@ -26,15 +31,7 @@ token_bucket_throttling_controller::token_bucket_throttling_controller()
     _token_bucket = std::make_unique<DynamicTokenBucket>();
 }
 
-void token_bucket_throttling_controller::only_count(int32_t request_units)
-{
-    if (!_enabled) {
-        return;
-    }
-    _token_bucket->consumeWithBorrowNonBlocking((double)request_units, _rate, _burstsize);
-}
-
-bool token_bucket_throttling_controller::control(int32_t request_units = 1)
+bool token_bucket_throttling_controller::get_token(int32_t request_units = 1)
 {
     if (!_enabled) {
         return true;
@@ -42,10 +39,7 @@ bool token_bucket_throttling_controller::control(int32_t request_units = 1)
     auto res =
         _token_bucket->consumeWithBorrowNonBlocking((double)request_units, _rate, _burstsize);
 
-    if (res.get_value_or(0) > 0) {
-        return false;
-    }
-    return true;
+    return (res.get_value_or(0) == 0);
 }
 
 void token_bucket_throttling_controller::reset(bool &changed, std::string &old_env_value)

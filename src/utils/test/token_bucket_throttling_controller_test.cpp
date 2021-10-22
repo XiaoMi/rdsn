@@ -72,6 +72,18 @@ public:
         ASSERT_EQ(parse_err, "");
 
         old_env = env;
+        env = "20K*delay*100,20K*reject*100";
+        ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
+        ASSERT_EQ(cntl._enabled, true);
+        ASSERT_EQ(cntl._env_value, env);
+        ASSERT_EQ(cntl._partition_count, 4);
+        ASSERT_EQ(cntl._rate, 20000 / partition_count);
+        ASSERT_EQ(cntl._burstsize, 20000 / partition_count);
+        ASSERT_EQ(env_changed, true);
+        ASSERT_EQ(old_value, old_env);
+        ASSERT_EQ(parse_err, "");
+
+        old_env = env;
         env = "20000*reject*100";
         ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
         ASSERT_EQ(cntl._enabled, true);
@@ -117,7 +129,7 @@ public:
         for (int i = 0; i < 100000; i++) {
             token_bucket->consumeWithBorrowAndWait(
                 1, throttle_limit / partition_count * 0.8, throttle_limit / partition_count * 1.0);
-            if (!cntl->control(1)) {
+            if (!cntl->get_token(1)) {
                 fail_count++;
             }
         }
@@ -129,7 +141,7 @@ public:
         for (int i = 0; i < 100000; i++) {
             token_bucket->consumeWithBorrowAndWait(
                 1, throttle_limit / partition_count * 1.2, throttle_limit / partition_count * 1.5);
-            if (!cntl->control(1)) {
+            if (!cntl->get_token(1)) {
                 fail_count++;
             }
         }
@@ -150,7 +162,7 @@ public:
                                                        throttle_limit / partition_count * 0.2,
                                                        throttle_limit / partition_count * 0.3);
             }
-            if (!cntl->control(1)) {
+            if (!cntl->get_token(1)) {
                 fail_count++;
             }
         }

@@ -17,14 +17,7 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <string>
 #include <dsn/utility/TokenBucket.h>
-#include <dsn/dist/fmt_logging.h>
-#include <dsn/utility/strings.h>
-#include <dsn/utility/string_conv.h>
-#include <dsn/c/api_layer1.h>
-#include <dsn/perf_counter/perf_counter_wrapper.h>
 
 namespace dsn {
 namespace utils {
@@ -45,22 +38,40 @@ private:
     double _rate;
     double _burstsize;
 
-    dsn::perf_counter_wrapper *_reject_task_counter;
-
 public:
     token_bucket_throttling_controller();
 
-    // Non-blocking, if exceed limits, return false.
-    bool control(int32_t request_units);
+    // return ture means you can get token
+    // return false means the bucket is already empty, but the token is borrowed from future.
+    // non-blocking
+    bool get_token(int32_t request_units);
 
-    // Non-blocking, only count for the tokenbucket, never return err
-    void only_count(int32_t request_units);
-
+    // reset to no throttling.
     void reset(bool &changed, std::string &old_env_value);
 
     // return the current env value.
     const std::string &env_value() const;
 
+    // Configures throttling strategy dynamically from app-envs.
+    //
+    // Support two style format:
+    // 1. style: "20000*delay*100,20000*reject*100"
+    //      example: 20000*delay*100,20000*reject*100
+    //      result: reject 20000 request_units, but never delay
+    //      example: 20000*delay*100
+    //      result: never result or delay
+    //      example: 20000*reject*100
+    //      result: reject 20000 request_units
+    // 2. style: 20/"20K"/"20M"
+    //      example: 20K
+    //      result reject 20000 request_units
+    //
+    // return true if parse succeed.
+    // return false if parse failed for the reason of invalid env_value.
+    // if return false, the original value will not be changed.
+    // 'parse_error' is set when return false.
+    // 'changed' is set when return true.
+    // 'old_env_value' is set when 'changed' is set to true.
     bool parse_from_env(const std::string &env_value,
                         int partition_count,
                         std::string &parse_error,
@@ -69,9 +80,7 @@ public:
 
     static bool string_to_value(std::string str, int64_t &value);
 
-    // support format:
-    // env == 20000*delay*100,20000*reject*100 (historical format)
-    // env == 20000/20K/2M (new format)
+    // wrapper of transform_env_string, check if the env string is validated.
     static bool validate(const std::string &env, std::string &hint_message);
 
     static bool transform_env_string(const std::string &env,
