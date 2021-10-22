@@ -69,7 +69,8 @@ bool token_bucket_throttling_controller::parse_from_env(const std::string &env_v
     old_env_value = _env_value;
     changed = false;
 
-    if (_enabled && env_value == _env_value && partition_count == _partition_count)
+    if (_enabled && dsn_likely(env_value == _env_value) &&
+        dsn_likely(partition_count == _partition_count))
         return true;
 
     int64_t reject_size_value;
