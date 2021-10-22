@@ -398,7 +398,7 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
                                         bool still_have_less_than_average)
 {
     node_mapper &nodes = *(t_global_view->nodes);
-    app_mapper &apps = *t_global_view->apps;
+    const app_mapper &apps = *t_global_view->apps;
     int replicas_low = app->partition_count / t_alive_nodes;
 
     std::unique_ptr<copy_replica_operation> operation = dsn::make_unique<copy_primary_operation>(
@@ -409,7 +409,7 @@ bool greedy_load_balancer::copy_primary(const std::shared_ptr<app_state> &app,
 bool greedy_load_balancer::copy_secondary(const std::shared_ptr<app_state> &app, bool place_holder)
 {
     node_mapper &nodes = *(t_global_view->nodes);
-    app_mapper &apps = *t_global_view->apps;
+    const app_mapper &apps = *t_global_view->apps;
     int replicas_low = app->partition_count / t_alive_nodes;
 
     std::unique_ptr<copy_replica_operation> operation = dsn::make_unique<copy_secondary_operation>(
