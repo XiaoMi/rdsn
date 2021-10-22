@@ -84,7 +84,7 @@ bool token_bucket_throttling_controller::parse_from_env(const std::string &env_v
     _enabled = enabled;
     _env_value = env_value;
     _partition_count = partition_count;
-    _rate = reject_size_value / max(partition_count, 1);
+    _rate = reject_size_value / std::max(partition_count, 1);
     _burstsize = _rate;
     return true;
 }
