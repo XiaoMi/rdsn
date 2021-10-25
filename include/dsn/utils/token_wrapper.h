@@ -23,8 +23,6 @@
 namespace dsn {
 namespace utils {
 
-std::shared_ptr<folly::DynamicTokenBucket> create_token_bucket();
-
 class token_wrapper
 {
 public:
