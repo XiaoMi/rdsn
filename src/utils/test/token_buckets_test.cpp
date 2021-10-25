@@ -31,7 +31,7 @@ public:
         _token_buckets_wrapper = std::make_unique<dsn::utils::token_buckets>();
     }
 
-    std::map<std::string, std::shared_ptr<folly::DynamicTokenBucket>> token_buckets() const
+    std::unordered_map<std::string, std::shared_ptr<folly::DynamicTokenBucket>> token_buckets() const
     {
         return _token_buckets_wrapper->_token_buckets;
     }

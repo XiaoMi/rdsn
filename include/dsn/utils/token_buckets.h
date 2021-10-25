@@ -31,7 +31,7 @@ public:
 private:
     utils::rw_lock_nr _buckets_lock;
     // token_name->token_ptr
-    std::map<std::string, std::shared_ptr<folly::DynamicTokenBucket>> _token_buckets;
+    std::unordered_map<std::string, std::shared_ptr<folly::DynamicTokenBucket>> _token_buckets;
 
     friend class token_buckets_test;
 };

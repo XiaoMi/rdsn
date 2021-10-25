@@ -22,6 +22,14 @@ namespace utils {
 
 std::shared_ptr<folly::DynamicTokenBucket> token_buckets::get_token_bucket(const std::string &name)
 {
+    {
+        utils::auto_read_lock l(_buckets_lock);
+        auto iter = _token_buckets.find(name);
+        if (iter != _token_buckets.end()) {
+            return iter->second;
+        }
+    }
+
     utils::auto_write_lock l(_buckets_lock);
     auto iter = _token_buckets.find(name);
     if (iter != _token_buckets.end()) {
