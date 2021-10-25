@@ -34,5 +34,5 @@ private:
     mutable zrwlock_nr _buckets_lock;
     std::map<std::string, std::shared_ptr<folly::DynamicTokenBucket>> _token_buckets;
 };
-}
-}
+} // utils
+} // dsn
