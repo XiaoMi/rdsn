@@ -269,7 +269,7 @@ void nfs_service_impl::register_cli_commands()
                 std::string result("OK");
 
                 if (args.empty()) {
-                    return std::to_string(FLAGS_max_send_rate_megabytes);
+                    return std::to_string(FLAGS_max_send_rate_megabytes_per_disk);
                 }
 
                 int32_t max_send_rate_megabytes = 0;
@@ -278,7 +278,7 @@ void nfs_service_impl::register_cli_commands()
                     return std::string("ERR: invalid arguments");
                 }
 
-                FLAGS_max_send_rate_megabytes = max_send_rate_megabytes;
+                FLAGS_max_send_rate_megabytes_per_disk = max_send_rate_megabytes;
                 return result;
             });
     });
