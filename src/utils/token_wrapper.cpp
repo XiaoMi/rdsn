@@ -30,7 +30,6 @@ token_wrapper::get_or_create_token_bucket(const std::string &name)
     }
 
     auto token = std::make_shared<folly::DynamicTokenBucket>();
-    ;
     _token_buckets.emplace(name, token);
     return token;
 }
