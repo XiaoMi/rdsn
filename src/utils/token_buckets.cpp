@@ -15,22 +15,22 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#pragma once
-
-#include <dsn/tool-api/zlocks.h>
-#include <dsn/utility/TokenBucket.h>
+#include "dsn/utils/token_buckets.h"
 
 namespace dsn {
 namespace utils {
 
-class token_wrapper
+std::shared_ptr<folly::DynamicTokenBucket> token_buckets::get_token_bucket(const std::string &name)
 {
-public:
-    std::shared_ptr<folly::DynamicTokenBucket> get_or_create_token_bucket(const std::string &name);
+    utils::auto_write_lock l(_buckets_lock);
+    auto iter = _token_buckets.find(name);
+    if (iter != _token_buckets.end()) {
+        return iter->second;
+    }
 
-private:
-    mutable zrwlock_nr _buckets_lock;
-    std::map<std::string, std::shared_ptr<folly::DynamicTokenBucket>> _token_buckets;
-};
-} // utils
-} // dsn
+    auto token = std::make_shared<folly::DynamicTokenBucket>();
+    _token_buckets.emplace(name, token);
+    return token;
+}
+} // namespace utils
+} // namespace dsn
