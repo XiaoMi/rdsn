@@ -20,7 +20,6 @@
 #include <dsn/utility/string_conv.h>
 #include <dsn/utils/token_bucket_throttling_controller.h>
 
-
 namespace dsn {
 namespace utils {
 
