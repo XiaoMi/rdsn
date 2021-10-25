@@ -79,7 +79,7 @@ public:
     // 'changed' is set when return true.
     // 'old_env_value' is set when 'changed' is set to true.
     bool parse_from_env(const std::string &env_value,
-                        int partition_count,
+                        int32_t partition_count,
                         std::string &parse_error,
                         bool &changed,
                         std::string &old_env_value);
