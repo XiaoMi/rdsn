@@ -21,7 +21,10 @@
 #include <dsn/dist/block_service.h>
 
 namespace folly {
-class DynamicTokenBucket;
+template <typename Clock>
+class BasicDynamicTokenBucket;
+
+using DynamicTokenBucket = BasicDynamicTokenBucket<std::chrono::steady_clock>;
 } // namespace folly
 
 namespace galaxy {
