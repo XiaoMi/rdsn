@@ -73,7 +73,6 @@ public:
         VALIDATE_SITUATION_CHECK(
             "20000*reject*100", 4, 20000, true, true, "20K*delay*100,20K*reject*100");
 
-
         // invalid argument]
         std::string old_env = "20000*reject*100";
         INVALIDATE_SITUATION_CHECK("*deldday*100");
