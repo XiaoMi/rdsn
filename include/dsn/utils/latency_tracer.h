@@ -19,15 +19,33 @@
 #include <dsn/utility/synchronize.h>
 #include <dsn/utility/flags.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/perf_counter/perf_counters.h>
+#include <dsn/tool-api/task_code.h>
+#include <dsn/dist/replication/replication.codes.h>
 
 namespace dsn {
 namespace utils {
 
 #define ADD_POINT(tracer)                                                                          \
-    (tracer)->add_point(fmt::format("{}:{}:{}", __FILENAME__, __LINE__, __FUNCTION__))
+    do {                                                                                           \
+        if ((tracer))                                                                              \
+            (tracer)->add_point(fmt::format("{}:{}:{}", __FILENAME__, __LINE__, __FUNCTION__));    \
+    } while (0)
+
 #define ADD_CUSTOM_POINT(tracer, message)                                                          \
-    (tracer)->add_point(                                                                           \
-        fmt::format("{}:{}:{}[{}]", __FILENAME__, __LINE__, __FUNCTION__, (message)))
+    do {                                                                                           \
+        if ((tracer))                                                                              \
+            (tracer)->add_point(                                                                   \
+                fmt::format("{}:{}:{}_{}", __FILENAME__, __LINE__, __FUNCTION__, (message)));      \
+    } while (0)
+
+#define APPEND_EXTERN_POINT(tracer, ts, message)                                                   \
+    do {                                                                                           \
+        if ((tracer))                                                                              \
+            (tracer)->append_point(                                                                \
+                fmt::format("{}:{}:{}_{}", __FILENAME__, __LINE__, __FUNCTION__, (message)),       \
+                (ts));                                                                             \
+    } while (0)
 
 /**
  * latency_tracer is a tool for tracking the time spent in each of the stages during request
@@ -65,6 +83,7 @@ namespace utils {
  * "request.tracer" will record the time duration among all trace points.
 **/
 DSN_DECLARE_bool(enable_latency_tracer);
+DSN_DECLARE_bool(open_latency_tracer_report);
 
 class latency_tracer
 {
@@ -76,13 +95,24 @@ public:
     //  threshold < 0: don't dump any trace points
     //  threshold = 0: dump all trace points
     //  threshold > 0: dump the trace point when time_used > threshold
-    latency_tracer(const std::string &name, bool is_sub = false, uint64_t threshold = 0);
+    //-task_code:
+    //  use task code to judge if the task need be trace, LPC_LATENCY_TRACE means _enable_trace =
+    //  true
+    latency_tracer(bool is_sub,
+                   std::string name,
+                   uint64_t threshold,
+                   const dsn::task_code &code = LPC_LATENCY_TRACE);
 
     ~latency_tracer();
 
-    // add a trace point to the tracer
+    // add a trace point to the tracer, the ts is dsn_now_ns()
     // -name: user specified name of the trace point
     void add_point(const std::string &stage_name);
+
+    // append a trace point, the ts is passed. it will always append at last position
+    // -name: user specified name of the trace point
+    // -ts: user specified timestamp of the trace point
+    void append_point(const std::string &stage_name, uint64_t ts);
 
     // sub_tracer is used for tracking the request which may transfer the other type,
     // for example: rdsn "rpc_message" will be convert to "mutation", the "tracking
@@ -91,21 +121,47 @@ public:
     // stageA[rpc_message]--stageB[rpc_message]--
     //                                          |-->stageC[mutation]
     // stageA[rpc_message]--stageB[rpc_message]--
-    void set_sub_tracer(const std::shared_ptr<latency_tracer> &tracer);
+    void add_sub_tracer(const std::shared_ptr<latency_tracer> &tracer);
+
+    std::shared_ptr<latency_tracer> sub_tracer(const std::string &name);
 
     void set_name(const std::string &name) { _name = name; }
 
+    void set_description(const std::string &description) { _description = description; }
+
+    void set_parent_point_name(const std::string &name) { _parent_point_name = name; }
+
+    void set_start_time(uint64_t start_time) { _start_time = start_time; }
+
+    std::string name() { return _name; }
+
+    std::string description() { return _description; }
+
+    uint64_t start_time() const { return _start_time; }
+
+    uint64_t last_time() const { return _last_time; }
+
 private:
+    static void report_trace_point(const std::string &name, uint64_t span);
+
     void dump_trace_points(/*out*/ std::string &traces);
 
-    utils::rw_lock_nr _lock;
-
-    std::string _name;
-    const uint64_t _threshold;
     bool _is_sub;
-    const uint64_t _start_time;
+    bool _enable_trace;
+    std::string _name;
+    std::string _description;
+    uint64_t _threshold;
+    uint64_t _start_time;
+    uint64_t _last_time;
+
+    dsn::task_code _task_code;
+
+    utils::rw_lock_nr _point_lock;
     std::map<int64_t, std::string> _points;
-    std::shared_ptr<latency_tracer> _sub_tracer;
+
+    std::string _parent_point_name;
+    utils::rw_lock_nr _sub_lock;
+    std::unordered_map<std::string, std::shared_ptr<latency_tracer>> _sub_tracers;
 
     friend class latency_tracer_test;
 };
