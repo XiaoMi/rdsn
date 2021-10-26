@@ -23,93 +23,76 @@
 namespace dsn {
 namespace utils {
 
+#define INVALIDATE_SITUATION_CHECK(env)                                                            \
+    do {                                                                                           \
+        std::string old_value, parse_err;                                                          \
+        bool env_changed_result = false;                                                           \
+        ASSERT_FALSE(cntl.parse_from_env(env, 4, parse_err, env_changed_result, old_value));       \
+        ASSERT_EQ(env_changed_result, false);                                                      \
+        ASSERT_EQ(parse_err, "wrong format, you can set like 20000 or 20K");                       \
+        ASSERT_EQ(cntl._enabled, true);                                                            \
+        ASSERT_EQ(old_value, old_env);                                                             \
+        ASSERT_EQ(cntl._env_value, old_env);                                                       \
+    } while (0)
+
+#define VALIDATE_SITUATION_CHECK(                                                                  \
+    env, partition_count, throttle_size, enabled, env_changed, old_env)                            \
+    do {                                                                                           \
+        bool env_changed_result = false;                                                           \
+        std::string old_value, parse_err;                                                          \
+        int32_t partitioned_throttle_size = throttle_size / partition_count;                       \
+        ASSERT_TRUE(                                                                               \
+            cntl.parse_from_env(env, partition_count, parse_err, env_changed_result, old_value));  \
+        ASSERT_EQ(cntl._env_value, env);                                                           \
+        ASSERT_EQ(cntl._partition_count, partition_count);                                         \
+        ASSERT_EQ(cntl._burstsize, partitioned_throttle_size);                                     \
+        ASSERT_EQ(cntl._rate, partitioned_throttle_size);                                          \
+        ASSERT_EQ(cntl._enabled, enabled);                                                         \
+        ASSERT_EQ(env_changed_result, env_changed);                                                \
+        ASSERT_EQ(old_value, old_env);                                                             \
+        ASSERT_EQ(parse_err, "");                                                                  \
+    } while (0)
+
 class token_bucket_throttling_controller_test : public ::testing::Test
 {
 public:
     void test_parse_env_basic_token_bucket_throttling()
     {
         token_bucket_throttling_controller cntl;
-        std::string parse_err;
-        bool env_changed = false;
-        std::string old_value;
 
-        int partition_count = 4;
-        std::string old_env = "";
-        std::string env = "20000*delay*100";
         // token_bucket_throttling_controller doesn't support delay only
-        ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._env_value, env);
-        ASSERT_EQ(cntl._partition_count, 4);
-        ASSERT_EQ(cntl._burstsize, 0);
-        ASSERT_EQ(cntl._rate, 0);
-        ASSERT_EQ(cntl._enabled, false);
-        ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(old_value, old_env);
-        ASSERT_EQ(parse_err, "");
+        VALIDATE_SITUATION_CHECK("20000*delay*100", 4, 0, false, true, "");
+        VALIDATE_SITUATION_CHECK("200K", 4, 200000, true, true, "20000*delay*100");
+        VALIDATE_SITUATION_CHECK("20000*delay*100,20000*reject*100", 4, 20000, true, true, "200K");
+        VALIDATE_SITUATION_CHECK("20K*delay*100,20K*reject*100",
+                                 4,
+                                 20000,
+                                 true,
+                                 true,
+                                 "20000*delay*100,20000*reject*100");
+        VALIDATE_SITUATION_CHECK(
+            "20000*reject*100", 4, 20000, true, true, "20K*delay*100,20K*reject*100");
 
-        old_env = env;
-        env = "200K";
-        ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(cntl._env_value, env);
-        ASSERT_EQ(cntl._partition_count, 4);
-        ASSERT_EQ(cntl._rate, 200000 / partition_count);
-        ASSERT_EQ(cntl._burstsize, 200000 / partition_count);
-        ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(old_value, old_env);
-        ASSERT_EQ(parse_err, "");
 
-        old_env = env;
-        env = "20000*delay*100,20000*reject*100";
-        ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(cntl._env_value, env);
-        ASSERT_EQ(cntl._partition_count, 4);
-        ASSERT_EQ(cntl._rate, 20000 / partition_count);
-        ASSERT_EQ(cntl._burstsize, 20000 / partition_count);
-        ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(old_value, old_env);
-        ASSERT_EQ(parse_err, "");
-
-        old_env = env;
-        env = "20K*delay*100,20K*reject*100";
-        ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(cntl._env_value, env);
-        ASSERT_EQ(cntl._partition_count, 4);
-        ASSERT_EQ(cntl._rate, 20000 / partition_count);
-        ASSERT_EQ(cntl._burstsize, 20000 / partition_count);
-        ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(old_value, old_env);
-        ASSERT_EQ(parse_err, "");
-
-        old_env = env;
-        env = "20000*reject*100";
-        ASSERT_TRUE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(cntl._env_value, env);
-        ASSERT_EQ(cntl._partition_count, 4);
-        ASSERT_EQ(cntl._rate, 20000 / partition_count);
-        ASSERT_EQ(cntl._burstsize, 20000 / partition_count);
-        ASSERT_EQ(env_changed, true);
-        ASSERT_EQ(old_value, old_env);
-        ASSERT_EQ(parse_err, "");
-
-        // invalid argument
-        old_env = env;
-        env = "*deldday*100";
-        ASSERT_FALSE(cntl.parse_from_env(env, partition_count, parse_err, env_changed, old_value));
-        ASSERT_EQ(env_changed, false);
-        ASSERT_EQ(parse_err, "wrong format, you can set like 20000 or 20K");
-        ASSERT_EQ(cntl._enabled, true); // ensure invalid env won't stop throttling
-        ASSERT_EQ(old_value, old_env);
-
-        ASSERT_FALSE(cntl.parse_from_env("", 4, parse_err, env_changed, old_value));
-        ASSERT_EQ(env_changed, false);
-        ASSERT_NE(parse_err, "");
-        ASSERT_EQ(parse_err, "wrong format, you can set like 20000 or 20K");
-        ASSERT_EQ(cntl._enabled, true);
-        ASSERT_EQ(old_value, old_env);
+        // invalid argument]
+        std::string old_env = "20000*reject*100";
+        INVALIDATE_SITUATION_CHECK("*deldday*100");
+        INVALIDATE_SITUATION_CHECK("");
+        INVALIDATE_SITUATION_CHECK("*reject");
+        INVALIDATE_SITUATION_CHECK("*reject*");
+        INVALIDATE_SITUATION_CHECK("reject*");
+        INVALIDATE_SITUATION_CHECK("reject");
+        INVALIDATE_SITUATION_CHECK("200g");
+        INVALIDATE_SITUATION_CHECK("200G");
+        INVALIDATE_SITUATION_CHECK("M");
+        INVALIDATE_SITUATION_CHECK("K");
+        INVALIDATE_SITUATION_CHECK("-1K");
+        INVALIDATE_SITUATION_CHECK("1aK");
+        INVALIDATE_SITUATION_CHECK("pegNo1");
+        INVALIDATE_SITUATION_CHECK("-20");
+        INVALIDATE_SITUATION_CHECK("12KM");
+        INVALIDATE_SITUATION_CHECK("1K2M");
+        INVALIDATE_SITUATION_CHECK("2000K0*reject*100");
     }
 
     void throttle_test()

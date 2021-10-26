@@ -65,12 +65,12 @@ public:
     //      example: 20000*delay*100,20000*reject*100
     //      result: reject 20000 request_units, but never delay
     //      example: 20000*delay*100
-    //      result: never result or delay
+    //      result: never reject or delay
     //      example: 20000*reject*100
     //      result: reject 20000 request_units
     // 2. style: 20/"20K"/"20M"
     //      example: 20K
-    //      result reject 20000 request_units
+    //      result: reject 20000 request_units
     //
     // return true if parse succeed.
     // return false if parse failed for the reason of invalid env_value.
