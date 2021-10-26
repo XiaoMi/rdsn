@@ -110,13 +110,11 @@ nfs_client_impl::nfs_client_impl()
         COUNTER_TYPE_VOLATILE_NUMBER,
         "nfs client write fail count count in the recent period");
 
-    uint32_t max_copy_rate_bytes = FLAGS_max_copy_rate_megabytes_per_disk << 20;
     // max_copy_rate_bytes should be greater than nfs_copy_block_bytes which is the max batch copy
     // size once
-    dassert(max_copy_rate_bytes > FLAGS_nfs_copy_block_bytes,
+    dassert((FLAGS_max_copy_rate_megabytes_per_disk << 20) > FLAGS_nfs_copy_block_bytes,
             "max_copy_rate_bytes should be greater than nfs_copy_block_bytes");
     _copy_token_buckets = std::make_unique<utils::token_buckets>();
-    current_max_copy_rate_megabytes = FLAGS_max_copy_rate_megabytes_per_disk;
 
     register_cli_commands();
 }
@@ -567,9 +565,10 @@ void nfs_client_impl::handle_completion(const user_request_ptr &req, error_code 
     req->nfs_task->enqueue(err, err == ERR_OK ? total_size : 0);
 }
 
+// todo(jiashuo1) just for compatibility with scripts, such as
+// https://github.com/apache/incubator-pegasus/blob/dbed9148bcba470238c11f7ae57f4a117b7c4a8b/scripts/pegasus_offline_node_list.sh
 void nfs_client_impl::register_cli_commands()
 {
-
     static std::once_flag flag;
     std::call_once(flag, [&]() {
         _nfs_max_copy_rate_megabytes_cmd = dsn::command_manager::instance().register_command(
