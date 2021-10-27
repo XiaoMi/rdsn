@@ -56,7 +56,7 @@ public:
         _sub_tracer->set_parent_point_name("test");
 
         _tracer1->add_sub_tracer(_sub_tracer);
-        _tracer2->add_sub_tracer(_sub_tracer);
+        //_tracer2->add_sub_tracer(_sub_tracer);
 
         for (int i = 0; i < _sub_tracer_stage_count; i++) {
             ADD_CUSTOM_POINT(_sub_tracer, fmt::format("stage{}", i));
@@ -70,7 +70,7 @@ public:
 
     std::shared_ptr<latency_tracer> get_sub_tracer(const std::shared_ptr<latency_tracer> &tracer)
     {
-        return tracer->_sub_tracers["test"];
+        return tracer->_sub_tracers.at("sub");
     }
 };
 
@@ -118,7 +118,7 @@ TEST_F(latency_tracer_test, add_point)
             continue;
         }
         ASSERT_EQ(point.second,
-                  fmt::format("latency_tracer_test.cpp:61:init_trace_points_stage{}", count3++));
+                  fmt::format("latency_tracer_test.cpp:62:init_trace_points_stage{}", count3++));
     }
 }
 } // namespace utils

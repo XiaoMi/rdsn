@@ -110,7 +110,7 @@ public:
 
     ~latency_tracer();
 
-    // add a trace point to the tracer, the point timestamp is dsn_now_ns()
+    // add a trace point to the tracer, it will record the timestamp of point
     //
     // -name: user specified name of the trace point
     void add_point(const std::string &stage_name);
