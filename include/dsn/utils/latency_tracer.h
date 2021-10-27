@@ -130,9 +130,9 @@ public:
     // rdsn "mutataion" will async to execute send "mutation" to remote rpc node and execute io
     // task, the "tracking  responsibility" is also passed on the async task:
     //
-    // stageA[mutation]--stageB[mutation]--
-    //                                     |-->stageC1[io]
-    //                                     |-->stageC2[rpc]
+    // stageA[mutation]--stageB[mutation]--|-->stageC0[mutation]-->....
+    //                                     |-->stageC1[io]-->....
+    //                                     |-->stageC2[rpc]-->....
     void add_sub_tracer(const std::shared_ptr<latency_tracer> &tracer);
 
     std::shared_ptr<latency_tracer> sub_tracer(const std::string &name);
