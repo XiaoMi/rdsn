@@ -145,14 +145,14 @@ void latency_tracer::add_point(const std::string &stage_name)
     _last_time = ts;
 }
 
-void latency_tracer::append_point(const std::string &stage_name, uint64_t ts)
+void latency_tracer::append_point(const std::string &stage_name, uint64_t timestamp)
 {
     if (!FLAGS_enable_latency_tracer || !_enable_trace) {
         return;
     }
 
     utils::auto_write_lock write(_point_lock);
-    uint64_t cur_ts = ts > _last_time ? ts : _last_time + 1;
+    uint64_t cur_ts = timestamp > _last_time ? timestamp : _last_time + 1;
     _points.emplace(cur_ts, stage_name);
     _last_time = cur_ts;
 }

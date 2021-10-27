@@ -96,8 +96,12 @@ public:
     //  threshold = 0: dump all trace points
     //  threshold > 0: dump the trace point when time_used > threshold
     //-task_code:
-    //  use task code to judge if the task need be trace, LPC_LATENCY_TRACE means _enable_trace =
-    //  true
+    //  (1) use task code to judge if the task need be trace, LPC_LATENCY_TRACE passed by default
+    //  means _enable_trace =  true, for other code, it will get config value(see the implement of
+    //  the constructor) to judge the code whether to enable trace.
+    //  (2) the variable is used to trace the common low task work, for example, `aio task` is used
+    //  for nfs/private log/shared log, it will trace all type task if we want trace the `aio task`,
+    //  support the variable, the `aio task tracer` will filter out some unnecessary task.
     latency_tracer(bool is_sub,
                    std::string name,
                    uint64_t threshold,
@@ -105,22 +109,29 @@ public:
 
     ~latency_tracer();
 
-    // add a trace point to the tracer, the ts is dsn_now_ns()
+    // add a trace point to the tracer, the point timestamp is dsn_now_ns()
+    //
     // -name: user specified name of the trace point
     void add_point(const std::string &stage_name);
 
-    // append a trace point, the ts is passed. it will always append at last position
-    // -name: user specified name of the trace point
-    // -ts: user specified timestamp of the trace point
-    void append_point(const std::string &stage_name, uint64_t ts);
-
-    // sub_tracer is used for tracking the request which may transfer the other type,
-    // for example: rdsn "rpc_message" will be convert to "mutation", the "tracking
-    // responsibility" is also passed on the "mutation":
+    // append a trace point, the timestamp is passed. it will always append at last position
     //
-    // stageA[rpc_message]--stageB[rpc_message]--
-    //                                          |-->stageC[mutation]
-    // stageA[rpc_message]--stageB[rpc_message]--
+    // NOTE: The method is used for custom stage duration which must make sure the point is
+    // sequential, for example， in the trace link of cross node, receive side timestamp must after
+    // the send side timestamp, you need use the method to make sure the rule to avoid the clock
+    // asynchronization problem. the detail resolution see the method implement
+    //
+    // -name: user specified name of the trace point
+    // -timestamp: user specified timestamp of the trace point
+    void append_point(const std::string &stage_name, uint64_t timestamp);
+
+    // sub_tracer is used for tracking the request which may transfer the other thread, for example:
+    // rdsn "mutataion" will async to execute send "mutation" to remote rpc node and execute io
+    // task, the "tracking  responsibility" is also passed on the async task:
+    //
+    // stageA[mutation]--stageB[mutation]--
+    //                                     |-->stageC1[io]
+    //                                     |-->stageC2[rpc]
     void add_sub_tracer(const std::shared_ptr<latency_tracer> &tracer);
 
     std::shared_ptr<latency_tracer> sub_tracer(const std::string &name);
@@ -142,8 +153,10 @@ public:
     uint64_t last_time() const { return _last_time; }
 
 private:
+    // report the trace point duration to monitor system
     static void report_trace_point(const std::string &name, uint64_t span);
 
+    // dump and print the trace point into log file
     void dump_trace_points(/*out*/ std::string &traces);
 
     bool _is_sub;
