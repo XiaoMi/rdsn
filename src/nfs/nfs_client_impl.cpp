@@ -566,7 +566,7 @@ void nfs_client_impl::handle_completion(const user_request_ptr &req, error_code 
 }
 
 // todo(jiashuo1) just for compatibility with scripts, such as
-// https://github.com/apache/incubator-pegasus/blob/dbed9148bcba470238c11f7ae57f4a117b7c4a8b/scripts/pegasus_offline_node_list.sh
+// https://github.com/apache/incubator-pegasus/blob/v2.3/scripts/pegasus_offline_node_list.sh
 void nfs_client_impl::register_cli_commands()
 {
     static std::once_flag flag;
