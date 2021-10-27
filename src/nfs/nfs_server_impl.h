@@ -72,7 +72,7 @@ private:
     struct callback_para
     {
         dsn_handle_t hfile;
-        std::string file_disk_tag;
+        std::string source_disk_tag;
         std::string file_path;
         std::string dst_dir;
         blob bb;

@@ -121,7 +121,7 @@ void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
     std::shared_ptr<callback_para> cp = std::make_shared<callback_para>(std::move(reply));
     cp->bb = blob(dsn::utils::make_shared_array<char>(request.size), request.size);
     cp->dst_dir = request.dst_dir;
-    cp->file_disk_tag = request.file_disk_tag;
+    cp->source_disk_tag = request.source_disk_tag;
     cp->file_path = std::move(file_path);
     cp->hfile = hfile;
     cp->offset = request.offset;
@@ -141,7 +141,7 @@ void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
 
 void nfs_service_impl::internal_read_callback(error_code err, size_t sz, callback_para &cp)
 {
-    _send_token_buckets->get_token_bucket(cp.file_disk_tag)
+    _send_token_buckets->get_token_bucket(cp.source_disk_tag)
         ->consumeWithBorrowAndWait(sz,
                                    FLAGS_max_send_rate_megabytes_per_disk << 20,
                                    1.5 * (FLAGS_max_send_rate_megabytes_per_disk << 20));
