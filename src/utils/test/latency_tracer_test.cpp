@@ -70,7 +70,7 @@ public:
 
     std::shared_ptr<latency_tracer> get_sub_tracer(const std::shared_ptr<latency_tracer> &tracer)
     {
-        return tracer->_sub_tracers.at("sub");
+        return tracer->sub_tracer("sub");
     }
 };
 
