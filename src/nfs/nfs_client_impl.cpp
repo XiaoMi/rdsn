@@ -135,8 +135,8 @@ void nfs_client_impl::begin_remote_copy(std::shared_ptr<remote_copy_request> &rc
     req->file_size_req.file_list = rci->files;
     req->file_size_req.source_dir = rci->source_dir;
     req->file_size_req.overwrite = rci->overwrite;
-    req->file_size_req.__set_remote_file_disk_tag(rci->source_disk_tag);
-    req->file_size_req.__set_local_file_disk_tag(rci->dest_disk_tag);
+    req->file_size_req.__set_source_disk_tag(rci->source_disk_tag);
+    req->file_size_req.__set_dest_disk_tag(rci->dest_disk_tag);
     req->nfs_task = nfs_task;
     req->is_finished = false;
 
@@ -274,7 +274,7 @@ void nfs_client_impl::continue_copy()
             zauto_lock l(req->lock);
             const user_request_ptr &ureq = req->file_ctx->user_req;
             if (req->is_valid) {
-                _copy_token_buckets->get_token_bucket(ureq->file_size_req.local_file_disk_tag)
+                _copy_token_buckets->get_token_bucket(ureq->file_size_req.dest_disk_tag)
                     ->consumeWithBorrowAndWait(req->size,
                                                FLAGS_max_copy_rate_megabytes_per_disk << 20,
                                                1.5 *
@@ -289,7 +289,7 @@ void nfs_client_impl::continue_copy()
                 copy_req.source_dir = ureq->file_size_req.source_dir;
                 copy_req.overwrite = ureq->file_size_req.overwrite;
                 copy_req.is_last = req->is_last;
-                copy_req.__set_file_disk_tag(ureq->file_size_req.remote_file_disk_tag);
+                copy_req.__set_source_disk_tag(ureq->file_size_req.source_disk_tag);
                 req->remote_copy_task =
                     async_nfs_copy(copy_req,
                                    [=](error_code err, copy_response &&resp) {
@@ -575,7 +575,7 @@ void nfs_client_impl::register_cli_commands()
             {"nfs.max_copy_rate_megabytes"},
             "nfs.max_copy_rate_megabytes_per_disk [num]",
             "control the max rate(MB/s) for one disk to copy file from remote node",
-            [this](const std::vector<std::string> &args) {
+            [](const std::vector<std::string> &args) {
                 std::string result("OK");
 
                 if (args.empty()) {
