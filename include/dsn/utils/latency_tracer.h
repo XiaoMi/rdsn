@@ -83,7 +83,7 @@ namespace utils {
  * "request.tracer" will record the time duration among all trace points.
 **/
 DSN_DECLARE_bool(enable_latency_tracer);
-DSN_DECLARE_bool(open_latency_tracer_report);
+DSN_DECLARE_bool(enable_latency_tracer_report);
 
 class latency_tracer
 {
@@ -96,12 +96,13 @@ public:
     //  threshold = 0: dump all trace points
     //  threshold > 0: dump the trace point when time_used > threshold
     //-task_code:
-    //  (1) use task code to judge if the task need be trace, LPC_LATENCY_TRACE passed by default
-    //  means _enable_trace =  true, for other code, it will get config value(see the implement of
+    //  (1) use task code to judge if the task need trace, LPC_LATENCY_TRACE passed by default
+    //  means _enable_trace = true, for other code, it will get config value(see the implement of
     //  the constructor) to judge the code whether to enable trace.
     //  (2) the variable is used to trace the common low task work, for example, `aio task` is used
     //  for nfs/private log/shared log, it will trace all type task if we want trace the `aio task`,
-    //  support the variable, the `aio task tracer` will filter out some unnecessary task.
+    //  support the variable, the `aio task tracer` will filter out some unnecessary task base on
+    //  the code type.
     latency_tracer(bool is_sub,
                    std::string name,
                    uint64_t threshold,

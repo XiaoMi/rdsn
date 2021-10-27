@@ -31,10 +31,10 @@ DSN_DEFINE_bool("replication", enable_latency_tracer, false, "whether enable the
 DSN_TAG_VARIABLE(enable_latency_tracer, FT_MUTABLE);
 
 DSN_DEFINE_bool("replication",
-                open_latency_tracer_report,
+                enable_latency_tracer_report,
                 false,
                 "whether open the latency tracer report perf counter");
-DSN_TAG_VARIABLE(open_latency_tracer_report, FT_MUTABLE);
+DSN_TAG_VARIABLE(enable_latency_tracer_report, FT_MUTABLE);
 
 DSN_DEFINE_string("replication",
                   latency_tracer_counter_name_prefix,
