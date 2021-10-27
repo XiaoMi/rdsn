@@ -207,7 +207,7 @@ void latency_tracer::dump_trace_points(/*out*/ std::string &traces)
         auto span_duration = point.first - previous_point_ts;
         auto total_latency = point.first - start_time;
 
-        if (FLAGS_open_latency_tracer_report) {
+        if (FLAGS_enable_latency_tracer_report) {
             std::string counter_name =
                 fmt::format("[{}]{}@{}", _description, previous_point_name, cur_point_name);
             report_trace_point(counter_name, span_duration);
