@@ -118,7 +118,7 @@ public:
     // append a trace point, the timestamp is passed. it will always append at last position
     //
     // NOTE: The method is used for custom stage duration which must make sure the point is
-    // sequential, for example， in the trace link of cross node, receive side timestamp must after
+    // sequential, for example, in the trace link of cross node, receive side timestamp must after
     // the send side timestamp, you need use the method to make sure the rule to avoid the clock
     // asynchronization problem. the detail resolution see the method implement
     //
