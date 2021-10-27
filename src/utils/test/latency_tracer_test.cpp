@@ -56,7 +56,7 @@ public:
         _sub_tracer->set_parent_point_name("test");
 
         _tracer1->add_sub_tracer(_sub_tracer);
-        //_tracer2->add_sub_tracer(_sub_tracer);
+        _tracer2->add_sub_tracer(_sub_tracer);
 
         for (int i = 0; i < _sub_tracer_stage_count; i++) {
             ADD_CUSTOM_POINT(_sub_tracer, fmt::format("stage{}", i));
