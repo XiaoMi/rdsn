@@ -77,19 +77,30 @@ public:
 TEST_F(latency_tracer_test, add_point)
 {
     auto tracer1_points = get_points(_tracer1);
-    ASSERT_EQ(tracer1_points.size(), _tracer1_stage_count);
+    // tracer constructor will auto push one point, so the total count is stage_count + 1
+    ASSERT_EQ(tracer1_points.size(), _tracer1_stage_count + 1);
     int count1 = 0;
+    bool tracer1_first = true;
     for (const auto &point : tracer1_points) {
+        if (tracer1_first) {
+            tracer1_first = false;
+            continue;
+        }
         ASSERT_EQ(point.second,
-                  fmt::format("latency_tracer_test.cpp:46:init_trace_points[stage{}]", count1++));
+                  fmt::format("latency_tracer_test.cpp:46:init_trace_points_stage{}", count1++));
     }
 
     auto tracer2_points = get_points(_tracer2);
-    ASSERT_EQ(tracer2_points.size(), _tracer2_stage_count);
+    ASSERT_EQ(tracer2_points.size(), _tracer2_stage_count + 1);
     int count2 = 0;
+    bool tracer2_first = true;
     for (const auto &point : tracer2_points) {
+        if (tracer2_first) {
+            tracer2_first = false;
+            continue;
+        }
         ASSERT_EQ(point.second,
-                  fmt::format("latency_tracer_test.cpp:52:init_trace_points[stage{}]", count2++));
+                  fmt::format("latency_tracer_test.cpp:52:init_trace_points_stage{}", count2++));
     }
 
     auto tracer1_sub_tracer = get_sub_tracer(_tracer1);
@@ -98,11 +109,16 @@ TEST_F(latency_tracer_test, add_point)
 
     auto points = get_points(tracer1_sub_tracer);
     ASSERT_TRUE(get_sub_tracer(tracer1_sub_tracer) == nullptr);
-    ASSERT_EQ(points.size(), _sub_tracer_stage_count);
+    ASSERT_EQ(points.size(), _sub_tracer_stage_count + 1);
     int count3 = 0;
+    bool sub_tracer_first = true;
     for (const auto &point : points) {
+        if (sub_tracer_first) {
+            sub_tracer_first = false;
+            continue;
+        }
         ASSERT_EQ(point.second,
-                  fmt::format("latency_tracer_test.cpp:61:init_trace_points[stage{}]", count3++));
+                  fmt::format("latency_tracer_test.cpp:61:init_trace_points_stage{}", count3++));
     }
 }
 } // namespace utils
