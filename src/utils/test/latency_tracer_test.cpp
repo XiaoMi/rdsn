@@ -30,6 +30,8 @@ public:
 
     std::shared_ptr<latency_tracer> _tracer1;
     std::shared_ptr<latency_tracer> _tracer2;
+    std::shared_ptr<latency_tracer> _tracer3;
+    std::shared_ptr<latency_tracer> _tracer4;
     std::shared_ptr<latency_tracer> _sub_tracer;
 
 public:
@@ -61,6 +63,11 @@ public:
         for (int i = 0; i < _sub_tracer_stage_count; i++) {
             ADD_CUSTOM_POINT(_sub_tracer, fmt::format("stage{}", i));
         }
+
+        _tracer3 = std::make_shared<latency_tracer>(false, "name3", 0);
+        APPEND_EXTERN_POINT(_tracer3, 123, "test");
+
+        _tracer4 = std::make_shared<latency_tracer>(false, "name4", 0, RPC_TEST);
     }
 
     std::map<int64_t, std::string> get_points(const std::shared_ptr<latency_tracer> &tracer)
@@ -87,7 +94,7 @@ TEST_F(latency_tracer_test, add_point)
             continue;
         }
         ASSERT_EQ(point.second,
-                  fmt::format("latency_tracer_test.cpp:46:init_trace_points_stage{}", count1++));
+                  fmt::format("latency_tracer_test.cpp:48:init_trace_points_stage{}", count1++));
     }
 
     auto tracer2_points = get_points(_tracer2);
@@ -100,7 +107,7 @@ TEST_F(latency_tracer_test, add_point)
             continue;
         }
         ASSERT_EQ(point.second,
-                  fmt::format("latency_tracer_test.cpp:52:init_trace_points_stage{}", count2++));
+                  fmt::format("latency_tracer_test.cpp:54:init_trace_points_stage{}", count2++));
     }
 
     auto tracer1_sub_tracer = get_sub_tracer(_tracer1);
@@ -118,8 +125,18 @@ TEST_F(latency_tracer_test, add_point)
             continue;
         }
         ASSERT_EQ(point.second,
-                  fmt::format("latency_tracer_test.cpp:62:init_trace_points_stage{}", count3++));
+                  fmt::format("latency_tracer_test.cpp:64:init_trace_points_stage{}", count3++));
     }
+
+    // tracer3 append one invalid point, it will reset the last position and update the
+    // timestamp=previous+1
+    auto tracer3_points = get_points(_tracer3);
+    ASSERT_EQ(tracer3_points.size(), 2);
+    ASSERT_EQ(tracer3_points.rbegin()->first - tracer3_points.begin()->first, 1);
+
+    // tracer4 init with disable trace task code, the points size will be 0
+    auto tracer4_points = get_points(_tracer4);
+    ASSERT_EQ(tracer4_points.size(), 0);
 }
 } // namespace utils
 } // namespace dsn
