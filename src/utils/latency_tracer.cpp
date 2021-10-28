@@ -16,6 +16,7 @@
 // under the License.
 
 #include <dsn/utils/latency_tracer.h>
+#include <dsn/perf_counter/perf_counters.h>
 #include <dsn/service_api_c.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/flags.h>
@@ -41,11 +42,13 @@ DSN_DEFINE_string("replication",
                   "trace_latency",
                   "perf counter common name prefix");
 
-utils::rw_lock_nr counter_lock;
+utils::rw_lock_nr counter_lock; //{
 std::unordered_map<std::string, perf_counter_ptr> counters_trace_latency;
+// }
 
-utils::rw_lock_nr task_code_lock;
+utils::rw_lock_nr task_code_lock; //{
 std::unordered_map<std::string, bool> task_codes;
+// }
 
 perf_counter_ptr get_trace_counter(const std::string &name)
 {

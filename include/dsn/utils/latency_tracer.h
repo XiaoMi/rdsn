@@ -19,7 +19,6 @@
 #include <dsn/utility/synchronize.h>
 #include <dsn/utility/flags.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/perf_counter/perf_counters.h>
 #include <dsn/tool-api/task_code.h>
 #include <dsn/dist/replication/replication.codes.h>
 
@@ -145,9 +144,9 @@ public:
 
     void set_start_time(uint64_t start_time) { _start_time = start_time; }
 
-    std::string name() { return _name; }
+    const std::string &name() const { return _name; }
 
-    std::string description() { return _description; }
+    const std::string &description() const { return _description; }
 
     uint64_t start_time() const { return _start_time; }
 
@@ -170,12 +169,14 @@ private:
 
     dsn::task_code _task_code;
 
-    utils::rw_lock_nr _point_lock;
+    utils::rw_lock_nr _point_lock; //{
     std::map<int64_t, std::string> _points;
+    // }
 
     std::string _parent_point_name;
-    utils::rw_lock_nr _sub_lock;
+    utils::rw_lock_nr _sub_lock; //{
     std::unordered_map<std::string, std::shared_ptr<latency_tracer>> _sub_tracers;
+    // }
 
     friend class latency_tracer_test;
 };
