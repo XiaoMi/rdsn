@@ -93,7 +93,7 @@ bool is_enable_trace(const dsn::task_code code)
 
     std::string section_name = std::string("task.") + code_name;
     auto enable_trace = dsn_config_get_value_bool(
-        section_name.c_str(), "is_profile", false, "whether to enable trace this kind of task");
+        section_name.c_str(), "enable_trace", false, "whether to enable trace this kind of task");
 
     task_codes.emplace(code_name, enable_trace);
     return enable_trace;
