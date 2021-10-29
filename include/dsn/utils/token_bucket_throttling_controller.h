@@ -18,7 +18,12 @@
 
 #include <chrono>
 #include <memory>
-#include <dsn/utility/TokenBucket.h>
+
+namespace folly {
+template <typename Clock>
+class BasicDynamicTokenBucket;
+
+} // namespace folly
 
 namespace dsn {
 namespace utils {

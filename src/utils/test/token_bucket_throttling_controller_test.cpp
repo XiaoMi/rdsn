@@ -16,6 +16,8 @@
 // under the License.
 
 #include <dsn/utils/token_bucket_throttling_controller.h>
+#include <dsn/utility/TokenBucket.h>
+
 #include <gtest/gtest.h>
 
 namespace dsn {
