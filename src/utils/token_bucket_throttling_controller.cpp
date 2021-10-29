@@ -16,7 +16,6 @@
 // under the License.
 
 #include <dsn/c/api_utilities.h>
-#include <dsn/utility/TokenBucket.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/utils/token_bucket_throttling_controller.h>
 
