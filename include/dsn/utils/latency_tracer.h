@@ -160,7 +160,6 @@ private:
     void dump_trace_points(/*out*/ std::string &traces);
 
     bool _is_sub;
-    bool _enable_trace;
     std::string _name;
     std::string _description;
     uint64_t _threshold;
@@ -168,6 +167,7 @@ private:
     uint64_t _last_time;
 
     dsn::task_code _task_code;
+    bool _enable_trace;
 
     utils::rw_lock_nr _point_lock; //{
     std::map<int64_t, std::string> _points;

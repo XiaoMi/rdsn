@@ -28,7 +28,10 @@
 namespace dsn {
 namespace utils {
 
-DSN_DEFINE_bool("replication", enable_latency_tracer, false, "whether enable the latency tracer");
+DSN_DEFINE_bool("replication",
+                enable_latency_tracer,
+                false,
+                "whether enable the global latency tracer");
 DSN_TAG_VARIABLE(enable_latency_tracer, FT_MUTABLE);
 
 DSN_DEFINE_bool("replication",
@@ -79,6 +82,14 @@ perf_counter_ptr get_trace_counter(const std::string &name)
 
 bool is_enable_trace(const dsn::task_code code)
 {
+    if (!FLAGS_enable_latency_tracer) {
+        return false;
+    }
+
+    if (code == LPC_LATENCY_TRACE) {
+        return true;
+    }
+
     std::string code_name(dsn::task_code(code).to_string());
     {
         utils::auto_read_lock read(task_code_lock);
@@ -112,14 +123,9 @@ latency_tracer::latency_tracer(bool is_sub,
       _threshold(threshold),
       _start_time(dsn_now_ns()),
       _last_time(_start_time),
-      _task_code(code)
+      _task_code(code),
+      _enable_trace(is_enable_trace(code))
 {
-    if (code == LPC_LATENCY_TRACE) {
-        _enable_trace = true;
-    } else {
-        _enable_trace = is_enable_trace(_task_code);
-    }
-
     append_point(fmt::format("{}:{}:{}", __FILENAME__, __LINE__, __FUNCTION__), _start_time);
 }
 
@@ -135,7 +141,7 @@ latency_tracer::~latency_tracer()
 
 void latency_tracer::add_point(const std::string &stage_name)
 {
-    if (!FLAGS_enable_latency_tracer || !_enable_trace) {
+    if (!_enable_trace) {
         return;
     }
 
@@ -147,7 +153,7 @@ void latency_tracer::add_point(const std::string &stage_name)
 
 void latency_tracer::append_point(const std::string &stage_name, uint64_t timestamp)
 {
-    if (!FLAGS_enable_latency_tracer || !_enable_trace) {
+    if (!_enable_trace) {
         return;
     }
 
@@ -159,7 +165,7 @@ void latency_tracer::append_point(const std::string &stage_name, uint64_t timest
 
 void latency_tracer::add_sub_tracer(const std::shared_ptr<latency_tracer> &tracer)
 {
-    if (!FLAGS_enable_latency_tracer || !_enable_trace) {
+    if (!_enable_trace) {
         return;
     }
 
@@ -180,62 +186,72 @@ std::shared_ptr<latency_tracer> latency_tracer::sub_tracer(const std::string &na
 
 void latency_tracer::dump_trace_points(/*out*/ std::string &traces)
 {
-    if (!FLAGS_enable_latency_tracer || !_enable_trace || _threshold < 0 || _points.empty()) {
+    if (!_enable_trace || _threshold < 0) {
         return;
     }
 
-    utils::auto_read_lock point_lock(_point_lock);
-    utils::auto_read_lock tracer_lock(_sub_lock);
-
-    uint64_t start_time = _points.begin()->first;
-    uint64_t time_used = _points.rbegin()->first - start_time;
-    std::string header_format = _is_sub ? "          " : "***************";
-    traces.append(fmt::format("\t{}[TRACE:[{}.{}]{}]{}\n",
-                              header_format,
-                              _description,
-                              dsn::task_code(_task_code).to_string(),
-                              _name,
-                              header_format));
-    uint64_t previous_point_ts = _points.begin()->first;
-    std::string previous_point_name = _points.begin()->second;
-    for (const auto &point : _points) {
-        if (point.first == start_time) {
-            continue;
-        }
-        auto cur_point_ts = point.first;
-        auto cur_point_name = point.second;
-        auto span_duration = point.first - previous_point_ts;
-        auto total_latency = point.first - start_time;
-
-        if (FLAGS_enable_latency_tracer_report) {
-            std::string counter_name =
-                fmt::format("[{}]{}@{}", _description, previous_point_name, cur_point_name);
-            report_trace_point(counter_name, span_duration);
+    uint64_t total_time_used;
+    {
+        utils::auto_read_lock point_lock(_point_lock);
+        if (_points.empty()) {
+            return;
         }
 
-        if (time_used >= _threshold) {
-            std::string trace_format = _is_sub ? " " : "";
-            std::string trace_name =
-                _is_sub ? fmt::format("{}.{}", _parent_point_name, cur_point_name) : cur_point_name;
-            std::string trace_log = fmt::format("\t{}TRACE:name={:<70}, span={:>20}, total={:>20}, "
-                                                "ts={:<20}\n",
-                                                trace_format,
-                                                trace_name,
-                                                span_duration,
-                                                total_latency,
-                                                cur_point_ts);
-            traces.append(trace_log);
-        }
+        uint64_t start_time = _points.begin()->first;
+        total_time_used = _points.rbegin()->first - start_time;
+        std::string header_format = _is_sub ? "          " : "***************";
+        traces.append(fmt::format("\t{}[TRACE:[{}.{}]{}]{}\n",
+                                  header_format,
+                                  _description,
+                                  dsn::task_code(_task_code).to_string(),
+                                  _name,
+                                  header_format));
+        uint64_t previous_point_ts = _points.begin()->first;
+        std::string previous_point_name = _points.begin()->second;
+        for (const auto &point : _points) {
+            if (point.first == start_time) {
+                continue;
+            }
+            auto cur_point_ts = point.first;
+            auto cur_point_name = point.second;
+            auto span_duration = point.first - previous_point_ts;
+            auto total_latency = point.first - start_time;
 
-        previous_point_ts = cur_point_ts;
-        previous_point_name = cur_point_name;
+            if (FLAGS_enable_latency_tracer_report) {
+                std::string counter_name =
+                    fmt::format("[{}]{}@{}", _description, previous_point_name, cur_point_name);
+                report_trace_point(counter_name, span_duration);
+            }
+
+            if (total_time_used >= _threshold) {
+                std::string trace_format = _is_sub ? " " : "";
+                std::string trace_name =
+                    _is_sub ? fmt::format("{}.{}", _parent_point_name, cur_point_name)
+                            : cur_point_name;
+                std::string trace_log =
+                    fmt::format("\t{}TRACE:name={:<70}, span={:>20}, total={:>20}, "
+                                "ts={:<20}\n",
+                                trace_format,
+                                trace_name,
+                                span_duration,
+                                total_latency,
+                                cur_point_ts);
+                traces.append(trace_log);
+            }
+
+            previous_point_ts = cur_point_ts;
+            previous_point_name = cur_point_name;
+        }
     }
 
-    for (const auto &sub : _sub_tracers) {
-        sub.second->dump_trace_points(traces);
+    {
+        utils::auto_read_lock tracer_lock(_sub_lock);
+        for (const auto &sub : _sub_tracers) {
+            sub.second->dump_trace_points(traces);
+        }
     }
 
-    if (!_is_sub && time_used >= _threshold) {
+    if (!_is_sub && total_time_used >= _threshold) {
         dwarn_f("TRACE:the traces as fallow:\n{}", traces);
         return;
     }
