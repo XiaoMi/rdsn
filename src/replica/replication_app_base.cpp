@@ -389,7 +389,7 @@ error_code replication_app_base::open_new_internal(replica *r,
 
 ::dsn::error_code replication_app_base::open()
 {
-    const dsn::app_info *info = _replica->get_app_info();
+    const dsn::app_info *info = get_app_info();
     int argc = 1;
     argc += (2 * info->envs.size());
     // check whether replica have some extra envs that meta don't known
