@@ -603,8 +603,5 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
                             _info.init_offset_in_private_log,
                             r->last_durable_decree());
 }
-
-const app_info *replication_app_base::get_app_info() const { return _replica->get_app_info(); }
-
 } // namespace replication
 } // namespace dsn
