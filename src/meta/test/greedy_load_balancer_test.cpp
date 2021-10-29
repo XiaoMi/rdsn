@@ -72,9 +72,7 @@ TEST(greedy_load_balancer, node_migration_info)
 TEST(greedy_load_balancer, get_skew)
 {
     std::map<rpc_address, uint32_t> count_map = {
-        {rpc_address(1, 10086), 1},
-        {rpc_address(2, 10086), 3},
-        {rpc_address(3, 10086), 5},
+        {rpc_address(1, 10086), 1}, {rpc_address(2, 10086), 3}, {rpc_address(3, 10086), 5},
     };
 
     ASSERT_EQ(get_skew(count_map), count_map.rbegin()->second - count_map.begin()->second);
