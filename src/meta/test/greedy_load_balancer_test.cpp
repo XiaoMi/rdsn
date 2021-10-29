@@ -72,7 +72,9 @@ TEST(greedy_load_balancer, node_migration_info)
 TEST(greedy_load_balancer, get_skew)
 {
     std::map<rpc_address, uint32_t> count_map = {
-        {rpc_address(1, 10086), 1}, {rpc_address(2, 10086), 3}, {rpc_address(3, 10086), 5},
+        {rpc_address(1, 10086), 1},
+        {rpc_address(2, 10086), 3},
+        {rpc_address(3, 10086), 5},
     };
 
     ASSERT_EQ(get_skew(count_map), count_map.rbegin()->second - count_map.begin()->second);
@@ -87,8 +89,8 @@ TEST(greedy_load_balancer, get_partition_count)
     ns.put_partition(gpid(apid, 2), false);
     ns.put_partition(gpid(apid, 3), false);
 
-    ASSERT_EQ(get_partition_count(ns, cluster_balance_type::COPY_PRIMARY, apid), 1);
-    ASSERT_EQ(get_partition_count(ns, cluster_balance_type::COPY_SECONDARY, apid), 3);
+    ASSERT_EQ(get_partition_count(ns, balance_type::COPY_PRIMARY, apid), 1);
+    ASSERT_EQ(get_partition_count(ns, balance_type::COPY_SECONDARY, apid), 3);
 }
 
 TEST(greedy_load_balancer, get_app_migration_info)
@@ -114,15 +116,15 @@ TEST(greedy_load_balancer, get_app_migration_info)
     greedy_load_balancer::app_migration_info migration_info;
     {
         app->partitions[0].max_replica_count = 100;
-        auto res = balancer.get_app_migration_info(
-            app, nodes, cluster_balance_type::COPY_PRIMARY, migration_info);
+        auto res =
+            balancer.get_app_migration_info(app, nodes, balance_type::COPY_PRIMARY, migration_info);
         ASSERT_FALSE(res);
     }
 
     {
         app->partitions[0].max_replica_count = 1;
-        auto res = balancer.get_app_migration_info(
-            app, nodes, cluster_balance_type::COPY_PRIMARY, migration_info);
+        auto res =
+            balancer.get_app_migration_info(app, nodes, balance_type::COPY_PRIMARY, migration_info);
         ASSERT_TRUE(res);
         ASSERT_EQ(migration_info.app_id, appid);
         ASSERT_EQ(migration_info.app_name, appname);
@@ -216,7 +218,7 @@ TEST(greedy_load_balancer, get_disk_partitions_map)
     node_info.partitions[disk_tag] = partitions;
     cluster_info.nodes_info[addr] = node_info;
 
-    cluster_info.type = cluster_balance_type::COPY_SECONDARY;
+    cluster_info.type = balance_type::COPY_SECONDARY;
     disk_partitions = balancer.get_disk_partitions_map(cluster_info, addr, app_id);
     ASSERT_EQ(disk_partitions.size(), 1);
     ASSERT_EQ(disk_partitions.count(disk_tag), 1);
@@ -227,7 +229,7 @@ TEST(greedy_load_balancer, get_disk_partitions_map)
 TEST(greedy_load_balancer, get_max_load_disk)
 {
     greedy_load_balancer::cluster_migration_info cluster_info;
-    cluster_info.type = cluster_balance_type::COPY_SECONDARY;
+    cluster_info.type = balance_type::COPY_SECONDARY;
 
     rpc_address addr(1, 10086);
     int32_t app_id = 1;
@@ -273,7 +275,7 @@ TEST(greedy_load_balancer, apply_move)
     minfo.source_disk_tag = disk_tag;
     rpc_address target_node(2, 10086);
     minfo.target_node = target_node;
-    minfo.type = balance_type::move_primary;
+    minfo.type = balance_type::MOVE_PRIMARY;
 
     node_mapper nodes;
     app_mapper apps;
@@ -284,7 +286,7 @@ TEST(greedy_load_balancer, apply_move)
     greedy_load_balancer balancer(nullptr);
     balancer.t_global_view = &view;
     greedy_load_balancer::cluster_migration_info cluster_info;
-    cluster_info.type = cluster_balance_type::COPY_SECONDARY;
+    cluster_info.type = balance_type::COPY_SECONDARY;
     partition_set selected_pids;
     migration_list list;
     balancer.t_migration_result = &list;
