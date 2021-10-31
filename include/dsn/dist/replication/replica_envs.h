@@ -63,5 +63,6 @@ public:
     static const std::string USER_SPECIFIED_COMPACTION;
 };
 
+    
 } // namespace replication
 } // namespace dsn
