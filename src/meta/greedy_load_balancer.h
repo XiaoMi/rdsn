@@ -39,26 +39,20 @@
 
 namespace dsn {
 namespace replication {
-enum class cluster_balance_type
+enum class balance_type
 {
     COPY_PRIMARY = 0,
     COPY_SECONDARY,
+    MOVE_PRIMARY,
     INVALID,
 };
-ENUM_BEGIN(cluster_balance_type, cluster_balance_type::INVALID)
-ENUM_REG(cluster_balance_type::COPY_PRIMARY)
-ENUM_REG(cluster_balance_type::COPY_SECONDARY)
-ENUM_END(cluster_balance_type)
+ENUM_BEGIN(balance_type, balance_type::INVALID)
+ENUM_REG(balance_type::COPY_PRIMARY)
+ENUM_REG(balance_type::COPY_SECONDARY)
+ENUM_REG(balance_type::MOVE_PRIMARY)
+ENUM_END(balance_type)
 
-// TODO: combine with cluster_balance_type
-enum class balance_type
-{
-    move_primary,
-    copy_primary,
-    copy_secondary
-};
-
-uint32_t get_partition_count(const node_state &ns, cluster_balance_type type, int32_t app_id);
+uint32_t get_partition_count(const node_state &ns, balance_type type, int32_t app_id);
 uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map);
 void get_min_max_set(const std::map<rpc_address, uint32_t> &node_count_map,
                      /*out*/ std::set<rpc_address> &min_set,
@@ -270,11 +264,11 @@ private:
     void balance_cluster();
 
     bool cluster_replica_balance(const meta_view *global_view,
-                                 const cluster_balance_type type,
+                                 const balance_type type,
                                  /*out*/ migration_list &list);
 
     bool do_cluster_replica_balance(const meta_view *global_view,
-                                    const cluster_balance_type type,
+                                    const balance_type type,
                                     /*out*/ migration_list &list);
 
     struct app_migration_info
@@ -322,7 +316,7 @@ private:
 
     struct cluster_migration_info
     {
-        cluster_balance_type type;
+        balance_type type;
         std::map<int32_t, uint32_t> apps_skew;
         std::map<int32_t, app_migration_info> apps_info;
         std::map<rpc_address, node_migration_info> nodes_info;
@@ -339,12 +333,12 @@ private:
     };
 
     bool get_cluster_migration_info(const meta_view *global_view,
-                                    const cluster_balance_type type,
+                                    const balance_type type,
                                     /*out*/ cluster_migration_info &cluster_info);
 
     bool get_app_migration_info(std::shared_ptr<app_state> app,
                                 const node_mapper &nodes,
-                                const cluster_balance_type type,
+                                const balance_type type,
                                 /*out*/ app_migration_info &info);
 
     void get_node_migration_info(const node_state &ns,

@@ -47,18 +47,18 @@ DSN_DEFINE_uint32("meta_server",
                   "balance operation count per round for cluster balancer");
 DSN_TAG_VARIABLE(balance_op_count_per_round, FT_MUTABLE);
 
-uint32_t get_partition_count(const node_state &ns, cluster_balance_type type, int32_t app_id)
+uint32_t get_partition_count(const node_state &ns, balance_type type, int32_t app_id)
 {
     unsigned count = 0;
     switch (type) {
-    case cluster_balance_type::COPY_SECONDARY:
+    case balance_type::COPY_SECONDARY:
         if (app_id > 0) {
             count = ns.partition_count(app_id) - ns.primary_count(app_id);
         } else {
             count = ns.partition_count() - ns.primary_count();
         }
         break;
-    case cluster_balance_type::COPY_PRIMARY:
+    case balance_type::COPY_PRIMARY:
         if (app_id > 0) {
             count = ns.primary_count(app_id);
         } else {
@@ -128,7 +128,7 @@ generate_balancer_request(const app_mapper &apps,
 
     std::string ans;
     switch (type) {
-    case balance_type::move_primary:
+    case balance_type::MOVE_PRIMARY:
         ans = "move_primary";
         result.balance_type = balancer_request_type::move_primary;
         result.action_list.emplace_back(
@@ -136,7 +136,7 @@ generate_balancer_request(const app_mapper &apps,
         result.action_list.emplace_back(
             new_proposal_action(to, to, config_type::CT_UPGRADE_TO_PRIMARY));
         break;
-    case balance_type::copy_primary:
+    case balance_type::COPY_PRIMARY:
         ans = "copy_primary";
         result.balance_type = balancer_request_type::copy_primary;
         result.action_list.emplace_back(
@@ -147,7 +147,7 @@ generate_balancer_request(const app_mapper &apps,
             new_proposal_action(to, to, config_type::CT_UPGRADE_TO_PRIMARY));
         result.action_list.emplace_back(new_proposal_action(to, from, config_type::CT_REMOVE));
         break;
-    case balance_type::copy_secondary:
+    case balance_type::COPY_SECONDARY:
         ans = "copy_secondary";
         result.balance_type = balancer_request_type::copy_secondary;
         result.action_list.emplace_back(
@@ -629,7 +629,7 @@ void greedy_load_balancer::start_moving_primary(const std::shared_ptr<app_state>
         auto balancer_result = t_migration_result->emplace(
             selected,
             generate_balancer_request(
-                *t_global_view->apps, pc, balance_type::move_primary, from, to));
+                *t_global_view->apps, pc, balance_type::MOVE_PRIMARY, from, to));
         dassert_f(balancer_result.second, "gpid({}) already inserted as an action", selected);
 
         --(*prev_load)[get_disk_tag(*t_global_view->apps, from, selected)];
@@ -840,17 +840,17 @@ void greedy_load_balancer::balance_cluster()
         return;
     }
 
-    bool need_continue = cluster_replica_balance(
-        t_global_view, cluster_balance_type::COPY_SECONDARY, *t_migration_result);
+    bool need_continue =
+        cluster_replica_balance(t_global_view, balance_type::COPY_SECONDARY, *t_migration_result);
     if (!need_continue) {
         return;
     }
 
-    cluster_replica_balance(t_global_view, cluster_balance_type::COPY_PRIMARY, *t_migration_result);
+    cluster_replica_balance(t_global_view, balance_type::COPY_PRIMARY, *t_migration_result);
 }
 
 bool greedy_load_balancer::cluster_replica_balance(const meta_view *global_view,
-                                                   const cluster_balance_type type,
+                                                   const balance_type type,
                                                    /*out*/ migration_list &list)
 {
     bool enough_information = do_cluster_replica_balance(global_view, type, list);
@@ -865,7 +865,7 @@ bool greedy_load_balancer::cluster_replica_balance(const meta_view *global_view,
 }
 
 bool greedy_load_balancer::do_cluster_replica_balance(const meta_view *global_view,
-                                                      const cluster_balance_type type,
+                                                      const balance_type type,
                                                       /*out*/ migration_list &list)
 {
     cluster_migration_info cluster_info;
@@ -888,7 +888,7 @@ bool greedy_load_balancer::do_cluster_replica_balance(const meta_view *global_vi
 }
 
 bool greedy_load_balancer::get_cluster_migration_info(const meta_view *global_view,
-                                                      const cluster_balance_type type,
+                                                      const balance_type type,
                                                       /*out*/ cluster_migration_info &cluster_info)
 {
     const node_mapper &nodes = *global_view->nodes;
@@ -945,7 +945,7 @@ bool greedy_load_balancer::get_cluster_migration_info(const meta_view *global_vi
 
 bool greedy_load_balancer::get_app_migration_info(std::shared_ptr<app_state> app,
                                                   const node_mapper &nodes,
-                                                  const cluster_balance_type type,
+                                                  const balance_type type,
                                                   app_migration_info &info)
 {
     info.app_id = app->app_id;
@@ -1097,9 +1097,7 @@ bool greedy_load_balancer::pick_up_move(const cluster_migration_info &cluster_in
             move_info.source_node = max_load_node;
             move_info.source_disk_tag = max_load_disk;
             move_info.target_node = node_addr;
-            move_info.type = cluster_info.type == cluster_balance_type::COPY_SECONDARY
-                                 ? balance_type::copy_secondary
-                                 : balance_type::copy_primary;
+            move_info.type = cluster_info.type;
             ddebug_f("partition[{}] will migrate from {} to {}",
                      picked_pid,
                      max_load_node.to_string(),
@@ -1148,9 +1146,8 @@ std::map<std::string, partition_set> greedy_load_balancer::get_disk_partitions_m
         return disk_partitions;
     }
 
-    auto status = cluster_info.type == cluster_balance_type::COPY_SECONDARY
-                      ? partition_status::PS_SECONDARY
-                      : partition_status::PS_PRIMARY;
+    auto status = cluster_info.type == balance_type::COPY_SECONDARY ? partition_status::PS_SECONDARY
+                                                                    : partition_status::PS_PRIMARY;
     auto app_partition = app_iter->second.partitions;
     auto disk_partition = node_iter->second.partitions;
     for (const auto &kv : disk_partition) {
@@ -1231,9 +1228,8 @@ bool greedy_load_balancer::apply_move(const move_info &move,
             primary_addr = kv.first;
         }
     }
-    auto status = cluster_info.type == cluster_balance_type::COPY_SECONDARY
-                      ? partition_status::PS_SECONDARY
-                      : partition_status::PS_PRIMARY;
+    auto status = cluster_info.type == balance_type::COPY_SECONDARY ? partition_status::PS_SECONDARY
+                                                                    : partition_status::PS_PRIMARY;
     auto iter = pmap.find(source);
     if (iter == pmap.end() || iter->second != status) {
         return false;
@@ -1594,7 +1590,7 @@ bool copy_primary_operation::can_continue()
     return true;
 }
 
-enum balance_type copy_primary_operation::get_balance_type() { return balance_type::copy_primary; }
+enum balance_type copy_primary_operation::get_balance_type() { return balance_type::COPY_PRIMARY; }
 
 copy_secondary_operation::copy_secondary_operation(
     const std::shared_ptr<app_state> app,
@@ -1659,7 +1655,7 @@ bool copy_secondary_operation::can_select(gpid pid, migration_list *result)
 
 enum balance_type copy_secondary_operation::get_balance_type()
 {
-    return balance_type::copy_secondary;
+    return balance_type::COPY_SECONDARY;
 }
 } // namespace replication
 } // namespace dsn

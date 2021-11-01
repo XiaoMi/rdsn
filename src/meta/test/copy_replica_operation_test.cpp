@@ -262,7 +262,7 @@ TEST(copy_secondary_operation, misc)
     /**
      * Test copy_secondary_operation::get_balance_type
      */
-    ASSERT_EQ(op.get_balance_type(), balance_type::copy_secondary);
+    ASSERT_EQ(op.get_balance_type(), balance_type::COPY_SECONDARY);
 
     /**
      * Test copy_secondary_operation::only_copy_primary
