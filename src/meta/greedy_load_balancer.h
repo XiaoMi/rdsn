@@ -49,6 +49,7 @@ enum class balance_type
 ENUM_BEGIN(balance_type, balance_type::INVALID)
 ENUM_REG(balance_type::COPY_PRIMARY)
 ENUM_REG(balance_type::COPY_SECONDARY)
+ENUM_REG(balance_type::MOVE_PRIMARY)
 ENUM_END(balance_type)
 
 uint32_t get_partition_count(const node_state &ns, balance_type type, int32_t app_id);
