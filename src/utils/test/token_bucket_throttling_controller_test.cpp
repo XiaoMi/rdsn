@@ -109,7 +109,8 @@ public:
         for (int i = 0; i < 100000; i++) {
             token_bucket->consumeWithBorrowAndWait(
                 1, throttle_limit / partition_count * 0.8, throttle_limit / partition_count * 1.0);
-            if (!cntl->get_token(1)) {
+            cntl->get_token(1);
+            if (!cntl->available()) {
                 fail_count++;
             }
         }
@@ -121,7 +122,8 @@ public:
         for (int i = 0; i < 100000; i++) {
             token_bucket->consumeWithBorrowAndWait(
                 1, throttle_limit / partition_count * 1.2, throttle_limit / partition_count * 1.5);
-            if (!cntl->get_token(1)) {
+            cntl->get_token(1);
+            if (!cntl->available()) {
                 fail_count++;
             }
         }
