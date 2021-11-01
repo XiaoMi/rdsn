@@ -45,7 +45,7 @@ public:
     // return ture means you can get token
     // return false means the bucket is already empty, but the token is borrowed from future.
     // non-blocking
-    bool get_token(int32_t request_units);
+    bool consume_token(int32_t request_units);
 
     // if the bucket has no tokens, return false
     bool available();

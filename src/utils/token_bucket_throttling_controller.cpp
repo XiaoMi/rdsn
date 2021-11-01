@@ -29,7 +29,7 @@ token_bucket_throttling_controller::token_bucket_throttling_controller()
     _token_bucket = std::make_unique<DynamicTokenBucket>();
 }
 
-bool token_bucket_throttling_controller::get_token(int32_t request_units)
+bool token_bucket_throttling_controller::consume_token(int32_t request_units)
 {
     if (!_enabled) {
         return true;
