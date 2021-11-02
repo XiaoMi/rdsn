@@ -27,10 +27,13 @@
 #pragma once
 
 #include <dsn/tool-api/task.h>
-#include <dsn/utils/latency_tracer.h>
 #include <vector>
 
 namespace dsn {
+
+namespace utils {
+class latency_tracer;
+}
 
 enum aio_type
 {

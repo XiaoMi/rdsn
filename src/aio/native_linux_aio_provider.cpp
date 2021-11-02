@@ -31,6 +31,7 @@
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/fail_point.h>
+#include <dsn/utils/latency_tracer.h>
 
 namespace dsn {
 
