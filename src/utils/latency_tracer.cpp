@@ -243,10 +243,10 @@ void latency_tracer::dump_trace_points(/*out*/ std::string &traces)
             if (total_time_used >= _threshold) {
                 std::string trace_format = _is_sub ? " " : "";
                 std::string trace_name =
-                    _is_sub ? fmt::format("{}\n{}", _parent_point_name, cur_point_name)
+                    _is_sub ? fmt::format("{}.{}", _parent_point_name, cur_point_name)
                             : cur_point_name;
                 std::string trace_log =
-                    fmt::format("\t{}TRACE:name={:<70}, span={:>20}, total={:>20}, "
+                    fmt::format("\t{}TRACE:name={:<110}, span={:>20}, total={:>20}, "
                                 "ts={:<20}\n",
                                 trace_format,
                                 trace_name,
