@@ -318,6 +318,12 @@ aio_task_ptr log_file::commit_log_blocks(log_appender &pending,
                                  hash);
     }
 
+    if (utils::FLAGS_enable_latency_tracer) {
+        for (const auto &pend : pending.mutations()) {
+            pend->tracer->add_sub_tracer(tsk->tracer);
+        }
+    }
+
     _end_offset.fetch_add(size);
     return tsk;
 }

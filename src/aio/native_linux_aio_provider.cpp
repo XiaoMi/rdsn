@@ -134,12 +134,14 @@ void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk)
         return;
     }
 
+    ADD_POINT(aio_tsk->tracer);
     tasking::enqueue(
         aio_tsk->code(), aio_tsk->tracker(), [=]() { aio_internal(aio_tsk); }, aio_tsk->hash());
 }
 
 error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk)
 {
+    ADD_POINT(aio_tsk->tracer);
     aio_context *aio_ctx = aio_tsk->get_aio_context();
     error_code err = ERR_UNKNOWN;
     uint32_t processed_bytes = 0;
@@ -153,6 +155,8 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk)
     default:
         return err;
     }
+
+    ADD_CUSTOM_POINT(aio_tsk->tracer, "completed");
 
     complete_io(aio_tsk, err, processed_bytes);
     return err;
