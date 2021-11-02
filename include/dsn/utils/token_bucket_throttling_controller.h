@@ -48,7 +48,7 @@ public:
     bool consume_token(int32_t request_units);
 
     // if the bucket has no tokens, return false
-    bool available();
+    bool available() const;
 
     // reset to no throttling.
     void reset(bool &changed, std::string &old_env_value);

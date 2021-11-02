@@ -40,7 +40,7 @@ bool token_bucket_throttling_controller::consume_token(int32_t request_units)
     return (res.get_value_or(0) == 0);
 }
 
-bool token_bucket_throttling_controller::available()
+bool token_bucket_throttling_controller::available() const
 {
     if (!_enabled) {
         return true;
