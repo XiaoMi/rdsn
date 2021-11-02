@@ -154,7 +154,7 @@ public:
 
     uint64_t last_time() const { return _last_time; }
 
-    std::string last_stage_name() const { return _last_stage; }
+    const std::string &last_stage_name() const { return _last_stage; }
 
 private:
     // report the trace point duration to monitor system
