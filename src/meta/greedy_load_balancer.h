@@ -36,128 +36,16 @@
 
 #include <functional>
 #include "server_load_balancer.h"
+#include "load_balance_policy.h"
 
 namespace dsn {
 namespace replication {
-enum class balance_type
-{
-    COPY_PRIMARY = 0,
-    COPY_SECONDARY,
-    MOVE_PRIMARY,
-    INVALID,
-};
-ENUM_BEGIN(balance_type, balance_type::INVALID)
-ENUM_REG(balance_type::COPY_PRIMARY)
-ENUM_REG(balance_type::COPY_SECONDARY)
-ENUM_REG(balance_type::MOVE_PRIMARY)
-ENUM_END(balance_type)
 
 uint32_t get_partition_count(const node_state &ns, balance_type type, int32_t app_id);
 uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map);
 void get_min_max_set(const std::map<rpc_address, uint32_t> &node_count_map,
                      /*out*/ std::set<rpc_address> &min_set,
                      /*out*/ std::set<rpc_address> &max_set);
-
-struct flow_path
-{
-    flow_path(const std::shared_ptr<app_state> &app,
-              std::vector<int> &&flow,
-              std::vector<int> &&prev)
-        : _app(app), _flow(std::move(flow)), _prev(std::move(prev))
-    {
-    }
-
-    const std::shared_ptr<app_state> &_app;
-    std::vector<int> _flow, _prev;
-};
-// disk_tag -> targets(primaries/partitions)_on_this_disk
-typedef std::map<std::string, int> disk_load;
-
-// Ford Fulkerson is used for primary balance.
-// For more details: https://levy5307.github.io/blog/pegasus-balancer/
-class ford_fulkerson
-{
-public:
-    ford_fulkerson() = delete;
-    ford_fulkerson(const std::shared_ptr<app_state> &app,
-                   const node_mapper &nodes,
-                   const std::unordered_map<dsn::rpc_address, int> &address_id,
-                   uint32_t higher_count,
-                   uint32_t lower_count,
-                   int replicas_low);
-
-    // using dijstra to find shortest path
-    std::unique_ptr<flow_path> find_shortest_path();
-    bool have_less_than_average() const { return _lower_count != 0; }
-
-    class builder
-    {
-    public:
-        builder(const std::shared_ptr<app_state> &app,
-                const node_mapper &nodes,
-                const std::unordered_map<dsn::rpc_address, int> &address_id)
-            : _app(app), _nodes(nodes), _address_id(address_id)
-        {
-        }
-
-        std::unique_ptr<ford_fulkerson> build()
-        {
-            auto nodes_count = _nodes.size();
-            int replicas_low = _app->partition_count / nodes_count;
-            int replicas_high = (_app->partition_count + nodes_count - 1) / nodes_count;
-
-            uint32_t higher_count = 0, lower_count = 0;
-            for (const auto &node : _nodes) {
-                int primary_count = node.second.primary_count(_app->app_id);
-                if (primary_count > replicas_high) {
-                    higher_count++;
-                } else if (primary_count < replicas_low) {
-                    lower_count++;
-                }
-            }
-
-            if (0 == higher_count && 0 == lower_count) {
-                return nullptr;
-            }
-            return dsn::make_unique<ford_fulkerson>(
-                _app, _nodes, _address_id, higher_count, lower_count, replicas_low);
-        }
-
-    private:
-        const std::shared_ptr<app_state> &_app;
-        const node_mapper &_nodes;
-        const std::unordered_map<dsn::rpc_address, int> &_address_id;
-    };
-
-private:
-    void make_graph();
-    void add_edge(int node_id, const node_state &ns);
-    void update_decree(int node_id, const node_state &ns);
-    void handle_corner_case();
-
-    int select_node(std::vector<bool> &visit, const std::vector<int> &flow);
-    int max_value_pos(const std::vector<bool> &visit, const std::vector<int> &flow);
-    void update_flow(int pos,
-                     const std::vector<bool> &visit,
-                     const std::vector<std::vector<int>> &network,
-                     std::vector<int> &flow,
-                     std::vector<int> &prev);
-
-    const std::shared_ptr<app_state> &_app;
-    const node_mapper &_nodes;
-    const std::unordered_map<dsn::rpc_address, int> &_address_id;
-    uint32_t _higher_count;
-    uint32_t _lower_count;
-    int _replicas_low;
-    size_t _graph_nodes;
-    std::vector<std::vector<int>> _network;
-
-    FRIEND_TEST(ford_fulkerson, add_edge);
-    FRIEND_TEST(ford_fulkerson, update_decree);
-    FRIEND_TEST(ford_fulkerson, find_shortest_path);
-    FRIEND_TEST(ford_fulkerson, max_value_pos);
-    FRIEND_TEST(ford_fulkerson, select_node);
-};
 
 class greedy_load_balancer : public server_load_balancer
 {
@@ -195,6 +83,8 @@ private:
     // and these are generated from the above data, which are tempory too
     std::unordered_map<dsn::rpc_address, int> address_id;
     std::vector<dsn::rpc_address> address_vec;
+
+    std::unique_ptr<load_balance_policy> _app_balance_policy;
 
     // options
     bool _balancer_in_turn;
@@ -246,13 +136,7 @@ private:
                             rpc_address to);
     bool copy_primary(const std::shared_ptr<app_state> &app, bool still_have_less_than_average);
 
-    bool copy_secondary(const std::shared_ptr<app_state> &app, bool place_holder);
-
     void greedy_balancer(bool balance_checker);
-
-    void app_balancer(bool balance_checker);
-
-    bool need_balance_secondaries(bool balance_checker);
 
     bool execute_balance(
         const app_mapper &apps,
@@ -400,45 +284,6 @@ private:
     FRIEND_TEST(greedy_load_balancer, calc_potential_moving);
 };
 
-class copy_replica_operation
-{
-public:
-    copy_replica_operation(const std::shared_ptr<app_state> app,
-                           const app_mapper &apps,
-                           node_mapper &nodes,
-                           const std::vector<dsn::rpc_address> &address_vec,
-                           const std::unordered_map<dsn::rpc_address, int> &address_id);
-    virtual ~copy_replica_operation() = default;
-
-    bool start(migration_list *result);
-
-protected:
-    void init_ordered_address_ids();
-    virtual int get_partition_count(const node_state &ns) const = 0;
-
-    gpid select_partition(migration_list *result);
-    const partition_set *get_all_partitions();
-    gpid select_max_load_gpid(const partition_set *partitions, migration_list *result);
-    void copy_once(gpid selected_pid, migration_list *result);
-    void update_ordered_address_ids();
-    virtual bool only_copy_primary() = 0;
-    virtual bool can_select(gpid pid, migration_list *result) = 0;
-    virtual bool can_continue() = 0;
-    virtual enum balance_type get_balance_type() = 0;
-
-    std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
-    const std::shared_ptr<app_state> _app;
-    const app_mapper &_apps;
-    node_mapper &_nodes;
-    const std::vector<dsn::rpc_address> &_address_vec;
-    const std::unordered_map<dsn::rpc_address, int> &_address_id;
-    std::unordered_map<dsn::rpc_address, disk_load> _node_loads;
-    std::vector<int> _partition_counts;
-
-    FRIEND_TEST(copy_primary_operation, misc);
-    FRIEND_TEST(copy_replica_operation, get_all_partitions);
-};
-
 class copy_primary_operation : public copy_replica_operation
 {
 public:
@@ -465,29 +310,6 @@ private:
     FRIEND_TEST(copy_primary_operation, misc);
     FRIEND_TEST(copy_primary_operation, can_select);
     FRIEND_TEST(copy_primary_operation, only_copy_primary);
-};
-
-class copy_secondary_operation : public copy_replica_operation
-{
-public:
-    copy_secondary_operation(const std::shared_ptr<app_state> app,
-                             const app_mapper &apps,
-                             node_mapper &nodes,
-                             const std::vector<dsn::rpc_address> &address_vec,
-                             const std::unordered_map<dsn::rpc_address, int> &address_id,
-                             int replicas_low);
-    ~copy_secondary_operation() = default;
-
-private:
-    bool can_continue();
-    int get_partition_count(const node_state &ns) const;
-    bool can_select(gpid pid, migration_list *result);
-    enum balance_type get_balance_type();
-    bool only_copy_primary() { return false; }
-
-    int _replicas_low;
-
-    FRIEND_TEST(copy_secondary_operation, misc);
 };
 
 inline configuration_proposal_action
