@@ -184,8 +184,6 @@ void latency_tracer::add_sub_tracer(const std::shared_ptr<latency_tracer> &trace
         return;
     }
 
-    tracer->set_parent_point_name(_last_stage);
-    tracer->set_description(_description);
     utils::auto_write_lock write(_sub_lock);
     _sub_tracers.emplace(tracer->name(), tracer);
 }
