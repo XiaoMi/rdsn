@@ -10,7 +10,11 @@
 namespace dsn {
 namespace replication {
 
-app_balance_policy::app_balance_policy(meta_service *svc) : load_balance_policy(svc)
+app_balance_policy::app_balance_policy(meta_service *svc)
+    : load_balance_policy(svc),
+      _ctrl_balancer_in_turn(nullptr),
+      _ctrl_only_primary_balancer(nullptr),
+      _ctrl_only_move_primary(nullptr)
 {
     if (_svc != nullptr) {
         _balancer_in_turn = _svc->get_meta_options()._lb_opts.balancer_in_turn;

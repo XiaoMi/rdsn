@@ -141,13 +141,17 @@ void greedy_load_balancer::register_ctrl_commands()
         "meta.lb.get_balance_operation_count [total | move_pri | copy_pri | copy_sec | detail]",
         "get balance operation count",
         [this](const std::vector<std::string> &args) { return get_balance_operation_count(args); });
-    _app_balance_policy->register_ctrl_commands();
+    if (_app_balance_policy != nullptr) {
+        _app_balance_policy->register_ctrl_commands();
+    }
 }
 
 void greedy_load_balancer::unregister_ctrl_commands()
 {
     UNREGISTER_VALID_HANDLER(_get_balance_operation_count);
-    _app_balance_policy->unregister_ctrl_commands();
+    if (_app_balance_policy != nullptr) {
+        _app_balance_policy->unregister_ctrl_commands();
+    }
 }
 
 std::string greedy_load_balancer::get_balance_operation_count(const std::vector<std::string> &args)

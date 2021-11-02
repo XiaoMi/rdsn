@@ -169,7 +169,10 @@ generate_balancer_request(const app_mapper &apps,
     return std::make_shared<configuration_balancer_request>(std::move(result));
 }
 
-load_balance_policy::load_balance_policy(meta_service *svc) : _svc(svc) {}
+load_balance_policy::load_balance_policy(meta_service *svc)
+    : _svc(svc), _ctrl_balancer_ignored_apps(nullptr)
+{
+}
 
 void load_balance_policy::init(const meta_view *global_view, migration_list *list)
 {
