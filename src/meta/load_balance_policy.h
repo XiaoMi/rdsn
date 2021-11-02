@@ -62,6 +62,7 @@ public:
     virtual void unregister_ctrl_commands();
 
 protected:
+    void init(const meta_view *global_view, migration_list *list);
     bool execute_balance(
         const app_mapper &apps,
         bool balance_checker,

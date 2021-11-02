@@ -169,6 +169,15 @@ generate_balancer_request(const app_mapper &apps,
     return std::make_shared<configuration_balancer_request>(std::move(result));
 }
 
+void load_balance_policy::init(const meta_view *global_view, migration_list *list)
+{
+    _global_view = global_view;
+    _migration_result = list;
+    const node_mapper &nodes = *_global_view->nodes;
+    _alive_nodes = nodes.size();
+    number_nodes(nodes);
+}
+
 bool load_balance_policy::primary_balance(const std::shared_ptr<app_state> &app,
                                           bool only_move_primary)
 {

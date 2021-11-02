@@ -11,13 +11,8 @@ namespace replication {
 
 void app_balance_policy::balance(bool checker, const meta_view *global_view, migration_list *list)
 {
-    const node_mapper &nodes = *_global_view->nodes;
+    init(global_view, list);
     const app_mapper &apps = *_global_view->apps;
-    _global_view = global_view;
-    _migration_result = list;
-    _alive_nodes = nodes.size();
-    number_nodes(nodes);
-
     if (!execute_balance(apps,
                          checker,
                          _balancer_in_turn,
