@@ -1,0 +1,7 @@
+ls
+help
+remote-command
+remote-command replica 
+remote-command replica ls
+remote-command replica help
+remote-command replica replica.release-all-reserved-memory
