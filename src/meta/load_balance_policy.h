@@ -52,10 +52,11 @@ generate_balancer_request(const app_mapper &apps,
                           const rpc_address &to);
 
 struct flow_path;
+class meta_service;
 class load_balance_policy
 {
 public:
-    load_balance_policy() = default;
+    load_balance_policy(meta_service *svc);
 
     virtual void balance(bool checker, const meta_view *global_view, migration_list *list) = 0;
     virtual void register_ctrl_commands();
@@ -94,6 +95,7 @@ protected:
     std::string get_balancer_ignored_app_ids();
     std::string clear_balancer_ignored_app_ids();
 
+    meta_service *_svc;
     const meta_view *_global_view;
     migration_list *_migration_result;
     int _alive_nodes;

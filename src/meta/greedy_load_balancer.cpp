@@ -104,23 +104,9 @@ void get_min_max_set(const std::map<rpc_address, uint32_t> &node_count_map,
 }
 
 greedy_load_balancer::greedy_load_balancer(meta_service *_svc)
-    : server_load_balancer(_svc),
-      _ctrl_balancer_ignored_apps(nullptr),
-      _ctrl_balancer_in_turn(nullptr),
-      _ctrl_only_primary_balancer(nullptr),
-      _ctrl_only_move_primary(nullptr),
-      _get_balance_operation_count(nullptr)
+    : server_load_balancer(_svc), _get_balance_operation_count(nullptr)
 {
-    if (_svc != nullptr) {
-        _balancer_in_turn = _svc->get_meta_options()._lb_opts.balancer_in_turn;
-        _only_primary_balancer = _svc->get_meta_options()._lb_opts.only_primary_balancer;
-        _only_move_primary = _svc->get_meta_options()._lb_opts.only_move_primary;
-    } else {
-        _balancer_in_turn = false;
-        _only_primary_balancer = false;
-        _only_move_primary = false;
-    }
-    _app_balance_policy = dsn::make_unique<app_balance_policy>();
+    _app_balance_policy = dsn::make_unique<app_balance_policy>(_svc);
 
     ::memset(t_operation_counters, 0, sizeof(t_operation_counters));
 

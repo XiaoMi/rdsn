@@ -86,19 +86,10 @@ private:
 
     std::unique_ptr<load_balance_policy> _app_balance_policy;
 
-    // options
-    bool _balancer_in_turn;
-    bool _only_primary_balancer;
-    bool _only_move_primary;
-
     // the app set which won't be re-balanced
     std::set<app_id> _balancer_ignored_apps;
     dsn::zrwlock_nr _balancer_ignored_apps_lock;
 
-    dsn_handle_t _ctrl_balancer_ignored_apps;
-    dsn_handle_t _ctrl_balancer_in_turn;
-    dsn_handle_t _ctrl_only_primary_balancer;
-    dsn_handle_t _ctrl_only_move_primary;
     dsn_handle_t _get_balance_operation_count;
 
     // perf counters

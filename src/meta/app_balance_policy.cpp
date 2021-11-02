@@ -5,9 +5,23 @@
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/dist/fmt_logging.h>
 #include "app_balance_policy.h"
+#include "meta_service.h"
 
 namespace dsn {
 namespace replication {
+
+app_balance_policy::app_balance_policy(meta_service *svc) : load_balance_policy(svc)
+{
+    if (_svc != nullptr) {
+        _balancer_in_turn = _svc->get_meta_options()._lb_opts.balancer_in_turn;
+        _only_primary_balancer = _svc->get_meta_options()._lb_opts.only_primary_balancer;
+        _only_move_primary = _svc->get_meta_options()._lb_opts.only_move_primary;
+    } else {
+        _balancer_in_turn = false;
+        _only_primary_balancer = false;
+        _only_move_primary = false;
+    }
+}
 
 void app_balance_policy::balance(bool checker, const meta_view *global_view, migration_list *list)
 {

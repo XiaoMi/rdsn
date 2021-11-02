@@ -24,7 +24,7 @@ namespace replication {
 class app_balance_policy : public load_balance_policy
 {
 public:
-    app_balance_policy() = default;
+    app_balance_policy(meta_service *svc);
 
     void balance(bool checker, const meta_view *global_view, migration_list *list);
     void register_ctrl_commands();
