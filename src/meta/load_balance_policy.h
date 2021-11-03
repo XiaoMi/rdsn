@@ -63,6 +63,8 @@ public:
 
 protected:
     void init(const meta_view *global_view, migration_list *list);
+    bool is_ignored_app(app_id app_id);
+
     bool execute_balance(
         const app_mapper &apps,
         bool balance_checker,
@@ -89,7 +91,6 @@ protected:
     dsn_handle_t _ctrl_balancer_ignored_apps;
 
 private:
-    bool is_ignored_app(app_id app_id);
     void start_moving_primary(const std::shared_ptr<app_state> &app,
                               const rpc_address &from,
                               const rpc_address &to,
@@ -113,6 +114,8 @@ private:
 
     void register_ctrl_commands();
     void unregister_ctrl_commands();
+
+    FRIEND_TEST(cluster_balance_policy, calc_potential_moving);
 };
 
 struct flow_path
