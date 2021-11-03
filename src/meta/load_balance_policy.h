@@ -252,5 +252,34 @@ protected:
     FRIEND_TEST(copy_primary_operation, misc);
     FRIEND_TEST(copy_replica_operation, get_all_partitions);
 };
+
+class copy_primary_operation : public copy_replica_operation
+{
+public:
+    copy_primary_operation(const std::shared_ptr<app_state> app,
+                           const app_mapper &apps,
+                           node_mapper &nodes,
+                           const std::vector<dsn::rpc_address> &address_vec,
+                           const std::unordered_map<dsn::rpc_address, int> &address_id,
+                           bool have_lower_than_average,
+                           int replicas_low);
+    ~copy_primary_operation() = default;
+
+private:
+    int get_partition_count(const node_state &ns) const;
+
+    bool only_copy_primary() { return true; }
+    bool can_select(gpid pid, migration_list *result);
+    bool can_continue();
+    enum balance_type get_balance_type();
+
+    bool _have_lower_than_average;
+    int _replicas_low;
+
+    FRIEND_TEST(copy_primary_operation, misc);
+    FRIEND_TEST(copy_primary_operation, can_select);
+    FRIEND_TEST(copy_primary_operation, only_copy_primary);
+};
+
 } // namespace replication
 } // namespace dsn
