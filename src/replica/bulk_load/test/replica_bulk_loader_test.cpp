@@ -495,12 +495,11 @@ TEST_F(replica_bulk_loader_test, start_downloading_test)
                ERR_BUSY,
                bulk_load_status::BLS_INVALID,
                MAX_DOWNLOADING_COUNT},
-              {false, 1, ERR_CORRUPTION, bulk_load_status::BLS_DOWNLOADING, 1},
               {true, 1, ERR_OK, bulk_load_status::BLS_DOWNLOADING, 2}};
 
     for (auto test : tests) {
         if (test.mock_function) {
-            fail::cfg("replica_bulk_loader_download_sst_files", "return()");
+            fail::cfg("replica_bulk_loader_download_files", "return()");
         }
         mock_group_progress(bulk_load_status::BLS_INVALID);
         create_bulk_load_request(bulk_load_status::BLS_DOWNLOADING, test.downloading_count);
@@ -514,7 +513,7 @@ TEST_F(replica_bulk_loader_test, start_downloading_test)
 // start_downloading unit tests
 TEST_F(replica_bulk_loader_test, rollback_to_downloading_test)
 {
-    fail::cfg("replica_bulk_loader_download_sst_files", "return()");
+    fail::cfg("replica_bulk_loader_download_files", "return()");
     struct test_struct
     {
         bulk_load_status::type status;
