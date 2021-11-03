@@ -46,6 +46,7 @@ DSN_DEFINE_uint64("replication",
                   abnormal_write_trace_latency_threshold,
                   1000 * 1000 * 1000, // 1s
                   "latency trace will be logged when exceed the write latency threshold");
+DSN_TAG_VARIABLE(abnormal_write_trace_latency_threshold, FT_MUTABLE);
 
 std::atomic<uint64_t> mutation::s_tid(0);
 
