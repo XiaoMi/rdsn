@@ -60,8 +60,6 @@ public:
     virtual ~load_balance_policy() = 0;
 
     virtual void balance(bool checker, const meta_view *global_view, migration_list *list) = 0;
-    virtual void register_ctrl_commands();
-    virtual void unregister_ctrl_commands();
 
 protected:
     void init(const meta_view *global_view, migration_list *list);
@@ -71,10 +69,27 @@ protected:
         bool balance_in_turn,
         bool only_move_primary,
         const std::function<bool(const std::shared_ptr<app_state> &, bool)> &balance_operation);
-    bool is_ignored_app(app_id app_id);
     bool primary_balance(const std::shared_ptr<app_state> &app, bool only_move_primary);
     bool move_primary(std::unique_ptr<flow_path> path);
     bool copy_primary(const std::shared_ptr<app_state> &app, bool still_have_less_than_average);
+
+    meta_service *_svc;
+    const meta_view *_global_view;
+    migration_list *_migration_result;
+    int _alive_nodes;
+    // this is used to assign an integer id for every node
+    // and these are generated from the above data, which are tempory too
+    std::unordered_map<dsn::rpc_address, int> address_id;
+    std::vector<dsn::rpc_address> address_vec;
+
+    // the app set which won't be re-balanced
+    dsn::zrwlock_nr _balancer_ignored_apps_lock; // {
+    std::set<app_id> _balancer_ignored_apps;
+    // }
+    dsn_handle_t _ctrl_balancer_ignored_apps;
+
+private:
+    bool is_ignored_app(app_id app_id);
     void start_moving_primary(const std::shared_ptr<app_state> &app,
                               const rpc_address &from,
                               const rpc_address &to,
@@ -96,21 +111,8 @@ protected:
     std::string get_balancer_ignored_app_ids();
     std::string clear_balancer_ignored_app_ids();
 
-    meta_service *_svc;
-    const meta_view *_global_view;
-    migration_list *_migration_result;
-    int _alive_nodes;
-    // this is used to assign an integer id for every node
-    // and these are generated from the above data, which are tempory too
-    std::unordered_map<dsn::rpc_address, int> address_id;
-    std::vector<dsn::rpc_address> address_vec;
-
-    // the app set which won't be re-balanced
-    dsn::zrwlock_nr _balancer_ignored_apps_lock; // {
-    std::set<app_id> _balancer_ignored_apps;
-    // }
-
-    dsn_handle_t _ctrl_balancer_ignored_apps;
+    void register_ctrl_commands();
+    void unregister_ctrl_commands();
 };
 
 struct flow_path

@@ -254,11 +254,6 @@ private:
 
     bool all_replica_infos_collected(const node_state &ns);
 
-    std::string remote_command_balancer_ignored_app_ids(const std::vector<std::string> &args);
-    std::string set_balancer_ignored_app_ids(const std::vector<std::string> &args);
-    std::string get_balancer_ignored_app_ids();
-    std::string clear_balancer_ignored_app_ids();
-
     bool is_ignored_app(app_id app_id);
 
     FRIEND_TEST(greedy_load_balancer, app_migration_info);

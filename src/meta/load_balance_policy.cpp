@@ -172,9 +172,10 @@ generate_balancer_request(const app_mapper &apps,
 load_balance_policy::load_balance_policy(meta_service *svc)
     : _svc(svc), _ctrl_balancer_ignored_apps(nullptr)
 {
+    register_ctrl_commands();
 }
 
-load_balance_policy::~load_balance_policy() = default;
+load_balance_policy::~load_balance_policy() { unregister_ctrl_commands(); }
 
 void load_balance_policy::init(const meta_view *global_view, migration_list *list)
 {

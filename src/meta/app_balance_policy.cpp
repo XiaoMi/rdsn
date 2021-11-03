@@ -38,7 +38,10 @@ app_balance_policy::app_balance_policy(meta_service *svc)
         _only_primary_balancer = false;
         _only_move_primary = false;
     }
+    register_ctrl_commands();
 }
+
+app_balance_policy::~app_balance_policy() { unregister_ctrl_commands(); }
 
 void app_balance_policy::balance(bool checker, const meta_view *global_view, migration_list *list)
 {
@@ -75,7 +78,6 @@ void app_balance_policy::balance(bool checker, const meta_view *global_view, mig
 
 void app_balance_policy::register_ctrl_commands()
 {
-    load_balance_policy::register_ctrl_commands();
     static std::once_flag flag;
     std::call_once(flag, [&]() {
         _ctrl_balancer_in_turn = dsn::command_manager::instance().register_command(
@@ -108,7 +110,6 @@ void app_balance_policy::register_ctrl_commands()
 
 void app_balance_policy::unregister_ctrl_commands()
 {
-    load_balance_policy::unregister_ctrl_commands();
     UNREGISTER_VALID_HANDLER(_ctrl_balancer_in_turn);
     UNREGISTER_VALID_HANDLER(_ctrl_only_primary_balancer);
     UNREGISTER_VALID_HANDLER(_ctrl_only_move_primary);
