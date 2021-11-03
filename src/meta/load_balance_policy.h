@@ -57,6 +57,7 @@ class load_balance_policy
 {
 public:
     load_balance_policy(meta_service *svc);
+    virtual ~load_balance_policy() = 0;
 
     virtual void balance(bool checker, const meta_view *global_view, migration_list *list) = 0;
     virtual void register_ctrl_commands();

@@ -174,6 +174,8 @@ load_balance_policy::load_balance_policy(meta_service *svc)
 {
 }
 
+load_balance_policy::~load_balance_policy() = default;
+
 void load_balance_policy::init(const meta_view *global_view, migration_list *list)
 {
     _global_view = global_view;
