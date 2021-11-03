@@ -361,6 +361,7 @@ mutation_ptr mutation_queue::add_work(task_code code, dsn::message_ex *request, 
         ++(*_pcount);
     }
 
+
     // add to work queue
     if (!_pending_mutation) {
         _pending_mutation = r->new_mutation(invalid_decree);
