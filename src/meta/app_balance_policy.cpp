@@ -117,7 +117,7 @@ void app_balance_policy::unregister_ctrl_commands()
 bool app_balance_policy::need_balance_secondaries(bool balance_checker)
 {
     if (!balance_checker && !_migration_result->empty()) {
-        ddebug("stop to do secondary balance coz we already has actions to do");
+        ddebug("stop to do secondary balance coz we already have actions to do");
         return false;
     }
     if (_only_primary_balancer) {

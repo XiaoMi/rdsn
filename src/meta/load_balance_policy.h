@@ -21,7 +21,7 @@
 
 namespace dsn {
 namespace replication {
-// disk_tag -> targets(primaries/partitions)_on_this_disk
+// disk_tag->primary_count/total_count_on_this_disk
 typedef std::map<std::string, int> disk_load;
 
 enum class balance_type
@@ -238,7 +238,7 @@ protected:
     virtual bool can_continue() = 0;
     virtual balance_type get_balance_type() = 0;
 
-    std::set<int, std::function<bool(int a, int b)>> _ordered_address_ids;
+    std::set<int, std::function<bool(int left, int right)>> _ordered_address_ids;
     const std::shared_ptr<app_state> _app;
     const app_mapper &_apps;
     node_mapper &_nodes;

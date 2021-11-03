@@ -713,11 +713,12 @@ void copy_replica_operation::init_ordered_address_ids()
         _partition_counts[id] = get_partition_count(iter.second);
     }
 
-    std::set<int, std::function<bool(int a, int b)>> ordered_queue([this](int a, int b) {
-        return _partition_counts[a] != _partition_counts[b]
-                   ? _partition_counts[a] < _partition_counts[b]
-                   : a < b;
-    });
+    std::set<int, std::function<bool(int left, int right)>> ordered_queue(
+        [this](int left, int right) {
+            return _partition_counts[left] != _partition_counts[right]
+                       ? _partition_counts[left] < _partition_counts[right]
+                       : left < right;
+        });
     for (const auto &iter : _nodes) {
         auto id = _address_id.at(iter.first);
         ordered_queue.insert(id);
