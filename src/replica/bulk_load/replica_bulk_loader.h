@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <dsn/tool-api/zlocks.h>
+
 #include "replica/replica.h"
 #include "replica/replica_context.h"
 #include "replica/replica_stub.h"

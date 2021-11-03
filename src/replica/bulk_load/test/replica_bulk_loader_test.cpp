@@ -485,22 +485,15 @@ TEST_F(replica_bulk_loader_test, start_downloading_test)
     // - downloading succeed
     struct test_struct
     {
-        bool mock_function;
         int32_t downloading_count;
         error_code expected_err;
         bulk_load_status::type expected_status;
         int32_t expected_downloading_count;
-    } tests[]{{false,
-               MAX_DOWNLOADING_COUNT,
-               ERR_BUSY,
-               bulk_load_status::BLS_INVALID,
-               MAX_DOWNLOADING_COUNT},
-              {true, 1, ERR_OK, bulk_load_status::BLS_DOWNLOADING, 2}};
-
+    } tests[]{
+        {MAX_DOWNLOADING_COUNT, ERR_BUSY, bulk_load_status::BLS_INVALID, MAX_DOWNLOADING_COUNT},
+        {1, ERR_OK, bulk_load_status::BLS_DOWNLOADING, 2}};
+    fail::cfg("replica_bulk_loader_download_files", "return()");
     for (auto test : tests) {
-        if (test.mock_function) {
-            fail::cfg("replica_bulk_loader_download_files", "return()");
-        }
         mock_group_progress(bulk_load_status::BLS_INVALID);
         create_bulk_load_request(bulk_load_status::BLS_DOWNLOADING, test.downloading_count);
 
