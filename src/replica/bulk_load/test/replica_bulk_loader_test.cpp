@@ -20,6 +20,7 @@
 
 #include <fstream>
 
+#include <dsn/tool-api/zlocks.h>
 #include <dsn/utility/fail_point.h>
 #include <gtest/gtest.h>
 
@@ -59,7 +60,9 @@ public:
     {
         const std::string remote_dir = _bulk_loader->get_remote_bulk_load_dir(
             APP_NAME, CLUSTER, ROOT_PATH, PID.get_partition_index());
-        return _bulk_loader->start_download(remote_dir, PROVIDER);
+        auto err = _bulk_loader->start_download(remote_dir, PROVIDER);
+        _bulk_loader->tracker()->wait_outstanding_tasks();
+        return err;
     }
 
     void test_rollback_to_downloading(bulk_load_status::type cur_status)
