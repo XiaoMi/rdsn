@@ -106,7 +106,7 @@ public:
 
     std::vector<dsn_file_buffer_t> _unmerged_write_buffers;
     blob _merged_write_buffer_holder;
-    std::shared_ptr<dsn::utils::latency_tracer> tracer;
+    std::shared_ptr<dsn::utils::latency_tracer> _tracer;
 
 protected:
     void clear_non_trivial_on_task_end() override { _cb = nullptr; }

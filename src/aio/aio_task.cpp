@@ -26,7 +26,7 @@ aio_task::aio_task(dsn::task_code code, aio_handler &&cb, int hash, service_node
 
     _aio_ctx = file::prepare_aio_context(this);
 
-    tracer = std::make_shared<dsn::utils::latency_tracer>(true, "aio_task", 0, code);
+    _tracer = std::make_shared<dsn::utils::latency_tracer>(true, "aio_task", 0, code);
 }
 
 void aio_task::collapse()

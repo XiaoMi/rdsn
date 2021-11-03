@@ -61,7 +61,7 @@ mutation::mutation()
     _create_ts_ns = dsn_now_ns();
     _tid = ++s_tid;
     _is_sync_to_child = false;
-    tracer = std::make_shared<dsn::utils::latency_tracer>(
+    _tracer = std::make_shared<dsn::utils::latency_tracer>(
         false, "mutation", FLAGS_abnormal_write_trace_latency_threshold);
 }
 
