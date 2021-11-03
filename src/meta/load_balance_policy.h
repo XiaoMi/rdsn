@@ -249,6 +249,5 @@ protected:
     FRIEND_TEST(copy_primary_operation, misc);
     FRIEND_TEST(copy_replica_operation, get_all_partitions);
 };
-
 } // namespace replication
 } // namespace dsn
