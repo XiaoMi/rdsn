@@ -321,8 +321,8 @@ aio_task_ptr log_file::commit_log_blocks(log_appender &pending,
     if (utils::FLAGS_enable_latency_tracer) {
         tsk->tracer->set_parent_point_name("commit_pending_mutations");
         tsk->tracer->set_description("log");
-        for (const auto &pend : pending.mutations()) {
-            pend->tracer->add_sub_tracer(tsk->tracer);
+        for (const auto &mutation : pending.mutations()) {
+            mutation->tracer->add_sub_tracer(tsk->tracer);
         }
     }
 
