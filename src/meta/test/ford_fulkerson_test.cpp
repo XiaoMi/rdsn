@@ -16,7 +16,7 @@
 // under the License.
 
 #include <gtest/gtest.h>
-#include "meta/greedy_load_balancer.h"
+#include "meta/load_balance_policy.h"
 
 namespace dsn {
 namespace replication {

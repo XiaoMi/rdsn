@@ -36,10 +36,10 @@
 
 #include <functional>
 #include "server_load_balancer.h"
-#include "load_balance_policy.h"
 
 namespace dsn {
 namespace replication {
+class load_balance_policy;
 
 class greedy_load_balancer : public server_load_balancer
 {
