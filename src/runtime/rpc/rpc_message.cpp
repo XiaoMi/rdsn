@@ -45,6 +45,7 @@ message_ex::message_ex()
       local_rpc_code(::dsn::TASK_CODE_INVALID),
       hdr_format(NET_HDR_INVALID),
       send_retry_count(0),
+      start_time_ns(dsn_now_ns()),
       _rw_index(-1),
       _rw_offset(0),
       _rw_committed(true),

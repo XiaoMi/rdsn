@@ -144,6 +144,9 @@ public:
     // by message queuing
     dlink dl;
 
+    uint64_t start_time_ns;
+    bool drop_for_timeout;
+
 public:
     // message_ex(blob bb, bool parse_hdr = true); // read
     DSN_API ~message_ex();

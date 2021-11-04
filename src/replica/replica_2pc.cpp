@@ -44,6 +44,12 @@ DSN_DEFINE_bool("replication",
                 "reject client write requests if disk status is space insufficient");
 DSN_TAG_VARIABLE(reject_write_when_disk_insufficient, FT_MUTABLE);
 
+DSN_DEFINE_bool("replication", drop_write_execute_when_timeout, true, "drop client write requests "
+                                                                      "if the duration from "
+                                                                      "receive to init prepare is "
+                                                                      "larger than client timeout");
+DSN_TAG_VARIABLE(drop_write_execute_when_timeout, FT_MUTABLE);
+
 void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
 {
     _checker.only_one_thread_access();
@@ -150,6 +156,9 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
 
     dinfo("%s: got write request from %s", name(), request->header->from_address.to_string());
     auto mu = _primary_states.write_queue.add_work(request->rpc_code(), request, this);
+    if (mu && FLAGS_drop_write_execute_when_timeout) {
+        mu->mark_timeout_request();
+    }
     if (mu) {
         init_prepare(mu, false);
     }
