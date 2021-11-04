@@ -161,16 +161,17 @@ private:
     friend class replica_stub;
     friend class replica_bulk_loader_test;
 
-    zrwlock_nr _lock; // bulk load states lock
+    // bulk load states lock
+    zrwlock_nr _lock; // {
     bulk_load_status::type _status{bulk_load_status::BLS_INVALID};
     bulk_load_metadata _metadata;
     std::atomic<bool> _is_downloading{false};
     std::atomic<uint64_t> _cur_downloaded_size{0};
     std::atomic<int32_t> _download_progress{0};
     std::atomic<error_code> _download_status{ERR_OK};
+    // }
     // file_name -> downloading task
     std::map<std::string, task_ptr> _download_files_task;
-
     // download metadata and create download file tasks
     task_ptr _download_task;
     // Used for perf-counter
