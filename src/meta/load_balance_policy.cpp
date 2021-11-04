@@ -740,5 +740,48 @@ gpid copy_replica_operation::select_partition(migration_list *result)
     return select_max_load_gpid(partitions, result);
 }
 
+copy_primary_operation::copy_primary_operation(
+    const std::shared_ptr<app_state> app,
+    const app_mapper &apps,
+    node_mapper &nodes,
+    const std::vector<dsn::rpc_address> &address_vec,
+    const std::unordered_map<dsn::rpc_address, int> &address_id,
+    bool have_lower_than_average,
+    int replicas_low)
+    : copy_replica_operation(app, apps, nodes, address_vec, address_id)
+{
+    _have_lower_than_average = have_lower_than_average;
+    _replicas_low = replicas_low;
+}
+
+int copy_primary_operation::get_partition_count(const node_state &ns) const
+{
+    return ns.primary_count(_app->app_id);
+}
+
+bool copy_primary_operation::can_select(gpid pid, migration_list *result)
+{
+    return result->find(pid) == result->end();
+}
+
+bool copy_primary_operation::can_continue()
+{
+    int id_min = *_ordered_address_ids.begin();
+    if (_have_lower_than_average && _partition_counts[id_min] >= _replicas_low) {
+        ddebug_f("{}: stop the copy due to primaries on all nodes will reach low later.",
+                 _app->get_logname());
+        return false;
+    }
+
+    int id_max = *_ordered_address_ids.rbegin();
+    if (!_have_lower_than_average && _partition_counts[id_max] - _partition_counts[id_min] <= 1) {
+        ddebug_f("{}: stop the copy due to the primary will be balanced later.",
+                 _app->get_logname());
+        return false;
+    }
+    return true;
+}
+
+enum balance_type copy_primary_operation::get_balance_type() { return balance_type::COPY_PRIMARY; }
 } // namespace replication
 } // namespace dsn

@@ -18,7 +18,6 @@
 #include <gtest/gtest.h>
 #include <dsn/utility/fail_point.h>
 #include "meta/app_balance_policy.h"
-#include "meta/greedy_load_balancer.h"
 
 namespace dsn {
 namespace replication {
