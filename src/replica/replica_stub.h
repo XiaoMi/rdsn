@@ -444,7 +444,7 @@ private:
     perf_counter_wrapper _counter_replicas_recent_group_check_fail_count;
 
     perf_counter_wrapper _counter_shared_log_size;
-    perf_counter_wrapper _counter_shared_log_recent_write_size;
+    perf_counter_wrapper _counter_shared_log_write_batch_size;
     perf_counter_wrapper _counter_recent_trigger_emergency_checkpoint_count;
 
     // <- Duplication Metrics ->

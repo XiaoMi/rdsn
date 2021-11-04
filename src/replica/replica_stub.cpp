@@ -254,11 +254,10 @@ void replica_stub::install_perf_counters()
 
     _counter_shared_log_size.init_app_counter(
         "eon.replica_stub", "shared.log.size(MB)", COUNTER_TYPE_NUMBER, "shared log size(MB)");
-    _counter_shared_log_recent_write_size.init_app_counter(
-        "eon.replica_stub",
-        "shared.log.recent.write.size",
-        COUNTER_TYPE_VOLATILE_NUMBER,
-        "shared log write size in the recent period");
+    _counter_shared_log_write_batch_size.init_app_counter("eon.replica_stub",
+                                                          "write_slog_batch_size",
+                                                          COUNTER_TYPE_NUMBER_PERCENTILES,
+                                                          "write_slog_batch_size");
     _counter_recent_trigger_emergency_checkpoint_count.init_app_counter(
         "eon.replica_stub",
         "recent.trigger.emergency.checkpoint.count",
@@ -531,7 +530,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     _log = new mutation_log_shared(_options.slog_dir,
                                    _options.log_shared_file_size_mb,
                                    _options.log_shared_force_flush,
-                                   &_counter_shared_log_recent_write_size);
+                                   &_counter_shared_log_write_batch_size);
     ddebug("slog_dir = %s", _options.slog_dir.c_str());
 
     // init rps
@@ -659,7 +658,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
         _log = new mutation_log_shared(_options.slog_dir,
                                        _options.log_shared_file_size_mb,
                                        _options.log_shared_force_flush,
-                                       &_counter_shared_log_recent_write_size);
+                                       &_counter_shared_log_write_batch_size);
         auto lerr = _log->open(nullptr, [this](error_code err) { this->handle_log_failure(err); });
         dassert(lerr == ERR_OK, "restart log service must succeed");
     }
