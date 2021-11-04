@@ -39,6 +39,13 @@
 namespace dsn {
 namespace replication {
 
+auto _counter_write_slog_batch_size =
+    dsn::perf_counters::instance().get_app_counter("eon.replica_stub",
+                                                   "write_slog_batch_size",
+                                                   COUNTER_TYPE_NUMBER_PERCENTILES,
+                                                   "write_slog_batch_size", // todo,
+                                                   true);
+
 ::dsn::task_ptr mutation_log_shared::append(mutation_ptr &mu,
                                             dsn::task_code callback_code,
                                             dsn::task_tracker *tracker,
@@ -132,6 +139,8 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
     for (auto &mu : pending->mutations()) {
         ADD_POINT(mu->tracer);
     }
+    _counter_write_slog_batch_size->set(pending->blob_count());
+
     lf->commit_log_blocks( // forces a new line for params
         *pending,
         LPC_WRITE_REPLICATION_LOG_SHARED,

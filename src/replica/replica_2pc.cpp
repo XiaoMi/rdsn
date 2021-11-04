@@ -44,11 +44,14 @@ DSN_DEFINE_bool("replication",
                 "reject client write requests if disk status is space insufficient");
 DSN_TAG_VARIABLE(reject_write_when_disk_insufficient, FT_MUTABLE);
 
-DSN_DEFINE_bool("replication", drop_write_execute_when_timeout, true, "drop client write requests "
-                                                                      "if the duration from "
-                                                                      "receive to init prepare is "
-                                                                      "larger than client timeout");
-DSN_TAG_VARIABLE(drop_write_execute_when_timeout, FT_MUTABLE);
+DSN_DEFINE_bool("replication",
+                drop_write_request_if_timeout_before_prepare,
+                true,
+                "drop client write requests "
+                "if the duration from "
+                "receive to init prepare is "
+                "larger than client timeout");
+DSN_TAG_VARIABLE(drop_write_request_if_timeout_before_prepare, FT_MUTABLE);
 
 void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
 {
@@ -156,9 +159,13 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
 
     dinfo("%s: got write request from %s", name(), request->header->from_address.to_string());
     auto mu = _primary_states.write_queue.add_work(request->rpc_code(), request, this);
-    if (mu && FLAGS_drop_write_execute_when_timeout) {
-        mu->mark_timeout_request();
+
+    int drop_count = 0;
+    if (mu && FLAGS_drop_write_request_if_timeout_before_prepare) {
+        drop_count = mu->mark_timeout_request();
     }
+    _stub->_counter_recent_write_request_dropped_count->add(drop_count);
+
     if (mu) {
         init_prepare(mu, false);
     }
@@ -342,6 +349,8 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
         marshall(writer, get_gpid(), DSF_THRIFT_BINARY);
         marshall(writer, rconfig, DSF_THRIFT_BINARY);
         mu->write_to(writer, msg);
+        mu->set_prepare_data_size(msg->body_size());
+        _stub->_counter_prepare_request_data_size->set(mu->prepare_data_size());
     }
 
     mu->remote_tasks()[addr] =
@@ -637,22 +646,22 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
     }
 
     if (resp.err == ERR_OK) {
-        dinfo("%s: mutation %s on_prepare_reply from %s, appro_data_bytes = %d, "
+        dinfo("%s: mutation %s on_prepare_reply from %s, prepare_data_size = %d, "
               "target_status = %s, err = %s",
               name(),
               mu->name(),
               node.to_string(),
-              mu->appro_data_bytes(),
+              mu->prepare_data_size(),
               enum_to_string(target_status),
               resp.err.to_string());
     } else {
         ADD_CUSTOM_POINT(mu->tracer, fmt::format("error:{}", request->to_address.to_string()));
-        derror("%s: mutation %s on_prepare_reply from %s, appro_data_bytes = %d, "
+        derror("%s: mutation %s on_prepare_reply from %s, prepare_data_size = %d, "
                "target_status = %s, err = %s",
                name(),
                mu->name(),
                node.to_string(),
-               mu->appro_data_bytes(),
+               mu->prepare_data_size(),
                enum_to_string(target_status),
                resp.err.to_string());
     }

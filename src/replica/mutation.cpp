@@ -356,14 +356,19 @@ void mutation::wait_log_task() const
         _log_task->wait();
     }
 }
-void mutation::mark_timeout_request()
+int mutation::mark_timeout_request()
 {
+    int drop_count = 0;
     for (int i = 0; i < data.updates.size(); i++) {
         if (dsn_now_ns() - data.updates[i].start_time_ns >= data.updates[i].client_timeout_ns) {
             data.updates[i].__set_drop_for_timeout(true);
-            client_requests[i]->drop_for_timeout = true;
+            if (client_requests[i]) {
+                client_requests[i]->drop_for_timeout = true;
+            }
+            drop_count++;
         }
     }
+    return drop_count;
 }
 
 mutation_queue::mutation_queue(gpid gpid,

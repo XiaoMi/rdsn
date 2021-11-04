@@ -472,6 +472,10 @@ private:
 
     perf_counter_wrapper _counter_recent_write_size_exceed_threshold_count;
 
+    perf_counter_wrapper _counter_recent_write_request_dropped_count;
+
+    perf_counter_wrapper _counter_prepare_request_data_size;
+
 #ifdef DSN_ENABLE_GPERF
     perf_counter_wrapper _counter_tcmalloc_release_memory_size;
 #endif

@@ -462,6 +462,19 @@ void replica_stub::install_perf_counters()
         "replicas.splitting.recent.split.fail.count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "splitting fail count in the recent period");
+
+    _counter_recent_write_request_dropped_count.init_app_counter(
+        "eon.replica_stub",
+        "recent_write_request_dropped_count_for_timeout",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "write size exceed threshold count in the recent period" // todo
+        );
+
+    _counter_prepare_request_data_size.init_app_counter("eon.replica_stub",
+                                                        "write_mutation_request_total_size",
+                                                        COUNTER_TYPE_NUMBER_PERCENTILES,
+                                                        "write_mutation_request_size" // todo
+                                                        );
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
