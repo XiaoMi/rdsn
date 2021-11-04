@@ -163,7 +163,16 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     int drop_count = 0;
     if (mu && FLAGS_drop_timeout_request_before_prepare) {
         drop_count = mu->mark_timeout_request();
-        derror_replica("jiashuo_debug: drop {} request", drop_count);
+        if (drop_count != 0) {
+            derror_replica("jiashuo_debug_only: drop {} request", drop_count);
+        }
+        if (drop_count == mu->data.updates.size()) {
+            dwarn_replica("directly response timeout for all the requests are timeout, "
+                          "total_count(drop_count)={}",
+                          drop_count);
+            response_client_write(request, ERR_TIMEOUT);
+            return;
+        }
     }
     _stub->_counter_recent_write_request_dropped_count->add(drop_count);
 
@@ -350,7 +359,7 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
         marshall(writer, get_gpid(), DSF_THRIFT_BINARY);
         marshall(writer, rconfig, DSF_THRIFT_BINARY);
         mu->write_to(writer, msg);
-        mu->set_prepare_data_size(msg->body_size());
+        mu->set_prepare_data_size(msg->body_size() + msg->header->hdr_length);
         _stub->_counter_prepare_request_data_size->set(mu->prepare_data_size());
     }
 
