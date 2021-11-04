@@ -34,7 +34,6 @@
 
 #pragma once
 
-#include <functional>
 #include "server_load_balancer.h"
 
 namespace dsn {
