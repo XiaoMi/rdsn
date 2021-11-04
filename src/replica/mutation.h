@@ -186,7 +186,7 @@ private:
     // The data body size of execute prepare
     // Note: the "prepare" data size which means the send rpc serialized message body size is
     // different `_appro_data_bytes`， usually it is less than `_appro_data_bytes` especially when
-    // `drop_write_request_if_timeout_before_prepare = true`
+    // `drop_timeout_request_before_prepare = true`
     uint64_t _prepare_data_size;
     uint64_t _create_ts_ns; // for profiling
     uint64_t _tid;          // trace id, unique in process

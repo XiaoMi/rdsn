@@ -45,13 +45,13 @@ DSN_DEFINE_bool("replication",
 DSN_TAG_VARIABLE(reject_write_when_disk_insufficient, FT_MUTABLE);
 
 DSN_DEFINE_bool("replication",
-                drop_write_request_if_timeout_before_prepare,
+                drop_timeout_request_before_prepare,
                 true,
                 "drop client write requests "
                 "if the duration from "
                 "receive to init prepare is "
                 "larger than client timeout");
-DSN_TAG_VARIABLE(drop_write_request_if_timeout_before_prepare, FT_MUTABLE);
+DSN_TAG_VARIABLE(drop_timeout_request_before_prepare, FT_MUTABLE);
 
 void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
 {
@@ -161,8 +161,9 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     auto mu = _primary_states.write_queue.add_work(request->rpc_code(), request, this);
 
     int drop_count = 0;
-    if (mu && FLAGS_drop_write_request_if_timeout_before_prepare) {
+    if (mu && FLAGS_drop_timeout_request_before_prepare) {
         drop_count = mu->mark_timeout_request();
+        derror_replica("jiashuo_debug: drop {} request", drop_count);
     }
     _stub->_counter_recent_write_request_dropped_count->add(drop_count);
 
