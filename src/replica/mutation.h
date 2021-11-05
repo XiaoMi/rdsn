@@ -183,6 +183,8 @@ private:
     std::vector<dsn::message_ex *> _prepare_requests; // may combine duplicate requests
     char _name[60];                                   // app_id.partition_index.ballot.decree
     int _appro_data_bytes;
+    // todo(jiashuo1)
+
     // The data body size of execute prepare
     // Note: the "prepare" data size which means the send rpc serialized message body size is
     // different `_appro_data_bytes`， usually it is less than `_appro_data_bytes` especially when

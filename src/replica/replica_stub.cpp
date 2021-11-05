@@ -255,7 +255,7 @@ void replica_stub::install_perf_counters()
     _counter_shared_log_size.init_app_counter(
         "eon.replica_stub", "shared.log.size(MB)", COUNTER_TYPE_NUMBER, "shared log size(MB)");
     _counter_shared_log_write_batch_size.init_app_counter("eon.replica_stub",
-                                                          "write_slog_batch_size",
+                                                          "js_debug_write_slog_batch_size",
                                                           COUNTER_TYPE_NUMBER_PERCENTILES,
                                                           "write_slog_batch_size");
     _counter_recent_trigger_emergency_checkpoint_count.init_app_counter(
@@ -464,16 +464,22 @@ void replica_stub::install_perf_counters()
 
     _counter_recent_write_request_dropped_count.init_app_counter(
         "eon.replica_stub",
-        "recent_write_request_dropped_count_for_timeout",
+        "js_debug_recent_write_request_dropped_count_for_timeout",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "write size exceed threshold count in the recent period" // todo
         );
 
     _counter_prepare_request_data_size.init_app_counter("eon.replica_stub",
-                                                        "write_mutation_request_total_size",
+                                                        "js_debug_send_prepare_request_size",
                                                         COUNTER_TYPE_NUMBER_PERCENTILES,
                                                         "write_mutation_request_size" // todo
                                                         );
+
+    _counter_prepare_request_data_size_test.init_app_counter("eon.replica_stub",
+                                                             "js_debug_write_mutation_request_size",
+                                                             COUNTER_TYPE_NUMBER_PERCENTILES,
+                                                             "write_mutation_request_size" // todo
+                                                             );
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
