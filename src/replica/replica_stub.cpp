@@ -474,12 +474,6 @@ void replica_stub::install_perf_counters()
                                                         COUNTER_TYPE_NUMBER_PERCENTILES,
                                                         "write_mutation_request_size" // todo
                                                         );
-
-    _counter_prepare_request_data_size_test.init_app_counter("eon.replica_stub",
-                                                             "js_debug_write_mutation_request_size",
-                                                             COUNTER_TYPE_NUMBER_PERCENTILES,
-                                                             "write_mutation_request_size" // todo
-                                                             );
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
