@@ -423,7 +423,6 @@ void message_ex::write_commit(size_t size)
     *this->buffers.rbegin() = this->buffers.rbegin()->range(0, (int)this->_rw_offset);
     this->_rw_committed = true;
     this->header->body_length += (int)size;
-    derror_f("jiashuo_debug {}={}", this->start_time_ns, this->body_size());
 }
 
 bool message_ex::read_next(void **ptr, size_t *size)

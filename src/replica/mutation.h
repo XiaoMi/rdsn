@@ -126,8 +126,6 @@ public:
     bool is_full() const { return _appro_data_bytes >= 1024 * 1024; }
     int appro_data_bytes() const { return _appro_data_bytes; }
 
-    uint64_t prepare_data_size() const { return _prepare_data_size; }
-
     // read & write mutation data
     //
     // "mutation_update.code" should be marshalled as string for cross-process compatiblity,
@@ -154,7 +152,6 @@ public:
 
     void set_is_sync_to_child(bool sync_to_child) { _is_sync_to_child = sync_to_child; }
     bool is_sync_to_child() { return _is_sync_to_child; }
-    void set_prepare_data_size(uint64_t size) { _prepare_data_size = size; }
     int mark_timeout_request();
 
 private:
@@ -183,13 +180,6 @@ private:
     std::vector<dsn::message_ex *> _prepare_requests; // may combine duplicate requests
     char _name[60];                                   // app_id.partition_index.ballot.decree
     int _appro_data_bytes;
-    // todo(jiashuo1)
-
-    // The data body size of execute prepare
-    // Note: the "prepare" data size which means the send rpc serialized message body size is
-    // different `_appro_data_bytes`， usually it is less than `_appro_data_bytes` especially when
-    // `drop_timeout_request_before_prepare = true`
-    uint64_t _prepare_data_size;
     uint64_t _create_ts_ns; // for profiling
     uint64_t _tid;          // trace id, unique in process
     static std::atomic<uint64_t> s_tid;
