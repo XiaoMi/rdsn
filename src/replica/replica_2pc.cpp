@@ -660,7 +660,7 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
               name(),
               mu->name(),
               node.to_string(),
-              mu->prepare_data_size(),
+              request->body_size(),
               enum_to_string(target_status),
               resp.err.to_string());
     } else {
@@ -670,7 +670,7 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
                name(),
                mu->name(),
                node.to_string(),
-               mu->prepare_data_size(),
+               request->body_size(),
                enum_to_string(target_status),
                resp.err.to_string());
     }
