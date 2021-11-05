@@ -633,6 +633,8 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
     mutation_ptr mu = pr.first;
     partition_status::type target_status = pr.second;
 
+    derror_replica("jiashuo_debug receive size = {}", request->body_size() + request->header->hdr_length);
+
     ADD_CUSTOM_POINT(mu->tracer, request->to_address.to_string());
 
     // skip callback for old mutations
