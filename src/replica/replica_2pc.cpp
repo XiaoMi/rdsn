@@ -169,7 +169,11 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
             dwarn_replica("directly response timeout for all the requests are timeout, "
                           "total_count(drop_count)={}",
                           mu->timeout_request_count());
-            response_client_write(request, ERR_TIMEOUT);
+            for (const auto &client_request : mu->client_requests) {
+                response_client_write(
+                    client_request,
+                    ERR_TIMEOUT); // origin here may have memory leak, must loop to response
+            }
             return;
         }
     }
