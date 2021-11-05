@@ -362,7 +362,7 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
         mu->set_prepare_data_size(msg->body_size() + msg->header->hdr_length);
         _stub->_counter_prepare_request_data_size->set(mu->prepare_data_size());
         _stub->_counter_prepare_request_data_size_test->set(mu->appro_data_bytes());
-        derror_replica("jiashuo_debug primary prepare vs mutation = {} vs {}", msg->body_size(), mu->appro_data_bytes());
+        derror_replica("jiashuo_debug primary {}=prepare vs mutation = {} vs {}", msg->start_time_ns, msg->body_size(), mu->appro_data_bytes());
     }
 
     mu->remote_tasks()[addr] =
