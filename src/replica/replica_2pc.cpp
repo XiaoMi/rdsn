@@ -160,21 +160,20 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
     dinfo("%s: got write request from %s", name(), request->header->from_address.to_string());
     auto mu = _primary_states.write_queue.add_work(request->rpc_code(), request, this);
 
-    int drop_count = 0;
     if (mu && FLAGS_drop_timeout_request_before_prepare) {
-        drop_count = mu->mark_timeout_request();
-        if (drop_count != 0) {
-            derror_replica("jiashuo_debug_only: drop {} request", drop_count);
+        mu->mark_timeout_request();
+        if (mu->timeout_request_count() != 0) {
+            derror_replica("jiashuo_debug_only: drop {} request", mu->timeout_request_count());
         }
-        if (drop_count == mu->data.updates.size()) {
+        if (mu->timeout_request_count() == mu->data.updates.size()) {
             dwarn_replica("directly response timeout for all the requests are timeout, "
                           "total_count(drop_count)={}",
-                          drop_count);
+                          mu->timeout_request_count());
             response_client_write(request, ERR_TIMEOUT);
             return;
         }
     }
-    _stub->_counter_recent_write_request_dropped_count->add(drop_count);
+    _stub->_counter_recent_write_request_dropped_count->add(mu->timeout_request_count());
 
     if (mu) {
         init_prepare(mu, false);

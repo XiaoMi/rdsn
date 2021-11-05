@@ -152,7 +152,8 @@ public:
 
     void set_is_sync_to_child(bool sync_to_child) { _is_sync_to_child = sync_to_child; }
     bool is_sync_to_child() { return _is_sync_to_child; }
-    int mark_timeout_request();
+    void mark_timeout_request();
+    int timeout_request_count() const { return _timeout_request_count; }
 
 private:
     union
@@ -183,7 +184,8 @@ private:
     uint64_t _create_ts_ns; // for profiling
     uint64_t _tid;          // trace id, unique in process
     static std::atomic<uint64_t> s_tid;
-    bool _is_sync_to_child; // for partition split
+    bool _is_sync_to_child;     // for partition split
+    int _timeout_request_count; // for drop timeout request case
 };
 
 class replica;

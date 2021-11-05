@@ -182,7 +182,7 @@ void mutation::write_to(const std::function<void(const blob &)> &inserter) const
 {
     binary_writer writer(1024);
     write_mutation_header(writer, data.header);
-    writer.write_pod(static_cast<int>(data.updates.size()));
+    writer.write_pod(static_cast<int>(data.updates.size() - timeout_request_count()));
     for (const mutation_update &update : data.updates) {
         // filter to drop timeout request
         if (update.drop_for_timeout) {
@@ -214,7 +214,7 @@ void mutation::write_to(const std::function<void(const blob &)> &inserter) const
 void mutation::write_to(binary_writer &writer, dsn::message_ex * /*to*/) const
 {
     write_mutation_header(writer, data.header);
-    writer.write_pod(static_cast<int>(data.updates.size()));
+    writer.write_pod(static_cast<int>(data.updates.size() - timeout_request_count()));
     for (const mutation_update &update : data.updates) {
         // filter to drop timeout request
         if (update.drop_for_timeout) {
@@ -356,19 +356,17 @@ void mutation::wait_log_task() const
         _log_task->wait();
     }
 }
-int mutation::mark_timeout_request()
+void mutation::mark_timeout_request()
 {
-    int drop_count = 0;
     for (int i = 0; i < data.updates.size(); i++) {
         if (dsn_now_ns() - data.updates[i].start_time_ns >= data.updates[i].client_timeout_ns) {
             data.updates[i].__set_drop_for_timeout(true);
             if (client_requests[i]) {
                 client_requests[i]->drop_for_timeout = true;
             }
-            drop_count++;
+            _timeout_request_count++;
         }
     }
-    return drop_count;
 }
 
 mutation_queue::mutation_queue(gpid gpid,

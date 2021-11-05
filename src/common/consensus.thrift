@@ -65,8 +65,8 @@ struct mutation_update
     2:i32            serialization_type;
     3:dsn.blob       data;
     4:optional i64   start_time_ns;
-    5:optional i64   client_timeout_ns;
-    6:optional bool  drop_for_timeout;
+    5:optional i64   client_timeout_ns;// todo(jiashuo1) may no need
+    6:optional bool  drop_for_timeout;// todo(jiashuo1) may no need
 }
 
 struct mutation_data
