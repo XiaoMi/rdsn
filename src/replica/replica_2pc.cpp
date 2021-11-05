@@ -166,7 +166,7 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
             derror_replica("jiashuo_debug_only: drop {} request", mu->timeout_request_count());
         }
         if (mu->timeout_request_count() == mu->data.updates.size()) {
-            dwarn_replica("directly response timeout for all the requests are timeout, "
+            dwarn_replica("directly response timeout since all requests are timeout, "
                           "total_count(drop_count)={}",
                           mu->timeout_request_count());
             for (const auto &client_request : mu->client_requests) {
