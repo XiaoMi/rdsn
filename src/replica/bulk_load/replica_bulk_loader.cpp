@@ -408,12 +408,12 @@ void replica_bulk_loader::download_files(const std::string &provider_name,
     dist::block_service::block_filesystem *fs =
         _stub->_block_service_manager.get_or_create_block_filesystem(provider_name);
 
+    // download metadata file synchronously
+    uint64_t file_size = 0;
+    error_code err = _stub->_block_service_manager.download_file(
+        remote_dir, local_dir, bulk_load_constant::BULK_LOAD_METADATA, fs, file_size);
     {
         zauto_write_lock l(_lock);
-        // download metadata file synchronously
-        uint64_t file_size = 0;
-        error_code err = _stub->_block_service_manager.download_file(
-            remote_dir, local_dir, bulk_load_constant::BULK_LOAD_METADATA, fs, file_size);
         if (err != ERR_OK && err != ERR_PATH_ALREADY_EXIST) {
             try_decrease_bulk_load_download_count();
             _download_status.store(err);
