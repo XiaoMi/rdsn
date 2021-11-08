@@ -157,7 +157,6 @@ void mutation::add_client_request(task_code code, dsn::message_ex *request)
         update.serialization_type =
             (dsn_msg_serialize_format)request->header->context.u.serialize_format;
         update.__set_start_time_ns(request->start_time_ns);
-        update.__set_client_timeout_ns(request->header->client.timeout_ms * 1000000L);
         request->add_ref(); // released on dctor
 
         void *ptr;
@@ -183,31 +182,31 @@ void mutation::write_to(const std::function<void(const blob &)> &inserter) const
     binary_writer writer(1024);
     write_mutation_header(writer, data.header);
     writer.write_pod(static_cast<int>(data.updates.size() - timeout_request_count()));
-    for (const mutation_update &update : data.updates) {
+    for (int i = 0; i < data.updates.size(); i++) {
         // filter to drop timeout request
-        if (update.drop_for_timeout) {
+        if (client_requests[i] && client_requests[i]->drop_for_timeout) {
             continue;
         }
 
         // write task_code as string to make it cross-process compatible.
         // avoid memory copy, equal to writer.write(std::string)
-        const char *cstr = update.code.to_string();
+        const char *cstr = data.updates[i].code.to_string();
         int len = static_cast<int>(strlen(cstr));
         writer.write_pod(len);
         if (len > 0)
             writer.write(cstr, len);
 
-        writer.write_pod(static_cast<int>(update.serialization_type));
+        writer.write_pod(static_cast<int>(data.updates[i].serialization_type));
 
-        writer.write_pod(static_cast<int>(update.data.length()));
+        writer.write_pod(static_cast<int>(data.updates[i].data.length()));
     }
     inserter(writer.get_buffer());
-    for (const mutation_update &update : data.updates) {
+    for (int i = 0; i < data.updates.size(); i++) {
         // filter to drop timeout request
-        if (update.drop_for_timeout) {
+        if (client_requests[i] && client_requests[i]->drop_for_timeout) {
             continue;
         }
-        inserter(update.data);
+        inserter(data.updates[i].data);
     }
 }
 
@@ -215,31 +214,31 @@ void mutation::write_to(binary_writer &writer, dsn::message_ex * /*to*/) const
 {
     write_mutation_header(writer, data.header);
     writer.write_pod(static_cast<int>(data.updates.size() - timeout_request_count()));
-    for (const mutation_update &update : data.updates) {
+    for (int i = 0; i < data.updates.size(); i++) {
         // filter to drop timeout request
-        if (update.drop_for_timeout) {
+        if (client_requests[i] && client_requests[i]->drop_for_timeout) {
             continue;
         }
 
         // write task_code as string to make it cross-process compatible.
         // avoid memory copy, equal to writer.write(std::string)
-        const char *cstr = update.code.to_string();
+        const char *cstr = data.updates[i].code.to_string();
         int len = static_cast<int>(strlen(cstr));
         writer.write_pod(len);
         if (len > 0)
             writer.write(cstr, len);
 
-        writer.write_pod(static_cast<int>(update.serialization_type));
+        writer.write_pod(static_cast<int>(data.updates[i].serialization_type));
 
-        writer.write_pod(static_cast<int>(update.data.length()));
+        writer.write_pod(static_cast<int>(data.updates[i].data.length()));
     }
     // TODO(qinzuoyan): directly append buffer to message to avoid memory copy
-    for (const mutation_update &update : data.updates) {
+    for (int i = 0; i < data.updates.size(); i++) {
         // filter to drop timeout request
-        if (update.drop_for_timeout) {
+        if (client_requests[i] && client_requests[i]->drop_for_timeout) {
             continue;
         }
-        writer.write(update.data.data(), update.data.length());
+        writer.write(data.updates[i].data.data(), data.updates[i].data.length());
     }
 }
 
@@ -359,8 +358,8 @@ void mutation::wait_log_task() const
 void mutation::mark_timeout_request()
 {
     for (int i = 0; i < data.updates.size(); i++) {
-        if (dsn_now_ns() - data.updates[i].start_time_ns >= data.updates[i].client_timeout_ns) {
-            data.updates[i].__set_drop_for_timeout(true);
+        if (dsn_now_ns() - client_requests[i]->start_time_ns >=
+            client_requests[i]->header->client.timeout_ms * 1000000L) {
             if (client_requests[i]) {
                 client_requests[i]->drop_for_timeout = true;
             }
