@@ -162,6 +162,7 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
 
     if (mu && FLAGS_drop_timeout_request_before_prepare) {
         mu->mark_timeout_request();
+        _stub->_counter_recent_write_request_dropped_count->add(mu->timeout_request_count());
         if (mu->timeout_request_count() != 0) {
             derror_replica("jiashuo_debug_only: drop {} request", mu->timeout_request_count());
         }
@@ -177,7 +178,6 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
             return;
         }
     }
-    _stub->_counter_recent_write_request_dropped_count->add(mu->timeout_request_count());
 
     if (mu) {
         init_prepare(mu, false);
