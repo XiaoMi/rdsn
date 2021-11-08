@@ -47,6 +47,7 @@ message_ex::message_ex()
       hdr_format(NET_HDR_INVALID),
       send_retry_count(0),
       start_time_ns(dsn_now_ns()),
+      drop_for_timeout(false),
       _rw_index(-1),
       _rw_offset(0),
       _rw_committed(true),

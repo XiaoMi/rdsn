@@ -60,6 +60,7 @@ mutation::mutation()
     _create_ts_ns = dsn_now_ns();
     _tid = ++s_tid;
     _is_sync_to_child = false;
+    _timeout_request_count = 0;
     tracer = std::make_shared<dsn::utils::latency_tracer>(
         false, "mutation", FLAGS_abnormal_write_trace_latency_threshold);
 }
@@ -357,12 +358,13 @@ void mutation::wait_log_task() const
 }
 void mutation::mark_timeout_request()
 {
-    for (int i = 0; i < data.updates.size(); i++) {
-        if (dsn_now_ns() - client_requests[i]->start_time_ns >=
-            client_requests[i]->header->client.timeout_ms * 1000000L) {
-            if (client_requests[i]) {
-                client_requests[i]->drop_for_timeout = true;
-            }
+    for (const auto &client_request : client_requests) {
+        if (!client_request) {
+            continue;
+        }
+        if (dsn_now_ns() - client_request->start_time_ns >=
+            client_request->header->client.timeout_ms * 1000000L) {
+            client_request->drop_for_timeout = true;
             _timeout_request_count++;
         }
     }
