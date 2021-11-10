@@ -460,8 +460,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::try_resend_bulk_load_request(const std::string &app_name,
-                                                     const gpid &pid)
+void bulk_load_service::try_resend_bulk_load_request(const std::string &app_name, const gpid &pid)
 {
     FAIL_POINT_INJECT_F("meta_bulk_load_resend_request", [](dsn::string_view) {});
     zauto_read_lock l(_lock);
