@@ -230,7 +230,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation, bool pop_all_c
             last_committed_decree());
 
     // local prepare
-    err = _prepare_list->prepare(mu, partition_status::PS_PRIMARY, pop_all_committed_mutations);
+    err = _prepare_list->prepare(mu, partition_status::PS_PRIMARY, pop_all_committed_mutations, false);
     if (err != ERR_OK) {
         goto ErrOut;
     }
@@ -489,7 +489,7 @@ void replica::on_prepare(dsn::message_ex *request)
         return;
     }
 
-    error_code err = _prepare_list->prepare(mu, status());
+    error_code err = _prepare_list->prepare(mu, status(), false, false);
     dassert(err == ERR_OK, "prepare mutation failed, err = %s", err.to_string());
 
     if (partition_status::PS_POTENTIAL_SECONDARY == status() ||
