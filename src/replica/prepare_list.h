@@ -68,8 +68,8 @@ public:
     error_code prepare(mutation_ptr &mu,
                        partition_status::type status,
                        bool pop_all_committed_mutations = false,
-                       bool secondary_sync_commit = true); // unordered prepare
-    virtual void commit(decree decree, commit_type ct);    // ordered commit
+                       bool secondary_commit = true);   // unordered prepare
+    virtual void commit(decree decree, commit_type ct); // ordered commit
 
     virtual ~prepare_list() = default;
 

@@ -71,7 +71,7 @@ void prepare_list::truncate(decree init_decree)
 error_code prepare_list::prepare(mutation_ptr &mu,
                                  partition_status::type status,
                                  bool pop_all_committed_mutations,
-                                 bool secondary_sync_commit)
+                                 bool secondary_commit)
 {
     decree d = mu->data.header.decree;
     dcheck_gt_replica(d, last_committed_decree());
@@ -90,7 +90,7 @@ error_code prepare_list::prepare(mutation_ptr &mu,
     case partition_status::PS_SECONDARY:
     case partition_status::PS_POTENTIAL_SECONDARY:
         // all mutations with lower decree must be ready
-        if (secondary_sync_commit) {
+        if (secondary_commit) {
             commit(mu->data.header.last_committed_decree, COMMIT_TO_DECREE_HARD);
         }
         // pop committed mutations if buffer is full or pop_all_committed_mutations = true
