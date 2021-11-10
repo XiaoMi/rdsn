@@ -45,6 +45,8 @@ public:
 
     void wait_all();
 
+    std::vector<rpc_address> ensure_enough_alive_nodes(int min_node_count);
+
     // create an app for test with specified name and specified partition count
     void create_app(const std::string &name, uint32_t partition_count);
 

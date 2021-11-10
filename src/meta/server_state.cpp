@@ -56,6 +56,24 @@ using namespace dsn;
 namespace dsn {
 namespace replication {
 
+DSN_DEFINE_int32("meta_server",
+                 max_allowed_replica_count,
+                 3,
+                 "max allowed replica count for arbitrary number of nodes in a cluster");
+
+DSN_DEFINE_validator(max_allowed_replica_count, [](int32_t allowed_replica_count) -> bool {
+    return allowed_replica_count > 0 && allowed_replica_count <= 3;
+});
+
+DSN_DEFINE_int32("meta_server",
+                 min_allowed_replica_count,
+                 1,
+                 "min allowed replica count for arbitrary number of nodes in a cluster");
+
+DSN_DEFINE_validator(min_allowed_replica_count, [](int32_t allowed_replica_count) -> bool {
+    return allowed_replica_count > 0 && allowed_replica_count <= FLAGS_max_allowed_replica_count;
+});
+
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
 
@@ -1072,7 +1090,8 @@ void server_state::create_app(dsn::message_ex *msg)
                opt.replica_count == exist_app.max_replica_count;
     };
 
-    if (request.options.partition_count <= 0 || request.options.replica_count <= 0) {
+    if (request.options.partition_count <= 0 ||
+        !validate_target_max_replica_count(request.options.replica_count)) {
         response.err = ERR_INVALID_PARAMETERS;
         will_create_app = false;
     } else {
@@ -2864,5 +2883,79 @@ void server_state::clear_app_envs(const app_env_rpc &env_rpc)
                    new_envs.c_str());
         });
 }
+
+namespace {
+
+bool validate_target_max_replica_count_internal(int32_t max_replica_count,
+                                                int32_t alive_node_count,
+                                                std::string *hint_message)
+{
+    dassert_f(FLAGS_min_allowed_replica_count <= FLAGS_max_allowed_replica_count,
+              "min allowed replica count({}) should be <= max allowed replica count({})",
+              FLAGS_min_allowed_replica_count,
+              FLAGS_max_allowed_replica_count);
+
+    if (alive_node_count < 1) {
+        *hint_message = "all replica servers are unalive";
+        return false;
+    }
+
+    if (max_replica_count > FLAGS_max_allowed_replica_count) {
+        *hint_message = fmt::format("requested replica count({}) exceeds the max "
+                                    "allowed replica count({})",
+                                    max_replica_count,
+                                    FLAGS_max_allowed_replica_count);
+        return false;
+    }
+
+    if (max_replica_count < FLAGS_min_allowed_replica_count) {
+        *hint_message = fmt::format("requested replica count({}) is less than the min "
+                                    "allowed replica count({})",
+                                    max_replica_count,
+                                    FLAGS_min_allowed_replica_count);
+        return false;
+    }
+
+    if (max_replica_count > alive_node_count) {
+        *hint_message = fmt::format("there are not enough alive replica servers({}) "
+                                    "for the requested replica count({})",
+                                    alive_node_count,
+                                    max_replica_count);
+        return false;
+    }
+
+    return true;
+}
+
+} // anonymous namespace
+
+bool server_state::validate_target_max_replica_count(int32_t max_replica_count)
+{
+    std::string hint_message;
+
+    zauto_read_lock l(_lock);
+
+    auto alive_node_count = get_alive_node_count_unlocked();
+
+    bool is_valid = validate_target_max_replica_count_internal(
+        max_replica_count, alive_node_count, &hint_message);
+    if (!is_valid) {
+        dwarn_f("target max replica count is invalid: message={}", hint_message);
+    }
+
+    return is_valid;
+}
+
+int32_t server_state::get_alive_node_count_unlocked()
+{
+    int32_t count = 0;
+    for (const auto &node : _nodes) {
+        if (node.second.alive()) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 } // namespace replication
 } // namespace dsn
