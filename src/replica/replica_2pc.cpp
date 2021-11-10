@@ -230,7 +230,7 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation, bool pop_all_c
             last_committed_decree());
 
     // local prepare
-    err = _prepare_list->prepare(mu, partition_status::PS_PRIMARY, pop_all_committed_mutations, false);
+    err = _prepare_list->prepare(mu, partition_status::PS_PRIMARY, pop_all_committed_mutations);
     if (err != ERR_OK) {
         goto ErrOut;
     }
