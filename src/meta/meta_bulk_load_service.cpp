@@ -355,7 +355,6 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
     const std::string &app_name = request.app_name;
     const gpid &pid = request.pid;
     const rpc_address &primary_addr = request.primary_addr;
-    int32_t interval = bulk_load_constant::BULK_LOAD_REQUEST_INTERVAL;
 
     if (err != ERR_OK) {
         derror_f("app({}), partition({}) failed to receive bulk load response, error = {}",
@@ -363,7 +362,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
                  pid,
                  err.to_string());
         try_rollback_to_downloading(app_name, pid);
-        try_resend_bulk_load_request(app_name, pid, interval);
+        try_resend_bulk_load_request(app_name, pid);
         return;
     }
 
@@ -375,7 +374,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
             primary_addr.to_string(),
             response.err.to_string());
         try_rollback_to_downloading(app_name, pid);
-        try_resend_bulk_load_request(app_name, pid, interval);
+        try_resend_bulk_load_request(app_name, pid);
         return;
     }
 
@@ -385,7 +384,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
                 primary_addr.to_string(),
                 app_name,
                 pid);
-        try_resend_bulk_load_request(app_name, pid, interval);
+        try_resend_bulk_load_request(app_name, pid);
         return;
     }
 
@@ -397,7 +396,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
                  response.err.to_string(),
                  dsn::enum_to_string(response.primary_bulk_load_status));
         handle_bulk_load_failed(pid.get_app_id());
-        try_resend_bulk_load_request(app_name, pid, interval);
+        try_resend_bulk_load_request(app_name, pid);
         return;
     }
 
@@ -423,7 +422,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
                 request.ballot,
                 current_ballot);
         try_rollback_to_downloading(app_name, pid);
-        try_resend_bulk_load_request(app_name, pid, interval);
+        try_resend_bulk_load_request(app_name, pid);
         return;
     }
 
@@ -437,11 +436,9 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
         update_partition_status_on_remote_storage(
             response.app_name, response.pid, bulk_load_status::BLS_INGESTING);
         // when app status is downloaded or ingesting, send request frequently
-        interval = bulk_load_constant::BULK_LOAD_REQUEST_SHORT_INTERVAL;
         break;
     case bulk_load_status::BLS_INGESTING:
         handle_app_ingestion(response, primary_addr);
-        interval = bulk_load_constant::BULK_LOAD_REQUEST_SHORT_INTERVAL;
         break;
     case bulk_load_status::BLS_SUCCEED:
     case bulk_load_status::BLS_FAILED:
@@ -459,13 +456,12 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
         break;
     }
 
-    try_resend_bulk_load_request(app_name, pid, interval);
+    try_resend_bulk_load_request(app_name, pid);
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
 void bulk_load_service::try_resend_bulk_load_request(const std::string &app_name,
-                                                     const gpid &pid,
-                                                     const int32_t interval)
+                                                     const gpid &pid)
 {
     FAIL_POINT_INJECT_F("meta_bulk_load_resend_request", [](dsn::string_view) {});
     zauto_read_lock l(_lock);
@@ -474,7 +470,7 @@ void bulk_load_service::try_resend_bulk_load_request(const std::string &app_name
                          _meta_svc->tracker(),
                          std::bind(&bulk_load_service::partition_bulk_load, this, app_name, pid),
                          0,
-                         std::chrono::seconds(interval));
+                         std::chrono::seconds(bulk_load_constant::BULK_LOAD_REQUEST_INTERVAL));
     }
 }
 
