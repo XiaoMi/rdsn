@@ -69,7 +69,7 @@ public:
                        partition_status::type status,
                        bool pop_all_committed_mutations = false,
                        bool secondary_sync_commit = true); // unordered prepare
-    virtual void commit(decree decree, commit_type ct);           // ordered commit
+    virtual void commit(decree decree, commit_type ct);    // ordered commit
 
     virtual ~prepare_list() = default;
 
