@@ -69,17 +69,15 @@ void bulk_load_service::on_start_bulk_load(start_bulk_load_rpc rpc)
     std::shared_ptr<app_state> app = get_app(request.app_name);
     if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
         response.err = app == nullptr ? ERR_APP_NOT_EXIST : ERR_APP_DROPPED;
-        auto hint = fmt::format(
+        response.hint_msg = fmt::format(
             "app {} is ", response.err == ERR_APP_NOT_EXIST ? "not existed" : "not available");
-        response.hint_msg = hint;
-        derror_f("{}", hint);
+        derror_f("{}", response.hint_msg);
         return;
     }
     if (app->is_bulk_loading) {
-        auto hint = fmt::format("app({}) is already executing bulk load", app->app_name);
         response.err = ERR_BUSY;
-        response.hint_msg = hint;
-        derror_f("{}", hint);
+        response.hint_msg = fmt::format("app({}) is already executing bulk load", app->app_name);
+        derror_f("{}", response.hint_msg);
         return;
     }
 
