@@ -76,9 +76,10 @@ void bulk_load_service::on_start_bulk_load(start_bulk_load_rpc rpc)
         return;
     }
     if (app->is_bulk_loading) {
-        derror_f("app({}) is already executing bulk load, please wait", app->app_name);
+        auto hint = fmt::format("app({}) is already executing bulk load", app->app_name);
         response.err = ERR_BUSY;
-        response.hint_msg = "app is already executing bulk load";
+        response.hint_msg = hint;
+        derror_f("{}", hint);
         return;
     }
 
