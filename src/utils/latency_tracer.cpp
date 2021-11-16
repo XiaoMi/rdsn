@@ -284,5 +284,6 @@ void latency_tracer::report_trace_point(const std::string &name, uint64_t span)
     }
 }
 
+
 } // namespace utils
 } // namespace dsn
