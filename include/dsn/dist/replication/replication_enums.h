@@ -13,6 +13,15 @@ ENUM_REG(app_status::AS_DROPPED)
 ENUM_REG(app_status::AS_RECALLING)
 ENUM_END2(app_status::type, app_status)
 
+ENUM_BEGIN2(bulk_load_result::type, bulk_load_result, bulk_load_result::BLR_INVALID)
+ENUM_REG(bulk_load_result::BLR_UNKNOWN)
+ENUM_REG(bulk_load_result::BLR_ERR_FS_INTERNAL)
+ENUM_REG(bulk_load_result::BLR_ERR_CORRUPTION)
+ENUM_REG(bulk_load_result::BLR_ERR_INGESTED_FAILED)
+ENUM_REG(bulk_load_result::BLR_SUCCEED)
+ENUM_REG(bulk_load_result::BLR_CANCELED)
+ENUM_END2(bulk_load_result::type, bulk_load_result)
+
 ENUM_BEGIN2(replication::partition_status::type,
             partition_status,
             replication::partition_status::PS_INVALID)

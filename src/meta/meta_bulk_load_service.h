@@ -297,6 +297,9 @@ private:
                                       const gpid &pid,
                                       int32_t partition_count);
 
+    // update bulk load result of app_info in remote storage
+    void update_app_bulk_load_result(app_state *app, bulk_load_result::type result);
+
     ///
     /// helper functions
     ///
@@ -406,6 +409,22 @@ private:
         }
     }
 
+    inline bool get_app_ever_ingesting(int32_t app_id)
+    {
+        zauto_write_lock l(_lock);
+        auto it = _apps_ever_ingesting.find(app_id);
+        if (it != _apps_ever_ingesting.end()) {
+            return _apps_ever_ingesting[app_id];
+        }
+        return false;
+    }
+
+    inline void set_app_ever_ingesting(int32_t app_id)
+    {
+        zauto_write_lock l(_lock);
+        _apps_ever_ingesting[app_id] = true;
+    }
+
 private:
     friend class bulk_load_service_test;
     friend class meta_bulk_load_http_test;
@@ -440,6 +459,8 @@ private:
     std::unordered_map<gpid, bool> _partitions_cleaned_up;
     // Used for bulk load failed and app unavailable to avoid duplicated clean up
     std::unordered_map<app_id, bool> _apps_cleaning_up;
+    // indicate that have the app ever get into ingesting status
+    std::unordered_map<app_id, bool> _apps_ever_ingesting;
     // Used for bulk load rolling back to downloading
     std::unordered_map<app_id, bool> _apps_rolling_back;
     // Used for restrict bulk load rollback count

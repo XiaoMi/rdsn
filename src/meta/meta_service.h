@@ -67,6 +67,18 @@ class test_checker;
 
 DEFINE_TASK_CODE(LPC_DEFAULT_CALLBACK, TASK_PRIORITY_COMMON, dsn::THREAD_POOL_DEFAULT)
 
+enum class ENUM_META_OP_STATUS : uint8_t {
+    FREE = 0,
+    RECALL,
+    BALANCE,
+    BACKUP,
+    BULKLOAD,
+    RESTORE,
+    MANUAL_COMPACT,
+    PARTITION_SPLIT,
+    END
+};
+
 class meta_service : public serverlet<meta_service>
 {
 public:
@@ -133,6 +145,10 @@ public:
     void balancer_run();
 
     dsn::task_tracker *tracker() { return &_tracker; }
+
+    bool try_lock_meta_op_status(ENUM_META_OP_STATUS op_status);
+    void unlock_meta_op_status();
+    ENUM_META_OP_STATUS get_op_status() const { return _meta_op_status.load(); }
 
 private:
     void register_rpc_handlers();
@@ -284,6 +300,9 @@ private:
     dsn::task_tracker _tracker;
 
     std::unique_ptr<security::access_controller> _access_controller;
+
+    // indicate which operation is processing in meta server
+    std::atomic<ENUM_META_OP_STATUS> _meta_op_status;
 };
 
 } // namespace replication

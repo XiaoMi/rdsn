@@ -45,6 +45,17 @@ enum app_status
     AS_RECALLING
 }
 
+enum bulk_load_result
+{
+    BLR_INVALID,
+    BLR_UNKNOWN,
+    BLR_ERR_FS_INTERNAL,
+    BLR_ERR_CORRUPTION,
+    BLR_ERR_INGESTED_FAILED,
+    BLR_SUCCEED,
+    BLR_CANCELED
+}
+
 struct app_info
 {
     1:app_status    status = app_status.AS_INVALID;
@@ -75,4 +86,8 @@ struct app_info
     // New fields for bulk load
     // Whether this app is executing bulk load
     14:optional bool    is_bulk_loading = false;
+
+    // New fields for bulk load
+    // The result of the last bulkload
+    15:optional bulk_load_result    last_time_result = bulk_load_result.BLR_INVALID;
 }
