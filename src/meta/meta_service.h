@@ -134,6 +134,8 @@ public:
 
     dsn::task_tracker *tracker() { return &_tracker; }
 
+    size_t get_alive_node_count() const;
+
 private:
     void register_rpc_handlers();
     void register_ctrl_commands();

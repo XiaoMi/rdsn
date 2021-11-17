@@ -295,8 +295,6 @@ private:
     // check whether a max replica count is valid especially for a new app
     bool validate_target_max_replica_count(int32_t max_replica_count);
 
-    int32_t get_alive_node_count_unlocked();
-
 private:
     friend class bulk_load_service;
     friend class bulk_load_service_test;

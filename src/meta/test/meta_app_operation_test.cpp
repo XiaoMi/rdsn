@@ -25,8 +25,6 @@
 namespace dsn {
 namespace replication {
 
-DSN_DECLARE_int32(max_allowed_replica_count);
-
 DSN_DECLARE_int32(min_allowed_replica_count);
 
 class meta_app_operation_test : public meta_test_base
@@ -124,44 +122,50 @@ TEST_F(meta_app_operation_test, create_app)
         std::string app_name;
         int32_t partition_count;
         int32_t replica_count;
+        uint64_t min_live_node_count_for_unfreeze;
         int32_t unalive_node_count;
-        int32_t max_allowed_replica_count;
         int32_t min_allowed_replica_count;
         bool success_if_exist;
         app_status::type before_status;
         error_code expected_err;
-    } tests[] = {{APP_NAME, -1, 3, 0, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 0, 3, 0, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, -1, 0, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 0, 0, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 5, 0, 5, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 1, 3, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 1, 2, 3, 3, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 1, 0, 3, 3, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME + "_1", 4, 1, 2, 3, 1, false, app_status::AS_INVALID, ERR_OK},
-                 {APP_NAME, 4, 2, 3, 3, 2, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 2, 1, 1, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 2, 1, 3, 3, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 2, 0, 3, 3, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME + "_2", 4, 2, 1, 3, 2, false, app_status::AS_INVALID, ERR_OK},
-                 {APP_NAME, 4, 3, 3, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 3, 1, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 3, 0, 2, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME + "_3", 4, 3, 0, 3, 3, false, app_status::AS_INVALID, ERR_OK},
-                 {APP_NAME, 4, 3, 0, 3, 1, false, app_status::AS_INVALID, ERR_OK},
-                 {APP_NAME, 4, 3, 0, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 3, 0, 3, 1, false, app_status::AS_CREATING, ERR_BUSY_CREATING},
-                 {APP_NAME, 4, 3, 0, 3, 1, false, app_status::AS_RECALLING, ERR_BUSY_CREATING},
-                 {APP_NAME, 4, 3, 0, 3, 1, false, app_status::AS_DROPPING, ERR_BUSY_DROPPING},
-                 {APP_NAME, 4, 3, 0, 3, 1, false, app_status::AS_DROPPED, ERR_OK},
-                 {APP_NAME, 4, 3, 0, 3, 1, true, app_status::AS_INVALID, ERR_OK}};
+    } tests[] = {{APP_NAME, -1, 3, 2, 0, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 0, 3, 2, 0, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, -1, 1, 0, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 0, 1, 0, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 16, 2, 0, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 15, 2, 0, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 1, 1, 3, 1, false, app_status::AS_INVALID, ERR_STATE_FREEZED},
+                 {APP_NAME, 4, 1, 1, 2, 3, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME + "_1", 4, 1, 1, 2, 1, false, app_status::AS_INVALID, ERR_OK},
+                 {APP_NAME, 4, 2, 1, 3, 2, false, app_status::AS_INVALID, ERR_STATE_FREEZED},
+                 {APP_NAME, 4, 2, 1, 2, 2, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 2, 1, 1, 3, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME + "_2", 4, 2, 1, 1, 2, false, app_status::AS_INVALID, ERR_OK},
+                 {APP_NAME, 4, 3, 2, 3, 1, false, app_status::AS_INVALID, ERR_STATE_FREEZED},
+                 {APP_NAME, 4, 3, 2, 2, 1, false, app_status::AS_INVALID, ERR_STATE_FREEZED},
+                 {APP_NAME, 4, 3, 2, 1, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 3, 2, 0, 5, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME + "_3", 4, 3, 2, 0, 3, false, app_status::AS_INVALID, ERR_OK},
+                 {APP_NAME, 4, 3, 2, 0, 1, false, app_status::AS_INVALID, ERR_OK},
+                 {APP_NAME, 4, 3, 2, 0, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 3, 2, 0, 1, false, app_status::AS_CREATING, ERR_BUSY_CREATING},
+                 {APP_NAME, 4, 3, 2, 0, 1, false, app_status::AS_RECALLING, ERR_BUSY_CREATING},
+                 {APP_NAME, 4, 3, 2, 0, 1, false, app_status::AS_DROPPING, ERR_BUSY_DROPPING},
+                 {APP_NAME, 4, 3, 2, 0, 1, false, app_status::AS_DROPPED, ERR_OK},
+                 {APP_NAME, 4, 3, 2, 0, 1, true, app_status::AS_INVALID, ERR_OK}};
 
     clear_nodes();
     std::vector<rpc_address> nodes = ensure_enough_alive_nodes(3);
 
+    // the meta function level will become freezed once
+    // alive_nodes * 100 < total_nodes * node_live_percentage_threshold_for_update
+    // even if alive_nodes >= min_live_node_count_for_unfreeze
+    set_node_live_percentage_threshold_for_update(30);
+
     for (auto test : tests) {
-        FLAGS_max_allowed_replica_count = test.max_allowed_replica_count;
         FLAGS_min_allowed_replica_count = test.min_allowed_replica_count;
+        set_min_live_node_count_for_unfreeze(test.min_live_node_count_for_unfreeze);
+
         for (int32_t i = 0; i < test.unalive_node_count; i++) {
             _ms->set_node_state({nodes[i]}, false);
         }
@@ -179,7 +183,6 @@ TEST_F(meta_app_operation_test, create_app)
         _ms->set_node_state(nodes, true);
     }
 
-    FLAGS_max_allowed_replica_count = 3;
     FLAGS_min_allowed_replica_count = 1;
 }
 
