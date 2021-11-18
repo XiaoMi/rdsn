@@ -178,6 +178,7 @@ void replica::init_state()
     _last_config_change_time_ms = _create_time_ms;
     update_last_checkpoint_generate_time();
     _private_log = nullptr;
+    init_disk_tag();
 }
 
 replica::~replica(void)
@@ -292,7 +293,7 @@ void replica::execute_mutation(mutation_ptr &mu)
         }
         break;
     case partition_status::PS_PRIMARY: {
-        ADD_POINT(mu->tracer);
+        ADD_POINT(mu->_tracer);
         check_state_completeness();
         dassert(_app->last_committed_decree() + 1 == d,
                 "app commit: %" PRId64 ", mutation decree: %" PRId64 "",
@@ -363,7 +364,7 @@ void replica::execute_mutation(mutation_ptr &mu)
     }
 
     if (status() == partition_status::PS_PRIMARY) {
-        ADD_CUSTOM_POINT(mu->tracer, "completed");
+        ADD_CUSTOM_POINT(mu->_tracer, "completed");
         mutation_ptr next = _primary_states.write_queue.check_possible_work(
             static_cast<int>(_prepare_list->max_decree() - d));
 
@@ -577,6 +578,14 @@ uint32_t replica::query_data_version() const
 {
     dassert_replica(_app != nullptr, "");
     return _app->query_data_version();
+}
+
+void replica::init_disk_tag()
+{
+    dsn::error_code err = _stub->_fs_manager.get_disk_tag(dir(), _disk_tag);
+    if (dsn::ERR_OK != err) {
+        derror_replica("get disk tag of %s failed: %s, init it to empty ", dir(), err);
+    }
 }
 
 } // namespace replication

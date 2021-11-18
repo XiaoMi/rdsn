@@ -81,15 +81,16 @@ struct bulk_load_info
 ///                  |
 ///         Err      v
 ///     ---------Downloading <---------|
-///     |            |                 |
+///     |  Too many  |                 |
+///     |  rollback  |                 |
 ///     |            v         Err     |
 ///     |        Downloaded  --------->|
 ///     |            |                 |
 ///     | IngestErr  v         Err     |
 ///     |<------- Ingesting  --------->|
-///     |            |                 |
-///     v            v         Err     |
-///   Failed       Succeed   --------->|
+///     |            |
+///     v            v
+///   Failed       Succeed
 ///     |            |
 ///     v            v
 ///    remove bulk load info on remote storage
@@ -139,6 +140,16 @@ private:
 
     void do_start_app_bulk_load(std::shared_ptr<app_state> app, start_bulk_load_rpc rpc);
 
+    // Called by `partition_bulk_load` and `partition_ingestion`
+    // check partition status before sending partition_bulk_load_request and
+    // partition_ingestion_request
+    bool check_partition_status(
+        const std::string &app_name,
+        const gpid &pid,
+        bool always_unhealthy_check,
+        const std::function<void(const std::string &, const gpid &)> &retry_function,
+        /*out*/ partition_configuration &pconfig);
+
     void partition_bulk_load(const std::string &app_name, const gpid &pid);
 
     void on_partition_bulk_load_reply(error_code err,
@@ -146,9 +157,7 @@ private:
                                       const bulk_load_response &response);
 
     // if app is still in bulk load, resend bulk_load_request to primary after interval seconds
-    void try_resend_bulk_load_request(const std::string &app_name,
-                                      const gpid &pid,
-                                      const int32_t interval);
+    void try_resend_bulk_load_request(const std::string &app_name, const gpid &pid);
 
     void handle_app_downloading(const bulk_load_response &response,
                                 const rpc_address &primary_addr);
@@ -180,7 +189,8 @@ private:
     void on_partition_ingestion_reply(error_code err,
                                       const ingestion_response &&resp,
                                       const std::string &app_name,
-                                      const gpid &pid);
+                                      const gpid &pid,
+                                      const rpc_address &primary_addr);
 
     void reset_local_bulk_load_states(int32_t app_id, const std::string &app_name);
 
@@ -290,6 +300,18 @@ private:
     ///
     /// helper functions
     ///
+    inline std::shared_ptr<app_state> get_app(const std::string &name)
+    {
+        zauto_read_lock l(app_lock());
+        return _state->get_app(name);
+    }
+
+    inline std::shared_ptr<app_state> get_app(int32_t app_id)
+    {
+        zauto_read_lock l(app_lock());
+        return _state->get_app(app_id);
+    }
+
     // get bulk_load_info path on file provider
     // <remote_root_path>/<cluster_name>/<app_name>/bulk_load_info
     inline std::string get_bulk_load_info_path(const std::string &app_name,
