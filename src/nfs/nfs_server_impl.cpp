@@ -42,8 +42,11 @@
 namespace dsn {
 namespace service {
 
-DSN_DEFINE_int32("nfs", max_send_rate_megabytes, 100, "max rate of send to remote node(MB/s)");
-DSN_TAG_VARIABLE(max_send_rate_megabytes, FT_MUTABLE);
+DSN_DEFINE_int32("nfs",
+                 max_send_rate_megabytes_per_disk,
+                 500,
+                 "max rate per disk of send to remote node(MB/s)");
+DSN_TAG_VARIABLE(max_send_rate_megabytes_per_disk, FT_MUTABLE);
 
 DSN_DECLARE_int32(file_close_timer_interval_ms_on_server);
 DSN_DECLARE_int32(file_close_expire_time_ms);
@@ -66,7 +69,7 @@ nfs_service_impl::nfs_service_impl() : ::dsn::serverlet<nfs_service_impl>("nfs")
         COUNTER_TYPE_VOLATILE_NUMBER,
         "nfs server copy fail count count in the recent period");
 
-    _send_token_bucket = std::make_unique<folly::DynamicTokenBucket>();
+    _send_token_buckets = std::make_unique<dsn::utils::token_buckets>();
     register_cli_commands();
 }
 
@@ -117,7 +120,8 @@ void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
 
     std::shared_ptr<callback_para> cp = std::make_shared<callback_para>(std::move(reply));
     cp->bb = blob(dsn::utils::make_shared_array<char>(request.size), request.size);
-    cp->dst_dir = std::move(request.dst_dir);
+    cp->dst_dir = request.dst_dir;
+    cp->source_disk_tag = request.source_disk_tag;
     cp->file_path = std::move(file_path);
     cp->hfile = hfile;
     cp->offset = request.offset;
@@ -137,8 +141,10 @@ void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
 
 void nfs_service_impl::internal_read_callback(error_code err, size_t sz, callback_para &cp)
 {
-    _send_token_bucket->consumeWithBorrowAndWait(
-        sz, FLAGS_max_send_rate_megabytes << 20, 1.5 * (FLAGS_max_send_rate_megabytes << 20));
+    _send_token_buckets->get_token_bucket(cp.source_disk_tag)
+        ->consumeWithBorrowAndWait(sz,
+                                   FLAGS_max_send_rate_megabytes_per_disk << 20,
+                                   1.5 * (FLAGS_max_send_rate_megabytes_per_disk << 20));
     {
         zauto_lock l(_handles_map_lock);
         auto it = _handles_map.find(cp.file_path);
@@ -250,20 +256,21 @@ void nfs_service_impl::close_file() // release out-of-date file handle
     }
 }
 
-// TODO(jiashuo1): just for compatibility, ready to delete it later
+// TODO(jiashuo1):  just for compatibility with scripts, such as
+// https://github.com/apache/incubator-pegasus/blob/v2.3/scripts/pegasus_offline_node_list.sh
 void nfs_service_impl::register_cli_commands()
 {
     static std::once_flag flag;
     std::call_once(flag, [&]() {
         _nfs_max_send_rate_megabytes_cmd = dsn::command_manager::instance().register_command(
-            {"nfs.max_send_rate_megabytes"},
-            "nfs.max_send_rate_megabytes [num]",
-            "control the max rate(MB/s) to send file to remote node",
+            {"nfs.max_send_rate_megabytes_per_disk"},
+            "nfs.max_send_rate_megabytes_per_disk [num]",
+            "control the max rate(MB/s) for one disk to send file to remote node",
             [](const std::vector<std::string> &args) {
                 std::string result("OK");
 
                 if (args.empty()) {
-                    return std::to_string(FLAGS_max_send_rate_megabytes);
+                    return std::to_string(FLAGS_max_send_rate_megabytes_per_disk);
                 }
 
                 int32_t max_send_rate_megabytes = 0;
@@ -272,7 +279,7 @@ void nfs_service_impl::register_cli_commands()
                     return std::string("ERR: invalid arguments");
                 }
 
-                FLAGS_max_send_rate_megabytes = max_send_rate_megabytes;
+                FLAGS_max_send_rate_megabytes_per_disk = max_send_rate_megabytes;
                 return result;
             });
     });
