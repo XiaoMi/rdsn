@@ -79,8 +79,7 @@ uint32_t get_skew(const std::map<rpc_address, uint32_t> &count_map)
     for (const auto &kv : count_map) {
         if (kv.second < min) {
             min = kv.second;
-        }
-        if (kv.second > max) {
+        } else if (kv.second > max) {
             max = kv.second;
         }
     }
