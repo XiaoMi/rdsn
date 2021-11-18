@@ -23,7 +23,6 @@
 namespace dsn {
 namespace replication {
 
-
 typedef rpc_holder<configuration_update_app_env_request, configuration_update_app_env_response>
     app_env_rpc;
 typedef rpc_holder<ddd_diagnose_request, ddd_diagnose_response> ddd_diagnose_rpc;
