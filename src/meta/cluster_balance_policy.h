@@ -40,6 +40,7 @@ private:
     struct app_migration_info;
     struct node_migration_info;
     struct move_info;
+    struct app_disk_info;
     bool cluster_replica_balance(const meta_view *global_view,
                                  const balance_type type,
                                  /*out*/ migration_list &list);
@@ -65,12 +66,10 @@ private:
                       const int32_t app_id,
                       const partition_set &selected_pid,
                       /*out*/ move_info &move_info);
-    void get_max_load_disk(const cluster_migration_info &cluster_info,
-                           const std::set<rpc_address> &max_nodes,
-                           const int32_t app_id,
-                           /*out*/ rpc_address &picked_node,
-                           /*out*/ std::string &picked_disk,
-                           /*out*/ partition_set &target_partitions);
+    void get_max_load_disk_set(const cluster_migration_info &cluster_info,
+                               const std::set<rpc_address> &max_nodes,
+                               const int32_t app_id,
+                               /*out*/ std::set<app_disk_info> &max_load_disk_set);
     std::map<std::string, partition_set> get_disk_partitions_map(
         const cluster_migration_info &cluster_info, const rpc_address &addr, const int32_t app_id);
     bool pick_up_partition(const cluster_migration_info &cluster_info,
@@ -135,6 +134,25 @@ private:
         std::map<rpc_address, uint32_t> replicas_count;
     };
 
+    struct app_disk_info
+    {
+        int32_t app_id;
+        rpc_address node;
+        std::string disk_tag;
+        partition_set partitions;
+        bool operator==(const app_disk_info &another) const
+        {
+            return app_id == another.app_id && node == another.node && disk_tag == another.disk_tag;
+        }
+        bool operator<(const app_disk_info &another) const
+        {
+            if (app_id < another.app_id || (app_id == another.app_id && node < another.node) ||
+                (app_id == another.app_id && node == another.node && disk_tag < another.disk_tag))
+                return true;
+            return false;
+        }
+    };
+
     struct move_info
     {
         gpid pid;
@@ -151,7 +169,7 @@ private:
     FRIEND_TEST(cluster_balance_policy, get_app_migration_info);
     FRIEND_TEST(cluster_balance_policy, get_node_migration_info);
     FRIEND_TEST(cluster_balance_policy, get_disk_partitions_map);
-    FRIEND_TEST(cluster_balance_policy, get_max_load_disk);
+    FRIEND_TEST(cluster_balance_policy, get_max_load_disk_set);
     FRIEND_TEST(cluster_balance_policy, apply_move);
     FRIEND_TEST(cluster_balance_policy, pick_up_partition);
     FRIEND_TEST(cluster_balance_policy, execute_balance);
