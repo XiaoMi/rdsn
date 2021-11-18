@@ -49,6 +49,7 @@ DSN_TAG_VARIABLE(balance_op_count_per_round, FT_MUTABLE);
 
 DSN_DECLARE_uint64(min_live_node_count_for_unfreeze);
 
+
 uint32_t get_partition_count(const node_state &ns, cluster_balance_type type, int32_t app_id)
 {
     unsigned count = 0;
