@@ -114,6 +114,8 @@ struct prepare_ack
     4:i64                 decree;
     5:i64                 last_committed_decree_in_app;
     6:i64                 last_committed_decree_in_prepare_list;
+    7:optional i64        receive_timestamp;
+    8:optional i64        response_timestamp;
 }
 
 enum learn_type
@@ -170,6 +172,7 @@ struct learn_response
     6:learn_state           state; // learning data, including memory data and files
     7:dsn.rpc_address       address; // learnee's address
     8:string                base_local_dir; // base dir of files on learnee
+    9:optional string replica_disk_tag; // the disk tag of learnee located
 }
 
 struct learn_notify_response

@@ -24,6 +24,7 @@
 
 namespace dsn {
 namespace replication {
+DSN_DECLARE_uint64(min_live_node_count_for_unfreeze);
 
 void dump_disk_load(app_id id, const rpc_address &node, bool only_primary, const disk_load &load)
 {
@@ -189,7 +190,8 @@ void load_balance_policy::init(const meta_view *global_view, migration_list *lis
 bool load_balance_policy::primary_balance(const std::shared_ptr<app_state> &app,
                                           bool only_move_primary)
 {
-    dassert(_alive_nodes > 2, "too few alive nodes will lead to freeze");
+    dassert(_alive_nodes >= FLAGS_min_live_node_count_for_unfreeze,
+            "too few alive nodes will lead to freeze");
     ddebug_f("primary balancer for app({}:{})", app->app_name, app->app_id);
 
     auto graph = ford_fulkerson::builder(app, *_global_view->nodes, address_id).build();
