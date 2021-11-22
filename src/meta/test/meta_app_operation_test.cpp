@@ -162,6 +162,8 @@ TEST_F(meta_app_operation_test, create_app)
     // even if alive_nodes >= min_live_node_count_for_unfreeze
     set_node_live_percentage_threshold_for_update(30);
 
+    auto reserved_min_allowed_replica_count = FLAGS_min_allowed_replica_count;
+
     for (auto test : tests) {
         FLAGS_min_allowed_replica_count = test.min_allowed_replica_count;
         set_min_live_node_count_for_unfreeze(test.min_live_node_count_for_unfreeze);
@@ -183,7 +185,7 @@ TEST_F(meta_app_operation_test, create_app)
         _ms->set_node_state(nodes, true);
     }
 
-    FLAGS_min_allowed_replica_count = 1;
+    FLAGS_min_allowed_replica_count = reserved_min_allowed_replica_count;
 }
 
 TEST_F(meta_app_operation_test, drop_app)
