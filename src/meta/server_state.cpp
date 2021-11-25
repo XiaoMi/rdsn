@@ -1085,7 +1085,7 @@ void server_state::create_app(dsn::message_ex *msg)
 
     auto level = _meta_svc->get_function_level();
     if (level <= meta_function_level::fl_freezed) {
-        dwarn_f("current meta function level is freezed since there are too few alive nodes");
+        derror_f("current meta function level is freezed since there are too few alive nodes");
         response.err = ERR_STATE_FREEZED;
         will_create_app = false;
     } else if (request.options.partition_count <= 0 ||
@@ -2925,7 +2925,7 @@ bool server_state::validate_target_max_replica_count(int32_t max_replica_count)
     bool is_valid = validate_target_max_replica_count_internal(
         max_replica_count, alive_node_count, hint_message);
     if (!is_valid) {
-        dwarn_f("target max replica count is invalid: message={}", hint_message);
+        derror_f("target max replica count is invalid: message={}", hint_message);
     }
 
     return is_valid;
