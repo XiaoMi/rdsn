@@ -35,26 +35,6 @@ const char* _kapp_statusNames[] = {
 };
 const std::map<int, const char*> _app_status_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(8, _kapp_statusValues, _kapp_statusNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
-int _kbulk_load_resultValues[] = {
-  bulk_load_result::BLR_INVALID,
-  bulk_load_result::BLR_UNKNOWN,
-  bulk_load_result::BLR_ERR_FS_INTERNAL,
-  bulk_load_result::BLR_ERR_CORRUPTION,
-  bulk_load_result::BLR_ERR_INGESTED_FAILED,
-  bulk_load_result::BLR_SUCCEED,
-  bulk_load_result::BLR_CANCELED
-};
-const char* _kbulk_load_resultNames[] = {
-  "BLR_INVALID",
-  "BLR_UNKNOWN",
-  "BLR_ERR_FS_INTERNAL",
-  "BLR_ERR_CORRUPTION",
-  "BLR_ERR_INGESTED_FAILED",
-  "BLR_SUCCEED",
-  "BLR_CANCELED"
-};
-const std::map<int, const char*> _bulk_load_result_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(7, _kbulk_load_resultValues, _kbulk_load_resultNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
-
 
 partition_configuration::~partition_configuration() throw() {
 }
@@ -747,11 +727,6 @@ void app_info::__set_is_bulk_loading(const bool val) {
 __isset.is_bulk_loading = true;
 }
 
-void app_info::__set_last_time_result(const bulk_load_result::type val) {
-  this->last_time_result = val;
-__isset.last_time_result = true;
-}
-
 uint32_t app_info::read(::apache::thrift::protocol::TProtocol* iprot) {
 
   apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
@@ -902,16 +877,6 @@ uint32_t app_info::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
-      case 15:
-        if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast44;
-          xfer += iprot->readI32(ecast44);
-          this->last_time_result = (bulk_load_result::type)ecast44;
-          this->__isset.last_time_result = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -952,11 +917,11 @@ uint32_t app_info::write(::apache::thrift::protocol::TProtocol* oprot) const {
   xfer += oprot->writeFieldBegin("envs", ::apache::thrift::protocol::T_MAP, 6);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->envs.size()));
-    std::map<std::string, std::string> ::const_iterator _iter45;
-    for (_iter45 = this->envs.begin(); _iter45 != this->envs.end(); ++_iter45)
+    std::map<std::string, std::string> ::const_iterator _iter44;
+    for (_iter44 = this->envs.begin(); _iter44 != this->envs.end(); ++_iter44)
     {
-      xfer += oprot->writeString(_iter45->first);
-      xfer += oprot->writeString(_iter45->second);
+      xfer += oprot->writeString(_iter44->first);
+      xfer += oprot->writeString(_iter44->second);
     }
     xfer += oprot->writeMapEnd();
   }
@@ -996,11 +961,6 @@ uint32_t app_info::write(::apache::thrift::protocol::TProtocol* oprot) const {
     xfer += oprot->writeBool(this->is_bulk_loading);
     xfer += oprot->writeFieldEnd();
   }
-  if (this->__isset.last_time_result) {
-    xfer += oprot->writeFieldBegin("last_time_result", ::apache::thrift::protocol::T_I32, 15);
-    xfer += oprot->writeI32((int32_t)this->last_time_result);
-    xfer += oprot->writeFieldEnd();
-  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -1022,82 +982,77 @@ void swap(app_info &a, app_info &b) {
   swap(a.duplicating, b.duplicating);
   swap(a.init_partition_count, b.init_partition_count);
   swap(a.is_bulk_loading, b.is_bulk_loading);
-  swap(a.last_time_result, b.last_time_result);
   swap(a.__isset, b.__isset);
 }
 
-app_info::app_info(const app_info& other46) {
-  status = other46.status;
-  app_type = other46.app_type;
-  app_name = other46.app_name;
-  app_id = other46.app_id;
-  partition_count = other46.partition_count;
-  envs = other46.envs;
-  is_stateful = other46.is_stateful;
-  max_replica_count = other46.max_replica_count;
-  expire_second = other46.expire_second;
-  create_second = other46.create_second;
-  drop_second = other46.drop_second;
-  duplicating = other46.duplicating;
-  init_partition_count = other46.init_partition_count;
-  is_bulk_loading = other46.is_bulk_loading;
-  last_time_result = other46.last_time_result;
-  __isset = other46.__isset;
+app_info::app_info(const app_info& other45) {
+  status = other45.status;
+  app_type = other45.app_type;
+  app_name = other45.app_name;
+  app_id = other45.app_id;
+  partition_count = other45.partition_count;
+  envs = other45.envs;
+  is_stateful = other45.is_stateful;
+  max_replica_count = other45.max_replica_count;
+  expire_second = other45.expire_second;
+  create_second = other45.create_second;
+  drop_second = other45.drop_second;
+  duplicating = other45.duplicating;
+  init_partition_count = other45.init_partition_count;
+  is_bulk_loading = other45.is_bulk_loading;
+  __isset = other45.__isset;
 }
-app_info::app_info( app_info&& other47) {
-  status = std::move(other47.status);
-  app_type = std::move(other47.app_type);
-  app_name = std::move(other47.app_name);
-  app_id = std::move(other47.app_id);
-  partition_count = std::move(other47.partition_count);
-  envs = std::move(other47.envs);
-  is_stateful = std::move(other47.is_stateful);
-  max_replica_count = std::move(other47.max_replica_count);
-  expire_second = std::move(other47.expire_second);
-  create_second = std::move(other47.create_second);
-  drop_second = std::move(other47.drop_second);
-  duplicating = std::move(other47.duplicating);
-  init_partition_count = std::move(other47.init_partition_count);
-  is_bulk_loading = std::move(other47.is_bulk_loading);
-  last_time_result = std::move(other47.last_time_result);
-  __isset = std::move(other47.__isset);
+app_info::app_info( app_info&& other46) {
+  status = std::move(other46.status);
+  app_type = std::move(other46.app_type);
+  app_name = std::move(other46.app_name);
+  app_id = std::move(other46.app_id);
+  partition_count = std::move(other46.partition_count);
+  envs = std::move(other46.envs);
+  is_stateful = std::move(other46.is_stateful);
+  max_replica_count = std::move(other46.max_replica_count);
+  expire_second = std::move(other46.expire_second);
+  create_second = std::move(other46.create_second);
+  drop_second = std::move(other46.drop_second);
+  duplicating = std::move(other46.duplicating);
+  init_partition_count = std::move(other46.init_partition_count);
+  is_bulk_loading = std::move(other46.is_bulk_loading);
+  __isset = std::move(other46.__isset);
 }
-app_info& app_info::operator=(const app_info& other48) {
-  status = other48.status;
-  app_type = other48.app_type;
-  app_name = other48.app_name;
-  app_id = other48.app_id;
-  partition_count = other48.partition_count;
-  envs = other48.envs;
-  is_stateful = other48.is_stateful;
-  max_replica_count = other48.max_replica_count;
-  expire_second = other48.expire_second;
-  create_second = other48.create_second;
-  drop_second = other48.drop_second;
-  duplicating = other48.duplicating;
-  init_partition_count = other48.init_partition_count;
-  is_bulk_loading = other48.is_bulk_loading;
-  last_time_result = other48.last_time_result;
-  __isset = other48.__isset;
+app_info& app_info::operator=(const app_info& other47) {
+  status = other47.status;
+  app_type = other47.app_type;
+  app_name = other47.app_name;
+  app_id = other47.app_id;
+  partition_count = other47.partition_count;
+  envs = other47.envs;
+  is_stateful = other47.is_stateful;
+  max_replica_count = other47.max_replica_count;
+  expire_second = other47.expire_second;
+  create_second = other47.create_second;
+  drop_second = other47.drop_second;
+  duplicating = other47.duplicating;
+  init_partition_count = other47.init_partition_count;
+  is_bulk_loading = other47.is_bulk_loading;
+  __isset = other47.__isset;
   return *this;
 }
-app_info& app_info::operator=(app_info&& other49) {
-  status = std::move(other49.status);
-  app_type = std::move(other49.app_type);
-  app_name = std::move(other49.app_name);
-  app_id = std::move(other49.app_id);
-  partition_count = std::move(other49.partition_count);
-  envs = std::move(other49.envs);
-  is_stateful = std::move(other49.is_stateful);
-  max_replica_count = std::move(other49.max_replica_count);
-  expire_second = std::move(other49.expire_second);
-  create_second = std::move(other49.create_second);
-  drop_second = std::move(other49.drop_second);
-  duplicating = std::move(other49.duplicating);
-  init_partition_count = std::move(other49.init_partition_count);
-  is_bulk_loading = std::move(other49.is_bulk_loading);
-  last_time_result = std::move(other49.last_time_result);
-  __isset = std::move(other49.__isset);
+app_info& app_info::operator=(app_info&& other48) {
+  status = std::move(other48.status);
+  app_type = std::move(other48.app_type);
+  app_name = std::move(other48.app_name);
+  app_id = std::move(other48.app_id);
+  partition_count = std::move(other48.partition_count);
+  envs = std::move(other48.envs);
+  is_stateful = std::move(other48.is_stateful);
+  max_replica_count = std::move(other48.max_replica_count);
+  expire_second = std::move(other48.expire_second);
+  create_second = std::move(other48.create_second);
+  drop_second = std::move(other48.drop_second);
+  duplicating = std::move(other48.duplicating);
+  init_partition_count = std::move(other48.init_partition_count);
+  is_bulk_loading = std::move(other48.is_bulk_loading);
+  __isset = std::move(other48.__isset);
   return *this;
 }
 void app_info::printTo(std::ostream& out) const {
@@ -1117,7 +1072,6 @@ void app_info::printTo(std::ostream& out) const {
   out << ", " << "duplicating="; (__isset.duplicating ? (out << to_string(duplicating)) : (out << "<null>"));
   out << ", " << "init_partition_count=" << to_string(init_partition_count);
   out << ", " << "is_bulk_loading="; (__isset.is_bulk_loading ? (out << to_string(is_bulk_loading)) : (out << "<null>"));
-  out << ", " << "last_time_result="; (__isset.last_time_result ? (out << to_string(last_time_result)) : (out << "<null>"));
   out << ")";
 }
 

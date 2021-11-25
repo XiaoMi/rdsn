@@ -35,20 +35,6 @@ struct app_status {
 
 extern const std::map<int, const char*> _app_status_VALUES_TO_NAMES;
 
-struct bulk_load_result {
-  enum type {
-    BLR_INVALID = 0,
-    BLR_UNKNOWN = 1,
-    BLR_ERR_FS_INTERNAL = 2,
-    BLR_ERR_CORRUPTION = 3,
-    BLR_ERR_INGESTED_FAILED = 4,
-    BLR_SUCCEED = 5,
-    BLR_CANCELED = 6
-  };
-};
-
-extern const std::map<int, const char*> _bulk_load_result_VALUES_TO_NAMES;
-
 class partition_configuration;
 
 class configuration_query_by_index_request;
@@ -274,7 +260,7 @@ inline std::ostream& operator<<(std::ostream& out, const configuration_query_by_
 }
 
 typedef struct _app_info__isset {
-  _app_info__isset() : status(true), app_type(false), app_name(false), app_id(false), partition_count(false), envs(false), is_stateful(false), max_replica_count(false), expire_second(false), create_second(false), drop_second(false), duplicating(false), init_partition_count(true), is_bulk_loading(true), last_time_result(true) {}
+  _app_info__isset() : status(true), app_type(false), app_name(false), app_id(false), partition_count(false), envs(false), is_stateful(false), max_replica_count(false), expire_second(false), create_second(false), drop_second(false), duplicating(false), init_partition_count(true), is_bulk_loading(true) {}
   bool status :1;
   bool app_type :1;
   bool app_name :1;
@@ -289,7 +275,6 @@ typedef struct _app_info__isset {
   bool duplicating :1;
   bool init_partition_count :1;
   bool is_bulk_loading :1;
-  bool last_time_result :1;
 } _app_info__isset;
 
 class app_info {
@@ -299,10 +284,8 @@ class app_info {
   app_info(app_info&&);
   app_info& operator=(const app_info&);
   app_info& operator=(app_info&&);
-  app_info() : status((app_status::type)0), app_type(), app_name(), app_id(0), partition_count(0), is_stateful(0), max_replica_count(0), expire_second(0), create_second(0), drop_second(0), duplicating(0), init_partition_count(-1), is_bulk_loading(false), last_time_result((bulk_load_result::type)0) {
+  app_info() : status((app_status::type)0), app_type(), app_name(), app_id(0), partition_count(0), is_stateful(0), max_replica_count(0), expire_second(0), create_second(0), drop_second(0), duplicating(0), init_partition_count(-1), is_bulk_loading(false) {
     status = (app_status::type)0;
-
-    last_time_result = (bulk_load_result::type)0;
 
   }
 
@@ -321,7 +304,6 @@ class app_info {
   bool duplicating;
   int32_t init_partition_count;
   bool is_bulk_loading;
-  bulk_load_result::type last_time_result;
 
   _app_info__isset __isset;
 
@@ -352,8 +334,6 @@ class app_info {
   void __set_init_partition_count(const int32_t val);
 
   void __set_is_bulk_loading(const bool val);
-
-  void __set_last_time_result(const bulk_load_result::type val);
 
   bool operator == (const app_info & rhs) const
   {
@@ -388,10 +368,6 @@ class app_info {
     if (__isset.is_bulk_loading != rhs.__isset.is_bulk_loading)
       return false;
     else if (__isset.is_bulk_loading && !(is_bulk_loading == rhs.is_bulk_loading))
-      return false;
-    if (__isset.last_time_result != rhs.__isset.last_time_result)
-      return false;
-    else if (__isset.last_time_result && !(last_time_result == rhs.last_time_result))
       return false;
     return true;
   }

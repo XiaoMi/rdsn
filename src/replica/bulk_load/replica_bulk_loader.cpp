@@ -284,8 +284,12 @@ error_code replica_bulk_loader::do_bulk_load(const std::string &app_name,
     case bulk_load_status::BLS_CANCELED:
         handle_bulk_load_finish(bulk_load_status::BLS_CANCELED);
         break;
-    case bulk_load_status::BLS_FAILED:
-        handle_bulk_load_finish(bulk_load_status::BLS_FAILED);
+    case bulk_load_status::BLS_FAILED_UNDEFINED:
+    case bulk_load_status::BLS_FAILED_FS_ERROR:
+    case bulk_load_status::BLS_FAILED_CORRUPTION:
+    case bulk_load_status::BLS_FAILED_INGESTED_ERROR:
+    case bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED:
+        handle_bulk_load_finish(meta_status);
         _stub->_counter_bulk_load_failed_count->increment();
         break;
     default:
@@ -301,7 +305,11 @@ replica_bulk_loader::validate_status(const bulk_load_status::type meta_status,
     error_code err = ERR_OK;
     switch (meta_status) {
     case bulk_load_status::BLS_DOWNLOADING:
-        if (local_status == bulk_load_status::BLS_FAILED ||
+        if (local_status == bulk_load_status::BLS_FAILED_UNDEFINED ||
+            local_status == bulk_load_status::BLS_FAILED_FS_ERROR ||
+            local_status == bulk_load_status::BLS_FAILED_CORRUPTION ||
+            local_status == bulk_load_status::BLS_FAILED_INGESTED_ERROR ||
+            local_status == bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED ||
             local_status == bulk_load_status::BLS_PAUSING ||
             local_status == bulk_load_status::BLS_CANCELED ||
             local_status == bulk_load_status::BLS_SUCCEED) {
@@ -789,7 +797,11 @@ void replica_bulk_loader::report_bulk_load_states_to_meta(bulk_load_status::type
         break;
     case bulk_load_status::BLS_SUCCEED:
     case bulk_load_status::BLS_CANCELED:
-    case bulk_load_status::BLS_FAILED:
+    case bulk_load_status::BLS_FAILED_UNDEFINED:
+    case bulk_load_status::BLS_FAILED_FS_ERROR:
+    case bulk_load_status::BLS_FAILED_CORRUPTION:
+    case bulk_load_status::BLS_FAILED_INGESTED_ERROR:
+    case bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED:
         report_group_cleaned_up(response);
         break;
     case bulk_load_status::BLS_PAUSING:
@@ -984,7 +996,11 @@ void replica_bulk_loader::report_bulk_load_states_to_primary(
         break;
     case bulk_load_status::BLS_SUCCEED:
     case bulk_load_status::BLS_CANCELED:
-    case bulk_load_status::BLS_FAILED:
+    case bulk_load_status::BLS_FAILED_UNDEFINED:
+    case bulk_load_status::BLS_FAILED_FS_ERROR:
+    case bulk_load_status::BLS_FAILED_CORRUPTION:
+    case bulk_load_status::BLS_FAILED_INGESTED_ERROR:
+    case bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED:
         bulk_load_state.__set_is_cleaned_up(is_cleaned_up());
         break;
     case bulk_load_status::BLS_PAUSING:
@@ -1006,7 +1022,9 @@ void replica_bulk_loader::clear_bulk_load_states_if_needed(partition_status::typ
          new_status == partition_status::PS_SECONDARY) &&
         new_status != old_status) {
         if (_status == bulk_load_status::BLS_SUCCEED || _status == bulk_load_status::BLS_CANCELED ||
-            _status == bulk_load_status::BLS_FAILED || _status == bulk_load_status::BLS_INVALID) {
+            _status == bulk_load_status::BLS_FAILED_UNDEFINED || _status == bulk_load_status::BLS_FAILED_FS_ERROR ||
+            _status == bulk_load_status::BLS_FAILED_CORRUPTION || _status == bulk_load_status::BLS_FAILED_INGESTED_ERROR ||
+            _status == bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED || _status == bulk_load_status::BLS_INVALID) {
             return;
         }
         ddebug_replica("prepare to clear bulk load states, current status = {}",
