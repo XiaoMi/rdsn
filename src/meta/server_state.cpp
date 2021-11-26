@@ -56,7 +56,7 @@ using namespace dsn;
 namespace dsn {
 namespace replication {
 
-const int32_t max_allowed_replica_count = 15;
+const int32_t kMaxAllowedReplicaCount = 15;
 
 DSN_DEFINE_int32("meta_server",
                  min_allowed_replica_count,
@@ -64,7 +64,7 @@ DSN_DEFINE_int32("meta_server",
                  "min allowed replica count for arbitrary number of nodes in a cluster");
 
 DSN_DEFINE_validator(min_allowed_replica_count, [](int32_t allowed_replica_count) -> bool {
-    return allowed_replica_count > 0 && allowed_replica_count <= max_allowed_replica_count;
+    return allowed_replica_count > 0 && allowed_replica_count <= kMaxAllowedReplicaCount;
 });
 
 static const char *lock_state = "lock";
@@ -2888,19 +2888,13 @@ bool validate_target_max_replica_count_internal(int32_t max_replica_count,
                                                 int32_t alive_node_count,
                                                 std::string &hint_message)
 {
-    if (max_replica_count > max_allowed_replica_count) {
-        hint_message = fmt::format("requested replica count({}) exceeds the max "
-                                   "allowed replica count({})",
+    if (max_replica_count > kMaxAllowedReplicaCount ||
+        max_replica_count < FLAGS_min_allowed_replica_count) {
+        hint_message = fmt::format("requested replica count({}) must be "
+                                   "within the range of [min={}, max={}]",
                                    max_replica_count,
-                                   max_allowed_replica_count);
-        return false;
-    }
-
-    if (max_replica_count < FLAGS_min_allowed_replica_count) {
-        hint_message = fmt::format("requested replica count({}) is less than the min "
-                                   "allowed replica count({})",
-                                   max_replica_count,
-                                   FLAGS_min_allowed_replica_count);
+                                   FLAGS_min_allowed_replica_count,
+                                   kMaxAllowedReplicaCount);
         return false;
     }
 
