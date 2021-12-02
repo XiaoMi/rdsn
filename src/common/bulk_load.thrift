@@ -29,12 +29,7 @@ enum bulk_load_status
     BLS_DOWNLOADED,
     BLS_INGESTING,
     BLS_SUCCEED,
-    // BLS_FAILED,
-    BLS_FAILED_UNDEFINED,
-    BLS_FAILED_FS_ERROR,
-    BLS_FAILED_CORRUPTION,
-    BLS_FAILED_INGESTED_ERROR,
-    BLS_FAILED_RETRY_EXHAUSTED,
+    BLS_FAILED,
     BLS_PAUSING,
     BLS_PAUSED,
     BLS_CANCELED
@@ -211,4 +206,6 @@ struct query_bulk_load_response
     // detailed bulk load state for each replica
     6:list<map<dsn.rpc_address, partition_bulk_load_state>> bulk_load_states;
     7:optional string                                       hint_msg;
+    8:bool                                                  is_bulk_loading;
+    9:optional dsn.error_code                               bulk_load_err;
 }

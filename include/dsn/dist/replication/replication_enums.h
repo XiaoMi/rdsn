@@ -13,7 +13,6 @@ ENUM_REG(app_status::AS_DROPPED)
 ENUM_REG(app_status::AS_RECALLING)
 ENUM_END2(app_status::type, app_status)
 
-
 ENUM_BEGIN2(replication::partition_status::type,
             partition_status,
             replication::partition_status::PS_INVALID)
@@ -76,11 +75,7 @@ ENUM_REG(replication::bulk_load_status::BLS_DOWNLOADING)
 ENUM_REG(replication::bulk_load_status::BLS_DOWNLOADED)
 ENUM_REG(replication::bulk_load_status::BLS_INGESTING)
 ENUM_REG(replication::bulk_load_status::BLS_SUCCEED)
-ENUM_REG(replication::bulk_load_status::BLS_FAILED_UNDEFINED)
-ENUM_REG(replication::bulk_load_status::BLS_FAILED_FS_ERROR)
-ENUM_REG(replication::bulk_load_status::BLS_FAILED_CORRUPTION)
-ENUM_REG(replication::bulk_load_status::BLS_FAILED_INGESTED_ERROR)
-ENUM_REG(replication::bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED)
+ENUM_REG(replication::bulk_load_status::BLS_FAILED)
 ENUM_REG(replication::bulk_load_status::BLS_PAUSING)
 ENUM_REG(replication::bulk_load_status::BLS_PAUSED)
 ENUM_REG(replication::bulk_load_status::BLS_CANCELED)

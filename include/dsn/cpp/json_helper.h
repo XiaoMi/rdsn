@@ -150,7 +150,7 @@
     JSON_TRY_DECODE_ENTRY(in, prefix, T14)
 
 #define JSON_ENTRIES_GET_MACRO(                                                                    \
-    ph1, ph2, ph3, ph4, ph5, ph6, ph7, ph8, ph9, ph10, ph11, ph12, ph13, ph14, NAME, ...)    \
+    ph1, ph2, ph3, ph4, ph5, ph6, ph7, ph8, ph9, ph10, ph11, ph12, ph13, ph14, NAME, ...)          \
     NAME
 // workaround due to the way VC handles "..."
 #define JSON_ENTRIES_GET_MACRO_(tuple) JSON_ENTRIES_GET_MACRO tuple
@@ -246,6 +246,18 @@ inline bool json_decode(const JsonObject &in, std::string &str)
 {
     dverify(in.IsString());
     str = in.GetString();
+    return true;
+}
+
+inline void json_encode(JsonWriter &out, const error_code &err)
+{
+    const char *str = err.to_string();
+    out.String(str, strlen(str), true);
+}
+inline bool json_decode(const JsonObject &in, error_code &err)
+{
+    dverify(in.IsString());
+    err = error_code(in.GetString());
     return true;
 }
 

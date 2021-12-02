@@ -67,10 +67,9 @@ void bulk_load_service::on_start_bulk_load(start_bulk_load_rpc rpc)
     response.err = ERR_OK;
 
     if (!_meta_svc->try_lock_meta_op_status(meta_op_status::type::BULKLOAD)) {
-        std::string hint_msg = "meta server is busy now, please wait";
-        derror_f("{}", hint_msg);
+        response.hint_msg = "meta server is busy now, please wait";
+        derror_f("{}", response.hint_msg);
         response.err = ERR_BUSY;
-        response.hint_msg = hint_msg;
         return;
     }
 
@@ -112,9 +111,8 @@ void bulk_load_service::on_start_bulk_load(start_bulk_load_rpc rpc)
              request.file_provider_type,
              request.remote_root_path);
 
-    remove_bulk_load_dir_on_remote_storage(app, false);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
+    // clean old bulk load result
+    reset_local_bulk_load_states(app->app_id, app->app_name, true);
     // avoid possible load balancing
     _meta_svc->set_function_level(meta_function_level::fl_steady);
 
@@ -248,21 +246,29 @@ void bulk_load_service::create_app_bulk_load_dir(const std::string &app_name,
     ainfo.cluster_name = req.cluster_name;
     ainfo.file_provider_type = req.file_provider_type;
     ainfo.remote_root_path = req.remote_root_path;
-    blob value = dsn::json::json_forwarder<app_bulk_load_info>::encode(ainfo);
+    ainfo.is_ever_ingesting = false;
+    ainfo.bulk_load_err = ERR_OK;
 
-    _meta_svc->get_meta_storage()->create_node(
-        get_app_bulk_load_path(app_id), std::move(value), [rpc, ainfo, this]() {
-            dinfo_f("create app({}) bulk load dir", ainfo.app_name);
-            {
-                zauto_write_lock l(_lock);
-                _app_bulk_load_info[ainfo.app_id] = ainfo;
-                _apps_pending_sync_flag[ainfo.app_id] = false;
-                _apps_rollback_count[ainfo.app_id] = 0;
-            }
-            for (int32_t i = 0; i < ainfo.partition_count; ++i) {
-                create_partition_bulk_load_dir(
-                    ainfo.app_name, gpid(ainfo.app_id, i), ainfo.partition_count, std::move(rpc));
-            }
+    _meta_svc->get_meta_storage()->delete_node_recursively(
+        get_app_bulk_load_path(app_id), [this, rpc, ainfo]() {
+            std::string bulk_load_path = get_app_bulk_load_path(ainfo.app_id);
+            ddebug_f("remove app({}) bulk load dir {} succeed", ainfo.app_name, bulk_load_path);
+
+            blob value = dsn::json::json_forwarder<app_bulk_load_info>::encode(ainfo);
+            _meta_svc->get_meta_storage()->create_node(
+                std::move(bulk_load_path), std::move(value), [this, rpc, ainfo]() {
+                    dinfo_f("create app({}) bulk load dir", ainfo.app_name);
+                    {
+                        zauto_write_lock l(_lock);
+                        _app_bulk_load_info[ainfo.app_id] = ainfo;
+                        _apps_pending_sync_flag[ainfo.app_id] = false;
+                        _apps_rollback_count[ainfo.app_id] = 0;
+                    }
+                    for (int32_t i = 0; i < ainfo.partition_count; ++i) {
+                        create_partition_bulk_load_dir(
+                            ainfo.app_name, gpid(ainfo.app_id, i), ainfo.partition_count, std::move(rpc));
+                    }
+                });
         });
 }
 
@@ -334,11 +340,7 @@ bool bulk_load_service::check_partition_status(
         if (!always_unhealthy_check && (p_status == bulk_load_status::BLS_DOWNLOADING ||
                                         p_status == bulk_load_status::BLS_PAUSING ||
                                         p_status == bulk_load_status::BLS_CANCELED ||
-                                        p_status == bulk_load_status::BLS_FAILED_UNDEFINED||
-                                        p_status == bulk_load_status::BLS_FAILED_FS_ERROR||
-                                        p_status == bulk_load_status::BLS_FAILED_CORRUPTION||
-                                        p_status == bulk_load_status::BLS_FAILED_INGESTED_ERROR||
-                                        p_status == bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED)) {
+                                        p_status == bulk_load_status::BLS_FAILED)) {
             return true;
         }
         dwarn_f("app({}) partition({}) is unhealthy, status({}), try it later",
@@ -455,7 +457,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
                  primary_addr.to_string(),
                  response.err.to_string(),
                  dsn::enum_to_string(response.primary_bulk_load_status));
-        handle_bulk_load_failed(pid.get_app_id(), bulk_load_status::BLS_FAILED_UNDEFINED);
+        handle_bulk_load_failed(pid.get_app_id(), ERR_UNKNOWN);
         try_resend_bulk_load_request(app_name, pid);
         return;
     }
@@ -497,11 +499,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
         handle_app_ingestion(response, primary_addr);
         break;
     case bulk_load_status::BLS_SUCCEED:
-    case bulk_load_status::BLS_FAILED_UNDEFINED:
-    case bulk_load_status::BLS_FAILED_FS_ERROR:
-    case bulk_load_status::BLS_FAILED_CORRUPTION:
-    case bulk_load_status::BLS_FAILED_INGESTED_ERROR:
-    case bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED:
+    case bulk_load_status::BLS_FAILED:
     case bulk_load_status::BLS_CANCELED:
         handle_bulk_load_finish(response, primary_addr);
         break;
@@ -573,17 +571,16 @@ void bulk_load_service::handle_app_downloading(const bulk_load_response &respons
                      kv.first.to_string(),
                      bulk_load_states.download_status);
 
-            bulk_load_status::type status = bulk_load_status::BLS_INVALID;
+            error_code err = ERR_UNKNOWN;
             // ERR_FILE_OPERATION_FAILED: local file system error
             // ERR_FS_INTERNAL: remote file system error
             // ERR_CORRUPTION: file not exist or damaged
             if (ERR_FILE_OPERATION_FAILED == bulk_load_states.download_status ||
-                ERR_FS_INTERNAL == bulk_load_states.download_status) {
-                status = bulk_load_status::BLS_FAILED_FS_ERROR;
-            } else if(ERR_CORRUPTION == bulk_load_states.download_status) {
-                status = bulk_load_status::BLS_FAILED_CORRUPTION;
+                ERR_FS_INTERNAL == bulk_load_states.download_status ||
+                ERR_CORRUPTION == bulk_load_states.download_status) {
+                err = bulk_load_states.download_status;
             }
-            handle_bulk_load_failed(pid.get_app_id(), status);
+            handle_bulk_load_failed(pid.get_app_id(), err);
             return;
         }
     }
@@ -652,7 +649,7 @@ void bulk_load_service::handle_app_ingestion(const bulk_load_response &response,
                      pid,
                      kv.first.to_string());
             decrease_app_ingestion_count(pid);
-            handle_bulk_load_failed(pid.get_app_id(), bulk_load_status::BLS_FAILED_INGESTED_ERROR);
+            handle_bulk_load_failed(pid.get_app_id(), ERR_INGESTION_FAILED);
             return;
         }
     }
@@ -833,8 +830,9 @@ void bulk_load_service::try_rollback_to_downloading(const std::string &app_name,
             _apps_rollback_count[pid.get_app_id()]);
 
         update_app_status_on_remote_storage_unlocked(pid.get_app_id(),
+            bulk_load_status::BLS_FAILED,
             _app_bulk_load_info[pid.get_app_id()].is_ever_ingesting ?
-            bulk_load_status::BLS_FAILED_INGESTED_ERROR : bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED);
+            ERR_INGESTION_FAILED : ERR_RETRY_EXHAUSTED);
         return;
     }
     ddebug_f("app({}) will rolling back from {} to {}, current rollback_count = {}",
@@ -849,12 +847,12 @@ void bulk_load_service::try_rollback_to_downloading(const std::string &app_name,
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::handle_bulk_load_failed(int32_t app_id, bulk_load_status::type status)
+void bulk_load_service::handle_bulk_load_failed(int32_t app_id, error_code err)
 {
     zauto_write_lock l(_lock);
     if (!_apps_cleaning_up[app_id]) {
         _apps_cleaning_up[app_id] = true;
-        update_app_status_on_remote_storage_unlocked(app_id, status);
+        update_app_status_on_remote_storage_unlocked(app_id, bulk_load_status::BLS_FAILED, err);
     }
 }
 
@@ -1006,7 +1004,7 @@ void bulk_load_service::update_partition_status_on_remote_storage_reply(
 
 // ThreadPool: THREAD_POOL_META_STATE
 void bulk_load_service::update_app_status_on_remote_storage_unlocked(
-    int32_t app_id, bulk_load_status::type new_status, bool should_send_request)
+    int32_t app_id, bulk_load_status::type new_status, error_code err, bool should_send_request)
 {
     FAIL_POINT_INJECT_F("meta_update_app_status_on_remote_storage_unlocked",
                         [](dsn::string_view) {});
@@ -1034,6 +1032,7 @@ void bulk_load_service::update_app_status_on_remote_storage_unlocked(
                                    this,
                                    app_id,
                                    new_status,
+                                   err,
                                    should_send_request),
                          0,
                          std::chrono::seconds(1));
@@ -1046,6 +1045,7 @@ void bulk_load_service::update_app_status_on_remote_storage_unlocked(
         ainfo.is_ever_ingesting = true;
     }
     ainfo.status = new_status;
+    ainfo.bulk_load_err = err;
     blob value = dsn::json::json_forwarder<app_bulk_load_info>::encode(ainfo);
 
     _meta_svc->get_meta_storage()->set_data(
@@ -1065,7 +1065,6 @@ void bulk_load_service::update_app_status_on_remote_storage_reply(const app_bulk
                                                                   bulk_load_status::type new_status,
                                                                   bool should_send_request)
 {
-    ddebug_f("DEBUG:update_app_status_on_remote_storage_reply 4");
     int32_t app_id = ainfo.app_id;
     int32_t partition_count = ainfo.partition_count;
     {
@@ -1094,11 +1093,7 @@ void bulk_load_service::update_app_status_on_remote_storage_reply(const app_bulk
     if (new_status == bulk_load_status::BLS_PAUSING ||
         new_status == bulk_load_status::BLS_DOWNLOADING ||
         new_status == bulk_load_status::BLS_CANCELED ||
-        new_status == bulk_load_status::BLS_FAILED_UNDEFINED ||
-        new_status == bulk_load_status::BLS_FAILED_FS_ERROR ||
-        new_status == bulk_load_status::BLS_FAILED_CORRUPTION ||
-        new_status == bulk_load_status::BLS_FAILED_INGESTED_ERROR ||
-        new_status == bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED) {
+        new_status == bulk_load_status::BLS_FAILED) {
         for (int i = 0; i < ainfo.partition_count; ++i) {
             update_partition_status_on_remote_storage(
                 ainfo.app_name, gpid(app_id, i), new_status, should_send_request);
@@ -1158,7 +1153,7 @@ void bulk_load_service::partition_ingestion(const std::string &app_name, const g
         derror_f("app({}) partition({}) doesn't have bulk load metadata, set bulk load failed",
                  app_name,
                  pid);
-        handle_bulk_load_failed(pid.get_app_id(), bulk_load_status::BLS_FAILED_CORRUPTION);
+        handle_bulk_load_failed(pid.get_app_id(), ERR_CORRUPTION);
         return;
     }
 
@@ -1271,7 +1266,7 @@ void bulk_load_service::on_partition_ingestion_reply(error_code err,
             LPC_META_STATE_NORMAL,
             _meta_svc->tracker(),
             std::bind(&bulk_load_service::handle_bulk_load_failed, this, pid.get_app_id(),
-                        bulk_load_status::BLS_FAILED_INGESTED_ERROR));
+                        ERR_INGESTION_FAILED));
         return;
     }
 
@@ -1416,7 +1411,7 @@ void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
         }
         ddebug_f("app({}) restart bulk load", app_name);
         update_app_status_on_remote_storage_unlocked(
-            app_id, bulk_load_status::BLS_DOWNLOADING, true);
+            app_id, bulk_load_status::BLS_DOWNLOADING, ERR_OK, true);
     } break;
     case bulk_load_control_type::BLC_CANCEL:
         if (app_status != bulk_load_status::BLS_DOWNLOADING &&
@@ -1435,7 +1430,7 @@ void bulk_load_service::on_control_bulk_load(control_bulk_load_rpc rpc)
                  control_type == bulk_load_control_type::BLC_FORCE_CANCEL ? "force" : "",
                  dsn::enum_to_string(app_status));
         update_app_status_on_remote_storage_unlocked(
-            app_id, bulk_load_status::BLS_CANCELED, app_status == bulk_load_status::BLS_PAUSED);
+            app_id, bulk_load_status::BLS_CANCELED, ERR_OK, app_status == bulk_load_status::BLS_PAUSED);
     } break;
     default:
         break;
@@ -1464,7 +1459,6 @@ void bulk_load_service::on_query_bulk_load_status(query_bulk_load_rpc rpc)
     if (!app->is_bulk_loading) {
         auto hint_msg = fmt::format("app({}) is not during bulk load, return last time result", app_name);
         derror_f("{}", hint_msg);
-        response.err = ERR_OK;
         response.__set_hint_msg(hint_msg);
     }
 
@@ -1487,6 +1481,12 @@ void bulk_load_service::on_query_bulk_load_status(query_bulk_load_rpc rpc)
         if (kv.first.get_app_id() == app_id) {
             response.bulk_load_states[kv.first.get_partition_index()] = kv.second;
         }
+    }
+
+    response.is_bulk_loading = app->is_bulk_loading;
+
+    if (!app->is_bulk_loading) {
+        response.__set_bulk_load_err(get_app_bulk_load_err_unlocked(app_id));
     }
 
     ddebug_f("query app({}) bulk_load_status({}) succeed",
@@ -1576,11 +1576,6 @@ void bulk_load_service::try_to_continue_bulk_load()
 {
     FAIL_POINT_INJECT_F("meta_try_to_continue_bulk_load", [](dsn::string_view) {});
     for (const auto app_id : _bulk_load_app_id) {
-        // TODO
-        // std::shared_ptr<app_state> app = get_app(app_id);
-        // if (!app || app->status != app_status::AS_AVAILABLE || !app->is_bulk_loading) {
-        //     continue;
-        // }
         app_bulk_load_info ainfo = _app_bulk_load_info[app_id];
         // <partition_index, partition_bulk_load_info>
         std::unordered_map<int32_t, partition_bulk_load_info> pinfo_map;
@@ -1770,6 +1765,7 @@ void bulk_load_service::do_continue_app_bulk_load(
 
     if (!_meta_svc->try_lock_meta_op_status(meta_op_status::type::BULKLOAD)) {
         derror_f("fatal, the op status of meta server must be meta_op_status::type::FREE");
+        return;
     }
     ddebug_f(
         "app({}) continue bulk load, app_id = {}, partition_count = {}, status = {}, there are {} "
@@ -1831,11 +1827,7 @@ void bulk_load_service::do_continue_app_bulk_load(
     }
 
     // update all partition status to app_status
-    if ((app_status == bulk_load_status::BLS_FAILED_UNDEFINED ||
-         app_status == bulk_load_status::BLS_FAILED_FS_ERROR ||
-         app_status == bulk_load_status::BLS_FAILED_CORRUPTION ||
-         app_status == bulk_load_status::BLS_FAILED_INGESTED_ERROR ||
-         app_status == bulk_load_status::BLS_FAILED_RETRY_EXHAUSTED ||
+    if ((app_status == bulk_load_status::BLS_FAILED ||
          app_status == bulk_load_status::BLS_CANCELED ||
          app_status == bulk_load_status::BLS_PAUSING ||
          app_status == bulk_load_status::BLS_DOWNLOADING) &&
