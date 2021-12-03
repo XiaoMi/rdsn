@@ -15,6 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include <boost/algorithm/string/join.hpp>
+
 #include <dsn/utility/flags.h>
 #include <dsn/utility/config_api.h>
 #include <dsn/utility/singleton.h>
@@ -62,6 +64,7 @@ public:
         }                                                                                          \
         break
 
+// we should run all group validators to find potential invalidation
 #define FLAG_DATA_UPDATE_CASE(type, type_enum, suffix)                                             \
     case type_enum: {                                                                              \
         type old_val = value<type>(), tmpval_##type_enum;                                          \
@@ -72,6 +75,11 @@ public:
         if (_validator && !_validator()) {                                                         \
             value<type>() = old_val;                                                               \
             return error_s::make(ERR_INVALID_PARAMETERS, "value validation failed");               \
+        }                                                                                          \
+        std::string total_message;                                                                 \
+        if (_group_validators_runner && !_group_validators_runner(total_message)) {                \
+            value<type>() = old_val;                                                               \
+            return error_s::make(ERR_INVALID_PARAMETERS, total_message.c_str());                   \
         }                                                                                          \
     } break
 
@@ -116,6 +124,10 @@ public:
     }
 
     void set_validator(validator_fn &validator) { _validator = std::move(validator); }
+    void set_group_validators_runner(group_validator_fn &&runner)
+    {
+        _group_validators_runner = std::move(runner);
+    }
     const validator_fn &validator() const { return _validator; }
 
     void add_tag(const flag_tag &tag) { _tags.insert(tag); }
@@ -181,13 +193,59 @@ private:
     const char *_name;
     const char *_desc;
     validator_fn _validator;
+    group_validator_fn _group_validators_runner;
     std::unordered_set<flag_tag> _tags;
 };
 
 class flag_registry : public utils::singleton<flag_registry>
 {
 public:
-    void add_flag(const char *name, flag_data flag) { _flags.emplace(name, flag); }
+    bool run_group_validators(std::map<std::string, std::string> &validate_messages)
+    {
+        bool failed = false;
+
+        for (const auto &validator : _group_flag_validators) {
+            std::string message;
+            bool invalid = !validator.second(message);
+            failed |= invalid;
+            if (invalid) {
+                validate_messages[validator.first] = message;
+            }
+        }
+
+        return !failed;
+    }
+
+    bool run_group_validators(std::string &total_message)
+    {
+        std::map<std::string, std::string> validate_messages;
+        bool ok = run_group_validators(validate_messages);
+        if (ok) {
+            return true;
+        }
+
+        std::vector<std::string> messages;
+        std::transform(validate_messages.begin(),
+                       validate_messages.end(),
+                       std::back_inserter(messages),
+                       [](const std::pair<std::string, std::string> &message) {
+                           return fmt::format("group validator \"{}\" failed: \"{}\"",
+                                              message.first,
+                                              message.second);
+                       });
+
+        total_message = boost::join(messages, "; ");
+        return false;
+    }
+
+    void add_flag(const char *name, flag_data flag)
+    {
+        auto group_validators_runner = std::bind<bool (flag_registry::*)(std::string &)>(
+            &flag_registry::run_group_validators, this, std::placeholders::_1);
+        flag.set_group_validators_runner(group_validators_runner);
+
+        _flags.emplace(name, flag);
+    }
 
     error_s update_flag(const std::string &name, const std::string &val)
     {
@@ -208,11 +266,23 @@ public:
         }
     }
 
+    void add_group_validator(const char *name, group_validator_fn &validator)
+    {
+        auto it = _group_flag_validators.find(name);
+        dassert(it == _group_flag_validators.end(), "duplicate group flag validator \"%s\"", name);
+        _group_flag_validators[name] = validator;
+    }
+
     void load_from_config()
     {
         for (auto &kv : _flags) {
             flag_data &flag = kv.second;
             flag.load();
+        }
+
+        std::string total_message;
+        if (!run_group_validators(total_message)) {
+            dassert_f(false, "{}", total_message);
         }
     }
 
@@ -262,6 +332,7 @@ private:
 
 private:
     std::map<std::string, flag_data> _flags;
+    std::map<std::string, group_validator_fn> _group_flag_validators;
 };
 
 #define FLAG_REG_CONSTRUCTOR(type, type_enum)                                                      \
@@ -282,6 +353,11 @@ FLAG_REG_CONSTRUCTOR(const char *, FV_STRING);
 flag_validator::flag_validator(const char *name, validator_fn validator)
 {
     flag_registry::instance().add_validator(name, validator);
+}
+
+group_flag_validator::group_flag_validator(const char *name, group_validator_fn validator)
+{
+    flag_registry::instance().add_group_validator(name, validator);
 }
 
 flag_tagger::flag_tagger(const char *name, const flag_tag &tag)

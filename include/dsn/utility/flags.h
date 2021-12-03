@@ -87,6 +87,9 @@ struct hash<flag_tag>
     static const dsn::flag_validator FLAGS_VALIDATOR_##name(                                       \
         #name, []() -> bool { return FLAGS_VALIDATOR_FN_##name(FLAGS_##name); })
 
+#define DSN_DEFINE_group_validator(name, validator)                                                \
+    static const dsn::group_flag_validator FLAGS_GROUP_VALIDATOR_##name(#name, validator)
+
 #define DSN_TAG_VARIABLE(name, tag)                                                                \
     COMPILE_ASSERT(sizeof(decltype(FLAGS_##name)), exist_##name##_##tag);                          \
     static dsn::flag_tagger FLAGS_TAGGER_##name##_##tag(#name, flag_tag::tag)
@@ -112,6 +115,14 @@ class flag_validator
 {
 public:
     flag_validator(const char *name, validator_fn);
+};
+
+using group_validator_fn = std::function<bool(std::string &)>;
+
+class group_flag_validator
+{
+public:
+    group_flag_validator(const char *name, group_validator_fn);
 };
 
 class flag_tagger

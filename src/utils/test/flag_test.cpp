@@ -17,6 +17,7 @@
 
 #include <gtest/gtest.h>
 #include <dsn/utility/flags.h>
+#include <fmt/format.h>
 
 namespace dsn {
 namespace utils {
@@ -45,6 +46,31 @@ DSN_DEFINE_int32("flag_test", test_validator, 10, "");
 DSN_TAG_VARIABLE(test_validator, FT_MUTABLE);
 DSN_DEFINE_validator(test_validator, [](int32_t test_validator) -> bool {
     if (test_validator < 0) {
+        return false;
+    }
+    return true;
+});
+
+DSN_DEFINE_int32("flag_test", small_value, 0, "");
+DSN_TAG_VARIABLE(small_value, FT_MUTABLE);
+
+DSN_DEFINE_int32("flag_test", medium_value, 10, "");
+DSN_TAG_VARIABLE(medium_value, FT_MUTABLE);
+
+DSN_DEFINE_int32("flag_test", large_value, 100, "");
+DSN_TAG_VARIABLE(large_value, FT_MUTABLE);
+
+DSN_DEFINE_group_validator(small_medium, [](std::string &message) -> bool {
+    if (FLAGS_small_value >= FLAGS_medium_value) {
+        message = fmt::format("{} should be < {}", FLAGS_small_value, FLAGS_medium_value);
+        return false;
+    }
+    return true;
+});
+
+DSN_DEFINE_group_validator(medium_large, [](std::string &message) -> bool {
+    if (FLAGS_medium_value >= FLAGS_large_value) {
+        message = fmt::format("{} should be < {}", FLAGS_medium_value, FLAGS_large_value);
         return false;
     }
     return true;
@@ -99,6 +125,14 @@ TEST(flag_test, update_config)
     res = update_flag("test_validator", "-1");
     ASSERT_EQ(res.code(), ERR_INVALID_PARAMETERS);
     ASSERT_EQ(FLAGS_test_validator, 5);
+
+    res = update_flag("medium_value", "20");
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(FLAGS_medium_value, 20);
+
+    res = update_flag("medium_value", "-1");
+    ASSERT_EQ(res.code(), ERR_INVALID_PARAMETERS);
+    ASSERT_EQ(FLAGS_medium_value, 20);
 }
 
 DSN_DEFINE_int32("flag_test", has_tag, 5, "");
