@@ -53,6 +53,8 @@ ENUM_REG(FV_DOUBLE)
 ENUM_REG(FV_STRING)
 ENUM_END(value_type)
 
+using group_validators_runner_fn = std::function<bool(std::string &)>;
+
 class flag_data
 {
 public:
@@ -124,7 +126,7 @@ public:
     }
 
     void set_validator(validator_fn &validator) { _validator = std::move(validator); }
-    void set_group_validators_runner(group_validator_fn &&runner)
+    void set_group_validators_runner(group_validators_runner_fn &&runner)
     {
         _group_validators_runner = std::move(runner);
     }
@@ -193,7 +195,7 @@ private:
     const char *_name;
     const char *_desc;
     validator_fn _validator;
-    group_validator_fn _group_validators_runner;
+    group_validators_runner_fn _group_validators_runner;
     std::unordered_set<flag_tag> _tags;
 };
 
@@ -229,9 +231,12 @@ public:
                        validate_messages.end(),
                        std::back_inserter(messages),
                        [](const std::pair<std::string, std::string> &message) {
-                           return fmt::format("group validator \"{}\" failed: \"{}\"",
-                                              message.first,
-                                              message.second);
+                           std::string base(
+                               fmt::format("group validator \"{}\" failed", message.first));
+                           if (message.second.empty()) {
+                               return base;
+                           }
+                           return fmt::format("{}: \"{}\"", base, message.second);
                        });
 
         total_message = boost::join(messages, "; ");
@@ -332,7 +337,7 @@ private:
 
 private:
     std::map<std::string, flag_data> _flags;
-    std::map<std::string, group_validator_fn> _group_flag_validators;
+    std::map<std::string, group_validators_runner_fn> _group_flag_validators;
 };
 
 #define FLAG_REG_CONSTRUCTOR(type, type_enum)                                                      \
