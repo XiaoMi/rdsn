@@ -260,6 +260,26 @@ void meta_service::get_node_state(/*out*/ std::map<rpc_address, bool> &all_nodes
 
 void meta_service::balancer_run() { _state->check_all_partitions(); }
 
+bool meta_service::try_lock_meta_op_status(meta_op_status::type op_status)
+{
+    meta_op_status::type expected = meta_op_status::type::FREE;
+    if (!_meta_op_status.compare_exchange_strong(expected, op_status)) {
+        derror_f("LOCK meta op status failed, meta "
+                 "server is busy, current op status is {}",
+                 meta_op_status::to_string(expected));
+        return false;
+    }
+
+    ddebug_f("LOCK meta op status to {}", meta_op_status::to_string(op_status));
+    return true;
+}
+
+void meta_service::unlock_meta_op_status()
+{
+    ddebug_f("UNLOCK meta op status from {}", meta_op_status::to_string(_meta_op_status.load()));
+    _meta_op_status.store(meta_op_status::type::FREE);
+}
+
 void meta_service::register_ctrl_commands()
 {
     _ctrl_node_live_percentage_threshold_for_update =

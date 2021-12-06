@@ -38,6 +38,7 @@
 #include <memory>
 
 #include <dsn/cpp/serverlet.h>
+#include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/meta_state_service.h>
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 
@@ -66,6 +67,38 @@ class test_checker;
 }
 
 DEFINE_TASK_CODE(LPC_DEFAULT_CALLBACK, TASK_PRIORITY_COMMON, dsn::THREAD_POOL_DEFAULT)
+
+struct meta_op_status
+{
+    enum class type : uint8_t
+    {
+        FREE = 0,
+        RECALL,
+        BALANCE,
+        BACKUP,
+        BULKLOAD,
+        RESTORE,
+        MANUAL_COMPACT,
+        PARTITION_SPLIT
+    };
+
+    static const char *to_string(type v)
+    {
+        static const char *op_status_to_string_map[] = {"FREE",
+                                                        "RECALL",
+                                                        "BALANCE",
+                                                        "BACKUP",
+                                                        "BULKLOAD",
+                                                        "RESTORE",
+                                                        "MANUAL_COMPACT",
+                                                        "PARTITION_SPLIT"};
+
+        dassert_f(static_cast<uint8_t>(v) < (sizeof(op_status_to_string_map) / sizeof(char *)),
+                  "invalid status: {}",
+                  static_cast<uint8_t>(v));
+        return op_status_to_string_map[static_cast<int>(v)];
+    }
+};
 
 class meta_service : public serverlet<meta_service>
 {
@@ -133,6 +166,10 @@ public:
     void balancer_run();
 
     dsn::task_tracker *tracker() { return &_tracker; }
+
+    bool try_lock_meta_op_status(meta_op_status::type op_status);
+    void unlock_meta_op_status();
+    meta_op_status::type get_op_status() const { return _meta_op_status.load(); }
 
 private:
     void register_rpc_handlers();
@@ -285,6 +322,9 @@ private:
     dsn::task_tracker _tracker;
 
     std::unique_ptr<security::access_controller> _access_controller;
+
+    // indicate which operation is processeding in meta server
+    std::atomic<meta_op_status::type> _meta_op_status;
 };
 
 } // namespace replication
