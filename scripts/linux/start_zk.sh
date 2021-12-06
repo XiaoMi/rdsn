@@ -27,29 +27,34 @@ fi
 
 cd $INSTALL_DIR
 
-ZOOKEEPER_PKG=${PROJECT_DIR}/thirdparty/build/Download/zookeeper/zookeeper-3.4.10.tar.gz
-if [ ! -f ${ZOOKEEPER_PKG} ]; then
-    echo "no such file \"${ZOOKEEPER_PKG}\""
-    echo "please install third-parties first"
-    exit 1
+ZOOKEEPER_ROOT=apache-zookeeper-3.7.0-bin
+ZOOKEEPER_TAR_NAME=${ZOOKEEPER_ROOT}.tar.gz
+
+if [ ! -f $ZOOKEEPER_TAR_NAME ]; then
+    echo "Downloading zookeeper..."
+    download_url="https://downloads.apache.org/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0-bin.tar.gz"
+    if ! wget -T 5 -t 1 $download_url; then
+        echo "ERROR: download zookeeper failed"
+        exit 1
+    fi
 fi
 
-if [ ! -d zookeeper-3.4.10 ]; then
+if [ ! -d $ZOOKEEPER_ROOT ]; then
     echo "Decompressing zookeeper..."
-    cp ${ZOOKEEPER_PKG} .
-    tar xf zookeeper-3.4.10.tar.gz
-    if [ $? -ne 0 ]; then
+    if ! tar xf $ZOOKEEPER_TAR_NAME; then
         echo "ERROR: decompress zookeeper failed"
         exit 1
     fi
 fi
 
-ZOOKEEPER_HOME=`pwd`/zookeeper-3.4.10
+ZOOKEEPER_HOME=`pwd`/$ZOOKEEPER_ROOT
 ZOOKEEPER_PORT=$PORT
 
 cp $ZOOKEEPER_HOME/conf/zoo_sample.cfg $ZOOKEEPER_HOME/conf/zoo.cfg
 sed -i "s@dataDir=/tmp/zookeeper@dataDir=$ZOOKEEPER_HOME/data@" $ZOOKEEPER_HOME/conf/zoo.cfg
 sed -i "s@clientPort=2181@clientPort=$ZOOKEEPER_PORT@" $ZOOKEEPER_HOME/conf/zoo.cfg
+echo "admin.enableServer=false" >> $ZOOKEEPER_HOME/conf/zoo.cfg
+echo "4lw.commands.whitelist=ruok" >> $ZOOKEEPER_HOME/conf/zoo.cfg
 
 mkdir -p $ZOOKEEPER_HOME/data
 $ZOOKEEPER_HOME/bin/zkServer.sh start

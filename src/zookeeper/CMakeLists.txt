@@ -17,4 +17,6 @@ set(MY_BINPLACES "")
 
 dsn_add_static_library()
 
+add_definitions(-DHAVE_CYRUS_SASL_H)
+
 add_subdirectory(test)

@@ -153,14 +153,15 @@ if (COMPILER_SUPPORTS_FORMAT_OVERFLOW)
     set(ZOOKEEPER_CFLAGS -Wno-error=format-overflow)
 endif ()
 ExternalProject_Add(zookeeper
-        URL ${OSS_URL_PREFIX}/zookeeper-3.4.10.tar.gz
-        http://ftp.jaist.ac.jp/pub/apache/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz
-        URL_MD5 e4cf1b1593ca870bf1c7a75188f09678
-        CONFIGURE_COMMAND cd src/c && CFLAGS=${ZOOKEEPER_CFLAGS} ./configure --enable-static=yes --enable-shared=no --prefix=${TP_OUTPUT} --with-pic=yes
-        BUILD_COMMAND cd src/c && make
-        INSTALL_COMMAND cd src/c && make install
+        URL https://dlcdn.apache.org/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0.tar.gz
+        https://dlcdn.apache.org/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0.tar.gz
+        URL_MD5 44c2a33e01931aed94ef7f3d39d0963e
+        CONFIGURE_COMMAND cd zookeeper-jute && mvn compile && cd ../zookeeper-client/zookeeper-client-c && autoreconf -if && CFLAGS=${ZOOKEEPER_CFLAGS} ./configure --disable-shared --prefix=${TP_OUTPUT} --enable-debug --with-pic=yes --with-sasl=${TP_OUTPUT}
+        BUILD_COMMAND cd zookeeper-client/zookeeper-client-c && make
+        INSTALL_COMMAND cd zookeeper-client/zookeeper-client-c && make install
         BUILD_IN_SOURCE 1
         )
+add_dependencies(zookeeper cyrus-sasl)
 
 ExternalProject_Add(libevent
         URL ${OSS_URL_PREFIX}/libevent-release-2.1.8-stable.tar.gz

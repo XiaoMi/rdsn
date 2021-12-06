@@ -9,6 +9,8 @@ set(MY_PROJ_SRC "")
 #  "GLOB" for non-recursive search
 set(MY_SRC_SEARCH_MODE "GLOB")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lssl -lcrypto")
+
 set(MY_PROJ_LIBS 
     dsn.replication.zookeeper_provider
     dsn_runtime

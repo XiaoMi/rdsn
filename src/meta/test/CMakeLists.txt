@@ -8,6 +8,8 @@ file(GLOB MY_PROJ_SRC
         )
 set(MY_PROJ_SRC ${MY_PROJ_SRC} misc/misc.cpp)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lssl -lcrypto")
+
 # Search mode for source files under CURRENT project directory?
 # "GLOB_RECURSE" for recursive search
 # "GLOB" for non-recursive search
