@@ -550,7 +550,7 @@ void replica::init_disk_tag()
 {
     dsn::error_code err = _stub->_fs_manager.get_disk_tag(dir(), _disk_tag);
     if (dsn::ERR_OK != err) {
-        derror_replica("get disk tag of %s failed: %s, init it to empty ", dir(), err);
+        derror_replica("get disk tag of {} failed: {}, init it to empty ", dir(), err);
     }
 }
 
