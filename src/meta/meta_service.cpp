@@ -81,6 +81,8 @@ meta_service::meta_service()
         "eon.meta_service", "alive_nodes", COUNTER_TYPE_NUMBER, "current count of alive nodes");
 
     _access_controller = security::create_meta_access_controller();
+
+    _meta_op_status.store(meta_op_status::FREE);
 }
 
 meta_service::~meta_service() { stop(); }
