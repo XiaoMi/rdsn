@@ -65,7 +65,6 @@ public:
         }                                                                                          \
         break
 
-// we should run all group validators to find potential invalidation
 #define FLAG_DATA_UPDATE_CASE(type, type_enum, suffix)                                             \
     case type_enum: {                                                                              \
         type old_val = value<type>(), tmpval_##type_enum;                                          \
@@ -246,6 +245,7 @@ public:
 
     void add_flag(const char *name, flag_data flag)
     {
+        // We should run all group validators to find the potential inconsistency
         auto group_validators_runner = std::bind<bool (flag_registry::*)(std::string *)>(
             &flag_registry::run_group_validators, this, std::placeholders::_1);
         flag.on_update_value.put_native(group_validators_runner);
