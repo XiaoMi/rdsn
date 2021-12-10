@@ -222,25 +222,25 @@ public:
     {
         std::map<std::string, std::string> validate_messages;
         bool valid = run_group_validators(validate_messages);
-        if (valid || total_message == nullptr) {
-            return true;
+
+        if (!valid && total_message != nullptr) {
+            std::vector<std::string> messages;
+            std::transform(validate_messages.begin(),
+                           validate_messages.end(),
+                           std::back_inserter(messages),
+                           [](const std::pair<std::string, std::string> &message) {
+                               std::string base(
+                                   fmt::format("group validator \"{}\" failed", message.first));
+                               if (message.second.empty()) {
+                                   return base;
+                               }
+                               return fmt::format("{}: \"{}\"", base, message.second);
+                           });
+
+            *total_message = boost::join(messages, "; ");
         }
 
-        std::vector<std::string> messages;
-        std::transform(validate_messages.begin(),
-                       validate_messages.end(),
-                       std::back_inserter(messages),
-                       [](const std::pair<std::string, std::string> &message) {
-                           std::string base(
-                               fmt::format("group validator \"{}\" failed", message.first));
-                           if (message.second.empty()) {
-                               return base;
-                           }
-                           return fmt::format("{}: \"{}\"", base, message.second);
-                       });
-
-        *total_message = boost::join(messages, "; ");
-        return false;
+        return valid;
     }
 
     void add_flag(const char *name, flag_data flag)
