@@ -141,7 +141,7 @@ void nfs_service_impl::on_copy(const ::dsn::service::copy_request &request,
 
 void nfs_service_impl::internal_read_callback(error_code err, size_t sz, callback_para &cp)
 {
-    if (FLAGS_max_send_rate_megabytes_per_disk) {
+    if (FLAGS_max_send_rate_megabytes_per_disk > 0) {
         _send_token_buckets->get_token_bucket(cp.source_disk_tag)
             ->consumeWithBorrowAndWait(sz,
                                        FLAGS_max_send_rate_megabytes_per_disk << 20,
