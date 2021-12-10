@@ -45,10 +45,11 @@ DSN_DEFINE_uint32("nfs",
                   nfs_copy_block_bytes,
                   4 * 1024 * 1024,
                   "max block size (bytes) for each network copy");
-DSN_DEFINE_int32("nfs",
-                 max_copy_rate_megabytes_per_disk,
-                 500,
-                 "max rate per disk of copying from remote node(MB/s)");
+DSN_DEFINE_int32(
+    "nfs",
+    max_copy_rate_megabytes_per_disk,
+    0,
+    "max rate per disk of copying from remote node(MB/s), zero means disable rate limiter");
 DSN_TAG_VARIABLE(max_copy_rate_megabytes_per_disk, FT_MUTABLE);
 
 DSN_DEFINE_int32("nfs",
@@ -274,11 +275,13 @@ void nfs_client_impl::continue_copy()
             zauto_lock l(req->lock);
             const user_request_ptr &ureq = req->file_ctx->user_req;
             if (req->is_valid) {
-                _copy_token_buckets->get_token_bucket(ureq->file_size_req.dest_disk_tag)
-                    ->consumeWithBorrowAndWait(req->size,
-                                               FLAGS_max_copy_rate_megabytes_per_disk << 20,
-                                               1.5 *
-                                                   (FLAGS_max_copy_rate_megabytes_per_disk << 20));
+                if (!FLAGS_max_copy_rate_megabytes_per_disk) {
+                    _copy_token_buckets->get_token_bucket(ureq->file_size_req.dest_disk_tag)
+                        ->consumeWithBorrowAndWait(
+                            req->size,
+                            FLAGS_max_copy_rate_megabytes_per_disk << 20,
+                            1.5 * (FLAGS_max_copy_rate_megabytes_per_disk << 20));
+                }
 
                 copy_request copy_req;
                 copy_req.source = ureq->file_size_req.source;
