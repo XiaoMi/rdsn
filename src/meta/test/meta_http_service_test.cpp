@@ -250,7 +250,7 @@ public:
     void reset_local_bulk_load_states()
     {
         auto app = find_app(APP_NAME);
-        bulk_svc().reset_local_bulk_load_states(app->app_id, APP_NAME);
+        bulk_svc().reset_local_bulk_load_states(app->app_id, APP_NAME, true);
         app->is_bulk_loading = false;
     }
 

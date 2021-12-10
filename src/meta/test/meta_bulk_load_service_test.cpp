@@ -178,7 +178,7 @@ public:
 
     void reset_local_bulk_load_states(int32_t app_id, const std::string &app_name)
     {
-        bulk_svc().reset_local_bulk_load_states(app_id, app_name);
+        bulk_svc().reset_local_bulk_load_states(app_id, app_name, true);
     }
 
     int32_t get_app_in_process_count(int32_t app_id)
