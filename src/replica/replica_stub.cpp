@@ -1332,10 +1332,7 @@ void replica_stub::get_replica_info(replica_info &info, replica_ptr r)
         dwarn("get disk tag of %s failed: %s", r->dir().c_str(), err.to_string());
     }
 
-    auto compact_status = r->get_manual_compact_status();
-    if (compact_status != manual_compaction_status::IDLE) {
-        info.__set_manual_compact_status(compact_status);
-    }
+    info.__set_manual_compact_status(r->get_manual_compact_status());
 }
 
 void replica_stub::get_local_replicas(std::vector<replica_info> &replicas)

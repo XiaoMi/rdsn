@@ -439,9 +439,7 @@ void config_context::collect_serving_replica(const rpc_address &node, const repl
     if (iter != serving.end()) {
         iter->disk_tag = info.disk_tag;
         iter->storage_mb = 0;
-        if (iter->compact_status != compact_status) {
-            iter->compact_status = compact_status;
-        }
+        iter->compact_status = compact_status;
     } else {
         serving.emplace_back(serving_replica{node, 0, info.disk_tag, compact_status});
     }
