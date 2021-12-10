@@ -275,7 +275,7 @@ void nfs_client_impl::continue_copy()
             zauto_lock l(req->lock);
             const user_request_ptr &ureq = req->file_ctx->user_req;
             if (req->is_valid) {
-                if (!FLAGS_max_copy_rate_megabytes_per_disk) {
+                if (FLAGS_max_copy_rate_megabytes_per_disk) {
                     _copy_token_buckets->get_token_bucket(ureq->file_size_req.dest_disk_tag)
                         ->consumeWithBorrowAndWait(
                             req->size,
