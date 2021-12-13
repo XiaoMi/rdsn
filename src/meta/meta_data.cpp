@@ -501,7 +501,7 @@ bool app_state_helper::get_manual_compact_progress(/*out*/ int32_t &progress) co
             }
         }
     }
-    // all replica of all partitions are idle
+    // all replicas of all partitions are idle
     if (idle_count == total_replica_count) {
         progress = 0;
         return false;
