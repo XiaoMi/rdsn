@@ -111,8 +111,8 @@ nfs_client_impl::nfs_client_impl()
         COUNTER_TYPE_VOLATILE_NUMBER,
         "nfs client write fail count count in the recent period");
 
-    // max_copy_rate_bytes should be greater than nfs_copy_block_bytes which is the max batch copy
-    // size once
+    // max_copy_rate_bytes should be zero or greater than nfs_copy_block_bytes which is the max
+    // batch copy size once
     dassert(FLAGS_max_copy_rate_megabytes_per_disk == 0 ||
                 (FLAGS_max_copy_rate_megabytes_per_disk << 20) > FLAGS_nfs_copy_block_bytes,
             "max_copy_rate_bytes should be greater than nfs_copy_block_bytes");
