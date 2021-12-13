@@ -42,10 +42,11 @@
 namespace dsn {
 namespace service {
 
-DSN_DEFINE_int32("nfs",
-                 max_send_rate_megabytes_per_disk,
-                 0,
-                 "max rate per disk of send to remote node(MB/s)，zero means disable rate limiter");
+DSN_DEFINE_uint32(
+    "nfs",
+    max_send_rate_megabytes_per_disk,
+    0,
+    "max rate per disk of send to remote node(MB/s)，zero means disable rate limiter");
 DSN_TAG_VARIABLE(max_send_rate_megabytes_per_disk, FT_MUTABLE);
 
 DSN_DECLARE_int32(file_close_timer_interval_ms_on_server);
