@@ -479,6 +479,37 @@ void app_state_helper::on_init_partitions()
     restore_states.resize(owner->partition_count);
 }
 
+void app_state_helper::reset_manual_compact_status()
+{
+    for (auto &cc : contexts) {
+        for (auto &r : cc.serving) {
+            r.compact_status = manual_compaction_status::IDLE;
+        }
+    }
+}
+
+bool app_state_helper::get_manual_compact_progress(/*out*/ int32_t &progress) const
+{
+    int32_t total_replica_count = owner->partition_count * owner->max_replica_count;
+    int32_t finish_count = 0, idle_count = 0;
+    for (const auto &cc : contexts) {
+        for (const auto &r : cc.serving) {
+            if (r.compact_status == manual_compaction_status::IDLE) {
+                idle_count++;
+            } else if (r.compact_status == manual_compaction_status::FINISHED) {
+                finish_count++;
+            }
+        }
+    }
+    // all replica of all partitions are idle
+    if (idle_count == total_replica_count) {
+        progress = 0;
+        return false;
+    }
+    progress = finish_count * 100 / total_replica_count;
+    return true;
+}
+
 app_state::app_state(const app_info &info) : app_info(info), helpers(new app_state_helper())
 {
     log_name = info.app_name + "(" + boost::lexical_cast<std::string>(info.app_id) + ")";

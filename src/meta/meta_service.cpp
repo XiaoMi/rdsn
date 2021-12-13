@@ -540,6 +540,9 @@ void meta_service::register_rpc_handlers()
         RPC_CM_START_BACKUP_APP, "start_backup_app", &meta_service::on_start_backup_app);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_QUERY_BACKUP_STATUS, "query_backup_status", &meta_service::on_query_backup_status);
+    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_MANUAL_COMPACT_STATUS,
+                                         "query_manual_compact_status",
+                                         &meta_service::on_query_manual_compact_status);
 }
 
 int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address)
@@ -1211,6 +1214,16 @@ void meta_service::on_query_backup_status(query_backup_status_rpc rpc)
         return;
     }
     _backup_handler->query_backup_status(std::move(rpc));
+}
+
+void meta_service::on_query_manual_compact_status(query_manual_compact_rpc rpc)
+{
+    if (!check_status(rpc)) {
+        return;
+    }
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     nullptr,
+                     std::bind(&server_state::on_query_manual_compact_status, _state.get(), rpc));
 }
 
 } // namespace replication
