@@ -284,11 +284,13 @@ TEST_F(meta_app_operation_test, create_app)
     res = update_flag("min_allowed_replica_count",
                       std::to_string(reserved_min_allowed_replica_count));
     ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(FLAGS_min_allowed_replica_count, reserved_min_allowed_replica_count);
 
     // recover original FLAGS_max_allowed_replica_count
     res = update_flag("max_allowed_replica_count",
                       std::to_string(reserved_max_allowed_replica_count));
     ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(FLAGS_max_allowed_replica_count, reserved_max_allowed_replica_count);
 }
 
 TEST_F(meta_app_operation_test, drop_app)

@@ -81,7 +81,7 @@ DSN_DEFINE_validator(min_allowed_replica_count, [](int32_t allowed_replica_count
 DSN_DEFINE_group_validator(min_max_allowed_replica_count, [](std::string &message) -> bool {
     if (FLAGS_min_allowed_replica_count > FLAGS_max_allowed_replica_count) {
         message = fmt::format(
-            "min_max_allowed_replica_count({}) should be <= FLAGS_max_allowed_replica_count({})",
+            "FLAGS_min_allowed_replica_count({}) should be <= FLAGS_max_allowed_replica_count({})",
             FLAGS_min_allowed_replica_count,
             FLAGS_max_allowed_replica_count);
         return false;
@@ -2938,13 +2938,13 @@ bool server_state::validate_target_max_replica_count(int32_t max_replica_count)
     auto alive_node_count = static_cast<int32_t>(_meta_svc->get_alive_node_count());
 
     std::string hint_message;
-    bool is_valid = validate_target_max_replica_count_internal(
+    bool valid = validate_target_max_replica_count_internal(
         max_replica_count, alive_node_count, hint_message);
-    if (!is_valid) {
+    if (!valid) {
         derror_f("target max replica count is invalid: message={}", hint_message);
     }
 
-    return is_valid;
+    return valid;
 }
 
 } // namespace replication
