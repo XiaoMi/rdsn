@@ -60,9 +60,7 @@ DSN_DEFINE_int32("meta_server",
                  max_allowed_replica_count,
                  5,
                  "max replica count allowed for any app of a cluster");
-
 DSN_TAG_VARIABLE(max_allowed_replica_count, FT_MUTABLE);
-
 DSN_DEFINE_validator(max_allowed_replica_count, [](int32_t allowed_replica_count) -> bool {
     return allowed_replica_count > 0;
 });
@@ -71,19 +69,17 @@ DSN_DEFINE_int32("meta_server",
                  min_allowed_replica_count,
                  1,
                  "min replica count allowed for any app of a cluster");
-
 DSN_TAG_VARIABLE(min_allowed_replica_count, FT_MUTABLE);
-
 DSN_DEFINE_validator(min_allowed_replica_count, [](int32_t allowed_replica_count) -> bool {
     return allowed_replica_count > 0;
 });
 
 DSN_DEFINE_group_validator(min_max_allowed_replica_count, [](std::string &message) -> bool {
     if (FLAGS_min_allowed_replica_count > FLAGS_max_allowed_replica_count) {
-        message = fmt::format(
-            "FLAGS_min_allowed_replica_count({}) should be <= FLAGS_max_allowed_replica_count({})",
-            FLAGS_min_allowed_replica_count,
-            FLAGS_max_allowed_replica_count);
+        message = fmt::format("meta_server.min_allowed_replica_count({}) should be <= "
+                              "meta_server.max_allowed_replica_count({})",
+                              FLAGS_min_allowed_replica_count,
+                              FLAGS_max_allowed_replica_count);
         return false;
     }
     return true;

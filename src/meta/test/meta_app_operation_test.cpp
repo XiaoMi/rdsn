@@ -27,7 +27,6 @@ namespace dsn {
 namespace replication {
 
 DSN_DECLARE_int32(min_allowed_replica_count);
-
 DSN_DECLARE_int32(max_allowed_replica_count);
 
 class meta_app_operation_test : public meta_test_base
