@@ -1331,6 +1331,8 @@ void replica_stub::get_replica_info(replica_info &info, replica_ptr r)
     if (dsn::ERR_OK != err) {
         dwarn("get disk tag of %s failed: %s", r->dir().c_str(), err.to_string());
     }
+
+    info.__set_manual_compact_status(r->get_manual_compact_status());
 }
 
 void replica_stub::get_local_replicas(std::vector<replica_info> &replicas)
@@ -2958,7 +2960,7 @@ void replica_stub::query_app_data_version(
 }
 
 void replica_stub::query_app_manual_compact_status(
-    int32_t app_id, std::unordered_map<gpid, manual_compaction_status> &status)
+    int32_t app_id, std::unordered_map<gpid, manual_compaction_status::type> &status)
 {
     zauto_read_lock l(_replicas_lock);
     for (auto it = _replicas.begin(); it != _replicas.end(); ++it) {

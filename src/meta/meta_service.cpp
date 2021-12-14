@@ -77,8 +77,12 @@ meta_service::meta_service()
         "replica server disconnect count in the recent period");
     _unalive_nodes_count.init_app_counter(
         "eon.meta_service", "unalive_nodes", COUNTER_TYPE_NUMBER, "current count of unalive nodes");
+    _alive_nodes_count.init_app_counter(
+        "eon.meta_service", "alive_nodes", COUNTER_TYPE_NUMBER, "current count of alive nodes");
 
     _access_controller = security::create_meta_access_controller();
+
+    _meta_op_status.store(meta_op_status::FREE);
 }
 
 meta_service::~meta_service() { stop(); }
@@ -233,6 +237,7 @@ void meta_service::set_node_state(const std::vector<rpc_address> &nodes, bool is
 
     _recent_disconnect_count->add(is_alive ? 0 : nodes.size());
     _unalive_nodes_count->set(_dead_set.size());
+    _alive_nodes_count->set(_alive_set.size());
 
     if (!_started) {
         return;
@@ -256,6 +261,26 @@ void meta_service::get_node_state(/*out*/ std::map<rpc_address, bool> &all_nodes
 }
 
 void meta_service::balancer_run() { _state->check_all_partitions(); }
+
+bool meta_service::try_lock_meta_op_status(meta_op_status op_status)
+{
+    meta_op_status expected = meta_op_status::FREE;
+    if (!_meta_op_status.compare_exchange_strong(expected, op_status)) {
+        derror_f("LOCK meta op status failed, meta "
+                 "server is busy, current op status is {}",
+                 enum_to_string(expected));
+        return false;
+    }
+
+    ddebug_f("LOCK meta op status to {}", enum_to_string(op_status));
+    return true;
+}
+
+void meta_service::unlock_meta_op_status()
+{
+    ddebug_f("UNLOCK meta op status from {}", enum_to_string(_meta_op_status.load()));
+    _meta_op_status.store(meta_op_status::FREE);
+}
 
 void meta_service::register_ctrl_commands()
 {
@@ -305,6 +330,8 @@ void meta_service::start_service()
         if (_dead_set.find(kv.first) == _dead_set.end())
             _alive_set.insert(kv.first);
     }
+
+    _alive_nodes_count->set(_alive_set.size());
 
     for (const dsn::rpc_address &node : _alive_set) {
         // sync alive set and the failure_detector

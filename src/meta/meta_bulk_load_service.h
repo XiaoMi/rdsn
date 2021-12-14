@@ -140,6 +140,16 @@ private:
 
     void do_start_app_bulk_load(std::shared_ptr<app_state> app, start_bulk_load_rpc rpc);
 
+    // Called by `partition_bulk_load` and `partition_ingestion`
+    // check partition status before sending partition_bulk_load_request and
+    // partition_ingestion_request
+    bool check_partition_status(
+        const std::string &app_name,
+        const gpid &pid,
+        bool always_unhealthy_check,
+        const std::function<void(const std::string &, const gpid &)> &retry_function,
+        /*out*/ partition_configuration &pconfig);
+
     void partition_bulk_load(const std::string &app_name, const gpid &pid);
 
     void on_partition_bulk_load_reply(error_code err,
@@ -290,6 +300,18 @@ private:
     ///
     /// helper functions
     ///
+    inline std::shared_ptr<app_state> get_app(const std::string &name)
+    {
+        zauto_read_lock l(app_lock());
+        return _state->get_app(name);
+    }
+
+    inline std::shared_ptr<app_state> get_app(int32_t app_id)
+    {
+        zauto_read_lock l(app_lock());
+        return _state->get_app(app_id);
+    }
+
     // get bulk_load_info path on file provider
     // <remote_root_path>/<cluster_name>/<app_name>/bulk_load_info
     inline std::string get_bulk_load_info_path(const std::string &app_name,
