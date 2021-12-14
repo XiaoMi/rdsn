@@ -46,13 +46,20 @@ DSN_TAG_VARIABLE(hdfs_read_batch_size_bytes, FT_MUTABLE);
 DSN_DEFINE_uint32("replication", hdfs_read_limit_rate_megabytes, 200, "hdfs read limit(MB/s)");
 DSN_TAG_VARIABLE(hdfs_read_limit_rate_megabytes, FT_MUTABLE);
 
+DSN_DEFINE_uint32("replication", hdfs_write_limit_rate_megabytes, 200, "hdfs write limit(MB/s)");
+DSN_TAG_VARIABLE(hdfs_write_limit_rate_megabytes, FT_MUTABLE);
+
 DSN_DEFINE_uint64("replication",
                   hdfs_write_batch_size_bytes,
                   64 << 20,
                   "hdfs write batch size, the default value is 64MB");
 DSN_TAG_VARIABLE(hdfs_write_batch_size_bytes, FT_MUTABLE);
 
-hdfs_service::hdfs_service() { _read_token_bucket.reset(new folly::DynamicTokenBucket()); }
+hdfs_service::hdfs_service()
+{
+    _read_token_bucket.reset(new folly::DynamicTokenBucket());
+    _write_token_bucket.reset(new folly::DynamicTokenBucket());
+}
 
 hdfs_service::~hdfs_service()
 {
@@ -295,6 +302,10 @@ error_code hdfs_file_object::write_data_in_batches(const char *data,
     uint64_t write_len = 0;
     while (cur_pos < data_size) {
         write_len = std::min(data_size - cur_pos, FLAGS_hdfs_write_batch_size_bytes);
+        const uint64_t rate = FLAGS_hdfs_write_limit_rate_megabytes << 20;
+        _service->_write_token_bucket->consumeWithBorrowAndWait(
+            write_len, rate, std::max(2 * rate, write_len));
+
         tSize num_written_bytes = hdfsWrite(_service->get_fs(),
                                             write_file,
                                             (void *)(data + cur_pos),
