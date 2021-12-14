@@ -56,15 +56,37 @@ using namespace dsn;
 namespace dsn {
 namespace replication {
 
-const int32_t kMaxAllowedReplicaCount = 15;
+DSN_DEFINE_int32("meta_server",
+                 max_allowed_replica_count,
+                 5,
+                 "max replica count allowed for any app of a cluster");
+
+DSN_TAG_VARIABLE(max_allowed_replica_count, FT_MUTABLE);
+
+DSN_DEFINE_validator(max_allowed_replica_count, [](int32_t allowed_replica_count) -> bool {
+    return allowed_replica_count > 0;
+});
 
 DSN_DEFINE_int32("meta_server",
                  min_allowed_replica_count,
                  1,
-                 "min allowed replica count for arbitrary number of nodes in a cluster");
+                 "min replica count allowed for any app of a cluster");
+
+DSN_TAG_VARIABLE(min_allowed_replica_count, FT_MUTABLE);
 
 DSN_DEFINE_validator(min_allowed_replica_count, [](int32_t allowed_replica_count) -> bool {
-    return allowed_replica_count > 0 && allowed_replica_count <= kMaxAllowedReplicaCount;
+    return allowed_replica_count > 0;
+});
+
+DSN_DEFINE_group_validator(min_max_allowed_replica_count, [](std::string &message) -> bool {
+    if (FLAGS_min_allowed_replica_count > FLAGS_max_allowed_replica_count) {
+        message = fmt::format(
+            "min_max_allowed_replica_count({}) should be <= FLAGS_max_allowed_replica_count({})",
+            FLAGS_min_allowed_replica_count,
+            FLAGS_max_allowed_replica_count);
+        return false;
+    }
+    return true;
 });
 
 static const char *lock_state = "lock";
@@ -2888,13 +2910,13 @@ bool validate_target_max_replica_count_internal(int32_t max_replica_count,
                                                 int32_t alive_node_count,
                                                 std::string &hint_message)
 {
-    if (max_replica_count > kMaxAllowedReplicaCount ||
+    if (max_replica_count > FLAGS_max_allowed_replica_count ||
         max_replica_count < FLAGS_min_allowed_replica_count) {
         hint_message = fmt::format("requested replica count({}) must be "
                                    "within the range of [min={}, max={}]",
                                    max_replica_count,
                                    FLAGS_min_allowed_replica_count,
-                                   kMaxAllowedReplicaCount);
+                                   FLAGS_max_allowed_replica_count);
         return false;
     }
 

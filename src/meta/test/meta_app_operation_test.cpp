@@ -28,6 +28,8 @@ namespace replication {
 
 DSN_DECLARE_int32(min_allowed_replica_count);
 
+DSN_DECLARE_int32(max_allowed_replica_count);
+
 class meta_app_operation_test : public meta_test_base
 {
 public:
@@ -161,19 +163,19 @@ TEST_F(meta_app_operation_test, create_app)
                  {APP_NAME, 0, 3, 2, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
                  {APP_NAME, 4, -1, 1, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
                  {APP_NAME, 4, 0, 1, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 16, 2, 14, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 17, 2, 16, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 16, 2, 15, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 15, 2, 14, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 14, 2, 13, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 16, 2, 16, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 4, 16, 2, 17, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
-                 {APP_NAME + "_1", 4, 15, 2, 15, 1, false, app_status::AS_INVALID, ERR_OK},
-                 {APP_NAME + "_2", 4, 15, 2, 16, 1, false, app_status::AS_INVALID, ERR_OK},
-                 {APP_NAME + "_3", 4, 14, 2, 14, 1, false, app_status::AS_INVALID, ERR_OK},
-                 {APP_NAME + "_4", 4, 14, 2, 16, 1, false, app_status::AS_INVALID, ERR_OK},
-                 {APP_NAME + "_5", 4, 13, 2, 14, 1, false, app_status::AS_INVALID, ERR_OK},
-                 {APP_NAME + "_6", 4, 14, 2, 15, 1, false, app_status::AS_INVALID, ERR_OK},
+                 {APP_NAME, 4, 6, 2, 4, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 7, 2, 6, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 6, 2, 5, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 5, 2, 4, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 4, 2, 3, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 6, 2, 6, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 4, 6, 2, 7, 1, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
+                 {APP_NAME + "_1", 4, 5, 2, 5, 1, false, app_status::AS_INVALID, ERR_OK},
+                 {APP_NAME + "_2", 4, 5, 2, 6, 1, false, app_status::AS_INVALID, ERR_OK},
+                 {APP_NAME + "_3", 4, 4, 2, 4, 1, false, app_status::AS_INVALID, ERR_OK},
+                 {APP_NAME + "_4", 4, 4, 2, 6, 1, false, app_status::AS_INVALID, ERR_OK},
+                 {APP_NAME + "_5", 4, 3, 2, 4, 1, false, app_status::AS_INVALID, ERR_OK},
+                 {APP_NAME + "_6", 4, 4, 2, 5, 1, false, app_status::AS_INVALID, ERR_OK},
                  {APP_NAME, 4, 3, 2, 5, 4, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
                  {APP_NAME, 4, 3, 2, 4, 5, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
                  {APP_NAME, 4, 3, 2, 4, 4, false, app_status::AS_INVALID, ERR_INVALID_PARAMETERS},
@@ -197,7 +199,8 @@ TEST_F(meta_app_operation_test, create_app)
 
     clear_nodes();
 
-    const int total_node_count = 20;
+    // keep the number of all nodes greater than that of alive nodes
+    const int total_node_count = 10;
     std::vector<rpc_address> nodes = ensure_enough_alive_nodes(total_node_count);
 
     // the meta function level will become freezed once
@@ -205,10 +208,21 @@ TEST_F(meta_app_operation_test, create_app)
     // even if alive_nodes >= min_live_node_count_for_unfreeze
     set_node_live_percentage_threshold_for_update(0);
 
+    // save original FLAGS_max_allowed_replica_count
+    auto reserved_max_allowed_replica_count = FLAGS_max_allowed_replica_count;
+
+    // keep FLAGS_max_allowed_replica_count fixed in the tests
+    auto res = update_flag("max_allowed_replica_count", "5");
+    ASSERT_TRUE(res.is_ok());
+
+    // save original FLAGS_min_allowed_replica_count
     auto reserved_min_allowed_replica_count = FLAGS_min_allowed_replica_count;
 
     for (auto test : tests) {
-        FLAGS_min_allowed_replica_count = test.min_allowed_replica_count;
+        res = update_flag("min_allowed_replica_count",
+                          std::to_string(test.min_allowed_replica_count));
+        ASSERT_TRUE(res.is_ok());
+
         set_min_live_node_count_for_unfreeze(test.min_live_node_count_for_unfreeze);
 
         dassert_f(total_node_count >= test.alive_node_count,
@@ -232,7 +246,49 @@ TEST_F(meta_app_operation_test, create_app)
         _ms->set_node_state(nodes, true);
     }
 
-    FLAGS_min_allowed_replica_count = reserved_min_allowed_replica_count;
+    // set FLAGS_min_allowed_replica_count successfully
+    res = update_flag("min_allowed_replica_count", "2");
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(FLAGS_min_allowed_replica_count, 2);
+
+    // set FLAGS_max_allowed_replica_count successfully
+    res = update_flag("max_allowed_replica_count", "6");
+    ASSERT_TRUE(res.is_ok());
+    ASSERT_EQ(FLAGS_max_allowed_replica_count, 6);
+
+    // failed to set FLAGS_min_allowed_replica_count due to individual validation
+    res = update_flag("min_allowed_replica_count", "0");
+    ASSERT_EQ(res.code(), ERR_INVALID_PARAMETERS);
+    ASSERT_EQ(FLAGS_min_allowed_replica_count, 2);
+    std::cout << res.description() << std::endl;
+
+    // failed to set FLAGS_max_allowed_replica_count due to individual validation
+    res = update_flag("max_allowed_replica_count", "0");
+    ASSERT_EQ(res.code(), ERR_INVALID_PARAMETERS);
+    ASSERT_EQ(FLAGS_max_allowed_replica_count, 6);
+    std::cout << res.description() << std::endl;
+
+    // failed to set FLAGS_min_allowed_replica_count due to grouped validation
+    res = update_flag("min_allowed_replica_count", "7");
+    ASSERT_EQ(res.code(), ERR_INVALID_PARAMETERS);
+    ASSERT_EQ(FLAGS_min_allowed_replica_count, 2);
+    std::cout << res.description() << std::endl;
+
+    // failed to set FLAGS_max_allowed_replica_count due to grouped validation
+    res = update_flag("max_allowed_replica_count", "1");
+    ASSERT_EQ(res.code(), ERR_INVALID_PARAMETERS);
+    ASSERT_EQ(FLAGS_max_allowed_replica_count, 6);
+    std::cout << res.description() << std::endl;
+
+    // recover original FLAGS_min_allowed_replica_count
+    res = update_flag("min_allowed_replica_count",
+                      std::to_string(reserved_min_allowed_replica_count));
+    ASSERT_TRUE(res.is_ok());
+
+    // recover original FLAGS_max_allowed_replica_count
+    res = update_flag("max_allowed_replica_count",
+                      std::to_string(reserved_max_allowed_replica_count));
+    ASSERT_TRUE(res.is_ok());
 }
 
 TEST_F(meta_app_operation_test, drop_app)
