@@ -160,7 +160,7 @@ TEST_F(meta_app_compaction_test, test_start_compaction)
                  {APP_NAME, "false", false, 1, 0, ERR_OK, "skip"},
                  {APP_NAME, "false", true, -1, 1, ERR_OK, "force"}};
 
-    for (auto test : tests) {
+    for (const auto &test : tests) {
         auto err = start_manual_compaction(test.app_name,
                                            test.disable_compaction,
                                            test.bottommost,
@@ -182,7 +182,7 @@ TEST_F(meta_app_compaction_test, test_query_compaction)
         error_code expected_err;
     } tests[] = {{-1, ERR_INVALID_STATE}, {0, ERR_OK}, {50, ERR_OK}, {100, ERR_OK}};
 
-    for (auto test : tests) {
+    for (const auto &test : tests) {
         auto resp = query_manual_compaction(test.mock_progress);
         ASSERT_EQ(resp.err, test.expected_err);
         if (resp.err == ERR_OK) {

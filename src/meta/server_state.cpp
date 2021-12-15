@@ -3030,8 +3030,7 @@ void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
         ainfo.envs[keys[idx]] = values[idx];
     }
     do_update_app_info(app_path, ainfo, [this, app_name, keys, values, rpc](error_code ec) {
-        dassert(
-            ec == ERR_OK, "update app_info to remote storage failed with err = %s", ec.to_string());
+        dassert_f(ec == ERR_OK, "update app_info to remote storage failed with err = {}", ec);
 
         zauto_write_lock l(_lock);
         std::shared_ptr<app_state> app = get_app(app_name);
@@ -3040,9 +3039,9 @@ void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
             app->envs[keys[idx]] = values[idx];
         }
         std::string new_envs = dsn::utils::kv_map_to_string(app->envs, ',', '=');
-        ddebug("update manual compaction envs succeed: old_envs = {%s}, new_envs = {%s}",
-               old_envs.c_str(),
-               new_envs.c_str());
+        ddebug_f("update manual compaction envs succeed: old_envs = {}, new_envs = {}",
+                 old_envs,
+                 new_envs);
 
         rpc.response().err = ERR_OK;
         rpc.response().hint_msg = "succeed";
