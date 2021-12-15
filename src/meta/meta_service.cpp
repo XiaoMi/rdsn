@@ -1216,6 +1216,12 @@ void meta_service::on_query_backup_status(query_backup_status_rpc rpc)
     _backup_handler->query_backup_status(std::move(rpc));
 }
 
+size_t meta_service::get_alive_node_count() const
+{
+    zauto_lock l(_failure_detector->_lock);
+    return _alive_set.size();
+}
+
 void meta_service::on_query_manual_compact_status(query_manual_compact_rpc rpc)
 {
     if (!check_status(rpc)) {
