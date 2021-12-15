@@ -111,7 +111,7 @@ void bulk_load_service::on_start_bulk_load(start_bulk_load_rpc rpc)
              request.file_provider_type,
              request.remote_root_path);
 
-    // clean old bulk load result
+    // clear old bulk load result
     reset_local_bulk_load_states(app->app_id, app->app_name, true);
     // avoid possible load balancing
     _meta_svc->set_function_level(meta_function_level::fl_steady);
@@ -459,7 +459,7 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
                  primary_addr.to_string(),
                  response.err.to_string(),
                  dsn::enum_to_string(response.primary_bulk_load_status));
-        handle_bulk_load_failed(pid.get_app_id(), ERR_UNKNOWN);
+        handle_bulk_load_failed(pid.get_app_id(), response.err);
         try_resend_bulk_load_request(app_name, pid);
         return;
     }
@@ -865,7 +865,7 @@ void bulk_load_service::handle_app_unavailable(int32_t app_id, const std::string
     zauto_write_lock l(_lock);
     if (is_app_bulk_loading_unlocked(app_id) && !_apps_cleaning_up[app_id]) {
         _apps_cleaning_up[app_id] = true;
-        reset_local_bulk_load_states(app_id, app_name, false);
+        reset_local_bulk_load_states_unlocked(app_id, app_name, false);
     }
 }
 
@@ -1321,11 +1321,10 @@ inline void erase_map_elem_by_id(int32_t app_id, std::unordered_map<gpid, T> &my
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::reset_local_bulk_load_states(int32_t app_id,
-                                                     const std::string &app_name,
-                                                     bool is_reset_result)
+void bulk_load_service::reset_local_bulk_load_states_unlocked(int32_t app_id,
+                                                              const std::string &app_name,
+                                                              bool is_reset_result)
 {
-    zauto_write_lock l(_lock);
     _apps_in_progress_count.erase(app_id);
     _apps_pending_sync_flag.erase(app_id);
     erase_map_elem_by_id(app_id, _partitions_pending_sync_flag);
@@ -1345,6 +1344,15 @@ void bulk_load_service::reset_local_bulk_load_states(int32_t app_id,
 
     ddebug_f(
         "reset local app({}) bulk load context, is_reset_result({})", app_name, is_reset_result);
+}
+
+// ThreadPool: THREAD_POOL_META_STATE
+void bulk_load_service::reset_local_bulk_load_states(int32_t app_id,
+                                                     const std::string &app_name,
+                                                     bool is_reset_result)
+{
+    zauto_write_lock l(_lock);
+    reset_local_bulk_load_states_unlocked(app_id, app_name, is_reset_result);
 }
 
 // ThreadPool: THREAD_POOL_META_STATE

@@ -199,6 +199,9 @@ private:
     // is_reset_all
     // - true  : reset all states in memory
     // - false : keep the bulk load results in memory, reset others
+    void reset_local_bulk_load_states_unlocked(int32_t app_id,
+                                               const std::string &app_name,
+                                               bool is_reset_all);
     void
     reset_local_bulk_load_states(int32_t app_id, const std::string &app_name, bool is_reset_all);
 

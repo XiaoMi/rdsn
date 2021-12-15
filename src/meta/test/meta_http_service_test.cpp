@@ -307,7 +307,7 @@ TEST_F(meta_bulk_load_http_test, query_bulk_load_request)
         {APP_NAME,
          R"({"error":"ERR_OK","app_status":"replication::bulk_load_status::BLS_DOWNLOADING"})"},
         {NOT_BULK_LOAD,
-         R"({"error":"ERR_INVALID_STATE","app_status":"replication::bulk_load_status::BLS_INVALID"})"},
+         R"({"error":"ERR_OK","app_status":"replication::bulk_load_status::BLS_INVALID"})"},
         {NOT_FOUND,
          R"({"error":"ERR_APP_NOT_EXIST","app_status":"replication::bulk_load_status::BLS_INVALID"})"}};
     for (const auto &test : tests) {
