@@ -172,6 +172,7 @@ public:
     void on_query_restore_status(configuration_query_restore_rpc rpc);
 
     // manual compaction
+    void on_start_manual_compact(start_manual_compact_rpc rpc);
     void on_query_manual_compact_status(query_manual_compact_rpc rpc);
 
     // return true if no need to do any actions
@@ -311,6 +312,7 @@ private:
     friend class meta_test_base;
     friend class test::test_checker;
     friend class server_state_restore_test;
+    friend class meta_app_compaction_test;
 
     FRIEND_TEST(meta_backup_service_test, test_add_backup_policy);
     FRIEND_TEST(policy_context_test, test_app_dropped_during_backup);
