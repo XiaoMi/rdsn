@@ -299,6 +299,10 @@ private:
     // check whether a max replica count is valid especially for a new app
     bool validate_target_max_replica_count(int32_t max_replica_count);
 
+    // Called by `on_start_manual_compaction`
+    // parse manual compaction app envs from request and update it on remote storgae
+    bool update_compaction_envs_on_remote_storage(start_manual_compact_rpc rpc);
+
 private:
     friend class bulk_load_service;
     friend class bulk_load_service_test;

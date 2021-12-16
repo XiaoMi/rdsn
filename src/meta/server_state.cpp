@@ -2946,13 +2946,10 @@ bool server_state::validate_target_max_replica_count(int32_t max_replica_count)
 
 void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
 {
-    const auto &request = rpc.request();
-    const std::string &app_name = request.app_name;
+    const std::string &app_name = rpc.request().app_name;
     auto &response = rpc.response();
 
     std::map<std::string, std::string> envs;
-    std::string app_path = "";
-    app_info ainfo;
     {
         zauto_read_lock l(_lock);
         std::shared_ptr<app_state> app = get_app(app_name);
@@ -2966,8 +2963,6 @@ void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
             return;
         }
         envs = app->envs;
-        ainfo = *(reinterpret_cast<app_info *>(app.get()));
-        app_path = get_app_path(*app);
     }
 
     auto iter = envs.find(replica_envs::MANUAL_COMPACT_DISABLED);
@@ -2978,7 +2973,25 @@ void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
         return;
     }
 
-    // parse manual compaction envs
+    if (!update_compaction_envs_on_remote_storage(rpc)) {
+        return;
+    }
+
+    // update local manual compaction status
+    {
+        zauto_write_lock l(_lock);
+        std::shared_ptr<app_state> app = get_app(app_name);
+        app->helpers->reset_manual_compact_status();
+    }
+}
+
+bool server_state::update_compaction_envs_on_remote_storage(start_manual_compact_rpc rpc)
+{
+    const auto &request = rpc.request();
+    const std::string &app_name = request.app_name;
+    auto &response = rpc.response();
+
+    // parse manual compaction envs from request
     std::vector<std::string> keys;
     std::vector<std::string> values;
 
@@ -2990,7 +3003,7 @@ void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
             response.hint_msg = fmt::format(
                 "invalid target_level({}), should in range of [-1, num_levels]", target_level);
             derror_f("{}", response.hint_msg);
-            return;
+            return false;
         }
     }
     keys.emplace_back(replica_envs::MANUAL_COMPACT_ONCE_TARGET_LEVEL);
@@ -3003,7 +3016,7 @@ void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
                 fmt::format("invalid max_running_count({}), should be greater than 0",
                             request.max_running_count);
             derror_f("{}", response.hint_msg);
-            return;
+            return false;
         }
         if (request.max_running_count > 0) {
             keys.emplace_back(replica_envs::MANUAL_COMPACT_MAX_CONCURRENT_RUNNING_COUNT);
@@ -3025,7 +3038,15 @@ void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
     keys.emplace_back(replica_envs::MANUAL_COMPACT_ONCE_TRIGGER_TIME);
     values.emplace_back(std::to_string(trigger_time));
 
-    // update new app_envs
+    // update manual compaction envs on remote storage
+    std::string app_path = "";
+    app_info ainfo;
+    {
+        zauto_read_lock l(_lock);
+        std::shared_ptr<app_state> app = get_app(app_name);
+        ainfo = *(reinterpret_cast<app_info *>(app.get()));
+        app_path = get_app_path(*app);
+    }
     for (auto idx = 0; idx < keys.size(); idx++) {
         ainfo.envs[keys[idx]] = values[idx];
     }
@@ -3046,13 +3067,7 @@ void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
         rpc.response().err = ERR_OK;
         rpc.response().hint_msg = "succeed";
     });
-
-    // update local manual compaction status
-    {
-        zauto_write_lock l(_lock);
-        std::shared_ptr<app_state> app = get_app(app_name);
-        app->helpers->reset_manual_compact_status();
-    }
+    return true;
 }
 
 void server_state::on_query_manual_compact_status(query_manual_compact_rpc rpc)
