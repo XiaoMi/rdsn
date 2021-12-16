@@ -1002,6 +1002,8 @@ public:
         ainfo.remote_root_path = ROOT_PATH;
         ainfo.partition_count = partition_count;
         ainfo.status = status;
+        ainfo.is_ever_ingesting = false;
+        ainfo.bulk_load_err = ERR_OK;
         _app_bulk_load_info_map[app_id] = ainfo;
     }
 
