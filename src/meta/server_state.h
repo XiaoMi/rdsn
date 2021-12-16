@@ -171,6 +171,9 @@ public:
 
     void on_query_restore_status(configuration_query_restore_rpc rpc);
 
+    // manual compaction
+    void on_query_manual_compact_status(query_manual_compact_rpc rpc);
+
     // return true if no need to do any actions
     bool check_all_partitions();
     void get_cluster_balance_score(double &primary_stddev /*out*/, double &total_stddev /*out*/);
@@ -291,6 +294,9 @@ private:
 
     void process_one_partition(std::shared_ptr<app_state> &app);
     void transition_staging_state(std::shared_ptr<app_state> &app);
+
+    // check whether a max replica count is valid especially for a new app
+    bool validate_target_max_replica_count(int32_t max_replica_count);
 
 private:
     friend class bulk_load_service;

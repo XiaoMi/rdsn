@@ -156,6 +156,8 @@ public:
 
     dsn::task_tracker *tracker() { return &_tracker; }
 
+    size_t get_alive_node_count() const;
+
     bool try_lock_meta_op_status(meta_op_status op_status);
     void unlock_meta_op_status();
     meta_op_status get_op_status() const { return _meta_op_status.load(); }
@@ -226,6 +228,9 @@ private:
     void on_start_bulk_load(start_bulk_load_rpc rpc);
     void on_control_bulk_load(control_bulk_load_rpc rpc);
     void on_query_bulk_load_status(query_bulk_load_rpc rpc);
+
+    // manual compaction
+    void on_query_manual_compact_status(query_manual_compact_rpc rpc);
 
     // common routines
     // ret:
