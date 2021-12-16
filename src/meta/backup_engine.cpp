@@ -253,7 +253,8 @@ void backup_engine::on_backup_reply(error_code err,
         _backup_status[partition] = backup_status::FAILED;
         return;
     }
-    // default function is retry
+
+    // when response.err == ERR_BUSY or other states, meta polling to send request
     ddebug_f("backup_id({}): receive backup response for partition {} from server {}, rpc error "
              "{}, response error {}, retry to send backup request.",
              _cur_backup.backup_id,

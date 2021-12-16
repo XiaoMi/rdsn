@@ -349,5 +349,6 @@ TEST_F(backup_engine_test, test_write_backup_info_failed)
 
     fail::teardown();
 }
+
 } // namespace replication
 } // namespace dsn

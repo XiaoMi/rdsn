@@ -381,7 +381,7 @@ private:
     std::map<std::string, std::shared_ptr<policy_context>>
         _policy_states; // policy_name -> policy_context
 
-    // _backup_states store all states of one-time backup in the cluster, not persistence to ZK
+    // _backup_states stores all states of one-time backup in the cluster, not persistence to ZK
     std::vector<std::shared_ptr<backup_engine>> _backup_states;
 
     // the root of policy metas, stored on remote_storage(zookeeper)
