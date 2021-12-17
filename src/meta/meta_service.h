@@ -67,6 +67,28 @@ class test_checker;
 
 DEFINE_TASK_CODE(LPC_DEFAULT_CALLBACK, TASK_PRIORITY_COMMON, dsn::THREAD_POOL_DEFAULT)
 
+enum class meta_op_status
+{
+    FREE = 0,
+    RECALL,
+    BALANCE,
+    BACKUP,
+    BULKLOAD,
+    RESTORE,
+    MANUAL_COMPACT,
+    INVALID
+};
+
+ENUM_BEGIN(meta_op_status, meta_op_status::INVALID)
+ENUM_REG(meta_op_status::FREE)
+ENUM_REG(meta_op_status::RECALL)
+ENUM_REG(meta_op_status::BALANCE)
+ENUM_REG(meta_op_status::BACKUP)
+ENUM_REG(meta_op_status::BULKLOAD)
+ENUM_REG(meta_op_status::RESTORE)
+ENUM_REG(meta_op_status::MANUAL_COMPACT)
+ENUM_END(meta_op_status)
+
 class meta_service : public serverlet<meta_service>
 {
 public:
@@ -134,6 +156,12 @@ public:
 
     dsn::task_tracker *tracker() { return &_tracker; }
 
+    size_t get_alive_node_count() const;
+
+    bool try_lock_meta_op_status(meta_op_status op_status);
+    void unlock_meta_op_status();
+    meta_op_status get_op_status() const { return _meta_op_status.load(); }
+
 private:
     void register_rpc_handlers();
     void register_ctrl_commands();
@@ -200,6 +228,10 @@ private:
     void on_start_bulk_load(start_bulk_load_rpc rpc);
     void on_control_bulk_load(control_bulk_load_rpc rpc);
     void on_query_bulk_load_status(query_bulk_load_rpc rpc);
+
+    // manual compaction
+    void on_start_manual_compact(start_manual_compact_rpc rpc);
+    void on_query_manual_compact_status(query_manual_compact_rpc rpc);
 
     // common routines
     // ret:
@@ -285,6 +317,9 @@ private:
     dsn::task_tracker _tracker;
 
     std::unique_ptr<security::access_controller> _access_controller;
+
+    // indicate which operation is processeding in meta server
+    std::atomic<meta_op_status> _meta_op_status;
 };
 
 } // namespace replication

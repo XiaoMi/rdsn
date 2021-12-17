@@ -1684,5 +1684,28 @@ replication_ddl_client::add_new_disk(const rpc_address &target_node, const std::
     return resps.begin()->second.get_value();
 }
 
+error_with<start_app_manual_compact_response> replication_ddl_client::start_app_manual_compact(
+    const std::string &app_name, bool bottommost, const int32_t level, const int32_t max_count)
+{
+    auto req = make_unique<start_app_manual_compact_request>();
+    req->app_name = app_name;
+    req->__set_trigger_time(dsn_now_s());
+    req->__set_target_level(level);
+    req->__set_bottommost(bottommost);
+    if (max_count > 0) {
+        req->__set_max_running_count(max_count);
+    }
+    return call_rpc_sync(start_manual_compact_rpc(std::move(req), RPC_CM_START_MANUAL_COMPACT));
+}
+
+error_with<query_app_manual_compact_response>
+replication_ddl_client::query_app_manual_compact(const std::string &app_name)
+{
+    auto req = make_unique<query_app_manual_compact_request>();
+    req->app_name = app_name;
+    return call_rpc_sync(
+        query_manual_compact_rpc(std::move(req), RPC_CM_QUERY_MANUAL_COMPACT_STATUS));
+}
+
 } // namespace replication
 } // namespace dsn

@@ -81,6 +81,8 @@ meta_service::meta_service()
         "eon.meta_service", "alive_nodes", COUNTER_TYPE_NUMBER, "current count of alive nodes");
 
     _access_controller = security::create_meta_access_controller();
+
+    _meta_op_status.store(meta_op_status::FREE);
 }
 
 meta_service::~meta_service() { stop(); }
@@ -259,6 +261,26 @@ void meta_service::get_node_state(/*out*/ std::map<rpc_address, bool> &all_nodes
 }
 
 void meta_service::balancer_run() { _state->check_all_partitions(); }
+
+bool meta_service::try_lock_meta_op_status(meta_op_status op_status)
+{
+    meta_op_status expected = meta_op_status::FREE;
+    if (!_meta_op_status.compare_exchange_strong(expected, op_status)) {
+        derror_f("LOCK meta op status failed, meta "
+                 "server is busy, current op status is {}",
+                 enum_to_string(expected));
+        return false;
+    }
+
+    ddebug_f("LOCK meta op status to {}", enum_to_string(op_status));
+    return true;
+}
+
+void meta_service::unlock_meta_op_status()
+{
+    ddebug_f("UNLOCK meta op status from {}", enum_to_string(_meta_op_status.load()));
+    _meta_op_status.store(meta_op_status::FREE);
+}
 
 void meta_service::register_ctrl_commands()
 {
@@ -518,6 +540,12 @@ void meta_service::register_rpc_handlers()
         RPC_CM_START_BACKUP_APP, "start_backup_app", &meta_service::on_start_backup_app);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_QUERY_BACKUP_STATUS, "query_backup_status", &meta_service::on_query_backup_status);
+    register_rpc_handler_with_rpc_holder(RPC_CM_START_MANUAL_COMPACT,
+                                         "start_manual_compact",
+                                         &meta_service::on_start_manual_compact);
+    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_MANUAL_COMPACT_STATUS,
+                                         "query_manual_compact_status",
+                                         &meta_service::on_query_manual_compact_status);
 }
 
 int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address)
@@ -1189,6 +1217,32 @@ void meta_service::on_query_backup_status(query_backup_status_rpc rpc)
         return;
     }
     _backup_handler->query_backup_status(std::move(rpc));
+}
+
+size_t meta_service::get_alive_node_count() const
+{
+    zauto_lock l(_failure_detector->_lock);
+    return _alive_set.size();
+}
+
+void meta_service::on_start_manual_compact(start_manual_compact_rpc rpc)
+{
+    if (!check_status(rpc)) {
+        return;
+    }
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     nullptr,
+                     std::bind(&server_state::on_start_manual_compact, _state.get(), rpc));
+}
+
+void meta_service::on_query_manual_compact_status(query_manual_compact_rpc rpc)
+{
+    if (!check_status(rpc)) {
+        return;
+    }
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     nullptr,
+                     std::bind(&server_state::on_query_manual_compact_status, _state.get(), rpc));
 }
 
 } // namespace replication
