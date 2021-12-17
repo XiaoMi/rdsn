@@ -2952,7 +2952,7 @@ void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
     std::map<std::string, std::string> envs;
     {
         zauto_read_lock l(_lock);
-        std::shared_ptr<app_state> app = get_app(app_name);
+        auto app = get_app(app_name);
         if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
             response.err = app == nullptr ? ERR_APP_NOT_EXIST : ERR_APP_DROPPED;
             response.hint_msg =
@@ -2973,27 +2973,28 @@ void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
         return;
     }
 
-    if (!update_compaction_envs_on_remote_storage(rpc)) {
+    std::vector<std::string> keys;
+    std::vector<std::string> values;
+    if (!parse_compaction_envs(rpc, keys, values)) {
         return;
     }
+
+    update_compaction_envs_on_remote_storage(rpc, keys, values);
 
     // update local manual compaction status
     {
         zauto_write_lock l(_lock);
-        std::shared_ptr<app_state> app = get_app(app_name);
+        auto app = get_app(app_name);
         app->helpers->reset_manual_compact_status();
     }
 }
 
-bool server_state::update_compaction_envs_on_remote_storage(start_manual_compact_rpc rpc)
+bool server_state::parse_compaction_envs(start_manual_compact_rpc rpc,
+                                         std::vector<std::string> &keys,
+                                         std::vector<std::string> &values)
 {
     const auto &request = rpc.request();
-    const std::string &app_name = request.app_name;
     auto &response = rpc.response();
-
-    // parse manual compaction envs from request
-    std::vector<std::string> keys;
-    std::vector<std::string> values;
 
     int32_t target_level = -1;
     if (request.__isset.target_level) {
@@ -3038,12 +3039,19 @@ bool server_state::update_compaction_envs_on_remote_storage(start_manual_compact
     keys.emplace_back(replica_envs::MANUAL_COMPACT_ONCE_TRIGGER_TIME);
     values.emplace_back(std::to_string(trigger_time));
 
-    // update manual compaction envs on remote storage
+    return true;
+}
+
+void server_state::update_compaction_envs_on_remote_storage(start_manual_compact_rpc rpc,
+                                                            const std::vector<std::string> &keys,
+                                                            const std::vector<std::string> &values)
+{
+    const std::string &app_name = rpc.request().app_name;
     std::string app_path = "";
     app_info ainfo;
     {
         zauto_read_lock l(_lock);
-        std::shared_ptr<app_state> app = get_app(app_name);
+        auto app = get_app(app_name);
         ainfo = *(reinterpret_cast<app_info *>(app.get()));
         app_path = get_app_path(*app);
     }
@@ -3054,7 +3062,7 @@ bool server_state::update_compaction_envs_on_remote_storage(start_manual_compact
         dassert_f(ec == ERR_OK, "update app_info to remote storage failed with err = {}", ec);
 
         zauto_write_lock l(_lock);
-        std::shared_ptr<app_state> app = get_app(app_name);
+        auto app = get_app(app_name);
         std::string old_envs = dsn::utils::kv_map_to_string(app->envs, ',', '=');
         for (int idx = 0; idx < keys.size(); idx++) {
             app->envs[keys[idx]] = values[idx];
@@ -3067,7 +3075,6 @@ bool server_state::update_compaction_envs_on_remote_storage(start_manual_compact
         rpc.response().err = ERR_OK;
         rpc.response().hint_msg = "succeed";
     });
-    return true;
 }
 
 void server_state::on_query_manual_compact_status(query_manual_compact_rpc rpc)
