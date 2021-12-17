@@ -1466,7 +1466,7 @@ void bulk_load_service::on_query_bulk_load_status(query_bulk_load_rpc rpc)
     if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
         auto hint_msg = fmt::format("app({}) is not existed or not available", app_name);
         derror_f("{}", hint_msg);
-        response.err = app == nullptr ? ERR_APP_NOT_EXIST : ERR_APP_DROPPED;
+        response.err = (app == nullptr) ? ERR_APP_NOT_EXIST : ERR_APP_DROPPED;
         response.__set_hint_msg(hint_msg);
         return;
     }
@@ -1501,8 +1501,8 @@ void bulk_load_service::on_query_bulk_load_status(query_bulk_load_rpc rpc)
 
     response.is_bulk_loading = app->is_bulk_loading;
 
-    if (!app->is_bulk_loading) {
-        response.__set_bulk_load_err(get_app_bulk_load_err_unlocked(app_id));
+    if (!app->is_bulk_loading && bulk_load_status::BLS_FAILED == response.app_status) {
+        response.err = get_app_bulk_load_err_unlocked(app_id);
     }
 
     ddebug_f("query app({}) bulk_load_status({}) succeed",

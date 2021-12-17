@@ -207,5 +207,4 @@ struct query_bulk_load_response
     6:list<map<dsn.rpc_address, partition_bulk_load_state>> bulk_load_states;
     7:optional string                                       hint_msg;
     8:bool                                                  is_bulk_loading;
-    9:optional dsn.error_code                               bulk_load_err;
 }
