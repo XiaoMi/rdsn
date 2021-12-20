@@ -261,12 +261,13 @@ void backup_engine::on_backup_reply(error_code err,
         // backup is not finished, meta polling to send request
         ddebug_f(
             "backup_id({}): receive backup response for partition {} from server {}, rpc error "
-            "{}, response error {}, retry to send backup request.",
+            "{}, response error {}, now progress {}, retry to send backup request.",
             _cur_backup.backup_id,
             pid.to_string(),
             primary.to_string(),
             err.to_string(),
-            response.err.to_string());
+            response.err.to_string(),
+            response.progress);
 
         tasking::enqueue(LPC_DEFAULT_CALLBACK,
                          &_tracker,
