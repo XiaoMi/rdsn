@@ -274,7 +274,7 @@ error_code replica_app_info::store(const char *file)
         // ROCKSDB_ALLOW_INGEST_BEHIND should be persistent
         dsn::app_info tmp = *_app;
         tmp.envs.clear();
-        for (auto &kv : _app->envs) {
+        for (const auto &kv : _app->envs) {
             if (kv.first == replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND) {
                 tmp.envs[kv.first] = kv.second;
             }
