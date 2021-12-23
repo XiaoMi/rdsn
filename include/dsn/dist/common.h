@@ -20,11 +20,9 @@
 #pragma once
 
 namespace dsn {
-namespace replication {
 /// Returns the cluster name (i.e, "onebox") if it's configured under
 /// "replication" section:
 ///    [replication]
 ///      cluster_name = "onebox"
 extern const char *get_current_cluster_name();
-} // namespace replication
 } // namespace dsn

@@ -17,14 +17,12 @@
  * under the License.
  */
 
-#include <dsn/dist/replication/common.h>
+#include <dsn/dist/common.h>
 #include <gtest/gtest.h>
 
 namespace dsn {
-namespace replication {
 TEST(duplication_common, get_current_cluster_name)
 {
     ASSERT_STREQ(get_current_cluster_name(), "master-cluster");
 }
-} // namespace replication
 } // namespace dsn

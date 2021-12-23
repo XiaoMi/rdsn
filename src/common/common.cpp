@@ -15,11 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include <dsn/dist/replication/common.h>
+#include <dsn/dist/common.h>
 #include <dsn/utility/flags.h>
 
 namespace dsn {
-namespace replication {
 DSN_DEFINE_string("replication", cluster_name, "", "name of this cluster");
 
 /*extern*/ const char *get_current_cluster_name()
@@ -27,5 +26,4 @@ DSN_DEFINE_string("replication", cluster_name, "", "name of this cluster");
     dassert(strlen(FLAGS_cluster_name) != 0, "cluster_name is not set");
     return FLAGS_cluster_name;
 }
-} // namespace replication
 } // namespace dsn
