@@ -1474,7 +1474,7 @@ void bulk_load_service::on_query_bulk_load_status(query_bulk_load_rpc rpc)
     if (!app->is_bulk_loading) {
         auto hint_msg =
             fmt::format("app({}) is not during bulk load, return last time result", app_name);
-        derror_f("{}", hint_msg);
+        dwarn_f("{}", hint_msg);
         response.__set_hint_msg(hint_msg);
     }
 
