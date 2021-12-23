@@ -274,10 +274,9 @@ error_code replica_app_info::store(const char *file)
         // ROCKSDB_ALLOW_INGEST_BEHIND should be persistent
         dsn::app_info tmp = *_app;
         tmp.envs.clear();
-        for (const auto &kv : _app->envs) {
-            if (kv.first == replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND) {
-                tmp.envs[kv.first] = kv.second;
-            }
+        const auto &iter = _app->envs.find(replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND);
+        if (iter != _app->envs.end()) {
+            tmp.envs[replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND] = iter->second;
         }
         marshall(writer, tmp, DSF_THRIFT_JSON);
     }
