@@ -208,7 +208,6 @@ inline void backup_engine::handle_replica_backup_failed(const backup_response &r
     // if one partition fail, the whole backup plan fail.
     _is_backup_failed = true;
     _backup_status[pid.get_partition_index()] = backup_status::FAILED;
-    return;
 }
 
 inline void backup_engine::retry_backup(const dsn::gpid pid)
@@ -288,7 +287,6 @@ void backup_engine::on_backup_reply(const error_code err,
              response.progress);
 
     retry_backup(pid);
-    return;
 }
 
 void backup_engine::write_backup_info()
