@@ -235,7 +235,7 @@ mutation_log_private::mutation_log_private(const std::string &dir,
         _pending_write = make_unique<log_appender>(mark_new_offset(0, true).second);
         _pending_write_start_time_ms = dsn_now_ms();
     }
-    _pending_write->append_mutation(mu, nullptr);
+    _pending_write->append_mutation(mu, cb);
 
     // update meta
     _pending_write_max_commit =
@@ -258,7 +258,7 @@ mutation_log_private::mutation_log_private(const std::string &dir,
         _plock.unlock();
     }
 
-    return nullptr;
+    return cb;
 }
 
 bool mutation_log_private::get_learn_state_in_memory(decree start_decree,
