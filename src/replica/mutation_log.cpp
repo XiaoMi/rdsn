@@ -219,7 +219,10 @@ mutation_log_private::mutation_log_private(const std::string &dir,
                                              int hash,
                                              int64_t *pending_size)
 {
-    dassert(nullptr == callback, "callback is not needed in private mutation log");
+    dsn::aio_task_ptr cb =
+            callback ? file::create_aio_task(
+                    callback_code, tracker, std::forward<aio_handler>(callback), hash)
+                     : nullptr;
 
     _plock.lock();
 
