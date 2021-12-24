@@ -223,7 +223,9 @@ mutation_log_private::mutation_log_private(const std::string &dir,
 
     _plock.lock();
 
-    ADD_POINT(mu->_tracer);
+    if (dsn_unlikely(utils::FLAGS_enable_latency_tracer)) {
+        ADD_POINT(mu->_tracer);
+    }
 
     // init pending buffer
     if (nullptr == _pending_write) {
@@ -402,7 +404,7 @@ void mutation_log_private::commit_pending_mutations(log_file_ptr &lf,
                                                     std::shared_ptr<log_appender> &pending,
                                                     decree max_commit)
 {
-    if (utils::FLAGS_enable_latency_tracer) {
+    if (dsn_unlikely(utils::FLAGS_enable_latency_tracer)) {
         for (const auto &mu : pending->mutations()) {
             ADD_POINT(mu->_tracer);
         }
@@ -420,7 +422,7 @@ void mutation_log_private::commit_pending_mutations(log_file_ptr &lf,
                 dassert(hdr->magic == 0xdeadbeef, "header magic is changed: 0x%x", hdr->magic);
             }
 
-            if (utils::FLAGS_enable_latency_tracer) {
+            if (dsn_unlikely(utils::FLAGS_enable_latency_tracer)) {
                 for (const auto &mu : pending->mutations()) {
                     ADD_CUSTOM_POINT(mu->_tracer, "commit_pending_completed");
                 }
