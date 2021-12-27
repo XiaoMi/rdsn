@@ -24,7 +24,6 @@
 #include "common/backup_common.h"
 #include "replica_test_base.h"
 #include "replica/replica_http_service.h"
-#include "common/backup_common.h"
 
 namespace dsn {
 namespace replication {
