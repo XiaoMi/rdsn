@@ -17,13 +17,14 @@
 
 #pragma once
 
+#include "meta_admin_types.h"
 #include <dsn/cpp/rpc_holder.h>
 
 namespace dsn {
 namespace replication {
 typedef rpc_holder<start_app_manual_compact_request, start_app_manual_compact_response>
-        start_manual_compact_rpc;
+    start_manual_compact_rpc;
 typedef rpc_holder<query_app_manual_compact_request, query_app_manual_compact_response>
-        query_manual_compact_rpc;
+    query_manual_compact_rpc;
 } // namespace replication
 } // namespace dsn
