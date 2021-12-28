@@ -41,7 +41,7 @@ namespace replication {
 DSN_DEFINE_bool("replication",
                 plog_force_flush,
                 false,
-                "when write shared log, whether to flush file after write done");
+                "when write private log, whether to flush file after write done");
 
 ::dsn::task_ptr mutation_log_shared::append(mutation_ptr &mu,
                                             dsn::task_code callback_code,
