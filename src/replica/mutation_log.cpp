@@ -40,7 +40,7 @@ namespace dsn {
 namespace replication {
 DSN_DEFINE_bool("replication",
                 plog_force_flush,
-                true,
+                false,
                 "when write shared log, whether to flush file after write done");
 
 ::dsn::task_ptr mutation_log_shared::append(mutation_ptr &mu,
