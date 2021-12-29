@@ -17,30 +17,16 @@
 
 #pragma once
 
-#include <dsn/dist/replication/replication_types.h>
+#include "partition_split_types.h"
 #include <dsn/cpp/rpc_holder.h>
-
-#include "common/backup_common.h"
 
 namespace dsn {
 namespace replication {
-
-class replica_stub;
-
-// A server distributes the cold-backup task to the targeted replica.
-class replica_backup_server
-{
-public:
-    explicit replica_backup_server(const replica_stub *rs);
-
-private:
-    void on_cold_backup(backup_rpc rpc);
-
-    void on_clear_cold_backup(const backup_clear_request &request);
-
-private:
-    const replica_stub *_stub;
-};
-
+typedef rpc_holder<start_partition_split_request, start_partition_split_response> start_split_rpc;
+typedef rpc_holder<control_split_request, control_split_response> control_split_rpc;
+typedef rpc_holder<query_split_request, query_split_response> query_split_rpc;
+typedef rpc_holder<register_child_request, register_child_response> register_child_rpc;
+typedef rpc_holder<notify_stop_split_request, notify_stop_split_response> notify_stop_split_rpc;
+typedef rpc_holder<query_child_state_request, query_child_state_response> query_child_state_rpc;
 } // namespace replication
 } // namespace dsn

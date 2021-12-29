@@ -17,30 +17,14 @@
 
 #pragma once
 
-#include <dsn/dist/replication/replication_types.h>
+#include "meta_admin_types.h"
 #include <dsn/cpp/rpc_holder.h>
-
-#include "common/backup_common.h"
 
 namespace dsn {
 namespace replication {
-
-class replica_stub;
-
-// A server distributes the cold-backup task to the targeted replica.
-class replica_backup_server
-{
-public:
-    explicit replica_backup_server(const replica_stub *rs);
-
-private:
-    void on_cold_backup(backup_rpc rpc);
-
-    void on_clear_cold_backup(const backup_clear_request &request);
-
-private:
-    const replica_stub *_stub;
-};
-
+typedef rpc_holder<start_app_manual_compact_request, start_app_manual_compact_response>
+    start_manual_compact_rpc;
+typedef rpc_holder<query_app_manual_compact_request, query_app_manual_compact_response>
+    query_manual_compact_rpc;
 } // namespace replication
 } // namespace dsn

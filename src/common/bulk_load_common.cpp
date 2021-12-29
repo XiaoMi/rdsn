@@ -15,32 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#pragma once
-
-#include <dsn/dist/replication/replication_types.h>
-#include <dsn/cpp/rpc_holder.h>
-
-#include "common/backup_common.h"
+#include "bulk_load_common.h"
 
 namespace dsn {
 namespace replication {
-
-class replica_stub;
-
-// A server distributes the cold-backup task to the targeted replica.
-class replica_backup_server
-{
-public:
-    explicit replica_backup_server(const replica_stub *rs);
-
-private:
-    void on_cold_backup(backup_rpc rpc);
-
-    void on_clear_cold_backup(const backup_clear_request &request);
-
-private:
-    const replica_stub *_stub;
-};
-
+const std::string bulk_load_constant::BULK_LOAD_INFO("bulk_load_info");
+const int32_t bulk_load_constant::BULK_LOAD_REQUEST_INTERVAL = 10;
+const std::string bulk_load_constant::BULK_LOAD_METADATA("bulk_load_metadata");
+const std::string bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR("bulk_load");
+const int32_t bulk_load_constant::PROGRESS_FINISHED = 100;
 } // namespace replication
 } // namespace dsn

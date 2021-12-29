@@ -17,30 +17,25 @@
 
 #pragma once
 
-#include <dsn/dist/replication/replication_types.h>
+#include "bulk_load_types.h"
 #include <dsn/cpp/rpc_holder.h>
-
-#include "common/backup_common.h"
 
 namespace dsn {
 namespace replication {
 
-class replica_stub;
+typedef rpc_holder<start_bulk_load_request, start_bulk_load_response> start_bulk_load_rpc;
+typedef rpc_holder<bulk_load_request, bulk_load_response> bulk_load_rpc;
+typedef rpc_holder<control_bulk_load_request, control_bulk_load_response> control_bulk_load_rpc;
+typedef rpc_holder<query_bulk_load_request, query_bulk_load_response> query_bulk_load_rpc;
 
-// A server distributes the cold-backup task to the targeted replica.
-class replica_backup_server
+class bulk_load_constant
 {
 public:
-    explicit replica_backup_server(const replica_stub *rs);
-
-private:
-    void on_cold_backup(backup_rpc rpc);
-
-    void on_clear_cold_backup(const backup_clear_request &request);
-
-private:
-    const replica_stub *_stub;
+    static const std::string BULK_LOAD_INFO;
+    static const int32_t BULK_LOAD_REQUEST_INTERVAL;
+    static const std::string BULK_LOAD_METADATA;
+    static const std::string BULK_LOAD_LOCAL_ROOT_DIR;
+    static const int32_t PROGRESS_FINISHED;
 };
-
 } // namespace replication
 } // namespace dsn
