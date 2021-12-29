@@ -94,6 +94,11 @@ class test_checker;
 
 DSN_DECLARE_bool(reject_write_when_disk_insufficient);
 
+// get bool envs[name], return false if value is not bool
+bool get_bool_envs(const std::map<std::string, std::string> &envs,
+                   const std::string &name,
+                   /*out*/ bool &value);
+
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
 public:
@@ -440,10 +445,7 @@ private:
     void update_bool_envs(const std::map<std::string, std::string> &envs,
                           const std::string &name,
                           /*out*/ bool &value);
-    // get bool envs[name], return false if value is not bool
-    bool get_bool_envs(const std::map<std::string, std::string> &envs,
-                       const std::string &name,
-                       /*out*/ bool &value);
+
     // update envs allow_ingest_behind and store new app_info into file
     void update_allow_ingest_behind(const std::map<std::string, std::string> &envs);
 

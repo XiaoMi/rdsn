@@ -51,6 +51,19 @@
 namespace dsn {
 namespace replication {
 
+bool get_bool_envs(const std::map<std::string, std::string> &envs,
+                   const std::string &name,
+                   bool &value)
+{
+    auto iter = envs.find(name);
+    if (iter != envs.end()) {
+        if (!buf2bool(iter->second, value)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void replica::on_config_proposal(configuration_update_request &proposal)
 {
     _checker.only_one_thread_access();
@@ -568,26 +581,13 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
     update_allow_ingest_behind(envs);
 }
 
-bool replica::get_bool_envs(const std::map<std::string, std::string> &envs,
-                            const std::string &name,
-                            bool &value)
-{
-    auto iter = envs.find(name);
-    if (iter != envs.end()) {
-        if (!buf2bool(iter->second, value)) {
-            dwarn_replica("invalid value of env {}: \"{}\"", name, iter->second);
-            return false;
-        }
-    }
-    return true;
-}
-
 void replica::update_bool_envs(const std::map<std::string, std::string> &envs,
                                const std::string &name,
                                bool &value)
 {
     bool new_value = false;
     if (!get_bool_envs(envs, name, new_value)) {
+        dwarn_replica("invalid value of env {}", name);
         return;
     }
     if (new_value != value) {
@@ -614,7 +614,7 @@ void replica::update_allow_ingest_behind(const std::map<std::string, std::string
         return;
     }
     if (new_value != _allow_ingest_behind) {
-        // update it into file
+        // TODO(heyuchen): refactor it, add a function to update .app_info file
         auto info = _app_info;
         info.envs = envs;
         replica_app_info new_info((app_info *)&info);
