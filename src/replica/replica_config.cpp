@@ -616,8 +616,7 @@ void replica::update_allow_ingest_behind(const std::map<std::string, std::string
     if (new_value != _allow_ingest_behind) {
         auto info = _app_info;
         info.envs = envs;
-        const auto err = store_app_info(info);
-        if (err != ERR_OK) {
+        if (store_app_info(info) != ERR_OK) {
             return;
         }
         ddebug_replica("switch env[{}] from {} to {}",
