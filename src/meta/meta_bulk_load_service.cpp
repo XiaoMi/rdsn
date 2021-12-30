@@ -125,7 +125,7 @@ error_code
 bulk_load_service::check_bulk_load_request_params(const start_bulk_load_request &request,
                                                   const int32_t app_id,
                                                   const int32_t partition_count,
-                                                  const std::map<std::string, std::string> envs,
+                                                  const std::map<std::string, std::string> &envs,
                                                   std::string &hint_msg)
 {
     FAIL_POINT_INJECT_F("meta_check_bulk_load_request_params",

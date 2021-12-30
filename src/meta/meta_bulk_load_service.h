@@ -139,7 +139,7 @@ private:
     error_code check_bulk_load_request_params(const start_bulk_load_request &request,
                                               const int32_t app_id,
                                               const int32_t partition_count,
-                                              const std::map<std::string, std::string> envs,
+                                              const std::map<std::string, std::string> &envs,
                                               std::string &hint_msg);
 
     void do_start_app_bulk_load(std::shared_ptr<app_state> app, start_bulk_load_rpc rpc);
