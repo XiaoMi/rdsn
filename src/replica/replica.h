@@ -451,7 +451,7 @@ private:
 
     void init_disk_tag();
 
-    // store `ainfo` in `path` directory
+    // store `ainfo` into `path` directory
     error_code store_app_info(app_info info, const std::string &path = "");
 
 private:

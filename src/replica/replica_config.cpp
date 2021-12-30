@@ -46,7 +46,6 @@
 #include <dsn/utility/fail_point.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/dist/replication/replica_envs.h>
-// #include <dsn/utility/filesystem.h>
 
 namespace dsn {
 namespace replication {
