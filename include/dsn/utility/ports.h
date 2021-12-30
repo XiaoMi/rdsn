@@ -150,3 +150,31 @@ __pragma(warning(disable : 4127))
 #define DISALLOW_COPY_AND_ASSIGN(TypeName)                                                         \
     TypeName(const TypeName &) = delete;                                                           \
     void operator=(const TypeName &) = delete
+
+// Cache line alignment
+#if defined(__i386__) || defined(__x86_64__)
+#define CACHELINE_SIZE 64
+#elif defined(__powerpc64__)
+// TODO(user) This is the L1 D-cache line size of our Power7 machines.
+// Need to check if this is appropriate for other PowerPC64 systems.
+#define CACHELINE_SIZE 128
+#elif defined(__aarch64__)
+#define CACHELINE_SIZE 64
+#elif defined(__arm__)
+// Cache line sizes for ARM: These values are not strictly correct since
+// cache line sizes depend on implementations, not architectures.  There
+// are even implementations with cache line sizes configurable at boot
+// time.
+#if defined(__ARM_ARCH_5T__)
+#define CACHELINE_SIZE 32
+#elif defined(__ARM_ARCH_7A__)
+#define CACHELINE_SIZE 64
+#endif
+#endif
+
+// This is a NOP if CACHELINE_SIZE is not defined.
+#ifdef CACHELINE_SIZE
+#define CACHELINE_ALIGNED __attribute__((aligned(CACHELINE_SIZE)))
+#else
+#define CACHELINE_ALIGNED
+#endif
