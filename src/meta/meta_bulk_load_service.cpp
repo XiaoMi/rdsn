@@ -1662,7 +1662,7 @@ void bulk_load_service::try_to_continue_app_bulk_load(
 bulk_load_service::validate_ingest_behind(const std::map<std::string, std::string> &envs, bool val)
 {
     bool app_allow_ingest_behind = false;
-    auto iter = envs.find(replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND);
+    const auto iter = envs.find(replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND);
     if (iter != envs.end()) {
         if (!buf2bool(iter->second, app_allow_ingest_behind)) {
             dwarn_f("can not convert {} to bool", iter->second);
