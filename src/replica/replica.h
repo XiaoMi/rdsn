@@ -451,6 +451,9 @@ private:
 
     void init_disk_tag();
 
+    // store `ainfo` in `path` directory
+    error_code store_app_info(app_info info, const std::string &path = "");
+
 private:
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::mutation_queue;
