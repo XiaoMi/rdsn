@@ -287,7 +287,8 @@ private:
         const app_bulk_load_info &ainfo,
         const std::unordered_map<int32_t, partition_bulk_load_info> &partition_map);
 
-    static bool validate_ingest_behind(const std::map<std::string, std::string> &envs, bool val);
+    static bool validate_ingest_behind(const std::map<std::string, std::string> &envs,
+                                       bool ingest_behind);
 
     static bool validate_app(int32_t app_id,
                              int32_t partition_count,

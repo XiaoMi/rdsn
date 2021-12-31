@@ -1659,7 +1659,8 @@ void bulk_load_service::try_to_continue_app_bulk_load(
 
 // ThreadPool: THREAD_POOL_META_SERVER
 /*static*/ bool
-bulk_load_service::validate_ingest_behind(const std::map<std::string, std::string> &envs, bool val)
+bulk_load_service::validate_ingest_behind(const std::map<std::string, std::string> &envs,
+                                          bool ingest_behind)
 {
     bool app_allow_ingest_behind = false;
     const auto &iter = envs.find(replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND);
@@ -1669,7 +1670,7 @@ bulk_load_service::validate_ingest_behind(const std::map<std::string, std::strin
             app_allow_ingest_behind = false;
         }
     }
-    if (val && !app_allow_ingest_behind) {
+    if (ingest_behind && !app_allow_ingest_behind) {
         return false;
     }
     return true;
