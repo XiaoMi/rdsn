@@ -451,7 +451,8 @@ private:
 
     void init_disk_tag();
 
-    // store `ainfo` into `path` directory
+    // store `info` into a file under `path` directory
+    // if path = "" means using the default directory (`_dir`/.app_info)
     error_code store_app_info(app_info &info, const std::string &path = "");
 
 private:
