@@ -31,6 +31,7 @@
 #include <string>
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/process_utils.h>
 #include <dsn/utility/rand.h>
 #include <dsn/utility/safe_strerror_posix.h>
 
@@ -66,6 +67,17 @@ const uint32_t kCellMask = kNumCells - 1;
 cacheline_aligned_int64* const kCellsLocked =
       reinterpret_cast<cacheline_aligned_int64*>(-1L);
 
+inline new_cacheline_aligned_cells()
+{
+    // Allocate cache-aligned memory for use by the _cells table.
+    void* cell_buffer = nullptr;
+    int err = posix_memalign(&cell_buffer, CACHELINE_SIZE, sizeof(cacheline_aligned_int64) * kNumCells);
+    dassert_f(err == 0, "error calling posix_memalign: {}", safe_strerror(err).c_str());
+
+    // Initialize the table
+    return new (cell_buffer) cacheline_aligned_int64[kNumCells];
+}
+
 } // anonymous namespace
 
 uint64_t striped64::get_tls_hashcode() {
@@ -85,7 +97,7 @@ striped64::~striped64() {
 }
 
 template<class Updater>
-bool striped64::retry_update(rehash to_rehash, Updater updater) {
+void striped64::retry_update(rehash to_rehash, Updater updater) {
   uint64_t h = get_tls_hashcode();
   // There are three operations in this loop.
   //
@@ -116,17 +128,7 @@ bool striped64::retry_update(rehash to_rehash, Updater updater) {
       h ^= h << 5;
     } else if (cells == nullptr &&
                _cells.compare_exchange_weak(cells, kCellsLocked)) {
-      // Allocate cache-aligned memory for use by the _cells table.
-      void* cell_buffer = nullptr;
-      int err = posix_memalign(&cell_buffer, CACHELINE_SIZE, sizeof(cacheline_aligned_int64) * kNumCells);
-      if (dsn_unlikely(err != 0)) {
-          std::string error_message(safe_strerror(err));
-          derror_f("error calling posix_memalign: {}", error_message);
-          return false;
-      }
-
-      // Initialize the table
-      cells = new (cell_buffer) cacheline_aligned_int64[kNumCells];
+      cells = new_cacheline_aligned_cells();
       _cells.store(cells, std::memory_order_release);
     } else {
       // Fallback to adding to the base value.
@@ -139,8 +141,6 @@ bool striped64::retry_update(rehash to_rehash, Updater updater) {
   }
   // Record index for next time
   _tls_hashcode = h;
-
-  return true;
 }
 
 void striped64::internal_reset(int64_t initial_value) {
@@ -150,50 +150,86 @@ void striped64::internal_reset(int64_t initial_value) {
     c = _cells.load(std::memory_order_acquire);
   } while (c == kCellsLocked);
   if (c) {
-    for (int i = 0; i < kNumCells; i++) {
+    for (uint32_t i = 0; i < kNumCells; ++i) {
       c[i]._value.store(initial_value);
     }
   }
 }
 
-bool long_adder::increment_by(int64_t x) {
+void striped_long_adder::increment_by(int64_t x) {
   // Use hash table if present. If that fails, call retry_update to rehash and retry.
   // If no hash table, try to CAS the base counter. If that fails, retry_update to init the table.
   cacheline_aligned_int64* cells = _cells.load(std::memory_order_acquire);
   if (cells && cells != kCellsLocked) {
     cacheline_aligned_int64 *cell = &(cells[get_tls_hashcode() & kCellMask]);
-    DCHECK_EQ(0, reinterpret_cast<const uintptr_t>(cell) & (sizeof(cacheline_aligned_int64) - 1))
-        << " unaligned cacheline_aligned_int64 not allowed for striped64" << std::endl;
+    dassert_f((reinterpret_cast<const uintptr_t>(cell) & (sizeof(cacheline_aligned_int64) - 1)) == 0, "unaligned cacheline_aligned_int64 not allowed for striped64: cell={}, mask={}", fmt::ptr(cell), sizeof(cacheline_aligned_int64) - 1);
+
     const int64_t old = cell->_value.load(std::memory_order_relaxed);
     if (!cell->compare_and_set(old, old + x)) {
       // When we hit a hash table contention, signal retry_update to rehash.
-      return retry_update(kRehash, [x](int64_t old) { return old + x; });
+      retry_update(kRehash, [x](int64_t old) { return old + x; });
     }
   } else {
     int64_t b = _base.load(std::memory_order_relaxed);
     if (!cas_base(b, b + x)) {
       // Attempt to initialize the table. No need to rehash since the contention was for the
       // base counter, not the hash table.
-      return retry_update(kNoRehash, [x](int64_t old) { return old + x; });
+      retry_update(kNoRehash, [x](int64_t old) { return old + x; });
     }
   }
-
-  return true;
 }
 
 //
-// long_adder
+// striped_long_adder
 //
 
-int64_t long_adder::value() const {
+int64_t striped_long_adder::value() const {
   int64_t sum = _base.load(std::memory_order_relaxed);
   cacheline_aligned_int64* c = _cells.load(std::memory_order_acquire);
   if (c && c != kCellsLocked) {
-    for (int i = 0; i < kNumCells; i++) {
+    for (uint32_t i = 0; i < kNumCells; ++i) {
       sum += c[i]._value.load(std::memory_order_relaxed);
     }
   }
   return sum;
+}
+
+//
+// concurrent_long_adder 
+//
+
+concurrent_long_adder::concurrent_long_adder():_cells(new_cacheline_aligned_cells())
+{
+}
+
+concurrent_long_adder::~concurrent_long_adder()
+{
+  free(_cells);
+}
+
+void concurrent_long_adder::increment_by(int64_t x)
+{
+    auto task_id = static_cast<uint32_t>(utils::get_current_tid());
+    _cells[task_id & kCellMask]._value.fetch_add(x, std::memory_order_relaxed);
+}
+
+int64_t concurrent_long_adder::value() const {
+  int64_t sum = 0;
+  for (uint32_t i = 0; i < kNumCells; ++i) {
+      sum += _cells[i]._value.load(std::memory_order_relaxed);
+  }
+  return sum;
+}
+
+void concurrent_long_adder::set(int64_t val)
+{
+  // the set-op of number is reset the number to zero.
+  // for simplicity, only set other zero, not add the lock to protect, if needed, should add
+  // lock.
+  for (uint32_t i = 0; i < kNumCells; ++i) {
+      _cells[i]._value.store(0, std::memory_order_relaxed);
+  }
+  _cells[0]._value.store(val, std::memory_order_relaxed);
 }
 
 } // namespace dsn

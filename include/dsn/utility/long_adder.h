@@ -22,6 +22,8 @@
 
 #include <dsn/utility/ports.h>
 
+// Refer to https://github.com/apache/kudu/blob/master/src/kudu/util/striped64.h
+
 namespace dsn {
 
 // Padded POD container for std::atomic<int64_t>. This prevents false sharing of cache lines.
@@ -42,7 +44,6 @@ class cacheline_aligned_int64 {
 
   DISALLOW_COPY_AND_ASSIGN(cacheline_aligned_int64);
 } CACHELINE_ALIGNED;
-#undef ATOMIC_INT_SIZE
 
 // This set of classes is heavily derived from JSR166e, released into the public domain
 // by Doug Lea and the other authors.
@@ -50,7 +51,7 @@ class cacheline_aligned_int64 {
 // See: http://gee.cs.oswego.edu/cgi-bin/viewcvs.cgi/jsr166/src/jsr166e/Striped64.java?view=co
 // See: http://gee.cs.oswego.edu/cgi-bin/viewcvs.cgi/jsr166/src/jsr166e/LongAdder.java?view=co
 //
-// The striped64 and long_adder implementations here are simplified versions of what's present in
+// The striped64 and striped_long_adder implementations here are simplified versions of what's present in
 // JSR166e. However, the core ideas remain the same.
 //
 // Updating a single AtomicInteger in a multi-threaded environment can be quite slow:
@@ -106,7 +107,7 @@ class striped64 {
   // 'Updater' should be a function which takes the current value and returns
   // the new value.
   template<class Updater>
-  bool retry_update(rehash to_rehash, Updater updater);
+  void retry_update(rehash to_rehash, Updater updater);
 
   // Sets base and all cells to the given value.
   void internal_reset(int64_t initial_value);
@@ -133,22 +134,61 @@ class striped64 {
 
 // A 64-bit number optimized for high-volume concurrent updates.
 // See striped64 for a longer explanation of the inner workings.
-class long_adder : striped64 {
+class striped_long_adder : striped64 {
  public:
-  long_adder() {}
-  bool increment_by(int64_t x);
-  inline bool increment() { return increment_by(1); }
-  inline bool decrement() { return increment_by(-1); }
+  striped_long_adder() {}
+
+  void increment_by(int64_t x);
 
   // Returns the current value.
   // Note this is not an atomic snapshot in the presence of concurrent updates.
   int64_t value() const;
 
+  void set(int64_t val) { internal_reset(val); }
+
+private:
+  DISALLOW_COPY_AND_ASSIGN(striped_long_adder);
+};
+
+class concurrent_long_adder {
+ public:
+  concurrent_long_adder();
+  ~concurrent_long_adder();
+
+  void increment_by(int64_t x);
+
+  // Returns the current value.
+  // Note this is not an atomic snapshot in the presence of concurrent updates.
+  int64_t value() const;
+
+  void set(int64_t val); 
+
+private:
+  cacheline_aligned_int64* _cells;
+
+  DISALLOW_COPY_AND_ASSIGN(concurrent_long_adder);
+};
+
+template <typename Adder = striped_long_adder>
+class long_adder_wrapper {
+ public:
+  long_adder_wrapper() {}
+  inline void increment_by(int64_t x) { adder.increment_by(x); }
+  inline void increment() { increment_by(1); }
+  inline void decrement() { increment_by(-1); }
+
+  // Returns the current value.
+  // Note this is not an atomic snapshot in the presence of concurrent updates.
+  inline int64_t value() const { return adder.value(); }
+
+  inline void set(int64_t val) { adder.set(val); }
+
   // Resets the counter state to zero.
-  inline void set(int64_t val) { internal_reset(val); }
   inline void reset() { set(0); }
 
 private:
+  Adder adder;
+
   DISALLOW_COPY_AND_ASSIGN(long_adder);
 };
 
