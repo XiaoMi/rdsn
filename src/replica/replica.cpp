@@ -557,7 +557,7 @@ void replica::init_disk_tag()
     }
 }
 
-error_code replica::store_app_info(app_info info, const std::string &path)
+error_code replica::store_app_info(app_info &info, const std::string &path)
 {
     replica_app_info new_info((app_info *)&info);
     auto info_path = path.empty() ? utils::filesystem::path_combine(_dir, ".app-info") : path;
