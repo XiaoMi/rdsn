@@ -563,7 +563,7 @@ error_code replica::store_app_info(app_info &info, const std::string &path)
     const auto &info_path =
         path.empty() ? utils::filesystem::path_combine(_dir, ".app-info") : path;
     auto err = new_info.store(info_path.c_str());
-    if (err != ERR_OK) {
+    if (dsn_unlikely(err != ERR_OK)) {
         derror_replica("failed to save app_info to {}, error = {}", info_path, err);
     }
     return err;
