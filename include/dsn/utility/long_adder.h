@@ -19,6 +19,8 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
+#include <memory>
 
 #include <dsn/utility/ports.h>
 
@@ -32,7 +34,6 @@ class cacheline_aligned_int64
 public:
     static constexpr int kAtomicInt64Size = sizeof(std::atomic<int64_t>);
 
-    cacheline_aligned_int64();
     inline bool compare_and_set(int64_t cmp, int64_t value)
     {
         return _value.compare_exchange_weak(cmp, value);
@@ -45,6 +46,10 @@ public:
 
     DISALLOW_COPY_AND_ASSIGN(cacheline_aligned_int64);
 } CACHELINE_ALIGNED;
+
+using cacheline_aligned_int64_ptr = std::unique_ptr<cacheline_aligned_int64, function<void(cacheline_aligned_int64*)>>;
+extern cacheline_aligned_int64_ptr new_cacheline_aligned_int64();
+extern cacheline_aligned_int64_ptr new_cacheline_aligned_int64_array(uint32_t size);
 
 // This set of classes is heavily derived from JSR166e, released into the public domain
 // by Doug Lea and the other authors.
@@ -122,6 +127,7 @@ protected:
     // Table of cells. When non-null, size is the nearest power of 2 >= NCPU.
     // If this is set to -1, the pointer is 'locked' and some thread is in the
     // process of allocating the array.
+    cacheline_aligned_int64_ptr _cells_holder;
     std::atomic<cacheline_aligned_int64 *> _cells{nullptr};
 
     static uint64_t get_tls_hashcode();
@@ -148,9 +154,16 @@ public:
     // Note this is not an atomic snapshot in the presence of concurrent updates.
     int64_t value() const;
 
-    void set(int64_t val) { internal_reset(val); }
+    // Call reset() ONLY when necessary.
+    inline void reset() { set(0); }
+
+    // Return the value immediately before it's reset.
+    int64_t fetch_and_reset();
 
 private:
+    // `set` is not exposed since it's not an efficient operation
+    void set(int64_t val) { internal_reset(val); }
+
     DISALLOW_COPY_AND_ASSIGN(striped_long_adder);
 };
 
@@ -166,19 +179,30 @@ public:
     // Note this is not an atomic snapshot in the presence of concurrent updates.
     int64_t value() const;
 
-    void set(int64_t val);
+    // Call reset() ONLY when necessary.
+    inline void reset() { set(0); }
+
+    // Return the value immediately before it's reset.
+    int64_t fetch_and_reset();
 
 private:
+    // `set` is not exposed since it's not an efficient operation
+    void set(int64_t val);
+
+    cacheline_aligned_int64_ptr _cells_holder;
     cacheline_aligned_int64 *_cells;
 
     DISALLOW_COPY_AND_ASSIGN(concurrent_long_adder);
 };
 
-template <typename Adder = striped_long_adder>
+// Use template to wrap a long_adder implementation rather than inherit from a base class
+// for the reason that virtual function will increase the class size and slow the execution.
+template <typename Adder>
 class long_adder_wrapper
 {
 public:
     long_adder_wrapper() {}
+
     inline void increment_by(int64_t x) { adder.increment_by(x); }
     inline void increment() { increment_by(1); }
     inline void decrement() { increment_by(-1); }
@@ -187,10 +211,11 @@ public:
     // Note this is not an atomic snapshot in the presence of concurrent updates.
     inline int64_t value() const { return adder.value(); }
 
-    inline void set(int64_t val) { adder.set(val); }
+    // Resets the counter state to zero. Call it ONLY when necessary.
+    inline void reset() { adder.reset(); }
 
-    // Resets the counter state to zero.
-    inline void reset() { set(0); }
+    // Return the value immediately before it's reset.
+    inline int64_t fetch_and_reset() { adder.fetch_and_reset(); }
 
 private:
     Adder adder;
