@@ -32,7 +32,6 @@ namespace replication {
 const std::string replica_disk_migrator::kReplicaDirTempSuffix = ".disk.migrate.tmp";
 const std::string replica_disk_migrator::kReplicaDirOriginSuffix = ".disk.migrate.ori";
 const std::string replica_disk_migrator::kDataDirFolder = "data/rdb/";
-const std::string replica_disk_migrator::kAppInfo = ".app-info";
 
 replica_disk_migrator::replica_disk_migrator(replica *r) : replica_base(r), _replica(r) {}
 
@@ -293,7 +292,8 @@ bool replica_disk_migrator::migrate_replica_app_info(const replica_disk_migrate_
     }
 
     const auto &store_info_err = _replica->store_app_info(
-        _replica->_app_info, utils::filesystem::path_combine(_target_replica_dir, kAppInfo));
+        _replica->_app_info,
+        utils::filesystem::path_combine(_target_replica_dir, replica::kAppInfo));
     if (store_info_err != ERR_OK) {
         derror_replica("disk migration(origin={}, target={}) stores app info failed({})",
                        req.origin_disk,

@@ -50,6 +50,8 @@
 namespace dsn {
 namespace replication {
 
+const std::string replica::kAppInfo = ".app-info";
+
 replica::replica(
     replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool need_restore)
     : serverlet<replica>("replica"),
@@ -560,8 +562,7 @@ void replica::init_disk_tag()
 error_code replica::store_app_info(app_info &info, const std::string &path)
 {
     replica_app_info new_info((app_info *)&info);
-    const auto &info_path =
-        path.empty() ? utils::filesystem::path_combine(_dir, ".app-info") : path;
+    const auto &info_path = path.empty() ? utils::filesystem::path_combine(_dir, kAppInfo) : path;
     auto err = new_info.store(info_path.c_str());
     if (dsn_unlikely(err != ERR_OK)) {
         derror_replica("failed to save app_info to {}, error = {}", info_path, err);
