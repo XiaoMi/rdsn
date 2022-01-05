@@ -691,14 +691,14 @@ void connection_oriented_network::on_server_session_accepted(rpc_session_ptr &s)
         }
     }
 
-    ddebug("server session accepted, remote_client = %s, current_count = %d",
-           s->remote_address().to_string(),
-           ip_count);
+    ddebug_f("server session accepted, remote_client = {}, current_count = {}",
+             s->remote_address().to_string(),
+             ip_count);
 
-    ddebug("ip session %s, remote_client = %s, current_count = %d",
-           ip_conn_count == 1 ? "inserted" : "increased",
-           s->remote_address().to_string(),
-           ip_conn_count);
+    ddebug_f("ip session {}, remote_client = {}, current_count = {}",
+             ip_conn_count == 1 ? "inserted" : "increased",
+             s->remote_address().to_string(),
+             ip_conn_count);
 
     _client_session_count->set(ip_count);
 }
