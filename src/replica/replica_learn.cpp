@@ -810,8 +810,7 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
                 // are written to the disk
                 _private_log->append(mu, LPC_WRITE_REPLICATION_LOG_COMMON, &_tracker, nullptr);
 
-                // because private log are written without callback, need to manully
-                // set flag
+                // because private log are written without callback, need to manully set flag
                 mu->set_logged();
 
                 // then we prepare, it is possible that a committed mutation exists in learner's
