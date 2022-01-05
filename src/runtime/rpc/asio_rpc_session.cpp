@@ -31,35 +31,59 @@ namespace tools {
 
 void asio_rpc_session::set_options()
 {
-    utils::auto_write_lock socket_guard(_socket_lock);
-
     if (_socket->is_open()) {
+
+        int old = 0;
         boost::system::error_code ec;
         boost::asio::socket_base::send_buffer_size option, option2(16 * 1024 * 1024);
-        _socket->get_option(option, ec);
-        if (ec)
-            dwarn("asio socket get option failed, error = %s", ec.message().c_str());
-        int old = option.value();
-        _socket->set_option(option2, ec);
-        if (ec)
-            dwarn("asio socket set option failed, error = %s", ec.message().c_str());
-        _socket->get_option(option, ec);
-        if (ec)
-            dwarn("asio socket get option failed, error = %s", ec.message().c_str());
-        dinfo("boost asio send buffer size is %u, set as 16MB, now is %u", old, option.value());
+
+        _strand.dispatch([this, &old, &ec, &option]() {
+            _socket->get_option(option, ec);
+            if (ec) {
+                dwarn("asio socket get option failed, error = %s", ec.message().c_str());
+            }
+            old = option.value();
+        });
+
+        _strand.dispatch([this, &ec, &option2]() {
+            _socket->set_option(option2, ec);
+            if (ec) {
+                dwarn("asio socket set option failed, error = %s", ec.message().c_str());
+            }
+        });
+
+        _strand.dispatch([this, &old, &ec, &option]() {
+            _socket->get_option(option, ec);
+            if (ec) {
+                dwarn("asio socket get option failed, error = %s", ec.message().c_str());
+            }
+            dinfo("boost asio send buffer size is %u, set as 16MB, now is %u", old, option.value());
+        });
 
         boost::asio::socket_base::receive_buffer_size option3, option4(16 * 1024 * 1024);
-        _socket->get_option(option3, ec);
-        if (ec)
-            dwarn("asio socket get option failed, error = %s", ec.message().c_str());
-        old = option3.value();
-        _socket->set_option(option4, ec);
-        if (ec)
-            dwarn("asio socket set option failed, error = %s", ec.message().c_str());
-        _socket->get_option(option3, ec);
-        if (ec)
-            dwarn("asio socket get option failed, error = %s", ec.message().c_str());
-        dinfo("boost asio recv buffer size is %u, set as 16MB, now is %u", old, option.value());
+
+        _strand.dispatch([this, &old, &ec, &option3]() {
+            _socket->get_option(option3, ec);
+            if (ec)
+                dwarn("asio socket get option failed, error = %s", ec.message().c_str());
+            old = option3.value();
+        });
+
+        _strand.dispatch([this, &ec, &option4]() {
+            _socket->set_option(option4, ec);
+            if (ec) {
+                dwarn("asio socket set option failed, error = %s", ec.message().c_str());
+            }
+        });
+
+        _strand.dispatch([this, &ec, &old, &option4]() {
+            _socket->get_option(option4, ec);
+            if (ec) {
+                dwarn("asio socket get option failed, error = %s", ec.message().c_str());
+            }
+            dinfo(
+                "boost asio recv buffer size is %u, set as 16MB, now is %u", old, option4.value());
+        });
 
         // Nagle algorithm may cause an extra delay in some cases, because if
         // the data in a single write spans 2n packets, the last packet will be
@@ -83,11 +107,9 @@ void asio_rpc_session::do_read(int read_next)
     void *ptr = _reader.read_buffer_ptr(read_next);
     int remaining = _reader.read_buffer_capacity();
 
-    utils::auto_read_lock socket_guard(_socket_lock);
-
     _socket->async_read_some(
         boost::asio::buffer(ptr, remaining),
-        [this](boost::system::error_code ec, std::size_t length) {
+        _strand.wrap([this](boost::system::error_code ec, std::size_t length) {
             if (!!ec) {
                 if (ec == boost::asio::error::make_error_code(boost::asio::error::eof)) {
                     ddebug("asio read from %s failed: %s",
@@ -126,7 +148,7 @@ void asio_rpc_session::do_read(int read_next)
             }
 
             release_ref();
-        });
+        }));
 }
 
 void asio_rpc_session::send(uint64_t signature)
@@ -142,9 +164,10 @@ void asio_rpc_session::send(uint64_t signature)
 
     add_ref();
 
-    utils::auto_read_lock socket_guard(_socket_lock);
     boost::asio::async_write(
-        *_socket, asio_wbufs, [this, signature](boost::system::error_code ec, std::size_t length) {
+        *_socket,
+        asio_wbufs,
+        _strand.wrap([this, signature](boost::system::error_code ec, std::size_t length) {
             if (ec) {
                 derror(
                     "asio write to %s failed: %s", _remote_addr.to_string(), ec.message().c_str());
@@ -154,7 +177,7 @@ void asio_rpc_session::send(uint64_t signature)
             }
 
             release_ref();
-        });
+        }));
 }
 
 asio_rpc_session::asio_rpc_session(asio_network_provider &net,
@@ -162,22 +185,29 @@ asio_rpc_session::asio_rpc_session(asio_network_provider &net,
                                    std::shared_ptr<boost::asio::ip::tcp::socket> &socket,
                                    message_parser_ptr &parser,
                                    bool is_client)
-    : rpc_session(net, remote_addr, parser, is_client), _socket(socket)
+    : rpc_session(net, remote_addr, parser, is_client), _socket(socket), _strand(net._io_service)
 {
     set_options();
 }
 
 void asio_rpc_session::close()
 {
-    utils::auto_write_lock socket_guard(_socket_lock);
 
-    boost::system::error_code ec;
-    _socket->shutdown(boost::asio::socket_base::shutdown_type::shutdown_both, ec);
-    if (ec)
-        dwarn("asio socket shutdown failed, error = %s", ec.message().c_str());
-    _socket->close(ec);
-    if (ec)
-        dwarn("asio socket close failed, error = %s", ec.message().c_str());
+    _strand.dispatch([this]() {
+        boost::system::error_code ec;
+        _socket->shutdown(boost::asio::socket_base::shutdown_type::shutdown_both, ec);
+        if (ec) {
+            dwarn("asio socket shutdown failed, error = %s", ec.message().c_str());
+        }
+    });
+
+    _strand.dispatch([this]() {
+        boost::system::error_code ec;
+        _socket->close(ec);
+        if (ec) {
+            dwarn("asio socket close failed, error = %s", ec.message().c_str());
+        }
+    });
 }
 
 void asio_rpc_session::connect()
