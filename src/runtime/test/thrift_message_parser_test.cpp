@@ -30,7 +30,7 @@ DEFINE_TASK_CODE_RPC(RPC_TEST_THRIFT_MESSAGE_PARSER, TASK_PRIORITY_COMMON, THREA
 class thrift_message_parser_test : public testing::Test
 {
 public:
-    void mock_reader_read_data(message_reader &reader, const std::string &data, int message_num)
+    void mock_reader_read_data(message_reader &reader, const std::string &data, int message_num = 1)
     {
         char *buf = reader.read_buffer_ptr(data.length() * message_num);
         for (int i = 0; i < message_num; i++) {
@@ -42,7 +42,7 @@ public:
     void test_get_message_on_receive_v0_data(message_reader &reader,
                                              apache::thrift::protocol::TMessageType messageType,
                                              bool is_request,
-                                             int message_num)
+                                             int message_num = 1)
     {
         /// write rpc message
         size_t body_length = 0;
@@ -122,7 +122,7 @@ public:
                                              apache::thrift::protocol::TMessageType messageType,
                                              bool is_request,
                                              bool is_backup_request,
-                                             int message_num)
+                                             int message_num = 1)
     {
         /// write rpc message
         size_t body_length = 0;
@@ -222,7 +222,7 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_incomplete_second_fiel
         int read_next = 0;
         message_reader reader(64);
         data = std::string("THFT") + std::string(i, ' ');
-        mock_reader_read_data(reader, data, 1);
+        mock_reader_read_data(reader, data);
         ASSERT_EQ(reader._buffer_occupied, 4 + i);
         ASSERT_EQ(reader.buffer().size(), 4 + i);
 
@@ -253,7 +253,7 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_incomplete_v0_hdr_len)
         out.write_u32(0);
         out.write_u32(48);
 
-        mock_reader_read_data(reader, data, 1);
+        mock_reader_read_data(reader, data);
         ASSERT_EQ(reader.buffer().size(), data.length());
 
         message_ex *msg = parser.get_message_on_receive(&reader, read_next);
@@ -279,7 +279,7 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_invalid_v0_hdr_length)
         // hdr_length = i
         out.write_u32(i);
 
-        mock_reader_read_data(reader, data, 1);
+        mock_reader_read_data(reader, data);
         message_ex *msg = parser.get_message_on_receive(&reader, read_next);
         ASSERT_EQ(msg, nullptr);
         ASSERT_EQ(read_next, -1);
@@ -306,7 +306,7 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_valid_v0_hdr)
     out.write_u32(64);         // client_thread_hash
     out.write_u64(5000000000); // client_partition_hash
 
-    mock_reader_read_data(reader, data, 1);
+    mock_reader_read_data(reader, data);
 
     message_ex *msg = parser.get_message_on_receive(&reader, read_next);
     ASSERT_EQ(msg, nullptr);
@@ -328,9 +328,9 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_valid_v0_data)
     message_reader reader(64);
 
     ASSERT_NO_FATAL_FAILURE(
-        test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_CALL, true, 1));
+        test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_CALL, true));
     ASSERT_NO_FATAL_FAILURE(
-        test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_ONEWAY, true, 1));
+        test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_ONEWAY, true));
 }
 
 TEST_F(thrift_message_parser_test, get_message_on_receive_v0_not_request)
@@ -339,10 +339,10 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_v0_not_request)
 
     // ensure server won't corrupt when it receives a non-request.
     ASSERT_NO_FATAL_FAILURE(
-        test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_REPLY, false, 1));
+        test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_REPLY, false));
     reader.truncate_read();
     ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v0_data(
-        reader, apache::thrift::protocol::TMessageType(65), false, 1));
+        reader, apache::thrift::protocol::TMessageType(65), false));
     reader.truncate_read();
 }
 
@@ -359,7 +359,7 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_incomplete_v1_hdr)
         data_output out(&data[4], 8);
         out.write_u32(1);
 
-        mock_reader_read_data(reader, data, 1);
+        mock_reader_read_data(reader, data);
         ASSERT_EQ(reader.buffer().size(), data.length());
 
         message_ex *msg = parser.get_message_on_receive(&reader, read_next);
@@ -383,7 +383,7 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_valid_v1_hdr)
     out.write_u32(100); // meta_length
     out.write_u32(200); // body_length
 
-    mock_reader_read_data(reader, data, 1);
+    mock_reader_read_data(reader, data);
     ASSERT_EQ(reader.buffer().size(), 16);
 
     message_ex *msg = parser.get_message_on_receive(&reader, read_next);
@@ -399,25 +399,25 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_valid_v1_hdr)
 TEST_F(thrift_message_parser_test, get_message_on_receive_v1_data)
 {
     message_reader reader(64);
+    ASSERT_NO_FATAL_FAILURE(
+        test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_CALL, true, true));
+    ASSERT_NO_FATAL_FAILURE(
+        test_get_message_on_receive_v1_data(reader, apache::thrift::protocol::T_CALL, true, false));
     ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v1_data(
-        reader, apache::thrift::protocol::T_CALL, true, true, 1));
+        reader, apache::thrift::protocol::T_ONEWAY, true, true));
     ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v1_data(
-        reader, apache::thrift::protocol::T_CALL, true, false, 1));
-    ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v1_data(
-        reader, apache::thrift::protocol::T_ONEWAY, true, true, 1));
-    ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v1_data(
-        reader, apache::thrift::protocol::T_ONEWAY, true, false, 1));
+        reader, apache::thrift::protocol::T_ONEWAY, true, false));
 
     ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v1_data(
-        reader, apache::thrift::protocol::TMessageType(65), false, false, 1));
+        reader, apache::thrift::protocol::TMessageType(65), false, false));
     reader.truncate_read();
 }
 
 TEST_F(thrift_message_parser_test, get_message_on_large_writes_pileup_v0)
 {
     message_reader reader(4096);
-    ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v1_data(
-        reader, apache::thrift::protocol::T_CALL, true, false, 10));
+    ASSERT_NO_FATAL_FAILURE(
+        test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_CALL, true, 10));
 }
 
 TEST_F(thrift_message_parser_test, get_message_on_large_writes_pileup_v1)
