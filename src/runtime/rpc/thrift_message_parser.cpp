@@ -199,6 +199,8 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
         return nullptr;
     }
 
+    buf = buf.range(0, _meta_v0->body_length);
+    reader->consume_buffer(_meta_v0->body_length);
     message_ex *msg = create_message_from_request_blob(buf);
     if (msg == nullptr) {
         read_next = -1;
@@ -206,7 +208,6 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
         return nullptr;
     }
 
-    reader->consume_buffer(_meta_v0->body_length);
     read_next = (reader->_buffer_occupied >= HEADER_LENGTH_V0
                      ? 0
                      : HEADER_LENGTH_V0 - reader->_buffer_occupied);
@@ -246,6 +247,8 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
         read_next = _v1_specific_vars->_body_length - buf.size();
         return nullptr;
     }
+    buf = buf.range(0, _v1_specific_vars->_body_length);
+    reader->consume_buffer(_v1_specific_vars->_meta_length + _v1_specific_vars->_body_length);
     message_ex *msg = create_message_from_request_blob(buf);
     if (msg == nullptr) {
         read_next = -1;
@@ -253,7 +256,6 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
         return nullptr;
     }
 
-    reader->consume_buffer(_v1_specific_vars->_meta_length + _v1_specific_vars->_body_length);
     read_next = (reader->_buffer_occupied >= HEADER_LENGTH_V1
                      ? 0
                      : HEADER_LENGTH_V1 - reader->_buffer_occupied);
