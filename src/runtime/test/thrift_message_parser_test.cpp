@@ -30,7 +30,8 @@ DEFINE_TASK_CODE_RPC(RPC_TEST_THRIFT_MESSAGE_PARSER, TASK_PRIORITY_COMMON, THREA
 class thrift_message_parser_test : public testing::Test
 {
 public:
-    void mock_reader_read_data(message_reader &reader, const std::string &data, int message_count = 1)
+    void
+    mock_reader_read_data(message_reader &reader, const std::string &data, int message_count = 1)
     {
         char *buf = reader.read_buffer_ptr(data.length() * message_count);
         for (int i = 0; i < message_count; i++) {
