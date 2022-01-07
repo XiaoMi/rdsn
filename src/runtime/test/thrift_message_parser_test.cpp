@@ -30,10 +30,10 @@ DEFINE_TASK_CODE_RPC(RPC_TEST_THRIFT_MESSAGE_PARSER, TASK_PRIORITY_COMMON, THREA
 class thrift_message_parser_test : public testing::Test
 {
 public:
-    void mock_reader_read_data(message_reader &reader, const std::string &data, int message_num = 1)
+    void mock_reader_read_data(message_reader &reader, const std::string &data, int message_count = 1)
     {
-        char *buf = reader.read_buffer_ptr(data.length() * message_num);
-        for (int i = 0; i < message_num; i++) {
+        char *buf = reader.read_buffer_ptr(data.length() * message_count);
+        for (int i = 0; i < message_count; i++) {
             memcpy(buf + i * data.length(), data.c_str(), data.length());
             reader.mark_read(data.length());
         }
@@ -42,7 +42,7 @@ public:
     void test_get_message_on_receive_v0_data(message_reader &reader,
                                              apache::thrift::protocol::TMessageType messageType,
                                              bool is_request,
-                                             int message_num = 1)
+                                             int message_count = 1)
     {
         /// write rpc message
         size_t body_length = 0;
@@ -75,9 +75,9 @@ public:
         ASSERT_EQ(stream.get_buffer().size(), body_length);
         memcpy(&data[48], stream.get_buffer().data(), stream.get_buffer().size());
 
-        mock_reader_read_data(reader, data, message_num);
+        mock_reader_read_data(reader, data, message_count);
 
-        for (int i = 0; i < message_num; i++) {
+        for (int i = 0; i < message_count; i++) {
             msg = parser.get_message_on_receive(&reader, read_next);
 
             if (is_request) {
@@ -122,7 +122,7 @@ public:
                                              apache::thrift::protocol::TMessageType messageType,
                                              bool is_request,
                                              bool is_backup_request,
-                                             int message_num = 1)
+                                             int message_count = 1)
     {
         /// write rpc message
         size_t body_length = 0;
@@ -173,10 +173,10 @@ public:
                body_stream.get_buffer().data(),
                body_stream.get_buffer().size());
         ASSERT_EQ(16 + meta_length + body_length, data.size());
-        mock_reader_read_data(reader, data, message_num);
-        ASSERT_EQ(reader.buffer().size(), data.size() * message_num);
+        mock_reader_read_data(reader, data, message_count);
+        ASSERT_EQ(reader.buffer().size(), data.size() * message_count);
 
-        for (int i = 0; i != message_num; ++i) {
+        for (int i = 0; i != message_count; ++i) {
             msg = parser.get_message_on_receive(&reader, read_next);
 
             if (is_request) {
@@ -340,10 +340,11 @@ TEST_F(thrift_message_parser_test, get_message_on_receive_v0_not_request)
     // ensure server won't corrupt when it receives a non-request.
     ASSERT_NO_FATAL_FAILURE(
         test_get_message_on_receive_v0_data(reader, apache::thrift::protocol::T_REPLY, false));
-    reader.truncate_read();
+    // bad message should be consumed and discarded
+    ASSERT_EQ(reader.buffer().size(), 0);
     ASSERT_NO_FATAL_FAILURE(test_get_message_on_receive_v0_data(
         reader, apache::thrift::protocol::TMessageType(65), false));
-    reader.truncate_read();
+    ASSERT_EQ(reader.buffer().size(), 0);
 }
 
 TEST_F(thrift_message_parser_test, get_message_on_receive_incomplete_v1_hdr)
