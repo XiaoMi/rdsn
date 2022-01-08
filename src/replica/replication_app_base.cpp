@@ -45,6 +45,8 @@ namespace replication {
 
 const std::string replica_init_info::kInitInfo = ".init-info";
 
+DEFINE_TASK_CODE_AIO(LPC_AIO_INFO_WRITE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
+
 error_code replica_init_info::load(const std::string &dir)
 {
     std::string info_path = utils::filesystem::path_combine(dir, kInitInfo);
@@ -101,17 +103,31 @@ error_code replica_init_info::store_json(const char *file)
     std::string ffile(file);
     std::string tmp_file = ffile + ".tmp";
 
-    std::ofstream os(tmp_file.c_str(),
-                     (std::ofstream::out | std::ios::binary | std::ofstream::trunc));
-    ERR_LOG_AND_RETURN_NOT_TRUE(
-        os.is_open(), ERR_FILE_OPERATION_FAILED, "open file {} failed", tmp_file);
+    // TODO(yingchun): check mode is right
+    disk_file *hfile = file::open(tmp_file.c_str(), O_WRONLY | O_CREAT | O_BINARY | O_TRUNC, 0666);
+    ERR_LOG_AND_RETURN_NOT_TRUE(hfile, ERR_FILE_OPERATION_FAILED, "open file {} failed", tmp_file);
 
-    dsn::blob bb = dsn::json::json_forwarder<replica_init_info>::encode(*this);
-    os.write((const char *)bb.data(), (std::streamsize)bb.length());
-    ERR_LOG_AND_RETURN_NOT_TRUE(
-        !os.bad(), ERR_FILE_OPERATION_FAILED, "write file {} failed", tmp_file);
-    os.close();
-
+    blob bb = json::json_forwarder<replica_init_info>::encode(*this);
+    error_code err;
+    size_t sz = 0;
+    task_tracker tracker;
+    aio_task_ptr tsk = file::write(hfile,
+                                   bb.data(),
+                                   bb.length(),
+                                   0,
+                                   LPC_AIO_INFO_WRITE,
+                                   &tracker,
+                                   [&err, &sz](error_code e, size_t s) {
+                                       err = e;
+                                       sz = s;
+                                   },
+                                   0);
+    tracker.wait_outstanding_tasks();
+    file::flush(hfile);
+    file::close(hfile);
+    ERR_LOG_AND_RETURN_NOT_OK(err, "write file {} failed", tmp_file);
+    dcheck_eq(bb.length(), sz);
+    // TODO(yingchun): need fsync too？
     ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::rename_path(tmp_file, ffile),
                                 ERR_FILE_OPERATION_FAILED,
                                 "move file from {} to {} failed",
@@ -123,6 +139,7 @@ error_code replica_init_info::store_json(const char *file)
 
 std::string replica_init_info::to_string()
 {
+    // TODO(yingchun): use fmt instead
     std::ostringstream oss;
     oss << "init_ballot = " << init_ballot << ", init_durable_decree = " << init_durable_decree
         << ", init_offset_in_shared_log = " << init_offset_in_shared_log
@@ -177,18 +194,32 @@ error_code replica_app_info::store(const char *file)
         marshall(writer, tmp, DSF_THRIFT_JSON);
     }
 
-    std::string ffile = std::string(file);
+    std::string ffile(file);
     std::string tmp_file = ffile + ".tmp";
 
-    std::ofstream os(tmp_file.c_str(),
-                     (std::ofstream::out | std::ios::binary | std::ofstream::trunc));
-    ERR_LOG_AND_RETURN_NOT_TRUE(
-        os.is_open(), ERR_FILE_OPERATION_FAILED, "open file {} failed", tmp_file);
+    disk_file *hfile = file::open(tmp_file.c_str(), O_WRONLY | O_CREAT | O_BINARY | O_TRUNC, 0666);
+    ERR_LOG_AND_RETURN_NOT_TRUE(hfile, ERR_FILE_OPERATION_FAILED, "open file {} failed", tmp_file);
 
-    auto data = writer.get_buffer();
-    os.write((const char *)data.data(), (std::streamsize)data.length());
-    os.close();
-
+    blob bb = writer.get_buffer();
+    error_code err;
+    size_t sz = 0;
+    task_tracker tracker;
+    aio_task_ptr tsk = file::write(hfile,
+                                   bb.data(),
+                                   bb.length(),
+                                   0,
+                                   LPC_AIO_INFO_WRITE,
+                                   &tracker,
+                                   [&err, &sz](error_code e, size_t s) {
+                                       err = e;
+                                       sz = s;
+                                   },
+                                   0);
+    tracker.wait_outstanding_tasks();
+    file::flush(hfile);
+    file::close(hfile);
+    ERR_LOG_AND_RETURN_NOT_OK(err, "write file {} failed", tmp_file);
+    dcheck_eq(bb.length(), sz);
     ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::rename_path(tmp_file, ffile),
                                 ERR_FILE_OPERATION_FAILED,
                                 "move file from {} to {} failed",
@@ -268,12 +299,10 @@ error_code replication_app_base::open_new_internal(replica *r,
                                 _dir_data);
 
     ERR_LOG_AND_RETURN_NOT_OK(open(), "[{}]: open replica app failed", r->name());
-
     _last_committed_decree = last_durable_decree();
     ERR_LOG_AND_RETURN_NOT_OK(update_init_info(_replica, shared_log_start, private_log_start, 0),
                               "[{}]: open replica app failed",
                               r->name());
-
     return ERR_OK;
 }
 
@@ -334,6 +363,7 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
 {
     int storage_error = 0;
     for (int i = 0; i < request_length; ++i) {
+        // TODO(yingchun): better to return error_code
         int e = on_request(requests[i]);
         if (e != 0) {
             derror_replica("got storage error when handler request({})",
