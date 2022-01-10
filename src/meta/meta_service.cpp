@@ -278,7 +278,7 @@ bool meta_service::try_lock_meta_op_status(meta_op_status op_status)
 
 void meta_service::unlock_meta_op_status(bool is_manual)
 {
-    ddebug_f("UNLOCK meta op status from {}, is_manual {}",
+    ddebug_f("UNLOCK meta op status from {}, is_manual = {}",
              enum_to_string(_meta_op_status.load()),
              is_manual);
     _meta_op_status.store(meta_op_status::FREE);
