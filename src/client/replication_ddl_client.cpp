@@ -1712,5 +1712,23 @@ replication_ddl_client::query_app_manual_compact(const std::string &app_name)
         query_manual_compact_rpc(std::move(req), RPC_CM_QUERY_MANUAL_COMPACT_STATUS));
 }
 
+dsn::error_code replication_ddl_client::unlock_meta_op_status()
+{
+    std::shared_ptr<unlock_meta_op_status_request> req =
+        std::make_shared<unlock_meta_op_status_request>();
+
+    auto resp_task = request_meta<unlock_meta_op_status_request>(RPC_CM_UNLOCK_META_OP_STATUS, req);
+
+    resp_task->wait();
+    if (resp_task->error() != ERR_OK) {
+        return resp_task->error();
+    }
+
+    unlock_meta_op_status_response resp;
+    ::dsn::unmarshall(resp_task->get_response(), resp);
+    std::cout << "unlock_meta_op_status: " << resp.err.to_string() << std::endl;
+    return resp.err;
+}
+
 } // namespace replication
 } // namespace dsn

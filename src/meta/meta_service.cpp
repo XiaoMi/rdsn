@@ -276,9 +276,11 @@ bool meta_service::try_lock_meta_op_status(meta_op_status op_status)
     return true;
 }
 
-void meta_service::unlock_meta_op_status()
+void meta_service::unlock_meta_op_status(bool is_manual)
 {
-    ddebug_f("UNLOCK meta op status from {}", enum_to_string(_meta_op_status.load()));
+    ddebug_f("UNLOCK meta op status from {}, is_manual {}",
+             enum_to_string(_meta_op_status.load()),
+             is_manual);
     _meta_op_status.store(meta_op_status::FREE);
 }
 
@@ -546,6 +548,9 @@ void meta_service::register_rpc_handlers()
     register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_MANUAL_COMPACT_STATUS,
                                          "query_manual_compact_status",
                                          &meta_service::on_query_manual_compact_status);
+    register_rpc_handler_with_rpc_holder(RPC_CM_UNLOCK_META_OP_STATUS,
+                                         "unlock_meta_op_status",
+                                         &meta_service::on_unlock_meta_op_status);
 }
 
 int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address)
@@ -693,7 +698,18 @@ void meta_service::on_query_cluster_info(configuration_cluster_info_rpc rpc)
     response.values.push_back(fmt::format("{:.{}f}", total_stddev, 2));
     response.keys.push_back("cluster_name");
     response.values.push_back(get_current_cluster_name());
+    response.keys.push_back("meta_op_status");
+    response.values.push_back(enum_to_string(get_op_status()));
     response.err = dsn::ERR_OK;
+}
+
+void meta_service::on_unlock_meta_op_status(unlock_meta_op_status_rpc rpc)
+{
+    if (!check_status(rpc)) {
+        return;
+    }
+    unlock_meta_op_status(true);
+    rpc.response().err = ERR_OK;
 }
 
 // client => meta server

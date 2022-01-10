@@ -162,7 +162,7 @@ public:
     size_t get_alive_node_count() const;
 
     bool try_lock_meta_op_status(meta_op_status op_status);
-    void unlock_meta_op_status();
+    void unlock_meta_op_status(bool is_manual = false);
     meta_op_status get_op_status() const { return _meta_op_status.load(); }
 
 private:
@@ -195,6 +195,7 @@ private:
 
     // cluster info
     void on_query_cluster_info(configuration_cluster_info_rpc rpc);
+    void on_unlock_meta_op_status(unlock_meta_op_status_rpc rpc);
 
     // meta control
     void on_control_meta_level(configuration_meta_control_rpc rpc);
