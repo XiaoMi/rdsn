@@ -1094,7 +1094,13 @@ void bulk_load_service::update_app_status_on_remote_storage_reply(const app_bulk
 
     if (new_status == bulk_load_status::BLS_INGESTING) {
         for (int i = 0; i < partition_count; ++i) {
-            partition_ingestion(ainfo.app_name, gpid(app_id, i));
+            tasking::enqueue(
+                LPC_META_STATE_NORMAL,
+                _meta_svc->tracker(),
+                std::bind(
+                    &bulk_load_service::partition_ingestion, this, ainfo.app_name, gpid(app_id, i)),
+                0,
+                std::chrono::seconds(bulk_load_constant::BULK_LOAD_REQUEST_INTERVAL));
         }
     }
 
