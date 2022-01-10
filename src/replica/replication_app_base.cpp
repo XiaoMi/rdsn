@@ -429,7 +429,7 @@ error_code replication_app_base::apply_mutation(const mutation *mu)
 
     dcheck_eq_replica(mu->data.header.decree, last_committed_decree() + 1);
     dcheck_eq_replica(mu->data.updates.size(), mu->client_requests.size());
-    dcheck_ge(mu->data.updates.size(), 0);
+    dcheck_gt_replica(mu->data.updates.size(), 0);
 
     if (_replica->status() == partition_status::PS_PRIMARY) {
         ADD_POINT(mu->_tracer);
@@ -505,7 +505,7 @@ error_code replication_app_base::apply_mutation(const mutation *mu)
             str = "PS";
             break;
         default:
-            dassert_f(false, "status = {}", enum_to_string(status));
+            dassert_replica(false, "status = {}", enum_to_string(status));
             __builtin_unreachable();
         }
         ddebug_replica(
