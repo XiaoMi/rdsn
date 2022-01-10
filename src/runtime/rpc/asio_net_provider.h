@@ -46,12 +46,30 @@ public:
 private:
     void do_accept();
 
+    boost::asio::io_context &get_io_context()
+    {
+        // Use a round-robin scheme to choose the next io_context to use.
+        int tmp = next_io_context_;
+        if (tmp >= _service_count) {
+            tmp = 0;
+        }
+        boost::asio::io_context &io_context = *_io_services[tmp];
+        ++next_io_context_;
+        if (next_io_context_ >= _service_count) {
+            next_io_context_ = 0;
+        }
+        return io_context;
+    }
+
 private:
     friend class asio_rpc_session;
     friend class asio_network_provider_test;
 
     std::shared_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
-    boost::asio::io_service _io_service;
+    int next_io_context_ = 0;
+    int _service_count;
+    typedef std::shared_ptr<boost::asio::io_context> io_context_ptr;
+    std::vector<io_context_ptr> _io_services;
     std::vector<std::shared_ptr<std::thread>> _workers;
     ::dsn::rpc_address _address;
 };
