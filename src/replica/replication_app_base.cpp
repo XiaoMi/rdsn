@@ -337,8 +337,9 @@ error_code replication_app_base::open_new_internal(replica *r,
                                                    int64_t shared_log_start,
                                                    int64_t private_log_start)
 {
-    utils::filesystem::remove_path(_dir_data);
-    utils::filesystem::create_directory(_dir_data);
+    dassert_f(utils::filesystem::remove_path(_dir_data), "remove data dir {} failed", _dir_data);
+    dassert_f(
+        utils::filesystem::create_directory(_dir_data), "create data dir {} failed", _dir_data);
     ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::directory_exists(_dir_data),
                                 ERR_FILE_OPERATION_FAILED,
                                 "[{}]: create replica data dir {} failed",
