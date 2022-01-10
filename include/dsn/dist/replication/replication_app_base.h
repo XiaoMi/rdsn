@@ -61,8 +61,6 @@ public:
     std::string to_string();
 
 private:
-    error_code load_binary(const char *file);
-    error_code store_binary(const char *file);
     error_code load_json(const char *file);
     error_code store_json(const char *file);
 };
