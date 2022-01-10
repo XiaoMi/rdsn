@@ -54,6 +54,8 @@ public:
                               init_offset_in_shared_log,
                               init_offset_in_private_log)
 
+    static const std::string kInitInfo;
+
 public:
     replica_init_info() { memset((void *)this, 0, sizeof(*this)); }
     error_code load(const std::string &dir);
