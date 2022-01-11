@@ -16,6 +16,7 @@
 // under the License.
 
 #include "replica_split_manager.h"
+#include "common/partition_split_common.h"
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -790,12 +791,10 @@ void replica_split_manager::update_local_partition_count(
     auto old_partition_count = info.partition_count;
     info.partition_count = new_partition_count;
 
-    replica_app_info new_info((app_info *)&info);
-    std::string info_path = utils::filesystem::path_combine(_replica->_dir, ".app-info");
-    auto err = new_info.store(info_path.c_str());
+    const auto err = _replica->store_app_info(info);
     if (err != ERR_OK) {
         info.partition_count = old_partition_count;
-        dassert_replica(false, "failed to save app_info to {}, error = {}", info_path, err);
+        dassert_replica(false, "failed to save app_info, error = {}", err);
         return;
     }
 

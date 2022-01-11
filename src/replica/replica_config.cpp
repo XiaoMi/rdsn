@@ -50,6 +50,19 @@
 namespace dsn {
 namespace replication {
 
+bool get_bool_envs(const std::map<std::string, std::string> &envs,
+                   const std::string &name,
+                   bool &value)
+{
+    auto iter = envs.find(name);
+    if (iter != envs.end()) {
+        if (!buf2bool(iter->second, value)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void replica::on_config_proposal(configuration_update_request &proposal)
 {
     _checker.only_one_thread_access();
@@ -563,6 +576,8 @@ void replica::update_app_envs_internal(const std::map<std::string, std::string> 
     update_throttle_envs(envs);
 
     update_ac_allowed_users(envs);
+
+    update_allow_ingest_behind(envs);
 }
 
 void replica::update_bool_envs(const std::map<std::string, std::string> &envs,
@@ -570,12 +585,9 @@ void replica::update_bool_envs(const std::map<std::string, std::string> &envs,
                                bool &value)
 {
     bool new_value = false;
-    auto iter = envs.find(name);
-    if (iter != envs.end()) {
-        if (!buf2bool(iter->second, new_value)) {
-            dwarn_replica("invalid value of env {}: \"{}\"", name, iter->second);
-            return;
-        }
+    if (!get_bool_envs(envs, name, new_value)) {
+        dwarn_replica("invalid value of env {}", name);
+        return;
     }
     if (new_value != value) {
         ddebug_replica("switch env[{}] from {} to {}", name, value, new_value);
@@ -592,6 +604,26 @@ void replica::update_ac_allowed_users(const std::map<std::string, std::string> &
     }
 
     _access_controller->update(allowed_users);
+}
+
+void replica::update_allow_ingest_behind(const std::map<std::string, std::string> &envs)
+{
+    bool new_value = false;
+    if (!get_bool_envs(envs, replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND, new_value)) {
+        return;
+    }
+    if (new_value != _allow_ingest_behind) {
+        auto info = _app_info;
+        info.envs = envs;
+        if (store_app_info(info) != ERR_OK) {
+            return;
+        }
+        ddebug_replica("switch env[{}] from {} to {}",
+                       replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND,
+                       _allow_ingest_behind,
+                       new_value);
+        _allow_ingest_behind = new_value;
+    }
 }
 
 void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)

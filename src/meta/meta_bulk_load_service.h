@@ -40,13 +40,19 @@ struct app_bulk_load_info
     std::string file_provider_type;
     bulk_load_status::type status;
     std::string remote_root_path;
+    bool ingest_behind;
+    bool is_ever_ingesting;
+    error_code bulk_load_err;
     DEFINE_JSON_SERIALIZATION(app_id,
                               partition_count,
                               app_name,
                               cluster_name,
                               file_provider_type,
                               status,
-                              remote_root_path)
+                              remote_root_path,
+                              ingest_behind,
+                              is_ever_ingesting,
+                              bulk_load_err)
 };
 
 struct partition_bulk_load_info
@@ -130,12 +136,10 @@ private:
     // - ERR_OBJECT_NOT_FOUND: bulk_load_info not exist, may wrong cluster_name or app_name
     // - ERR_CORRUPTION: bulk_load_info is damaged on file_provider
     // - ERR_INCONSISTENT_STATE: app_id or partition_count inconsistent
-    error_code check_bulk_load_request_params(const std::string &app_name,
-                                              const std::string &cluster_name,
-                                              const std::string &file_provider,
-                                              const std::string &remote_root_path,
+    error_code check_bulk_load_request_params(const start_bulk_load_request &request,
                                               const int32_t app_id,
                                               const int32_t partition_count,
+                                              const std::map<std::string, std::string> &envs,
                                               std::string &hint_msg);
 
     void do_start_app_bulk_load(std::shared_ptr<app_state> app, start_bulk_load_rpc rpc);
@@ -176,7 +180,7 @@ private:
 
     void try_rollback_to_downloading(const std::string &app_name, const gpid &pid);
 
-    void handle_bulk_load_failed(int32_t app_id);
+    void handle_bulk_load_failed(int32_t app_id, error_code err);
 
     // Called when app bulk load status update to ingesting
     // create ingestion_request and send it to primary
@@ -192,7 +196,14 @@ private:
                                       const gpid &pid,
                                       const rpc_address &primary_addr);
 
-    void reset_local_bulk_load_states(int32_t app_id, const std::string &app_name);
+    // is_reset_all
+    // - true  : reset all states in memory
+    // - false : keep the bulk load results in memory, reset others
+    void reset_local_bulk_load_states_unlocked(int32_t app_id,
+                                               const std::string &app_name,
+                                               bool is_reset_all);
+    void
+    reset_local_bulk_load_states(int32_t app_id, const std::string &app_name, bool is_reset_all);
 
     ///
     /// update bulk load states to remote storage functions
@@ -231,6 +242,7 @@ private:
     // update app bulk load status on remote storage
     void update_app_status_on_remote_storage_unlocked(int32_t app_id,
                                                       bulk_load_status::type new_status,
+                                                      error_code err = ERR_OK,
                                                       bool should_send_request = false);
 
     void update_app_status_on_remote_storage_reply(const app_bulk_load_info &ainfo,
@@ -275,8 +287,12 @@ private:
         const app_bulk_load_info &ainfo,
         const std::unordered_map<int32_t, partition_bulk_load_info> &partition_map);
 
+    static bool validate_ingest_behind(const std::map<std::string, std::string> &envs,
+                                       bool ingest_behind);
+
     static bool validate_app(int32_t app_id,
                              int32_t partition_count,
+                             const std::map<std::string, std::string> &envs,
                              const app_bulk_load_info &ainfo,
                              int32_t pinfo_count);
 
@@ -389,6 +405,16 @@ private:
             return iter->second.status;
         } else {
             return bulk_load_status::BLS_INVALID;
+        }
+    }
+
+    inline error_code get_app_bulk_load_err_unlocked(int32_t app_id) const
+    {
+        const auto &iter = _app_bulk_load_info.find(app_id);
+        if (iter != _app_bulk_load_info.end()) {
+            return iter->second.bulk_load_err;
+        } else {
+            return ERR_OK;
         }
     }
 

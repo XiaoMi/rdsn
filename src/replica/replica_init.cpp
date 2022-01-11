@@ -56,11 +56,8 @@ error_code replica::initialize_on_new()
         return ERR_FILE_OPERATION_FAILED;
     }
 
-    replica_app_info info((app_info *)&_app_info);
-    std::string path = utils::filesystem::path_combine(_dir, ".app-info");
-    auto err = info.store(path.c_str());
+    auto err = store_app_info(_app_info);
     if (err != ERR_OK) {
-        derror("save app-info to %s failed, err = %s", path.c_str(), err.to_string());
         dsn::utils::filesystem::remove_path(_dir);
         return err;
     }
@@ -149,7 +146,7 @@ error_code replica::initialize_on_load()
 
     dsn::app_info info;
     replica_app_info info2(&info);
-    std::string path = utils::filesystem::path_combine(dir, ".app-info");
+    std::string path = utils::filesystem::path_combine(dir, kAppInfo);
     auto err = info2.load(path.c_str());
     if (ERR_OK != err) {
         derror("load app-info from %s failed, err = %s", path.c_str(), err.to_string());

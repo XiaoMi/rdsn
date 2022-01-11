@@ -94,6 +94,11 @@ class test_checker;
 
 DSN_DECLARE_bool(reject_write_when_disk_insufficient);
 
+// get bool envs[name], return false if value is not bool
+bool get_bool_envs(const std::map<std::string, std::string> &envs,
+                   const std::string &name,
+                   /*out*/ bool &value);
+
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
 public:
@@ -230,6 +235,8 @@ public:
     bool disk_space_insufficient() { return _disk_status == disk_status::SPACE_INSUFFICIENT; }
     disk_status::type get_disk_status() { return _disk_status; }
     std::string get_replica_disk_tag() const { return _disk_tag; }
+
+    static const std::string kAppInfo;
 
 protected:
     // this method is marked protected to enable us to mock it in unit tests.
@@ -441,7 +448,14 @@ private:
                           const std::string &name,
                           /*out*/ bool &value);
 
+    // update envs allow_ingest_behind and store new app_info into file
+    void update_allow_ingest_behind(const std::map<std::string, std::string> &envs);
+
     void init_disk_tag();
+
+    // store `info` into a file under `path` directory
+    // path = "" means using the default directory (`_dir`/.app_info)
+    error_code store_app_info(app_info &info, const std::string &path = "");
 
 private:
     friend class ::dsn::replication::test::test_checker;
@@ -576,6 +590,8 @@ private:
     std::unique_ptr<security::access_controller> _access_controller;
 
     disk_status::type _disk_status{disk_status::NORMAL};
+
+    bool _allow_ingest_behind{false};
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
 } // namespace replication

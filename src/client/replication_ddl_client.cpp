@@ -44,6 +44,9 @@
 #include <dsn/utils/time_utils.h>
 
 #include "common/replication_common.h"
+#include "common/bulk_load_common.h"
+#include "common/partition_split_common.h"
+#include "common/manual_compact.h"
 #include "meta/meta_rpc_types.h"
 
 namespace dsn {
@@ -1576,13 +1579,15 @@ error_with<start_bulk_load_response>
 replication_ddl_client::start_bulk_load(const std::string &app_name,
                                         const std::string &cluster_name,
                                         const std::string &file_provider_type,
-                                        const std::string &remote_root_path)
+                                        const std::string &remote_root_path,
+                                        const bool ingest_behind)
 {
     auto req = make_unique<start_bulk_load_request>();
     req->app_name = app_name;
     req->cluster_name = cluster_name;
     req->file_provider_type = file_provider_type;
     req->remote_root_path = remote_root_path;
+    req->ingest_behind = ingest_behind;
     return call_rpc_sync(start_bulk_load_rpc(std::move(req), RPC_CM_START_BULK_LOAD));
 }
 
