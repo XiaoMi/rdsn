@@ -90,7 +90,7 @@ error_code replica_init_info::load(const std::string &dir)
     std::string info_path = utils::filesystem::path_combine(dir, kInitInfo);
     dassert_f(utils::filesystem::path_exists(info_path), "file({}) not exist", info_path);
     ERR_LOG_AND_RETURN_NOT_OK(
-        load_json(info_path.c_str()), "load replica_init_info from {} failed", info_path);
+        load_json(info_path), "load replica_init_info from {} failed", info_path);
     ddebug_f("load replica_init_info from {} succeed: {}", info_path, to_string());
     return ERR_OK;
 }
@@ -99,7 +99,7 @@ error_code replica_init_info::store(const std::string &dir)
 {
     uint64_t start = dsn_now_ns();
     std::string info_path = utils::filesystem::path_combine(dir, kInitInfo);
-    ERR_LOG_AND_RETURN_NOT_OK(store_json(info_path.c_str()),
+    ERR_LOG_AND_RETURN_NOT_OK(store_json(info_path),
                               "store replica_init_info to {} failed, time_used_ns = {}",
                               info_path,
                               dsn_now_ns() - start);
@@ -110,7 +110,7 @@ error_code replica_init_info::store(const std::string &dir)
     return ERR_OK;
 }
 
-error_code replica_init_info::load_json(const char *file)
+error_code replica_init_info::load_json(const std::string &file)
 {
     std::ifstream is(file, std::ios::binary);
     ERR_LOG_AND_RETURN_NOT_TRUE(
@@ -136,7 +136,7 @@ error_code replica_init_info::load_json(const char *file)
     return ERR_OK;
 }
 
-error_code replica_init_info::store_json(const char *file)
+error_code replica_init_info::store_json(const std::string &file)
 {
     return write_blob_to_file(file, json::json_forwarder<replica_init_info>::encode(*this));
 }
@@ -151,7 +151,7 @@ std::string replica_init_info::to_string()
     return oss.str();
 }
 
-error_code replica_app_info::load(const char *file)
+error_code replica_app_info::load(const std::string &file)
 {
     std::ifstream is(file, std::ios::binary);
     ERR_LOG_AND_RETURN_NOT_TRUE(
@@ -178,7 +178,7 @@ error_code replica_app_info::load(const char *file)
     return ERR_OK;
 }
 
-error_code replica_app_info::store(const char *file)
+error_code replica_app_info::store(const std::string &file)
 {
     binary_writer writer;
     int magic = 0xdeadbeef;
