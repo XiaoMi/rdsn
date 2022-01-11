@@ -30,6 +30,7 @@
 #include <dsn/utils/latency_tracer.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/utility/defer.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/crc.h>
@@ -53,6 +54,7 @@ error_code write_blob_to_file(const std::string &file, const blob &data)
     std::string tmp_file = file + ".tmp";
     disk_file *hfile = file::open(tmp_file.c_str(), O_WRONLY | O_CREAT | O_BINARY | O_TRUNC, 0666);
     ERR_LOG_AND_RETURN_NOT_TRUE(hfile, ERR_FILE_OPERATION_FAILED, "open file {} failed", tmp_file);
+    auto cleanup = defer([tmp_file]() { utils::filesystem::remove_path(tmp_file); });
 
     error_code err;
     size_t sz = 0;
