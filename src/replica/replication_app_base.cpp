@@ -47,6 +47,44 @@ const std::string replica_init_info::kInitInfo = ".init-info";
 
 DEFINE_TASK_CODE_AIO(LPC_AIO_INFO_WRITE, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)
 
+namespace {
+error_code write_blob_to_file(const std::string &file, const blob &data)
+{
+    std::string tmp_file = file + ".tmp";
+    disk_file *hfile = file::open(tmp_file.c_str(), O_WRONLY | O_CREAT | O_BINARY | O_TRUNC, 0666);
+    ERR_LOG_AND_RETURN_NOT_TRUE(hfile, ERR_FILE_OPERATION_FAILED, "open file {} failed", tmp_file);
+
+    error_code err;
+    size_t sz = 0;
+    task_tracker tracker;
+    aio_task_ptr tsk = file::write(hfile,
+                                   data.data(),
+                                   data.length(),
+                                   0,
+                                   LPC_AIO_INFO_WRITE,
+                                   &tracker,
+                                   [&err, &sz](error_code e, size_t s) {
+                                       err = e;
+                                       sz = s;
+                                   },
+                                   0);
+    dassert_f(tsk, "create file::write task failed");
+    tracker.wait_outstanding_tasks();
+    file::flush(hfile);
+    file::close(hfile);
+    ERR_LOG_AND_RETURN_NOT_OK(err, "write file {} failed", tmp_file);
+    dcheck_eq(data.length(), sz);
+    // TODO(yingchun): need fsync too？
+    ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::rename_path(tmp_file, file),
+                                ERR_FILE_OPERATION_FAILED,
+                                "move file from {} to {} failed",
+                                tmp_file,
+                                file);
+
+    return ERR_OK;
+}
+} // namespace
+
 error_code replica_init_info::load(const std::string &dir)
 {
     std::string info_path = utils::filesystem::path_combine(dir, kInitInfo);
@@ -100,41 +138,7 @@ error_code replica_init_info::load_json(const char *file)
 
 error_code replica_init_info::store_json(const char *file)
 {
-    std::string ffile(file);
-    std::string tmp_file = ffile + ".tmp";
-
-    // TODO(yingchun): check mode is right
-    disk_file *hfile = file::open(tmp_file.c_str(), O_WRONLY | O_CREAT | O_BINARY | O_TRUNC, 0666);
-    ERR_LOG_AND_RETURN_NOT_TRUE(hfile, ERR_FILE_OPERATION_FAILED, "open file {} failed", tmp_file);
-
-    blob bb = json::json_forwarder<replica_init_info>::encode(*this);
-    error_code err;
-    size_t sz = 0;
-    task_tracker tracker;
-    aio_task_ptr tsk = file::write(hfile,
-                                   bb.data(),
-                                   bb.length(),
-                                   0,
-                                   LPC_AIO_INFO_WRITE,
-                                   &tracker,
-                                   [&err, &sz](error_code e, size_t s) {
-                                       err = e;
-                                       sz = s;
-                                   },
-                                   0);
-    tracker.wait_outstanding_tasks();
-    file::flush(hfile);
-    file::close(hfile);
-    ERR_LOG_AND_RETURN_NOT_OK(err, "write file {} failed", tmp_file);
-    dcheck_eq(bb.length(), sz);
-    // TODO(yingchun): need fsync too？
-    ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::rename_path(tmp_file, ffile),
-                                ERR_FILE_OPERATION_FAILED,
-                                "move file from {} to {} failed",
-                                tmp_file,
-                                ffile);
-
-    return ERR_OK;
+    return write_blob_to_file(file, json::json_forwarder<replica_init_info>::encode(*this));
 }
 
 std::string replica_init_info::to_string()
@@ -194,38 +198,7 @@ error_code replica_app_info::store(const char *file)
         marshall(writer, tmp, DSF_THRIFT_JSON);
     }
 
-    std::string ffile(file);
-    std::string tmp_file = ffile + ".tmp";
-
-    disk_file *hfile = file::open(tmp_file.c_str(), O_WRONLY | O_CREAT | O_BINARY | O_TRUNC, 0666);
-    ERR_LOG_AND_RETURN_NOT_TRUE(hfile, ERR_FILE_OPERATION_FAILED, "open file {} failed", tmp_file);
-
-    blob bb = writer.get_buffer();
-    error_code err;
-    size_t sz = 0;
-    task_tracker tracker;
-    aio_task_ptr tsk = file::write(hfile,
-                                   bb.data(),
-                                   bb.length(),
-                                   0,
-                                   LPC_AIO_INFO_WRITE,
-                                   &tracker,
-                                   [&err, &sz](error_code e, size_t s) {
-                                       err = e;
-                                       sz = s;
-                                   },
-                                   0);
-    tracker.wait_outstanding_tasks();
-    file::flush(hfile);
-    file::close(hfile);
-    ERR_LOG_AND_RETURN_NOT_OK(err, "write file {} failed", tmp_file);
-    dcheck_eq(bb.length(), sz);
-    ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::rename_path(tmp_file, ffile),
-                                ERR_FILE_OPERATION_FAILED,
-                                "move file from {} to {} failed",
-                                tmp_file,
-                                ffile);
-    return ERR_OK;
+    return write_blob_to_file(file, writer.get_buffer());
 }
 
 /*static*/
