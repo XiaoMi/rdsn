@@ -12,6 +12,6 @@ set(MY_PROJ_LIBS crypto)
 # Extra files that will be installed
 set(MY_BINPLACES "")
 
-dsn_add_shared_library()
+dsn_add_static_library()
 
 add_subdirectory(test)
