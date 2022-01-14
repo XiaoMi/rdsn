@@ -335,7 +335,7 @@ bool replication_app_base::is_primary() const
 
 bool replication_app_base::is_duplicating() const { return _replica->is_duplicating(); }
 
-ballot replication_app_base::get_ballot() const { return _replica->get_ballot(); }
+const ballot &replication_app_base::get_ballot() const { return _replica->get_ballot(); }
 
 error_code replication_app_base::open_internal(replica *r)
 {
