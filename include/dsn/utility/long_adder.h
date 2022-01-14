@@ -29,10 +29,14 @@
 namespace dsn {
 
 // Padded POD container for std::atomic<int64_t>. This prevents false sharing of cache lines.
+// Notice that in older versions of GCC `std::is_pod<std::atomic<int64_t>>::value` will return
+// false, thus cacheline_aligned_int64 is not considered to be a POD. However it doesn't matter.
 class cacheline_aligned_int64
 {
 public:
     static constexpr int kAtomicInt64Size = sizeof(std::atomic<int64_t>);
+
+    cacheline_aligned_int64() = default;
 
     inline bool compare_and_set(int64_t cmp, int64_t value)
     {
@@ -47,7 +51,8 @@ public:
     DISALLOW_COPY_AND_ASSIGN(cacheline_aligned_int64);
 } CACHELINE_ALIGNED;
 
-using cacheline_aligned_int64_ptr = std::unique_ptr<cacheline_aligned_int64, function<void(cacheline_aligned_int64*)>>;
+using cacheline_aligned_int64_ptr =
+    std::unique_ptr<cacheline_aligned_int64, function<void(cacheline_aligned_int64 *)>>;
 extern cacheline_aligned_int64_ptr new_cacheline_aligned_int64();
 extern cacheline_aligned_int64_ptr new_cacheline_aligned_int64_array(uint32_t size);
 
@@ -98,7 +103,7 @@ protected:
     // NOTE: the destructor is not virtual so that we can ensure that striped64
     // has no vtable, thus reducing its size. We make it protected to ensure that
     // no one attempts to delete a striped64* and invokes the wrong destructor.
-    ~striped64();
+    ~striped64() = default;
 
     enum rehash
     {
@@ -124,10 +129,12 @@ protected:
     // table initialization races. Updated via CAS.
     std::atomic<int64_t> _base{0};
 
+    // Memory manager of cells. Once the destructor is called, cells will be freed.
+    cacheline_aligned_int64_ptr _cells_holder;
+
     // Table of cells. When non-null, size is the nearest power of 2 >= NCPU.
     // If this is set to -1, the pointer is 'locked' and some thread is in the
     // process of allocating the array.
-    cacheline_aligned_int64_ptr _cells_holder;
     std::atomic<cacheline_aligned_int64 *> _cells{nullptr};
 
     static uint64_t get_tls_hashcode();
@@ -171,7 +178,7 @@ class concurrent_long_adder
 {
 public:
     concurrent_long_adder();
-    ~concurrent_long_adder();
+    ~concurrent_long_adder() = default;
 
     void increment_by(int64_t x);
 

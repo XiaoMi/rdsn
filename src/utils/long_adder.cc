@@ -29,7 +29,6 @@
 #include <cstdlib>
 #include <new>
 #include <string>
-#include <type_traits>
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/process_utils.h>
@@ -64,12 +63,8 @@ cacheline_aligned_int64 *const kCellsLocked = reinterpret_cast<cacheline_aligned
 
 /* extern */ cacheline_aligned_int64_ptr new_cacheline_aligned_int64_array(uint32_t size)
 {
-    // Ensure that cacheline_aligned_int64 is a POD.
-    dassert_f(std::is_pod<dsn::cacheline_aligned_int64>::value, "cacheline_aligned_int64 is NOT a POD");
-
     void *buffer = nullptr;
-    int err =
-        posix_memalign(&buffer, CACHELINE_SIZE, sizeof(cacheline_aligned_int64) * size);
+    int err = posix_memalign(&buffer, CACHELINE_SIZE, sizeof(cacheline_aligned_int64) * size);
 
     // Generally there are 2 possible errors for posix_memalign as below:
     // [EINVAL]
@@ -83,16 +78,16 @@ cacheline_aligned_int64 *const kCellsLocked = reinterpret_cast<cacheline_aligned
     for (uint32_t i = 0; i < size; ++i) {
         cacheline_aligned_int64 *elem = &(array[i]);
         dassert_f(
-                (reinterpret_cast<const uintptr_t>(elem) & (sizeof(cacheline_aligned_int64) - 1)) == 0,
-                "unaligned cacheline_aligned_int64: array={}, index={}, elem={}, mask={}",
-                fmt::ptr(array),
-                i,
-                fmt::ptr(elem),
-                sizeof(cacheline_aligned_int64) - 1);
+            (reinterpret_cast<const uintptr_t>(elem) & (sizeof(cacheline_aligned_int64) - 1)) == 0,
+            "unaligned cacheline_aligned_int64: array={}, index={}, elem={}, mask={}",
+            fmt::ptr(array),
+            i,
+            fmt::ptr(elem),
+            sizeof(cacheline_aligned_int64) - 1);
         array[i]._value.store(0);
     }
 
-    return cacheline_aligned_int64_ptr(array, [](cacheline_aligned_int64 *array){free(array);} );
+    return cacheline_aligned_int64_ptr(array, [](cacheline_aligned_int64 *array) { free(array); });
 }
 
 /* extern */ cacheline_aligned_int64_ptr new_cacheline_aligned_int64()
@@ -108,16 +103,13 @@ __thread uint64_t striped64::_tls_hashcode = 0;
 uint64_t striped64::get_tls_hashcode()
 {
     if (dsn_unlikely(_tls_hashcode == 0)) {
-        const uint64_t hash = rand::next_u64();
+        const uint64_t tid = static_cast<uint64_t>(utils::get_current_tid());
         // Avoid zero to allow xorShift rehash, and because 0 indicates an unset
         // hashcode above.
+        const uint64_t hash = (tid == 0) ? rand::next_u64() : tid;
         _tls_hashcode = (hash == 0) ? 1 : hash;
     }
     return _tls_hashcode;
-}
-
-striped64::~striped64()
-{
 }
 
 template <class Updater>
@@ -245,10 +237,10 @@ int64_t striped_long_adder::fetch_and_reset()
 // concurrent_long_adder
 //
 
-concurrent_long_adder::concurrent_long_adder() : _cells_holder(new_cacheline_aligned_int64_array(kNumCells)),
- _cells(_cells_holder.get()) {}
-
-concurrent_long_adder::~concurrent_long_adder() {  }
+concurrent_long_adder::concurrent_long_adder()
+    : _cells_holder(new_cacheline_aligned_int64_array(kNumCells)), _cells(_cells_holder.get())
+{
+}
 
 void concurrent_long_adder::increment_by(int64_t x)
 {
