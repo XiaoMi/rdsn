@@ -578,16 +578,16 @@ TEST_F(bulk_load_service_test, validate_ingest_behind_test)
 TEST_F(bulk_load_service_test, check_ever_ingestion_test)
 {
     create_app(APP_NAME);
-    std::shared_ptr<app_state> app = find_app(APP_NAME);
+    const auto &app = find_app(APP_NAME);
     auto pid = gpid(app->app_id, 0);
     start_bulk_load(APP_NAME);
     mock_meta_bulk_load_context(app->app_id, app->partition_count, bulk_load_status::BLS_INGESTING);
     // Test cases:
-    // 1. ever_ingest_succeed=false
-    // 2. ever_ingest_succeed=true, secondary address same
-    // 3. ever_ingest_succeed=true, secondary address different
-    // 4. ever_ingest_succeed=true, secondary address count is 1
-    // 5. ever_ingest_succeed=true, secondary address count is 3
+    // - ever_ingest_succeed=false
+    // - ever_ingest_succeed=true, secondary address same
+    // - ever_ingest_succeed=true, secondary address different
+    // - ever_ingest_succeed=true, secondary address count is 1
+    // - ever_ingest_succeed=true, secondary address count is 3
     struct ever_ingestion_test
     {
         bool ever_ingest_succeed;

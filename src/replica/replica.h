@@ -592,8 +592,6 @@ private:
     disk_status::type _disk_status{disk_status::NORMAL};
 
     bool _allow_ingest_behind{false};
-
-    const static std::string kAppInfo;
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
 } // namespace replication
