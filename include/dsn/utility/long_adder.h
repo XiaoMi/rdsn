@@ -52,7 +52,7 @@ public:
 } CACHELINE_ALIGNED;
 
 using cacheline_aligned_int64_ptr =
-    std::unique_ptr<cacheline_aligned_int64, function<void(cacheline_aligned_int64 *)>>;
+    std::unique_ptr<cacheline_aligned_int64, std::function<void(cacheline_aligned_int64 *)>>;
 extern cacheline_aligned_int64_ptr new_cacheline_aligned_int64();
 extern cacheline_aligned_int64_ptr new_cacheline_aligned_int64_array(uint32_t size);
 
@@ -222,12 +222,12 @@ public:
     inline void reset() { adder.reset(); }
 
     // Return the value immediately before it's reset.
-    inline int64_t fetch_and_reset() { adder.fetch_and_reset(); }
+    inline int64_t fetch_and_reset() { return adder.fetch_and_reset(); }
 
 private:
     Adder adder;
 
-    DISALLOW_COPY_AND_ASSIGN(long_adder);
+    DISALLOW_COPY_AND_ASSIGN(long_adder_wrapper);
 };
 
 } // namespace dsn

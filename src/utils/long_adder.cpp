@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "striped64.h"
+#include <dsn/utility/long_adder.h>
 
 #ifdef __aarch64__
 #define _mm_free(p) free(p)
@@ -30,6 +30,7 @@
 #include <new>
 #include <string>
 
+#include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/process_utils.h>
 #include <dsn/utility/rand.h>
@@ -72,7 +73,7 @@ cacheline_aligned_int64 *const kCellsLocked = reinterpret_cast<cacheline_aligned
     // [ENOMEM]
     //     There is insufficient memory available with the requested alignment.
     // Thus making an assertion here is enough.
-    dassert_f(err == 0, "error calling posix_memalign: {}", safe_strerror(err).c_str());
+    dassert_f(err == 0, "error calling posix_memalign: {}", utils::safe_strerror(err).c_str());
 
     cacheline_aligned_int64 *array = new (buffer) cacheline_aligned_int64[size];
     for (uint32_t i = 0; i < size; ++i) {
@@ -248,15 +249,6 @@ void concurrent_long_adder::increment_by(int64_t x)
 {
     auto task_id = static_cast<uint32_t>(utils::get_current_tid());
     _cells[task_id & kCellMask]._value.fetch_add(x, std::memory_order_relaxed);
-}
-
-int64_t concurrent_long_adder::value() const
-{
-    int64_t sum = 0;
-    for (uint32_t i = 0; i < kNumCells; ++i) {
-        sum += _cells[i]._value.load(std::memory_order_relaxed);
-    }
-    return sum;
 }
 
 int64_t concurrent_long_adder::value() const
