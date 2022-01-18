@@ -50,30 +50,32 @@ class long_adder_test
 public:
     long_adder_test() = default;
 
-    int64_t
-    run_increment_by(int64_t base_value, int64_t delta, int64_t num_operations, int64_t num_threads)
+    void run_increment_by(int64_t base_value,
+                          int64_t delta,
+                          int64_t num_operations,
+                          int64_t num_threads,
+                          int64_t &result)
     {
         execute(num_threads,
                 [this, delta, num_operations]() { this->increment_by(delta, num_operations); });
-        int64_t expected_value = base_value + delta * num_operations * num_threads;
-        ASSERT_EQ(expected_value, _adder.value());
-        return expected_value;
+        result = base_value + delta * num_operations * num_threads;
+        ASSERT_EQ(result, _adder.value());
     }
 
-    int64_t run_increment(int64_t base_value, int64_t num_operations, int64_t num_threads)
+    void
+    run_increment(int64_t base_value, int64_t num_operations, int64_t num_threads, int64_t &result)
     {
         execute(num_threads, [this, num_operations]() { this->increment(num_operations); });
-        int64_t expected_value = base_value + num_operations * num_threads;
-        ASSERT_EQ(expected_value, _adder.value());
-        return expected_value;
+        result = base_value + num_operations * num_threads;
+        ASSERT_EQ(result, _adder.value());
     }
 
-    int64_t run_decrement(int64_t base_value, int64_t num_operations, int64_t num_threads)
+    void
+    run_decrement(int64_t base_value, int64_t num_operations, int64_t num_threads, int64_t &result)
     {
         execute(num_threads, [this, num_operations]() { this->decrement(num_operations); });
-        int64_t expected_value = base_value + num_operations * num_threads;
-        ASSERT_EQ(expected_value, _adder.value());
-        return expected_value;
+        result = base_value + num_operations * num_threads;
+        ASSERT_EQ(result, _adder.value());
     }
 
     void run_basic_cases(int64_t num_threads)
@@ -93,31 +95,34 @@ public:
                                          std::placeholders::_1,
                                          std::placeholders::_2,
                                          std::placeholders::_3,
-                                         num_threads);
+                                         num_threads,
+                                         std::placeholders::_4);
         auto do_increment = std::bind(&long_adder_test::run_increment,
                                       this,
                                       std::placeholders::_1,
                                       std::placeholders::_2,
-                                      num_threads);
+                                      num_threads,
+                                      std::placeholders::_3);
         auto do_decrement = std::bind(&long_adder_test::run_decrement,
                                       this,
                                       std::placeholders::_1,
                                       std::placeholders::_2,
-                                      num_threads);
+                                      num_threads,
+                                      std::placeholders::_3);
 
         // Test increment_by
-        base_value = do_increment_by(base_value, 1, 1);
-        base_value = do_increment_by(base_value, 100, 1);
-        base_value = do_increment_by(base_value, 10, 10);
-        base_value = do_increment_by(base_value, -10, 10);
-        base_value = do_increment_by(base_value, -100, 1);
-        base_value = do_increment_by(base_value, -1, 1);
+        do_increment_by(base_value, 1, 1, base_value);
+        do_increment_by(base_value, 100, 1, base_value);
+        do_increment_by(base_value, 10, 10, base_value);
+        do_increment_by(base_value, -10, 10, base_value);
+        do_increment_by(base_value, -100, 1, base_value);
+        do_increment_by(base_value, -1, 1, base_value);
         ASSERT_EQ(0, _adder.value());
         ASSERT_EQ(0, base_value);
 
         // Test increment
-        base_value = do_increment(base_value, 1);
-        base_value = do_increment(base_value, 100);
+        do_increment(base_value, 1, base_value);
+        do_increment(base_value, 100, base_value);
 
         // Fetch and reset
         ASSERT_EQ(base_value, _adder.fetch_and_reset());
@@ -125,8 +130,8 @@ public:
         ASSERT_EQ(base_value, _adder.value());
 
         // Test decrement
-        base_value = do_decrement(base_value, 100);
-        base_value = do_decrement(base_value, 1);
+        do_decrement(base_value, 100, base_value);
+        do_decrement(base_value, 1, base_value);
 
         // Reset at last
         _adder.reset();
@@ -145,9 +150,9 @@ public:
 
         // Define runner to time each case
         auto runner = [num_operations, num_threads](
-            const char *name, std::function<int64_t()> func, int64_t &result) {
+            const char *name, std::function<void(int64_t &)> func, int64_t &result) {
             uint64_t start = dsn_now_ns();
-            result = func();
+            func(result);
             uint64_t end = dsn_now_ns();
 
             auto duration_ns = static_cast<int64_t>(end - start);
@@ -163,13 +168,21 @@ public:
         };
 
         // Test increment
-        auto do_increment = std::bind(
-            &long_adder_test::run_increment, this, base_value, num_operations, num_threads);
+        auto do_increment = std::bind(&long_adder_test::run_increment,
+                                      this,
+                                      base_value,
+                                      num_operations,
+                                      num_threads,
+                                      std::placeholders::_1);
         runner("Increment", do_increment, base_value);
 
         // Test decrement
-        auto do_decrement = std::bind(
-            &long_adder_test::run_decrement, this, base_value, num_operations, num_threads);
+        auto do_decrement = std::bind(&long_adder_test::run_decrement,
+                                      this,
+                                      base_value,
+                                      num_operations,
+                                      num_threads,
+                                      std::placeholders::_1);
         runner("Decrement", do_decrement, base_value);
 
         // At last adder should also be zero
