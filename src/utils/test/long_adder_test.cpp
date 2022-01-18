@@ -29,7 +29,6 @@
 #include <dsn/c/api_layer1.h>
 
 namespace dsn {
-namespace utils {
 
 template <typename T>
 struct type_parse_traits;
@@ -54,7 +53,8 @@ public:
     int64_t
     run_increment_by(int64_t base_value, int64_t delta, int64_t num_operations, int64_t num_threads)
     {
-        execute(num_threads, [this]() { this->increment_by(delta, num_operations); });
+        execute(num_threads,
+                [this, delta, num_operations]() { this->increment_by(delta, num_operations); });
         int64_t expected_value = base_value + delta * num_operations * num_threads;
         ASSERT_EQ(expected_value, _adder.value());
         return expected_value;
@@ -62,7 +62,7 @@ public:
 
     int64_t run_increment(int64_t base_value, int64_t num_operations, int64_t num_threads)
     {
-        execute(num_threads, [this]() { this->increment(num_operations); });
+        execute(num_threads, [this, num_operations]() { this->increment(num_operations); });
         int64_t expected_value = base_value + num_operations * num_threads;
         ASSERT_EQ(expected_value, _adder.value());
         return expected_value;
@@ -70,7 +70,7 @@ public:
 
     int64_t run_decrement(int64_t base_value, int64_t num_operations, int64_t num_threads)
     {
-        execute(num_threads, [this]() { this->decrement(num_operations); });
+        execute(num_threads, [this, num_operations]() { this->decrement(num_operations); });
         int64_t expected_value = base_value + num_operations * num_threads;
         ASSERT_EQ(expected_value, _adder.value());
         return expected_value;
@@ -87,17 +87,20 @@ public:
         int64_t base_value = 0;
         ASSERT_EQ(base_value, _adder.value());
 
-        // Do Basic test with custom number of threads
-        auto do_increment_by = std::bind(&long_adder_test::run_increment,
+        // Do basic test with custom number of threads
+        auto do_increment_by = std::bind(&long_adder_test::run_increment_by,
+                                         this,
                                          std::placeholders::_1,
                                          std::placeholders::_2,
                                          std::placeholders::_3,
                                          num_threads);
         auto do_increment = std::bind(&long_adder_test::run_increment,
+                                      this,
                                       std::placeholders::_1,
                                       std::placeholders::_2,
                                       num_threads);
         auto do_decrement = std::bind(&long_adder_test::run_decrement,
+                                      this,
                                       std::placeholders::_1,
                                       std::placeholders::_2,
                                       num_threads);
@@ -141,33 +144,32 @@ public:
         ASSERT_EQ(base_value, _adder.value());
 
         // Define runner to time each case
-        auto runner =
-            [](const char *name, std::function<int64_t()> func, int64_t &result) {
-                uint64_t start = dsn_now_ns();
-                result = func();
-                uint64_t end = dsn_now_ns();
+        auto runner = [num_operations, num_threads](
+            const char *name, std::function<int64_t()> func, int64_t &result) {
+            uint64_t start = dsn_now_ns();
+            result = func();
+            uint64_t end = dsn_now_ns();
 
-                auto duration_ns = static_cast<int64_t>(end - start);
-                std::chrono::nanoseconds nano(duration_ns);
-                auto duration_ms =
-                    std::chrono::duration_cast<std::chrono::milliseconds>(nano).count();
+            auto duration_ns = static_cast<int64_t>(end - start);
+            std::chrono::nanoseconds nano(duration_ns);
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(nano).count();
 
-                fmt::print(stdout,
-                           "{} {} operations with {} threads took {} ms.\n",
-                           name,
-                           num_operations,
-                           num_threads,
-                           duration_ms);
-            }
+            fmt::print(stdout,
+                       "{} {} operations with {} threads took {} ms.\n",
+                       name,
+                       num_operations,
+                       num_threads,
+                       duration_ms);
+        };
 
         // Test increment
-        auto do_increment =
-            std::bind(&long_adder_test::run_increment, base_value, num_operations, num_threads);
+        auto do_increment = std::bind(
+            &long_adder_test::run_increment, this, base_value, num_operations, num_threads);
         runner("Increment", do_increment, base_value);
 
         // Test decrement
-        auto do_decrement =
-            std::bind(&long_adder_test::run_decrement, base_value, num_operations, num_threads);
+        auto do_decrement = std::bind(
+            &long_adder_test::run_decrement, this, base_value, num_operations, num_threads);
         runner("Decrement", do_decrement, base_value);
 
         // At last adder should also be zero
@@ -208,7 +210,7 @@ private:
         }
     }
 
-    Adder _adder;
+    long_adder_wrapper<Adder> _adder;
 };
 
 template <typename Adder>
@@ -248,5 +250,4 @@ TEST(long_adder_test, concurrent_cases)
     run_concurrent_cases<striped_long_adder, concurrent_long_adder>();
 }
 
-} // namespace utils
 } // namespace dsn
