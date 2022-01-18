@@ -164,11 +164,13 @@ void striped64::retry_update(rehash to_rehash, Updater updater)
 void striped64::internal_reset(int64_t initial_value)
 {
     _base.store(initial_value);
+
     cacheline_aligned_int64 *c;
     do {
         c = _cells.load(std::memory_order_acquire);
     } while (c == kCellsLocked);
-    if (c) {
+
+    if (c != nullptr) {
         for (uint32_t i = 0; i < kNumCells; ++i) {
             c[i]._value.store(0);
         }
@@ -180,7 +182,7 @@ void striped_long_adder::increment_by(int64_t x)
     // Use hash table if present. If that fails, call retry_update to rehash and retry.
     // If no hash table, try to CAS the base counter. If that fails, retry_update to init the table.
     cacheline_aligned_int64 *cells = _cells.load(std::memory_order_acquire);
-    if (cells && cells != kCellsLocked) {
+    if (cells != nullptr && cells != kCellsLocked) {
         cacheline_aligned_int64 *cell = &(cells[get_tls_hashcode() & kCellMask]);
         dassert_f(
             (reinterpret_cast<const uintptr_t>(cell) & (sizeof(cacheline_aligned_int64) - 1)) == 0,
