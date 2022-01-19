@@ -153,7 +153,9 @@ private:
 class striped_long_adder : striped64
 {
 public:
-    striped_long_adder() {}
+    striped_long_adder() = default;
+
+    ~striped_long_adder() = default;
 
     void increment_by(int64_t x);
 
@@ -208,7 +210,9 @@ template <typename Adder>
 class long_adder_wrapper
 {
 public:
-    long_adder_wrapper() {}
+    long_adder_wrapper() = default;
+
+    ~long_adder_wrapper() = default;
 
     inline void increment_by(int64_t x) { adder.increment_by(x); }
     inline void increment() { increment_by(1); }
