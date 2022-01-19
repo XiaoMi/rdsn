@@ -52,15 +52,16 @@ private:
     DISALLOW_COPY_AND_ASSIGN(simple_long_adder);
 };
 
-// perf_counter_number_atomic
-// original implementation is virtual
+// A modification of perf_counter_number_atomic from perf_counter.
+// This modification has removed virtual functions from original version, where main interfaces
+// has been implemented as virtual functions, however, which will slow down the execution.
 #define DIVIDE_CONTAINER 107
-class divided_long_adder : public perf_counter
+class divided_long_adder
 {
 public:
     divided_long_adder()
     {
-        for (int i = 0; i < DIVIDE_CONTAINER; i++) {
+        for (int i = 0; i < DIVIDE_CONTAINER; ++i) {
             _value[i].store(0);
         }
     }
@@ -132,7 +133,7 @@ void run_bench(int64_t num_operations, int64_t num_threads, const char *name)
     for (int64_t i = 0; i < num_threads; i++) {
         threads.emplace_back([&adder]() {
             for (int64_t i = 0; i < num_operations; ++i) {
-                _adder.increment();
+                adder.increment();
             }
         });
     }
@@ -176,16 +177,17 @@ int main(int argc, char **argv)
         ::exit(-1);
     }
 
-    if (strcmp(argv[3], "simple_long_adder") == 0) {
-        run_bench<simple_long_adder>(num_operations, num_threads);
-    } else if (strcmp(argv[3], "divided_long_adder") == 0) {
-        run_bench<divided_long_adder>(num_operations, num_threads);
-    } else if (strcmp(argv[3], "striped_long_adder") == 0) {
-        run_bench<dsn::striped_long_adder>(num_operations, num_threads);
-    } else if (strcmp(argv[3], "concurrent_long_adder") == 0) {
-        run_bench<dsn::concurrent_long_adder>(num_operations, num_threads);
+    const char *long_adder_type = argv[3];
+    if (strcmp(long_adder_type, "simple_long_adder") == 0) {
+        run_bench<simple_long_adder>(num_operations, num_threads, long_adder_type);
+    } else if (strcmp(long_adder_type, "divided_long_adder") == 0) {
+        run_bench<divided_long_adder>(num_operations, num_threads, long_adder_type);
+    } else if (strcmp(long_adder_type, "striped_long_adder") == 0) {
+        run_bench<dsn::striped_long_adder>(num_operations, num_threads, long_adder_type);
+    } else if (strcmp(long_adder_type, "concurrent_long_adder") == 0) {
+        run_bench<dsn::concurrent_long_adder>(num_operations, num_threads, long_adder_type);
     } else {
-        fmt::print(stderr, "Invalid long_adder_type: {}\n\n", argv[3]);
+        fmt::print(stderr, "Invalid long_adder_type: {}\n\n", long_adder_type);
 
         print_usage(argv[0]);
         ::exit(-1);

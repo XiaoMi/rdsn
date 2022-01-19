@@ -204,8 +204,8 @@ private:
     DISALLOW_COPY_AND_ASSIGN(concurrent_long_adder);
 };
 
-// Use template to wrap a long_adder implementation rather than inherit from a base class
-// for the reason that virtual function will increase the class size and slow the execution.
+// Use template to wrap a long_adder implementation rather than inherit from a base class for
+// the reason that virtual function will increase the class size and slow down the execution.
 template <typename Adder>
 class long_adder_wrapper
 {
