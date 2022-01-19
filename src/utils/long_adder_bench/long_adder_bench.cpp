@@ -147,11 +147,12 @@ void run_bench(int64_t num_operations, int64_t num_threads, const char *name)
     auto duration_s = std::chrono::duration_cast<std::chrono::duration<double>>(nano).count();
 
     fmt::print(stdout,
-               "Running {} operations of {} with {} threads took {} seconds.\n",
+               "Running {} operations of {} with {} threads took {} seconds, result = {}.\n",
                num_operations,
                name,
                num_threads,
-               duration_s);
+               duration_s,
+               adder.value());
 }
 
 int main(int argc, char **argv)
