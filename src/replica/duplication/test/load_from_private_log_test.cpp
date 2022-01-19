@@ -104,7 +104,7 @@ public:
         int decree_start = 10;
         {
             DSN_DECLARE_bool(plog_force_flush);
-            auto resreved_plog_force_flush = FLAGS_plog_force_flush;
+            auto reserved_plog_force_flush = FLAGS_plog_force_flush;
             FLAGS_plog_force_flush = true;
             for (int i = decree_start; i <= num_entries + decree_start; i++) {
                 std::string msg = "hello!";
@@ -120,7 +120,7 @@ public:
             // commit the last entry
             mutation_ptr mu = create_test_mutation(decree_start + num_entries + 1, "hello!");
             mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
-            FLAGS_plog_force_flush = resreved_plog_force_flush;
+            FLAGS_plog_force_flush = reserved_plog_force_flush;
 
             mlog->close();
         }
