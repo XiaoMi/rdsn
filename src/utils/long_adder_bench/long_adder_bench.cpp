@@ -131,7 +131,7 @@ void run_bench(int64_t num_operations, int64_t num_threads, const char *name)
 
     uint64_t start = dsn_now_ns();
     for (int64_t i = 0; i < num_threads; i++) {
-        threads.emplace_back([&adder]() {
+        threads.emplace_back([num_operations, &adder]() {
             for (int64_t i = 0; i < num_operations; ++i) {
                 adder.increment();
             }
