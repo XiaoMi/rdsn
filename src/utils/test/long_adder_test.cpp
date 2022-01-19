@@ -74,7 +74,7 @@ public:
     run_decrement(int64_t base_value, int64_t num_operations, int64_t num_threads, int64_t &result)
     {
         execute(num_threads, [this, num_operations]() { this->decrement(num_operations); });
-        result = base_value + num_operations * num_threads;
+        result = base_value - num_operations * num_threads;
         ASSERT_EQ(result, _adder.value());
     }
 

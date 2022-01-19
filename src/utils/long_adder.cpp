@@ -225,7 +225,7 @@ int64_t striped_long_adder::value() const
 
 int64_t striped_long_adder::fetch_and_reset()
 {
-    int64_t sum = _base.load(std::memory_order_relaxed);
+    int64_t sum = _base.exchange(0, std::memory_order_relaxed);
 
     cacheline_aligned_int64 *c = _cells.load(std::memory_order_acquire);
     if (c != nullptr && c != kCellsLocked) {
