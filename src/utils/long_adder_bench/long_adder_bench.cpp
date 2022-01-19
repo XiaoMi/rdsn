@@ -116,8 +116,9 @@ void print_usage(const char *cmd)
         stderr,
         "    <num_operations>       the number of increment operations executed by each thread\n");
     fmt::print(stderr, "    <num_threads>          the number of threads\n");
-    fmt::print(stderr, "    <long_adder_type>      the type of long adder: simple_long_adder, "
-                       "divided_long_adder, striped_long_adder, concurrent_long_adder\n");
+    fmt::print(stderr,
+               "    <long_adder_type>      the type of long adder: simple_long_adder, "
+               "divided_long_adder, striped_long_adder, concurrent_long_adder\n");
 }
 
 template <typename Adder>

@@ -155,7 +155,8 @@ public:
 
             auto duration_ns = static_cast<int64_t>(end - start);
             std::chrono::nanoseconds nano(duration_ns);
-            auto duration_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(nano).count();
+            auto duration_ms =
+                std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(nano).count();
 
             fmt::print(stdout,
                        "Running {} operations of {} with {} threads took {} ms.\n",
