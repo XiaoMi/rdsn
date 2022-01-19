@@ -14,4 +14,5 @@ set(MY_BINPLACES "")
 
 dsn_add_shared_library()
 
+add_subdirectory(long_adder_bench)
 add_subdirectory(test)
