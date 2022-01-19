@@ -228,7 +228,7 @@ public:
         return bulk_svc().get_app_bulk_load_status_unlocked(app_id);
     }
 
-    partition_bulk_load_info get_partition_bulk_load_info(const gpid &pid)
+    const partition_bulk_load_info &get_partition_bulk_load_info(const gpid &pid)
     {
         return bulk_svc()._partition_bulk_load_info[pid];
     }
