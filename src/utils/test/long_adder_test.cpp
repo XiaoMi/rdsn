@@ -231,7 +231,7 @@ void run_basic_cases()
 {
     long_adder_test<Adder> test;
     test.run_basic_cases(1);
-    test.run_basic_cases(2);
+    test.run_basic_cases(4);
 }
 
 template <typename Adder0, typename Adder1, typename... Others>
