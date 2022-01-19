@@ -27,20 +27,20 @@ namespace utils {
 
 #define ADD_POINT(tracer)                                                                          \
     do {                                                                                           \
-        if ((tracer))                                                                              \
+        if ((tracer) && (tracer)->enable_trace())                                               \
             (tracer)->add_point(fmt::format("{}:{}:{}", __FILENAME__, __LINE__, __FUNCTION__));    \
     } while (0)
 
 #define ADD_CUSTOM_POINT(tracer, message)                                                          \
     do {                                                                                           \
-        if ((tracer))                                                                              \
+        if ((tracer) && (tracer)->enable_trace())                                               \
             (tracer)->add_point(                                                                   \
                 fmt::format("{}:{}:{}_{}", __FILENAME__, __LINE__, __FUNCTION__, (message)));      \
     } while (0)
 
 #define APPEND_EXTERN_POINT(tracer, ts, message)                                                   \
     do {                                                                                           \
-        if ((tracer))                                                                              \
+        if ((tracer) && (tracer)->enable_trace())                                               \
             (tracer)->append_point(                                                                \
                 fmt::format("{}:{}:{}_{}", __FILENAME__, __LINE__, __FUNCTION__, (message)),       \
                 (ts));                                                                             \
@@ -153,6 +153,8 @@ public:
     uint64_t start_time() const { return _start_time; }
 
     uint64_t last_time() const { return _last_time; }
+
+    bool enable_trace() const { return _enable_trace; }
 
     const std::string &last_stage_name() const { return _last_stage; }
 
