@@ -15,11 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include <dsn/utility/long_adder.h>
-
 #include <chrono>
 #include <functional>
-#include <iostream>
 #include <thread>
 #include <vector>
 
@@ -27,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include <dsn/c/api_layer1.h>
+#include <dsn/utility/long_adder.h>
 
 namespace dsn {
 
