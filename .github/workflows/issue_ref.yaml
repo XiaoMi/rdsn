@@ -34,5 +34,5 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ticketPrefix: '#'
-          titleFormat: %title%
+          titleFormat: '%title%'
           bodyURLRegex: 'http(s?):\/\/(github.com)(\/apache)(\/incubator-pegasus)(\/issues)\/\d+'
