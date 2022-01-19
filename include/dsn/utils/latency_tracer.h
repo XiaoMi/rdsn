@@ -46,6 +46,7 @@ namespace utils {
                 (ts));                                                                             \
     } while (0)
 
+
 /**
  * latency_tracer is a tool for tracking the time spent in each of the stages during request
  * execution. It can help users to figure out where the latency bottleneck is located. User needs to
