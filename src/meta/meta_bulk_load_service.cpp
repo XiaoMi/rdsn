@@ -951,19 +951,9 @@ void bulk_load_service::update_partition_info_on_remote_storage(const std::strin
     }
 
     _partitions_pending_sync_flag[pid] = true;
-    if (pinfo.status == bulk_load_status::BLS_INGESTING &&
-        new_status == bulk_load_status::BLS_SUCCEED &&
-        _partitions_bulk_load_state.find(pid) != _partitions_bulk_load_state.end()) {
-        pinfo.addresses.clear();
-        const auto state = _partitions_bulk_load_state[pid];
-        for (const auto &kv : state) {
-            pinfo.addresses.emplace_back(kv.first);
-        }
-        pinfo.ever_ingest_succeed = true;
-    }
-    pinfo.status = new_status;
-    blob value = json::json_forwarder<partition_bulk_load_info>::encode(pinfo);
+    update_partition_info(pid, new_status, pinfo);
 
+    blob value = json::json_forwarder<partition_bulk_load_info>::encode(pinfo);
     _meta_svc->get_meta_storage()->set_data(
         get_partition_bulk_load_path(pid),
         std::move(value),
@@ -973,6 +963,27 @@ void bulk_load_service::update_partition_info_on_remote_storage(const std::strin
                   pid,
                   pinfo,
                   should_send_request));
+}
+
+// ThreadPool: THREAD_POOL_META_STATE
+void bulk_load_service::update_partition_info(const gpid &pid,
+                                              bulk_load_status::type new_status,
+                                              /*out*/ partition_bulk_load_info &pinfo)
+{
+    auto old_status = pinfo.status;
+    pinfo.status = new_status;
+    if (old_status != bulk_load_status::BLS_INGESTING ||
+        new_status != bulk_load_status::BLS_SUCCEED ||
+        _partitions_bulk_load_state.find(pid) == _partitions_bulk_load_state.end()) {
+        // no need to update other field of partition_bulk_load_info
+        return;
+    }
+    pinfo.addresses.clear();
+    const auto state = _partitions_bulk_load_state[pid];
+    for (const auto &kv : state) {
+        pinfo.addresses.emplace_back(kv.first);
+    }
+    pinfo.ever_ingest_succeed = true;
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
