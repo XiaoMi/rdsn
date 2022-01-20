@@ -236,7 +236,7 @@ private:
                                                      const gpid &pid,
                                                      const bulk_load_metadata &metadata);
 
-    // update partition_bulk_load_info on remote storage
+    // update partition bulk load info on remote storage
     // if should_send_request = true, will send bulk load request after update local partition
     // status, this parameter will be true when restarting bulk load, status will turn from paused
     // to downloading
