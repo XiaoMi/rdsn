@@ -75,6 +75,6 @@
 #elif defined __APPLE__
 
 // BIG_ENDIAN
-#include <machine/endian.h>  // NOLINT(build/include)
+#include <machine/endian.h> // NOLINT(build/include)
 
 #endif
