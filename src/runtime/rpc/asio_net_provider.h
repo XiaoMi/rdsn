@@ -53,7 +53,6 @@ private:
 
     std::shared_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
     int _next_io_context = 0;
-    int _service_count;
     typedef std::shared_ptr<boost::asio::io_context> io_context_ptr;
     std::vector<io_context_ptr> _io_services;
     std::vector<std::shared_ptr<std::thread>> _workers;

@@ -29,21 +29,22 @@
 
 #include "asio_net_provider.h"
 #include "asio_rpc_session.h"
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace tools {
+
+DSN_DEFINE_uint32("network",
+                  io_service_worker_count,
+                  1,
+                  "thread number for io service (timer and boost network)");
 
 asio_network_provider::asio_network_provider(rpc_engine *srv, network *inner_provider)
     : connection_oriented_network(srv, inner_provider)
 {
     _acceptor = nullptr;
-    _service_count =
-        (int)dsn_config_get_value_uint64("network",
-                                         "io_service_worker_count",
-                                         1,
-                                         "thread number for io service (timer and boost network)");
 
-    for (std::size_t i = 0; i < _service_count; i++) {
+    for (auto i = 0; i < FLAGS_io_service_worker_count; i++) {
         io_context_ptr io_context(new boost::asio::io_context(1));
         _io_services.push_back(io_context);
     }
@@ -72,7 +73,7 @@ error_code asio_network_provider::start(rpc_channel channel, int port, bool clie
     _cfg_conn_threshold_per_ip = (uint32_t)dsn_config_get_value_uint64(
         "network", "conn_threshold_per_ip", 0, "max connection count to each server per ip");
 
-    for (int i = 0; i < _service_count; i++) {
+    for (int i = 0; i < FLAGS_io_service_worker_count; i++) {
         _workers.push_back(std::make_shared<std::thread>([this, i]() {
             task::set_tls_dsn_context(node(), nullptr);
 
@@ -406,12 +407,12 @@ boost::asio::io_context &asio_network_provider::get_io_context()
 {
     // Use a round-robin scheme to choose the next io_context to use.
     int tmp = _next_io_context;
-    if (tmp >= _service_count) {
+    if (tmp >= FLAGS_io_service_worker_count) {
         tmp = 0;
     }
     boost::asio::io_context &io_context = *_io_services[tmp];
     ++_next_io_context;
-    if (_next_io_context >= _service_count) {
+    if (_next_io_context >= FLAGS_io_service_worker_count) {
         _next_io_context = 0;
     }
     return io_context;
