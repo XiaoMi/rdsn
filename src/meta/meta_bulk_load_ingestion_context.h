@@ -23,7 +23,7 @@
 namespace dsn {
 namespace replication {
 
-DSN_DECLARE_uint32(bulk_load_max_ingestion_concurrent_count);
+DSN_DECLARE_uint32(bulk_load_node_max_ingesting_count);
 DSN_DECLARE_uint32(bulk_load_node_min_disk_count);
 
 class ingestion_context
@@ -81,7 +81,10 @@ private:
     friend class bulk_load_service;
     friend class node_context_test;
     friend class ingestion_context_test;
+
+    // ingesting partitions
     std::unordered_map<gpid, partition_node_info> _running_partitions;
+    // every node and every disk ingesting partition count
     std::unordered_map<rpc_address, node_context> _nodes_context;
 };
 

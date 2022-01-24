@@ -24,10 +24,10 @@ namespace dsn {
 namespace replication {
 
 DSN_DEFINE_uint32("meta_server",
-                  bulk_load_max_ingestion_concurrent_count,
+                  bulk_load_node_max_ingesting_count,
                   4,
                   "max partition_count executing ingestion for one node at the same time");
-DSN_TAG_VARIABLE(bulk_load_max_ingestion_concurrent_count, FT_MUTABLE);
+DSN_TAG_VARIABLE(bulk_load_node_max_ingesting_count, FT_MUTABLE);
 
 DSN_DEFINE_uint32("meta_server", bulk_load_node_min_disk_count, 1, "min disk count of one node");
 DSN_TAG_VARIABLE(bulk_load_node_min_disk_count, FT_MUTABLE);
@@ -83,7 +83,7 @@ ingestion_context::node_context::get_max_disk_count(const int32_t max_node_inges
 
 bool ingestion_context::node_context::try_add(const std::string &disk_tag)
 {
-    auto max_node_ingestion_count = FLAGS_bulk_load_max_ingestion_concurrent_count;
+    auto max_node_ingestion_count = FLAGS_bulk_load_node_max_ingesting_count;
     if (count >= max_node_ingestion_count) {
         dwarn_f("node[{}] has {} partition executing ingestion, max_count = {}",
                 address.to_string(),

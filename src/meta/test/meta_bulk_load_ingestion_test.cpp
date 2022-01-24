@@ -34,7 +34,7 @@ public:
     {
         _context = ingestion_context::node_context();
         _context.address = NODE;
-        FLAGS_bulk_load_max_ingestion_concurrent_count = 1;
+        FLAGS_bulk_load_node_max_ingesting_count = 1;
         FLAGS_bulk_load_node_min_disk_count = 1;
     }
 
@@ -140,7 +140,7 @@ TEST_F(node_context_test, try_add_test)
         bool expected_result;
     } tests[] = {{1, 1, "1", 1, false}, {3, 2, "2", 2, false}, {1, 0, "7", 0, true}};
     for (const auto &test : tests) {
-        FLAGS_bulk_load_max_ingestion_concurrent_count = test.max_node_count;
+        FLAGS_bulk_load_node_max_ingesting_count = test.max_node_count;
         mock_context(TAG, test.current_disk_count, test.current_node_count);
         auto str = "return(" + test.max_disk_count_str + ")";
         fail::cfg("ingestion_node_context_disk_count", str);
@@ -163,14 +163,14 @@ public:
         _context = make_unique<ingestion_context>();
         mock_app();
         FLAGS_bulk_load_node_min_disk_count = MIN_DISK_COUNT;
-        FLAGS_bulk_load_max_ingestion_concurrent_count = MAX_NODE_COUNT;
+        FLAGS_bulk_load_node_max_ingesting_count = MAX_NODE_COUNT;
     }
 
     void TearDown() { _context->reset_all(); }
 
     void update_max_node_count(const int32_t max_node_count)
     {
-        FLAGS_bulk_load_max_ingestion_concurrent_count = max_node_count;
+        FLAGS_bulk_load_node_max_ingesting_count = max_node_count;
     }
 
     bool check_node_ingestion(const int32_t max_node_count,
