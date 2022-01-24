@@ -951,7 +951,7 @@ void bulk_load_service::update_partition_info_on_remote_storage(const std::strin
     }
 
     _partitions_pending_sync_flag[pid] = true;
-    update_partition_info(pid, new_status, pinfo);
+    update_partition_info_unlock(pid, new_status, pinfo);
 
     blob value = json::json_forwarder<partition_bulk_load_info>::encode(pinfo);
     _meta_svc->get_meta_storage()->set_data(
@@ -966,9 +966,9 @@ void bulk_load_service::update_partition_info_on_remote_storage(const std::strin
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void bulk_load_service::update_partition_info(const gpid &pid,
-                                              bulk_load_status::type new_status,
-                                              /*out*/ partition_bulk_load_info &pinfo)
+void bulk_load_service::update_partition_info_unlock(const gpid &pid,
+                                                     bulk_load_status::type new_status,
+                                                     /*out*/ partition_bulk_load_info &pinfo)
 {
     auto old_status = pinfo.status;
     pinfo.status = new_status;
@@ -979,7 +979,7 @@ void bulk_load_service::update_partition_info(const gpid &pid,
         return;
     }
     pinfo.addresses.clear();
-    const auto state = _partitions_bulk_load_state[pid];
+    const auto &state = _partitions_bulk_load_state[pid];
     for (const auto &kv : state) {
         pinfo.addresses.emplace_back(kv.first);
     }

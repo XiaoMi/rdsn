@@ -245,9 +245,9 @@ private:
                                                  bulk_load_status::type new_status,
                                                  bool should_send_request = false);
 
-    void update_partition_info(const gpid &pid,
-                               bulk_load_status::type new_status,
-                               /*out*/ partition_bulk_load_info &pinfo);
+    void update_partition_info_unlock(const gpid &pid,
+                                      bulk_load_status::type new_status,
+                                      /*out*/ partition_bulk_load_info &pinfo);
 
     void update_partition_info_on_remote_storage_reply(const std::string &app_name,
                                                        const gpid &pid,
