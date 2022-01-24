@@ -82,7 +82,6 @@ void asio_rpc_session::do_read(int read_next)
     void *ptr = _reader.read_buffer_ptr(read_next);
     int remaining = _reader.read_buffer_capacity();
 
-
     _socket->async_read_some(
         boost::asio::buffer(ptr, remaining),
         [this](boost::system::error_code ec, std::size_t length) {
@@ -139,7 +138,7 @@ void asio_rpc_session::send(uint64_t signature)
     }
 
     add_ref();
-    
+
     boost::asio::async_write(
         *_socket, asio_wbufs, [this, signature](boost::system::error_code ec, std::size_t length) {
             if (ec) {

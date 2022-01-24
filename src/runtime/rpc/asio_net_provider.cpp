@@ -401,5 +401,21 @@ error_code asio_udp_provider::start(rpc_channel channel, int port, bool client_o
 
     return ERR_OK;
 }
+
+boost::asio::io_context &asio_network_provider::get_io_context()
+{
+    // Use a round-robin scheme to choose the next io_context to use.
+    int tmp = _next_io_context;
+    if (tmp >= _service_count) {
+        tmp = 0;
+    }
+    boost::asio::io_context &io_context = *_io_services[tmp];
+    ++_next_io_context;
+    if (_next_io_context >= _service_count) {
+        _next_io_context = 0;
+    }
+    return io_context;
+}
+
 } // namespace tools
 } // namespace dsn
