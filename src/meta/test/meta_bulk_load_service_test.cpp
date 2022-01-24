@@ -167,8 +167,9 @@ public:
                                       bool ever_ingest_succeed,
                                       bool use_secondary3 = false)
     {
-        partition_bulk_load_info pinfo;
+        partition_bulk_load_info &pinfo = bulk_svc()._partition_bulk_load_info[pid];
         pinfo.status = bulk_load_status::BLS_INGESTING;
+        pinfo.addresses.clear();
         pinfo.addresses.emplace_back(PRIMARY);
         pinfo.addresses.emplace_back(SECONDARY1);
         if (use_secondary3) {
@@ -177,7 +178,6 @@ public:
             pinfo.addresses.emplace_back(SECONDARY2);
         }
         pinfo.ever_ingest_succeed = ever_ingest_succeed;
-        bulk_svc()._partition_bulk_load_info[pid] = pinfo;
     }
 
     bool test_check_ever_ingestion(const gpid &pid,
