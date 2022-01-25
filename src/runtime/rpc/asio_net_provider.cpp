@@ -45,6 +45,8 @@ asio_network_provider::asio_network_provider(rpc_engine *srv, network *inner_pro
     _acceptor = nullptr;
 
     for (auto i = 0; i < FLAGS_io_service_worker_count; i++) {
+        // Using thread-local operation queues in single-threaded use cases (i.e. when
+        // concurrency_hint is 1) to eliminate a lock/unlock pair.
         io_service_ptr io_service(new boost::asio::io_service(1));
         _io_services.push_back(io_service);
     }
