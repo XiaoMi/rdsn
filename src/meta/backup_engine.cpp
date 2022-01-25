@@ -237,32 +237,23 @@ void backup_engine::on_backup_reply(const error_code err,
     // if backup failed, receive ERR_LOCAL_APP_FAILURE;
     // backup not completed in other cases.
     // see replica::on_cold_backup() for details.
-    if (err != ERR_OK) {
-        derror_f("backup_id({}): send backup request to server {} failed, rpc error: {}, retry to "
-                 "send backup request.",
-                 _cur_backup.backup_id,
-                 primary.to_string(),
-                 err.to_string());
 
-        retry_backup(pid);
-        return;
-    };
+    auto rep_error = err == ERR_OK ? response.err : err;
 
-    if (response.err == ERR_LOCAL_APP_FAILURE) {
+    if (rep_error == ERR_LOCAL_APP_FAILURE) {
         handle_replica_backup_failed(response, pid);
         return;
     }
 
-    if (response.err != ERR_OK) {
-        derror_f("backup_id({}): replica {} backup failed, response.err: {} , retry to send backup "
-                 "request.",
+    if (rep_error != ERR_OK) {
+        derror_f("backup_id({}): backup request to server {} failed, rpc error: {}, retry to "
+                 "send backup request.",
                  _cur_backup.backup_id,
                  primary.to_string(),
-                 response.err.to_string());
-
+                 rep_error.to_string());
         retry_backup(pid);
         return;
-    }
+    };
 
     if (response.progress == cold_backup_constant::PROGRESS_FINISHED) {
         dcheck_eq(response.pid, pid);
