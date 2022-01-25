@@ -408,11 +408,19 @@ error_code asio_udp_provider::start(rpc_channel channel, int port, bool client_o
 
 boost::asio::io_service &asio_network_provider::get_io_service()
 {
-    // Use a round-robin scheme to choose the next io_service to use.
+    // use a round-robin scheme to choose the next io_service to use.
+
+    // Q: Why not return *_io_services[tmp++ % FLAGS_io_service_worker_count]?
+    // A: % operation is slow
     int tmp = _next_io_service;
     if (tmp >= FLAGS_io_service_worker_count) {
         tmp = 0;
     }
+
+    // Q: why not return *_io_services[_next_io_service]
+    // A: this function may be executed by multi threads, so it should get snapshot of
+    // `_next_io_service`. Otherwise, after other threads change the value of `_next_io_service`,
+    // `_io_services` may take `out_of_range` exception.
     boost::asio::io_service &io_service = *_io_services[tmp];
     ++_next_io_service;
     if (_next_io_service >= FLAGS_io_service_worker_count) {
