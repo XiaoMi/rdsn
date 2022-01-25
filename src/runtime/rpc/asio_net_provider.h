@@ -75,8 +75,8 @@ private:
     friend class asio_network_provider_test;
 
     std::shared_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
-    int _next_io_service = 0;
-    std::vector<boost::asio::io_service *> _io_services;
+    std::atomic<int> _next_io_service;
+    std::vector<std::unique_ptr<boost::asio::io_service>> _io_services;
     std::vector<std::shared_ptr<std::thread>> _workers;
     ::dsn::rpc_address _address;
 };
