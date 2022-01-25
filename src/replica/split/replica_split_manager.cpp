@@ -16,6 +16,7 @@
 // under the License.
 
 #include "replica_split_manager.h"
+#include "common/partition_split_common.h"
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -295,13 +296,11 @@ void replica_split_manager::child_copy_prepare_list(
 
     // copy parent prepare list
     plist->set_committer(std::bind(&replica::execute_mutation, _replica, std::placeholders::_1));
-    delete _replica->_prepare_list;
-    _replica->_prepare_list = new prepare_list(this, *plist);
+    _replica->_prepare_list.reset(new prepare_list(this, *plist));
     for (decree d = last_committed_decree + 1; d <= _replica->_prepare_list->max_decree(); ++d) {
         mutation_ptr mu = _replica->_prepare_list->get_mutation_by_decree(d);
         dassert_replica(mu != nullptr, "can not find mutation, dercee={}", d);
         mu->data.header.pid = get_gpid();
-        _stub->_log->append(mu, LPC_WRITE_REPLICATION_LOG_COMMON, tracker(), nullptr);
         _replica->_private_log->append(mu, LPC_WRITE_REPLICATION_LOG_COMMON, tracker(), nullptr);
         // set mutation has been logged in private log
         if (!mu->is_logged()) {
@@ -790,12 +789,10 @@ void replica_split_manager::update_local_partition_count(
     auto old_partition_count = info.partition_count;
     info.partition_count = new_partition_count;
 
-    replica_app_info new_info((app_info *)&info);
-    std::string info_path = utils::filesystem::path_combine(_replica->_dir, ".app-info");
-    auto err = new_info.store(info_path.c_str());
+    const auto err = _replica->store_app_info(info);
     if (err != ERR_OK) {
         info.partition_count = old_partition_count;
-        dassert_replica(false, "failed to save app_info to {}, error = {}", info_path, err);
+        dassert_replica(false, "failed to save app_info, error = {}", err);
         return;
     }
 
@@ -1280,20 +1277,18 @@ void replica_split_manager::on_copy_mutation(mutation_ptr &mu) // on child parti
         if (!mu->is_logged()) {
             mu->set_logged();
         }
-        mu->log_task() = _stub->_log->append(
+        mu->log_task() = _replica->_private_log->append(
             mu, LPC_WRITE_REPLICATION_LOG, tracker(), nullptr, get_gpid().thread_hash());
-        _replica->_private_log->append(
-            mu, LPC_WRITE_REPLICATION_LOG_COMMON, tracker(), nullptr, get_gpid().thread_hash());
     } else { // child sync copy mutation
-        mu->log_task() = _stub->_log->append(mu,
-                                             LPC_WRITE_REPLICATION_LOG,
-                                             tracker(),
-                                             std::bind(&replica::on_append_log_completed,
-                                                       _replica,
-                                                       mu,
-                                                       std::placeholders::_1,
-                                                       std::placeholders::_2),
-                                             get_gpid().thread_hash());
+        mu->log_task() = _replica->_private_log->append(mu,
+                                                        LPC_WRITE_REPLICATION_LOG,
+                                                        tracker(),
+                                                        std::bind(&replica::on_append_log_completed,
+                                                                  _replica,
+                                                                  mu,
+                                                                  std::placeholders::_1,
+                                                                  std::placeholders::_2),
+                                                        get_gpid().thread_hash());
     }
 }
 

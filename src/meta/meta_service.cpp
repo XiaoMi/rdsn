@@ -33,7 +33,7 @@
 #include <dsn/utility/extensible_object.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/dist/meta_state_service.h>
-#include <dsn/dist/replication/duplication_common.h>
+#include <dsn/dist/common.h>
 #include <dsn/dist/remote_command.h>
 #include <dsn/tool-api/command_manager.h>
 #include <algorithm> // for std::remove_if
@@ -540,6 +540,9 @@ void meta_service::register_rpc_handlers()
         RPC_CM_START_BACKUP_APP, "start_backup_app", &meta_service::on_start_backup_app);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_QUERY_BACKUP_STATUS, "query_backup_status", &meta_service::on_query_backup_status);
+    register_rpc_handler_with_rpc_holder(RPC_CM_START_MANUAL_COMPACT,
+                                         "start_manual_compact",
+                                         &meta_service::on_start_manual_compact);
     register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_MANUAL_COMPACT_STATUS,
                                          "query_manual_compact_status",
                                          &meta_service::on_query_manual_compact_status);
@@ -1220,6 +1223,16 @@ size_t meta_service::get_alive_node_count() const
 {
     zauto_lock l(_failure_detector->_lock);
     return _alive_set.size();
+}
+
+void meta_service::on_start_manual_compact(start_manual_compact_rpc rpc)
+{
+    if (!check_status(rpc)) {
+        return;
+    }
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     nullptr,
+                     std::bind(&server_state::on_start_manual_compact, _state.get(), rpc));
 }
 
 void meta_service::on_query_manual_compact_status(query_manual_compact_rpc rpc)

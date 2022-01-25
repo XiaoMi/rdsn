@@ -187,7 +187,8 @@ public:
     error_with<start_bulk_load_response> start_bulk_load(const std::string &app_name,
                                                          const std::string &cluster_name,
                                                          const std::string &file_provider_type,
-                                                         const std::string &remote_root_path);
+                                                         const std::string &remote_root_path,
+                                                         bool ingest_behind = false);
 
     error_with<control_bulk_load_response>
     control_bulk_load(const std::string &app_name, const bulk_load_control_type::type control_type);
@@ -217,6 +218,12 @@ public:
 
     error_with<add_new_disk_response> add_new_disk(const rpc_address &target_node,
                                                    const std::string &disk_str);
+
+    error_with<start_app_manual_compact_response>
+    start_app_manual_compact(const std::string &app_name,
+                             bool bottommost = false,
+                             const int32_t level = -1,
+                             const int32_t max_count = 0);
 
     error_with<query_app_manual_compact_response>
     query_app_manual_compact(const std::string &app_name);

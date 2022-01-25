@@ -271,7 +271,8 @@ error_code replica_bulk_loader::do_bulk_load(const std::string &app_name,
         }
         break;
     case bulk_load_status::BLS_SUCCEED:
-        if (local_status == bulk_load_status::BLS_INGESTING) {
+        if (local_status == bulk_load_status::BLS_DOWNLOADED ||
+            local_status == bulk_load_status::BLS_INGESTING) {
             handle_bulk_load_succeed();
         } else if (local_status == bulk_load_status::BLS_SUCCEED ||
                    local_status == bulk_load_status::BLS_INVALID) {
@@ -303,8 +304,7 @@ replica_bulk_loader::validate_status(const bulk_load_status::type meta_status,
     case bulk_load_status::BLS_DOWNLOADING:
         if (local_status == bulk_load_status::BLS_FAILED ||
             local_status == bulk_load_status::BLS_PAUSING ||
-            local_status == bulk_load_status::BLS_CANCELED ||
-            local_status == bulk_load_status::BLS_SUCCEED) {
+            local_status == bulk_load_status::BLS_CANCELED) {
             err = ERR_INVALID_STATE;
         }
         break;
@@ -320,7 +320,8 @@ replica_bulk_loader::validate_status(const bulk_load_status::type meta_status,
         }
         break;
     case bulk_load_status::BLS_SUCCEED:
-        if (local_status != bulk_load_status::BLS_INGESTING &&
+        if (local_status != bulk_load_status::BLS_DOWNLOADED &&
+            local_status != bulk_load_status::BLS_INGESTING &&
             local_status != bulk_load_status::BLS_SUCCEED &&
             local_status != bulk_load_status::BLS_INVALID) {
             err = ERR_INVALID_STATE;

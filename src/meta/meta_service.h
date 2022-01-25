@@ -42,6 +42,9 @@
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 
 #include "common/replication_common.h"
+#include "common/bulk_load_common.h"
+#include "common/partition_split_common.h"
+#include "common/manual_compact.h"
 #include "meta_rpc_types.h"
 #include "meta_options.h"
 #include "meta_backup_service.h"
@@ -230,6 +233,7 @@ private:
     void on_query_bulk_load_status(query_bulk_load_rpc rpc);
 
     // manual compaction
+    void on_start_manual_compact(start_manual_compact_rpc rpc);
     void on_query_manual_compact_status(query_manual_compact_rpc rpc);
 
     // common routines
