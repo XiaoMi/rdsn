@@ -51,20 +51,20 @@ private:
     {
         rpc_address address;
         // node ingesting partition count
-        int32_t count;
+        int32_t node_count;
         // disk tag -> ingesting partition count
         std::map<std::string, int32_t> disk_count;
 
-        node_context() : count(0) {}
+        node_context() : node_count(0) {}
         node_context(const rpc_address &address, const std::string &disk_tag)
-            : address(address), count(0)
+            : address(address), node_count(0)
         {
             init_disk(disk_tag);
         }
 
         void init_disk(const std::string &disk_tag);
-        int32_t get_max_disk_count(const int32_t max_node_ingestion_count) const;
-        bool try_add(const std::string &disk_tag);
+        int32_t get_max_disk_ingestion_count(const int32_t max_node_ingestion_count) const;
+        bool check_if_add(const std::string &disk_tag);
         void add(const std::string &disk_tag);
         void decrease(const std::string &disk_tag);
     };

@@ -41,14 +41,14 @@ public:
     void TearDown()
     {
         _context.disk_count.clear();
-        _context.count = 0;
+        _context.node_count = 0;
     }
 
     void mock_context(const std::string &disk_tag,
                       const int32_t disk_count = 0,
                       const int32_t total_count = 0)
     {
-        _context.count = total_count;
+        _context.node_count = total_count;
         _context.disk_count[disk_tag] = disk_count;
     }
 
@@ -62,8 +62,8 @@ public:
         return _context.disk_count[disk_tag];
     }
 
-    void mock_get_max_disk_count(const int32_t node_min_disk_count,
-                                 const int32_t current_disk_count)
+    void mock_get_max_disk_ingestion_count(const int32_t node_min_disk_count,
+                                           const int32_t current_disk_count)
     {
         FLAGS_bulk_load_node_min_disk_count = node_min_disk_count;
         _context.disk_count.clear();
@@ -72,12 +72,12 @@ public:
         }
     }
 
-    int32_t get_max_disk_count(const int32_t max_node_count) const
+    int32_t get_max_disk_ingestion_count(const int32_t max_node_count) const
     {
-        return _context.get_max_disk_count(max_node_count);
+        return _context.get_max_disk_ingestion_count(max_node_count);
     }
 
-    bool try_add() { return _context.try_add(TAG); }
+    bool check_if_add() { return _context.check_if_add(TAG); }
 
 public:
     ingestion_context::node_context _context;
@@ -100,9 +100,9 @@ TEST_F(node_context_test, init_disk_test)
     }
 }
 
-TEST_F(node_context_test, get_max_disk_count_test)
+TEST_F(node_context_test, get_max_disk_ingestion_count_test)
 {
-    struct get_max_disk_count_test
+    struct get_max_disk_ingestion_count_test
     {
         int32_t max_node_count;
         int32_t min_disk_count;
@@ -123,15 +123,15 @@ TEST_F(node_context_test, get_max_disk_count_test)
                  {8, 7, 8, 1},
                  {8, 7, 11, 1}};
     for (const auto &test : tests) {
-        mock_get_max_disk_count(test.min_disk_count, test.current_disk_count);
-        ASSERT_EQ(get_max_disk_count(test.max_node_count), test.expected_count);
+        mock_get_max_disk_ingestion_count(test.min_disk_count, test.current_disk_count);
+        ASSERT_EQ(get_max_disk_ingestion_count(test.max_node_count), test.expected_count);
     }
 }
 
-TEST_F(node_context_test, try_add_test)
+TEST_F(node_context_test, check_if_add_test)
 {
     fail::setup();
-    struct try_add_test
+    struct check_if_add_test
     {
         const int32_t max_node_count;
         const int32_t current_node_count;
@@ -144,7 +144,7 @@ TEST_F(node_context_test, try_add_test)
         mock_context(TAG, test.current_disk_count, test.current_node_count);
         auto str = "return(" + test.max_disk_count_str + ")";
         fail::cfg("ingestion_node_context_disk_count", str);
-        ASSERT_EQ(try_add(), test.expected_result);
+        ASSERT_EQ(check_if_add(), test.expected_result);
     }
     fail::teardown();
 }
@@ -264,7 +264,7 @@ public:
         if (_context->_nodes_context.find(node) == _context->_nodes_context.end()) {
             return 0;
         }
-        return _context->_nodes_context[node].count;
+        return _context->_nodes_context[node].node_count;
     }
 
     int32_t get_disk_running_count(const rpc_address &node, const std::string &disk_tag)

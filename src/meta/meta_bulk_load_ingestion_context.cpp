@@ -63,8 +63,8 @@ void ingestion_context::node_context::init_disk(const std::string &disk_tag)
     disk_count[disk_tag] = 0;
 }
 
-int32_t
-ingestion_context::node_context::get_max_disk_count(const int32_t max_node_ingestion_count) const
+int32_t ingestion_context::node_context::get_max_disk_ingestion_count(
+    const int32_t max_node_ingestion_count) const
 {
     FAIL_POINT_INJECT_F("ingestion_node_context_disk_count", [](string_view count_str) -> int32_t {
         auto count = 0;
@@ -81,13 +81,13 @@ ingestion_context::node_context::get_max_disk_count(const int32_t max_node_inges
     return max_node_ingestion_count / node_disk_count + 1;
 }
 
-bool ingestion_context::node_context::try_add(const std::string &disk_tag)
+bool ingestion_context::node_context::check_if_add(const std::string &disk_tag)
 {
     auto max_node_ingestion_count = FLAGS_bulk_load_node_max_ingesting_count;
-    if (count >= max_node_ingestion_count) {
+    if (node_count >= max_node_ingestion_count) {
         dwarn_f("node[{}] has {} partition executing ingestion, max_count = {}",
                 address.to_string(),
-                count,
+                node_count,
                 max_node_ingestion_count);
         return false;
     }
@@ -95,7 +95,7 @@ bool ingestion_context::node_context::try_add(const std::string &disk_tag)
     if (disk_count.find(disk_tag) == disk_count.end()) {
         disk_count[disk_tag] = 0;
     }
-    auto max_disk_ingestion_count = get_max_disk_count(max_node_ingestion_count);
+    auto max_disk_ingestion_count = get_max_disk_ingestion_count(max_node_ingestion_count);
     if (disk_count[disk_tag] >= max_disk_ingestion_count) {
         dwarn_f("node[{}] disk[{}] has {} partition executing ingestion, max_count = {}",
                 address.to_string(),
@@ -110,12 +110,12 @@ bool ingestion_context::node_context::try_add(const std::string &disk_tag)
 void ingestion_context::node_context::add(const std::string &disk_tag)
 {
     disk_count[disk_tag]++;
-    count++;
+    node_count++;
 }
 
 void ingestion_context::node_context::decrease(const std::string &disk_tag)
 {
-    count--;
+    node_count--;
     disk_count[disk_tag]--;
 }
 
@@ -144,7 +144,7 @@ bool ingestion_context::check_node_ingestion(const rpc_address &node, const std:
     if (_nodes_context.find(node) == _nodes_context.end()) {
         _nodes_context[node] = node_context(node, disk_tag);
     }
-    return _nodes_context[node].try_add(disk_tag);
+    return _nodes_context[node].check_if_add(disk_tag);
 }
 
 void ingestion_context::add_partition(const partition_node_info &info)
