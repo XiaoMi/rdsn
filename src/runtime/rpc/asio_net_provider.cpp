@@ -45,8 +45,8 @@ asio_network_provider::asio_network_provider(rpc_engine *srv, network *inner_pro
     _acceptor = nullptr;
 
     for (auto i = 0; i < FLAGS_io_service_worker_count; i++) {
-        io_context_ptr io_context(new boost::asio::io_context(1));
-        _io_services.push_back(io_context);
+        io_service_ptr io_service(new boost::asio::io_service(1));
+        _io_services.push_back(io_service);
     }
 }
 
@@ -103,7 +103,7 @@ error_code asio_network_provider::start(rpc_channel channel, int port, bool clie
         auto v4_addr = boost::asio::ip::address_v4::any(); //(ntohl(_address.ip));
         ::boost::asio::ip::tcp::endpoint endpoint(v4_addr, _address.port());
         boost::system::error_code ec;
-        _acceptor.reset(new boost::asio::ip::tcp::acceptor(get_io_context()));
+        _acceptor.reset(new boost::asio::ip::tcp::acceptor(get_io_service()));
         _acceptor->open(endpoint.protocol(), ec);
         if (ec) {
             derror("asio tcp acceptor open failed, error = %s", ec.message().c_str());
@@ -134,14 +134,14 @@ error_code asio_network_provider::start(rpc_channel channel, int port, bool clie
 
 rpc_session_ptr asio_network_provider::create_client_session(::dsn::rpc_address server_addr)
 {
-    auto sock = std::make_shared<boost::asio::ip::tcp::socket>(get_io_context());
+    auto sock = std::make_shared<boost::asio::ip::tcp::socket>(get_io_service());
     message_parser_ptr parser(new_message_parser(_client_hdr_format));
     return rpc_session_ptr(new asio_rpc_session(*this, server_addr, sock, parser, true));
 }
 
 void asio_network_provider::do_accept()
 {
-    auto socket = std::make_shared<boost::asio::ip::tcp::socket>(get_io_context());
+    auto socket = std::make_shared<boost::asio::ip::tcp::socket>(get_io_service());
 
     _acceptor->async_accept(*socket, [this, socket](boost::system::error_code ec) {
         if (!ec) {
@@ -403,19 +403,19 @@ error_code asio_udp_provider::start(rpc_channel channel, int port, bool client_o
     return ERR_OK;
 }
 
-boost::asio::io_context &asio_network_provider::get_io_context()
+boost::asio::io_service &asio_network_provider::get_io_service()
 {
-    // Use a round-robin scheme to choose the next io_context to use.
-    int tmp = _next_io_context;
+    // Use a round-robin scheme to choose the next io_service to use.
+    int tmp = _next_io_service;
     if (tmp >= FLAGS_io_service_worker_count) {
         tmp = 0;
     }
-    boost::asio::io_context &io_context = *_io_services[tmp];
-    ++_next_io_context;
-    if (_next_io_context >= FLAGS_io_service_worker_count) {
-        _next_io_context = 0;
+    boost::asio::io_service &io_service = *_io_services[tmp];
+    ++_next_io_service;
+    if (_next_io_service >= FLAGS_io_service_worker_count) {
+        _next_io_service = 0;
     }
-    return io_context;
+    return io_service;
 }
 
 } // namespace tools

@@ -45,16 +45,16 @@ public:
 
 private:
     void do_accept();
-    boost::asio::io_context &get_io_context();
+    boost::asio::io_service &get_io_service();
 
 private:
     friend class asio_rpc_session;
     friend class asio_network_provider_test;
 
     std::shared_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
-    int _next_io_context = 0;
-    typedef std::shared_ptr<boost::asio::io_context> io_context_ptr;
-    std::vector<io_context_ptr> _io_services;
+    int _next_io_service = 0;
+    typedef std::shared_ptr<boost::asio::io_service> io_service_ptr;
+    std::vector<io_service_ptr> _io_services;
     std::vector<std::shared_ptr<std::thread>> _workers;
     ::dsn::rpc_address _address;
 };
