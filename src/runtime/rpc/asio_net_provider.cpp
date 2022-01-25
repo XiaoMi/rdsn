@@ -39,17 +39,16 @@ DSN_DEFINE_uint32("network",
                   1,
                   "thread number for io service (timer and boost network)");
 
-asio_network_provider::asio_network_provider(rpc_engine *srv, network *inner_provider)
-    : connection_oriented_network(srv, inner_provider)
-{
-    _acceptor = nullptr;
+const int threads_per_event_loop = 1;
 
-    for (auto i = 0; i < FLAGS_io_service_worker_count; i++) {
-        // Using thread-local operation queues in single-threaded use cases (i.e. when
-        // concurrency_hint is 1) to eliminate a lock/unlock pair.
-        io_service_ptr io_service(new boost::asio::io_service(1));
-        _io_services.push_back(io_service);
-    }
+asio_network_provider::asio_network_provider(rpc_engine *srv, network *inner_provider)
+    : connection_oriented_network(srv, inner_provider),
+      _acceptor(nullptr),
+      // Using thread-local operation queues in single-threaded use cases (i.e. when
+      // concurrency_hint is 1) to eliminate a lock/unlock pair.
+      _io_services(FLAGS_io_service_worker_count,
+                   new boost::asio::io_service(threads_per_event_loop))
+{
 }
 
 asio_network_provider::~asio_network_provider()
@@ -57,9 +56,11 @@ asio_network_provider::~asio_network_provider()
     if (_acceptor) {
         _acceptor->close();
     }
-    for (const auto &io_service : _io_services) {
+    for (auto io_service : _io_services) {
         io_service->stop();
+        delete io_service;
     }
+    _io_services.clear();
 
     for (auto &w : _workers) {
         w->join();

@@ -32,6 +32,29 @@
 namespace dsn {
 namespace tools {
 
+/// asio_network_provider is a wrapper of Asio library for rDSN to accept a connection and create
+/// sockets. Each io_service only allows one thread polling, so the operations of the single socket
+/// are always done in a single thread. we create many io_service instances to take advantage of the
+/// multi-core capabilities of the processor, and use the round-robin scheme to decide which
+/// io_service for socket to choose.
+///
+///    +-----------------------------------------------+
+///    |Linux kernel                                   |
+///    | +-----------+   +-----------+   +-----------+ |
+///    | |  Epoll1   |   |   Epoll2  |   |   Epoll3  | |
+///    | |           |   |           |   |           | |
+///    | | rfd 1,2,3 |   | rfd 4,5,6 |   | rfd 7,8,9 | |
+///    | |           |   |           |   |           | |
+///    | +-----^-----+   +-----^-----+   +-----^-----+ |
+///    +-------|---------------|---------------|-------+
+///       +-----------+   +-----------+   +-----------+
+///       |  polling  |   |  polling  |   |  polling  |
+///       | +-------+ |   | +-------+ |   | +-------+ |
+///       | |Thread1| |   | |Thread2| |   | |Thread3| |
+///       | +-------+ |   | +-------+ |   | +-------+ |
+///       |io_service1|   |io_service2|   |io_service3|
+///       +-----------+   +-----------+   +-----------+
+
 class asio_network_provider : public connection_oriented_network
 {
 public:
@@ -53,12 +76,12 @@ private:
 
     std::shared_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
     int _next_io_service = 0;
-    typedef std::shared_ptr<boost::asio::io_service> io_service_ptr;
-    std::vector<io_service_ptr> _io_services;
+    std::vector<boost::asio::io_service *> _io_services;
     std::vector<std::shared_ptr<std::thread>> _workers;
     ::dsn::rpc_address _address;
 };
 
+// TODO(Tangyanzhao): change the network model like asio_network_provider
 class asio_udp_provider : public network
 {
 public:
