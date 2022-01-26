@@ -66,7 +66,7 @@ uint32_t ingestion_context::node_context::get_max_disk_ingestion_count(
 {
     FAIL_POINT_INJECT_F("ingestion_node_context_disk_count", [](string_view count_str) -> uint32_t {
         auto count = 0;
-        buf2int32(count_str, count);
+        buf2uint32(count_str, count);
         return count;
     });
 
