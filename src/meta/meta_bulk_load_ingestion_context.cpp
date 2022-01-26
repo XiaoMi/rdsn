@@ -36,7 +36,6 @@ ingestion_context::ingestion_context() { reset_all(); }
 
 ingestion_context::~ingestion_context() { reset_all(); }
 
-// ingestion_context::partition_node_info
 void ingestion_context::partition_node_info::create(const partition_configuration &config,
                                                     const config_context &cc)
 {
@@ -54,53 +53,46 @@ void ingestion_context::partition_node_info::create(const partition_configuratio
     }
 }
 
-// ingestion_context::node_context
 void ingestion_context::node_context::init_disk(const std::string &disk_tag)
 {
-    if (disk_count.find(disk_tag) != disk_count.end()) {
+    if (disk_ingesting_counts.find(disk_tag) != disk_ingesting_counts.end()) {
         return;
     }
-    disk_count[disk_tag] = 0;
+    disk_ingesting_counts[disk_tag] = 0;
 }
 
-int32_t ingestion_context::node_context::get_max_disk_ingestion_count(
-    const int32_t max_node_ingestion_count) const
+uint32_t ingestion_context::node_context::get_max_disk_ingestion_count(
+    const uint32_t max_node_ingestion_count) const
 {
-    FAIL_POINT_INJECT_F("ingestion_node_context_disk_count", [](string_view count_str) -> int32_t {
+    FAIL_POINT_INJECT_F("ingestion_node_context_disk_count", [](string_view count_str) -> uint32_t {
         auto count = 0;
         buf2int32(count_str, count);
         return count;
     });
 
-    auto node_disk_count = disk_count.size() > FLAGS_bulk_load_node_min_disk_count
-                               ? disk_count.size()
-                               : FLAGS_bulk_load_node_min_disk_count;
-    if (max_node_ingestion_count % node_disk_count == 0) {
-        return max_node_ingestion_count / node_disk_count;
-    }
-    return max_node_ingestion_count / node_disk_count + 1;
+    const auto node_disk_count = disk_ingesting_counts.size() > FLAGS_bulk_load_node_min_disk_count
+                                     ? disk_ingesting_counts.size()
+                                     : FLAGS_bulk_load_node_min_disk_count;
+    return (max_node_ingestion_count + node_disk_count - 1) / node_disk_count;
 }
 
 bool ingestion_context::node_context::check_if_add(const std::string &disk_tag)
 {
     auto max_node_ingestion_count = FLAGS_bulk_load_node_max_ingesting_count;
-    if (node_count >= max_node_ingestion_count) {
+    if (node_ingesting_count >= max_node_ingestion_count) {
         dwarn_f("node[{}] has {} partition executing ingestion, max_count = {}",
                 address.to_string(),
-                node_count,
+                node_ingesting_count,
                 max_node_ingestion_count);
         return false;
     }
 
-    if (disk_count.find(disk_tag) == disk_count.end()) {
-        disk_count[disk_tag] = 0;
-    }
     auto max_disk_ingestion_count = get_max_disk_ingestion_count(max_node_ingestion_count);
-    if (disk_count[disk_tag] >= max_disk_ingestion_count) {
+    if (disk_ingesting_counts[disk_tag] >= max_disk_ingestion_count) {
         dwarn_f("node[{}] disk[{}] has {} partition executing ingestion, max_count = {}",
                 address.to_string(),
                 disk_tag,
-                disk_count[disk_tag],
+                disk_ingesting_counts[disk_tag],
                 max_disk_ingestion_count);
         return false;
     }
@@ -109,17 +101,16 @@ bool ingestion_context::node_context::check_if_add(const std::string &disk_tag)
 
 void ingestion_context::node_context::add(const std::string &disk_tag)
 {
-    disk_count[disk_tag]++;
-    node_count++;
+    disk_ingesting_counts[disk_tag]++;
+    node_ingesting_count++;
 }
 
 void ingestion_context::node_context::decrease(const std::string &disk_tag)
 {
-    node_count--;
-    disk_count[disk_tag]--;
+    node_ingesting_count--;
+    disk_ingesting_counts[disk_tag]--;
 }
 
-// ingestion_context
 bool ingestion_context::try_partition_ingestion(const partition_configuration &config,
                                                 const config_context &cc)
 {
@@ -163,16 +154,16 @@ void ingestion_context::remove_partition(const gpid &pid)
     if (_running_partitions.find(pid) == _running_partitions.end()) {
         return;
     }
-    auto info = _running_partitions[pid];
+    auto &info = _running_partitions[pid];
     for (const auto &kv : info.node_disk) {
         _nodes_context[kv.first].decrease(kv.second);
     }
     _running_partitions.erase(pid);
 }
 
-int32_t ingestion_context::get_app_running_count(const int32_t app_id) const
+uint32_t ingestion_context::get_app_running_count(const uint32_t app_id) const
 {
-    int32_t running_count = 0;
+    uint32_t running_count = 0;
     for (const auto &kv : _running_partitions) {
         if (kv.first.get_app_id() == app_id) {
             running_count++;
@@ -181,7 +172,7 @@ int32_t ingestion_context::get_app_running_count(const int32_t app_id) const
     return running_count;
 }
 
-void ingestion_context::reset_app(const int32_t app_id)
+void ingestion_context::reset_app(const uint32_t app_id)
 {
     std::unordered_set<gpid> removing_partitions;
     for (const auto &kv : _running_partitions) {

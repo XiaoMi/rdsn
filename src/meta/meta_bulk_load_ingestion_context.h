@@ -50,20 +50,19 @@ private:
     struct node_context
     {
         rpc_address address;
-        // node ingesting partition count
-        int32_t node_count;
+        uint32_t node_ingesting_count;
         // disk tag -> ingesting partition count
-        std::map<std::string, int32_t> disk_count;
+        std::map<std::string, int32_t> disk_ingesting_counts;
 
-        node_context() : node_count(0) {}
+        node_context() {}
         node_context(const rpc_address &address, const std::string &disk_tag)
-            : address(address), node_count(0)
+            : address(address), node_ingesting_count(0)
         {
             init_disk(disk_tag);
         }
 
         void init_disk(const std::string &disk_tag);
-        int32_t get_max_disk_ingestion_count(const int32_t max_node_ingestion_count) const;
+        uint32_t get_max_disk_ingestion_count(const uint32_t max_node_ingestion_count) const;
         bool check_if_add(const std::string &disk_tag);
         void add(const std::string &disk_tag);
         void decrease(const std::string &disk_tag);
@@ -73,8 +72,8 @@ private:
     bool check_node_ingestion(const rpc_address &node, const std::string &disk_tag);
     void add_partition(const partition_node_info &info);
     void remove_partition(const gpid &pid);
-    int32_t get_app_running_count(const int32_t app_id) const;
-    void reset_app(const int32_t app_id);
+    uint32_t get_app_running_count(const uint32_t app_id) const;
+    void reset_app(const uint32_t app_id);
     void reset_all();
 
 private:

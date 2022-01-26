@@ -33,6 +33,7 @@ public:
     void SetUp()
     {
         _context = ingestion_context::node_context();
+        _context.node_ingesting_count = 0;
         _context.address = NODE;
         FLAGS_bulk_load_node_max_ingesting_count = 1;
         FLAGS_bulk_load_node_min_disk_count = 1;
@@ -40,39 +41,39 @@ public:
 
     void TearDown()
     {
-        _context.disk_count.clear();
-        _context.node_count = 0;
+        _context.disk_ingesting_counts.clear();
+        _context.node_ingesting_count = 0;
     }
 
     void mock_context(const std::string &disk_tag,
-                      const int32_t disk_count = 0,
-                      const int32_t total_count = 0)
+                      const uint32_t disk_count = 0,
+                      const uint32_t total_count = 0)
     {
-        _context.node_count = total_count;
-        _context.disk_count[disk_tag] = disk_count;
+        _context.node_ingesting_count = total_count;
+        _context.disk_ingesting_counts[disk_tag] = disk_count;
     }
 
     void init_disk(const std::string &disk_tag) { _context.init_disk(disk_tag); }
 
-    int32_t get_disk_count(const std::string &disk_tag)
+    uint32_t get_disk_count(const std::string &disk_tag)
     {
-        if (_context.disk_count.find(disk_tag) == _context.disk_count.end()) {
+        if (_context.disk_ingesting_counts.find(disk_tag) == _context.disk_ingesting_counts.end()) {
             return -1;
         }
-        return _context.disk_count[disk_tag];
+        return _context.disk_ingesting_counts[disk_tag];
     }
 
-    void mock_get_max_disk_ingestion_count(const int32_t node_min_disk_count,
-                                           const int32_t current_disk_count)
+    void mock_get_max_disk_ingestion_count(const uint32_t node_min_disk_count,
+                                           const uint32_t current_disk_count)
     {
         FLAGS_bulk_load_node_min_disk_count = node_min_disk_count;
-        _context.disk_count.clear();
+        _context.disk_ingesting_counts.clear();
         for (auto i = 0; i < current_disk_count; i++) {
             _context.init_disk(std::to_string(i));
         }
     }
 
-    int32_t get_max_disk_ingestion_count(const int32_t max_node_count) const
+    uint32_t get_max_disk_ingestion_count(const uint32_t max_node_count) const
     {
         return _context.get_max_disk_ingestion_count(max_node_count);
     }
@@ -92,7 +93,7 @@ TEST_F(node_context_test, init_disk_test)
     struct init_disk_test
     {
         std::string disk_tag;
-        int32_t expected_disk_count;
+        uint32_t expected_disk_count;
     } tests[] = {{TAG, 1}, {TAG2, 0}};
     for (const auto &test : tests) {
         init_disk(test.disk_tag);
@@ -104,10 +105,10 @@ TEST_F(node_context_test, get_max_disk_ingestion_count_test)
 {
     struct get_max_disk_ingestion_count_test
     {
-        int32_t max_node_count;
-        int32_t min_disk_count;
-        int32_t current_disk_count;
-        int32_t expected_count;
+        uint32_t max_node_count;
+        uint32_t min_disk_count;
+        uint32_t current_disk_count;
+        uint32_t expected_count;
     } tests[] = {// min_disk_count = 1
                  {1, 1, 1, 1},
                  {2, 1, 1, 2},
@@ -133,10 +134,10 @@ TEST_F(node_context_test, check_if_add_test)
     fail::setup();
     struct check_if_add_test
     {
-        const int32_t max_node_count;
-        const int32_t current_node_count;
+        const uint32_t max_node_count;
+        const uint32_t current_node_count;
         std::string max_disk_count_str;
-        const int32_t current_disk_count;
+        const uint32_t current_disk_count;
         bool expected_result;
     } tests[] = {{1, 1, "1", 1, false}, {3, 2, "2", 2, false}, {1, 0, "7", 0, true}};
     for (const auto &test : tests) {
@@ -161,6 +162,7 @@ public:
     void SetUp()
     {
         _context = make_unique<ingestion_context>();
+        add_node_context({NODE1, NODE2, NODE3, NODE4});
         mock_app();
         FLAGS_bulk_load_node_min_disk_count = MIN_DISK_COUNT;
         FLAGS_bulk_load_node_max_ingesting_count = MAX_NODE_COUNT;
@@ -168,12 +170,12 @@ public:
 
     void TearDown() { _context->reset_all(); }
 
-    void update_max_node_count(const int32_t max_node_count)
+    void update_max_node_count(const uint32_t max_node_count)
     {
         FLAGS_bulk_load_node_max_ingesting_count = max_node_count;
     }
 
-    bool check_node_ingestion(const int32_t max_node_count,
+    bool check_node_ingestion(const uint32_t max_node_count,
                               const rpc_address &node,
                               const std::string &tag)
     {
@@ -214,7 +216,7 @@ public:
                        _app->helpers->contexts[3]);
     }
 
-    void mock_partition(const int32_t pidx,
+    void mock_partition(const uint32_t pidx,
                         std::vector<rpc_address> nodes,
                         const std::vector<std::string> tags,
                         partition_configuration &config,
@@ -234,28 +236,37 @@ public:
         }
     }
 
-    bool try_partition_ingestion(const int32_t pidx)
+    void add_node_context(std::vector<rpc_address> nodes)
+    {
+        for (const auto &address : nodes) {
+            ingestion_context::node_context node(address, TAG1);
+            node.init_disk(TAG2);
+            _context->_nodes_context[address] = node;
+        }
+    }
+
+    bool try_partition_ingestion(const uint32_t pidx)
     {
         return _context->try_partition_ingestion(_app->partitions[pidx],
                                                  _app->helpers->contexts[pidx]);
     }
 
-    void add_partition(const int32_t pidx)
+    void add_partition(const uint32_t pidx)
     {
         auto pinfo = ingestion_context::partition_node_info(_app->partitions[pidx],
                                                             _app->helpers->contexts[pidx]);
         _context->add_partition(pinfo);
     }
 
-    void remove_partition(const int32_t pidx) { _context->remove_partition(gpid(APP_ID, pidx)); }
+    void remove_partition(const uint32_t pidx) { _context->remove_partition(gpid(APP_ID, pidx)); }
 
-    bool is_partition_ingesting(const int32_t pidx) const
+    bool is_partition_ingesting(const uint32_t pidx) const
     {
         return _context->_running_partitions.find(gpid(APP_ID, pidx)) !=
                _context->_running_partitions.end();
     }
 
-    int32_t get_app_running_count() const { return _context->get_app_running_count(APP_ID); }
+    uint32_t get_app_running_count() const { return _context->get_app_running_count(APP_ID); }
 
     void reset_app() { return _context->reset_app(APP_ID); }
 
@@ -264,25 +275,25 @@ public:
         if (_context->_nodes_context.find(node) == _context->_nodes_context.end()) {
             return 0;
         }
-        return _context->_nodes_context[node].node_count;
+        return _context->_nodes_context[node].node_ingesting_count;
     }
 
-    int32_t get_disk_running_count(const rpc_address &node, const std::string &disk_tag)
+    uint32_t get_disk_running_count(const rpc_address &node, const std::string &disk_tag)
     {
         if (_context->_nodes_context.find(node) == _context->_nodes_context.end()) {
             return 0;
         }
         auto node_cc = _context->_nodes_context[node];
-        if (node_cc.disk_count.find(disk_tag) == node_cc.disk_count.end()) {
+        if (node_cc.disk_ingesting_counts.find(disk_tag) == node_cc.disk_ingesting_counts.end()) {
             return 0;
         }
-        return node_cc.disk_count[disk_tag];
+        return node_cc.disk_ingesting_counts[disk_tag];
     }
 
     bool validate_count(const rpc_address &node,
-                        const int32_t expected_node_count,
-                        const int32_t expected_disk1_count,
-                        const int32_t expected_disk2_count)
+                        const uint32_t expected_node_count,
+                        const uint32_t expected_disk1_count,
+                        const uint32_t expected_disk2_count)
     {
         return get_node_running_count(node) == expected_node_count &&
                get_disk_running_count(node, TAG1) == expected_disk1_count &&
@@ -292,10 +303,10 @@ public:
 public:
     std::unique_ptr<ingestion_context> _context;
     std::shared_ptr<app_state> _app;
-    const int32_t APP_ID = 1;
-    const int32_t PARTITION_COUNT = 4;
-    const int32_t MAX_NODE_COUNT = 2;
-    const int32_t MIN_DISK_COUNT = 2;
+    const uint32_t APP_ID = 1;
+    const uint32_t PARTITION_COUNT = 4;
+    const uint32_t MAX_NODE_COUNT = 2;
+    const uint32_t MIN_DISK_COUNT = 2;
     const rpc_address NODE1 = rpc_address("127.0.0.1", 10086);
     const rpc_address NODE2 = rpc_address("127.0.0.1", 10085);
     const rpc_address NODE3 = rpc_address("127.0.0.1", 10087);
@@ -310,7 +321,7 @@ TEST_F(ingestion_context_test, check_node_ingestion_test)
     {
         rpc_address node;
         std::string tag;
-        int32_t max_node_count;
+        uint32_t max_node_count;
         bool expected_result;
     } tests[] = {{NODE2, TAG1, 1, true}, {NODE1, TAG2, 2, true}, {NODE1, TAG2, 1, false}};
     for (const auto &test : tests) {
