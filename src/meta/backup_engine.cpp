@@ -246,7 +246,7 @@ void backup_engine::on_backup_reply(const error_code err,
     }
 
     if (rep_error != ERR_OK) {
-        derror_f("backup_id({}): backup request to server {} failed, rpc error: {}, retry to "
+        derror_f("backup_id({}): backup request to server {} failed, error: {}, retry to "
                  "send backup request.",
                  _cur_backup.backup_id,
                  primary.to_string(),
