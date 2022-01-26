@@ -42,7 +42,7 @@ DSN_DEFINE_uint32("network",
 const int threads_per_event_loop = 1;
 
 asio_network_provider::asio_network_provider(rpc_engine *srv, network *inner_provider)
-    : connection_oriented_network(srv, inner_provider), _acceptor(nullptr), _next_io_service(0)
+    : connection_oriented_network(srv, inner_provider), _acceptor(nullptr)
 {
     // Using thread-local operation queues in single-threaded use cases (i.e. when
     // concurrency_hint is 1) to eliminate a lock/unlock pair.
@@ -405,29 +405,10 @@ error_code asio_udp_provider::start(rpc_channel channel, int port, bool client_o
     return ERR_OK;
 }
 
+// use a round-robin scheme to choose the next io_service to use.
 boost::asio::io_service &asio_network_provider::get_io_service()
 {
-    // use a round-robin scheme to choose the next io_service to use.
-
-    ++_next_io_service;
-    if (_next_io_service >= FLAGS_io_service_worker_count) {
-        _next_io_service = 0;
-    }
-
-    int tmp = _next_io_service;
-    if (tmp >= FLAGS_io_service_worker_count) {
-        tmp = 0;
-    }
-
-    // Q1: why not return *_io_services[_next_io_service]
-    // A1: this function may be executed by multi threads, so it should get snapshot of
-    // `_next_io_service`. Otherwise, after other threads change the value of `_next_io_service`,
-    // `_io_services` may take `out_of_range` exception.
-    //
-    // Q2: Why not return *_io_services[tmp++ % FLAGS_io_service_worker_count]?
-    // A2: % operation is slow
-    boost::asio::io_service &io_service = *_io_services[tmp];
-    return io_service;
+    return *_io_services[rand::next_u32(0, FLAGS_io_service_worker_count - 1)];
 }
 
 } // namespace tools
