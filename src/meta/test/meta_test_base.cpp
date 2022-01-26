@@ -88,7 +88,8 @@ void meta_test_base::wait_all() { _ms->tracker()->wait_outstanding_tasks(); }
 
 void meta_test_base::set_min_live_node_count_for_unfreeze(uint64_t node_count)
 {
-    _ms->_meta_opts.min_live_node_count_for_unfreeze = node_count;
+    auto res = update_flag("min_live_node_count_for_unfreeze", std::to_string(node_count));
+    ASSERT_TRUE(res.is_ok());
 }
 
 void meta_test_base::set_node_live_percentage_threshold_for_update(uint64_t percentage_threshold)

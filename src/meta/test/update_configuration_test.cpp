@@ -406,7 +406,8 @@ void meta_service_test_app::apply_balancer_test()
 void meta_service_test_app::cannot_run_balancer_test()
 {
     std::shared_ptr<null_meta_service> svc(new null_meta_service());
-    svc->_meta_opts.min_live_node_count_for_unfreeze = 0;
+    auto res = update_flag("min_live_node_count_for_unfreeze", "0");
+    ASSERT_TRUE(res.is_ok());
     svc->_meta_opts.node_live_percentage_threshold_for_update = 0;
 
     svc->_state->initialize(svc.get(), "/");
