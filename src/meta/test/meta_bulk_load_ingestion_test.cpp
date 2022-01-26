@@ -266,7 +266,7 @@ public:
                _context->_running_partitions.end();
     }
 
-    uint32_t get_app_running_count() const { return _context->get_app_running_count(APP_ID); }
+    uint32_t get_app_ingesting_count() const { return _context->get_app_ingesting_count(APP_ID); }
 
     void reset_app() { return _context->reset_app(APP_ID); }
 
@@ -345,7 +345,7 @@ TEST_F(ingestion_context_test, try_partition_ingestion_test)
     ASSERT_EQ(try_partition_ingestion(1), true);
     ASSERT_EQ(try_partition_ingestion(3), true);
 
-    ASSERT_EQ(get_app_running_count(), 4);
+    ASSERT_EQ(get_app_ingesting_count(), 4);
 }
 
 TEST_F(ingestion_context_test, operation_test)
@@ -357,7 +357,7 @@ TEST_F(ingestion_context_test, operation_test)
     ASSERT_TRUE(validate_count(NODE2, 1, 1, 0));
     ASSERT_TRUE(validate_count(NODE3, 1, 0, 1));
     ASSERT_TRUE(validate_count(NODE4, 0, 0, 0));
-    ASSERT_EQ(get_app_running_count(), 1);
+    ASSERT_EQ(get_app_ingesting_count(), 1);
 
     ASSERT_FALSE(is_partition_ingesting(1));
     add_partition(1);
@@ -366,7 +366,7 @@ TEST_F(ingestion_context_test, operation_test)
     ASSERT_TRUE(validate_count(NODE2, 2, 1, 1));
     ASSERT_TRUE(validate_count(NODE3, 1, 0, 1));
     ASSERT_TRUE(validate_count(NODE4, 1, 0, 1));
-    ASSERT_EQ(get_app_running_count(), 2);
+    ASSERT_EQ(get_app_ingesting_count(), 2);
 
     add_partition(2);
     remove_partition(0);
@@ -376,14 +376,14 @@ TEST_F(ingestion_context_test, operation_test)
     ASSERT_TRUE(validate_count(NODE2, 1, 0, 1));
     ASSERT_TRUE(validate_count(NODE3, 1, 1, 0));
     ASSERT_TRUE(validate_count(NODE4, 2, 1, 1));
-    ASSERT_EQ(get_app_running_count(), 2);
+    ASSERT_EQ(get_app_ingesting_count(), 2);
 
     reset_app();
     ASSERT_TRUE(validate_count(NODE1, 0, 0, 0));
     ASSERT_TRUE(validate_count(NODE2, 0, 0, 0));
     ASSERT_TRUE(validate_count(NODE3, 0, 0, 0));
     ASSERT_TRUE(validate_count(NODE4, 0, 0, 0));
-    ASSERT_EQ(get_app_running_count(), 0);
+    ASSERT_EQ(get_app_ingesting_count(), 0);
 }
 
 } // namespace replication

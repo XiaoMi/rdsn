@@ -65,7 +65,7 @@ uint32_t ingestion_context::node_context::get_max_disk_ingestion_count(
     const uint32_t max_node_ingestion_count) const
 {
     FAIL_POINT_INJECT_F("ingestion_node_context_disk_count", [](string_view count_str) -> uint32_t {
-        auto count = 0;
+        uint32_t count = 0;
         buf2uint32(count_str, count);
         return count;
     });
@@ -161,7 +161,7 @@ void ingestion_context::remove_partition(const gpid &pid)
     _running_partitions.erase(pid);
 }
 
-uint32_t ingestion_context::get_app_running_count(const uint32_t app_id) const
+uint32_t ingestion_context::get_app_ingesting_count(const uint32_t app_id) const
 {
     uint32_t running_count = 0;
     for (const auto &kv : _running_partitions) {

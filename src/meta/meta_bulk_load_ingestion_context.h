@@ -26,6 +26,7 @@ namespace replication {
 DSN_DECLARE_uint32(bulk_load_node_max_ingesting_count);
 DSN_DECLARE_uint32(bulk_load_node_min_disk_count);
 
+// Meta bulk load helper class, used to manage ingesting partitions
 class ingestion_context
 {
 public:
@@ -52,7 +53,7 @@ private:
         rpc_address address;
         uint32_t node_ingesting_count;
         // disk tag -> ingesting partition count
-        std::map<std::string, int32_t> disk_ingesting_counts;
+        std::unordered_map<std::string, int32_t> disk_ingesting_counts;
 
         node_context() {}
         node_context(const rpc_address &address, const std::string &disk_tag)
@@ -72,7 +73,7 @@ private:
     bool check_node_ingestion(const rpc_address &node, const std::string &disk_tag);
     void add_partition(const partition_node_info &info);
     void remove_partition(const gpid &pid);
-    uint32_t get_app_running_count(const uint32_t app_id) const;
+    uint32_t get_app_ingesting_count(const uint32_t app_id) const;
     void reset_app(const uint32_t app_id);
     void reset_all();
 
