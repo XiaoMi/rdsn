@@ -44,9 +44,9 @@ const int threads_per_event_loop = 1;
 asio_network_provider::asio_network_provider(rpc_engine *srv, network *inner_provider)
     : connection_oriented_network(srv, inner_provider), _acceptor(nullptr)
 {
-    // Using thread-local operation queues in single-threaded use cases (i.e. when
-    // concurrency_hint is 1) to eliminate a lock/unlock pair.
     for (auto i = 0; i < FLAGS_io_service_worker_count; i++) {
+        // Using thread-local operation queues in single-threaded use cases (i.e. when
+        // concurrency_hint is 1) to eliminate a lock/unlock pair.
         _io_services.emplace_back(
             std::make_unique<boost::asio::io_service>(threads_per_event_loop));
     }
