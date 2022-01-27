@@ -58,7 +58,7 @@ DSN_DEFINE_uint64("meta_server",
                   "minimum live node count without which the state is freezed");
 DSN_TAG_VARIABLE(min_live_node_count_for_unfreeze, FT_MUTABLE);
 DSN_DEFINE_validator(min_live_node_count_for_unfreeze,
-                     [](uint64_t min_live_node_count) -> bool { return min_live_node_count >= 0; });
+                     [](uint64_t min_live_node_count) -> bool { return min_live_node_count > 0; });
 
 meta_service::meta_service()
     : serverlet("meta_service"), _failure_detector(nullptr), _started(false), _recovering(false)

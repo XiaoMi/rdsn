@@ -16,6 +16,8 @@
 namespace dsn {
 namespace replication {
 
+DSN_DECLARE_uint64(min_live_node_count_for_unfreeze);
+
 class fake_sender_meta_service : public dsn::replication::meta_service
 {
 private:
@@ -406,8 +408,13 @@ void meta_service_test_app::apply_balancer_test()
 void meta_service_test_app::cannot_run_balancer_test()
 {
     std::shared_ptr<null_meta_service> svc(new null_meta_service());
-    auto res = update_flag("min_live_node_count_for_unfreeze", "0");
-    ASSERT_TRUE(res.is_ok());
+
+    // save original FLAGS_min_live_node_count_for_unfreeze
+    auto reserved_min_live_node_count_for_unfreeze = FLAGS_min_live_node_count_for_unfreeze;
+
+    // set FLAGS_min_live_node_count_for_unfreeze directly to bypass its flag validator
+    FLAGS_min_live_node_count_for_unfreeze = 0;
+
     svc->_meta_opts.node_live_percentage_threshold_for_update = 0;
 
     svc->_state->initialize(svc.get(), "/");
@@ -470,6 +477,9 @@ void meta_service_test_app::cannot_run_balancer_test()
     // call function can run balancer
     the_app->status = dsn::app_status::AS_AVAILABLE;
     ASSERT_TRUE(svc->_state->can_run_balancer());
+
+    // recover original FLAGS_min_live_node_count_for_unfreeze
+    FLAGS_min_live_node_count_for_unfreeze = reserved_min_live_node_count_for_unfreeze;
 }
 } // namespace replication
 } // namespace dsn
