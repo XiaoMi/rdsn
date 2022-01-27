@@ -59,11 +59,11 @@ public:
 
     duplication_info() = default;
 
-    void start()
+    void prepare()
     {
         zauto_write_lock l(_lock);
         _is_altering = true;
-        _next_status = duplication_status::DS_START;
+        _next_status = duplication_status::DS_PREPARE;
     }
 
     // error will be returned if this state transition is not allowed.
@@ -126,6 +126,9 @@ public:
         }
         return entry;
     }
+
+    // todo(jiashuo1) wait detail implementation
+    bool all_checkpoint_has_prepared() { return false; }
 
     void report_progress_if_time_up();
 

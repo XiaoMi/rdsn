@@ -35,7 +35,9 @@ namespace replication {
         _duplication_status_NAMES_TO_VALUES = {
             {"DS_INIT", duplication_status::DS_INIT},
             {"DS_PAUSE", duplication_status::DS_PAUSE},
-            {"DS_START", duplication_status::DS_START},
+            {"DS_PREPARE", duplication_status::DS_PREPARE},
+            {"DS_APP", duplication_status::DS_APP},
+            {"DS_LOG", duplication_status::DS_LOG},
             {"DS_REMOVED", duplication_status::DS_REMOVED},
         };
 

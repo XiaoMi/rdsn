@@ -79,6 +79,18 @@ void meta_duplication_service::modify_duplication(duplication_modify_rpc rpc)
 
     duplication_info_s_ptr dup = it->second;
     auto to_status = request.__isset.status ? request.status : dup->status();
+    if (to_status == duplication_status::DS_PAUSE && dup->status() != duplication_status::DS_LOG) {
+        derror_f("only allow transfer to DS_PAUSE from DS_LOG");
+        response.err = ERR_INVALID_PARAMETERS;
+        return;
+    }
+
+    if (to_status == duplication_status::DS_LOG && dup->status() != duplication_status::DS_PAUSE) {
+        derror_f("only allow transfer to DS_LOG from DS_PAUSE");
+        response.err = ERR_INVALID_PARAMETERS;
+        return;
+    }
+
     auto to_fail_mode = request.__isset.fail_mode ? request.fail_mode : dup->fail_mode();
     response.err = dup->alter_status(to_status, to_fail_mode);
     if (response.err != ERR_OK) {
@@ -182,11 +194,7 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
                                                   duplication_info_s_ptr &dup,
                                                   duplication_add_rpc &rpc)
 {
-    dup->start();
-    if (rpc.request().freezed) {
-        dup->persist_status();
-        dup->alter_status(duplication_status::DS_PAUSE);
-    }
+    dup->prepare();
     blob value = dup->to_json_blob();
 
     std::queue<std::string> nodes({get_duplication_path(*app), std::to_string(dup->id)});
@@ -263,6 +271,14 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
                 continue;
             }
 
+            if (dup->all_checkpoint_has_prepared()) {
+                if (dup->status() == duplication_status::DS_PREPARE) {
+                    trigger_follower_duplicate_checkpoint(dup, app);
+                } else if (dup->status() == duplication_status::DS_APP) {
+                    check_follower_duplicate_checkpoint_if_completed(dup);
+                }
+            }
+
             response.dup_map[app_id][dup_id] = dup->to_duplication_entry();
 
             // report progress periodically for each duplications
@@ -298,6 +314,20 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
                 dup, rpc, gpid.get_partition_index(), confirm.confirmed_decree);
         }
     }
+}
+
+// todo(jiashuo1) wait detail implementation
+void meta_duplication_service::trigger_follower_duplicate_checkpoint(
+    const std::shared_ptr<duplication_info> &dup, const std::shared_ptr<app_state> &app)
+{
+    dup->alter_status(duplication_status::DS_APP);
+}
+
+// todo(jiashuo1) wait detail implementation
+void meta_duplication_service::check_follower_duplicate_checkpoint_if_completed(
+    const std::shared_ptr<duplication_info> &dup)
+{
+    dup->alter_status(duplication_status::DS_LOG);
 }
 
 void meta_duplication_service::do_update_partition_confirmed(duplication_info_s_ptr &dup,
