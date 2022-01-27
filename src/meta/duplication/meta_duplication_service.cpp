@@ -79,18 +79,6 @@ void meta_duplication_service::modify_duplication(duplication_modify_rpc rpc)
 
     duplication_info_s_ptr dup = it->second;
     auto to_status = request.__isset.status ? request.status : dup->status();
-    if (to_status == duplication_status::DS_PAUSE && dup->status() != duplication_status::DS_LOG) {
-        derror_f("only allow transfer to DS_PAUSE from DS_LOG");
-        response.err = ERR_INVALID_PARAMETERS;
-        return;
-    }
-
-    if (to_status == duplication_status::DS_LOG && dup->status() != duplication_status::DS_PAUSE) {
-        derror_f("only allow transfer to DS_LOG from DS_PAUSE");
-        response.err = ERR_INVALID_PARAMETERS;
-        return;
-    }
-
     auto to_fail_mode = request.__isset.fail_mode ? request.fail_mode : dup->fail_mode();
     response.err = dup->alter_status(to_status, to_fail_mode);
     if (response.err != ERR_OK) {
@@ -194,7 +182,7 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
                                                   duplication_info_s_ptr &dup,
                                                   duplication_add_rpc &rpc)
 {
-    dup->prepare();
+    dup->start();
     blob value = dup->to_json_blob();
 
     std::queue<std::string> nodes({get_duplication_path(*app), std::to_string(dup->id)});

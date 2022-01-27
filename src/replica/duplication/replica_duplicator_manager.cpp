@@ -59,7 +59,7 @@ void replica_duplicator_manager::sync_duplication(const duplication_entry &ent)
 
     replica_duplicator_u_ptr &dup = _duplications[dupid];
     if (dup == nullptr) {
-        if (is_duplication_status_valid(next_status)) {
+        if (is_duplication_status_invalid(next_status)) {
             dup = make_unique<replica_duplicator>(ent, _replica);
         } else {
             derror_replica("illegal duplication status: {}",

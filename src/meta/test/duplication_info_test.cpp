@@ -35,6 +35,11 @@ namespace replication {
 class duplication_info_test : public testing::Test
 {
 public:
+    void force_update_status(duplication_info &dup, duplication_status::type status)
+    {
+        dup._status = status;
+    }
+
     static void test_alter_progress()
     {
         duplication_info dup(
@@ -86,7 +91,7 @@ public:
         dup.start();
         ASSERT_TRUE(dup.is_altering());
         ASSERT_EQ(dup._status, duplication_status::DS_INIT);
-        ASSERT_EQ(dup._next_status, duplication_status::DS_START);
+        ASSERT_EQ(dup._next_status, duplication_status::DS_PREPARE);
     }
 
     static void test_persist_status()
@@ -96,7 +101,7 @@ public:
         dup.start();
 
         dup.persist_status();
-        ASSERT_EQ(dup._status, duplication_status::DS_START);
+        ASSERT_EQ(dup._status, duplication_status::DS_PREPARE);
         ASSERT_EQ(dup._next_status, duplication_status::DS_INIT);
         ASSERT_FALSE(dup.is_altering());
     }
@@ -141,43 +146,67 @@ TEST_F(duplication_info_test, alter_status)
 {
     struct TestData
     {
-        duplication_status::type from;
-        duplication_status::type to;
+        std::vector<duplication_status::type> from_list;
+        std::vector<duplication_status::type> to_list;
 
         error_code wec;
     } tests[] = {
-        {duplication_status::DS_PAUSE, duplication_status::DS_PAUSE, ERR_OK},
-        {duplication_status::DS_PAUSE, duplication_status::DS_START, ERR_OK},
-        {duplication_status::DS_PAUSE, duplication_status::DS_INIT, ERR_INVALID_PARAMETERS},
-        {duplication_status::DS_PAUSE, duplication_status::DS_REMOVED, ERR_OK},
-        {duplication_status::DS_START, duplication_status::DS_START, ERR_OK},
-        {duplication_status::DS_START, duplication_status::DS_PAUSE, ERR_OK},
-        {duplication_status::DS_START, duplication_status::DS_REMOVED, ERR_OK},
-        {duplication_status::DS_START, duplication_status::DS_INIT, ERR_INVALID_PARAMETERS},
+        {{duplication_status::DS_INIT, duplication_status::DS_PREPARE},
+         {duplication_status::DS_PREPARE},
+         ERR_OK},
+        {{duplication_status::DS_PREPARE, duplication_status::DS_APP},
+         {duplication_status::DS_APP},
+         ERR_OK},
+        {{duplication_status::DS_APP, duplication_status::DS_PAUSE, duplication_status::DS_LOG},
+         {duplication_status::DS_LOG},
+         ERR_OK},
+        {{duplication_status::DS_LOG, duplication_status::DS_PAUSE},
+         {duplication_status::DS_PAUSE},
+         ERR_OK},
 
-        // alter unavail dup
-        {duplication_status::DS_REMOVED, duplication_status::DS_INIT, ERR_OBJECT_NOT_FOUND},
-        {duplication_status::DS_REMOVED, duplication_status::DS_PAUSE, ERR_OBJECT_NOT_FOUND},
-        {duplication_status::DS_REMOVED, duplication_status::DS_START, ERR_OBJECT_NOT_FOUND},
+        {{duplication_status::DS_INIT,
+          duplication_status::DS_PREPARE,
+          duplication_status::DS_APP,
+          duplication_status::DS_PAUSE,
+          duplication_status::DS_LOG,
+          duplication_status::DS_REMOVED},
+         {duplication_status::DS_REMOVED},
+         ERR_OK},
 
-        // alter status same with the previous
-        {duplication_status::DS_REMOVED, duplication_status::DS_REMOVED, ERR_OBJECT_NOT_FOUND},
-        {duplication_status::DS_PAUSE, duplication_status::DS_PAUSE, ERR_OK},
-        {duplication_status::DS_START, duplication_status::DS_START, ERR_OK},
-    };
+        {{duplication_status::DS_REMOVED},
+         {duplication_status::DS_INIT,
+          duplication_status::DS_PREPARE,
+          duplication_status::DS_APP,
+          duplication_status::DS_PAUSE,
+          duplication_status::DS_LOG,
+          duplication_status::DS_REMOVED},
+         ERR_OBJECT_NOT_FOUND},
+
+        {{duplication_status::DS_INIT, duplication_status::DS_PREPARE, duplication_status::DS_APP},
+         {duplication_status::DS_PAUSE},
+         ERR_INVALID_PARAMETERS},
+
+        {{duplication_status::DS_INIT, duplication_status::DS_PREPARE},
+         {duplication_status::DS_LOG},
+         ERR_INVALID_PARAMETERS},
+
+        {{duplication_status::DS_LOG},
+         {duplication_status::DS_INIT, duplication_status::DS_PREPARE, duplication_status::DS_APP},
+         ERR_INVALID_PARAMETERS}};
 
     for (auto tt : tests) {
         duplication_info dup(
             1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
-        dup.start();
-        dup.persist_status();
 
-        ASSERT_EQ(dup.alter_status(tt.from), ERR_OK);
-        if (dup.is_altering()) {
-            dup.persist_status();
+        for (const auto from : tt.from_list) {
+            force_update_status(dup, from);
+            for (const auto to : tt.to_list) {
+                ASSERT_EQ(dup.alter_status(to), tt.wec);
+                if (dup.is_altering()) {
+                    dup.persist_status();
+                }
+            }
         }
-
-        ASSERT_EQ(dup.alter_status(tt.to), tt.wec);
     }
 }
 
@@ -192,19 +221,19 @@ TEST_F(duplication_info_test, encode_and_decode) { test_encode_and_decode(); }
 TEST_F(duplication_info_test, is_valid)
 {
     duplication_info dup(1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
-    ASSERT_FALSE(dup.is_valid());
+    ASSERT_FALSE(dup.is_invalid_status());
 
     dup.start();
     dup.persist_status();
-    ASSERT_TRUE(dup.is_valid());
+    ASSERT_FALSE(dup.is_invalid_status());
 
     ASSERT_EQ(dup.alter_status(duplication_status::DS_PAUSE), ERR_OK);
     dup.persist_status();
-    ASSERT_TRUE(dup.is_valid());
+    ASSERT_FALSE(dup.is_invalid_status());
 
     ASSERT_EQ(dup.alter_status(duplication_status::DS_REMOVED), ERR_OK);
     dup.persist_status();
-    ASSERT_FALSE(dup.is_valid());
+    ASSERT_TRUE(dup.is_invalid_status());
 }
 
 } // namespace replication

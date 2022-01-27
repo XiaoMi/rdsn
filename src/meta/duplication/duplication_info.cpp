@@ -91,11 +91,11 @@ error_code duplication_info::alter_status(duplication_status::type to_status,
         return ERR_BUSY;
     }
 
-    if (!is_valid()) {
+    if (is_invalid_status()) {
         return ERR_OBJECT_NOT_FOUND;
     }
 
-    if (to_status == duplication_status::DS_INIT) {
+    if (!is_valid_alteration(to_status)) {
         return ERR_INVALID_PARAMETERS;
     }
 
