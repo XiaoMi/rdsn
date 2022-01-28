@@ -28,6 +28,7 @@
 
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
@@ -113,13 +114,13 @@ public:
         dup.start();
         dup.persist_status();
 
-        dup.alter_status(duplication_status::DS_PAUSE);
+        dup.alter_status(duplication_status::DS_APP);
         auto json = dup.to_json_blob();
         dup.persist_status();
 
         duplication_info::json_helper copy;
         ASSERT_TRUE(json::json_forwarder<duplication_info::json_helper>::decode(json, copy));
-        ASSERT_EQ(copy.status, duplication_status::DS_PAUSE);
+        ASSERT_EQ(copy.status, duplication_status::DS_APP);
         ASSERT_EQ(copy.create_timestamp_ms, dup.create_timestamp_ms);
         ASSERT_EQ(copy.remote, dup.remote);
 
@@ -127,8 +128,8 @@ public:
             duplication_info::decode_from_blob(1, 1, 4, "/meta_test/101/duplication/1", json);
         ASSERT_TRUE(dup_sptr->equals_to(dup)) << dup_sptr->to_string() << " " << dup.to_string();
 
-        blob new_json = blob::create_from_bytes(
-            boost::replace_all_copy(json.to_string(), "DS_PAUSE", "DS_FOO"));
+        blob new_json =
+            blob::create_from_bytes(boost::replace_all_copy(json.to_string(), "DS_APP", "DS_FOO"));
         ASSERT_FALSE(json::json_forwarder<duplication_info::json_helper>::decode(new_json, copy));
         ASSERT_EQ(copy.status, duplication_status::DS_REMOVED);
     }
@@ -168,8 +169,7 @@ TEST_F(duplication_info_test, alter_status)
           duplication_status::DS_PREPARE,
           duplication_status::DS_APP,
           duplication_status::DS_PAUSE,
-          duplication_status::DS_LOG,
-          duplication_status::DS_REMOVED},
+          duplication_status::DS_LOG},
          {duplication_status::DS_REMOVED},
          ERR_OK},
 
@@ -178,8 +178,7 @@ TEST_F(duplication_info_test, alter_status)
           duplication_status::DS_PREPARE,
           duplication_status::DS_APP,
           duplication_status::DS_PAUSE,
-          duplication_status::DS_LOG,
-          duplication_status::DS_REMOVED},
+          duplication_status::DS_LOG},
          ERR_OBJECT_NOT_FOUND},
 
         {{duplication_status::DS_INIT, duplication_status::DS_PREPARE, duplication_status::DS_APP},
@@ -201,6 +200,7 @@ TEST_F(duplication_info_test, alter_status)
         for (const auto from : tt.from_list) {
             force_update_status(dup, from);
             for (const auto to : tt.to_list) {
+                derror_f("{}=>{}", from, to);
                 ASSERT_EQ(dup.alter_status(to), tt.wec);
                 if (dup.is_altering()) {
                     dup.persist_status();
@@ -227,7 +227,7 @@ TEST_F(duplication_info_test, is_valid)
     dup.persist_status();
     ASSERT_FALSE(dup.is_invalid_status());
 
-    ASSERT_EQ(dup.alter_status(duplication_status::DS_PAUSE), ERR_OK);
+    ASSERT_EQ(dup.alter_status(duplication_status::DS_APP), ERR_OK);
     dup.persist_status();
     ASSERT_FALSE(dup.is_invalid_status());
 

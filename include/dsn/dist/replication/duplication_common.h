@@ -22,6 +22,7 @@
 #include <dsn/cpp/rpc_holder.h>
 #include <dsn/utility/errors.h>
 #include <dsn/dist/replication/replication_types.h>
+#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {

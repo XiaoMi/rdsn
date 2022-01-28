@@ -158,9 +158,10 @@ void duplication_info::persist_status()
 {
     zauto_write_lock l(_lock);
 
-    dassert_dup(_is_altering,
-                this,
-                "impossible, callers never write a duplication that is not altering to meta store");
+    if (!_is_altering) {
+        derror_dup(this, "callers never write a duplication that is not altering to meta store");
+        return;
+    }
     ddebug_dup(this,
                "change duplication status from {} to {} successfully [app_id: {}]",
                duplication_status_to_string(_status),

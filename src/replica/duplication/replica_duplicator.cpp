@@ -125,11 +125,17 @@ void replica_duplicator::update_status_if_needed(duplication_status::type next_s
         _replica->last_durable_decree());
 
     _status = next_status;
+    if (_status == duplication_status::DS_INIT) {
+        return;
+    }
+
     if (_status == duplication_status::DS_PREPARE) {
         prepare_dup();
         return;
     }
 
+    // DS_APP means the replica follower is duplicate checkpoint from master, just return and wait
+    // next loop
     if (_status == duplication_status::DS_APP) {
         return;
     }

@@ -255,7 +255,7 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
         for (const auto &kv2 : app->duplications) {
             dupid_t dup_id = kv2.first;
             const auto &dup = kv2.second;
-            if (!dup->is_valid()) {
+            if (dup->is_invalid_status()) {
                 continue;
             }
 
@@ -295,7 +295,7 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
             }
 
             duplication_info_s_ptr &dup = it2->second;
-            if (!dup->is_valid()) {
+            if (dup->is_invalid_status()) {
                 continue;
             }
             do_update_partition_confirmed(
@@ -476,7 +476,7 @@ void meta_duplication_service::do_restore_duplication(dupid_t dup_id,
                 derror_f("failed to decode json \"{}\" on path {}", json.to_string(), store_path);
                 return; // fail fast
             }
-            if (dup->is_valid()) {
+            if (!dup->is_invalid_status()) {
                 app->duplications[dup->id] = dup;
                 refresh_duplicating_no_lock(app);
 

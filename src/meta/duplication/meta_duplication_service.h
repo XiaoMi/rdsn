@@ -113,7 +113,7 @@ private:
     {
         for (const auto &kv : app->duplications) {
             const auto &dup = kv.second;
-            if (dup->is_valid()) {
+            if (!dup->is_invalid_status()) {
                 app->__set_duplicating(true);
                 return;
             }
