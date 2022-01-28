@@ -38,25 +38,6 @@ typedef std::unordered_map<::dsn::rpc_address, dsn::task_ptr> node_tasks;
 typedef rpc_holder<configuration_update_app_env_request, configuration_update_app_env_response>
     update_app_env_rpc;
 
-typedef rpc_holder<start_bulk_load_request, start_bulk_load_response> start_bulk_load_rpc;
-typedef rpc_holder<bulk_load_request, bulk_load_response> bulk_load_rpc;
-typedef rpc_holder<control_bulk_load_request, control_bulk_load_response> control_bulk_load_rpc;
-typedef rpc_holder<query_bulk_load_request, query_bulk_load_response> query_bulk_load_rpc;
-
-typedef rpc_holder<start_partition_split_request, start_partition_split_response> start_split_rpc;
-typedef rpc_holder<control_split_request, control_split_response> control_split_rpc;
-typedef rpc_holder<query_split_request, query_split_response> query_split_rpc;
-typedef rpc_holder<register_child_request, register_child_response> register_child_rpc;
-typedef rpc_holder<notify_stop_split_request, notify_stop_split_response> notify_stop_split_rpc;
-typedef rpc_holder<query_child_state_request, query_child_state_response> query_child_state_rpc;
-
-typedef rpc_holder<backup_request, backup_response> backup_rpc;
-
-typedef rpc_holder<start_app_manual_compact_request, start_app_manual_compact_response>
-    start_manual_compact_rpc;
-typedef rpc_holder<query_app_manual_compact_request, query_app_manual_compact_response>
-    query_manual_compact_rpc;
-
 class replication_options
 {
 public:
@@ -106,9 +87,6 @@ public:
     int32_t fd_grace_seconds;
 
     int32_t log_private_file_size_mb;
-    int32_t log_private_batch_buffer_kb;
-    int32_t log_private_batch_buffer_count;
-    int32_t log_private_batch_buffer_flush_interval_ms;
     int32_t log_private_reserve_max_size_mb;
     int32_t log_private_reserve_max_time_seconds;
 
@@ -153,32 +131,6 @@ public:
 
 private:
     void sanity_check();
-};
-
-extern const char *partition_status_to_string(partition_status::type status);
-
-class backup_restore_constant
-{
-public:
-    static const std::string FORCE_RESTORE;
-    static const std::string BLOCK_SERVICE_PROVIDER;
-    static const std::string CLUSTER_NAME;
-    static const std::string POLICY_NAME;
-    static const std::string APP_NAME;
-    static const std::string APP_ID;
-    static const std::string BACKUP_ID;
-    static const std::string SKIP_BAD_PARTITION;
-    static const std::string RESTORE_PATH;
-};
-
-class bulk_load_constant
-{
-public:
-    static const std::string BULK_LOAD_INFO;
-    static const int32_t BULK_LOAD_REQUEST_INTERVAL;
-    static const std::string BULK_LOAD_METADATA;
-    static const std::string BULK_LOAD_LOCAL_ROOT_DIR;
-    static const int32_t PROGRESS_FINISHED;
 };
 } // namespace replication
 } // namespace dsn

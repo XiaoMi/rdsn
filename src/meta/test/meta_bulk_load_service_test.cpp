@@ -17,6 +17,7 @@
 
 #include <gtest/gtest.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/dist/replication/replica_envs.h>
 #include <dsn/utility/fail_point.h>
 
 #include "meta_test_base.h"
@@ -52,9 +53,25 @@ public:
                                                     int32_t app_id,
                                                     int32_t partition_count)
     {
+        start_bulk_load_request request;
+        request.app_name = APP_NAME;
+        request.cluster_name = CLUSTER;
+        request.file_provider_type = provider;
+        request.remote_root_path = ROOT_PATH;
+
+        std::map<std::string, std::string> envs;
         std::string hint_msg;
         return bulk_svc().check_bulk_load_request_params(
-            APP_NAME, CLUSTER, provider, ROOT_PATH, app_id, partition_count, hint_msg);
+            request, app_id, partition_count, envs, hint_msg);
+    }
+
+    bool validate_ingest_behind(bool mock_value, const std::string &app_value, bool request_value)
+    {
+        std::map<std::string, std::string> envs;
+        if (mock_value) {
+            envs[replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND] = app_value;
+        }
+        return bulk_svc().validate_ingest_behind(envs, request_value);
     }
 
     error_code control_bulk_load(int32_t app_id,
@@ -113,9 +130,9 @@ public:
         config.pid = gpid(app->app_id, 0);
         config.max_replica_count = 3;
         config.ballot = BALLOT;
-        config.primary = rpc_address("127.0.0.1", 10086);
-        config.secondaries.emplace_back(rpc_address("127.0.0.1", 10085));
-        config.secondaries.emplace_back(rpc_address("127.0.0.1", 10087));
+        config.primary = PRIMARY;
+        config.secondaries.emplace_back(SECONDARY1);
+        config.secondaries.emplace_back(SECONDARY2);
         app->partitions.clear();
         app->partitions.emplace_back(config);
         mock_meta_bulk_load_context(app->app_id, app->partition_count, status);
@@ -146,6 +163,49 @@ public:
         return flag;
     }
 
+    void set_partition_bulk_load_info(const gpid &pid,
+                                      bool ever_ingest_succeed,
+                                      bool use_secondary3 = false)
+    {
+        partition_bulk_load_info &pinfo = bulk_svc()._partition_bulk_load_info[pid];
+        pinfo.status = bulk_load_status::BLS_INGESTING;
+        pinfo.addresses.clear();
+        pinfo.addresses.emplace_back(PRIMARY);
+        pinfo.addresses.emplace_back(SECONDARY1);
+        if (use_secondary3) {
+            pinfo.addresses.emplace_back(SECONDARY3);
+        } else {
+            pinfo.addresses.emplace_back(SECONDARY2);
+        }
+        pinfo.ever_ingest_succeed = ever_ingest_succeed;
+    }
+
+    bool test_check_ever_ingestion(const gpid &pid,
+                                   bool ever_ingest_succeed,
+                                   int32_t secondary_count,
+                                   bool same)
+    {
+        set_partition_bulk_load_info(pid, ever_ingest_succeed);
+        partition_configuration config;
+        config.pid = pid;
+        config.primary = PRIMARY;
+        if (same) {
+            config.secondaries.emplace_back(SECONDARY1);
+            config.secondaries.emplace_back(SECONDARY2);
+        } else {
+            config.secondaries.emplace_back(SECONDARY1);
+            if (secondary_count == 2) {
+                config.secondaries.emplace_back(SECONDARY3);
+            } else if (secondary_count >= 3) {
+                config.secondaries.emplace_back(SECONDARY2);
+                config.secondaries.emplace_back(SECONDARY3);
+            }
+        }
+        auto flag = bulk_svc().check_ever_ingestion_succeed(config, APP_NAME, pid);
+        wait_all();
+        return flag;
+    }
+
     void on_partition_bulk_load_reply(error_code err,
                                       const bulk_load_request &request,
                                       const bulk_load_response &response)
@@ -168,17 +228,32 @@ public:
         return bulk_svc().get_app_bulk_load_status_unlocked(app_id);
     }
 
+    const partition_bulk_load_info &get_partition_bulk_load_info(const gpid &pid)
+    {
+        return bulk_svc()._partition_bulk_load_info[pid];
+    }
+
+    bulk_load_status::type get_partition_bulk_load_status(const gpid &pid)
+    {
+        return bulk_svc().get_partition_bulk_load_status_unlocked(pid);
+    }
+
+    error_code get_app_bulk_load_err(int32_t app_id)
+    {
+        return bulk_svc().get_app_bulk_load_err_unlocked(app_id);
+    }
+
     void test_on_partition_ingestion_reply(ingestion_response &resp,
                                            const gpid &pid,
                                            error_code rpc_err = ERR_OK)
     {
-        bulk_svc().on_partition_ingestion_reply(rpc_err, std::move(resp), APP_NAME, pid, ADDRESS);
+        bulk_svc().on_partition_ingestion_reply(rpc_err, std::move(resp), APP_NAME, pid, PRIMARY);
         wait_all();
     }
 
     void reset_local_bulk_load_states(int32_t app_id, const std::string &app_name)
     {
-        bulk_svc().reset_local_bulk_load_states(app_id, app_name);
+        bulk_svc().reset_local_bulk_load_states(app_id, app_name, true);
     }
 
     int32_t get_app_in_process_count(int32_t app_id)
@@ -365,6 +440,9 @@ public:
         return bulk_svc()._bulk_load_app_id.find(app_id) == bulk_svc()._bulk_load_app_id.end();
     }
 
+    meta_op_status get_op_status() { return _ms->get_op_status(); }
+
+    void unlock_meta_op_status() { return _ms->unlock_meta_op_status(); }
 public:
     int32_t APP_ID = 1;
     std::string APP_NAME = "bulk_load_test";
@@ -373,7 +451,10 @@ public:
     std::string PROVIDER = "local_service";
     std::string ROOT_PATH = "bulk_load_root";
     int64_t BALLOT = 4;
-    rpc_address ADDRESS = rpc_address("127.0.0.1", 10086);
+    const rpc_address PRIMARY = rpc_address("127.0.0.1", 10086);
+    const rpc_address SECONDARY1 = rpc_address("127.0.0.1", 10085);
+    const rpc_address SECONDARY2 = rpc_address("127.0.0.1", 10087);
+    const rpc_address SECONDARY3 = rpc_address("127.0.0.1", 10080);
 };
 
 /// start bulk load unit tests
@@ -381,6 +462,8 @@ TEST_F(bulk_load_service_test, start_bulk_load_with_not_existed_app)
 {
     auto resp = start_bulk_load("table_not_exist");
     ASSERT_EQ(resp.err, ERR_APP_NOT_EXIST);
+    meta_op_status st = get_op_status();
+    ASSERT_EQ(st, meta_op_status::FREE);
 }
 
 TEST_F(bulk_load_service_test, start_bulk_load_with_wrong_provider)
@@ -388,6 +471,8 @@ TEST_F(bulk_load_service_test, start_bulk_load_with_wrong_provider)
     create_app(APP_NAME);
     error_code err = check_start_bulk_load_request_params("wrong_provider", 1, PARTITION_COUNT);
     ASSERT_EQ(err, ERR_INVALID_PARAMETERS);
+    meta_op_status st = get_op_status();
+    ASSERT_EQ(st, meta_op_status::FREE);
 }
 
 TEST_F(bulk_load_service_test, start_bulk_load_succeed)
@@ -400,7 +485,9 @@ TEST_F(bulk_load_service_test, start_bulk_load_succeed)
     auto resp = start_bulk_load(APP_NAME);
     ASSERT_EQ(resp.err, ERR_OK);
     ASSERT_TRUE(app_is_bulk_loading(APP_NAME));
-
+    meta_op_status st = get_op_status();
+    ASSERT_EQ(st, meta_op_status::BULKLOAD);
+    unlock_meta_op_status();
     fail::teardown();
 }
 
@@ -419,6 +506,9 @@ TEST_F(bulk_load_service_test, check_partition_status_app_wrong_test)
     app->status = app_status::AS_DROPPED;
     ASSERT_FALSE(check_partition_status(table_name, false, false, gpid(app->app_id, 0), false));
     ASSERT_TRUE(is_app_bulk_load_states_reset(app->app_id));
+    meta_op_status st = get_op_status();
+    ASSERT_EQ(st, meta_op_status::BULKLOAD);
+    unlock_meta_op_status();
 }
 
 TEST_F(bulk_load_service_test, check_partition_status_test)
@@ -461,6 +551,64 @@ TEST_F(bulk_load_service_test, check_partition_status_test)
     drop_app(APP_NAME);
 }
 
+/// validate ingest behind unit tests
+TEST_F(bulk_load_service_test, validate_ingest_behind_test)
+{
+    struct validate_test
+    {
+        bool mock_value;
+        std::string app_value;
+        bool request_value;
+        bool expected_result;
+    } tests[] = {{true, "true", true, true},
+                 {true, "true", false, true},
+                 {true, "false", true, false},
+                 {true, "false", false, true},
+                 {true, "invalid", true, false},
+                 {true, "invalid", false, true},
+                 {false, "false", true, false},
+                 {false, "false", false, true}};
+    for (const auto &test : tests) {
+        ASSERT_EQ(validate_ingest_behind(test.mock_value, test.app_value, test.request_value),
+                  test.expected_result);
+    }
+}
+
+/// check_ever_ingestion_succeed unit tests
+TEST_F(bulk_load_service_test, check_ever_ingestion_test)
+{
+    create_app(APP_NAME);
+    const auto &app = find_app(APP_NAME);
+    auto pid = gpid(app->app_id, 0);
+    start_bulk_load(APP_NAME);
+    mock_meta_bulk_load_context(app->app_id, app->partition_count, bulk_load_status::BLS_INGESTING);
+    // Test cases:
+    // - ever_ingest_succeed=false
+    // - ever_ingest_succeed=true, secondary address same
+    // - ever_ingest_succeed=true, secondary address different
+    // - ever_ingest_succeed=true, secondary address count is 1
+    // - ever_ingest_succeed=true, secondary address count is 3
+    struct ever_ingestion_test
+    {
+        bool ever_ingest_succeed;
+        int32_t secondary_count;
+        bool same;
+        bool expected_value;
+        bulk_load_status::type expected_bulk_load_status;
+    } tests[]{{false, 2, true, false, bulk_load_status::BLS_INGESTING},
+              {true, 2, true, true, bulk_load_status::BLS_SUCCEED},
+              {true, 2, false, false, bulk_load_status::BLS_INGESTING},
+              {true, 1, false, false, bulk_load_status::BLS_INGESTING},
+              {true, 3, false, false, bulk_load_status::BLS_INGESTING}};
+    for (const auto &test : tests) {
+        ASSERT_EQ(test_check_ever_ingestion(
+                      pid, test.ever_ingest_succeed, test.secondary_count, test.same),
+                  test.expected_value);
+        ASSERT_EQ(get_partition_bulk_load_status(pid), test.expected_bulk_load_status);
+    }
+    drop_app(APP_NAME);
+}
+
 /// control bulk load unit tests
 TEST_F(bulk_load_service_test, control_bulk_load_test)
 {
@@ -497,7 +645,7 @@ TEST_F(bulk_load_service_test, control_bulk_load_test)
 TEST_F(bulk_load_service_test, query_bulk_load_status_with_wrong_state)
 {
     create_app(APP_NAME);
-    ASSERT_EQ(query_bulk_load(APP_NAME), ERR_INVALID_STATE);
+    ASSERT_EQ(query_bulk_load(APP_NAME), ERR_OK);
 }
 
 TEST_F(bulk_load_service_test, query_bulk_load_status_success)
@@ -528,10 +676,12 @@ public:
         _app_id = app->app_id;
         _partition_count = app->partition_count;
         ASSERT_EQ(app->is_bulk_loading, true);
+        ASSERT_EQ(get_op_status(), meta_op_status::BULKLOAD);
     }
 
     void TearDown()
     {
+        unlock_meta_op_status();
         fail::teardown();
         bulk_load_service_test::TearDown();
     }
@@ -660,9 +810,6 @@ public:
 
 public:
     const int32_t _pidx = 0;
-    const rpc_address PRIMARY = rpc_address("127.0.0.1", 10086);
-    const rpc_address SECONDARY1 = rpc_address("127.0.0.1", 10085);
-    const rpc_address SECONDARY2 = rpc_address("127.0.0.1", 10087);
 
     int32_t _app_id;
     int32_t _partition_count;
@@ -678,6 +825,7 @@ TEST_F(bulk_load_process_test, downloading_fs_error)
     test_on_partition_bulk_load_reply(
         _partition_count, bulk_load_status::BLS_DOWNLOADING, ERR_FS_INTERNAL);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_FAILED);
+    ASSERT_EQ(get_app_bulk_load_err(_app_id), ERR_FS_INTERNAL);
 }
 
 TEST_F(bulk_load_process_test, downloading_busy)
@@ -692,6 +840,7 @@ TEST_F(bulk_load_process_test, downloading_corrupt)
     mock_response_progress(ERR_CORRUPTION, false);
     test_on_partition_bulk_load_reply(_partition_count, bulk_load_status::BLS_DOWNLOADING);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_FAILED);
+    ASSERT_EQ(get_app_bulk_load_err(_app_id), ERR_CORRUPTION);
 }
 
 TEST_F(bulk_load_process_test, downloading_report_metadata)
@@ -751,6 +900,35 @@ TEST_F(bulk_load_process_test, ingestion_error)
     test_on_partition_bulk_load_reply(_partition_count, bulk_load_status::BLS_INGESTING);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_FAILED);
     ASSERT_EQ(get_app_ingesting_count(_app_id), 2);
+    ASSERT_EQ(get_app_bulk_load_err(_app_id), ERR_INGESTION_FAILED);
+}
+
+TEST_F(bulk_load_process_test, ingestion_one_succeed)
+{
+    mock_response_ingestion_status(ingestion_status::IS_SUCCEED, 4);
+    test_on_partition_bulk_load_reply(_partition_count, bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_ingesting_count(_app_id), 3);
+    const auto &pinfo = get_partition_bulk_load_info(gpid(_app_id, _pidx));
+    ASSERT_EQ(pinfo.status, bulk_load_status::BLS_SUCCEED);
+    ASSERT_TRUE(pinfo.ever_ingest_succeed);
+    ASSERT_EQ(pinfo.addresses.size(), 3);
+}
+
+TEST_F(bulk_load_process_test, ingestion_one_succeed_update)
+{
+    const auto pid = gpid(_app_id, _pidx);
+    mock_response_ingestion_status(ingestion_status::IS_SUCCEED, 4);
+    set_partition_bulk_load_info(pid, true, true);
+    test_on_partition_bulk_load_reply(_partition_count, bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_INGESTING);
+    ASSERT_EQ(get_app_ingesting_count(_app_id), 3);
+    const auto &pinfo = get_partition_bulk_load_info(pid);
+    ASSERT_EQ(pinfo.status, bulk_load_status::BLS_SUCCEED);
+    ASSERT_TRUE(pinfo.ever_ingest_succeed);
+    ASSERT_EQ(pinfo.addresses.size(), 3);
+    ASSERT_EQ(std::find(pinfo.addresses.begin(), pinfo.addresses.end(), SECONDARY3),
+              pinfo.addresses.end());
 }
 
 TEST_F(bulk_load_process_test, normal_succeed)
@@ -759,6 +937,7 @@ TEST_F(bulk_load_process_test, normal_succeed)
     test_on_partition_bulk_load_reply(1, bulk_load_status::BLS_INGESTING);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_SUCCEED);
     ASSERT_EQ(get_app_ingesting_count(_app_id), 0);
+    ASSERT_EQ(get_app_bulk_load_err(_app_id), ERR_OK);
 }
 
 TEST_F(bulk_load_process_test, succeed_not_all_finished)
@@ -766,6 +945,7 @@ TEST_F(bulk_load_process_test, succeed_not_all_finished)
     mock_response_cleaned_up_flag(false, bulk_load_status::BLS_SUCCEED);
     test_on_partition_bulk_load_reply(_partition_count, bulk_load_status::BLS_SUCCEED);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_SUCCEED);
+    ASSERT_EQ(get_app_bulk_load_err(_app_id), ERR_OK);
 }
 
 TEST_F(bulk_load_process_test, succeed_all_finished)
@@ -773,6 +953,7 @@ TEST_F(bulk_load_process_test, succeed_all_finished)
     mock_response_cleaned_up_flag(true, bulk_load_status::BLS_SUCCEED);
     test_on_partition_bulk_load_reply(1, bulk_load_status::BLS_SUCCEED);
     ASSERT_FALSE(app_is_bulk_loading(APP_NAME));
+    ASSERT_EQ(get_app_bulk_load_err(_app_id), ERR_OK);
 }
 
 TEST_F(bulk_load_process_test, cancel_not_all_finished)
@@ -794,6 +975,7 @@ TEST_F(bulk_load_process_test, failed_not_all_finished)
     mock_response_cleaned_up_flag(false, bulk_load_status::BLS_FAILED);
     test_on_partition_bulk_load_reply(_partition_count, bulk_load_status::BLS_FAILED);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_FAILED);
+    ASSERT_EQ(get_app_bulk_load_err(_app_id), ERR_OK);
 }
 
 TEST_F(bulk_load_process_test, failed_all_finished)
@@ -801,6 +983,7 @@ TEST_F(bulk_load_process_test, failed_all_finished)
     mock_response_cleaned_up_flag(true, bulk_load_status::BLS_FAILED);
     test_on_partition_bulk_load_reply(1, bulk_load_status::BLS_FAILED);
     ASSERT_FALSE(app_is_bulk_loading(APP_NAME));
+    ASSERT_EQ(get_app_bulk_load_err(_app_id), ERR_OK);
 }
 
 TEST_F(bulk_load_process_test, pausing)
@@ -849,6 +1032,7 @@ TEST_F(bulk_load_process_test, rollback_count_exceed)
         _partition_count, bulk_load_status::BLS_DOWNLOADING, ERR_INVALID_STATE, true);
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_FAILED);
     ASSERT_EQ(get_app_in_process_count(_app_id), _partition_count);
+    ASSERT_EQ(get_app_bulk_load_err(_app_id), ERR_RETRY_EXHAUSTED);
 }
 
 TEST_F(bulk_load_process_test, response_ingestion_error)
@@ -903,6 +1087,7 @@ TEST_F(bulk_load_process_test, ingest_wrong)
     wait_all();
     ASSERT_EQ(get_app_bulk_load_status(_app_id), bulk_load_status::BLS_FAILED);
     ASSERT_EQ(get_app_ingesting_count(_app_id), 3);
+    ASSERT_EQ(get_app_bulk_load_err(_app_id), ERR_INGESTION_FAILED);
 }
 
 TEST_F(bulk_load_process_test, ingest_succeed)
@@ -973,6 +1158,9 @@ public:
         ainfo.remote_root_path = ROOT_PATH;
         ainfo.partition_count = partition_count;
         ainfo.status = status;
+        ainfo.ingest_behind = false;
+        ainfo.is_ever_ingesting = false;
+        ainfo.bulk_load_err = ERR_OK;
         _app_bulk_load_info_map[app_id] = ainfo;
     }
 
@@ -1079,7 +1267,8 @@ TEST_F(bulk_load_failover_test, sync_bulk_load)
 }
 
 /// try_to_continue_bulk_load unit test
-// partition_count from bulk load is SYNC_PARTITION_COUNT, app partition_count is PARTITION_COUNT
+// partition_count from bulk load is SYNC_PARTITION_COUNT, app partition_count is
+// PARTITION_COUNT
 TEST_F(bulk_load_failover_test, app_info_inconsistency)
 {
     prepare_bulk_load_structures(SYNC_APP_ID,
