@@ -381,7 +381,6 @@ TEST_F(meta_duplication_service_test, dup_op_upon_unavail_app)
         {test_app, ERR_OK},
     };
 
-    int n = 0;
     for (auto tt : tests) {
         ASSERT_EQ(query_dup_info(tt.app).err, tt.wec);
         ASSERT_EQ(create_dup(tt.app).err, tt.wec);
