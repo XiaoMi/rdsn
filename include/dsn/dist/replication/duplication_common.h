@@ -22,7 +22,6 @@
 #include <dsn/cpp/rpc_holder.h>
 #include <dsn/utility/errors.h>
 #include <dsn/dist/replication/replication_types.h>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
@@ -40,7 +39,7 @@ extern const char *duplication_fail_mode_to_string(duplication_fail_mode::type);
 
 inline bool is_duplication_status_invalid(duplication_status::type status)
 {
-    return status == duplication_status::DS_REMOVED;
+    return status == duplication_status::DS_INIT || status == duplication_status::DS_REMOVED;
 }
 
 /// Returns the cluster id of url specified in the duplication-group section

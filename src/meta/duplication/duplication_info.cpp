@@ -34,10 +34,10 @@ namespace replication {
     static const std::map<std::string, duplication_status::type>
         _duplication_status_NAMES_TO_VALUES = {
             {"DS_INIT", duplication_status::DS_INIT},
-            {"DS_PAUSE", duplication_status::DS_PAUSE},
             {"DS_PREPARE", duplication_status::DS_PREPARE},
             {"DS_APP", duplication_status::DS_APP},
             {"DS_LOG", duplication_status::DS_LOG},
+            {"DS_PAUSE", duplication_status::DS_PAUSE},
             {"DS_REMOVED", duplication_status::DS_REMOVED},
         };
 
@@ -91,7 +91,7 @@ error_code duplication_info::alter_status(duplication_status::type to_status,
         return ERR_BUSY;
     }
 
-    if (is_invalid_status()) {
+    if (_status == duplication_status::DS_REMOVED) {
         return ERR_OBJECT_NOT_FOUND;
     }
 

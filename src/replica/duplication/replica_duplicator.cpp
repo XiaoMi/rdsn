@@ -110,6 +110,12 @@ std::string replica_duplicator::to_string() const
 
 void replica_duplicator::update_status_if_needed(duplication_status::type next_status)
 {
+    if (is_duplication_status_invalid(next_status)) {
+        derror_replica("unexpected duplication status ({})",
+                       duplication_status_to_string(next_status));
+        return;
+    }
+
     // DS_PREPARE means replica is checkpointing, it may need trigger multi time to catch
     // _start_point_decree of the plog
     if (_status == next_status && next_status != duplication_status::DS_PREPARE) {
@@ -125,10 +131,6 @@ void replica_duplicator::update_status_if_needed(duplication_status::type next_s
         _replica->last_durable_decree());
 
     _status = next_status;
-    if (_status == duplication_status::DS_INIT) {
-        return;
-    }
-
     if (_status == duplication_status::DS_PREPARE) {
         prepare_dup();
         return;
@@ -149,9 +151,6 @@ void replica_duplicator::update_status_if_needed(duplication_status::type next_s
         pause_dup_log();
         return;
     }
-
-    derror_replica("unexpected duplication status ({})", duplication_status_to_string(next_status));
-    // _status keeps unchanged
 }
 
 replica_duplicator::~replica_duplicator()

@@ -28,7 +28,6 @@
 
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 namespace replication {
@@ -200,7 +199,6 @@ TEST_F(duplication_info_test, alter_status)
         for (const auto from : tt.from_list) {
             force_update_status(dup, from);
             for (const auto to : tt.to_list) {
-                derror_f("{}=>{}", from, to);
                 ASSERT_EQ(dup.alter_status(to), tt.wec);
                 if (dup.is_altering()) {
                     dup.persist_status();
