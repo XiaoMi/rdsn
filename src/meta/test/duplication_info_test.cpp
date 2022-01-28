@@ -127,12 +127,13 @@ public:
 
     static void test_encode_and_decode()
     {
+        dsn_run_config("config-test.ini", false);
         duplication_info dup(1,
                              1,
                              "temp",
                              4,
                              0,
-                             "dsn://slave-cluster/temp",
+                             "slave-cluster",
                              std::vector<rpc_address>(),
                              "/meta_test/101/duplication/1");
         dup.start();
