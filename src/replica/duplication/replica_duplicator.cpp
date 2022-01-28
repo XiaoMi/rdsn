@@ -39,7 +39,7 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     auto it = ent.progress.find(get_gpid().get_partition_index());
     if (it->second == invalid_decree) {
         // keep current max committed_decree as start point.
-        // todo(jiashuo1) _start_point_decree hasn't not ready to persist zk, so if master restart,
+        // todo(jiashuo1) _start_point_decree hasn't be ready to persist zk, so if master restart,
         // the value will be reset 0
         _start_point_decree = _progress.last_decree = _replica->private_log()->max_commit_on_disk();
     } else {
