@@ -226,7 +226,7 @@ TEST_F(duplication_info_test, encode_and_decode) { test_encode_and_decode(); }
 TEST_F(duplication_info_test, is_valid)
 {
     duplication_info dup(1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
-    ASSERT_FALSE(dup.is_invalid_status());
+    ASSERT_TRUE(dup.is_invalid_status());
 
     dup.start();
     dup.persist_status();
