@@ -30,9 +30,9 @@ namespace cpp dsn.replication
 enum duplication_status
 {
     DS_INIT = 0,
-    DS_PREPARE,
-    DS_APP,
-    DS_LOG,
+    DS_PREPARE,// replica prepare latest checkpoint for follower
+    DS_APP,// follower start duplicate checkpoint
+    DS_LOG,// master start batch send plog to follower
     DS_PAUSE,
     DS_REMOVED,
 }
