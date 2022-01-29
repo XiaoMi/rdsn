@@ -27,13 +27,6 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     endif ()
 endif ()
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    # require at least gcc 5.4.0
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.4.0)
-        message(FATAL_ERROR "GCC version must be at least 5.4.0!")
-    endif ()
-endif ()
-
 if (APPLE)
     if (${MACOS_OPENSSL_ROOT_DIR} STREQUAL "")
         message(FATAL_ERROR "OpenSSL root should be set for MacOS")
