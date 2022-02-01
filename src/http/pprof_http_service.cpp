@@ -36,6 +36,7 @@
 #include <gperftools/heap-profiler.h>
 #include <gperftools/malloc_extension.h>
 #include <gperftools/profiler.h>
+#include <fmt/chrono.h>
 
 namespace dsn {
 
@@ -161,7 +162,7 @@ static int extract_symbols_from_binary(std::map<uintptr_t, std::string> &addr_ma
         addr_map[lib_info.end_addr] = std::string();
     }
     tm.stop();
-    ddebug("Loaded %s in %zdms", lib_info.path.c_str(), tm.m_elapsed());
+    ddebug_f("Loaded {} in {}ms", lib_info.path.c_str(), tm.m_elapsed());
     return 0;
 }
 
@@ -258,11 +259,11 @@ static void load_symbols()
     }
     tm2.stop();
     if (num_removed) {
-        ddebug("Removed %zd entries in %zdms", num_removed, tm2.m_elapsed());
+        ddebug_f("Removed {} entries in {}ms", num_removed, tm2.m_elapsed());
     }
 
     tm.stop();
-    ddebug("Loaded all symbols in %zdms", tm.m_elapsed());
+    ddebug_f("Loaded all symbols in {}ms", tm.m_elapsed());
 }
 
 static void find_symbols(std::string *out, std::vector<uintptr_t> &addr_list)

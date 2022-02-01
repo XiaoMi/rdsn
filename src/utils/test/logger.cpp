@@ -86,20 +86,17 @@ static void finish_test_dir()
     rmdir(dir);
 }
 
-void log_print(logging_provider *logger, const char *fmt, ...)
+void log_print(logging_provider *logger, const char *str)
 {
-    va_list vl;
-    va_start(vl, fmt);
-    logger->dsn_logv(__FILE__, __FUNCTION__, __LINE__, LOG_LEVEL_INFORMATION, fmt, vl);
-    va_end(vl);
+    logger->dsn_log(__FILE__, __FUNCTION__, __LINE__, LOG_LEVEL_INFORMATION, str);
 }
 
 TEST(tools_common, simple_logger)
 {
     // cases for print_header
     screen_logger *logger = new screen_logger("./");
-    log_print(logger, "%s", "test_print");
-    std::thread t([](screen_logger *lg) { log_print(lg, "%s", "test_print"); }, logger);
+    log_print(logger, "test_print");
+    std::thread t([](screen_logger *lg) { log_print(lg, "test_print"); }, logger);
     t.join();
 
     logger->flush();
@@ -108,13 +105,13 @@ TEST(tools_common, simple_logger)
     prepare_test_dir();
     // create multiple files
     for (unsigned int i = 0; i < simple_logger_gc_gap + 10; ++i) {
-        simple_logger *logger = new simple_logger("./");
+        simple_logger *logger2 = new simple_logger("./");
         // in this case stdout is useless
-        for (unsigned int i = 0; i != 1000; ++i)
-            log_print(logger, "%s", "test_print");
-        logger->flush();
+        for (unsigned int j = 0; j != 1000; ++j)
+            log_print(logger2, "test_print");
+        logger2->flush();
 
-        delete logger;
+        delete logger2;
     }
 
     std::vector<int> index;
