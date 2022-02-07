@@ -71,9 +71,8 @@ inline bool is_cluster_id_configured(uint8_t cid)
 }
 
 // todo(jiashuo1) it will be filled more constants
-class duplication_constants
+struct duplication_constants
 {
-public:
     const static std::string kClustersSectionKey;
 };
 

@@ -46,7 +46,7 @@ public:
                      int32_t partition_count,
                      uint64_t create_now_ms,
                      std::string follower_cluster_name,
-                     std::vector<rpc_address> follower_cluster_metas,
+                     std::vector<rpc_address> &&follower_cluster_metas,
                      std::string meta_store_path)
         : id(dupid),
           app_id(appid),

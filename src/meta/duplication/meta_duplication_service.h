@@ -103,7 +103,7 @@ private:
     // Thread-Safe
     std::shared_ptr<duplication_info>
     new_dup_from_init(const std::string &follower_cluster_name,
-                      const std::vector<rpc_address> &follower_cluster_metas,
+                      std::vector<rpc_address> &&follower_cluster_metas,
                       std::shared_ptr<app_state> &app) const;
 
     // get lock to protect access of app table
