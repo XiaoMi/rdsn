@@ -2033,17 +2033,19 @@ void replica_stub::open_replica(const app_info &app,
     }
 
     if (rep == nullptr) {
-        // NOTICE: if dir m.n.pegasus does not exist, or .app-info does not exist,but the ballot > 0 
+        // NOTICE: if dir m.n.pegasus does not exist, or .app-info does not exist,but the ballot > 0
         // or the last_committed_decree > 0, start replica will will fail
         if ((req2 != nullptr) && (req2->info.is_stateful) &&
-            (req2->config.ballot > 0 || req2->config.last_committed_decree > 0)){
-                dassert(false, "%s@%s: cannot load replica(%s.%s), ballot = %" PRId64 ", last_committed_decree = %" PRId64 ", but it does not existed!",
-                        id.to_string(),
-                        _primary_address_str,
-                        id.to_string(),
-                        app.app_type.c_str(),
-                        req2->config.ballot,
-                        req2->config.last_committed_decree);
+            (req2->config.ballot > 0 || req2->config.last_committed_decree > 0)) {
+            dassert(false, 
+                    "%s@%s: cannot load replica(%s.%s), ballot = %" PRId64
+                    ", last_committed_decree = %" PRId64 ", but it does not existed!",
+                    id.to_string(),
+                    _primary_address_str,
+                    id.to_string(),
+                    app.app_type.c_str(),
+                    req2->config.ballot,
+                    req2->config.last_committed_decree);
         }
 
         // NOTICE: only new_replica_group's assign_primary will execute this; if server restart when
