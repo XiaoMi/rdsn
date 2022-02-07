@@ -146,6 +146,7 @@ struct create_app_options
     4:string           app_type;
     5:bool             is_stateful;
     6:map<string, string>  envs;
+    7:optional dsn.layer2.duplication_options duplication;
 }
 
 struct configuration_create_app_request

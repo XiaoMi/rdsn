@@ -74,6 +74,7 @@ inline bool is_cluster_id_configured(uint8_t cid)
 struct duplication_constants
 {
     const static std::string kClustersSectionName;
+    const static std::string kDuplicationMasterFlag;
 };
 
 } // namespace replication

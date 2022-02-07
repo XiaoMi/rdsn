@@ -42,6 +42,8 @@ class configuration_query_by_index_request;
 
 class configuration_query_by_index_response;
 
+class duplication_options;
+
 class app_info;
 
 typedef struct _partition_configuration__isset
@@ -276,6 +278,64 @@ inline std::ostream &operator<<(std::ostream &out, const configuration_query_by_
     return out;
 }
 
+typedef struct _duplication_options__isset
+{
+    _duplication_options__isset() : app_name(false), cluster_name(false), metas(false) {}
+    bool app_name : 1;
+    bool cluster_name : 1;
+    bool metas : 1;
+} _duplication_options__isset;
+
+class duplication_options
+{
+public:
+    duplication_options(const duplication_options &);
+    duplication_options(duplication_options &&);
+    duplication_options &operator=(const duplication_options &);
+    duplication_options &operator=(duplication_options &&);
+    duplication_options() : app_name(), cluster_name() {}
+
+    virtual ~duplication_options() throw();
+    std::string app_name;
+    std::string cluster_name;
+    std::vector<::dsn::rpc_address> metas;
+
+    _duplication_options__isset __isset;
+
+    void __set_app_name(const std::string &val);
+
+    void __set_cluster_name(const std::string &val);
+
+    void __set_metas(const std::vector<::dsn::rpc_address> &val);
+
+    bool operator==(const duplication_options &rhs) const
+    {
+        if (!(app_name == rhs.app_name))
+            return false;
+        if (!(cluster_name == rhs.cluster_name))
+            return false;
+        if (!(metas == rhs.metas))
+            return false;
+        return true;
+    }
+    bool operator!=(const duplication_options &rhs) const { return !(*this == rhs); }
+
+    bool operator<(const duplication_options &) const;
+
+    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
+    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    virtual void printTo(std::ostream &out) const;
+};
+
+void swap(duplication_options &a, duplication_options &b);
+
+inline std::ostream &operator<<(std::ostream &out, const duplication_options &obj)
+{
+    obj.printTo(out);
+    return out;
+}
+
 typedef struct _app_info__isset
 {
     _app_info__isset()
@@ -290,9 +350,10 @@ typedef struct _app_info__isset
           expire_second(false),
           create_second(false),
           drop_second(false),
-          duplicating(false),
+          duplicating(true),
           init_partition_count(true),
-          is_bulk_loading(true)
+          is_bulk_loading(true),
+          dup_options(false)
     {
     }
     bool status : 1;
@@ -309,6 +370,7 @@ typedef struct _app_info__isset
     bool duplicating : 1;
     bool init_partition_count : 1;
     bool is_bulk_loading : 1;
+    bool dup_options : 1;
 } _app_info__isset;
 
 class app_info
@@ -329,7 +391,7 @@ public:
           expire_second(0),
           create_second(0),
           drop_second(0),
-          duplicating(0),
+          duplicating(false),
           init_partition_count(-1),
           is_bulk_loading(false)
     {
@@ -351,6 +413,7 @@ public:
     bool duplicating;
     int32_t init_partition_count;
     bool is_bulk_loading;
+    duplication_options dup_options;
 
     _app_info__isset __isset;
 
@@ -381,6 +444,8 @@ public:
     void __set_init_partition_count(const int32_t val);
 
     void __set_is_bulk_loading(const bool val);
+
+    void __set_dup_options(const duplication_options &val);
 
     bool operator==(const app_info &rhs) const
     {
@@ -415,6 +480,10 @@ public:
         if (__isset.is_bulk_loading != rhs.__isset.is_bulk_loading)
             return false;
         else if (__isset.is_bulk_loading && !(is_bulk_loading == rhs.is_bulk_loading))
+            return false;
+        if (__isset.dup_options != rhs.__isset.dup_options)
+            return false;
+        else if (__isset.dup_options && !(dup_options == rhs.dup_options))
             return false;
         return true;
     }

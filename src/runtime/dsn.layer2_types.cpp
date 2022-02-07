@@ -691,6 +691,165 @@ void configuration_query_by_index_response::printTo(std::ostream &out) const
     out << ")";
 }
 
+duplication_options::~duplication_options() throw() {}
+
+void duplication_options::__set_app_name(const std::string &val) { this->app_name = val; }
+
+void duplication_options::__set_cluster_name(const std::string &val) { this->cluster_name = val; }
+
+void duplication_options::__set_metas(const std::vector<::dsn::rpc_address> &val)
+{
+    this->metas = val;
+}
+
+uint32_t duplication_options::read(::apache::thrift::protocol::TProtocol *iprot)
+{
+
+    apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+    uint32_t xfer = 0;
+    std::string fname;
+    ::apache::thrift::protocol::TType ftype;
+    int16_t fid;
+
+    xfer += iprot->readStructBegin(fname);
+
+    using ::apache::thrift::protocol::TProtocolException;
+
+    while (true) {
+        xfer += iprot->readFieldBegin(fname, ftype, fid);
+        if (ftype == ::apache::thrift::protocol::T_STOP) {
+            break;
+        }
+        switch (fid) {
+        case 1:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->app_name);
+                this->__isset.app_name = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 2:
+            if (ftype == ::apache::thrift::protocol::T_STRING) {
+                xfer += iprot->readString(this->cluster_name);
+                this->__isset.cluster_name = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        case 3:
+            if (ftype == ::apache::thrift::protocol::T_LIST) {
+                {
+                    this->metas.clear();
+                    uint32_t _size36;
+                    ::apache::thrift::protocol::TType _etype39;
+                    xfer += iprot->readListBegin(_etype39, _size36);
+                    this->metas.resize(_size36);
+                    uint32_t _i40;
+                    for (_i40 = 0; _i40 < _size36; ++_i40) {
+                        xfer += this->metas[_i40].read(iprot);
+                    }
+                    xfer += iprot->readListEnd();
+                }
+                this->__isset.metas = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
+        default:
+            xfer += iprot->skip(ftype);
+            break;
+        }
+        xfer += iprot->readFieldEnd();
+    }
+
+    xfer += iprot->readStructEnd();
+
+    return xfer;
+}
+
+uint32_t duplication_options::write(::apache::thrift::protocol::TProtocol *oprot) const
+{
+    uint32_t xfer = 0;
+    apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+    xfer += oprot->writeStructBegin("duplication_options");
+
+    xfer += oprot->writeFieldBegin("app_name", ::apache::thrift::protocol::T_STRING, 1);
+    xfer += oprot->writeString(this->app_name);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("cluster_name", ::apache::thrift::protocol::T_STRING, 2);
+    xfer += oprot->writeString(this->cluster_name);
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldBegin("metas", ::apache::thrift::protocol::T_LIST, 3);
+    {
+        xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
+                                      static_cast<uint32_t>(this->metas.size()));
+        std::vector<::dsn::rpc_address>::const_iterator _iter41;
+        for (_iter41 = this->metas.begin(); _iter41 != this->metas.end(); ++_iter41) {
+            xfer += (*_iter41).write(oprot);
+        }
+        xfer += oprot->writeListEnd();
+    }
+    xfer += oprot->writeFieldEnd();
+
+    xfer += oprot->writeFieldStop();
+    xfer += oprot->writeStructEnd();
+    return xfer;
+}
+
+void swap(duplication_options &a, duplication_options &b)
+{
+    using ::std::swap;
+    swap(a.app_name, b.app_name);
+    swap(a.cluster_name, b.cluster_name);
+    swap(a.metas, b.metas);
+    swap(a.__isset, b.__isset);
+}
+
+duplication_options::duplication_options(const duplication_options &other42)
+{
+    app_name = other42.app_name;
+    cluster_name = other42.cluster_name;
+    metas = other42.metas;
+    __isset = other42.__isset;
+}
+duplication_options::duplication_options(duplication_options &&other43)
+{
+    app_name = std::move(other43.app_name);
+    cluster_name = std::move(other43.cluster_name);
+    metas = std::move(other43.metas);
+    __isset = std::move(other43.__isset);
+}
+duplication_options &duplication_options::operator=(const duplication_options &other44)
+{
+    app_name = other44.app_name;
+    cluster_name = other44.cluster_name;
+    metas = other44.metas;
+    __isset = other44.__isset;
+    return *this;
+}
+duplication_options &duplication_options::operator=(duplication_options &&other45)
+{
+    app_name = std::move(other45.app_name);
+    cluster_name = std::move(other45.cluster_name);
+    metas = std::move(other45.metas);
+    __isset = std::move(other45.__isset);
+    return *this;
+}
+void duplication_options::printTo(std::ostream &out) const
+{
+    using ::apache::thrift::to_string;
+    out << "duplication_options(";
+    out << "app_name=" << to_string(app_name);
+    out << ", "
+        << "cluster_name=" << to_string(cluster_name);
+    out << ", "
+        << "metas=" << to_string(metas);
+    out << ")";
+}
+
 app_info::~app_info() throw() {}
 
 void app_info::__set_status(const app_status::type val) { this->status = val; }
@@ -729,6 +888,12 @@ void app_info::__set_is_bulk_loading(const bool val)
     __isset.is_bulk_loading = true;
 }
 
+void app_info::__set_dup_options(const duplication_options &val)
+{
+    this->dup_options = val;
+    __isset.dup_options = true;
+}
+
 uint32_t app_info::read(::apache::thrift::protocol::TProtocol *iprot)
 {
 
@@ -750,9 +915,9 @@ uint32_t app_info::read(::apache::thrift::protocol::TProtocol *iprot)
         switch (fid) {
         case 1:
             if (ftype == ::apache::thrift::protocol::T_I32) {
-                int32_t ecast36;
-                xfer += iprot->readI32(ecast36);
-                this->status = (app_status::type)ecast36;
+                int32_t ecast46;
+                xfer += iprot->readI32(ecast46);
+                this->status = (app_status::type)ecast46;
                 this->__isset.status = true;
             } else {
                 xfer += iprot->skip(ftype);
@@ -794,16 +959,16 @@ uint32_t app_info::read(::apache::thrift::protocol::TProtocol *iprot)
             if (ftype == ::apache::thrift::protocol::T_MAP) {
                 {
                     this->envs.clear();
-                    uint32_t _size37;
-                    ::apache::thrift::protocol::TType _ktype38;
-                    ::apache::thrift::protocol::TType _vtype39;
-                    xfer += iprot->readMapBegin(_ktype38, _vtype39, _size37);
-                    uint32_t _i41;
-                    for (_i41 = 0; _i41 < _size37; ++_i41) {
-                        std::string _key42;
-                        xfer += iprot->readString(_key42);
-                        std::string &_val43 = this->envs[_key42];
-                        xfer += iprot->readString(_val43);
+                    uint32_t _size47;
+                    ::apache::thrift::protocol::TType _ktype48;
+                    ::apache::thrift::protocol::TType _vtype49;
+                    xfer += iprot->readMapBegin(_ktype48, _vtype49, _size47);
+                    uint32_t _i51;
+                    for (_i51 = 0; _i51 < _size47; ++_i51) {
+                        std::string _key52;
+                        xfer += iprot->readString(_key52);
+                        std::string &_val53 = this->envs[_key52];
+                        xfer += iprot->readString(_val53);
                     }
                     xfer += iprot->readMapEnd();
                 }
@@ -876,6 +1041,14 @@ uint32_t app_info::read(::apache::thrift::protocol::TProtocol *iprot)
                 xfer += iprot->skip(ftype);
             }
             break;
+        case 15:
+            if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+                xfer += this->dup_options.read(iprot);
+                this->__isset.dup_options = true;
+            } else {
+                xfer += iprot->skip(ftype);
+            }
+            break;
         default:
             xfer += iprot->skip(ftype);
             break;
@@ -919,10 +1092,10 @@ uint32_t app_info::write(::apache::thrift::protocol::TProtocol *oprot) const
         xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING,
                                      ::apache::thrift::protocol::T_STRING,
                                      static_cast<uint32_t>(this->envs.size()));
-        std::map<std::string, std::string>::const_iterator _iter44;
-        for (_iter44 = this->envs.begin(); _iter44 != this->envs.end(); ++_iter44) {
-            xfer += oprot->writeString(_iter44->first);
-            xfer += oprot->writeString(_iter44->second);
+        std::map<std::string, std::string>::const_iterator _iter54;
+        for (_iter54 = this->envs.begin(); _iter54 != this->envs.end(); ++_iter54) {
+            xfer += oprot->writeString(_iter54->first);
+            xfer += oprot->writeString(_iter54->second);
         }
         xfer += oprot->writeMapEnd();
     }
@@ -962,6 +1135,11 @@ uint32_t app_info::write(::apache::thrift::protocol::TProtocol *oprot) const
         xfer += oprot->writeBool(this->is_bulk_loading);
         xfer += oprot->writeFieldEnd();
     }
+    if (this->__isset.dup_options) {
+        xfer += oprot->writeFieldBegin("dup_options", ::apache::thrift::protocol::T_STRUCT, 15);
+        xfer += this->dup_options.write(oprot);
+        xfer += oprot->writeFieldEnd();
+    }
     xfer += oprot->writeFieldStop();
     xfer += oprot->writeStructEnd();
     return xfer;
@@ -984,81 +1162,86 @@ void swap(app_info &a, app_info &b)
     swap(a.duplicating, b.duplicating);
     swap(a.init_partition_count, b.init_partition_count);
     swap(a.is_bulk_loading, b.is_bulk_loading);
+    swap(a.dup_options, b.dup_options);
     swap(a.__isset, b.__isset);
 }
 
-app_info::app_info(const app_info &other45)
+app_info::app_info(const app_info &other55)
 {
-    status = other45.status;
-    app_type = other45.app_type;
-    app_name = other45.app_name;
-    app_id = other45.app_id;
-    partition_count = other45.partition_count;
-    envs = other45.envs;
-    is_stateful = other45.is_stateful;
-    max_replica_count = other45.max_replica_count;
-    expire_second = other45.expire_second;
-    create_second = other45.create_second;
-    drop_second = other45.drop_second;
-    duplicating = other45.duplicating;
-    init_partition_count = other45.init_partition_count;
-    is_bulk_loading = other45.is_bulk_loading;
-    __isset = other45.__isset;
+    status = other55.status;
+    app_type = other55.app_type;
+    app_name = other55.app_name;
+    app_id = other55.app_id;
+    partition_count = other55.partition_count;
+    envs = other55.envs;
+    is_stateful = other55.is_stateful;
+    max_replica_count = other55.max_replica_count;
+    expire_second = other55.expire_second;
+    create_second = other55.create_second;
+    drop_second = other55.drop_second;
+    duplicating = other55.duplicating;
+    init_partition_count = other55.init_partition_count;
+    is_bulk_loading = other55.is_bulk_loading;
+    dup_options = other55.dup_options;
+    __isset = other55.__isset;
 }
-app_info::app_info(app_info &&other46)
+app_info::app_info(app_info &&other56)
 {
-    status = std::move(other46.status);
-    app_type = std::move(other46.app_type);
-    app_name = std::move(other46.app_name);
-    app_id = std::move(other46.app_id);
-    partition_count = std::move(other46.partition_count);
-    envs = std::move(other46.envs);
-    is_stateful = std::move(other46.is_stateful);
-    max_replica_count = std::move(other46.max_replica_count);
-    expire_second = std::move(other46.expire_second);
-    create_second = std::move(other46.create_second);
-    drop_second = std::move(other46.drop_second);
-    duplicating = std::move(other46.duplicating);
-    init_partition_count = std::move(other46.init_partition_count);
-    is_bulk_loading = std::move(other46.is_bulk_loading);
-    __isset = std::move(other46.__isset);
+    status = std::move(other56.status);
+    app_type = std::move(other56.app_type);
+    app_name = std::move(other56.app_name);
+    app_id = std::move(other56.app_id);
+    partition_count = std::move(other56.partition_count);
+    envs = std::move(other56.envs);
+    is_stateful = std::move(other56.is_stateful);
+    max_replica_count = std::move(other56.max_replica_count);
+    expire_second = std::move(other56.expire_second);
+    create_second = std::move(other56.create_second);
+    drop_second = std::move(other56.drop_second);
+    duplicating = std::move(other56.duplicating);
+    init_partition_count = std::move(other56.init_partition_count);
+    is_bulk_loading = std::move(other56.is_bulk_loading);
+    dup_options = std::move(other56.dup_options);
+    __isset = std::move(other56.__isset);
 }
-app_info &app_info::operator=(const app_info &other47)
+app_info &app_info::operator=(const app_info &other57)
 {
-    status = other47.status;
-    app_type = other47.app_type;
-    app_name = other47.app_name;
-    app_id = other47.app_id;
-    partition_count = other47.partition_count;
-    envs = other47.envs;
-    is_stateful = other47.is_stateful;
-    max_replica_count = other47.max_replica_count;
-    expire_second = other47.expire_second;
-    create_second = other47.create_second;
-    drop_second = other47.drop_second;
-    duplicating = other47.duplicating;
-    init_partition_count = other47.init_partition_count;
-    is_bulk_loading = other47.is_bulk_loading;
-    __isset = other47.__isset;
+    status = other57.status;
+    app_type = other57.app_type;
+    app_name = other57.app_name;
+    app_id = other57.app_id;
+    partition_count = other57.partition_count;
+    envs = other57.envs;
+    is_stateful = other57.is_stateful;
+    max_replica_count = other57.max_replica_count;
+    expire_second = other57.expire_second;
+    create_second = other57.create_second;
+    drop_second = other57.drop_second;
+    duplicating = other57.duplicating;
+    init_partition_count = other57.init_partition_count;
+    is_bulk_loading = other57.is_bulk_loading;
+    dup_options = other57.dup_options;
+    __isset = other57.__isset;
     return *this;
 }
-app_info &app_info::operator=(app_info &&other48)
+app_info &app_info::operator=(app_info &&other58)
 {
-    status = std::move(other48.status);
-    app_type = std::move(other48.app_type);
-    app_name = std::move(other48.app_name);
-    app_id = std::move(other48.app_id);
-    partition_count = std::move(other48.partition_count);
-    envs = std::move(other48.envs);
-    is_stateful = std::move(other48.is_stateful);
-    max_replica_count = std::move(other48.max_replica_count);
-    expire_second = std::move(other48.expire_second);
-    create_second = std::move(other48.create_second);
-    drop_second = std::move(other48.drop_second);
-    duplicating = std::move(other48.duplicating);
-    init_partition_count = std::move(other48.init_partition_count);
-    is_bulk_loading = std::move(other48.is_bulk_loading);
-    __isset = std::move(other48.__isset);
+    status = std::move(other58.status);
+    app_type = std::move(other58.app_type);
+    app_name = std::move(other58.app_name);
+    app_id = std::move(other58.app_id);
+    partition_count = std::move(other58.partition_count);
+    envs = std::move(other58.envs);
+    is_stateful = std::move(other58.is_stateful);
+    max_replica_count = std::move(other58.max_replica_count);
+    expire_second = std::move(other58.expire_second);
+    create_second = std::move(other58.create_second);
+    drop_second = std::move(other58.drop_second);
+    duplicating = std::move(other58.duplicating);
+    init_partition_count = std::move(other58.init_partition_count);
+    is_bulk_loading = std::move(other58.is_bulk_loading);
+    dup_options = std::move(other58.dup_options);
+    __isset = std::move(other58.__isset);
     return *this;
 }
 void app_info::printTo(std::ostream &out) const
@@ -1094,6 +1277,9 @@ void app_info::printTo(std::ostream &out) const
     out << ", "
         << "is_bulk_loading=";
     (__isset.is_bulk_loading ? (out << to_string(is_bulk_loading)) : (out << "<null>"));
+    out << ", "
+        << "dup_options=";
+    (__isset.dup_options ? (out << to_string(dup_options)) : (out << "<null>"));
     out << ")";
 }
 

@@ -25,7 +25,8 @@
 namespace dsn {
 namespace replication {
 
-const std::string duplication_constants::kClustersSectionName = "pegasus.clusters";
+const std::string duplication_constants::kClustersSectionName /*NOLINT*/ = "pegasus.clusters";
+const std::string duplication_constants::kDuplicationMasterFlag /*NOLINT*/ = "duplication.master";
 
 /*extern*/ const char *duplication_status_to_string(duplication_status::type status)
 {

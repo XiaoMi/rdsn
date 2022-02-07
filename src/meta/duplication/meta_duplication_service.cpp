@@ -20,6 +20,7 @@
 #include <dsn/dist/common.h>
 #include <dsn/utility/chrono_literals.h>
 #include <dsn/utility/string_conv.h>
+#include <dsn/tool-api/group_address.h>
 
 #include "meta/meta_service.h"
 #include "meta_duplication_service.h"
@@ -308,11 +309,61 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
     }
 }
 
-// todo(jiashuo1) wait detail implementation
 void meta_duplication_service::trigger_follower_duplicate_checkpoint(
     const std::shared_ptr<duplication_info> &dup, const std::shared_ptr<app_state> &app)
 {
-    dup->alter_status(duplication_status::DS_APP);
+    configuration_create_app_request request;
+    request.app_name = app->app_name;
+    request.options.app_type = app->app_type;
+    request.options.partition_count = app->partition_count;
+    request.options.replica_count = app->max_replica_count;
+    request.options.success_if_exist = true;
+    request.options.envs = app->envs;
+    request.options.is_stateful = app->is_stateful;
+
+    duplication_options opts;
+    opts.app_name = app->app_name;
+    opts.cluster_name = get_current_cluster_name();
+    opts.metas = _meta_svc->_opts.meta_servers;
+    request.options.__set_duplication(opts);
+
+    request.options.envs.emplace(duplication_constants::kDuplicationMasterFlag,
+                                 fmt::format("{}[{}]({})",
+                                             get_current_cluster_name(),
+                                             _meta_svc->get_meta_list_string(),
+                                             app->app_name));
+
+    rpc_address meta_servers;
+    meta_servers.assign_group(dup->follower_cluster_name.c_str());
+    meta_servers.group_address()->add_list(dup->follower_cluster_metas);
+
+    dsn::message_ex *msg = dsn::message_ex::create_request(RPC_CM_CREATE_APP);
+    dsn::marshall(msg, request);
+    rpc::call(meta_servers,
+              msg,
+              _meta_svc->tracker(),
+              [=](error_code err, configuration_create_app_response &&resp) mutable {
+                  error_code create_err = err == ERR_OK ? resp.err : err;
+                  error_code update_err = ERR_NO_NEED_OPERATE;
+                  if (create_err == ERR_OK) {
+                      update_err = dup->alter_status(duplication_status::DS_APP);
+                  }
+
+                  if (update_err == ERR_OK) {
+                      blob value = dup->to_json_blob();
+                      _meta_svc->get_meta_storage()->set_data(std::string(dup->store_path),
+                                                              std::move(value),
+                                                              [dup]() { dup->persist_status(); });
+                  }
+
+                  derror_f("created follower app[{}.{}] to trigger duplicate checkpoint, "
+                           "duplication_status = {}, create_err = {}, update_err = {}",
+                           get_current_cluster_name(),
+                           dup->app_name,
+                           duplication_status_to_string(dup->status()),
+                           create_err.to_string(),
+                           update_err.to_string());
+              });
 }
 
 // todo(jiashuo1) wait detail implementation
