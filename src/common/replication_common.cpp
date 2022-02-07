@@ -463,7 +463,7 @@ bool replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &se
     for (auto &s : lv) {
         ::dsn::rpc_address addr;
         if (!addr.from_string_ipv4(s.c_str())) {
-            derror_f("invalid address '{}' specified in config [{}].{}", s.c_str(), section, key);
+            derror_f("invalid address '{}' specified in config [{}].{}", s, section, key);
             return false;
         }
         servers.push_back(addr);
