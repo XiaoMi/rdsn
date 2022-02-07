@@ -24,6 +24,7 @@
 
 #include "meta/meta_service.h"
 #include "meta_duplication_service.h"
+#include "dsn/utility/fail_point.h"
 
 namespace dsn {
 namespace replication {
@@ -343,13 +344,26 @@ void meta_duplication_service::trigger_follower_duplicate_checkpoint(
               msg,
               _meta_svc->tracker(),
               [=](error_code err, configuration_create_app_response &&resp) mutable {
+                  FAIL_POINT_INJECT_VOID_F("persist_dup_status_ok", [&]() -> void {
+                      dup->alter_status(duplication_status::DS_APP);
+                      dup->persist_status();
+                      return;
+                  });
+
+                  FAIL_POINT_INJECT_VOID_F("create_app_request_failed", []() -> void { return; });
+
                   error_code create_err = err == ERR_OK ? resp.err : err;
                   error_code update_err = ERR_NO_NEED_OPERATE;
                   if (create_err == ERR_OK) {
                       update_err = dup->alter_status(duplication_status::DS_APP);
                   }
 
+                  FAIL_POINT_INJECT_VOID_F("update_dup_status_failed", []() -> void { return; });
+
                   if (update_err == ERR_OK) {
+                      FAIL_POINT_INJECT_VOID_F("persist_dup_status_failed",
+                                               []() -> void { return; });
+
                       blob value = dup->to_json_blob();
                       _meta_svc->get_meta_storage()->set_data(std::string(dup->store_path),
                                                               std::move(value),
