@@ -241,7 +241,6 @@ TEST_F(duplication_info_test, alter_status)
                              "dsn://slave-cluster/temp",
                              std::vector<rpc_address>(),
                              "/meta_test/101/duplication/1");
-
         for (const auto from : tt.from_list) {
             force_update_status(dup, from);
             for (const auto to : tt.to_list) {
