@@ -47,6 +47,7 @@ struct fail_point
         Off,
         Return,
         Print,
+        Void,
     };
 
     void set_action(string_view action);
