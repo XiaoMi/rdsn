@@ -693,13 +693,14 @@ void configuration_query_by_index_response::printTo(std::ostream &out) const
 
 duplication_options::~duplication_options() throw() {}
 
-void duplication_options::__set_app_name(const std::string &val) { this->app_name = val; }
-
-void duplication_options::__set_cluster_name(const std::string &val) { this->cluster_name = val; }
-
-void duplication_options::__set_metas(const std::vector<::dsn::rpc_address> &val)
+void duplication_options::__set_master_cluster_name(const std::string &val)
 {
-    this->metas = val;
+    this->master_cluster_name = val;
+}
+
+void duplication_options::__set_master_meta_list(const std::vector<::dsn::rpc_address> &val)
+{
+    this->master_meta_list = val;
 }
 
 uint32_t duplication_options::read(::apache::thrift::protocol::TProtocol *iprot)
@@ -723,35 +724,27 @@ uint32_t duplication_options::read(::apache::thrift::protocol::TProtocol *iprot)
         switch (fid) {
         case 1:
             if (ftype == ::apache::thrift::protocol::T_STRING) {
-                xfer += iprot->readString(this->app_name);
-                this->__isset.app_name = true;
+                xfer += iprot->readString(this->master_cluster_name);
+                this->__isset.master_cluster_name = true;
             } else {
                 xfer += iprot->skip(ftype);
             }
             break;
         case 2:
-            if (ftype == ::apache::thrift::protocol::T_STRING) {
-                xfer += iprot->readString(this->cluster_name);
-                this->__isset.cluster_name = true;
-            } else {
-                xfer += iprot->skip(ftype);
-            }
-            break;
-        case 3:
             if (ftype == ::apache::thrift::protocol::T_LIST) {
                 {
-                    this->metas.clear();
+                    this->master_meta_list.clear();
                     uint32_t _size36;
                     ::apache::thrift::protocol::TType _etype39;
                     xfer += iprot->readListBegin(_etype39, _size36);
-                    this->metas.resize(_size36);
+                    this->master_meta_list.resize(_size36);
                     uint32_t _i40;
                     for (_i40 = 0; _i40 < _size36; ++_i40) {
-                        xfer += this->metas[_i40].read(iprot);
+                        xfer += this->master_meta_list[_i40].read(iprot);
                     }
                     xfer += iprot->readListEnd();
                 }
-                this->__isset.metas = true;
+                this->__isset.master_meta_list = true;
             } else {
                 xfer += iprot->skip(ftype);
             }
@@ -774,20 +767,17 @@ uint32_t duplication_options::write(::apache::thrift::protocol::TProtocol *oprot
     apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
     xfer += oprot->writeStructBegin("duplication_options");
 
-    xfer += oprot->writeFieldBegin("app_name", ::apache::thrift::protocol::T_STRING, 1);
-    xfer += oprot->writeString(this->app_name);
+    xfer += oprot->writeFieldBegin("master_cluster_name", ::apache::thrift::protocol::T_STRING, 1);
+    xfer += oprot->writeString(this->master_cluster_name);
     xfer += oprot->writeFieldEnd();
 
-    xfer += oprot->writeFieldBegin("cluster_name", ::apache::thrift::protocol::T_STRING, 2);
-    xfer += oprot->writeString(this->cluster_name);
-    xfer += oprot->writeFieldEnd();
-
-    xfer += oprot->writeFieldBegin("metas", ::apache::thrift::protocol::T_LIST, 3);
+    xfer += oprot->writeFieldBegin("master_meta_list", ::apache::thrift::protocol::T_LIST, 2);
     {
         xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT,
-                                      static_cast<uint32_t>(this->metas.size()));
+                                      static_cast<uint32_t>(this->master_meta_list.size()));
         std::vector<::dsn::rpc_address>::const_iterator _iter41;
-        for (_iter41 = this->metas.begin(); _iter41 != this->metas.end(); ++_iter41) {
+        for (_iter41 = this->master_meta_list.begin(); _iter41 != this->master_meta_list.end();
+             ++_iter41) {
             xfer += (*_iter41).write(oprot);
         }
         xfer += oprot->writeListEnd();
@@ -802,39 +792,34 @@ uint32_t duplication_options::write(::apache::thrift::protocol::TProtocol *oprot
 void swap(duplication_options &a, duplication_options &b)
 {
     using ::std::swap;
-    swap(a.app_name, b.app_name);
-    swap(a.cluster_name, b.cluster_name);
-    swap(a.metas, b.metas);
+    swap(a.master_cluster_name, b.master_cluster_name);
+    swap(a.master_meta_list, b.master_meta_list);
     swap(a.__isset, b.__isset);
 }
 
 duplication_options::duplication_options(const duplication_options &other42)
 {
-    app_name = other42.app_name;
-    cluster_name = other42.cluster_name;
-    metas = other42.metas;
+    master_cluster_name = other42.master_cluster_name;
+    master_meta_list = other42.master_meta_list;
     __isset = other42.__isset;
 }
 duplication_options::duplication_options(duplication_options &&other43)
 {
-    app_name = std::move(other43.app_name);
-    cluster_name = std::move(other43.cluster_name);
-    metas = std::move(other43.metas);
+    master_cluster_name = std::move(other43.master_cluster_name);
+    master_meta_list = std::move(other43.master_meta_list);
     __isset = std::move(other43.__isset);
 }
 duplication_options &duplication_options::operator=(const duplication_options &other44)
 {
-    app_name = other44.app_name;
-    cluster_name = other44.cluster_name;
-    metas = other44.metas;
+    master_cluster_name = other44.master_cluster_name;
+    master_meta_list = other44.master_meta_list;
     __isset = other44.__isset;
     return *this;
 }
 duplication_options &duplication_options::operator=(duplication_options &&other45)
 {
-    app_name = std::move(other45.app_name);
-    cluster_name = std::move(other45.cluster_name);
-    metas = std::move(other45.metas);
+    master_cluster_name = std::move(other45.master_cluster_name);
+    master_meta_list = std::move(other45.master_meta_list);
     __isset = std::move(other45.__isset);
     return *this;
 }
@@ -842,11 +827,9 @@ void duplication_options::printTo(std::ostream &out) const
 {
     using ::apache::thrift::to_string;
     out << "duplication_options(";
-    out << "app_name=" << to_string(app_name);
+    out << "master_cluster_name=" << to_string(master_cluster_name);
     out << ", "
-        << "cluster_name=" << to_string(cluster_name);
-    out << ", "
-        << "metas=" << to_string(metas);
+        << "master_meta_list=" << to_string(master_meta_list);
     out << ")";
 }
 

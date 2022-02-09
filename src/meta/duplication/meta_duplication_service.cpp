@@ -323,9 +323,8 @@ void meta_duplication_service::trigger_follower_duplicate_checkpoint(
     request.options.is_stateful = app->is_stateful;
 
     duplication_options opts;
-    opts.app_name = app->app_name;
-    opts.cluster_name = get_current_cluster_name();
-    opts.metas = _meta_svc->_opts.meta_servers;
+    opts.master_cluster_name = get_current_cluster_name();
+    opts.master_meta_list = _meta_svc->_opts.meta_servers;
     request.options.__set_duplication(opts);
 
     request.options.envs.emplace(duplication_constants::kDuplicationMasterFlag,

@@ -280,10 +280,9 @@ inline std::ostream &operator<<(std::ostream &out, const configuration_query_by_
 
 typedef struct _duplication_options__isset
 {
-    _duplication_options__isset() : app_name(false), cluster_name(false), metas(false) {}
-    bool app_name : 1;
-    bool cluster_name : 1;
-    bool metas : 1;
+    _duplication_options__isset() : master_cluster_name(false), master_meta_list(false) {}
+    bool master_cluster_name : 1;
+    bool master_meta_list : 1;
 } _duplication_options__isset;
 
 class duplication_options
@@ -293,28 +292,23 @@ public:
     duplication_options(duplication_options &&);
     duplication_options &operator=(const duplication_options &);
     duplication_options &operator=(duplication_options &&);
-    duplication_options() : app_name(), cluster_name() {}
+    duplication_options() : master_cluster_name() {}
 
     virtual ~duplication_options() throw();
-    std::string app_name;
-    std::string cluster_name;
-    std::vector<::dsn::rpc_address> metas;
+    std::string master_cluster_name;
+    std::vector<::dsn::rpc_address> master_meta_list;
 
     _duplication_options__isset __isset;
 
-    void __set_app_name(const std::string &val);
+    void __set_master_cluster_name(const std::string &val);
 
-    void __set_cluster_name(const std::string &val);
-
-    void __set_metas(const std::vector<::dsn::rpc_address> &val);
+    void __set_master_meta_list(const std::vector<::dsn::rpc_address> &val);
 
     bool operator==(const duplication_options &rhs) const
     {
-        if (!(app_name == rhs.app_name))
+        if (!(master_cluster_name == rhs.master_cluster_name))
             return false;
-        if (!(cluster_name == rhs.cluster_name))
-            return false;
-        if (!(metas == rhs.metas))
+        if (!(master_meta_list == rhs.master_meta_list))
             return false;
         return true;
     }

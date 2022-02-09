@@ -46,9 +46,8 @@ enum app_status
 }
 
 struct duplication_options {
-    1:string app_name;
-    2:string cluster_name;
-    3:list<dsn.rpc_address> metas;
+    1:string master_cluster_name;
+    2:list<dsn.rpc_address> master_meta_list;
 }
 
 struct app_info

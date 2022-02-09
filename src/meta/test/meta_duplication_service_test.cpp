@@ -755,32 +755,32 @@ TEST_F(meta_duplication_service_test, fail_mode)
 
 TEST_F(meta_duplication_service_test, trigger_follower_duplicate_checkpoint)
 {
-    struct TestCase
+    struct test_case
     {
         std::string fail_cfg_name;
         std::string fail_cfg_action;
         bool is_altering;
         duplication_status::type cur_status;
         duplication_status::type next_status;
-    } testCases[] = {{"update_app_request_ok",
-                      "void()",
-                      false,
-                      duplication_status::DS_APP,
-                      duplication_status::DS_INIT},
-                     // the case just `palace holder`, actually
-                     // `trigger_follower_duplicate_checkpoint` is failed by default in unit test
-                     {"update_dup_status_failed",
-                      "off()",
-                      false,
-                      duplication_status::DS_PREPARE,
-                      duplication_status::DS_INIT},
-                     {"persist_dup_status_failed",
-                      "return()",
-                      true,
-                      duplication_status::DS_PREPARE,
-                      duplication_status::DS_INIT}};
+    } test_cases[] = {{"update_app_request_ok",
+                       "void()",
+                       false,
+                       duplication_status::DS_APP,
+                       duplication_status::DS_INIT},
+                      // the case just `palace holder`, actually
+                      // `trigger_follower_duplicate_checkpoint` is failed by default in unit test
+                      {"update_dup_status_failed",
+                       "off()",
+                       false,
+                       duplication_status::DS_PREPARE,
+                       duplication_status::DS_INIT},
+                      {"persist_dup_status_failed",
+                       "return()",
+                       true,
+                       duplication_status::DS_PREPARE,
+                       duplication_status::DS_INIT}};
 
-    for (const auto &test : testCases) {
+    for (const auto &test : test_cases) {
         std::string test_app = test.fail_cfg_name;
         create_app(test_app);
         auto app = find_app(test_app);
