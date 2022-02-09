@@ -45,11 +45,6 @@ enum app_status
     AS_RECALLING
 }
 
-struct duplication_options {
-    1:string master_cluster_name;
-    2:list<dsn.rpc_address> master_meta_list;
-}
-
 struct app_info
 {
     1:app_status    status = app_status.AS_INVALID;
@@ -80,5 +75,4 @@ struct app_info
     // New fields for bulk load
     // Whether this app is executing bulk load
     14:optional bool    is_bulk_loading = false;
-    15:optional duplication_options dup_options;
 }

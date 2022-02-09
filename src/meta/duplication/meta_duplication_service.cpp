@@ -322,10 +322,10 @@ void meta_duplication_service::create_follower_app_for_duplication(
     request.options.envs = app->envs;
     request.options.is_stateful = app->is_stateful;
 
-    duplication_options opts;
+    create_duplication_options opts;
     opts.master_cluster_name = get_current_cluster_name();
     opts.master_meta_list = _meta_svc->_opts.meta_servers;
-    request.options.__set_duplication(opts);
+    request.__set_dup_opts(opts);
 
     // add `kDuplicationMasterFlag=>master_cluster[master_meta_list(app)]` env for follower table,
     // which will use the env know itself is `follower`
