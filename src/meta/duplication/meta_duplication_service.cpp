@@ -344,30 +344,31 @@ void meta_duplication_service::trigger_follower_duplicate_checkpoint(
               msg,
               _meta_svc->tracker(),
               [=](error_code err, configuration_create_app_response &&resp) mutable {
-                  FAIL_POINT_INJECT_NOT_RETURN_F("create_app_request_ok", [&](string_view s) -> void {
-                      err = ERR_OK;});
-
+                  FAIL_POINT_INJECT_NOT_RETURN_F("update_app_request_ok",
+                                                 [&](string_view s) -> void { err = ERR_OK; });
                   error_code create_err = err == ERR_OK ? resp.err : err;
                   error_code update_err = ERR_NO_NEED_OPERATE;
                   if (create_err == ERR_OK) {
                       update_err = dup->alter_status(duplication_status::DS_APP);
                   }
 
-
                   if (update_err == ERR_OK) {
+                      FAIL_POINT_INJECT_F("persist_dup_status_failed",
+                                          [&](string_view s) -> void { return; });
+
                       blob value = dup->to_json_blob();
                       _meta_svc->get_meta_storage()->set_data(std::string(dup->store_path),
                                                               std::move(value),
-                                                              [dup]() { dup->persist_status(); });
+                                                              [=]() { dup->persist_status(); });
+                  } else {
+                      derror_f("created follower app[{}.{}] to trigger duplicate checkpoint, "
+                               "duplication_status = {}, create_err = {}, update_err = {}",
+                               get_current_cluster_name(),
+                               dup->app_name,
+                               duplication_status_to_string(dup->status()),
+                               create_err.to_string(),
+                               update_err.to_string());
                   }
-
-                  derror_f("created follower app[{}.{}] to trigger duplicate checkpoint, "
-                           "duplication_status = {}, create_err = {}, update_err = {}",
-                           get_current_cluster_name(),
-                           dup->app_name,
-                           duplication_status_to_string(dup->status()),
-                           create_err.to_string(),
-                           update_err.to_string());
               });
 }
 

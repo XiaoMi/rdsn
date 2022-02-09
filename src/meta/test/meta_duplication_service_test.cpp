@@ -755,13 +755,6 @@ TEST_F(meta_duplication_service_test, fail_mode)
 
 TEST_F(meta_duplication_service_test, trigger_follower_duplicate_checkpoint)
 {
-    std::string test_app = "test-app";
-    create_app(test_app);
-    auto app = find_app(test_app);
-
-    auto dup_add_resp = create_dup(test_app);
-    auto dup = app->duplications[dup_add_resp.dupid];
-
     struct TestCase
     {
         std::string fail_cfg_name;
@@ -769,30 +762,32 @@ TEST_F(meta_duplication_service_test, trigger_follower_duplicate_checkpoint)
         bool is_altering;
         duplication_status::type cur_status;
         duplication_status::type next_status;
-    } testCases[] = {
-        {"create_app_request_ok",
-         "void()",
-         false,
-         duplication_status::DS_PREPARE,
-         duplication_status::DS_INIT},
- /*       {"update_dup_status_failed",
-         "return()",
-         false,
-         duplication_status::DS_PREPARE,
-         duplication_status::DS_INIT},
-        {"persist_dup_status_failed",
-         "return()",
-         true,
-         duplication_status::DS_PREPARE,
-         duplication_status::DS_APP},
-        {"persist_dup_status_ok",
-         "return()",
-         false,
-         duplication_status::DS_APP,
-         duplication_status::DS_INIT},*/
-    };
+    } testCases[] = {{"update_app_request_ok",
+                      "void()",
+                      false,
+                      duplication_status::DS_APP,
+                      duplication_status::DS_INIT},
+                     // the case just `palace holder`, actually
+                     // `trigger_follower_duplicate_checkpoint` is failed by default in unit test
+                     {"update_dup_status_failed",
+                      "off()",
+                      false,
+                      duplication_status::DS_PREPARE,
+                      duplication_status::DS_INIT},
+                     {"persist_dup_status_failed",
+                      "return()",
+                      true,
+                      duplication_status::DS_PREPARE,
+                      duplication_status::DS_INIT}};
 
     for (const auto &test : testCases) {
+        std::string test_app = test.fail_cfg_name;
+        create_app(test_app);
+        auto app = find_app(test_app);
+
+        auto dup_add_resp = create_dup(test_app);
+        auto dup = app->duplications[dup_add_resp.dupid];
+
         fail::setup();
         fail::cfg(test.fail_cfg_name, test.fail_cfg_action);
         trigger_follower_duplicate_checkpoint(dup, app);
