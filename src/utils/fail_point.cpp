@@ -53,20 +53,12 @@ static fail_point_registry REGISTRY;
 inline const char *task_type_to_string(fail_point::task_type t)
 {
     switch (t) {
-    // `action` contain `off()`, which would `close` the fail_point whose `function` passed will not
-    // be executed;
     case fail_point::Off:
         return "Off";
-    // `action` contain `return()`, which would `return` args passed and execute `return` type
-    // function passed. it's usually used for `FAIL_POINT_INJECT_F`
     case fail_point::Return:
         return "Return";
-    // `action` contain `print()`, which would only just print `action` string value and ignore the
-    // `function` passed
     case fail_point::Print:
         return "Print";
-    // `action` contain `void()`, which would return args and execute the void type `function`
-    // passed, it's usually used for `FAIL_POINT_INJECT_NOT_RETURN_F` to avoid `return` function
     case fail_point::Void:
         return "Void";
     default:
