@@ -54,7 +54,7 @@ struct fail_point
         // the `function` passed
         Print,
         // `action` contain `void()`, which would return args and execute `function` passed that
-        // better mark as void `type`, it's usually used for `FAIL_POINT_INJECT_NOT_RETURN_F` to
+        // better mark as `void` type, it's usually used for `FAIL_POINT_INJECT_NOT_RETURN_F` to
         // avoid `return` function
         Void,
     };
