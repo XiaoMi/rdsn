@@ -267,7 +267,7 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
 
             if (dup->all_checkpoint_has_prepared()) {
                 if (dup->status() == duplication_status::DS_PREPARE) {
-                    trigger_follower_duplicate_checkpoint(dup, app);
+                    create_follower_app_for_duplication(dup, app);
                 } else if (dup->status() == duplication_status::DS_APP) {
                     check_follower_duplicate_checkpoint_if_completed(dup);
                 }
@@ -310,7 +310,7 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
     }
 }
 
-void meta_duplication_service::trigger_follower_duplicate_checkpoint(
+void meta_duplication_service::create_follower_app_for_duplication(
     const std::shared_ptr<duplication_info> &dup, const std::shared_ptr<app_state> &app)
 {
     configuration_create_app_request request;
