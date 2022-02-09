@@ -327,6 +327,8 @@ void meta_duplication_service::trigger_follower_duplicate_checkpoint(
     opts.master_meta_list = _meta_svc->_opts.meta_servers;
     request.options.__set_duplication(opts);
 
+    // add `kDuplicationMasterFlag=>master_cluster[master_meta_list(app)]` env for follower table,
+    // which will use the env know itself is `follower`
     request.options.envs.emplace(duplication_constants::kDuplicationMasterFlag,
                                  fmt::format("{}[{}]({})",
                                              get_current_cluster_name(),
