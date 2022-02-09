@@ -357,17 +357,21 @@ void meta_duplication_service::trigger_follower_duplicate_checkpoint(
                                           [&](string_view s) -> void { return; });
 
                       blob value = dup->to_json_blob();
+                      // Note: this function is `async`, it may not be persisted completed
+                      // after executing, now using `_is_altering` to judge whether `updating` or
+                      // `completed`, if `_is_altering`, dup->alter_status() will return `ERR_BUSY`
                       _meta_svc->get_meta_storage()->set_data(std::string(dup->store_path),
                                                               std::move(value),
                                                               [=]() { dup->persist_status(); });
                   } else {
-                      derror_f("created follower app[{}.{}] to trigger duplicate checkpoint, "
-                               "duplication_status = {}, create_err = {}, update_err = {}",
-                               get_current_cluster_name(),
-                               dup->app_name,
-                               duplication_status_to_string(dup->status()),
-                               create_err.to_string(),
-                               update_err.to_string());
+                      derror_f(
+                          "created follower app[{}.{}] to trigger duplicate checkpoint failed: "
+                          "duplication_status = {}, create_err = {}, update_err = {}",
+                          get_current_cluster_name(),
+                          dup->app_name,
+                          duplication_status_to_string(dup->status()),
+                          create_err.to_string(),
+                          update_err.to_string());
                   }
               });
 }
