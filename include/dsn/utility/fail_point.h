@@ -48,7 +48,7 @@
         }                                                                                          \
     } while (0)
 
-/// The only entry to define a fail point with `no return` function: lambda  function usually is
+/// The only entry to define a fail point with `not return` function: lambda function usually
 /// return void type. When a fail point is defined, it's referenced via the name.
 #define FAIL_POINT_INJECT_NOT_RETURN_F(name, lambda)                                               \
     do {                                                                                           \
