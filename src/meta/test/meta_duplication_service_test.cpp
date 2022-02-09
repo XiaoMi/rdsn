@@ -770,12 +770,12 @@ TEST_F(meta_duplication_service_test, trigger_follower_duplicate_checkpoint)
         duplication_status::type cur_status;
         duplication_status::type next_status;
     } testCases[] = {
-        {"create_app_request_failed",
-         "return()",
+        {"create_app_request_ok",
+         "void()",
          false,
          duplication_status::DS_PREPARE,
          duplication_status::DS_INIT},
-        {"update_dup_status_failed",
+ /*       {"update_dup_status_failed",
          "return()",
          false,
          duplication_status::DS_PREPARE,
@@ -789,7 +789,7 @@ TEST_F(meta_duplication_service_test, trigger_follower_duplicate_checkpoint)
          "return()",
          false,
          duplication_status::DS_APP,
-         duplication_status::DS_INIT},
+         duplication_status::DS_INIT},*/
     };
 
     for (const auto &test : testCases) {
