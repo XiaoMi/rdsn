@@ -269,7 +269,7 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
                 if (dup->status() == duplication_status::DS_PREPARE) {
                     create_follower_app_for_duplication(dup, app);
                 } else if (dup->status() == duplication_status::DS_APP) {
-                    check_follower_duplicate_checkpoint_if_completed(dup);
+                    check_follower_app_if_create_completed(dup);
                 }
             }
 
@@ -372,11 +372,65 @@ void meta_duplication_service::create_follower_app_for_duplication(
               });
 }
 
-// todo(jiashuo1) wait detail implementation
-void meta_duplication_service::check_follower_duplicate_checkpoint_if_completed(
+void meta_duplication_service::check_follower_app_if_create_completed(
     const std::shared_ptr<duplication_info> &dup)
 {
-    dup->alter_status(duplication_status::DS_LOG);
+    rpc_address meta_servers;
+    meta_servers.assign_group(dup->follower_cluster_name.c_str());
+    meta_servers.group_address()->add_list(dup->follower_cluster_metas);
+
+    configuration_query_by_index_request meta_config_request;
+    meta_config_request.app_name = dup->app_name;
+
+    dsn::message_ex *msg = dsn::message_ex::create_request(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX);
+    dsn::marshall(msg, meta_config_request);
+    rpc::call(meta_servers,
+              msg,
+              _meta_svc->tracker(),
+              [=](error_code err, configuration_query_by_index_response &&resp) mutable {
+                  error_code query_err = err == ERR_OK ? resp.err : err;
+                  FAIL_POINT_INJECT_NOT_RETURN_F("update_app_request_ok",
+                                                 [&](string_view s) -> void { err = ERR_OK; });
+                  if (query_err == ERR_OK) {
+                      if (resp.partitions.size() != dup->partition_count) {
+                          query_err = ERR_INCONSISTENT_STATE;
+                      } else {
+                          for (const auto &part : resp.partitions) {
+                              if (part.primary.is_invalid()) {
+                                  query_err = ERR_INACTIVE_STATE;
+                                  break;
+                              }
+
+                              for (const auto &sec : part.secondaries) {
+                                  if (sec.is_invalid()) {
+                                      query_err = ERR_INACTIVE_STATE;
+                                      break;
+                                  }
+                              }
+                          }
+                      }
+                  }
+
+                  error_code update_err = ERR_NO_NEED_OPERATE;
+                  if (query_err == ERR_OK) {
+                      update_err = dup->alter_status(duplication_status::DS_LOG);
+                  }
+
+                  if (update_err == ERR_OK) {
+                      blob value = dup->to_json_blob();
+                      _meta_svc->get_meta_storage()->set_data(std::string(dup->store_path),
+                                                              std::move(value),
+                                                              [dup]() { dup->persist_status(); });
+                  } else {
+                      derror_f("query follower app[{}.{}] replica configuration completed, result: "
+                               "duplication_status = {}, query_err = {}, update_err = {}",
+                               get_current_cluster_name(),
+                               dup->app_name,
+                               duplication_status_to_string(dup->status()),
+                               query_err.to_string(),
+                               update_err);
+                  }
+              });
 }
 
 void meta_duplication_service::do_update_partition_confirmed(
