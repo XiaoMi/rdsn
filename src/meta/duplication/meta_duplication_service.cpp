@@ -322,18 +322,15 @@ void meta_duplication_service::create_follower_app_for_duplication(
     request.options.envs = app->envs;
     request.options.is_stateful = app->is_stateful;
 
-    create_duplication_options opts;
-    opts.master_cluster_name = get_current_cluster_name();
-    opts.master_meta_list = _meta_svc->_opts.meta_servers;
-    request.__set_dup_opts(opts);
+    // add envs for follower table, which will use it know itself is `follower` and load master info
+    // - env map:
+    // `kDuplicationEnvMasterClusterKey=>{master_cluster_name}`
+    // `kDuplicationEnvMasterMetasKey=>{master_meta_list}`
 
-    // add `kDuplicationMasterFlag=>master_cluster[master_meta_list(app)]` env for follower table,
-    // which will use the env know itself is `follower`
-    request.options.envs.emplace(duplication_constants::kDuplicationMasterFlag,
-                                 fmt::format("{}[{}]({})",
-                                             get_current_cluster_name(),
-                                             _meta_svc->get_meta_list_string(),
-                                             app->app_name));
+    request.options.envs.emplace(duplication_constants::kDuplicationEnvMasterClusterKey,
+                                 get_current_cluster_name());
+    request.options.envs.emplace(duplication_constants::kDuplicationEnvMasterMetasKey,
+                                 _meta_svc->get_meta_list_string());
 
     rpc_address meta_servers;
     meta_servers.assign_group(dup->follower_cluster_name.c_str());

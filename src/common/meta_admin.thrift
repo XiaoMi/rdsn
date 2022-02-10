@@ -148,16 +148,10 @@ struct create_app_options
     6:map<string, string>  envs;
 }
 
-struct create_duplication_options {
-    1:string master_cluster_name;
-    2:list<dsn.rpc_address> master_meta_list;
-}
-
 struct configuration_create_app_request
 {
     1:string                   app_name;
     2:create_app_options       options;
-    3:optional create_duplication_options dup_opts;
 }
 
 // meta server => client
