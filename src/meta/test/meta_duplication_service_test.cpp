@@ -124,8 +124,8 @@ public:
         wait_all();
     }
 
-    void trigger_follower_duplicate_checkpoint(const std::shared_ptr<duplication_info> &dup,
-                                               const std::shared_ptr<app_state> &app)
+    void create_follower_app_for_duplication(const std::shared_ptr<duplication_info> &dup,
+                                             const std::shared_ptr<app_state> &app)
     {
         dup_svc().create_follower_app_for_duplication(dup, app);
     }
@@ -753,7 +753,7 @@ TEST_F(meta_duplication_service_test, fail_mode)
     ASSERT_EQ(dup->fail_mode(), duplication_fail_mode::FAIL_SKIP);
 }
 
-TEST_F(meta_duplication_service_test, trigger_follower_duplicate_checkpoint)
+TEST_F(meta_duplication_service_test, create_follower_app_for_duplication)
 {
     struct test_case
     {
@@ -790,7 +790,7 @@ TEST_F(meta_duplication_service_test, trigger_follower_duplicate_checkpoint)
 
         fail::setup();
         fail::cfg(test.fail_cfg_name, test.fail_cfg_action);
-        trigger_follower_duplicate_checkpoint(dup, app);
+        create_follower_app_for_duplication(dup, app);
         wait_all();
         fail::teardown();
         ASSERT_TRUE(!dup->is_altering());
