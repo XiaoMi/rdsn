@@ -79,6 +79,7 @@ private:
                                        duplication_sync_rpc &rpc,
                                        int32_t partition_idx,
                                        const duplication_confirm_entry &confirm_entry);
+
     void create_follower_app_for_duplication(const std::shared_ptr<duplication_info> &dup,
                                              const std::shared_ptr<app_state> &app);
     void
