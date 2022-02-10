@@ -326,7 +326,6 @@ void meta_duplication_service::create_follower_app_for_duplication(
     // - env map:
     // `kDuplicationEnvMasterClusterKey=>{master_cluster_name}`
     // `kDuplicationEnvMasterMetasKey=>{master_meta_list}`
-
     request.options.envs.emplace(duplication_constants::kDuplicationEnvMasterClusterKey,
                                  get_current_cluster_name());
     request.options.envs.emplace(duplication_constants::kDuplicationEnvMasterMetasKey,
