@@ -130,7 +130,7 @@ public:
         dup_svc().create_follower_app_for_duplication(dup, app);
     }
 
-    duplication_status::type next_status(const std::shared_ptr<duplication_info> &dup)
+    duplication_status::type next_status(const std::shared_ptr<duplication_info> &dup) const
     {
         return dup->_next_status;
     }

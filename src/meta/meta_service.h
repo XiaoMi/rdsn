@@ -165,7 +165,7 @@ public:
     void unlock_meta_op_status();
     meta_op_status get_op_status() const { return _meta_op_status.load(); }
 
-    std::string get_meta_list_string()
+    std::string get_meta_list_string() const
     {
         std::string metas;
         for (const auto &node : _opts.meta_servers) {
