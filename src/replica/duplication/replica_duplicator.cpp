@@ -52,8 +52,17 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
     prepare_dup();
 }
 
-// todo(jiashuo1) wait detail implementation
-void replica_duplicator::prepare_dup() {}
+void replica_duplicator::prepare_dup()
+{
+    ddebug_replica("start prepare checkpoint: start_point_decree({}) vs last_durable_decree({})",
+                   _start_point_decree,
+                   _replica->last_durable_decree());
+
+    tasking::enqueue(LPC_REPLICATION_COMMON,
+                     &_tracker,
+                     [this]() { _replica->trigger_emergency_checkpoint(_start_point_decree); },
+                     get_gpid().thread_hash());
+}
 
 void replica_duplicator::start_dup_log()
 {
