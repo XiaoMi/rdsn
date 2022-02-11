@@ -432,6 +432,9 @@ void meta_duplication_service::check_follower_app_if_create_completed(
                                       [&](string_view s) -> void { return; });
                   if (update_err == ERR_OK) {
                       blob value = dup->to_json_blob();
+                      // Note: this function is `async`, it may not be persisted completed
+                      // after executing, now using `_is_altering` to judge whether `updating` or
+                      // `completed`, if `_is_altering`, dup->alter_status() will return `ERR_BUSY`
                       _meta_svc->get_meta_storage()->set_data(std::string(dup->store_path),
                                                               std::move(value),
                                                               [dup]() { dup->persist_status(); });
