@@ -175,6 +175,10 @@ public:
     void on_start_manual_compact(start_manual_compact_rpc rpc);
     void on_query_manual_compact_status(query_manual_compact_rpc rpc);
 
+    // get/set max replica count of an app
+    void get_max_replica_count(configuration_get_max_replica_count_rpc rpc);
+    void set_max_replica_count(configuration_set_max_replica_count_rpc rpc);
+
     // return true if no need to do any actions
     bool check_all_partitions();
     void get_cluster_balance_score(double &primary_stddev /*out*/, double &total_stddev /*out*/);
@@ -306,6 +310,27 @@ private:
     void update_compaction_envs_on_remote_storage(start_manual_compact_rpc rpc,
                                                   const std::vector<std::string> &keys,
                                                   const std::vector<std::string> &values);
+
+    void update_partition_max_replica_count(int partition_index,
+                                            configuration_set_max_replica_count_rpc rpc);
+
+    task_ptr update_partition_max_replica_count_on_remote(
+            const partition_configuration &new_partition_config,
+            configuration_set_max_replica_count_rpc rpc);
+
+    void on_update_partition_max_replica_count_on_remote_reply(
+            error_code ec,
+            const partition_configuration &new_partition_config,
+            configuration_set_max_replica_count_rpc rpc);
+
+    void update_partition_max_replica_count_locally(
+        const partition_configuration &new_partition_config, app_state &app);
+
+    void update_next_partition_max_replica_count(const app_state &app,
+                                                               int32_t partition_index,
+                                                               configuration_set_max_replica_count_rpc rpc);
+
+    void update_app_max_replica_count(configuration_set_max_replica_count_rpc rpc);
 
 private:
     friend class bulk_load_service;
