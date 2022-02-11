@@ -151,6 +151,17 @@ public:
         return _mock_replica->find_valid_checkpoint(req, remote_chkpt_dir);
     }
 
+    error_code trigger_emergency_checkpoint(decree decree)
+    {
+        return _mock_replica->trigger_emergency_checkpoint(decree);
+    }
+
+    void force_update_last_durable_decree(decree decree)
+    {
+        dynamic_cast<mock_replication_app_base *>(_mock_replica->_app.get())
+            ->set_last_durable_decree(decree);
+    }
+
 public:
     dsn::app_info _app_info;
     dsn::gpid pid;
@@ -316,6 +327,17 @@ TEST_F(replica_test, test_replica_backup_and_restore_with_specific_path)
     test_on_cold_backup(user_specified_path);
     auto err = test_find_valid_checkpoint(user_specified_path);
     ASSERT_EQ(ERR_OK, err);
+}
+
+TEST_F(replica_test, trigger_emergency_checkpoint)
+{
+    ASSERT_TRUE(trigger_emergency_checkpoint(0));
+
+    // test no need start checkpoint because `old_decree` < `last_durable`
+    force_update_last_durable_decree(101);
+    ASSERT_TRUE(trigger_emergency_checkpoint(100));
+
+    // test has existed running task
 }
 
 } // namespace replication

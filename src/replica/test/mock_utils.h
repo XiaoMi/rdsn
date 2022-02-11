@@ -73,7 +73,7 @@ public:
     // we mock the followings
     void update_app_envs(const std::map<std::string, std::string> &envs) override { _envs = envs; }
     void query_app_envs(std::map<std::string, std::string> &out) override { out = _envs; }
-    decree last_durable_decree() const override { return 0; }
+    decree last_durable_decree() const override { return _last_durable_decree; }
 
     // TODO(heyuchen): implement this function in further pull request
     void set_partition_version(int32_t partition_version) override {}
@@ -88,10 +88,13 @@ public:
         return manual_compaction_status::IDLE;
     }
 
+    void set_last_durable_decree(decree d) { _last_durable_decree = d; }
+
 private:
     std::map<std::string, std::string> _envs;
     decree _decree = 5;
     ingestion_status::type _ingestion_status;
+    decree _last_durable_decree{0};
 };
 
 class mock_replica : public replica
@@ -190,6 +193,7 @@ public:
 
 private:
     decree _max_gced_decree{invalid_decree - 1};
+    decree _last_durable_decree{0};
 };
 typedef dsn::ref_ptr<mock_replica> mock_replica_ptr;
 
