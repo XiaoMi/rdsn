@@ -468,6 +468,7 @@ private:
     friend class replica_duplicator_manager;
     friend class load_mutation;
     friend class replica_split_test;
+    friend class replica_test_base;
     friend class replica_test;
     friend class replica_backup_manager;
     friend class replica_bulk_loader;

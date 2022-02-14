@@ -46,7 +46,11 @@ public:
     error_code start(int, char **) override { return ERR_NOT_IMPLEMENTED; }
     error_code stop(bool) override { return ERR_NOT_IMPLEMENTED; }
     error_code sync_checkpoint() override { return ERR_OK; }
-    error_code async_checkpoint(bool) override { return ERR_NOT_IMPLEMENTED; }
+    error_code async_checkpoint(bool) override
+    {
+        _last_durable_decree = _expect_last_durable_decree;
+        return ERR_OK;
+    }
     error_code prepare_get_checkpoint(blob &) override { return ERR_NOT_IMPLEMENTED; }
     error_code get_checkpoint(int64_t, const blob &, learn_state &) override
     {
@@ -90,11 +94,14 @@ public:
 
     void set_last_durable_decree(decree d) { _last_durable_decree = d; }
 
+    void set_expect_last_durable_decree(decree d) { _expect_last_durable_decree = d; }
+
 private:
     std::map<std::string, std::string> _envs;
     decree _decree = 5;
     ingestion_status::type _ingestion_status;
     decree _last_durable_decree{0};
+    decree _expect_last_durable_decree{0};
 };
 
 class mock_replica : public replica

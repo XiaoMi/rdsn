@@ -14,6 +14,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+#pragma once
 
 #include <dsn/dist/replication/replica_envs.h>
 #include <dsn/utility/defer.h>
@@ -156,11 +157,12 @@ public:
         return _mock_replica->trigger_emergency_checkpoint(decree);
     }
 
-    void force_update_last_durable_decree(decree decree)
+    void force_update_checkpointing(bool running)
     {
-        dynamic_cast<mock_replication_app_base *>(_mock_replica->_app.get())
-            ->set_last_durable_decree(decree);
+        _mock_replica->_is_emergency_checkpointing = running;
     }
+
+    bool is_checkpointing() { return _mock_replica->_is_emergency_checkpointing; }
 
 public:
     dsn::app_info _app_info;
@@ -331,13 +333,26 @@ TEST_F(replica_test, test_replica_backup_and_restore_with_specific_path)
 
 TEST_F(replica_test, trigger_emergency_checkpoint)
 {
-    ASSERT_TRUE(trigger_emergency_checkpoint(0));
+
+    ASSERT_EQ(_mock_replica->trigger_emergency_checkpoint(100), ERR_OK);
+    ASSERT_TRUE(is_checkpointing());
+    update_last_durable_decree(100);
 
     // test no need start checkpoint because `old_decree` < `last_durable`
-    force_update_last_durable_decree(101);
-    ASSERT_TRUE(trigger_emergency_checkpoint(100));
+    ASSERT_EQ(_mock_replica->trigger_emergency_checkpoint(100), ERR_OK);
+    ASSERT_FALSE(is_checkpointing());
 
     // test has existed running task
+    force_update_checkpointing(true);
+    ASSERT_EQ(_mock_replica->trigger_emergency_checkpoint(101), ERR_BUSY);
+    ASSERT_TRUE(is_checkpointing());
+    force_update_checkpointing(false);
+
+    // test exceed max concurrent count
+    ASSERT_EQ(_mock_replica->trigger_emergency_checkpoint(101), ERR_OK);
+    force_update_checkpointing(false);
+    ASSERT_EQ(_mock_replica->trigger_emergency_checkpoint(101), ERR_TRY_AGAIN);
+    ASSERT_FALSE(is_checkpointing());
 }
 
 } // namespace replication
