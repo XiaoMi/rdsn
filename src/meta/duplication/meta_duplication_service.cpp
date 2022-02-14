@@ -396,25 +396,27 @@ void meta_duplication_service::check_follower_app_if_create_completed(
                       while (count-- > 0) {
                           partition_configuration p;
                           p.primary = rpc_address("127.0.0.1", 34801);
-                          p.secondaries.emplace_back(rpc_address("127.0.0.1", 34801));
-                          p.secondaries.emplace_back(rpc_address("127.0.0.1", 34801));
+                          p.secondaries.emplace_back(rpc_address("127.0.0.2", 34801));
+                          p.secondaries.emplace_back(rpc_address("127.0.0.3", 34801));
                           resp.partitions.emplace_back(p);
                       }
                   });
 
+                  // - ERR_INCONSISTENT_STATE: partition count of response isn't equal with local
+                  // - ERR_INACTIVE_STATE: the follower table hasn't been healthy
                   error_code query_err = err == ERR_OK ? resp.err : err;
                   if (query_err == ERR_OK) {
                       if (resp.partitions.size() != dup->partition_count) {
                           query_err = ERR_INCONSISTENT_STATE;
                       } else {
-                          for (const auto &part : resp.partitions) {
-                              if (part.primary.is_invalid()) {
+                          for (const auto &partition : resp.partitions) {
+                              if (partition.primary.is_invalid()) {
                                   query_err = ERR_INACTIVE_STATE;
                                   break;
                               }
 
-                              for (const auto &sec : part.secondaries) {
-                                  if (sec.is_invalid()) {
+                              for (const auto &secondary : partition.secondaries) {
+                                  if (secondary.is_invalid()) {
                                       query_err = ERR_INACTIVE_STATE;
                                       break;
                                   }
