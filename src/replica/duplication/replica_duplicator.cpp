@@ -59,10 +59,11 @@ void replica_duplicator::prepare_dup()
                    _start_point_decree,
                    _replica->last_durable_decree());
 
-    tasking::enqueue(LPC_REPLICATION_COMMON,
-                     &_tracker,
-                     [this]() { _replica->trigger_emergency_checkpoint(_start_point_decree); },
-                     get_gpid().thread_hash());
+    tasking::enqueue(
+        LPC_REPLICATION_COMMON,
+        &_tracker,
+        [this]() { _replica->trigger_manual_emergency_checkpoint(_start_point_decree); },
+        get_gpid().thread_hash());
 }
 
 void replica_duplicator::start_dup_log()

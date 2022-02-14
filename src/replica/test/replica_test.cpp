@@ -17,7 +17,6 @@
 
 #include <dsn/dist/replication/replica_envs.h>
 #include <dsn/utility/defer.h>
-#include <dsn/utility/fail_point.h>
 #include <gtest/gtest.h>
 #include "runtime/rpc/network.sim.h"
 
@@ -153,15 +152,15 @@ public:
 
     error_code trigger_emergency_checkpoint(decree decree)
     {
-        return _mock_replica->trigger_emergency_checkpoint(decree);
+        return _mock_replica->trigger_manual_emergency_checkpoint(decree);
     }
 
     void force_update_checkpointing(bool running)
     {
-        _mock_replica->_is_emergency_checkpointing = running;
+        _mock_replica->_is_manual_emergency_checkpointing = running;
     }
 
-    bool is_checkpointing() { return _mock_replica->_is_emergency_checkpointing; }
+    bool is_checkpointing() { return _mock_replica->_is_manual_emergency_checkpointing; }
 
 public:
     dsn::app_info _app_info;
@@ -330,27 +329,27 @@ TEST_F(replica_test, test_replica_backup_and_restore_with_specific_path)
     ASSERT_EQ(ERR_OK, err);
 }
 
-TEST_F(replica_test, trigger_emergency_checkpoint)
+TEST_F(replica_test, trigger_manual_emergency_checkpoint)
 {
 
-    ASSERT_EQ(_mock_replica->trigger_emergency_checkpoint(100), ERR_OK);
+    ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(100), ERR_OK);
     ASSERT_TRUE(is_checkpointing());
     update_last_durable_decree(100);
 
     // test no need start checkpoint because `old_decree` < `last_durable`
-    ASSERT_EQ(_mock_replica->trigger_emergency_checkpoint(100), ERR_OK);
+    ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(100), ERR_OK);
     ASSERT_FALSE(is_checkpointing());
 
     // test has existed running task
     force_update_checkpointing(true);
-    ASSERT_EQ(_mock_replica->trigger_emergency_checkpoint(101), ERR_BUSY);
+    ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(101), ERR_BUSY);
     ASSERT_TRUE(is_checkpointing());
     force_update_checkpointing(false);
 
     // test exceed max concurrent count
-    ASSERT_EQ(_mock_replica->trigger_emergency_checkpoint(101), ERR_OK);
+    ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(101), ERR_OK);
     force_update_checkpointing(false);
-    ASSERT_EQ(_mock_replica->trigger_emergency_checkpoint(101), ERR_TRY_AGAIN);
+    ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(101), ERR_TRY_AGAIN);
     ASSERT_FALSE(is_checkpointing());
 }
 

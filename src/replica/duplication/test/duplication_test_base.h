@@ -63,8 +63,7 @@ public:
         dup_ent.status = duplication_status::DS_PAUSE;
         dup_ent.progress[_replica->get_gpid().get_partition_index()] = confirmed;
 
-        std::unique_ptr<replica_duplicator> duplicator =
-            make_unique<replica_duplicator>(dup_ent, _replica.get());
+        auto duplicator = make_unique<replica_duplicator>(dup_ent, _replica.get());
         duplicator->_start_point_decree = start;
         return duplicator;
     }

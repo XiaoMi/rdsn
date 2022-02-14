@@ -192,7 +192,7 @@ public:
     //
     // Duplication
     //
-    error_code trigger_emergency_checkpoint(decree old_decree);
+    error_code trigger_manual_emergency_checkpoint(decree old_decree);
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
     bool is_duplicating() const { return _duplicating; }
 
@@ -551,7 +551,7 @@ private:
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
-    bool _is_emergency_checkpointing{false};
+    bool _is_manual_emergency_checkpointing{false};
     bool _duplicating{false};
 
     // backup

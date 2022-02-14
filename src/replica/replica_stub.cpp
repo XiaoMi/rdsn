@@ -70,10 +70,10 @@ DSN_DEFINE_bool("replication",
                 "true means ignore broken data disk when initialize");
 
 DSN_DEFINE_uint32("replication",
-                  max_concurrent_checkpointing_count,
+                  max_concurrent_manual_emergency_checkpointing_count,
                   1,
-                  "max concurrent emergency checkpoint running count");
-DSN_TAG_VARIABLE(max_concurrent_checkpointing_count, FT_MUTABLE);
+                  "max concurrent manual emergency checkpoint running count");
+DSN_TAG_VARIABLE(max_concurrent_manual_emergency_checkpointing_count, FT_MUTABLE);
 
 bool replica_stub::s_not_exit_on_log_failure = false;
 

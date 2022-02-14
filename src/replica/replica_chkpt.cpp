@@ -125,7 +125,7 @@ void replica::on_checkpoint_timer()
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
-error_code replica::trigger_emergency_checkpoint(decree old_decree)
+error_code replica::trigger_manual_emergency_checkpoint(decree old_decree)
 {
     _checker.only_one_thread_access();
 
@@ -133,25 +133,27 @@ error_code replica::trigger_emergency_checkpoint(decree old_decree)
         ddebug_replica("checkpoint has been successful: old = {} vs latest = {}",
                        old_decree,
                        _app->last_durable_decree());
-        _is_emergency_checkpointing = false;
-        _stub->_emergency_checkpointing_count == 0 ? 0 : (--_stub->_emergency_checkpointing_count);
+        _is_manual_emergency_checkpointing = false;
+        _stub->_manual_emergency_checkpointing_count == 0
+            ? 0
+            : (--_stub->_manual_emergency_checkpointing_count);
         return ERR_OK;
     }
 
-    if (_is_emergency_checkpointing) {
+    if (_is_manual_emergency_checkpointing) {
         dwarn_replica("replica is checkpointing, last_durable_decree = {}",
                       _app->last_durable_decree());
         return ERR_BUSY;
     }
 
-    if (++_stub->_emergency_checkpointing_count > FLAGS_max_concurrent_checkpointing_count) {
+    if (++_stub->_manual_emergency_checkpointing_count > FLAGS_max_concurrent_checkpointing_count) {
         dwarn_replica("please try again later because checkpointing exceed max running count[{}]",
                       FLAGS_max_concurrent_checkpointing_count);
-        --_stub->_emergency_checkpointing_count;
+        --_stub->_manual_emergency_checkpointing_count;
         return ERR_TRY_AGAIN;
     }
 
-    _is_emergency_checkpointing = true;
+    _is_manual_emergency_checkpointing = true;
     init_checkpoint(true);
     return ERR_OK;
 }

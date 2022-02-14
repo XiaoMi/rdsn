@@ -409,7 +409,7 @@ private:
     std::atomic_int _bulk_load_downloading_count;
 
     // replica count executing emergency checkpoint concurrently
-    std::atomic_int _emergency_checkpointing_count;
+    std::atomic_int _manual_emergency_checkpointing_count;
 
     bool _is_running;
 
