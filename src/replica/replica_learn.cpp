@@ -526,6 +526,7 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
                        err.to_string());
             } else {
                 response.base_local_dir = _app->data_dir();
+                response.__set_replica_disk_tag(get_replica_disk_tag());
                 ddebug(
                     "%s: on_learn[%016" PRIx64 "]: learner = %s, get app learn state succeed, "
                     "learned_meta_size = %u, learned_file_count = %u, learned_to_decree = %" PRId64,
@@ -805,14 +806,12 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
                       req.signature,
                       mu->name());
 
-                // write to shared log with no callback, the later 2pc ensures that logs
+                // write to private log with no callback, the later 2pc ensures that logs
                 // are written to the disk
-                _stub->_log->append(mu, LPC_WRITE_REPLICATION_LOG_COMMON, &_tracker, nullptr);
-
-                // because shared log are written without callback, need to manully
-                // set flag and write mutations to private log
-                mu->set_logged();
                 _private_log->append(mu, LPC_WRITE_REPLICATION_LOG_COMMON, &_tracker, nullptr);
+
+                // because private log are written without callback, need to manully set flag
+                mu->set_logged();
 
                 // then we prepare, it is possible that a committed mutation exists in learner's
                 // prepare log,
@@ -926,8 +925,10 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
 
         _potential_secondary_states.learn_remote_files_task = _stub->_nfs->copy_remote_files(
             resp.config.primary,
+            resp.replica_disk_tag,
             resp.base_local_dir,
             resp.state.files,
+            get_replica_disk_tag(),
             learn_dir,
             true, // overwrite
             high_priority,

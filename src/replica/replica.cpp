@@ -39,7 +39,9 @@
 #include <dsn/utils/latency_tracer.h>
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/replication/replication_app_base.h>
+#include <dsn/dist/replication/replica_envs.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/strings.h>
@@ -47,6 +49,8 @@
 
 namespace dsn {
 namespace replication {
+
+const std::string replica::kAppInfo = ".app-info";
 
 replica::replica(
     replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool need_restore)
@@ -163,11 +167,11 @@ void replica::init_state()
     _inactive_is_transient = false;
     _is_initializing = false;
     _deny_client_write = false;
-    _prepare_list =
-        new prepare_list(this,
-                         0,
-                         _options->max_mutation_count_in_prepare_list,
-                         std::bind(&replica::execute_mutation, this, std::placeholders::_1));
+    _prepare_list = dsn::make_unique<prepare_list>(
+        this,
+        0,
+        _options->max_mutation_count_in_prepare_list,
+        std::bind(&replica::execute_mutation, this, std::placeholders::_1));
 
     _config.ballot = 0;
     _config.pid.set_app_id(0);
@@ -178,17 +182,14 @@ void replica::init_state()
     _last_config_change_time_ms = _create_time_ms;
     update_last_checkpoint_generate_time();
     _private_log = nullptr;
+    init_disk_tag();
+    get_bool_envs(_app_info.envs, replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND, _allow_ingest_behind);
 }
 
 replica::~replica(void)
 {
     close();
-
-    if (nullptr != _prepare_list) {
-        delete _prepare_list;
-        _prepare_list = nullptr;
-    }
-
+    _prepare_list = nullptr;
     dinfo("%s: replica destroyed", name());
 }
 
@@ -292,7 +293,7 @@ void replica::execute_mutation(mutation_ptr &mu)
         }
         break;
     case partition_status::PS_PRIMARY: {
-        ADD_POINT(mu->tracer);
+        ADD_POINT(mu->_tracer);
         check_state_completeness();
         dassert(_app->last_committed_decree() + 1 == d,
                 "app commit: %" PRId64 ", mutation decree: %" PRId64 "",
@@ -363,7 +364,7 @@ void replica::execute_mutation(mutation_ptr &mu)
     }
 
     if (status() == partition_status::PS_PRIMARY) {
-        ADD_CUSTOM_POINT(mu->tracer, "completed");
+        ADD_CUSTOM_POINT(mu->_tracer, "completed");
         mutation_ptr next = _primary_states.write_queue.check_possible_work(
             static_cast<int>(_prepare_list->max_decree() - d));
 
@@ -433,10 +434,6 @@ void replica::close()
         _checkpoint_timer = nullptr;
     }
 
-    if (_app != nullptr) {
-        _app->cancel_background_work(true);
-    }
-
     _tracker.cancel_outstanding_tasks();
 
     cleanup_preparing_mutations(true);
@@ -502,44 +499,10 @@ std::string replica::query_manual_compact_state() const
     return _app->query_compact_state();
 }
 
-const char *manual_compaction_status_to_string(manual_compaction_status status)
+manual_compaction_status::type replica::get_manual_compact_status() const
 {
-    switch (status) {
-    case kIdle:
-        return "idle";
-    case kQueuing:
-        return "queuing";
-    case kRunning:
-        return "running";
-    case kFinished:
-        return "finished";
-    default:
-        dassert(false, "invalid status({})", status);
-        __builtin_unreachable();
-    }
-}
-
-manual_compaction_status replica::get_manual_compact_status() const
-{
-    std::string compact_state = query_manual_compact_state();
-    // query_manual_compact_state will return a message like:
-    // Case1. last finish at [-]
-    // - partition is not manual compaction
-    // Case2. last finish at [timestamp], last used {time_used} ms
-    // - partition manual compaction finished
-    // Case3. last finish at [-], recent enqueue at [timestamp]
-    // - partition is in manual compaction queue
-    // Case4. last finish at [-], recent enqueue at [timestamp], recent start at [timestamp]
-    // - partition is running manual compaction
-    if (compact_state.find("recent start at") != std::string::npos) {
-        return kRunning;
-    } else if (compact_state.find("recent enqueue at") != std::string::npos) {
-        return kQueuing;
-    } else if (compact_state.find("last used") != std::string::npos) {
-        return kFinished;
-    } else {
-        return kIdle;
-    }
+    dassert_replica(_app != nullptr, "");
+    return _app->query_compact_status();
 }
 
 // Replicas on the server which serves for the same table will share the same perf-counter.
@@ -577,6 +540,25 @@ uint32_t replica::query_data_version() const
 {
     dassert_replica(_app != nullptr, "");
     return _app->query_data_version();
+}
+
+void replica::init_disk_tag()
+{
+    dsn::error_code err = _stub->_fs_manager.get_disk_tag(dir(), _disk_tag);
+    if (dsn::ERR_OK != err) {
+        derror_replica("get disk tag of {} failed: {}, init it to empty ", dir(), err);
+    }
+}
+
+error_code replica::store_app_info(app_info &info, const std::string &path)
+{
+    replica_app_info new_info((app_info *)&info);
+    const auto &info_path = path.empty() ? utils::filesystem::path_combine(_dir, kAppInfo) : path;
+    auto err = new_info.store(info_path);
+    if (dsn_unlikely(err != ERR_OK)) {
+        derror_replica("failed to save app_info to {}, error = {}", info_path, err);
+    }
+    return err;
 }
 
 } // namespace replication

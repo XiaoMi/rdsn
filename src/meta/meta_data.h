@@ -182,6 +182,7 @@ struct serving_replica
     // TODO: report the storage size of replica
     int64_t storage_mb;
     std::string disk_tag;
+    manual_compaction_status::type compact_status;
 };
 
 class config_context
@@ -323,6 +324,11 @@ public:
             cc.lb_actions.clear();
         }
     }
+
+    void reset_manual_compact_status();
+    // get replica group manual compact progress
+    // return false if partition is not executing manual compaction
+    bool get_manual_compact_progress(/*out*/ int32_t &progress) const;
 };
 
 /*

@@ -39,6 +39,7 @@
 #include <dsn/dist/nfs_node.h>
 
 #include "common/replication_common.h"
+#include "common/bulk_load_common.h"
 #include "common/fs_manager.h"
 #include "block_service/block_service_manager.h"
 #include "replica.h"
@@ -223,7 +224,7 @@ public:
 
     // query partitions compact status by app_id
     void query_app_manual_compact_status(
-        int32_t app_id, /*out*/ std::unordered_map<gpid, manual_compaction_status> &status);
+        int32_t app_id, /*out*/ std::unordered_map<gpid, manual_compaction_status::type> &status);
 
     void on_add_new_disk(add_new_disk_rpc rpc);
 

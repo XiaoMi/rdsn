@@ -30,6 +30,7 @@
 #include <dsn/cpp/serialization_helper/thrift_helper.h>
 #include <dsn/cpp/serialization_helper/dsn.layer2_types.h>
 #include <dsn/cpp/message_utils.h>
+#include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/crc.h>
 #include <dsn/utility/endians.h>
@@ -199,6 +200,8 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
         return nullptr;
     }
 
+    buf = buf.range(0, _meta_v0->body_length);
+    reader->consume_buffer(_meta_v0->body_length);
     message_ex *msg = create_message_from_request_blob(buf);
     if (msg == nullptr) {
         read_next = -1;
@@ -206,12 +209,12 @@ message_ex *thrift_message_parser::parse_request_body_v0(message_reader *reader,
         return nullptr;
     }
 
-    reader->consume_buffer(_meta_v0->body_length);
     read_next = (reader->_buffer_occupied >= HEADER_LENGTH_V0
                      ? 0
                      : HEADER_LENGTH_V0 - reader->_buffer_occupied);
 
     msg->header->body_length = _meta_v0->body_length;
+    dcheck_eq(msg->header->body_length, msg->buffers[1].size());
     msg->header->gpid.set_app_id(_meta_v0->app_id);
     msg->header->gpid.set_partition_index(_meta_v0->partition_index);
     msg->header->client.timeout_ms = _meta_v0->client_timeout;
@@ -246,6 +249,8 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
         read_next = _v1_specific_vars->_body_length - buf.size();
         return nullptr;
     }
+    buf = buf.range(0, _v1_specific_vars->_body_length);
+    reader->consume_buffer(_v1_specific_vars->_meta_length + _v1_specific_vars->_body_length);
     message_ex *msg = create_message_from_request_blob(buf);
     if (msg == nullptr) {
         read_next = -1;
@@ -253,12 +258,12 @@ message_ex *thrift_message_parser::parse_request_body_v1(message_reader *reader,
         return nullptr;
     }
 
-    reader->consume_buffer(_v1_specific_vars->_meta_length + _v1_specific_vars->_body_length);
     read_next = (reader->_buffer_occupied >= HEADER_LENGTH_V1
                      ? 0
                      : HEADER_LENGTH_V1 - reader->_buffer_occupied);
 
     msg->header->body_length = _v1_specific_vars->_body_length;
+    dcheck_eq(msg->header->body_length, msg->buffers[1].size());
     msg->header->gpid.set_app_id(_v1_specific_vars->_meta_v1->app_id);
     msg->header->gpid.set_partition_index(_v1_specific_vars->_meta_v1->partition_index);
     msg->header->client.timeout_ms = _v1_specific_vars->_meta_v1->client_timeout;
@@ -339,7 +344,7 @@ void thrift_message_parser::prepare_on_send(message_ex *msg)
     blob header_bb = header_writer.get_buffer();
     blob end_bb = end_writer.get_buffer();
     int32_t *total_length = reinterpret_cast<int32_t *>((void *)header_bb.data());
-    *total_length = htobe32(header_bb.length() + header->body_length + end_bb.length());
+    *total_length = endian::hton(header_bb.length() + header->body_length + end_bb.length());
 
     unsigned int dsn_size = sizeof(message_header) + header->body_length;
     int dsn_buf_count = 0;

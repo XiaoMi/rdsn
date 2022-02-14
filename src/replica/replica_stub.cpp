@@ -664,56 +664,28 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
 
         it->second->reset_prepare_list_after_replay();
 
-        decree smax = _log->max_decree(it->first);
         decree pmax = invalid_decree;
         decree pmax_commit = invalid_decree;
         if (it->second->private_log()) {
             pmax = it->second->private_log()->max_decree(it->first);
             pmax_commit = it->second->private_log()->max_commit_on_disk();
-
-            // possible when shared log is restarted
-            if (smax == 0) {
-                _log->update_max_decree(it->first, pmax);
-                smax = pmax;
-            }
-
-            else if (err == ERR_OK && pmax < smax) {
-                it->second->private_log()->flush();
-                pmax = it->second->private_log()->max_decree(it->first);
-            }
         }
 
-        ddebug("%s: load replica done, err = %s, durable = %" PRId64 ", committed = %" PRId64 ", "
-               "prepared = %" PRId64 ", ballot = %" PRId64 ", "
-               "valid_offset_in_plog = %" PRId64 ", max_decree_in_plog = %" PRId64
-               ", max_commit_on_disk_in_plog = %" PRId64 ", "
-               "valid_offset_in_slog = %" PRId64 ", max_decree_in_slog = %" PRId64 "",
-               it->second->name(),
-               err.to_string(),
-               it->second->last_durable_decree(),
-               it->second->last_committed_decree(),
-               it->second->max_prepared_decree(),
-               it->second->get_ballot(),
-               it->second->get_app()->init_info().init_offset_in_private_log,
-               pmax,
-               pmax_commit,
-               it->second->get_app()->init_info().init_offset_in_shared_log,
-               smax);
-
-        if (err == ERR_OK) {
-            if (smax != pmax) {
-                derror("%s: some shared log state must be lost, smax(%" PRId64 ") vs pmax(%" PRId64
-                       ")",
-                       it->second->name(),
-                       smax,
-                       pmax);
-                is_log_complete = false;
-            } else {
-                // just leave inactive_state_transient as its old value
-            }
-        } else {
-            it->second->set_inactive_state_transient(false);
-        }
+        ddebug_f(
+            "{}: load replica done, err = {}, durable = {}, committed = {}, "
+            "prepared = {}, ballot = {}, "
+            "valid_offset_in_plog = {}, max_decree_in_plog = {}, max_commit_on_disk_in_plog = {}, "
+            "valid_offset_in_slog = {}",
+            it->second->name(),
+            err.to_string(),
+            it->second->last_durable_decree(),
+            it->second->last_committed_decree(),
+            it->second->max_prepared_decree(),
+            it->second->get_ballot(),
+            it->second->get_app()->init_info().init_offset_in_private_log,
+            pmax,
+            pmax_commit,
+            it->second->get_app()->init_info().init_offset_in_shared_log);
     }
 
     // we will mark all replicas inactive not transient unless all logs are complete
@@ -1337,6 +1309,8 @@ void replica_stub::get_replica_info(replica_info &info, replica_ptr r)
     if (dsn::ERR_OK != err) {
         dwarn("get disk tag of %s failed: %s", r->dir().c_str(), err.to_string());
     }
+
+    info.__set_manual_compact_status(r->get_manual_compact_status());
 }
 
 void replica_stub::get_local_replicas(std::vector<replica_info> &replicas)
@@ -3048,7 +3022,7 @@ void replica_stub::query_app_data_version(
 }
 
 void replica_stub::query_app_manual_compact_status(
-    int32_t app_id, std::unordered_map<gpid, manual_compaction_status> &status)
+    int32_t app_id, std::unordered_map<gpid, manual_compaction_status::type> &status)
 {
     zauto_read_lock l(_replicas_lock);
     for (auto it = _replicas.begin(); it != _replicas.end(); ++it) {

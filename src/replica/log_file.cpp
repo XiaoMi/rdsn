@@ -25,11 +25,14 @@
  */
 
 #include "log_file.h"
-#include "log_file_stream.h"
+
+#include <fcntl.h>
 
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/crc.h>
 #include <dsn/dist/fmt_logging.h>
+
+#include "log_file_stream.h"
 
 namespace dsn {
 namespace replication {
@@ -316,6 +319,14 @@ aio_task_ptr log_file::commit_log_blocks(log_appender &pending,
                                  tracker,
                                  nullptr,
                                  hash);
+    }
+
+    if (utils::FLAGS_enable_latency_tracer) {
+        tsk->_tracer->set_parent_point_name("commit_pending_mutations");
+        tsk->_tracer->set_description("log");
+        for (const auto &mutation : pending.mutations()) {
+            mutation->_tracer->add_sub_tracer(tsk->_tracer);
+        }
     }
 
     _end_offset.fetch_add(size);

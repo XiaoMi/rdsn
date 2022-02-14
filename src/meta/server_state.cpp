@@ -35,6 +35,7 @@
  */
 
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/dist/replication/replica_envs.h>
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/tool-api/task.h>
@@ -55,6 +56,35 @@ using namespace dsn;
 
 namespace dsn {
 namespace replication {
+
+DSN_DEFINE_int32("meta_server",
+                 max_allowed_replica_count,
+                 5,
+                 "max replica count allowed for any app of a cluster");
+DSN_TAG_VARIABLE(max_allowed_replica_count, FT_MUTABLE);
+DSN_DEFINE_validator(max_allowed_replica_count, [](int32_t allowed_replica_count) -> bool {
+    return allowed_replica_count > 0;
+});
+
+DSN_DEFINE_int32("meta_server",
+                 min_allowed_replica_count,
+                 1,
+                 "min replica count allowed for any app of a cluster");
+DSN_TAG_VARIABLE(min_allowed_replica_count, FT_MUTABLE);
+DSN_DEFINE_validator(min_allowed_replica_count, [](int32_t allowed_replica_count) -> bool {
+    return allowed_replica_count > 0;
+});
+
+DSN_DEFINE_group_validator(min_max_allowed_replica_count, [](std::string &message) -> bool {
+    if (FLAGS_min_allowed_replica_count > FLAGS_max_allowed_replica_count) {
+        message = fmt::format("meta_server.min_allowed_replica_count({}) should be <= "
+                              "meta_server.max_allowed_replica_count({})",
+                              FLAGS_min_allowed_replica_count,
+                              FLAGS_max_allowed_replica_count);
+        return false;
+    }
+    return true;
+});
 
 static const char *lock_state = "lock";
 static const char *unlock_state = "unlock";
@@ -1072,7 +1102,13 @@ void server_state::create_app(dsn::message_ex *msg)
                opt.replica_count == exist_app.max_replica_count;
     };
 
-    if (request.options.partition_count <= 0 || request.options.replica_count <= 0) {
+    auto level = _meta_svc->get_function_level();
+    if (level <= meta_function_level::fl_freezed) {
+        derror_f("current meta function level is freezed since there are too few alive nodes");
+        response.err = ERR_STATE_FREEZED;
+        will_create_app = false;
+    } else if (request.options.partition_count <= 0 ||
+               !validate_target_max_replica_count(request.options.replica_count)) {
         response.err = ERR_INVALID_PARAMETERS;
         will_create_app = false;
     } else {
@@ -2864,5 +2900,217 @@ void server_state::clear_app_envs(const app_env_rpc &env_rpc)
                    new_envs.c_str());
         });
 }
+
+namespace {
+
+bool validate_target_max_replica_count_internal(int32_t max_replica_count,
+                                                int32_t alive_node_count,
+                                                std::string &hint_message)
+{
+    if (max_replica_count > FLAGS_max_allowed_replica_count ||
+        max_replica_count < FLAGS_min_allowed_replica_count) {
+        hint_message = fmt::format("requested replica count({}) must be "
+                                   "within the range of [min={}, max={}]",
+                                   max_replica_count,
+                                   FLAGS_min_allowed_replica_count,
+                                   FLAGS_max_allowed_replica_count);
+        return false;
+    }
+
+    if (max_replica_count > alive_node_count) {
+        hint_message = fmt::format("there are not enough alive replica servers({}) "
+                                   "for the requested replica count({})",
+                                   alive_node_count,
+                                   max_replica_count);
+        return false;
+    }
+
+    return true;
+}
+
+} // anonymous namespace
+
+bool server_state::validate_target_max_replica_count(int32_t max_replica_count)
+{
+    auto alive_node_count = static_cast<int32_t>(_meta_svc->get_alive_node_count());
+
+    std::string hint_message;
+    bool valid = validate_target_max_replica_count_internal(
+        max_replica_count, alive_node_count, hint_message);
+    if (!valid) {
+        derror_f("target max replica count is invalid: message={}", hint_message);
+    }
+
+    return valid;
+}
+
+void server_state::on_start_manual_compact(start_manual_compact_rpc rpc)
+{
+    const std::string &app_name = rpc.request().app_name;
+    auto &response = rpc.response();
+
+    std::map<std::string, std::string> envs;
+    {
+        zauto_read_lock l(_lock);
+        auto app = get_app(app_name);
+        if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
+            response.err = app == nullptr ? ERR_APP_NOT_EXIST : ERR_APP_DROPPED;
+            response.hint_msg =
+                fmt::format("app {} is {}",
+                            app_name,
+                            response.err == ERR_APP_NOT_EXIST ? "not existed" : "not available");
+            derror_f("{}", response.hint_msg);
+            return;
+        }
+        envs = app->envs;
+    }
+
+    auto iter = envs.find(replica_envs::MANUAL_COMPACT_DISABLED);
+    if (iter != envs.end() && iter->second == "true") {
+        response.err = ERR_OPERATION_DISABLED;
+        response.hint_msg = fmt::format("app {} disable manual compaction", app_name);
+        derror_f("{}", response.hint_msg);
+        return;
+    }
+
+    std::vector<std::string> keys;
+    std::vector<std::string> values;
+    if (!parse_compaction_envs(rpc, keys, values)) {
+        return;
+    }
+
+    update_compaction_envs_on_remote_storage(rpc, keys, values);
+
+    // update local manual compaction status
+    {
+        zauto_write_lock l(_lock);
+        auto app = get_app(app_name);
+        app->helpers->reset_manual_compact_status();
+    }
+}
+
+bool server_state::parse_compaction_envs(start_manual_compact_rpc rpc,
+                                         std::vector<std::string> &keys,
+                                         std::vector<std::string> &values)
+{
+    const auto &request = rpc.request();
+    auto &response = rpc.response();
+
+    int32_t target_level = -1;
+    if (request.__isset.target_level) {
+        target_level = request.target_level;
+        if (target_level < -1) {
+            response.err = ERR_INVALID_PARAMETERS;
+            response.hint_msg = fmt::format(
+                "invalid target_level({}), should in range of [-1, num_levels]", target_level);
+            derror_f("{}", response.hint_msg);
+            return false;
+        }
+    }
+    keys.emplace_back(replica_envs::MANUAL_COMPACT_ONCE_TARGET_LEVEL);
+    values.emplace_back(std::to_string(target_level));
+
+    if (request.__isset.max_running_count) {
+        if (request.max_running_count < 0) {
+            response.err = ERR_INVALID_PARAMETERS;
+            response.hint_msg =
+                fmt::format("invalid max_running_count({}), should be greater than 0",
+                            request.max_running_count);
+            derror_f("{}", response.hint_msg);
+            return false;
+        }
+        if (request.max_running_count > 0) {
+            keys.emplace_back(replica_envs::MANUAL_COMPACT_MAX_CONCURRENT_RUNNING_COUNT);
+            values.emplace_back(std::to_string(request.max_running_count));
+        }
+    }
+
+    std::string bottommost = "skip";
+    if (request.__isset.bottommost && request.bottommost) {
+        bottommost = "force";
+    }
+    keys.emplace_back(replica_envs::MANUAL_COMPACT_ONCE_BOTTOMMOST_LEVEL_COMPACTION);
+    values.emplace_back(bottommost);
+
+    int64_t trigger_time = dsn_now_s();
+    if (request.__isset.trigger_time) {
+        trigger_time = request.trigger_time;
+    }
+    keys.emplace_back(replica_envs::MANUAL_COMPACT_ONCE_TRIGGER_TIME);
+    values.emplace_back(std::to_string(trigger_time));
+
+    return true;
+}
+
+void server_state::update_compaction_envs_on_remote_storage(start_manual_compact_rpc rpc,
+                                                            const std::vector<std::string> &keys,
+                                                            const std::vector<std::string> &values)
+{
+    const std::string &app_name = rpc.request().app_name;
+    std::string app_path = "";
+    app_info ainfo;
+    {
+        zauto_read_lock l(_lock);
+        auto app = get_app(app_name);
+        ainfo = *(reinterpret_cast<app_info *>(app.get()));
+        app_path = get_app_path(*app);
+    }
+    for (auto idx = 0; idx < keys.size(); idx++) {
+        ainfo.envs[keys[idx]] = values[idx];
+    }
+    do_update_app_info(app_path, ainfo, [this, app_name, keys, values, rpc](error_code ec) {
+        dassert_f(ec == ERR_OK, "update app_info to remote storage failed with err = {}", ec);
+
+        zauto_write_lock l(_lock);
+        auto app = get_app(app_name);
+        std::string old_envs = dsn::utils::kv_map_to_string(app->envs, ',', '=');
+        for (int idx = 0; idx < keys.size(); idx++) {
+            app->envs[keys[idx]] = values[idx];
+        }
+        std::string new_envs = dsn::utils::kv_map_to_string(app->envs, ',', '=');
+        ddebug_f("update manual compaction envs succeed: old_envs = {}, new_envs = {}",
+                 old_envs,
+                 new_envs);
+
+        rpc.response().err = ERR_OK;
+        rpc.response().hint_msg = "succeed";
+    });
+}
+
+void server_state::on_query_manual_compact_status(query_manual_compact_rpc rpc)
+{
+    const std::string &app_name = rpc.request().app_name;
+    auto &response = rpc.response();
+
+    std::shared_ptr<app_state> app;
+    {
+        zauto_read_lock l(_lock);
+        app = get_app(app_name);
+    }
+
+    if (app == nullptr || app->status != app_status::AS_AVAILABLE) {
+        response.err = app == nullptr ? ERR_APP_NOT_EXIST : ERR_APP_DROPPED;
+        response.hint_msg =
+            fmt::format("app {} is {}",
+                        app_name,
+                        response.err == ERR_APP_NOT_EXIST ? "not existed" : "not available");
+        derror_f("{}", response.hint_msg);
+        return;
+    }
+
+    int32_t total_progress = 0;
+    if (!app->helpers->get_manual_compact_progress(total_progress)) {
+        response.err = ERR_INVALID_STATE;
+        response.hint_msg = fmt::format("app {} is not manual compaction", app_name);
+        dwarn_f("{}", response.hint_msg);
+        return;
+    }
+
+    ddebug_f("query app {} manual compact succeed, total_progress = {}", app_name, total_progress);
+    response.err = ERR_OK;
+    response.hint_msg = "succeed";
+    response.__set_progress(total_progress);
+}
+
 } // namespace replication
 } // namespace dsn
