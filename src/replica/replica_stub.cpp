@@ -97,7 +97,7 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _learn_app_concurrent_count(0),
       _fs_manager(false),
       _bulk_load_downloading_count(0),
-      _emergency_checkpointing_count(0),
+      _manual_emergency_checkpointing_count(0),
       _is_running(false)
 {
 #ifdef DSN_ENABLE_GPERF
