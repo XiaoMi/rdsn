@@ -146,7 +146,8 @@ error_code replica::trigger_manual_emergency_checkpoint(decree old_decree)
         return ERR_BUSY;
     }
 
-    if (++_stub->_manual_emergency_checkpointing_count > FLAGS_max_concurrent_manual_emergency_checkpointing_count) {
+    if (++_stub->_manual_emergency_checkpointing_count >
+        FLAGS_max_concurrent_manual_emergency_checkpointing_count) {
         dwarn_replica("please try again later because checkpointing exceed max running count[{}]",
                       FLAGS_max_concurrent_manual_emergency_checkpointing_count);
         --_stub->_manual_emergency_checkpointing_count;
