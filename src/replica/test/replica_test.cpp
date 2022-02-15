@@ -150,11 +150,6 @@ public:
         return _mock_replica->find_valid_checkpoint(req, remote_chkpt_dir);
     }
 
-    error_code trigger_emergency_checkpoint(decree decree)
-    {
-        return _mock_replica->trigger_manual_emergency_checkpoint(decree);
-    }
-
     void force_update_checkpointing(bool running)
     {
         _mock_replica->_is_manual_emergency_checkpointing = running;
@@ -331,10 +326,9 @@ TEST_F(replica_test, test_replica_backup_and_restore_with_specific_path)
 
 TEST_F(replica_test, trigger_manual_emergency_checkpoint)
 {
-
     ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(100), ERR_OK);
     ASSERT_TRUE(is_checkpointing());
-    update_last_durable_decree(100);
+    _mock_replica->update_last_durable_decree(100);
 
     // test no need start checkpoint because `old_decree` < `last_durable`
     ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(100), ERR_OK);

@@ -43,6 +43,8 @@ public:
         _replica->init_private_log(_log_dir);
     }
 
+    mock_replica *replica() { return _replica.get(); }
+
     decree last_durable_decree() const { return _replica->last_durable_decree(); }
 
     decree log_dup_start_decree(const std::unique_ptr<replica_duplicator> &dup) const
@@ -152,7 +154,7 @@ TEST_F(replica_duplicator_test, duplication_progress)
 TEST_F(replica_duplicator_test, prapre_dup)
 {
     auto duplicator = create_test_duplicator(invalid_decree, 100);
-    update_expect_last_durable_decree(100);
+    replica()->update_expect_last_durable_decree(100);
     duplicator->prepare_dup();
     wait_all(duplicator);
     ASSERT_EQ(last_durable_decree(), log_dup_start_decree(duplicator));

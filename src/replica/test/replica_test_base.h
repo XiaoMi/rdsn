@@ -78,18 +78,6 @@ struct replica_test_base : replica_stub_test_base
         return mu;
     }
 
-    void update_last_durable_decree(decree decree)
-    {
-        dynamic_cast<mock_replication_app_base *>(_replica->_app.get())
-            ->set_last_durable_decree(decree);
-    }
-
-    void update_expect_last_durable_decree(decree decree)
-    {
-        dynamic_cast<mock_replication_app_base *>(_replica->_app.get())
-            ->set_expect_last_durable_decree(decree);
-    }
-
     gpid get_gpid() const { return _replica->get_gpid(); }
 };
 

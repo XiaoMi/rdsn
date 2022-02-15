@@ -198,6 +198,17 @@ public:
         backup_context->complete_checkpoint();
     }
 
+    void update_last_durable_decree(decree decree)
+    {
+        dynamic_cast<mock_replication_app_base *>(_app.get())->set_last_durable_decree(decree);
+    }
+
+    void update_expect_last_durable_decree(decree decree)
+    {
+        dynamic_cast<mock_replication_app_base *>(_app.get())
+            ->set_expect_last_durable_decree(decree);
+    }
+
 private:
     decree _max_gced_decree{invalid_decree - 1};
     decree _last_durable_decree{0};
