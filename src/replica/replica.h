@@ -457,6 +457,8 @@ private:
     // path = "" means using the default directory (`_dir`/.app_info)
     error_code store_app_info(app_info &info, const std::string &path = "");
 
+    void update_app_max_replica_count(int32_t max_replica_count);
+
 private:
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::mutation_queue;
