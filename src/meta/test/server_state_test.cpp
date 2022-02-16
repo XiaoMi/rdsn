@@ -396,6 +396,9 @@ void max_replica_count_test_runner::initialize(int32_t node_count,
     _svc->_meta_opts.meta_state_service_type = "meta_state_service_simple";
     _svc->remote_storage_initialize();
 
+    // create partition_guardian
+    svc->_partition_guardian.reset(new partition_guardian(_svc.get()));
+
     // create balancer
     _svc->_balancer.reset(new dsn::replication::greedy_load_balancer(_svc.get()));
 
