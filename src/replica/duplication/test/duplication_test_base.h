@@ -82,6 +82,12 @@ public:
         mut->data.updates[0].code = RPC_DUPLICATION_IDEMPOTENT_WRITE; // must be idempotent write
         return mut;
     }
+
+    void wait_all(const std::unique_ptr<replica_duplicator> &dup)
+    {
+        dup->tracker()->wait_outstanding_tasks();
+        dup->_replica->tracker()->wait_outstanding_tasks();
+    }
 };
 
 } // namespace replication

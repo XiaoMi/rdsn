@@ -52,12 +52,6 @@ public:
         return dup->_start_point_decree;
     }
 
-    void wait_all(const std::unique_ptr<replica_duplicator> &dup)
-    {
-        dup->tracker()->wait_outstanding_tasks();
-        dup->_replica->tracker()->wait_outstanding_tasks();
-    }
-
     void test_new_duplicator()
     {
         dupid_t dupid = 1;
