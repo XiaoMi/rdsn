@@ -116,6 +116,7 @@ public:
     ~mock_replica() override
     {
         _config.status = partition_status::PS_INACTIVE;
+        _tracker.wait_outstanding_tasks();
         _app.reset(nullptr);
     }
 
