@@ -125,7 +125,7 @@ inline int64_t hh_mm_today_to_unix_sec(string_view hhmm_of_day)
     return get_unix_sec_today_midnight() + sec_of_day;
 }
 
-template<typename From, typename To>
+template <typename From, typename To>
 inline int64_t convert_duration(int64_t from_val)
 {
     const From from_obj(from_val);

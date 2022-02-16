@@ -5,9 +5,9 @@
 #include <dsn/utility/ports.h>
 #include <dsn/utils/time_utils.h>
 
+#include "meta/greedy_load_balancer.h"
 #include "meta/meta_server_failure_detector.h"
 #include "meta/meta_service.h"
-#include "meta/server_load_balancer.h"
 #include "meta/server_state.h"
 #include "meta/test/misc/misc.h"
 
@@ -262,8 +262,7 @@ public:
             break;
         }
 
-        auto fake_msg =
-            dsn::message_ex::create_request(RPC_CM_UPDATE_PARTITION_CONFIGURATION);
+        auto fake_msg = dsn::message_ex::create_request(RPC_CM_UPDATE_PARTITION_CONFIGURATION);
         dsn::marshall(fake_msg, *update_req);
         fake_msg->add_ref();
 
@@ -275,28 +274,24 @@ public:
             server_state::sStateHash);
     }
 
-    const configuration_get_max_replica_count_response &
-    get_max_replica_count_resp()
+    const configuration_get_max_replica_count_response &get_max_replica_count_resp()
     {
         return _get_max_replica_count_resp;
     }
 
-    const configuration_set_max_replica_count_response &
-    set_max_replica_count_resp()
+    const configuration_set_max_replica_count_response &set_max_replica_count_resp()
     {
         return _set_max_replica_count_resp;
     }
 
     void clear_get_max_replica_count_resp()
     {
-        _get_max_replica_count_resp =
-            configuration_get_max_replica_count_response();
+        _get_max_replica_count_resp = configuration_get_max_replica_count_response();
     }
 
     void clear_set_max_replica_count_resp()
     {
-        _set_max_replica_count_resp =
-            configuration_set_max_replica_count_response();
+        _set_max_replica_count_resp = configuration_set_max_replica_count_response();
     }
 
 private:
@@ -402,7 +397,7 @@ void max_replica_count_test_runner::initialize(int32_t node_count,
     _svc->remote_storage_initialize();
 
     // create balancer
-    _svc->_balancer.reset(new dsn::replication::simple_load_balancer(_svc.get()));
+    _svc->_balancer.reset(new dsn::replication::greedy_load_balancer(_svc.get()));
 
     // initialize server state
     std::string apps_root = "/meta_test/apps";
@@ -442,20 +437,22 @@ bool max_replica_count_test_runner::assigned_with_enough_nodes(int32_t target_ma
 
     for (int i = 0; i < static_cast<int>(_app->partitions.size()); ++i) {
         const auto &partition_config = _app->partitions[i];
-        const auto &gpid = _app->gpid; 
+        const auto &pid = partition_config.pid;
+
         if (partition_config.primary.is_invalid()) {
-            std::cout << "primary is still invalid: app_name=" << app_name() << ", app_id="
-                      << gpid.get_app_id() << ", partition_index=" << gpid.get_partition_index(),
-                      << std::endl;
+            std::cout << "primary is still invalid: app_name=" << app_name()
+                      << ", app_id=" << pid.get_app_id()
+                      << ", partition_index=" << pid.get_partition_index() << std::endl;
             return false;
         }
 
         int32_t secondary_count = static_cast<int32_t>(partition_config.secondaries.size());
         if (1 + secondary_count != target_max_replica_count) {
-            std::cout << "secondaries are still not enough: app_name=" << app_name() << ", app_id="
-                      << gpid.get_app_id() << ", partition_index=" << gpid.get_partition_index(),
-                      << ", secondary_count=" << secondary_count << ", target_max_replica_count="
-                      << target_max_replica_count << std::endl;
+            std::cout << "secondaries are still not enough: app_name=" << app_name()
+                      << ", app_id=" << pid.get_app_id()
+                      << ", partition_index=" << pid.get_partition_index()
+                      << ", secondary_count=" << secondary_count
+                      << ", target_max_replica_count=" << target_max_replica_count << std::endl;
             return false;
         }
     }
@@ -483,14 +480,16 @@ void max_replica_count_test_runner::set_node_state(int node_index,
         auto alive_node_count = get_alive_node_count();
         if (alive_node_count == target_alive_node_count) {
             std::cout << "after setting node state, the number of alive nodes have "
-                      << "reached target: target_alive_node_count="
-                      << target_alive_node_count << std::endl;
+                      << "reached target: target_alive_node_count=" << target_alive_node_count
+                      << std::endl;
             break;
         }
 
         const auto now = dsn_now_ns();
         const auto duration_ns = static_cast<int64_t>(now - start);
-        const auto duration_ms = dsn::utils::convert_duration<std::chrono::nanoseconds, std::chrono::milliseconds>(duration_ns);
+        const auto duration_ms =
+            dsn::utils::convert_duration<std::chrono::nanoseconds, std::chrono::milliseconds>(
+                duration_ns);
 
         dassert_f(duration_ms <= timeout_ms,
                   "timeout while waiting for enough alive nodes: duration={} ms, "
@@ -515,7 +514,9 @@ void max_replica_count_test_runner::set_node_state(int node_index,
 
         auto now = dsn_now_ns();
         auto duration_ns = static_cast<int64_t>(now - start);
-        const auto duration_ms = dsn::utils::convert_duration<std::chrono::nanoseconds, std::chrono::milliseconds>(duration_ns);
+        const auto duration_ms =
+            dsn::utils::convert_duration<std::chrono::nanoseconds, std::chrono::milliseconds>(
+                duration_ns);
 
         dassert_f(duration_ms <= timeout_ms,
                   "timeout while waiting for assigning enough nodes to all partitions: "
@@ -604,7 +605,9 @@ void max_replica_count_test_runner::test_set_max_replica_count(const std::string
 
         const auto now = dsn_now_ns();
         const auto duration_ns = static_cast<int64_t>(now - start);
-        const auto duration_ms = dsn::utils::convert_duration<std::chrono::nanoseconds, std::chrono::milliseconds>(duration_ns);
+        const auto duration_ms =
+            dsn::utils::convert_duration<std::chrono::nanoseconds, std::chrono::milliseconds>(
+                duration_ns);
 
         dassert_f(duration_ms <= timeout_ms,
                   "timeout while waiting for assigning enough nodes to all partitions: "
