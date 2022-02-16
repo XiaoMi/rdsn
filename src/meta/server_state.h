@@ -347,6 +347,7 @@ private:
     friend class test::test_checker;
     friend class server_state_restore_test;
     friend class meta_app_compaction_test;
+    friend class max_replica_count_test_runner;
 
     FRIEND_TEST(meta_backup_service_test, test_add_backup_policy);
     FRIEND_TEST(policy_context_test, test_app_dropped_during_backup);

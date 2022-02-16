@@ -277,6 +277,7 @@ private:
     friend class policy_context_test;
     friend class server_state_restore_test;
     friend class test::test_checker;
+    friend class max_replica_count_test_runner;
 
     replication_options _opts;
     meta_options _meta_opts;
