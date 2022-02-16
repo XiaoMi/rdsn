@@ -129,6 +129,11 @@ error_code replica::trigger_manual_emergency_checkpoint(decree old_decree)
 {
     _checker.only_one_thread_access();
 
+    if (_app == nullptr) {
+        derror_replica("app hasn't been init or has been released");
+        return ERR_LOCAL_APP_FAILURE;
+    }
+
     if (old_decree <= _app->last_durable_decree()) {
         ddebug_replica("checkpoint has been successful: old = {} vs latest = {}",
                        old_decree,
