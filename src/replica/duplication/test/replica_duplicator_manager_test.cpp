@@ -84,7 +84,6 @@ public:
         // duplication removed and the confimed_decree = -1
         d.update_confirmed_decree_if_secondary(-1);
         ASSERT_EQ(d._primary_confirmed_decree, -1);
-        r->tracker()->wait_outstanding_tasks();
     }
 
     void test_get_duplication_confirms()
@@ -118,7 +117,6 @@ public:
 
         auto result = r->get_replica_duplicator_manager().get_duplication_confirms_to_update();
         ASSERT_EQ(result.size(), update_dup_num);
-        r->tracker()->wait_outstanding_tasks();
     }
 
     void test_min_confirmed_decree()
@@ -147,7 +145,6 @@ public:
             ASSERT_EQ(r->get_replica_duplicator_manager().min_confirmed_decree(),
                       tt.min_confirmed_decree);
             r->get_replica_duplicator_manager()._duplications.clear();
-            r->tracker()->wait_outstanding_tasks();
         };
 
         {
