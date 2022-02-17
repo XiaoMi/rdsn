@@ -399,8 +399,8 @@ void max_replica_count_test_runner::initialize(int32_t node_count,
     _no_reply_svc = dynamic_cast<no_reply_meta_service *>(_svc.get());
 
     // register response hook
-    rpc_session::on_rpc_send_message.put_native(
-        std::bind(&no_reply_meta_service::on_rpc_send_message, _no_reply_svc, std::placeholders::_1));
+    rpc_session::on_rpc_send_message.put_native(std::bind(
+        &no_reply_meta_service::on_rpc_send_message, _no_reply_svc, std::placeholders::_1));
 
     // disable node_live_percentage_threshold_for_update, since the meta function
     // level will become freezed once
@@ -554,10 +554,11 @@ void max_replica_count_test_runner::set_node_state(int node_index,
 
 namespace {
 
-dsn::message_ex *create_received_message(const dsn::task_code &rpc_code)
+template <typename T>
+dsn::message_ex *create_received_message(const dsn::task_code &rpc_code, const T &val)
 {
     auto msg = dsn::message_ex::create_request(rpc_code);
-    dsn::marshall(msg, *req);
+    dsn::marshall(msg, val);
 
     auto recvd_msg = create_corresponding_receive(msg);
     destroy_message(msg);
@@ -585,7 +586,7 @@ void max_replica_count_test_runner::test_get_max_replica_count(const std::string
         auto req = dsn::make_unique<configuration_get_max_replica_count_request>();
         req->__set_app_name(app_name);
 
-        auto recvd_req_msg = create_received_message(RPC_CM_GET_MAX_REPLICA_COUNT);
+        auto recvd_req_msg = create_received_message(RPC_CM_GET_MAX_REPLICA_COUNT, *req);
 
         auto rpc = configuration_get_max_replica_count_rpc::auto_reply(recvd_req_msg);
         tasking::enqueue(LPC_META_STATE_NORMAL,
@@ -624,7 +625,7 @@ void max_replica_count_test_runner::test_set_max_replica_count(const std::string
         req->__set_app_name(app_name);
         req->__set_max_replica_count(target_max_replica_count);
 
-        auto recvd_req_msg = create_received_message(RPC_CM_SET_MAX_REPLICA_COUNT);
+        auto recvd_req_msg = create_received_message(RPC_CM_SET_MAX_REPLICA_COUNT, *req);
 
         auto rpc = configuration_set_max_replica_count_rpc::auto_reply(recvd_req_msg);
         tasking::enqueue(LPC_META_STATE_NORMAL,
@@ -816,7 +817,7 @@ void meta_service_test_app::max_replica_count_test()
                                       -1);
 
     // make the 3rd node alive
-    runner.set_node_state(2, true, 3, 1);
+    runner.set_node_state(2, true, 3, 2);
 
     // set max_replica_count with a number more than FLAGS_max_allowed_replica_count
     FLAGS_max_allowed_replica_count = 2;
@@ -840,9 +841,9 @@ void meta_service_test_app::max_replica_count_test()
     // set max_replica_count with a number less than FLAGS_min_allowed_replica_count
     FLAGS_min_allowed_replica_count = 4;
     runner.test_set_max_replica_count(runner.app_name(),
-                                      second_max_replica_count,
+                                      third_max_replica_count,
                                       dsn::ERR_INVALID_PARAMETERS,
-                                      first_max_replica_count,
+                                      second_max_replica_count,
                                       -1);
     FLAGS_min_allowed_replica_count = 3;
 
