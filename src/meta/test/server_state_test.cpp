@@ -200,10 +200,11 @@ public:
     no_reply_meta_service(no_reply_meta_service &&) = delete;
     no_reply_meta_service &operator=(no_reply_meta_service &&) = delete;
 
-    // virtual void reply_message(dsn::message_ex *, dsn::message_ex *resp_msg) override
-    //{
-    //}
-    bool on_rpc_send_msg(message_ex *msg)
+    // since both handlers of get/set max_replica_count have used rpc_holder to reply automatically
+    // to the request, instead of overriding meta_service::reply_message, implement the following
+    // hook which will be executed at the join_point of rpc_session::on_rpc_send_message to extract
+    // the response.
+    bool on_rpc_send_message(message_ex *msg)
     {
         auto recvd_msg = dsn::replication::create_corresponding_receive(msg);
         const auto &rpc_code = recvd_msg->rpc_code();
@@ -399,7 +400,7 @@ void max_replica_count_test_runner::initialize(int32_t node_count,
 
     // register response hook
     rpc_session::on_rpc_send_message.put_native(
-        std::bind(&no_reply_meta_service::on_rpc_send_msg, _no_reply_svc, std::placeholders::_1));
+        std::bind(&no_reply_meta_service::on_rpc_send_message, _no_reply_svc, std::placeholders::_1));
 
     // disable node_live_percentage_threshold_for_update, since the meta function
     // level will become freezed once
@@ -551,6 +552,25 @@ void max_replica_count_test_runner::set_node_state(int node_index,
     }
 }
 
+namespace {
+
+dsn::message_ex *create_received_message(const dsn::task_code &rpc_code)
+{
+    auto msg = dsn::message_ex::create_request(rpc_code);
+    dsn::marshall(msg, *req);
+
+    auto recvd_msg = create_corresponding_receive(msg);
+    destroy_message(msg);
+
+    std::unique_ptr<dsn::tools::sim_network_provider> sim_net(
+        new dsn::tools::sim_network_provider(nullptr, nullptr));
+    recvd_msg->io_session = sim_net->create_client_session(dsn::rpc_address());
+
+    return recvd_msg;
+}
+
+} // anonymous namespace
+
 void max_replica_count_test_runner::test_get_max_replica_count(const std::string &app_name,
                                                                const dsn::error_code &expected_err,
                                                                int32_t expected_max_replica_count)
@@ -559,19 +579,14 @@ void max_replica_count_test_runner::test_get_max_replica_count(const std::string
               << "app_name=" << app_name << ", expected_err=" << expected_err.to_string()
               << ", expected_max_replica_count=" << expected_max_replica_count << std::endl;
 
+    // to reply automatically, rpc_holder should be put in the independent scope to reduce
+    // the reference count.
     {
         auto req = dsn::make_unique<configuration_get_max_replica_count_request>();
         req->__set_app_name(app_name);
 
-        auto req_msg = dsn::message_ex::create_request(RPC_CM_GET_MAX_REPLICA_COUNT);
-        dsn::marshall(req_msg, *req);
+        auto recvd_req_msg = create_received_message(RPC_CM_GET_MAX_REPLICA_COUNT);
 
-        auto recvd_req_msg = create_corresponding_receive(req_msg);
-        destroy_message(req_msg);
-
-        std::unique_ptr<dsn::tools::sim_network_provider> sim_net(
-            new dsn::tools::sim_network_provider(nullptr, nullptr));
-        recvd_req_msg->io_session = sim_net->create_client_session(dsn::rpc_address());
         auto rpc = configuration_get_max_replica_count_rpc::auto_reply(recvd_req_msg);
         tasking::enqueue(LPC_META_STATE_NORMAL,
                          _svc->tracker(),
@@ -602,16 +617,14 @@ void max_replica_count_test_runner::test_set_max_replica_count(const std::string
               << ", old_max_replica_count=" << old_max_replica_count
               << ", expected_ballot=" << expected_ballot << std::endl;
 
+    // to reply automatically, rpc_holder should be put in the independent scope to reduce
+    // the reference count.
     {
         auto req = dsn::make_unique<configuration_set_max_replica_count_request>();
         req->__set_app_name(app_name);
         req->__set_max_replica_count(target_max_replica_count);
 
-        auto req_msg = dsn::message_ex::create_request(RPC_CM_SET_MAX_REPLICA_COUNT);
-        dsn::marshall(req_msg, *req);
-
-        auto recvd_req_msg = create_corresponding_receive(req_msg);
-        destroy_message(req_msg);
+        auto recvd_req_msg = create_received_message(RPC_CM_SET_MAX_REPLICA_COUNT);
 
         auto rpc = configuration_set_max_replica_count_rpc::auto_reply(recvd_req_msg);
         tasking::enqueue(LPC_META_STATE_NORMAL,
