@@ -3168,13 +3168,14 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
              response.old_max_replica_count,
              new_max_replica_count);
 
+#ifdef INCREASE_MAX_REPLICA_COUNT_ONLY
     if (new_max_replica_count < response.old_max_replica_count) {
         response.err = ERR_INVALID_PARAMETERS;
         response.hint_message = fmt::format("new_max_replica_count({}) should never be less than "
                                             "the current max_replica_count({})",
                                             new_max_replica_count,
                                             response.old_max_replica_count);
-        derror_f(
+        dwarn_f(
             "failed to set max_replica_count: app_name={}, app_id={}, error_code={}, message={}",
             app_name,
             app_id,
@@ -3182,6 +3183,7 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
             response.hint_message);
         return;
     }
+#endif
 
     auto level = _meta_svc->get_function_level();
     if (level <= meta_function_level::fl_freezed) {
@@ -3195,7 +3197,7 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
         new_max_replica_count, alive_node_count, response.hint_message);
     if (!valid) {
         response.err = ERR_INVALID_PARAMETERS;
-        derror_f(
+        dwarn_f(
             "failed to set max_replica_count: app_name={}, app_id={}, error_code={}, message={}",
             app_name,
             app_id,
@@ -3225,7 +3227,7 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
             response.hint_message = fmt::format(                                                   \
                 "failed while updating max_replica_count since app({}) does not exist",            \
                 app_id_or_name);                                                                   \
-            dwarn_f("{}", response.hint_message);                                                  \
+            derror_f("{}", response.hint_message);                                                  \
             return;                                                                                \
         }                                                                                          \
     } while (0)
@@ -3268,6 +3270,7 @@ void server_state::update_partition_max_replica_count(int32_t partition_index,
     auto &old_partition_config = app->partitions[partition_index];
     const auto old_max_replica_count = old_partition_config.max_replica_count;
 
+#ifdef INCREASE_MAX_REPLICA_COUNT_ONLY
     dassert_f(new_max_replica_count >= old_max_replica_count,
               "new_max_replica_count should never be less than old_max_replica_count: ",
               "app_name={}, app_id={}, partition_index={}, new_max_replica_count={}, "
@@ -3277,6 +3280,7 @@ void server_state::update_partition_max_replica_count(int32_t partition_index,
               partition_index,
               new_max_replica_count,
               old_max_replica_count);
+#endif
 
     if (new_max_replica_count == old_max_replica_count) {
         dwarn_f("partition-level max_replica_count has been updated, continue to update the next "
@@ -3344,7 +3348,6 @@ task_ptr server_state::update_partition_max_replica_count_on_remote(
 
     auto level = _meta_svc->get_function_level();
     if (level <= meta_function_level::fl_blind) {
-
         dwarn_f("have to wait until meta level becomes more than fl_blind, then process the "
                 "current request of updating max_replica_count: current_meta_level={}, "
                 "app_name={}, app_id={}, partition_index={}, new_max_replica_count={}, "

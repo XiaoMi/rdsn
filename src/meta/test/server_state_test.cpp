@@ -800,12 +800,14 @@ void meta_service_test_app::max_replica_count_test()
                                       first_max_replica_count,
                                       second_ballot);
 
+#ifdef INCREASE_MAX_REPLICA_COUNT_ONLY
     // decrease the max_replica_count
     runner.test_set_max_replica_count(runner.app_name(),
                                       first_max_replica_count,
                                       dsn::ERR_INVALID_PARAMETERS,
                                       second_max_replica_count,
                                       -1);
+#endif
 
     const int32_t third_max_replica_count = second_max_replica_count + 1;
 
