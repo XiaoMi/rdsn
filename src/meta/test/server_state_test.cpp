@@ -199,39 +199,45 @@ public:
     no_reply_meta_service(no_reply_meta_service &&) = delete;
     no_reply_meta_service &operator=(no_reply_meta_service &&) = delete;
 
-    virtual void reply_message(dsn::message_ex *, dsn::message_ex *resp_msg) override
+    //virtual void reply_message(dsn::message_ex *, dsn::message_ex *resp_msg) override
+    //{
+    //}
+    bool on_rpc_send_msg(message_ex *msg)
     {
-        auto recv_msg = dsn::replication::create_corresponding_receive(resp_msg);
-        const auto &rpc_code = recv_msg->rpc_code();
+        auto recvd_msg = dsn::replication::create_corresponding_receive(msg);
+        const auto &rpc_code = recvd_msg->rpc_code();
         std::cout << "response for " << rpc_code.to_string() << ": ";
 
         if (rpc_code == RPC_CM_GET_MAX_REPLICA_COUNT_ACK) {
-            dsn::unmarshall(recv_msg, _get_max_replica_count_resp);
+            dsn::unmarshall(recvd_msg, _get_max_replica_count_resp);
             std::cout << _get_max_replica_count_resp;
         } else if (rpc_code == RPC_CM_SET_MAX_REPLICA_COUNT_ACK) {
-            dsn::unmarshall(recv_msg, _set_max_replica_count_resp);
+            dsn::unmarshall(recvd_msg, _set_max_replica_count_resp);
             std::cout << _set_max_replica_count_resp;
         } else if (rpc_code == RPC_CM_UPDATE_PARTITION_CONFIGURATION_ACK) {
             dsn::replication::configuration_update_response resp;
-            dsn::unmarshall(recv_msg, resp);
+            dsn::unmarshall(recvd_msg, resp);
             std::cout << resp;
         } else {
             std::cout << "untreated";
         }
 
         std::cout << std::endl;
+
+        // just ignore msg since no reply is needed
+        return false;
     }
 
     virtual void send_message(const dsn::rpc_address &, dsn::message_ex *req_msg) override
     {
         // we expect this is a configuration_update_request proposal
-        auto recv_msg = dsn::replication::create_corresponding_receive(req_msg);
+        auto recvd_req_msg = dsn::replication::create_corresponding_receive(req_msg);
 
         auto update_req = std::make_shared<dsn::replication::configuration_update_request>();
-        ::dsn::unmarshall(recv_msg, *update_req);
+        ::dsn::unmarshall(recvd_req_msg, *update_req);
 
         destroy_message(req_msg);
-        destroy_message(recv_msg);
+        destroy_message(recvd_req_msg);
 
         auto &partition_config = update_req->config;
         partition_config.ballot++;
@@ -389,6 +395,9 @@ void max_replica_count_test_runner::initialize(int32_t node_count,
     // create meta_service
     _svc = std::make_shared<no_reply_meta_service>();
     _no_reply_svc = dynamic_cast<no_reply_meta_service *>(_svc.get());
+
+    // register response hook
+    rpc_session::on_rpc_send_message.put_native(std::bind(&no_reply_meta_service::on_rpc_send_msg, _no_reply_svc, std::placeholders::_1));
 
     // disable node_live_percentage_threshold_for_update, since the meta function
     // level will become freezed once
