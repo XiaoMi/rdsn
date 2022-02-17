@@ -10,6 +10,7 @@
 #include "meta/meta_service.h"
 #include "meta/server_state.h"
 #include "meta/test/misc/misc.h"
+#include "runtime/rpc/network.sim.h"
 
 #include "meta_service_test_app.h"
 
@@ -199,7 +200,7 @@ public:
     no_reply_meta_service(no_reply_meta_service &&) = delete;
     no_reply_meta_service &operator=(no_reply_meta_service &&) = delete;
 
-    //virtual void reply_message(dsn::message_ex *, dsn::message_ex *resp_msg) override
+    // virtual void reply_message(dsn::message_ex *, dsn::message_ex *resp_msg) override
     //{
     //}
     bool on_rpc_send_msg(message_ex *msg)
@@ -397,7 +398,8 @@ void max_replica_count_test_runner::initialize(int32_t node_count,
     _no_reply_svc = dynamic_cast<no_reply_meta_service *>(_svc.get());
 
     // register response hook
-    rpc_session::on_rpc_send_message.put_native(std::bind(&no_reply_meta_service::on_rpc_send_msg, _no_reply_svc, std::placeholders::_1));
+    rpc_session::on_rpc_send_message.put_native(
+        std::bind(&no_reply_meta_service::on_rpc_send_msg, _no_reply_svc, std::placeholders::_1));
 
     // disable node_live_percentage_threshold_for_update, since the meta function
     // level will become freezed once
@@ -567,6 +569,9 @@ void max_replica_count_test_runner::test_get_max_replica_count(const std::string
         auto recvd_req_msg = create_corresponding_receive(req_msg);
         destroy_message(req_msg);
 
+        std::unique_ptr<dsn::tools::sim_network_provider> sim_net(
+            new dsn::tools::sim_network_provider(nullptr, nullptr));
+        recvd_req_msg->io_session = sim_net->create_client_session(dsn::rpc_address());
         auto rpc = configuration_get_max_replica_count_rpc::auto_reply(recvd_req_msg);
         tasking::enqueue(LPC_META_STATE_NORMAL,
                          _svc->tracker(),
