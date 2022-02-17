@@ -3227,7 +3227,7 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
             response.hint_message = fmt::format(                                                   \
                 "failed while updating max_replica_count since app({}) does not exist",            \
                 app_id_or_name);                                                                   \
-            derror_f("{}", response.hint_message);                                                  \
+            derror_f("{}", response.hint_message);                                                 \
             return;                                                                                \
         }                                                                                          \
     } while (0)
