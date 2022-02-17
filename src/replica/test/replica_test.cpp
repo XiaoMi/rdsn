@@ -168,11 +168,12 @@ public:
         replica_app_info replica_info(&info);
         auto path = dsn::utils::filesystem::path_combine(_mock_replica->_dir,
                                                          dsn::replication::replica::kAppInfo);
-        std::cout << "the path of .app-info is " << path << std::endl;
+        std::cout << "the path of .app-info file is " << path << std::endl;
 
         auto err = replica_info.load(path);
         ASSERT_EQ(err, ERR_OK);
         ASSERT_EQ(info, _mock_replica->_app_info);
+        std::cout << "the loaded app_info is " << info << std::endl;
 
         // recover original max_replica_count
         _mock_replica->update_app_max_replica_count(reserved_max_replica_count);
@@ -181,6 +182,7 @@ public:
         err = replica_info.load(path);
         ASSERT_EQ(err, ERR_OK);
         ASSERT_EQ(info, _mock_replica->_app_info);
+        std::cout << "the loaded app_info is " << info << std::endl;
     }
 
 public:
