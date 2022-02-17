@@ -197,7 +197,7 @@ public:
     DISALLOW_COPY_AND_ASSIGN(no_reply_meta_service);
 
     no_reply_meta_service(no_reply_meta_service &&) = delete;
-    no_reply_meta_service& operator=(no_reply_meta_service &&) = delete;
+    no_reply_meta_service &operator=(no_reply_meta_service &&) = delete;
 
     virtual void reply_message(dsn::message_ex *, dsn::message_ex *resp_msg) override
     {
@@ -548,21 +548,24 @@ void max_replica_count_test_runner::test_get_max_replica_count(const std::string
               << "app_name=" << app_name << ", expected_err=" << expected_err.to_string()
               << ", expected_max_replica_count=" << expected_max_replica_count << std::endl;
 
-    auto req = dsn::make_unique<configuration_get_max_replica_count_request>();
-    req->__set_app_name(app_name);
+    {
+        auto req = dsn::make_unique<configuration_get_max_replica_count_request>();
+        req->__set_app_name(app_name);
 
-    auto req_msg = dsn::message_ex::create_request(RPC_CM_GET_MAX_REPLICA_COUNT);
-    dsn::marshall(req_msg, *req);
+        auto req_msg = dsn::message_ex::create_request(RPC_CM_GET_MAX_REPLICA_COUNT);
+        dsn::marshall(req_msg, *req);
 
-    auto recvd_req_msg = create_corresponding_receive(req_msg);
-    destroy_message(req_msg);
+        auto recvd_req_msg = create_corresponding_receive(req_msg);
+        destroy_message(req_msg);
 
-    auto rpc = configuration_get_max_replica_count_rpc::auto_reply(recvd_req_msg);
-    tasking::enqueue(LPC_META_STATE_NORMAL,
-                     _svc->tracker(),
-                     std::bind(&server_state::get_max_replica_count, _state.get(), rpc),
-                     server_state::sStateHash);
-    _svc->_tracker.wait_outstanding_tasks();
+        auto rpc = configuration_get_max_replica_count_rpc::auto_reply(recvd_req_msg);
+        tasking::enqueue(LPC_META_STATE_NORMAL,
+                         _svc->tracker(),
+                         std::bind(&server_state::get_max_replica_count, _state.get(), rpc),
+                         server_state::sStateHash);
+    }
+
+    _svc->tracker()->wait_outstanding_tasks();
     _state->wait_all_task();
 
     const auto &resp = _no_reply_svc->get_max_replica_count_resp();
@@ -585,22 +588,25 @@ void max_replica_count_test_runner::test_set_max_replica_count(const std::string
               << ", old_max_replica_count=" << old_max_replica_count
               << ", expected_ballot=" << expected_ballot << std::endl;
 
-    auto req = dsn::make_unique<configuration_set_max_replica_count_request>();
-    req->__set_app_name(app_name);
-    req->__set_max_replica_count(target_max_replica_count);
+    {
+        auto req = dsn::make_unique<configuration_set_max_replica_count_request>();
+        req->__set_app_name(app_name);
+        req->__set_max_replica_count(target_max_replica_count);
 
-    auto req_msg = dsn::message_ex::create_request(RPC_CM_SET_MAX_REPLICA_COUNT);
-    dsn::marshall(req_msg, *req);
+        auto req_msg = dsn::message_ex::create_request(RPC_CM_SET_MAX_REPLICA_COUNT);
+        dsn::marshall(req_msg, *req);
 
-    auto recvd_req_msg = create_corresponding_receive(req_msg);
-    destroy_message(req_msg);
+        auto recvd_req_msg = create_corresponding_receive(req_msg);
+        destroy_message(req_msg);
 
-    auto rpc = configuration_set_max_replica_count_rpc::auto_reply(recvd_req_msg);
-    tasking::enqueue(LPC_META_STATE_NORMAL,
-                     _svc->tracker(),
-                     std::bind(&server_state::set_max_replica_count, _state.get(), rpc),
-                     server_state::sStateHash);
-    _svc->_tracker.wait_outstanding_tasks();
+        auto rpc = configuration_set_max_replica_count_rpc::auto_reply(recvd_req_msg);
+        tasking::enqueue(LPC_META_STATE_NORMAL,
+                         _svc->tracker(),
+                         std::bind(&server_state::set_max_replica_count, _state.get(), rpc),
+                         server_state::sStateHash);
+    }
+
+    _svc->tracker()->wait_outstanding_tasks();
     _state->wait_all_task();
 
     const auto &resp = _no_reply_svc->set_max_replica_count_resp();
