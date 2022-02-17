@@ -324,7 +324,7 @@ TEST_F(replica_test, test_replica_backup_and_restore_with_specific_path)
     ASSERT_EQ(ERR_OK, err);
 }
 
-TEST_F(replica_test, trigger_manual_emergency_checkpoint)
+TEST_F(replica_test, test_trigger_manual_emergency_checkpoint)
 {
     ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(100), ERR_OK);
     ASSERT_TRUE(is_checkpointing());
@@ -346,6 +346,11 @@ TEST_F(replica_test, trigger_manual_emergency_checkpoint)
     ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(101), ERR_TRY_AGAIN);
     ASSERT_FALSE(is_checkpointing());
     _mock_replica->tracker()->wait_outstanding_tasks();
+}
+
+TEST_F(replica_test, test_query_last_checkpoint_info)
+{
+
 }
 
 } // namespace replication

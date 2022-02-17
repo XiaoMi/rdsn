@@ -54,7 +54,7 @@ typedef rpc_holder<group_check_request, group_check_response> group_check_rpc;
 typedef rpc_holder<query_replica_decree_request, query_replica_decree_response>
     query_replica_decree_rpc;
 typedef rpc_holder<query_replica_info_request, query_replica_info_response> query_replica_info_rpc;
-typedef rpc_holder<replica_configuration, learn_response> copy_checkpoint_rpc;
+typedef rpc_holder<learn_request, learn_response> query_last_checkpoint_info_rpc;
 typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
 typedef rpc_holder<replica_disk_migrate_request, replica_disk_migrate_response>
     replica_disk_migrate_rpc;
@@ -135,7 +135,7 @@ public:
     void on_add_learner(const group_check_request &request);
     void on_remove(const replica_configuration &request);
     void on_group_check(group_check_rpc rpc);
-    void on_copy_checkpoint(copy_checkpoint_rpc rpc);
+    void on_query_last_checkpoint(query_last_checkpoint_info_rpc rpc);
     void on_group_bulk_load(group_bulk_load_rpc rpc);
 
     //

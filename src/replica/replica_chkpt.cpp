@@ -48,6 +48,13 @@
 namespace dsn {
 namespace replication {
 
+const std::string kCheckpointFolderPrefix /*NOLINT*/ = "checkpoint";
+
+static std::string checkpoint_folder(int64_t decree)
+{
+    return fmt::format("{}.{}", kCheckpointFolderPrefix, decree);
+}
+
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica::on_checkpoint_timer()
 {
@@ -191,46 +198,29 @@ void replica::init_checkpoint(bool is_emergency)
         _stub->_counter_recent_trigger_emergency_checkpoint_count->increment();
 }
 
-// @ secondary
-void replica::on_copy_checkpoint(const replica_configuration &request,
-                                 /*out*/ learn_response &response)
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::on_query_last_checkpoint(/*out*/ learn_response &response)
 {
     _checker.only_one_thread_access();
 
-    if (request.ballot > get_ballot()) {
-        if (!update_local_configuration(request)) {
-            response.err = ERR_INVALID_STATE;
-            return;
-        }
-    }
-
-    if (status() != partition_status::PS_SECONDARY) {
-        response.err = ERR_INVALID_STATE;
-        return;
-    }
-
     if (_app->last_durable_decree() == 0) {
-        response.err = ERR_OBJECT_NOT_FOUND;
+        response.err = ERR_INCOMPLETE_DATA;
         return;
     }
 
     blob placeholder;
     int err = _app->get_checkpoint(0, placeholder, response.state);
     if (err != 0) {
-        response.err = ERR_LEARN_FILE_FAILED;
+        response.err = ERR_GET_LEARN_STATE_FAILED;
     } else {
         response.err = ERR_OK;
         response.last_committed_decree = last_committed_decree();
-        response.base_local_dir = _app->data_dir();
-
-        // the state.files is returned whether with full_path or only-filename depends
-        // on the app impl, we'd better handle with it
-        for (std::string &file_name : response.state.files) {
-            std::size_t last_splitter = file_name.find_last_of("/\\");
-            if (last_splitter != std::string::npos)
-                file_name = file_name.substr(last_splitter + 1);
-        }
+        response.base_local_dir = utils::filesystem::path_combine(
+            _app->data_dir(), checkpoint_folder(response.state.to_decree_included));
         response.address = _stub->_primary_address;
+        for (auto &file : response.state.files) {
+            file = file.substr(response.base_local_dir.length() + 1);
+        }
     }
 }
 
