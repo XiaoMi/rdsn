@@ -121,14 +121,14 @@ public:
     void lock_read(zauto_read_lock &other);
     void lock_write(zauto_write_lock &other);
     const meta_view get_meta_view() { return {&_all_apps, &_nodes}; }
-    std::shared_ptr<app_state> get_app(const std::string &name)
+    std::shared_ptr<app_state> get_app(const std::string &name) const
     {
         auto iter = _exist_apps.find(name);
         if (iter == _exist_apps.end())
             return nullptr;
         return iter->second;
     }
-    std::shared_ptr<app_state> get_app(int32_t app_id)
+    std::shared_ptr<app_state> get_app(int32_t app_id) const
     {
         auto iter = _all_apps.find(app_id);
         if (iter == _all_apps.end())
@@ -176,7 +176,7 @@ public:
     void on_query_manual_compact_status(query_manual_compact_rpc rpc);
 
     // get/set max replica count of an app
-    void get_max_replica_count(configuration_get_max_replica_count_rpc rpc);
+    void get_max_replica_count(configuration_get_max_replica_count_rpc rpc) const;
     void set_max_replica_count(configuration_set_max_replica_count_rpc rpc);
 
     // return true if no need to do any actions
@@ -301,7 +301,7 @@ private:
     void transition_staging_state(std::shared_ptr<app_state> &app);
 
     // check whether a max replica count is valid especially for a new app
-    bool validate_target_max_replica_count(int32_t max_replica_count);
+    bool validate_target_max_replica_count(int32_t max_replica_count) const;
 
     // Used for `on_start_manual_compaction`
     bool parse_compaction_envs(start_manual_compact_rpc rpc,

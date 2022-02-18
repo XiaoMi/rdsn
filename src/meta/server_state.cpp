@@ -2930,7 +2930,7 @@ bool validate_target_max_replica_count_internal(int32_t max_replica_count,
 
 } // anonymous namespace
 
-bool server_state::validate_target_max_replica_count(int32_t max_replica_count)
+bool server_state::validate_target_max_replica_count(int32_t max_replica_count) const
 {
     const auto alive_node_count = static_cast<int32_t>(_meta_svc->get_alive_node_count());
 
@@ -3112,7 +3112,7 @@ void server_state::on_query_manual_compact_status(query_manual_compact_rpc rpc)
     response.__set_progress(total_progress);
 }
 
-void server_state::get_max_replica_count(configuration_get_max_replica_count_rpc rpc)
+void server_state::get_max_replica_count(configuration_get_max_replica_count_rpc rpc) const
 {
     const auto &app_name = rpc.request().app_name;
     auto &response = rpc.response();
@@ -3485,15 +3485,17 @@ void server_state::update_partition_max_replica_count_locally(
     const auto &gpid = new_partition_config.pid;
     const auto app_id = gpid.get_app_id();
     const auto partition_index = gpid.get_partition_index();
-    const auto new_max_replica_count = new_partition_config.max_replica_count;
-    const auto new_ballot = new_partition_config.ballot;
 
     const auto &app_name = app.app_name;
     auto &old_partition_config = app.partitions[gpid.get_partition_index()];
-    const auto old_max_replica_count = old_partition_config.max_replica_count;
-    const auto old_ballot = old_partition_config.ballot;
 
     if (app.is_stateful) {
+        const auto new_max_replica_count = new_partition_config.max_replica_count;
+        const auto new_ballot = new_partition_config.ballot;
+
+        const auto old_max_replica_count = old_partition_config.max_replica_count;
+        const auto old_ballot = old_partition_config.ballot;
+
         dassert_f(old_ballot + 1 == new_ballot,
                   "invalid ballot while updating local max_replica_count: app_name={}, app_id={}, "
                   "partition_id={}, old_max_replica_count={}, new_max_replica_count={}, "
@@ -3527,7 +3529,7 @@ void server_state::update_next_partition_max_replica_count(
 {
     const auto &app_name = app.app_name;
 
-    const int32_t next_partition_index = partition_index + 1;
+    const auto next_partition_index = partition_index + 1;
     const auto partition_count = static_cast<int32_t>(app.partitions.size());
 
     const auto new_max_replica_count = rpc.request().max_replica_count;
@@ -3564,14 +3566,18 @@ void server_state::update_app_max_replica_count(configuration_set_max_replica_co
     const auto new_max_replica_count = rpc.request().max_replica_count;
     auto &response = rpc.response();
 
-    zauto_read_lock l(_lock);
+    std::string app_path;
+    app_info ainfo;
+    {
+        zauto_read_lock l(_lock);
 
-    GET_APP_AND_CHECK_IF_EXISTS(app_name);
+        GET_APP_AND_CHECK_IF_EXISTS(app_name);
 
-    auto app_path = get_app_path(*app);
+        app_path = get_app_path(*app);
 
-    auto ainfo = *(reinterpret_cast<app_info *>(app.get()));
-    ainfo.max_replica_count = new_max_replica_count;
+        ainfo = *(reinterpret_cast<app_info *>(app.get()));
+        ainfo.max_replica_count = new_max_replica_count;
+    }
 
     do_update_app_info(app_path, ainfo, [this, rpc](error_code ec) {
         const auto &app_name = rpc.request().app_name;
