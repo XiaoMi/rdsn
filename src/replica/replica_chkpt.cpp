@@ -204,7 +204,7 @@ void replica::on_query_last_checkpoint(/*out*/ learn_response &response)
     _checker.only_one_thread_access();
 
     if (_app->last_durable_decree() == 0) {
-        response.err = ERR_INCOMPLETE_DATA;
+        response.err = ERR_PATH_NOT_FOUND;
         return;
     }
 
