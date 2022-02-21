@@ -36,11 +36,18 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/service_api_cpp.h>
+#include <dsn/utility/flags.h>
 
 #include "meta_data.h"
 
 namespace dsn {
 namespace replication {
+
+DSN_DEFINE_uint32("meta_server",
+                  max_reserved_number_of_dropped_replicas,
+                  1,
+                  "max reserved number allowed for dropped replicas");
+DSN_TAG_VARIABLE(max_reserved_number_of_dropped_replicas, FT_MUTABLE);
 
 void when_update_replicas(config_type::type t, const std::function<void(bool)> &func)
 {
@@ -301,7 +308,8 @@ void config_context::check_size()
 {
     // when add learner, it is possible that replica_count > max_replica_count, so we
     // need to remove things from dropped only when it's not empty.
-    while (replica_count(*config_owner) + dropped.size() > config_owner->max_replica_count + 1 &&
+    while (replica_count(*config_owner) + dropped.size() >
+               config_owner->max_replica_count + FLAGS_max_reserved_number_of_dropped_replicas &&
            !dropped.empty()) {
         dropped.erase(dropped.begin());
         prefered_dropped = (int)dropped.size() - 1;
