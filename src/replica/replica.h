@@ -156,7 +156,6 @@ public:
     void on_add_learner(const group_check_request &request);
     void on_remove(const replica_configuration &request);
     void on_group_check(const group_check_request &request, /*out*/ group_check_response &response);
-    void on_query_last_checkpoint(learn_response &response);
 
     //
     //    messsages from liveness monitor
@@ -193,6 +192,7 @@ public:
     // Duplication
     //
     error_code trigger_manual_emergency_checkpoint(decree old_decree);
+    void on_query_last_checkpoint(learn_response &response);
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
     bool is_duplicating() const { return _duplicating; }
 

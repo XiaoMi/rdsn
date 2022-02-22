@@ -135,7 +135,6 @@ public:
     void on_add_learner(const group_check_request &request);
     void on_remove(const replica_configuration &request);
     void on_group_check(group_check_rpc rpc);
-    void on_query_last_checkpoint(query_last_checkpoint_info_rpc rpc);
     void on_group_bulk_load(group_bulk_load_rpc rpc);
 
     //
@@ -229,6 +228,9 @@ public:
         int32_t app_id, /*out*/ std::unordered_map<gpid, manual_compaction_status::type> &status);
 
     void on_add_new_disk(add_new_disk_rpc rpc);
+
+    // query last checkpoint info for follower in duplication process
+    void on_query_last_checkpoint(query_last_checkpoint_info_rpc rpc);
 
 private:
     enum replica_node_state
