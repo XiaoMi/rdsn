@@ -1089,7 +1089,7 @@ void server_state::create_app(dsn::message_ex *msg)
     bool will_create_app = false;
     dsn::unmarshall(msg, request);
 
-    auto env_iterator =
+    const auto &duplication_env_iterator =
         request.options.envs.find(duplication_constants::kDuplicationEnvMasterClusterKey);
     ddebug_f("create app request, name({}), type({}), partition_count({}), replica_count({}), "
              "duplication({})",
@@ -1097,7 +1097,7 @@ void server_state::create_app(dsn::message_ex *msg)
              request.options.app_type,
              request.options.partition_count,
              request.options.replica_count,
-             env_iterator == request.options.envs.end()
+             duplication_env_iterator == request.options.envs.end()
                  ? "false"
                  : fmt::format(
                        "{}.{}",
