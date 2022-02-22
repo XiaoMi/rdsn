@@ -150,6 +150,7 @@ void replica::init_checkpoint(bool is_emergency)
         _stub->_counter_recent_trigger_emergency_checkpoint_count->increment();
 }
 
+
 // run in background thread
 error_code replica::background_async_checkpoint(bool is_emergency)
 {
