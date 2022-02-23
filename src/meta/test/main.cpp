@@ -66,6 +66,8 @@ TEST(meta, adjust_dropped_size) { g_app->adjust_dropped_size(); }
 
 TEST(meta, app_envs_basic_test) { g_app->app_envs_basic_test(); }
 
+TEST(meta, max_replica_count_test) { g_app->get_max_replica_count_test(); }
+
 dsn::error_code meta_service_test_app::start(const std::vector<std::string> &args)
 {
     uint32_t seed =
