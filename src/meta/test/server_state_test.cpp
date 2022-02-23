@@ -214,6 +214,8 @@ public:
 
         std::cout << std::endl;
 
+        destroy_message(recvd_msg);
+
         // just ignore msg since no reply is needed
         return false;
     }
