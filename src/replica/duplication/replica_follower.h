@@ -30,6 +30,14 @@ public:
     ~replica_follower();
     error_code duplicate_checkpoint();
 
+    const std::string &get_master_cluster_name() const { return _master_cluster_name; };
+
+    const std::string &get_master_app_name() const { return _master_app_name; };
+
+    const std::vector<rpc_address> &get_master_meta_list() const { return _master_meta_list; };
+
+    const bool is_need_duplicate() const { return need_duplicate; }
+
 private:
     replica *_replica;
     task_tracker _tracker;
@@ -41,6 +49,8 @@ private:
     bool need_duplicate{false};
 
     void init_master_info();
+
+    friend class replica_follower_test;
 };
 
 } // namespace replication
