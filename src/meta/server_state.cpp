@@ -3140,7 +3140,7 @@ void server_state::get_max_replica_count(configuration_get_max_replica_count_rpc
         response.hint_message = fmt::format("partition_max_replica_count({}) != "
                                             "app_max_replica_count({}) for partition {}",
                                             partition_config.max_replica_count,
-                                            app->max_replica_count
+                                            app->max_replica_count,
                                             i);
         derror_f("failed to get max_replica_count: app_name={}, error_code={}, hint_message={}",
                  app_name,
@@ -3152,10 +3152,10 @@ void server_state::get_max_replica_count(configuration_get_max_replica_count_rpc
     response.err = ERR_OK;
     response.max_replica_count = app->max_replica_count;
     ddebug_f("get max_replica_count successfully: app_name={}, app_id={}, "
-            "max_replica_count={}",
-            app_name,
-            app->app_id,
-            response.max_replica_count);
+             "max_replica_count={}",
+             app_name,
+             app->app_id,
+             response.max_replica_count);
 }
 
 } // namespace replication

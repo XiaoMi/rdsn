@@ -341,7 +341,9 @@ void max_replica_count_test_runner::initialize(int32_t node_count,
     _svc->_started = true;
 }
 
-void max_replica_count_test_runner::set_partition_max_replica_count(int32_t partition_index, int32_t max_replica_count) {
+void max_replica_count_test_runner::set_partition_max_replica_count(int32_t partition_index,
+                                                                    int32_t max_replica_count)
+{
     dsn::zauto_write_lock l(_state->_lock);
 
     auto &partition_config = _app->partitions[partition_index];
@@ -415,7 +417,10 @@ void meta_service_test_app::get_max_replica_count_test()
         // get max_replica_count from an inconsistent table
         auto partition_index = static_cast<int32_t>(random32(0, runner.partition_count() - 1));
         runner.set_partition_max_replica_count(partition_index, max_replica_count + 1);
-        runner.test_get_max_replica_count("abc_xyz", dsn::ERR_INCONSISTENT_STATE, 0);
+        runner.test_get_max_replica_count(runner.app_name(), dsn::ERR_INCONSISTENT_STATE, 0);
+
+        // recover inconsistent partition
+        runner.set_partition_max_replica_count(partition_index, max_replica_count);
 
         // get max_replica_count successfully
         runner.test_get_max_replica_count(runner.app_name(), dsn::ERR_OK, max_replica_count);
