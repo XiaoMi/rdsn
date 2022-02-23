@@ -74,5 +74,5 @@ TEST_F(replica_follower_test, test_init_master_info)
     follower = _mock_replica->get_replica_follower();
     ASSERT_FALSE(follower->is_need_duplicate());
 }
-}
-}
+} // namespace replication
+} // namespace dsn
