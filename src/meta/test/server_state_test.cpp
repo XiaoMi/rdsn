@@ -184,6 +184,46 @@ void meta_service_test_app::app_envs_basic_test()
     }
 }
 
+using response_callback = std::function<void(message_ex *)>;
+
+class response_callback_register
+{
+public:
+    response_callback_register() : _callback(nullptr) {}
+
+    void initialize()
+    {
+        rpc_session::on_rpc_send_message.put_native(std::bind(
+            &response_callback_register::on_rpc_send_message, this, std::placeholders::_1));
+    }
+
+    ~response_callback_register() = default;
+
+    DISALLOW_COPY_AND_ASSIGN(response_callback_register);
+
+    response_callback_register(response_callback_register &&) = delete;
+    response_callback_register &operator=(response_callback_register &&) = delete;
+
+    void set_callback(response_callback callback) { _callback = std::move(callback); }
+
+    void clear_callback() { _callback = nullptr; }
+
+private:
+    bool on_rpc_send_message(message_ex *msg)
+    {
+        if (_callback != nullptr) {
+            _callback(msg);
+        }
+
+        // just ignore msg since no reply is needed
+        return false;
+    }
+
+    response_callback _callback;
+};
+
+response_callback_register response_intercepter;
+
 class no_reply_meta_service : public dsn::replication::meta_service
 {
 public:
@@ -196,10 +236,10 @@ public:
     no_reply_meta_service &operator=(no_reply_meta_service &&) = delete;
 
     // since both handlers of get/set max_replica_count have used rpc_holder to reply automatically
-    // to the request, instead of overriding meta_service::reply_message, implement the following
-    // hook which will be executed at the join_point of rpc_session::on_rpc_send_message to extract
-    // the response.
-    bool on_rpc_send_message(message_ex *msg)
+    // to the request, instead of overriding meta_service::reply_message which cannot capture the
+    // response sent by rpc_holder, implement the following hook which will be executed at the
+    // join_point of rpc_session::on_rpc_send_message to extract the response.
+    void on_rpc_send_message(message_ex *msg)
     {
         auto recvd_msg = dsn::replication::create_corresponding_receive(msg);
         const auto &rpc_code = recvd_msg->rpc_code();
@@ -215,9 +255,6 @@ public:
         std::cout << std::endl;
 
         destroy_message(recvd_msg);
-
-        // just ignore msg since no reply is needed
-        return false;
     }
 
     const configuration_get_max_replica_count_response &get_max_replica_count_resp()
@@ -233,7 +270,8 @@ class max_replica_count_test_runner
 {
 public:
     max_replica_count_test_runner() = default;
-    virtual ~max_replica_count_test_runner() = default;
+
+    virtual ~max_replica_count_test_runner() { response_intercepter.clear_callback(); }
 
     DISALLOW_COPY_AND_ASSIGN(max_replica_count_test_runner);
 
@@ -302,7 +340,7 @@ void max_replica_count_test_runner::initialize(int32_t node_count,
     _no_reply_svc = dynamic_cast<no_reply_meta_service *>(_svc.get());
 
     // register response hook
-    rpc_session::on_rpc_send_message.put_native(std::bind(
+    response_intercepter.set_callback(std::bind(
         &no_reply_meta_service::on_rpc_send_message, _no_reply_svc, std::placeholders::_1));
 
     // disable node_live_percentage_threshold_for_update, since the meta function
@@ -403,7 +441,9 @@ void max_replica_count_test_runner::test_get_max_replica_count(const std::string
     ASSERT_EQ(resp.max_replica_count, expected_max_replica_count);
 }
 
-void meta_service_test_app::get_max_replica_count_test()
+namespace {
+
+void get_max_replica_count_test()
 {
     const int32_t node_count = 3;
     const int32_t primary_node_index = 0;
@@ -427,6 +467,15 @@ void meta_service_test_app::get_max_replica_count_test()
         // get max_replica_count successfully
         runner.test_get_max_replica_count(runner.app_name(), dsn::ERR_OK, max_replica_count);
     }
+}
+
+} // anonymous namespace
+
+void meta_service_test_app::max_replica_count_test()
+{
+    response_intercepter.initialize();
+
+    get_max_replica_count_test();
 }
 
 } // namespace replication

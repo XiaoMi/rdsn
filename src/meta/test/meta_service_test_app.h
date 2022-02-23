@@ -117,7 +117,7 @@ public:
     void app_envs_basic_test();
 
     // test server_state get_max_replica_count/set_max_replica_count
-    void get_max_replica_count_test();
+    void max_replica_count_test();
 
     // test for bug found
     void adjust_dropped_size();
