@@ -259,12 +259,12 @@ private:
     void remove_replica_on_meta_server(const app_info &info, const partition_configuration &config);
     ::dsn::task_ptr begin_open_replica(const app_info &app,
                                        gpid id,
-                                       std::shared_ptr<group_check_request> req,
-                                       std::shared_ptr<configuration_update_request> req2);
+                                       const std::shared_ptr<group_check_request> &req,
+                                       const std::shared_ptr<configuration_update_request> &req2);
     void open_replica(const app_info &app,
                       gpid id,
-                      std::shared_ptr<group_check_request> req,
-                      std::shared_ptr<configuration_update_request> req2);
+                      const std::shared_ptr<group_check_request> &req,
+                      const std::shared_ptr<configuration_update_request> &req2);
     ::dsn::task_ptr begin_close_replica(replica_ptr r);
     void close_replica(replica_ptr r);
     void notify_replica_state_update(const replica_configuration &config, bool is_closing);

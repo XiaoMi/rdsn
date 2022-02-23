@@ -69,6 +69,7 @@ class replica_backup_manager;
 class replica_bulk_loader;
 class replica_split_manager;
 class replica_disk_migrator;
+class replica_follower;
 
 class cold_backup_context;
 typedef dsn::ref_ptr<cold_backup_context> cold_backup_context_ptr;
@@ -113,6 +114,7 @@ public:
                          gpid gpid,
                          const app_info &app,
                          bool restore_if_necessary,
+                         bool duplicate_if_necessary,
                          const std::string &parent_dir = "");
 
     // return true when the mutation is valid for the current replica
@@ -224,6 +226,8 @@ public:
     //
     replica_disk_migrator *disk_migrator() const { return _disk_migrator.get(); }
 
+    replica_follower *get_replica_follower() const { return _replica_follower.get(); };
+
     //
     // Statistics
     //
@@ -252,7 +256,12 @@ private:
     mutation_ptr new_mutation(decree decree);
 
     // initialization
-    replica(replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool need_restore);
+    replica(replica_stub *stub,
+            gpid gpid,
+            const app_info &app,
+            const char *dir,
+            bool need_restore,
+            bool need_duplicate = false);
     error_code initialize_on_new();
     error_code initialize_on_load();
     error_code init_app_and_prepare_list(bool create_new);
@@ -569,6 +578,8 @@ private:
 
     // disk migrator
     std::unique_ptr<replica_disk_migrator> _disk_migrator;
+
+    std::unique_ptr<replica_follower> _replica_follower;
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
