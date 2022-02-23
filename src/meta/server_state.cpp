@@ -3111,7 +3111,7 @@ void server_state::on_query_manual_compact_status(query_manual_compact_rpc rpc)
     response.__set_progress(total_progress);
 }
 
-// ThreadPool: THREAD_POOL_META_SERVER
+// ThreadPool: THREAD_POOL_META_STATE
 void server_state::get_max_replica_count(configuration_get_max_replica_count_rpc rpc) const
 {
     const auto &app_name = rpc.request().app_name;

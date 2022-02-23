@@ -1256,6 +1256,7 @@ void meta_service::on_query_manual_compact_status(query_manual_compact_rpc rpc)
                      std::bind(&server_state::on_query_manual_compact_status, _state.get(), rpc));
 }
 
+// ThreadPool: THREAD_POOL_META_SERVER
 void meta_service::on_get_max_replica_count(configuration_get_max_replica_count_rpc rpc)
 {
     if (!check_status(rpc)) {
