@@ -114,7 +114,7 @@ public:
                          gpid gpid,
                          const app_info &app,
                          bool restore_if_necessary,
-                         bool duplicate_if_necessary,
+                         bool is_duplication_follower,
                          const std::string &parent_dir = "");
 
     // return true when the mutation is valid for the current replica
@@ -466,6 +466,10 @@ private:
     // store `info` into a file under `path` directory
     // path = "" means using the default directory (`_dir`/.app_info)
     error_code store_app_info(app_info &info, const std::string &path = "");
+
+    // clear replica if open failed
+    static replica *
+    clear_on_failure(replica_stub *stub, replica *rep, const std::string &path, const gpid &pid);
 
 private:
     friend class ::dsn::replication::test::test_checker;

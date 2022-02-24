@@ -70,7 +70,7 @@ error_code replica::initialize_on_new()
                                   gpid gpid,
                                   const app_info &app,
                                   bool restore_if_necessary,
-                                  bool duplicate_if_necessary,
+                                  bool is_duplication_follower,
                                   const std::string &parent_dir)
 {
     std::string dir;
@@ -80,50 +80,44 @@ error_code replica::initialize_on_new()
         dir = stub->get_child_dir(app.app_type.c_str(), gpid, parent_dir);
     }
     replica *rep =
-        new replica(stub, gpid, app, dir.c_str(), restore_if_necessary, duplicate_if_necessary);
+        new replica(stub, gpid, app, dir.c_str(), restore_if_necessary, is_duplication_follower);
     error_code err;
     if (restore_if_necessary && (err = rep->restore_checkpoint()) != dsn::ERR_OK) {
-        derror("try to restore replica %s failed, error(%s)", rep->name(), err.to_string());
-        rep->close();
-        delete rep;
-        rep = nullptr;
-
-        // clear work on failure
-        utils::filesystem::remove_path(dir);
-        stub->_fs_manager.remove_replica(gpid);
-        return nullptr;
+        derror_f("{}: try to restore replica failed, error({})", rep->name(), err.to_string());
+        return clear_on_failure(stub, rep, dir, gpid);
     }
 
-    if (duplicate_if_necessary &&
+    if (is_duplication_follower &&
         (err = rep->get_replica_follower()->duplicate_checkpoint()) != dsn::ERR_OK) {
-        derror_f("{} try to duplicate replica checkpoint failed, error({})",
+        derror_f("{}: try to duplicate replica checkpoint failed, error({})",
                  rep->name(),
                  err.to_string());
-        rep->close();
-        delete rep;
-        rep = nullptr;
-
-        // clear work on failure
-        utils::filesystem::remove_path(dir);
-        stub->_fs_manager.remove_replica(gpid);
-        return nullptr;
+        return clear_on_failure(stub, rep, dir, gpid);
     }
 
     err = rep->initialize_on_new();
     if (err == ERR_OK) {
-        dinfo("%s: new replica succeed", rep->name());
+        dinfo_f("{}: new replica succeed", rep->name());
         return rep;
     } else {
-        derror("%s: new replica failed, err = %s", rep->name(), err.to_string());
-        rep->close();
-        delete rep;
-        rep = nullptr;
-
-        // clear work on failure
-        utils::filesystem::remove_path(dir);
-        stub->_fs_manager.remove_replica(gpid);
-        return nullptr;
+        derror_f("{}: new replica failed, err = {}", rep->name(), err.to_string());
+        return clear_on_failure(stub, rep, dir, gpid);
     }
+}
+
+/* static */ replica *replica::clear_on_failure(replica_stub *stub,
+                                                replica *rep,
+                                                const std::string &path,
+                                                const gpid &pid)
+{
+    rep->close();
+    delete rep;
+    rep = nullptr;
+
+    // clear work on failure
+    utils::filesystem::remove_path(path);
+    stub->_fs_manager.remove_replica(pid);
+    return rep;
 }
 
 error_code replica::initialize_on_load()
@@ -478,5 +472,6 @@ void replica::reset_prepare_list_after_replay()
     // align the prepare list and the app
     _prepare_list->truncate(_app->last_committed_decree());
 }
+
 } // namespace replication
 } // namespace dsn

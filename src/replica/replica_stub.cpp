@@ -2052,10 +2052,12 @@ void replica_stub::open_replica(
              (configuration_update->type == config_type::CT_ASSIGN_PRIMARY) &&
              (app.envs.find(backup_restore_constant::POLICY_NAME) != app.envs.end()));
 
-        bool duplicate_if_necessary =
+        bool is_duplication_follower =
             ((configuration_update != nullptr) &&
              (configuration_update->type == config_type::CT_ASSIGN_PRIMARY) &&
              (app.envs.find(duplication_constants::kDuplicationEnvMasterClusterKey) !=
+              app.envs.end()) &&
+             (app.envs.find(duplication_constants::kDuplicationEnvMasterMetasKey) !=
               app.envs.end()));
 
         // NOTICE: when we don't need execute restore-process, we should remove a.b.pegasus
@@ -2068,7 +2070,7 @@ void replica_stub::open_replica(
                 return;
             }
         }
-        rep = replica::newr(this, id, app, restore_if_necessary, duplicate_if_necessary);
+        rep = replica::newr(this, id, app, restore_if_necessary, is_duplication_follower);
     }
 
     if (rep == nullptr) {

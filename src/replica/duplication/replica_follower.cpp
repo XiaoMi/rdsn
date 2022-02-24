@@ -51,9 +51,9 @@ void replica_follower::init_master_info()
         std::vector<std::string> metas;
         boost::split(metas, meta_list_str, boost::is_any_of(","));
         dassert_f(!metas.empty(), "master cluster meta list is invalid!");
-        for (const auto &m : metas) {
+        for (const auto &meta : metas) {
             dsn::rpc_address node;
-            dassert_f(node.from_string_ipv4(m.c_str()), "{} is invalid meta address", m);
+            dassert_f(node.from_string_ipv4(meta.c_str()), "{} is invalid meta address", meta);
             _master_meta_list.emplace_back(std::move(node));
         }
     }

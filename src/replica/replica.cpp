@@ -427,6 +427,7 @@ void replica::close()
 {
     dassert_replica(status() == partition_status::PS_ERROR ||
                         status() == partition_status::PS_INACTIVE ||
+                        _disk_migrator->status() == disk_migration_status::IDLE ||
                         _disk_migrator->status() >= disk_migration_status::MOVED,
                     "invalid state(partition_status={}, migration_status={}) when calling "
                     "replica close",
