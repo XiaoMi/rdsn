@@ -1923,7 +1923,7 @@ void replica_stub::on_disk_stat()
     ddebug("finish to update disk stat, time_used_ns = %" PRIu64, dsn_now_ns() - start);
 }
 
-::dsn::task_ptr replica_stub::begin_open_replica(
+task_ptr replica_stub::begin_open_replica(
     const app_info &app,
     gpid id,
     const std::shared_ptr<group_check_request> &group_check,
@@ -2111,7 +2111,7 @@ void replica_stub::open_replica(
     }
 }
 
-::dsn::task_ptr replica_stub::begin_close_replica(replica_ptr r)
+task_ptr replica_stub::begin_close_replica(replica_ptr r)
 {
     dassert_f(r->status() == partition_status::PS_ERROR ||
                   r->status() == partition_status::PS_INACTIVE ||

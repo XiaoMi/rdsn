@@ -104,7 +104,7 @@ public:
     bool is_primary() const;
 
     // Whether this replica is duplicating.
-    bool is_duplicating() const;
+    bool is_duplication_master() const;
 
     const ballot &get_ballot() const;
 

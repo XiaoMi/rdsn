@@ -232,7 +232,10 @@ bool replication_app_base::is_primary() const
     return _replica->status() == partition_status::PS_PRIMARY;
 }
 
-bool replication_app_base::is_duplicating() const { return _replica->is_duplicating(); }
+bool replication_app_base::is_duplication_master() const
+{
+    return _replica->is_duplication_master();
+}
 
 const ballot &replication_app_base::get_ballot() const { return _replica->get_ballot(); }
 
