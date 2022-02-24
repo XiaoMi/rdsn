@@ -110,8 +110,13 @@ private:
 class mock_replica : public replica
 {
 public:
-    mock_replica(replica_stub *stub, gpid gpid, const app_info &app, const char *dir)
-        : replica(stub, gpid, app, dir, false)
+    mock_replica(replica_stub *stub,
+                 gpid gpid,
+                 const app_info &app,
+                 const char *dir,
+                 bool need_restore = false,
+                 bool is_duplication_follower = false)
+        : replica(stub, gpid, app, dir, need_restore, is_duplication_follower)
     {
         _app = make_unique<replication::mock_replication_app_base>(this);
     }
@@ -271,6 +276,8 @@ public:
     mock_replica_ptr generate_replica(app_info info,
                                       gpid pid,
                                       partition_status::type status = partition_status::PS_INACTIVE,
+                                      bool need_restore = false,
+                                      bool is_duplication_follower = false,
                                       ballot b = 5)
     {
         replica_configuration config;
@@ -278,7 +285,8 @@ public:
         config.pid = pid;
         config.status = status;
 
-        mock_replica_ptr rep = new mock_replica(this, pid, std::move(info), "./");
+        mock_replica_ptr rep = new mock_replica(
+            this, pid, std::move(info), "./", need_restore, is_duplication_follower);
         rep->set_replica_config(config);
         _replicas[pid] = rep;
 

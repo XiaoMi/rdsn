@@ -237,6 +237,11 @@ bool replication_app_base::is_duplication_master() const
     return _replica->is_duplication_master();
 }
 
+bool replication_app_base::is_duplication_follower() const
+{
+    return _replica->is_duplication_follower();
+}
+
 const ballot &replication_app_base::get_ballot() const { return _replica->get_ballot(); }
 
 error_code replication_app_base::open_internal(replica *r)

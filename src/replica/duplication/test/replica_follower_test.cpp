@@ -45,7 +45,12 @@ public:
 
     void update_mock_replica(const dsn::app_info &app)
     {
-        _mock_replica = stub->generate_replica(app, gpid(2, 1), partition_status::PS_PRIMARY);
+        bool is_duplication_follower =
+            (app.envs.find(duplication_constants::kDuplicationEnvMasterClusterKey) !=
+             app.envs.end()) &&
+            (app.envs.find(duplication_constants::kDuplicationEnvMasterMetasKey) != app.envs.end());
+        _mock_replica = stub->generate_replica(
+            app, gpid(2, 1), partition_status::PS_PRIMARY, false, is_duplication_follower, 1);
     }
 
 public:
@@ -64,6 +69,7 @@ TEST_F(replica_follower_test, test_init_master_info)
     ASSERT_EQ(follower->get_master_app_name(), "follower");
     ASSERT_EQ(follower->get_master_cluster_name(), "master");
     ASSERT_TRUE(follower->is_need_duplicate());
+    ASSERT_TRUE(_mock_replica->is_duplication_follower());
     std::vector<std::string> test_ip{"127.0.0.1:34801", "127.0.0.2:34801", "127.0.0.3:34802"};
     for (int i = 0; i < follower->get_master_meta_list().size(); i++) {
         ASSERT_EQ(std::string(follower->get_master_meta_list()[i].to_string()), test_ip[i]);
@@ -73,6 +79,7 @@ TEST_F(replica_follower_test, test_init_master_info)
     update_mock_replica(_app_info);
     follower = _mock_replica->get_replica_follower();
     ASSERT_FALSE(follower->is_need_duplicate());
+    ASSERT_FALSE(_mock_replica->is_duplication_follower());
 }
 } // namespace replication
 } // namespace dsn
