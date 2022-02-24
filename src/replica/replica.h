@@ -196,7 +196,7 @@ public:
     error_code trigger_manual_emergency_checkpoint(decree old_decree);
     void on_query_last_checkpoint(learn_response &response);
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
-    bool is_duplicating() const { return _duplicating; }
+    bool is_duplicating() const { return _is_duplication_master; }
 
     //
     // Backup
@@ -261,7 +261,7 @@ private:
             const app_info &app,
             const char *dir,
             bool need_restore,
-            bool need_duplicate = false);
+            bool is_duplication_follower = false);
     error_code initialize_on_new();
     error_code initialize_on_load();
     error_code init_app_and_prepare_list(bool create_new);
@@ -565,7 +565,8 @@ private:
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
     bool _is_manual_emergency_checkpointing{false};
-    bool _duplicating{false};
+    bool _is_duplication_master{false};
+    bool _is_duplication_follower{false};
 
     // backup
     std::unique_ptr<replica_backup_manager> _backup_mgr;

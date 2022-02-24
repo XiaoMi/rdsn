@@ -1500,7 +1500,7 @@ void replica::on_add_learner(const group_check_request &request)
                         "invalid partition_status, status = {}",
                         enum_to_string(status()));
 
-        _duplicating = request.app.duplicating;
+        _is_duplication_master = request.app.duplicating;
         init_learn(request.config.learner_signature);
     }
 }

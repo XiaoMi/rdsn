@@ -58,7 +58,7 @@ replica::replica(replica_stub *stub,
                  const app_info &app,
                  const char *dir,
                  bool need_restore,
-                 bool need_duplicate)
+                 bool is_duplication_follower)
     : serverlet<replica>("replica"),
       replica_base(gpid, fmt::format("{}@{}", gpid, stub->_primary_address_str), app.app_name),
       _app_info(app),
@@ -73,7 +73,9 @@ replica::replica(replica_stub *stub,
       _restore_progress(0),
       _restore_status(ERR_OK),
       _duplication_mgr(new replica_duplicator_manager(this)),
-      _duplicating(app.duplicating),
+      // todo(jiashuo1): app.duplicating need rename
+      _is_duplication_master(app.duplicating),
+      _is_duplication_follower(is_duplication_follower),
       _backup_mgr(new replica_backup_manager(this))
 {
     dassert(_app_info.app_type != "", "");
