@@ -45,7 +45,7 @@ public:
         FLAGS_enable_http_server = false;
         stub->install_perf_counters();
         mock_app_info();
-        _mock_replica = stub->generate_replica(_app_info, pid, partition_status::PS_PRIMARY, 1);
+        _mock_replica = stub->generate_replica_ptr(_app_info, pid, partition_status::PS_PRIMARY, 1);
 
         // set cold_backup_root manually.
         // `cold_backup_root` is set by configuration "replication.cold_backup_root",
@@ -393,12 +393,15 @@ TEST_F(replica_test, test_query_last_checkpoint_info)
 
 TEST_F(replica_test, test_clear_on_failer)
 {
-    gpid pid = gpid(2, 100);
-    auto mock_replica = stub->generate_replica(_app_info, pid, partition_status::PS_PRIMARY, 1);
-    std::string path = "./replica_data";
+    replica *rep =
+        stub->generate_replica(_app_info, pid, partition_status::PS_PRIMARY, 1, false, true);
+    auto path = stub->get_replica_dir(_app_info.app_type.c_str(), pid);
     dsn::utils::filesystem::create_directory(path);
+    ASSERT_TRUE(dsn::utils::filesystem::path_exists(path));
+    ASSERT_TRUE(has_gpid(pid));
 
-    ASSERT_FALSE(call_clear_on_failure(stub.get(), mock_replica, path, pid));
+    ASSERT_FALSE(call_clear_on_failure(stub.get(), rep, path, pid));
+
     ASSERT_FALSE(dsn::utils::filesystem::path_exists(path));
     ASSERT_FALSE(has_gpid(pid));
 }
