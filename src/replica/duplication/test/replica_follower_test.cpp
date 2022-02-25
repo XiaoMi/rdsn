@@ -50,7 +50,7 @@ public:
              app.envs.end()) &&
             (app.envs.find(duplication_constants::kDuplicationEnvMasterMetasKey) != app.envs.end());
         _mock_replica = stub->generate_replica(
-            app, gpid(2, 1), partition_status::PS_PRIMARY, false, is_duplication_follower, 1);
+            app, gpid(2, 1), partition_status::PS_PRIMARY, 1, false, is_duplication_follower);
     }
 
 public:

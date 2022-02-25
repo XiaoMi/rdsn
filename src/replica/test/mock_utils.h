@@ -276,9 +276,9 @@ public:
     mock_replica_ptr generate_replica(app_info info,
                                       gpid pid,
                                       partition_status::type status = partition_status::PS_INACTIVE,
+                                      ballot b = 5,
                                       bool need_restore = false,
-                                      bool is_duplication_follower = false,
-                                      ballot b = 5)
+                                      bool is_duplication_follower = false)
     {
         replica_configuration config;
         config.ballot = b;
