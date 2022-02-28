@@ -167,7 +167,7 @@ public:
     // return not finished task count
     int cancel_but_not_wait_outstanding_tasks();
 
-    // todo(jiashuo1) it's not safe
+    // todo(jiashuo1) it's not thread-safe
     void set_result(error_code err) { _result = err; }
 
     error_code result() const { return _result; }
