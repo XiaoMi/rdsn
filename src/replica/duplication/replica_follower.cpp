@@ -62,7 +62,6 @@ void replica_follower::init_master_info()
     }
 }
 
-// todo(jiashuo1)
 error_code replica_follower::duplicate_checkpoint()
 {
     if (_duplicating_checkpoint) {
