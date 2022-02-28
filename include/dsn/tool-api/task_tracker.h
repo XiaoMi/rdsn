@@ -38,6 +38,7 @@
 
 #include <dsn/utility/link.h>
 #include <dsn/utility/synchronize.h>
+#include <dsn/utility/error_code.h>
 #include <dsn/c/api_utilities.h>
 #include <atomic>
 
@@ -166,11 +167,16 @@ public:
     // return not finished task count
     int cancel_but_not_wait_outstanding_tasks();
 
+    void set_result(error_code err) { _result = err; }
+
+    error_code result() const { return _result; }
+
 private:
     friend class trackable_task;
     const int _task_bucket_count;
     ::dsn::utils::ex_lock_nr_spin *_outstanding_tasks_lock;
     dlink *_outstanding_tasks;
+    error_code _result;
 };
 
 // ------- inlined implementation ----------
