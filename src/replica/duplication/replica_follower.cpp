@@ -40,22 +40,24 @@ void replica_follower::init_master_info()
 {
     const auto &envs = _replica->get_app_info()->envs;
 
-    if (envs.find(duplication_constants::kDuplicationEnvMasterClusterKey) != envs.end() &&
-        envs.find(duplication_constants::kDuplicationEnvMasterMetasKey) != envs.end()) {
-        need_duplicate = true;
+    if (envs.find(duplication_constants::kDuplicationEnvMasterClusterKey) == envs.end() ||
+        envs.find(duplication_constants::kDuplicationEnvMasterMetasKey) == envs.end()) {
+        return;
+    }
 
-        _master_cluster_name = envs.at(duplication_constants::kDuplicationEnvMasterClusterKey);
-        _master_app_name = _replica->get_app_info()->app_name;
+    need_duplicate = true;
 
-        const auto &meta_list_str = envs.at(duplication_constants::kDuplicationEnvMasterMetasKey);
-        std::vector<std::string> metas;
-        boost::split(metas, meta_list_str, boost::is_any_of(","));
-        dassert_f(!metas.empty(), "master cluster meta list is invalid!");
-        for (const auto &meta : metas) {
-            dsn::rpc_address node;
-            dassert_f(node.from_string_ipv4(meta.c_str()), "{} is invalid meta address", meta);
-            _master_meta_list.emplace_back(std::move(node));
-        }
+    _master_cluster_name = envs.at(duplication_constants::kDuplicationEnvMasterClusterKey);
+    _master_app_name = _replica->get_app_info()->app_name;
+
+    const auto &meta_list_str = envs.at(duplication_constants::kDuplicationEnvMasterMetasKey);
+    std::vector<std::string> metas;
+    boost::split(metas, meta_list_str, boost::is_any_of(","));
+    dassert_f(!metas.empty(), "master cluster meta list is invalid!");
+    for (const auto &meta : metas) {
+        dsn::rpc_address node;
+        dassert_f(node.from_string_ipv4(meta.c_str()), "{} is invalid meta address", meta);
+        _master_meta_list.emplace_back(std::move(node));
     }
 }
 
