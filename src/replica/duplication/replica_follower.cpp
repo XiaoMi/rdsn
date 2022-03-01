@@ -37,6 +37,7 @@ replica_follower::replica_follower(replica *r) : replica_base(r), _replica(r)
 
 replica_follower::~replica_follower() { _tracker.wait_outstanding_tasks(); }
 
+// ThreadPool: THREAD_POOL_REPLICATION_LONG
 void replica_follower::init_master_info()
 {
     const auto &envs = _replica->get_app_info()->envs;
@@ -62,6 +63,7 @@ void replica_follower::init_master_info()
     }
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION_LONG
 error_code replica_follower::duplicate_checkpoint()
 {
     if (_duplicating_checkpoint) {
@@ -78,6 +80,7 @@ error_code replica_follower::duplicate_checkpoint()
     return _tracker.all_tasks_success() ? ERR_OK : ERR_CORRUPTION;
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION_LONG
 void replica_follower::async_duplicate_checkpoint_from_master_replica()
 {
     rpc_address meta_servers;
@@ -112,18 +115,19 @@ void replica_follower::async_duplicate_checkpoint_from_master_replica()
               });
 }
 
+// ThreadPool: THREAD_POOL_DEFAULT
 error_code
 replica_follower::update_master_replica_config(error_code err,
                                                configuration_query_by_index_response &&resp)
 {
     error_code err_code = err != ERR_OK ? err : resp.err;
-    if (err_code != ERR_OK) {
+    if (dsn_unlikely(err_code != ERR_OK)) {
         derror_replica(
             "query master[{}] config failed: {}", master_replica_name(), err_code.to_string());
         return err_code;
     }
 
-    if (resp.partition_count != _replica->get_app_info()->partition_count) {
+    if (dsn_unlikely(resp.partition_count != _replica->get_app_info()->partition_count)) {
         derror_replica("master[{}] partition count is inconsistent: local = {} vs master = {}",
                        master_replica_name(),
                        _replica->get_app_info()->partition_count,
@@ -131,14 +135,15 @@ replica_follower::update_master_replica_config(error_code err,
         return ERR_INCONSISTENT_STATE;
     }
 
-    if (resp.partitions.size() != 1) {
+    if (dsn_unlikely(resp.partitions.size() != 1)) {
         derror_replica("master[{}] config size must be single, but actually is {}",
                        master_replica_name(),
                        resp.partitions.size());
         return ERR_INVALID_DATA;
     }
 
-    if (resp.partitions[0].pid.get_partition_index() != get_gpid().get_partition_index()) {
+    if (dsn_unlikely(resp.partitions[0].pid.get_partition_index() !=
+                     get_gpid().get_partition_index())) {
         derror_replica("master[{}] partition index is inconsistent: local = {} vs master = {}",
                        master_replica_name(),
                        get_gpid().get_partition_index(),
@@ -146,7 +151,7 @@ replica_follower::update_master_replica_config(error_code err,
         return ERR_INCONSISTENT_STATE;
     }
 
-    if (resp.partitions[0].primary == rpc_address::s_invalid_address) {
+    if (dsn_unlikely(resp.partitions[0].primary == rpc_address::s_invalid_address)) {
         derror_replica("master[{}] partition address is invalid", master_replica_name());
         return ERR_INVALID_STATE;
     }
@@ -156,6 +161,7 @@ replica_follower::update_master_replica_config(error_code err,
     return ERR_OK;
 }
 
+// ThreadPool: THREAD_POOL_DEFAULT
 void replica_follower::copy_master_replica_checkpoint()
 {
     ddebug_replica("query master[{}] replica checkpoint info and start use nfs copy the data",
@@ -174,6 +180,7 @@ void replica_follower::copy_master_replica_checkpoint()
 }
 
 // todo(jiashuo1)
+// ThreadPool: THREAD_POOL_DEFAULT
 void replica_follower::nfs_copy_checkpoint(error_code err, learn_response &&resp)
 {
     nfs_copy_remote_files(resp.address,
@@ -184,6 +191,7 @@ void replica_follower::nfs_copy_checkpoint(error_code err, learn_response &&resp
 }
 
 // todo(jiashuo1)
+// ThreadPool: THREAD_POOL_DEFAULT
 void replica_follower::nfs_copy_remote_files(const rpc_address &remote_node,
                                              const std::string &remote_disk,
                                              const std::string &remote_dir,
