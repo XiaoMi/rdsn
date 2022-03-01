@@ -147,6 +147,7 @@ TEST_F(replica_follower_test, test_async_duplicate_checkpoint_from_master_replic
     fail::cfg("duplicate_checkpoint_ok", "void()");
     async_duplicate_checkpoint_from_master_replica(follower);
     ASSERT_TRUE(wait_follower_task_completed(follower));
+    fail::teardown();
 }
 
 TEST_F(replica_follower_test, test_update_master_replica_config)
