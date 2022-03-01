@@ -167,17 +167,16 @@ public:
     // return not finished task count
     int cancel_but_not_wait_outstanding_tasks();
 
-    // todo(jiashuo1) it's not thread-safe
-    void set_result(error_code err) { _result = err; }
+    void set_failure() { _all_task_success = false; }
 
-    error_code result() const { return _result; }
+    bool all_tasks_success() const { return _all_task_success; }
 
 private:
     friend class trackable_task;
     const int _task_bucket_count;
     ::dsn::utils::ex_lock_nr_spin *_outstanding_tasks_lock;
     dlink *_outstanding_tasks;
-    error_code _result;
+    bool _all_task_success{true};
 };
 
 // ------- inlined implementation ----------

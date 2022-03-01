@@ -66,10 +66,10 @@ public:
         follower->async_duplicate_checkpoint_from_master_replica();
     }
 
-    error_code wait_follower_task_completed(replica_follower *follower)
+    bool wait_follower_task_completed(replica_follower *follower)
     {
         follower->_tracker.wait_outstanding_tasks();
-        return follower->_tracker.result();
+        return follower->_tracker.all_tasks_success();
     }
 
 public:
@@ -129,13 +129,13 @@ TEST_F(replica_follower_test, test_async_duplicate_checkpoint_from_master_replic
     fail::setup();
     fail::cfg("duplicate_checkpoint_ok", "void()");
     async_duplicate_checkpoint_from_master_replica(follower);
-    ASSERT_EQ(wait_follower_task_completed(follower), ERR_OK);
+    ASSERT_TRUE(wait_follower_task_completed(follower));
     fail::teardown();
 
     fail::setup();
     fail::cfg("duplicate_checkpoint_failed", "void()");
     async_duplicate_checkpoint_from_master_replica(follower);
-    ASSERT_EQ(wait_follower_task_completed(follower), ERR_INACTIVE_STATE);
+    ASSERT_FALSE(wait_follower_task_completed(follower));
     fail::teardown();
 }
 } // namespace replication
