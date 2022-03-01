@@ -108,8 +108,9 @@ void replica_follower::async_duplicate_checkpoint_from_master_replica()
 
                       error_code err_code = err != ERR_OK ? err : resp.err;
                       if (err_code != ERR_OK) {
-                          derror_replica(
-                              "query master[{}] config failed: {}", master_replica_name(), err_code.to_string());
+                          derror_replica("query master[{}] config failed: {}",
+                                         master_replica_name(),
+                                         err_code.to_string());
                           return;
                       }
 
@@ -154,21 +155,25 @@ replica_follower::update_master_replica_config(configuration_query_by_index_resp
 // todo(jiashuo1)
 void replica_follower::copy_master_replica_checkpoint()
 {
-    if (_master_replica_config.primary == rpc_address::s_invalid_address
-        || _master_replica_config.pid.get_partition_index() != get_gpid().get_partition_index()) {
+    if (_master_replica_config.primary == rpc_address::s_invalid_address ||
+        _master_replica_config.pid.get_partition_index() != get_gpid().get_partition_index()) {
         derror_replica("master replica config hasn't been inited successfully");
         return;
     }
 
-    ddebug_replica("query master[{}] replica checkpoint info and start use nfs copy the data", master_replica_name());
+    ddebug_replica("query master[{}] replica checkpoint info and start use nfs copy the data",
+                   master_replica_name());
     learn_request request;
     request.pid = _master_replica_config.pid;
-    dsn::message_ex *msg =
-        dsn::message_ex::create_request(RPC_QUERY_LAST_CHECKPOINT_INFO, 0, _master_replica_config.pid.thread_hash());
+    dsn::message_ex *msg = dsn::message_ex::create_request(
+        RPC_QUERY_LAST_CHECKPOINT_INFO, 0, _master_replica_config.pid.thread_hash());
     dsn::marshall(msg, request);
-    rpc::call(_master_replica_config.primary, msg, &_tracker, [&](error_code err, learn_response &&resp) mutable {
-        nfs_copy_checkpoint(err, std::move(resp));
-    });
+    rpc::call(_master_replica_config.primary,
+              msg,
+              &_tracker,
+              [&](error_code err, learn_response &&resp) mutable {
+                  nfs_copy_checkpoint(err, std::move(resp));
+              });
 }
 
 // todo(jiashuo1)

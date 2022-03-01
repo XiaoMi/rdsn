@@ -72,11 +72,14 @@ public:
         return follower->_tracker.all_tasks_success();
     }
 
-    error_code update_master_replica_config(replica_follower *follower, configuration_query_by_index_response& resp) {
+    error_code update_master_replica_config(replica_follower *follower,
+                                            configuration_query_by_index_response &resp)
+    {
         return follower->update_master_replica_config(std::move(resp));
     }
 
-    const partition_configuration &master_replica_config(replica_follower *follower) const {
+    const partition_configuration &master_replica_config(replica_follower *follower) const
+    {
         return follower->_master_replica_config;
     }
 
@@ -156,12 +159,12 @@ TEST_F(replica_follower_test, test_update_master_replica_config)
     auto follower = _mock_replica->get_replica_follower();
 
     configuration_query_by_index_response resp;
-    update_master_replica_config(follower, resp);
-    ASSERT_EQ(master_replica_config(follower).primary,rpc_address::s_invalid_address);
+    ASSERT_EQ(update_master_replica_config(follower, resp), ERR_INCONSISTENT_STATE);
+    ASSERT_EQ(master_replica_config(follower).primary, rpc_address::s_invalid_address);
 
     resp.partition_count = 100;
     ASSERT_EQ(update_master_replica_config(follower, resp), ERR_INCONSISTENT_STATE);
-    ASSERT_EQ(master_replica_config(follower).primary,rpc_address::s_invalid_address);
+    ASSERT_EQ(master_replica_config(follower).primary, rpc_address::s_invalid_address);
 
     resp.partition_count = _app_info.partition_count;
     partition_configuration p;
@@ -171,19 +174,20 @@ TEST_F(replica_follower_test, test_update_master_replica_config)
     resp.partitions.emplace_back(p);
     resp.partitions.emplace_back(p);
     ASSERT_EQ(update_master_replica_config(follower, resp), ERR_INVALID_DATA);
-    ASSERT_EQ(master_replica_config(follower).primary,rpc_address::s_invalid_address);
+    ASSERT_EQ(master_replica_config(follower).primary, rpc_address::s_invalid_address);
 
     resp.partitions.clear();
     p.pid = gpid(2, 100);
     resp.partitions.emplace_back(p);
     ASSERT_EQ(update_master_replica_config(follower, resp), ERR_INCONSISTENT_STATE);
-    ASSERT_EQ(master_replica_config(follower).primary,rpc_address::s_invalid_address);
+    ASSERT_EQ(master_replica_config(follower).primary, rpc_address::s_invalid_address);
 
     resp.partitions.clear();
     p.pid = gpid(2, 1);
     resp.partitions.emplace_back(p);
     ASSERT_EQ(update_master_replica_config(follower, resp), ERR_OK);
-
+    ASSERT_EQ(master_replica_config(follower).primary, p.primary);
+    ASSERT_EQ(master_replica_config(follower).pid, p.pid);
 }
 
 } // namespace replication
