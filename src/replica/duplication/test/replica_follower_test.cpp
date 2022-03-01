@@ -72,6 +72,11 @@ public:
         return follower->_tracker.all_tasks_success();
     }
 
+    void mark_tracker_tasks_success(replica_follower *follower)
+    {
+        follower->_tracker.set_success();
+    }
+
     error_code update_master_replica_config(replica_follower *follower,
                                             configuration_query_by_index_response &resp)
     {
@@ -121,6 +126,10 @@ TEST_F(replica_follower_test, test_duplicate_checkpoint)
 
     auto follower = _mock_replica->get_replica_follower();
 
+    ASSERT_EQ(follower->duplicate_checkpoint(), ERR_CORRUPTION);
+    ASSERT_FALSE(get_duplicating(follower));
+
+    mark_tracker_tasks_success(follower);
     ASSERT_EQ(follower->duplicate_checkpoint(), ERR_OK);
     ASSERT_FALSE(get_duplicating(follower));
 
@@ -138,15 +147,15 @@ TEST_F(replica_follower_test, test_async_duplicate_checkpoint_from_master_replic
     auto follower = _mock_replica->get_replica_follower();
 
     fail::setup();
-    fail::cfg("duplicate_checkpoint_ok", "void()");
-    async_duplicate_checkpoint_from_master_replica(follower);
-    ASSERT_TRUE(wait_follower_task_completed(follower));
-    fail::teardown();
-
-    fail::setup();
     fail::cfg("duplicate_checkpoint_failed", "void()");
     async_duplicate_checkpoint_from_master_replica(follower);
     ASSERT_FALSE(wait_follower_task_completed(follower));
+    fail::teardown();
+
+    fail::setup();
+    fail::cfg("duplicate_checkpoint_ok", "void()");
+    async_duplicate_checkpoint_from_master_replica(follower);
+    ASSERT_TRUE(wait_follower_task_completed(follower));
     fail::teardown();
 }
 
@@ -189,6 +198,5 @@ TEST_F(replica_follower_test, test_update_master_replica_config)
     ASSERT_EQ(master_replica_config(follower).primary, p.primary);
     ASSERT_EQ(master_replica_config(follower).pid, p.pid);
 }
-
 } // namespace replication
 } // namespace dsn
