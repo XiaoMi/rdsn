@@ -146,6 +146,11 @@ replica_follower::update_master_replica_config(error_code err,
         return ERR_INCONSISTENT_STATE;
     }
 
+    if (resp.partitions[0].primary == rpc_address::s_invalid_address) {
+        derror_replica("master[{}] partition address is invalid", master_replica_name());
+        return ERR_INVALID_STATE;
+    }
+
     // since the request just specify one partition, the result size is single
     _master_replica_config = resp.partitions[0];
     return ERR_OK;
@@ -153,12 +158,6 @@ replica_follower::update_master_replica_config(error_code err,
 
 void replica_follower::copy_master_replica_checkpoint()
 {
-    if (_master_replica_config.primary == rpc_address::s_invalid_address ||
-        _master_replica_config.pid.get_partition_index() != get_gpid().get_partition_index()) {
-        derror_replica("master replica config hasn't been inited successfully");
-        return;
-    }
-
     ddebug_replica("query master[{}] replica checkpoint info and start use nfs copy the data",
                    master_replica_name());
     learn_request request;
