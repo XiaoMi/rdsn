@@ -97,11 +97,13 @@ void replica_follower::async_duplicate_checkpoint_from_master_replica()
               &_tracker,
               [&](error_code err, configuration_query_by_index_response &&resp) mutable {
                   tasking::enqueue(LPC_DUPLICATE_CHECKPOINT, &_tracker, [=]() mutable {
-                      FAIL_POINT_INJECT_F("duplicate_checkpoint_ok",
-                                          [&](string_view s) -> void { return; });
+                      FAIL_POINT_INJECT_F("duplicate_checkpoint_ok", [&](string_view s) -> void {
+                          _tracker.set_success();
+                          return;
+                      });
 
                       FAIL_POINT_INJECT_F("duplicate_checkpoint_failed",
-                                          [&](string_view s) -> void { _tracker.set_failure(); });
+                                          [&](string_view s) -> void { return; });
 
                       update_master_replica_config_callback(err, std::move(resp));
                   });
@@ -138,7 +140,7 @@ void replica_follower::nfs_copy_remote_files(const rpc_address &remote_node,
                                              std::vector<std::string> &file_list,
                                              const std::string &dest_dir)
 {
-    return;
+    _tracker.set_success();
 }
 
 } // namespace replication
