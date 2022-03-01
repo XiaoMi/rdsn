@@ -72,6 +72,11 @@ public:
         return follower->_tracker.all_tasks_success();
     }
 
+    void mark_tracker_tasks_success(replica_follower *follower)
+    {
+        follower->_tracker.set_success();
+    }
+
     error_code update_master_replica_config(replica_follower *follower,
                                             configuration_query_by_index_response &resp)
     {
@@ -121,6 +126,10 @@ TEST_F(replica_follower_test, test_duplicate_checkpoint)
 
     auto follower = _mock_replica->get_replica_follower();
 
+    ASSERT_EQ(follower->duplicate_checkpoint(), ERR_CORRUPTION);
+    ASSERT_FALSE(get_duplicating(follower));
+
+    mark_tracker_tasks_success(follower);
     ASSERT_EQ(follower->duplicate_checkpoint(), ERR_OK);
     ASSERT_FALSE(get_duplicating(follower));
 
