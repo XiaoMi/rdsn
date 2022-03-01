@@ -52,6 +52,15 @@ private:
     bool need_duplicate{false};
 
     void init_master_info();
+    void async_duplicate_checkpoint_from_master_replica();
+    error_code update_master_replica_config(configuration_query_by_index_response &&resp);
+    void copy_master_replica_checkpoint();
+    void nfs_copy_checkpoint(error_code err, learn_response &&resp);
+    void nfs_copy_remote_files(const rpc_address &remote_node,
+                               const std::string &remote_disk,
+                               const std::string &remote_dir,
+                               std::vector<std::string> &file_list,
+                               const std::string &dest_dir);
 
     std::string master_replica_name()
     {
@@ -64,16 +73,6 @@ private:
         }
         return app_info;
     }
-
-    void async_duplicate_checkpoint_from_master_replica();
-    error_code update_master_replica_config(configuration_query_by_index_response &&resp);
-    void copy_master_replica_checkpoint();
-    void nfs_copy_checkpoint(error_code err, learn_response &&resp);
-    void nfs_copy_remote_files(const rpc_address &remote_node,
-                               const std::string &remote_disk,
-                               const std::string &remote_dir,
-                               std::vector<std::string> &file_list,
-                               const std::string &dest_dir);
 
     friend class replica_follower_test;
 };
