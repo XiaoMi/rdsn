@@ -177,9 +177,6 @@ TEST_F(replica_follower_test, test_update_master_replica_config)
 
     resp.partition_count = _app_info.partition_count;
     partition_configuration p;
-    p.primary = rpc_address("127.0.0.1", 34801);
-    p.secondaries.emplace_back(rpc_address("127.0.0.2", 34801));
-    p.secondaries.emplace_back(rpc_address("127.0.0.3", 34801));
     resp.partitions.emplace_back(p);
     resp.partitions.emplace_back(p);
     ASSERT_EQ(update_master_replica_config(follower, resp), ERR_INVALID_DATA);
@@ -192,7 +189,17 @@ TEST_F(replica_follower_test, test_update_master_replica_config)
     ASSERT_EQ(master_replica_config(follower).primary, rpc_address::s_invalid_address);
 
     resp.partitions.clear();
+    p.primary = rpc_address::s_invalid_address;
     p.pid = gpid(2, 1);
+    resp.partitions.emplace_back(p);
+    ASSERT_EQ(update_master_replica_config(follower, resp), ERR_INVALID_STATE);
+    ASSERT_EQ(master_replica_config(follower).primary, rpc_address::s_invalid_address);
+
+    resp.partitions.clear();
+    p.pid = gpid(2, 1);
+    p.primary = rpc_address("127.0.0.1", 34801);
+    p.secondaries.emplace_back(rpc_address("127.0.0.2", 34801));
+    p.secondaries.emplace_back(rpc_address("127.0.0.3", 34801));
     resp.partitions.emplace_back(p);
     ASSERT_EQ(update_master_replica_config(follower, resp), ERR_OK);
     ASSERT_EQ(master_replica_config(follower).primary, p.primary);
