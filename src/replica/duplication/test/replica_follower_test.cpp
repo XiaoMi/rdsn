@@ -75,7 +75,7 @@ public:
     error_code update_master_replica_config(replica_follower *follower,
                                             configuration_query_by_index_response &resp)
     {
-        return follower->update_master_replica_config(std::move(resp));
+        return follower->update_master_replica_config(ERR_OK, std::move(resp));
     }
 
     const partition_configuration &master_replica_config(replica_follower *follower) const

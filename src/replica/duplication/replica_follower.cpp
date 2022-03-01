@@ -105,16 +105,7 @@ void replica_follower::async_duplicate_checkpoint_from_master_replica()
 
                       FAIL_POINT_INJECT_F("duplicate_checkpoint_failed",
                                           [&](string_view s) -> void { return; });
-
-                      error_code err_code = err != ERR_OK ? err : resp.err;
-                      if (err_code != ERR_OK) {
-                          derror_replica("query master[{}] config failed: {}",
-                                         master_replica_name(),
-                                         err_code.to_string());
-                          return;
-                      }
-
-                      if (update_master_replica_config(std::move(resp)) == ERR_OK) {
+                      if (update_master_replica_config(err, std::move(resp)) == ERR_OK) {
                           copy_master_replica_checkpoint();
                       }
                   });
@@ -122,8 +113,16 @@ void replica_follower::async_duplicate_checkpoint_from_master_replica()
 }
 
 error_code
-replica_follower::update_master_replica_config(configuration_query_by_index_response &&resp)
+replica_follower::update_master_replica_config(error_code err,
+                                               configuration_query_by_index_response &&resp)
 {
+    error_code err_code = err != ERR_OK ? err : resp.err;
+    if (err_code != ERR_OK) {
+        derror_replica(
+            "query master[{}] config failed: {}", master_replica_name(), err_code.to_string());
+        return err_code;
+    }
+
     if (resp.partition_count != _replica->get_app_info()->partition_count) {
         derror_replica("master[{}] partition count is inconsistent: local = {} vs master = {}",
                        master_replica_name(),
@@ -152,7 +151,6 @@ replica_follower::update_master_replica_config(configuration_query_by_index_resp
     return ERR_OK;
 }
 
-// todo(jiashuo1)
 void replica_follower::copy_master_replica_checkpoint()
 {
     if (_master_replica_config.primary == rpc_address::s_invalid_address ||
