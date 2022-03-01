@@ -73,6 +73,7 @@ inline bool is_cluster_id_configured(uint8_t cid)
 // todo(jiashuo1) it will be filled more constants
 struct duplication_constants
 {
+    const static std::string kCheckpointRootDir;
     const static std::string kClustersSectionName;
     // These will fill into app env and mark one app as a "follower app" and record master info
     const static std::string kDuplicationEnvMasterClusterKey;
