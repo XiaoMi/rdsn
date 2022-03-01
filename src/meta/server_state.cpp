@@ -3123,6 +3123,7 @@ void server_state::get_max_replica_count(configuration_get_max_replica_count_rpc
     if (app == nullptr) {
         response.err = ERR_APP_NOT_EXIST;
         response.max_replica_count = 0;
+        response.hint_message = fmt::format("app({}) does not exist", app_name);
         dwarn_f("failed to get max_replica_count: app_name={}, error_code={}",
                 app_name,
                 response.err.to_string());
