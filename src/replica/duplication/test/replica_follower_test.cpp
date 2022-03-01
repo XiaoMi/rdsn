@@ -127,15 +127,15 @@ TEST_F(replica_follower_test, test_async_duplicate_checkpoint_from_master_replic
     auto follower = _mock_replica->get_replica_follower();
 
     fail::setup();
+    fail::cfg("duplicate_checkpoint_failed", "void()");
+    async_duplicate_checkpoint_from_master_replica(follower);
+    ASSERT_FALSE(wait_follower_task_completed(follower));
+
+    fail::setup();
     fail::cfg("duplicate_checkpoint_ok", "void()");
     async_duplicate_checkpoint_from_master_replica(follower);
     ASSERT_TRUE(wait_follower_task_completed(follower));
     fail::teardown();
-
-    fail::setup();
-    fail::cfg("duplicate_checkpoint_failed", "void()");
-    async_duplicate_checkpoint_from_master_replica(follower);
-    ASSERT_FALSE(wait_follower_task_completed(follower));
     fail::teardown();
 }
 } // namespace replication
