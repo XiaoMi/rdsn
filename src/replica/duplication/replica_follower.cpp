@@ -86,6 +86,7 @@ void replica_follower::async_duplicate_checkpoint_from_master_replica()
 
     configuration_query_by_index_request meta_config_request;
     meta_config_request.app_name = _master_app_name;
+    // just fetch the same partition config
     meta_config_request.partition_indices = {get_gpid().get_partition_index()};
 
     ddebug_replica("query master[{}] replica configuration", master_replica_name());
@@ -105,26 +106,73 @@ void replica_follower::async_duplicate_checkpoint_from_master_replica()
                       FAIL_POINT_INJECT_F("duplicate_checkpoint_failed",
                                           [&](string_view s) -> void { return; });
 
-                      update_master_replica_config_callback(err, std::move(resp));
+                      error_code err_code = err != ERR_OK ? err : resp.err;
+                      if (err_code != ERR_OK) {
+                          derror_replica(
+                              "query master[{}] config failed: {}", master_replica_name(), err_code.to_string());
+                          return;
+                      }
+
+                      if (update_master_replica_config(std::move(resp)) == ERR_OK) {
+                          copy_master_replica_checkpoint();
+                      }
                   });
               });
 }
 
-// todo(jiashuo1)
-void replica_follower::update_master_replica_config_callback(
-    error_code err, configuration_query_by_index_response &&resp)
+error_code
+replica_follower::update_master_replica_config(configuration_query_by_index_response &&resp)
 {
-    copy_master_replica_checkpoint(_master_replica_config.primary, _master_replica_config.pid);
+    if (resp.partition_count != _replica->get_app_info()->partition_count) {
+        derror_replica("master[{}] partition count is inconsistent: local = {} vs master = {}",
+                       master_replica_name(),
+                       _replica->get_app_info()->partition_count,
+                       resp.partition_count);
+        return ERR_INCONSISTENT_STATE;
+    }
+
+    if (resp.partitions.size() != 1) {
+        derror_replica("master[{}] config size must be single, but actually is {}",
+                       master_replica_name(),
+                       resp.partitions.size());
+        return ERR_INVALID_DATA;
+    }
+
+    if (resp.partitions[0].pid.get_partition_index() != get_gpid().get_partition_index()) {
+        derror_replica("master[{}] partition index is inconsistent: local = {} vs master = {}",
+                       master_replica_name(),
+                       get_gpid().get_partition_index(),
+                       resp.partitions[0].pid.get_partition_index());
+        return ERR_INCONSISTENT_STATE;
+    }
+
+    // since the request just specify one partition, the result size is single
+    _master_replica_config = resp.partitions[0];
+    return ERR_OK;
 }
 
 // todo(jiashuo1)
-void replica_follower::copy_master_replica_checkpoint(const rpc_address &node, const gpid &pid)
+void replica_follower::copy_master_replica_checkpoint()
 {
-    query_last_checkpoint_info_callback(ERR_OK, learn_response() /* todo(jiashuo1): placeholder */);
+    if (_master_replica_config.primary == rpc_address::s_invalid_address
+        || _master_replica_config.pid.get_partition_index() != get_gpid().get_partition_index()) {
+        derror_replica("master replica config hasn't been inited successfully");
+        return;
+    }
+
+    ddebug_replica("query master[{}] replica checkpoint info and start use nfs copy the data", master_replica_name());
+    learn_request request;
+    request.pid = _master_replica_config.pid;
+    dsn::message_ex *msg =
+        dsn::message_ex::create_request(RPC_QUERY_LAST_CHECKPOINT_INFO, 0, _master_replica_config.pid.thread_hash());
+    dsn::marshall(msg, request);
+    rpc::call(_master_replica_config.primary, msg, &_tracker, [&](error_code err, learn_response &&resp) mutable {
+        nfs_copy_checkpoint(err, std::move(resp));
+    });
 }
 
 // todo(jiashuo1)
-void replica_follower::query_last_checkpoint_info_callback(error_code err, learn_response &&resp)
+void replica_follower::nfs_copy_checkpoint(error_code err, learn_response &&resp)
 {
     nfs_copy_remote_files(resp.address,
                           resp.replica_disk_tag,

@@ -66,10 +66,9 @@ private:
     }
 
     void async_duplicate_checkpoint_from_master_replica();
-    void update_master_replica_config_callback(error_code err,
-                                               configuration_query_by_index_response &&resp);
-    void copy_master_replica_checkpoint(const rpc_address &node, const gpid &pid);
-    void query_last_checkpoint_info_callback(error_code err, learn_response &&resp);
+    error_code update_master_replica_config(configuration_query_by_index_response &&resp);
+    void copy_master_replica_checkpoint();
+    void nfs_copy_checkpoint(error_code err, learn_response &&resp);
     void nfs_copy_remote_files(const rpc_address &remote_node,
                                const std::string &remote_disk,
                                const std::string &remote_dir,
