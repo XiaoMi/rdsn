@@ -121,9 +121,7 @@ public:
                                          int32_t partition_index,
                                          int32_t max_replica_count)
     {
-        dsn::zauto_write_lock l(_ss->_lock);
-
-        auto app = _ss->get_app(app_name);
+        auto app = find_app(app_name);
         dassert_f(app != nullptr, "app({}) does not exist", app_name);
 
         auto &partition_config = app->partitions[partition_index];
