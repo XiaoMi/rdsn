@@ -183,7 +183,7 @@ void replica_follower::copy_master_replica_checkpoint()
 error_code replica_follower::nfs_copy_checkpoint(error_code err, learn_response &&resp)
 {
     error_code err_code = err != ERR_OK ? err : resp.err;
-    if (err_code != ERR_OK) {
+    if (dsn_unlikely(err_code != ERR_OK)) {
         derror_replica("query master[{}] replica checkpoint info failed, err = {}",
                        master_replica_name(),
                        err_code.to_string());
@@ -227,7 +227,10 @@ void replica_follower::nfs_copy_remote_files(const rpc_address &remote_node,
         LPC_DUPLICATE_CHECKPOINT_COMPLETED,
         &_tracker,
         [&, remote_dir](error_code err, size_t size) mutable {
-            if (err != ERR_OK) {
+            FAIL_POINT_INJECT_NOT_RETURN_F("nfs_copy_ok",
+                                           [&](string_view s) -> void { err = ERR_OK; });
+
+            if (dsn_unlikely(err != ERR_OK)) {
                 derror_replica("nfs copy master[{}] checkpoint failed: checkpoint = {}, err = {}",
                                master_replica_name(),
                                remote_dir,

@@ -88,6 +88,11 @@ public:
         return follower->_master_replica_config;
     }
 
+    error_code nfs_copy_checkpoint(replica_follower *follower, error_code err, learn_response resp)
+    {
+        return follower->nfs_copy_checkpoint(err, std::move(resp));
+    }
+
 public:
     dsn::app_info _app_info;
     mock_replica_ptr _mock_replica;
@@ -213,6 +218,25 @@ TEST_F(replica_follower_test, test_nfs_copy_checkpoint)
                            "127.0.0.1:34801,127.0.0.2:34801,127.0.0.3:34802");
     update_mock_replica(_app_info);
     auto follower = _mock_replica->get_replica_follower();
+
+    ASSERT_EQ(nfs_copy_checkpoint(follower, ERR_CORRUPTION, learn_response()), ERR_CORRUPTION);
+
+    auto resp = learn_response();
+    resp.address = rpc_address("127.0.0.1", 34801);
+
+    std::string dest = utils::filesystem::path_combine(_mock_replica->dir(),
+                                                       duplication_constants::kCheckpointRootDir);
+    dsn::utils::filesystem::create_directory(dest);
+    ASSERT_TRUE(dsn::utils::filesystem::path_exists(dest));
+    ASSERT_EQ(nfs_copy_checkpoint(follower, ERR_OK, resp), ERR_OK);
+    ASSERT_FALSE(dsn::utils::filesystem::path_exists(dest));
+    ASSERT_FALSE(wait_follower_task_completed(follower));
+
+    fail::setup();
+    fail::cfg("nfs_copy_ok", "void()");
+    ASSERT_EQ(nfs_copy_checkpoint(follower, ERR_OK, resp), ERR_OK);
+    ASSERT_TRUE(wait_follower_task_completed(follower));
+    fail::teardown();
 }
 
 } // namespace replication
