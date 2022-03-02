@@ -205,5 +205,15 @@ TEST_F(replica_follower_test, test_update_master_replica_config)
     ASSERT_EQ(master_replica_config(follower).primary, p.primary);
     ASSERT_EQ(master_replica_config(follower).pid, p.pid);
 }
+
+TEST_F(replica_follower_test, test_nfs_copy_checkpoint)
+{
+    _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterClusterKey, "master");
+    _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterMetasKey,
+                           "127.0.0.1:34801,127.0.0.2:34801,127.0.0.3:34802");
+    update_mock_replica(_app_info);
+    auto follower = _mock_replica->get_replica_follower();
+}
+
 } // namespace replication
 } // namespace dsn
