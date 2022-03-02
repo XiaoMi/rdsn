@@ -240,11 +240,7 @@ inline std::unique_ptr<mock_replica> create_mock_replica(replica_stub *stub,
 class mock_replica_stub : public replica_stub
 {
 public:
-    mock_replica_stub()
-    {
-        _nfs = nfs_node::create();
-        _nfs->start();
-    };
+    mock_replica_stub(){};
 
     ~mock_replica_stub() override = default;
 

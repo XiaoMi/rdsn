@@ -93,6 +93,12 @@ public:
         return follower->nfs_copy_checkpoint(err, std::move(resp));
     }
 
+    void init_nfs()
+    {
+        stub->_nfs = nfs_node::create();
+        stub->_nfs->start();
+    }
+
 public:
     dsn::app_info _app_info;
     mock_replica_ptr _mock_replica;
@@ -217,6 +223,7 @@ TEST_F(replica_follower_test, test_nfs_copy_checkpoint)
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterMetasKey,
                            "127.0.0.1:34801,127.0.0.2:34801,127.0.0.3:34802");
     update_mock_replica(_app_info);
+    init_nfs();
     auto follower = _mock_replica->get_replica_follower();
 
     ASSERT_EQ(nfs_copy_checkpoint(follower, ERR_CORRUPTION, learn_response()), ERR_CORRUPTION);
