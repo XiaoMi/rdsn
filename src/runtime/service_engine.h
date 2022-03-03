@@ -108,8 +108,6 @@ typedef std::map<int, std::shared_ptr<service_node>> service_nodes_by_app_id;
 class service_engine : public utils::singleton<service_engine>
 {
 public:
-    service_engine();
-
     ~service_engine();
 
     // ServiceMode Mode() const { return _spec.Mode; }
@@ -127,6 +125,8 @@ public:
     void set_simulator();
 
 private:
+    service_engine();
+
     service_spec _spec;
     env_provider *_env;
 
@@ -137,6 +137,8 @@ private:
 
     // map app_id to service_node
     service_nodes_by_app_id _nodes_by_app_id;
+
+    friend class utils::singleton<service_engine>;
 };
 
 // ------------ inline impl ---------------------

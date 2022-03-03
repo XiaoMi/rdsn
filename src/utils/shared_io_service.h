@@ -51,6 +51,17 @@ namespace tools {
 class shared_io_service : public utils::singleton<shared_io_service>
 {
 public:
+    ~shared_io_service()
+    {
+        ios.stop();
+        for (auto worker : _workers) {
+            worker->join();
+        }
+    }
+
+    boost::asio::io_service ios;
+
+private:
     shared_io_service()
     {
         _io_service_worker_count =
@@ -66,19 +77,10 @@ public:
         }
     }
 
-    ~shared_io_service()
-    {
-        ios.stop();
-        for (auto worker : _workers) {
-            worker->join();
-        }
-    }
-
-    boost::asio::io_service ios;
-
-private:
     int _io_service_worker_count;
     std::vector<std::shared_ptr<std::thread>> _workers;
+
+    friend class utils::singleton<shared_io_service>;
 };
-}
-}
+} // namespace tools
+} // namespace dsn
