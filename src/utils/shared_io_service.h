@@ -51,14 +51,6 @@ namespace tools {
 class shared_io_service : public utils::singleton<shared_io_service>
 {
 public:
-    ~shared_io_service()
-    {
-        ios.stop();
-        for (auto worker : _workers) {
-            worker->join();
-        }
-    }
-
     boost::asio::io_service ios;
 
 private:
@@ -74,6 +66,13 @@ private:
                 boost::asio::io_service::work work(ios);
                 ios.run();
             })));
+        }
+    }
+    ~shared_io_service()
+    {
+        ios.stop();
+        for (auto worker : _workers) {
+            worker->join();
         }
     }
 

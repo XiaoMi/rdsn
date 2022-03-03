@@ -85,8 +85,6 @@ class checker;
 class scheduler : public utils::singleton<scheduler>
 {
 public:
-    ~scheduler(void);
-
     void start();
     uint64_t now_ns() const
     {
@@ -135,6 +133,7 @@ private:
 
 private:
     scheduler(void);
+    ~scheduler(void);
 
     void schedule();
     void check();

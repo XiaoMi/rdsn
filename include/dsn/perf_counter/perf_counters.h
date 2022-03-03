@@ -45,8 +45,6 @@ namespace dsn {
 class perf_counters : public utils::singleton<perf_counters>
 {
 public:
-    ~perf_counters();
-
     ///
     /// get counter with (current_app_name, section, name), try to create a new one
     /// if create_if_not_exist==true
@@ -136,6 +134,7 @@ public:
 
 private:
     perf_counters();
+    ~perf_counters();
 
     // full_name = perf_counter::build_full_name(...);
     perf_counter *new_counter(const char *app,

@@ -38,6 +38,8 @@ public:
 
 private:
     app_env_validator() { register_all_validators(); }
+    ~app_env_validator() = default;
+
     void register_all_validators();
 
     using validator_func = std::function<bool(const std::string &, std::string &)>;

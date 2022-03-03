@@ -90,6 +90,7 @@ private:
         dassert_f(_distinct_cids.size() == _group.size(),
                   "there might be duplicate cluster_id in configuration");
     }
+    ~duplication_group_registry() = default;
 
     std::map<std::string, uint8_t> _group;
     std::set<uint8_t> _distinct_cids;

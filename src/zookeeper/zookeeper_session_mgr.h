@@ -53,6 +53,7 @@ public:
 
 private:
     zookeeper_session_mgr();
+    ~zookeeper_session_mgr() = default;
 
     utils::ex_lock_nr _store_lock;
     std::string _zoo_hosts;

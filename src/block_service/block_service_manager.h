@@ -30,6 +30,7 @@ class block_service_registry : public utils::singleton<block_service_registry>
 {
 private:
     block_service_registry();
+    ~block_service_registry() = default;
 
     friend class utils::singleton<block_service_registry>;
 };
