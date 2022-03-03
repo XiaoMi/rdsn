@@ -230,6 +230,7 @@ replication_app_base::replication_app_base(replica *replica) : replica_base(repl
     _replica = replica;
 }
 
+
 bool replication_app_base::is_primary() const
 {
     return _replica->status() == partition_status::PS_PRIMARY;
