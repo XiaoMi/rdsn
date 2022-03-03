@@ -137,7 +137,6 @@ public:
     // * last_committed_decree() == last_durable_decree()
     //
     virtual error_code sync_checkpoint() = 0;
-
     //
     // asynchonously checkpoint, which will not stall the normal write ops.
     // replication layer will check last_durable_decree() later.
