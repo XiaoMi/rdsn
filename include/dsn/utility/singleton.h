@@ -17,18 +17,16 @@
 
 #pragma once
 
+#include <boost/noncopyable.hpp>
+
 namespace dsn {
 namespace utils {
 
 template <typename T>
-class singleton
+class singleton : private boost::noncopyable
 {
 public:
     singleton() = default;
-
-    // disallow copy and assign
-    singleton(const singleton &) = delete;
-    singleton &operator=(const singleton &) = delete;
 
     static T &instance()
     {
