@@ -224,8 +224,8 @@ replication_app_base::replication_app_base(replica *replica) : replica_base(repl
     _dir_backup = utils::filesystem::path_combine(replica->dir(), "backup");
     _dir_bulk_load = utils::filesystem::path_combine(replica->dir(),
                                                      bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR);
-    _dir_duplication =
-        utils::filesystem::path_combine(replica->dir(), duplication_constants::kDuplicationCheckpointRootDir);
+    _dir_duplication = utils::filesystem::path_combine(
+        replica->dir(), duplication_constants::kDuplicationCheckpointRootDir);
     _last_committed_decree = 0;
     _replica = replica;
 }
