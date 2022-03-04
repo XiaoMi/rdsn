@@ -22,6 +22,12 @@
 namespace dsn {
 namespace utils {
 
+/**
+ * Someone can derived from class `singleton<T>` if he wants to make it's class to be a singleton.
+ * And it is strongly recommended that making constuctor and destructor to be private.
+ * So that the lifecycle of this singleton instance is maintained by the base class `singleton<T>`
+ */
+
 template <typename T>
 class singleton : private boost::noncopyable
 {
