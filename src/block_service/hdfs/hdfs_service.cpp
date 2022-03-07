@@ -505,11 +505,7 @@ dsn::task_ptr hdfs_file_object::download(const download_request &req,
             read_data_in_batches(req.remote_pos, req.remote_length, read_buffer, read_length);
         if (resp.err == ERR_OK) {
             bool write_succ = true;
-            ddebug_f("FLAGS_hdfs_enable_direct_io = {}", FLAGS_hdfs_enable_direct_io);
             if (FLAGS_hdfs_enable_direct_io) {
-                ddebug_f("HDFS download with direct I/O: localfile {} from hdfs:{}",
-                        req.output_local_name,
-                        file_name());
                 auto dio_file = std::make_unique<direct_io_writable_file>(req.output_local_name);
                 uint32_t wrote = dio_file->write(read_buffer.c_str(), read_length);
                 if (wrote == read_length) {
