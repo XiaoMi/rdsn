@@ -1722,7 +1722,8 @@ replication_ddl_client::get_max_replica_count(const std::string &app_name)
 }
 
 error_with<configuration_set_max_replica_count_response>
-replication_ddl_client::set_max_replica_count(const std::string &app_name, int32_t max_replica_count)
+replication_ddl_client::set_max_replica_count(const std::string &app_name,
+                                              int32_t max_replica_count)
 {
     auto req = make_unique<configuration_set_max_replica_count_request>();
     req->__set_app_name(app_name);
