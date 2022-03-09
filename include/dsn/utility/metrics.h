@@ -21,11 +21,12 @@
 #include <unordered_map>
 
 #include <dsn/utility/autoref_ptr.h>
+#include <dsn/utility/ports.h>
 
 // A metric library (for details pls see https://github.com/apache/incubator-pegasus/issues/922)
 // inspired by Kudu metrics (https://github.com/apache/kudu/blob/master/src/kudu/util/metrics.h).
 //
-// 
+//
 // Example of defining and instantiating a metric entity
 // -----------------------------------------------------
 // Define an entity type at the top of your .cpp file (not within any namespace):
@@ -41,8 +42,7 @@
 #define METRIC_DEFINE_entity(name) ::dsn::metric_entity_prototype METRIC_ENTITY_##name(#name)
 
 // The following macros act as forward declarations for entity types and metric prototypes.
-#define METRIC_DECLARE_entity(name) \
-  extern ::dsn::metric_entity_prototype METRIC_ENTITY_##name
+#define METRIC_DECLARE_entity(name) extern ::dsn::metric_entity_prototype METRIC_ENTITY_##name
 
 namespace dsn {
 
@@ -77,7 +77,7 @@ public:
     explicit metric_entity_prototype(const char *name);
     ~metric_entity_prototype();
 
-    const char* name() const { return _name; }
+    const char *name() const { return _name; }
 
     // Create an entity with the given ID and attributes, if any.
     metric_entity_ptr instantiate(const std::string &id, metric_entity::attr_map attrs) const;

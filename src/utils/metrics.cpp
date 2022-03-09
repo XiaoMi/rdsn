@@ -19,6 +19,7 @@
 
 #include <utility>
 
+#include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
@@ -28,8 +29,7 @@ metric_entity::metric_entity(const std::string &id, attr_map &&attrs)
 {
 }
 
-metric_entity::~metric_entity() {
-}
+metric_entity::~metric_entity() {}
 
 ref_ptr<metric_entity> metric_entity_prototype::instantiate(const std::string &id,
                                                             metric_entity::attr_map attrs) const

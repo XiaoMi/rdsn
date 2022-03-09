@@ -36,36 +36,43 @@ TEST(metrics_test, create_entity)
     // - create another entity with 2 attributes
     struct test_case
     {
-        metric_entity_prototype prototype;
+        metric_entity_prototype *prototype;
         std::string type_name;
         std::string entity_id;
         metric_entity::attr_map entity_attrs;
         bool use_attrs_arg_if_empty;
-    } tests[] = {{METRIC_ENTITY_my_server, "my_server", "server_1", {}, false},
-                 {METRIC_ENTITY_my_server, "my_server", "server_2", {}, true},
-                 {METRIC_ENTITY_my_table, "my_table", "test_1", {{"table", "test_1"}}, true},
-                 {METRIC_ENTITY_my_table, "my_table", "test_2", {{"table", "test_2"}}, true},
-                 {METRIC_ENTITY_my_replica, "my_replica", "1.2", {{"table", "test_1"}, {"partition","2"}}, true},
-                 {METRIC_ENTITY_my_replica, "my_replica", "2.5", {{"table", "test_2"}, {"partition","5"}}, true}
-    };
+    } tests[] = {{&METRIC_ENTITY_my_server, "my_server", "server_1", {}, false},
+                 {&METRIC_ENTITY_my_server, "my_server", "server_2", {}, true},
+                 {&METRIC_ENTITY_my_table, "my_table", "test_1", {{"table", "test_1"}}, true},
+                 {&METRIC_ENTITY_my_table, "my_table", "test_2", {{"table", "test_2"}}, true},
+                 {&METRIC_ENTITY_my_replica,
+                  "my_replica",
+                  "1.2",
+                  {{"table", "test_1"}, {"partition", "2"}},
+                  true},
+                 {&METRIC_ENTITY_my_replica,
+                  "my_replica",
+                  "2.5",
+                  {{"table", "test_2"}, {"partition", "5"}},
+                  true}};
     for (const auto &test : tests) {
-        ASSERT_EQ(test.prototype.name(), test.type_name);
+        ASSERT_EQ(test.prototype->name(), test.type_name);
 
         metric_entity_ptr entity;
         if (test.entity_attrs.empty() && !test.use_attrs_arg_if_empty) {
-            entity = test.prototype.instantiate(test.entity_id);
+            entity = test.prototype->instantiate(test.entity_id);
         } else {
-            entity = test.prototype.instantiate(test.entity_id, test.entity_attrs);
+            entity = test.prototype->instantiate(test.entity_id, test.entity_attrs);
         }
 
-        auto id = entity.id();
-        ASSERT_EQ(id, test.id);
+        auto id = entity->id();
+        ASSERT_EQ(id, test.entity_id);
 
-        auto attrs = entity.attributes();
+        auto attrs = entity->attributes();
         ASSERT_NE(attrs.find("entity"), attrs.end());
         ASSERT_EQ(attrs["entity"], test.type_name);
-        ASSERT_EQ(attrs.size(), test.entity_attrs().size() + 1);
-        ASSERT_NE(attrs.erase("entity"), 1);
+        ASSERT_EQ(attrs.size(), test.entity_attrs.size() + 1);
+        ASSERT_EQ(attrs.erase("entity"), 1);
         ASSERT_EQ(attrs, test.entity_attrs);
     }
 }
