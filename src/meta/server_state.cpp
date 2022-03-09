@@ -1104,7 +1104,7 @@ void server_state::create_app(dsn::message_ex *msg)
 
     auto level = _meta_svc->get_function_level();
     if (level <= meta_function_level::fl_freezed) {
-        derror_f("current meta function level is freezed since there are too few alive nodes");
+        derror("current meta function level is freezed, since there are too few alive nodes");
         response.err = ERR_STATE_FREEZED;
         will_create_app = false;
     } else if (request.options.partition_count <= 0 ||
@@ -3181,6 +3181,7 @@ void server_state::get_max_replica_count(configuration_get_max_replica_count_rpc
 
     response.err = ERR_OK;
     response.max_replica_count = app->max_replica_count;
+
     ddebug_f("get max_replica_count successfully: app_name={}, app_id={}, "
              "max_replica_count={}",
              app_name,
@@ -3193,8 +3194,8 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
 {
     const auto &app_name = rpc.request().app_name;
     const auto new_max_replica_count = rpc.request().max_replica_count;
-
     auto &response = rpc.response();
+
     int32_t app_id = 0;
 
     {
@@ -3223,17 +3224,16 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
         app_id = app->app_id;
     }
 
-    ddebug_f("request for setting max_replica_count: app_name={}, app_id={}, "
-             "old_max_replica_count={}, new_max_replica_count={}",
-             app_name,
-             app_id,
-             response.old_max_replica_count,
-             new_max_replica_count);
-
     auto level = _meta_svc->get_function_level();
     if (level <= meta_function_level::fl_freezed) {
         response.err = ERR_STATE_FREEZED;
-        derror("current meta function level is freezed, since there are too few alive nodes");
+        response.hint_message = "current meta function level is freezed, since there are too few alive nodes";
+        derror_f(
+            "failed to set max_replica_count: app_name={}, app_id={}, error_code={}, message={}",
+            app_name,
+            app_id,
+            response.err.to_string(),
+            response.hint_message);
         return;
     }
 
@@ -3254,6 +3254,14 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
         dwarn_f("{}: app_name={}, app_id={}", response.hint_message, app_name, app_id);
         return;
     }
+
+    ddebug_f("request for {} max_replica_count: app_name={}, app_id={}, "
+             "old_max_replica_count={}, new_max_replica_count={}",
+             new_max_replica_count > response.old_max_replica_count ? "increasing" : "decreasing",
+             app_name,
+             app_id,
+             response.old_max_replica_count,
+             new_max_replica_count);
 
     // TODO: update partition-level and app-level max_replica_count
     response.err = ERR_OK;
