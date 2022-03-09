@@ -189,7 +189,7 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
                                                   duplication_add_rpc &rpc)
 {
     const auto err = dup->start();
-    if (err != ERR_OK) {
+    if (dsn_unlikely(err != ERR_OK)) {
         derror_f("start dup[{}({})] failed: err = {}", app->app_name, dup->id, err.to_string());
         return;
     }
