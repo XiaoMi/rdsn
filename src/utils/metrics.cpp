@@ -44,9 +44,8 @@ ref_ptr<metric_entity> metric_entity_prototype::instantiate(const std::string &i
 
 ref_ptr<metric_entity> metric_entity_prototype::instantiate(const std::string &id) const
 {
-    metric_entity::attr_map attrs;
 
-    return instantiate(id, attrs);
+    return instantiate(id, {});
 }
 
 metric_entity_prototype::metric_entity_prototype(const char *name) : _name(name) {}
