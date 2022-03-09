@@ -18,11 +18,11 @@
 #include <algorithm>
 #include <cstring>
 #include <fcntl.h>
-#include <stdlib.h>     // posix_memalign
+#include <stdlib.h> // posix_memalign
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>     // getpagesize
+#include <unistd.h> // getpagesize
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/flags.h>
@@ -38,13 +38,16 @@ DSN_TAG_VARIABLE(direct_io_buffer_pages, FT_MUTABLE);
 namespace dsn {
 namespace dist {
 namespace block_service {
-    
+
 const uint32_t g_page_size = getpagesize();
 
-direct_io_writable_file::direct_io_writable_file(const std::string& file_path)
-        : _fd(-1), _file_size(0), _buffer(),
-        _buffer_size(FLAGS_direct_io_buffer_pages * g_page_size), _offset(0)
-         {
+direct_io_writable_file::direct_io_writable_file(const std::string &file_path)
+    : _fd(-1),
+      _file_size(0),
+      _buffer(),
+      _buffer_size(FLAGS_direct_io_buffer_pages * g_page_size),
+      _offset(0)
+{
     if (posix_memalign(&_buffer, g_page_size, _buffer_size) != 0) {
         derror_f("Allocate memaligned buffer failed, errno = {}", errno);
         return;
@@ -59,7 +62,8 @@ direct_io_writable_file::direct_io_writable_file(const std::string& file_path)
     }
 }
 
-direct_io_writable_file::~direct_io_writable_file() {
+direct_io_writable_file::~direct_io_writable_file()
+{
     if (_buffer == nullptr || _fd < 0) {
         return;
     }
@@ -75,14 +79,15 @@ direct_io_writable_file::~direct_io_writable_file() {
     close(_fd);
 }
 
-uint32_t direct_io_writable_file::write(const char *s, uint32_t n) {
+uint32_t direct_io_writable_file::write(const char *s, uint32_t n)
+{
     if (_buffer == nullptr || _fd < 0) {
         return -1;
     }
     uint32_t remaining = n;
     while (remaining > 0) {
         uint32_t bytes = std::min((_buffer_size - _offset), remaining);
-        memcpy((char *) _buffer + _offset, s, bytes);
+        memcpy((char *)_buffer + _offset, s, bytes);
         _offset += bytes;
         remaining -= bytes;
         s += bytes;

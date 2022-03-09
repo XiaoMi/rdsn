@@ -57,9 +57,9 @@ DSN_DEFINE_uint64("replication",
 DSN_TAG_VARIABLE(hdfs_write_batch_size_bytes, FT_MUTABLE);
 
 DSN_DEFINE_bool("replication",
-                  hdfs_enable_direct_io,
-                  false,
-                  "Whether to enable direct I/O when download files from hdfs");
+                hdfs_enable_direct_io,
+                false,
+                "Whether to enable direct I/O when download files from hdfs");
 DSN_TAG_VARIABLE(hdfs_enable_direct_io, FT_MUTABLE);
 
 hdfs_service::hdfs_service()
@@ -515,7 +515,7 @@ dsn::task_ptr hdfs_file_object::download(const download_request &req,
                 }
             } else {
                 std::ofstream out(req.output_local_name,
-                                std::ios::binary | std::ios::out | std::ios::trunc);
+                                  std::ios::binary | std::ios::out | std::ios::trunc);
                 if (out.is_open()) {
                     out.write(read_buffer.c_str(), read_length);
                     out.close();
@@ -526,10 +526,10 @@ dsn::task_ptr hdfs_file_object::download(const download_request &req,
             }
             if (!write_succ) {
                 derror_f("HDFS download failed: fail to open localfile {} when download {}, "
-                        "error: {}",
-                        req.output_local_name,
-                        file_name(),
-                        utils::safe_strerror(errno));
+                         "error: {}",
+                         req.output_local_name,
+                         file_name(),
+                         utils::safe_strerror(errno));
                 resp.err = ERR_FILE_OPERATION_FAILED;
                 resp.downloaded_size = 0;
             }

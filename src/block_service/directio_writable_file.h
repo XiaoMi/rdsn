@@ -23,22 +23,24 @@ namespace dsn {
 namespace dist {
 namespace block_service {
 
-class direct_io_writable_file {
+class direct_io_writable_file
+{
 public:
     explicit direct_io_writable_file(const std::string &file_path);
     ~direct_io_writable_file();
 
     // can't copy or move
-    direct_io_writable_file(const direct_io_writable_file&) = delete;
-    direct_io_writable_file& operator=(const direct_io_writable_file&) = delete;
-    direct_io_writable_file(direct_io_writable_file&&) = delete;
-    direct_io_writable_file& operator=(direct_io_writable_file&&) = delete;
+    direct_io_writable_file(const direct_io_writable_file &) = delete;
+    direct_io_writable_file &operator=(const direct_io_writable_file &) = delete;
+    direct_io_writable_file(direct_io_writable_file &&) = delete;
+    direct_io_writable_file &operator=(direct_io_writable_file &&) = delete;
 
     uint32_t write(const char *s, uint32_t n);
- private:
+
+private:
     int _fd;
     uint32_t _file_size;
-    
+
     // page size aligned buffer
     void *_buffer;
     // buffer size
@@ -50,4 +52,3 @@ public:
 } // namespace block_service
 } // namespace dist
 } // namespace dsn
-
