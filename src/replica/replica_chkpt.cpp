@@ -280,6 +280,7 @@ error_code replica::background_async_checkpoint(bool is_emergency)
             ? 0
             : (--_stub->_manual_emergency_checkpointing_count);
     }
+
     if (err == ERR_WRONG_TIMING) {
         // do nothing
         ddebug("%s: call app.async_checkpoint() returns ERR_WRONG_TIMING, time_used_ns = %" PRIu64
