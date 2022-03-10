@@ -62,19 +62,15 @@ direct_io_writable_file::~direct_io_writable_file()
     if (!_buffer || _fd < 0) {
         return;
     }
-
-    if (_offset > 0) {
-        if (::write(_fd, _buffer, _buffer_size) != _buffer_size) {
-            derror_f("Failed to write last chunk, filie_path = {}, errno = {}", _file_path, errno);
-        } else {
-            ftruncate(_fd, _file_size);
-        }
+    // Here is an ensurance, users shuold call finalize manually
+    if (_offset > 0 && !finalize()) {
+        derror_f("Call finalize return error in destructor");
     }
     free(_buffer);
     close(_fd);
 }
 
-bool direct_io_writable_file::init()
+bool direct_io_writable_file::initialize()
 {
     if (posix_memalign(&_buffer, g_page_size, _buffer_size) != 0) {
         derror_f("Allocate memaligned buffer failed, errno = {}", errno);
@@ -92,10 +88,27 @@ bool direct_io_writable_file::init()
     return true;
 }
 
+bool direct_io_writable_file::finalize()
+{
+    if (!_buffer || _fd < 0) {
+        derror_f("Initialize the instance first");
+        return false;
+    }
+    if (_offset > 0) {
+        if (::write(_fd, _buffer, _buffer_size) != _buffer_size) {
+            derror_f("Failed to write last chunk, filie_path = {}, errno = {}", _file_path, errno);
+            return false;
+        }
+        _offset = 0;
+        ftruncate(_fd, _file_size);
+    }
+    return true;
+}
+
 uint32_t direct_io_writable_file::write(const char *s, uint32_t n)
 {
     if (!_buffer || _fd < 0) {
-        derror_f("Init the instance first");
+        derror_f("initialize the instance first");
         return -1;
     }
     uint32_t remaining = n;

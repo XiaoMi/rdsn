@@ -29,9 +29,10 @@ public:
     explicit direct_io_writable_file(const std::string &file_path);
     ~direct_io_writable_file();
 
-    bool init();
+    bool initialize();
     uint32_t write(const char *s, uint32_t n);
-    // can't copy or move
+    bool finalize();
+
 private:
     DISALLOW_COPY_AND_ASSIGN(direct_io_writable_file);
     std::string _file_path;

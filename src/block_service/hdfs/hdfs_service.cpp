@@ -503,13 +503,19 @@ dsn::task_ptr hdfs_file_object::download(const download_request &req,
             bool write_succ = false;
             if (FLAGS_enable_direct_io) {
                 auto dio_file = std::make_unique<direct_io_writable_file>(req.output_local_name);
-                if (dio_file->init()) {
+                do {
+                    if (!dio_file->initialize()) {
+                        break;
+                    }
                     uint32_t wrote = dio_file->write(read_buffer.c_str(), read_length);
-                    if (wrote == read_length) {
+                    if (wrote != read_length) {
+                        break;
+                    }
+                    if (dio_file->finalize()) {
                         resp.downloaded_size = wrote;
                         write_succ = true;
                     }
-                }
+                } while (0);
             } else {
                 std::ofstream out(req.output_local_name,
                                   std::ios::binary | std::ios::out | std::ios::trunc);
