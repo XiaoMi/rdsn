@@ -488,7 +488,15 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
     // - set with wrong max_replica_count (< max_allowed_replica_count, and > alive_node_count)
     // - set with wrong max_replica_count (= alive_node_count, and > max_allowed_replica_count)
     // - set with wrong max_replica_count (< alive_node_count, and > max_allowed_replica_count)
-    // - cluster freezed (alive_node_count = 0)
+    // - set with wrong max_replica_count (< min_allowed_replica_count < alive_node_count)
+    // - set with wrong max_replica_count (< alive_node_count < min_allowed_replica_count)
+    // - set with wrong max_replica_count (< min_allowed_replica_count = alive_node_count)
+    // - set with wrong max_replica_count (< min_allowed_replica_count, and > alive_node_count)
+    // - set with wrong max_replica_count (< min_allowed_replica_count, and = alive_node_count)
+    // - set with wrong max_replica_count (= min_allowed_replica_count, and > alive_node_count)
+    // - cluster is freezed (alive_node_count = 0)
+    // - cluster is freezed (alive_node_count = 1 < min_live_node_count_for_unfreeze)
+    // - cluster is freezed (alive_node_count = 2 < min_live_node_count_for_unfreeze)
     struct test_case
     {
         std::string app_name;
@@ -511,7 +519,15 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
                  {APP_NAME, 1, 1, 2, 1, 1, 1, 3, ERR_INVALID_PARAMETERS},
                  {APP_NAME, 1, 1, 2, 1, 2, 1, 1, ERR_INVALID_PARAMETERS},
                  {APP_NAME, 1, 1, 2, 1, 3, 1, 1, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 1, 1, 2, 1, 0, 1, 3, ERR_STATE_FREEZED}};
+                 {APP_NAME, 2, 2, 1, 1, 3, 2, 3, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 3, 3, 1, 1, 2, 3, 3, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 3, 3, 2, 1, 3, 3, 3, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 3, 3, 2, 1, 1, 3, 3, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 3, 3, 2, 1, 2, 3, 3, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 2, 2, 2, 1, 1, 2, 3, ERR_INVALID_PARAMETERS},
+                 {APP_NAME, 1, 1, 2, 1, 0, 1, 3, ERR_STATE_FREEZED},
+                 {APP_NAME, 1, 1, 2, 2, 1, 1, 3, ERR_STATE_FREEZED},
+                 {APP_NAME, 1, 1, 2, 3, 2, 1, 3, ERR_STATE_FREEZED}};
 
     const int32_t total_node_count = 3;
     auto nodes = ensure_enough_alive_nodes(total_node_count);
