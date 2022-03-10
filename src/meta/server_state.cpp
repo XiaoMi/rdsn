@@ -3172,8 +3172,9 @@ void server_state::get_max_replica_count(configuration_get_max_replica_count_rpc
 
     if (!check_max_replica_count_consistent(app, response)) {
         response.max_replica_count = 0;
-        derror_f("failed to get max_replica_count: app_name={}, error_code={}, hint_message={}",
+        derror_f("failed to get max_replica_count: app_name={}, app_id={}, error_code={}, hint_message={}",
                  app_name,
+                 app->app_id,
                  response.err.to_string(),
                  response.hint_message);
         return;
@@ -3211,17 +3212,19 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
             return;
         }
 
+        app_id = app->app_id;
+
         if (!check_max_replica_count_consistent(app, response)) {
             response.old_max_replica_count = 0;
-            derror_f("failed to set max_replica_count: app_name={}, error_code={}, hint_message={}",
+            derror_f("failed to set max_replica_count: app_name={}, app_id={}, error_code={}, hint_message={}",
                      app_name,
+                     app_id,
                      response.err.to_string(),
                      response.hint_message);
             return;
         }
 
         response.old_max_replica_count = app->max_replica_count;
-        app_id = app->app_id;
     }
 
     auto level = _meta_svc->get_function_level();
