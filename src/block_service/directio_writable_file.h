@@ -29,15 +29,12 @@ public:
     explicit direct_io_writable_file(const std::string &file_path);
     ~direct_io_writable_file();
 
-    // can't copy or move
-    direct_io_writable_file(const direct_io_writable_file &) = delete;
-    direct_io_writable_file &operator=(const direct_io_writable_file &) = delete;
-    direct_io_writable_file(direct_io_writable_file &&) = delete;
-    direct_io_writable_file &operator=(direct_io_writable_file &&) = delete;
-
+    bool init();
     uint32_t write(const char *s, uint32_t n);
-
+    // can't copy or move
 private:
+    DISALLOW_COPY_AND_ASSIGN(direct_io_writable_file);
+    std::string _file_path;
     int _fd;
     uint32_t _file_size;
 

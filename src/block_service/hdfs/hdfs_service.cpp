@@ -500,14 +500,15 @@ dsn::task_ptr hdfs_file_object::download(const download_request &req,
         resp.err =
             read_data_in_batches(req.remote_pos, req.remote_length, read_buffer, read_length);
         if (resp.err == ERR_OK) {
-            bool write_succ = true;
+            bool write_succ = false;
             if (FLAGS_enable_direct_io) {
                 auto dio_file = std::make_unique<direct_io_writable_file>(req.output_local_name);
-                uint32_t wrote = dio_file->write(read_buffer.c_str(), read_length);
-                if (wrote == read_length) {
-                    resp.downloaded_size = wrote;
-                } else {
-                    write_succ = false;
+                if (dio_file->init()) {
+                    uint32_t wrote = dio_file->write(read_buffer.c_str(), read_length);
+                    if (wrote == read_length) {
+                        resp.downloaded_size = wrote;
+                        write_succ = true;
+                    }
                 }
             } else {
                 std::ofstream out(req.output_local_name,
@@ -516,8 +517,7 @@ dsn::task_ptr hdfs_file_object::download(const download_request &req,
                     out.write(read_buffer.c_str(), read_length);
                     out.close();
                     resp.downloaded_size = read_length;
-                } else {
-                    write_succ = false;
+                    write_succ = true;
                 }
             }
             if (!write_succ) {
