@@ -456,7 +456,9 @@ TEST_F(meta_app_operation_test, get_max_replica_count)
         if (test.expected_err == ERR_INCONSISTENT_STATE) {
             auto partition_index = static_cast<int32_t>(random32(0, partition_count - 1));
             set_partition_max_replica_count(test.app_name, partition_index, 2);
-            recover_partition_max_replica_count = [this, app_name=test.app_name, partition_index]() {
+            recover_partition_max_replica_count =
+                [ this, app_name = test.app_name, partition_index ]()
+            {
                 set_partition_max_replica_count(app_name, partition_index, 3);
             };
         }
@@ -509,13 +511,14 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
                  {APP_NAME, 1, 1, 2, 1, 1, 1, 3, ERR_INVALID_PARAMETERS},
                  {APP_NAME, 1, 1, 2, 1, 2, 1, 1, ERR_INVALID_PARAMETERS},
                  {APP_NAME, 1, 1, 2, 1, 3, 1, 1, ERR_INVALID_PARAMETERS},
-                 {APP_NAME, 1, 1, 2, 1, 0, 1, 3, ERR_STATE_FREEZED};
+                 {APP_NAME, 1, 1, 2, 1, 0, 1, 3, ERR_STATE_FREEZED}};
 
     const int32_t total_node_count = 3;
     auto nodes = ensure_enough_alive_nodes(total_node_count);
 
     for (const auto &test : tests) {
-        std::cout << "test set_max_replica_count: " << "app_name=" << test.app_name
+        std::cout << "test set_max_replica_count: "
+                  << "app_name=" << test.app_name
                   << ", expected_old_max_replica_count=" << test.expected_old_max_replica_count
                   << ", initial_max_replica_count=" << test.initial_max_replica_count
                   << ", new_max_replica_count=" << test.new_max_replica_count
@@ -523,18 +526,18 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
                   << ", alive_node_count=" << test.alive_node_count
                   << ", min_allowed_replica_count=" << test.min_allowed_replica_count
                   << ", max_allowed_replica_count=" << test.max_allowed_replica_count
-                  << ", expected_err=" << test.expected_err
-                  << std::endl;
+                  << ", expected_err=" << test.expected_err << std::endl;
 
         // disable node_live_percentage_threshold_for_update
         // for the reason that the meta function level will become freezed once
         // alive_nodes * 100 < total_nodes * node_live_percentage_threshold_for_update
         // even if alive_nodes >= min_live_node_count_for_unfreeze
-        _ms->_node_live_percentage_threshold_for_update = 0;
+        set_node_live_percentage_threshold_for_update(0);
 
         if (test.expected_err != ERR_APP_NOT_EXIST) {
             // set the initial max_replica_count for the app and all of its partitions
-            set_app_and_all_partitions_max_replica_count(test.app_name, test.initial_max_replica_count);
+            set_app_and_all_partitions_max_replica_count(test.app_name,
+                                                         test.initial_max_replica_count);
 
             const auto resp = get_max_replica_count(test.app_name);
             ASSERT_EQ(resp.err, ERR_OK);
@@ -543,14 +546,18 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
 
         // recover automatically the original FLAGS_min_live_node_count_for_unfreeze,
         // FLAGS_min_allowed_replica_count and FLAGS_max_allowed_replica_count
-        auto recover = defer([reserved_min_live_node_count_for_unfreeze = FLAGS_min_live_node_count_for_unfreeze, reserved_min_allowed_replica_count = FLAGS_min_allowed_replica_count, reserved_max_allowed_replica_count = FLAGS_max_allowed_replica_count]() {
-                FLAGS_max_allowed_replica_count = reserved_max_allowed_replica_count;
-                FLAGS_min_allowed_replica_count = reserved_min_allowed_replica_count;
-                FLAGS_min_live_node_count_for_unfreeze = reserved_min_live_node_count_for_unfreeze;
-                });
-        FLAGS_min_live_node_count_for_unfreeze = 1;
-        FLAGS_min_allowed_replica_count = 1;
-        FLAGS_max_allowed_replica_count = 3;
+        auto recover = defer([
+            reserved_min_live_node_count_for_unfreeze = FLAGS_min_live_node_count_for_unfreeze,
+            reserved_min_allowed_replica_count = FLAGS_min_allowed_replica_count,
+            reserved_max_allowed_replica_count = FLAGS_max_allowed_replica_count
+        ]() {
+            FLAGS_max_allowed_replica_count = reserved_max_allowed_replica_count;
+            FLAGS_min_allowed_replica_count = reserved_min_allowed_replica_count;
+            FLAGS_min_live_node_count_for_unfreeze = reserved_min_live_node_count_for_unfreeze;
+        });
+        FLAGS_min_live_node_count_for_unfreeze = test.min_live_node_count_for_unfreeze;
+        FLAGS_min_allowed_replica_count = test.min_allowed_replica_count;
+        FLAGS_max_allowed_replica_count = test.max_allowed_replica_count;
 
         // set some nodes unalive to match the expected number of alive ndoes
         dassert_f(total_node_count >= test.alive_node_count,
@@ -564,7 +571,8 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
         // choose and set a partition randomly with an inconsistent max_replica_count
         if (test.expected_err == ERR_INCONSISTENT_STATE) {
             auto partition_index = static_cast<int32_t>(random32(0, partition_count - 1));
-            set_partition_max_replica_count(test.app_name, partition_index, test.initial_max_replica_count + 1);
+            set_partition_max_replica_count(
+                test.app_name, partition_index, test.initial_max_replica_count + 1);
         }
 
         const auto set_resp = set_max_replica_count(test.app_name, test.new_max_replica_count);
@@ -572,9 +580,14 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
         ASSERT_EQ(set_resp.old_max_replica_count, test.expected_old_max_replica_count);
 
         const auto get_resp = get_max_replica_count(test.app_name);
-        ASSERT_EQ(get_resp.err, ERR_OK);
+        if (test.expected_err == ERR_APP_NOT_EXIST || test.expected_err == ERR_INCONSISTENT_STATE) {
+            ASSERT_EQ(get_resp.err, test.expected_err);
+        } else {
+            ASSERT_EQ(get_resp.err, ERR_OK);
+        }
+
         if (test.expected_err != ERR_OK) {
-            ASSERT_EQ(resp.max_replica_count, test.expected_old_max_replica_count);
+            ASSERT_EQ(get_resp.max_replica_count, test.expected_old_max_replica_count);
         }
 
         _ms->set_node_state(nodes, true);
