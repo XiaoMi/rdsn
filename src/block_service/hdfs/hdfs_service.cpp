@@ -507,12 +507,12 @@ dsn::task_ptr hdfs_file_object::download(const download_request &req,
                     if (!dio_file->initialize()) {
                         break;
                     }
-                    uint32_t wrote = dio_file->write(read_buffer.c_str(), read_length);
-                    if (wrote != read_length) {
+                    bool wr_ret = dio_file->write(read_buffer.c_str(), read_length);
+                    if (!wr_ret) {
                         break;
                     }
                     if (dio_file->finalize()) {
-                        resp.downloaded_size = wrote;
+                        resp.downloaded_size = read_length;
                         write_succ = true;
                     }
                 } while (0);

@@ -51,7 +51,7 @@ direct_io_writable_file::direct_io_writable_file(const std::string &file_path)
     : _file_path(file_path),
       _fd(-1),
       _file_size(0),
-      _buffer(),
+      _buffer(nullptr),
       _buffer_size(FLAGS_direct_io_buffer_pages * g_page_size),
       _offset(0)
 {
@@ -63,9 +63,8 @@ direct_io_writable_file::~direct_io_writable_file()
         return;
     }
     // Here is an ensurance, users shuold call finalize manually
-    if (_offset > 0 && !finalize()) {
-        derror_f("Call finalize return error in destructor");
-    }
+    dassert(_offset == 0, "finalize() should be called before destructor");
+
     free(_buffer);
     close(_fd);
 }
@@ -90,10 +89,8 @@ bool direct_io_writable_file::initialize()
 
 bool direct_io_writable_file::finalize()
 {
-    if (!_buffer || _fd < 0) {
-        derror_f("Initialize the instance first");
-        return false;
-    }
+    dassert(_buffer && _fd >= 0, "Initialize the instance first");
+
     if (_offset > 0) {
         if (::write(_fd, _buffer, _buffer_size) != _buffer_size) {
             derror_f("Failed to write last chunk, filie_path = {}, errno = {}", _file_path, errno);
@@ -105,12 +102,10 @@ bool direct_io_writable_file::finalize()
     return true;
 }
 
-uint32_t direct_io_writable_file::write(const char *s, uint32_t n)
+bool direct_io_writable_file::write(const char *s, size_t n)
 {
-    if (!_buffer || _fd < 0) {
-        derror_f("initialize the instance first");
-        return -1;
-    }
+    dassert(_buffer && _fd >= 0, "Initialize the instance first");
+
     uint32_t remaining = n;
     while (remaining > 0) {
         uint32_t bytes = std::min((_buffer_size - _offset), remaining);
@@ -122,14 +117,14 @@ uint32_t direct_io_writable_file::write(const char *s, uint32_t n)
         if (_offset == _buffer_size) {
             if (::write(_fd, _buffer, _buffer_size) != _buffer_size) {
                 derror_f("Failed to write to direct_io_writable_file, errno = {}", errno);
-                return -1;
+                return false;
             }
             // reset offset
             _offset = 0;
         }
     }
     _file_size += n;
-    return n;
+    return true;
 }
 
 } // namespace block_service

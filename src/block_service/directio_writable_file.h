@@ -30,11 +30,11 @@ public:
     ~direct_io_writable_file();
 
     bool initialize();
-    uint32_t write(const char *s, uint32_t n);
+    bool write(const char *s, size_t n);
     bool finalize();
-
 private:
     DISALLOW_COPY_AND_ASSIGN(direct_io_writable_file);
+
     std::string _file_path;
     int _fd;
     uint32_t _file_size;
