@@ -149,7 +149,8 @@ public:
         auto app = find_app(app_name);
         dassert_f(app != nullptr, "app({}) does not exist", app_name);
 
-        for (int i = 0; i < static_cast<int>(app->partitions.size()); ++i) {
+        auto partition_size = static_cast<int>(app->partitions.size());
+        for (int i = 0; i < partition_size; ++i) {
             auto &partition_config = app->partitions[i];
             partition_config.max_replica_count = max_replica_count;
         }
