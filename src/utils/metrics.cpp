@@ -31,18 +31,20 @@ metric_entity::metric_entity(const std::string &id, attr_map &&attrs)
 
 metric_entity::~metric_entity() {}
 
-attr_map metric_entity::attributes() const { 
+metric_entity::attr_map metric_entity::attributes() const
+{
     std::lock_guard<std::mutex> guard(_mtx);
-    return _attrs; 
+    return _attrs;
 }
 
-void metric_entity::set_attributes(attr_map &&attrs) {
+void metric_entity::set_attributes(attr_map &&attrs)
+{
     std::lock_guard<std::mutex> guard(_mtx);
     _attrs = std::move(attrs);
 }
 
 metric_entity_ptr metric_entity_prototype::instantiate(const std::string &id,
-                                                            metric_entity::attr_map attrs) const
+                                                       metric_entity::attr_map attrs) const
 {
     dassert_f(attrs.find("entity") == attrs.end(), "{}'s attribute \"entity\" is reserved", id);
 
@@ -61,16 +63,17 @@ metric_entity_prototype::~metric_entity_prototype() {}
 
 metric_registry::metric_registry() {}
 
-~metric_registry::metric_registry() {}
+metric_registry::~metric_registry() {}
 
-entity_map metric_registry::entities() const
+metric_registry::entity_map metric_registry::entities() const
 {
     std::lock_guard<std::mutex> guard(_mtx);
 
     return _entities;
 }
 
-metric_entity_ptr metric_registry::find_or_create_entity(const std::string &id, metric_entity::attr_map &&attrs)
+metric_entity_ptr metric_registry::find_or_create_entity(const std::string &id,
+                                                         metric_entity::attr_map &&attrs)
 {
     std::lock_guard<std::mutex> guard(_mtx);
 
@@ -78,10 +81,10 @@ metric_entity_ptr metric_registry::find_or_create_entity(const std::string &id, 
 
     metric_entity_ptr entity;
     if (iter == _entities.end()) {
-        entity = new metric_entity(id, std::move(attrs))
+        entity = new metric_entity(id, std::move(attrs));
         _entities[id] = entity;
     } else {
-        iter->second.set_attributes(std::move(attrs));
+        iter->second->set_attributes(std::move(attrs));
         entity = iter->second;
     }
 

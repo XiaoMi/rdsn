@@ -103,7 +103,6 @@ public:
     entity_map entities() const;
 
 private:
-
     friend class metric_entity_prototype;
     friend class utils::singleton<metric_registry>;
 

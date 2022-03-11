@@ -94,20 +94,18 @@ TEST(metrics_test, recreate_entity)
     struct test_case
     {
         metric_entity::attr_map entity_attrs;
-    } tests[] = {{{{"name", "test"}}},
-                  {{{"name", "test"}, {"id", "2"}}},
-                  {{{"name", "test"}}},
-                 {{{}}}};
+    } tests[] = {
+        {{{"name", "test"}}}, {{{"name", "test"}, {"id", "2"}}}, {{{"name", "test"}}}, {{{}}}};
 
     const std::string entity_id("test");
-    auto  expected_entity = METRIC_ENTITY_my_table.instantiate(entity_id);
+    auto expected_entity = METRIC_ENTITY_my_table.instantiate(entity_id);
 
     for (const auto &test : tests) {
         // the pointer of entity should be kept unchanged
         auto entity = METRIC_ENTITY_my_table.instantiate(entity_id, test.entity_attrs);
         ASSERT_EQ(entity, expected_entity);
 
-        // the attributes will updated 
+        // the attributes will updated
         auto attrs = entity->attributes();
         ASSERT_EQ(attrs.erase("entity"), 1);
         ASSERT_EQ(attrs, test.entity_attrs);
