@@ -31,25 +31,61 @@ metric_entity::metric_entity(const std::string &id, attr_map &&attrs)
 
 metric_entity::~metric_entity() {}
 
-ref_ptr<metric_entity> metric_entity_prototype::instantiate(const std::string &id,
+attr_map metric_entity::attributes() const { 
+    std::lock_guard<std::mutex> guard(_mtx);
+    return _attrs; 
+}
+
+void metric_entity::set_attributes(attr_map &&attrs) {
+    std::lock_guard<std::mutex> guard(_mtx);
+    _attrs = std::move(attrs);
+}
+
+metric_entity_ptr metric_entity_prototype::instantiate(const std::string &id,
                                                             metric_entity::attr_map attrs) const
 {
     dassert_f(attrs.find("entity") == attrs.end(), "{}'s attribute \"entity\" is reserved", id);
 
     attrs["entity"] = _name;
-    ref_ptr<metric_entity> entity(new metric_entity(id, std::move(attrs)));
-
-    return entity;
+    return metric_registry::instance().find_or_create_entity(id, std::move(attrs));
 }
 
-ref_ptr<metric_entity> metric_entity_prototype::instantiate(const std::string &id) const
+metric_entity_ptr metric_entity_prototype::instantiate(const std::string &id) const
 {
-
     return instantiate(id, {});
 }
 
 metric_entity_prototype::metric_entity_prototype(const char *name) : _name(name) {}
 
 metric_entity_prototype::~metric_entity_prototype() {}
+
+metric_registry::metric_registry() {}
+
+~metric_registry::metric_registry() {}
+
+entity_map metric_registry::entities() const
+{
+    std::lock_guard<std::mutex> guard(_mtx);
+
+    return _entities;
+}
+
+metric_entity_ptr metric_registry::find_or_create_entity(const std::string &id, metric_entity::attr_map &&attrs)
+{
+    std::lock_guard<std::mutex> guard(_mtx);
+
+    entity_map::const_iterator iter = _entities.find(id);
+
+    metric_entity_ptr entity;
+    if (iter == _entities.end()) {
+        entity = new metric_entity(id, std::move(attrs))
+        _entities[id] = entity;
+    } else {
+        iter->second.set_attributes(std::move(attrs));
+        entity = iter->second;
+    }
+
+    return entity;
+}
 
 } // namespace dsn

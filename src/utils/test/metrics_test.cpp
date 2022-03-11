@@ -55,6 +55,8 @@ TEST(metrics_test, create_entity)
                   "2.5",
                   {{"table", "test_2"}, {"partition", "5"}},
                   true}};
+
+    metric_registry::entity_map entities;
     for (const auto &test : tests) {
         ASSERT_EQ(test.prototype->name(), test.type_name);
 
@@ -72,6 +74,41 @@ TEST(metrics_test, create_entity)
         ASSERT_NE(attrs.find("entity"), attrs.end());
         ASSERT_EQ(attrs["entity"], test.type_name);
         ASSERT_EQ(attrs.size(), test.entity_attrs.size() + 1);
+        ASSERT_EQ(attrs.erase("entity"), 1);
+        ASSERT_EQ(attrs, test.entity_attrs);
+
+        ASSERT_EQ(entities.find(test.entity_id), entities.end());
+        entities[test.entity_id] = entity;
+    }
+
+    ASSERT_EQ(metric_registry::instance().entities(), entities);
+}
+
+TEST(metrics_test, recreate_entity)
+{
+    // Test cases:
+    // - add an attribute to an emtpy map
+    // - add another attribute to a single-element map
+    // - remove an attribute from the map
+    // - remove the only attribute from the map
+    struct test_case
+    {
+        metric_entity::attr_map entity_attrs;
+    } tests[] = {{{{"name", "test"}}},
+                  {{{"name", "test"}, {"id", "2"}}},
+                  {{{"name", "test"}}},
+                 {{{}}}};
+
+    const std::string entity_id("test");
+    auto  expected_entity = METRIC_ENTITY_my_table.instantiate(entity_id);
+
+    for (const auto &test : tests) {
+        // the pointer of entity should be kept unchanged
+        auto entity = METRIC_ENTITY_my_table.instantiate(entity_id, test.entity_attrs);
+        ASSERT_EQ(entity, expected_entity);
+
+        // the attributes will updated 
+        auto attrs = entity->attributes();
         ASSERT_EQ(attrs.erase("entity"), 1);
         ASSERT_EQ(attrs, test.entity_attrs);
     }
