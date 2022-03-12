@@ -22,8 +22,8 @@
 #include <unordered_map>
 
 #include <dsn/utility/autoref_ptr.h>
-#include <dsn/utility/singleton.h>
 #include <dsn/utility/ports.h>
+#include <dsn/utility/singleton.h>
 
 // A metric library (for details pls see https://github.com/apache/incubator-pegasus/issues/922)
 // inspired by Kudu metrics (https://github.com/apache/kudu/blob/master/src/kudu/util/metrics.h).
