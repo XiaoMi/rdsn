@@ -17,11 +17,13 @@
 
 #pragma once
 
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
 #include <dsn/utility/autoref_ptr.h>
 #include <dsn/utility/ports.h>
+#include <dsn/utility/singleton.h>
 
 // A metric library (for details pls see https://github.com/apache/incubator-pegasus/issues/922)
 // inspired by Kudu metrics (https://github.com/apache/kudu/blob/master/src/kudu/util/metrics.h).
@@ -53,18 +55,22 @@ public:
 
     const std::string &id() const { return _id; }
 
-    const attr_map &attributes() const { return _attrs; }
+    attr_map attributes() const;
 
 private:
-    friend class metric_entity_prototype;
+    friend class metric_registry;
     friend class ref_ptr<metric_entity>;
 
     metric_entity(const std::string &id, attr_map &&attrs);
 
     ~metric_entity();
 
+    void set_attributes(attr_map &&attrs);
+
     const std::string _id;
-    const attr_map _attrs;
+
+    mutable std::mutex _mtx;
+    attr_map _attrs;
 
     DISALLOW_COPY_AND_ASSIGN(metric_entity);
 };
@@ -87,6 +93,28 @@ private:
     const char *const _name;
 
     DISALLOW_COPY_AND_ASSIGN(metric_entity_prototype);
+};
+
+class metric_registry : public utils::singleton<metric_registry>
+{
+public:
+    using entity_map = std::unordered_map<std::string, metric_entity_ptr>;
+
+    entity_map entities() const;
+
+private:
+    friend class metric_entity_prototype;
+    friend class utils::singleton<metric_registry>;
+
+    metric_registry();
+    ~metric_registry();
+
+    metric_entity_ptr find_or_create_entity(const std::string &id, metric_entity::attr_map &&attrs);
+
+    mutable std::mutex _mtx;
+    entity_map _entities;
+
+    DISALLOW_COPY_AND_ASSIGN(metric_registry);
 };
 
 } // namespace dsn
