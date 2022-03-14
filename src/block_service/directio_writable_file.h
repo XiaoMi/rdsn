@@ -32,6 +32,7 @@ public:
     bool initialize();
     bool write(const char *s, size_t n);
     bool finalize();
+
 private:
     DISALLOW_COPY_AND_ASSIGN(direct_io_writable_file);
 
