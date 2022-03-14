@@ -29,6 +29,10 @@
 
 #include "block_service/directio_writable_file.h"
 
+namespace dsn {
+namespace dist {
+namespace block_service {
+
 DSN_DEFINE_uint32("replication",
                   direct_io_buffer_pages,
                   64,
@@ -40,10 +44,6 @@ DSN_DEFINE_bool("replication",
                 false,
                 "Whether to enable direct I/O when download files");
 DSN_TAG_VARIABLE(enable_direct_io, FT_MUTABLE);
-
-namespace dsn {
-namespace dist {
-namespace block_service {
 
 const uint32_t g_page_size = getpagesize();
 
