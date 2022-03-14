@@ -27,8 +27,9 @@ namespace dsn {
 // Instead, we can perform a compile-time assertion check whether one is derived
 // from another; then, just use static_cast<> to do the conversion faster.
 
-template<typename To, typename From>
-inline To down_cast(From* from) {
+template <typename To, typename From>
+inline To down_cast(From *from)
+{
     // Perform a compile-time assertion to check whether <From> class is derived from <To> class.
     static_assert(std::is_base_of<From, To>::value, "<From> class is not derived from <To> class");
 

@@ -45,7 +45,8 @@ void metric_entity::set_attributes(attr_map &&attrs)
 }
 
 template <typename MetricType, typename... Args>
-ref_ptr<MetricType> metric_entity::find_or_create(const metric_prototype *prototype, Args&&... args)
+ref_ptr<MetricType> metric_entity::find_or_create(const metric_prototype *prototype,
+                                                  Args &&... args)
 {
     std::lock_guard<std::mutex> guard(_mtx);
 
@@ -108,21 +109,30 @@ metric_entity_ptr metric_registry::find_or_create_entity(const std::string &id,
     return entity;
 }
 
-metric_prototype::metric_prototype(const ctor_args& args) : _args(args) {}
+metric_prototype::metric_prototype(const ctor_args &args) : _args(args) {}
 
 metric_prototype::~metric_prototype() {}
 
-metric_prototype_with::metric_prototype_with(const ctor_args& args) : metric_prototype(args) {}
+template <typename MetricType>
+metric_prototype_with<MetricType>::metric_prototype_with(const ctor_args &args)
+    : metric_prototype(args)
+{
+}
 
-metric_prototype_with::~metric_prototype_with() {}
+template <typename MetricType>
+metric_prototype_with<MetricType>::~metric_prototype_with()
+{
+}
 
+template <typename MetricType>
 template <typename... Args>
-ref_ptr<MetricType> metric_prototype_with::instantiate(const metric_entity_ptr &entity, Args&&... args)
+ref_ptr<MetricType> metric_prototype_with<MetricType>::instantiate(const metric_entity_ptr &entity,
+                                                                   Args &&... args) const
 {
     return entity->find_or_create<MetricType>(this, std::forward<Args>(args)...);
 }
 
-metric::metric(const metric_prototype* prototype) : _prototype(prototype) {}
+metric::metric(const metric_prototype *prototype) : _prototype(prototype) {}
 
 metric::~metric() {}
 

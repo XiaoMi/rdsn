@@ -25,6 +25,7 @@
 #include <dsn/utility/enum_helper.h>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/singleton.h>
+#include <dsn/utility/string_view.h>
 
 // A metric library (for details pls see https://github.com/apache/incubator-pegasus/issues/922)
 // inspired by Kudu metrics (https://github.com/apache/kudu/blob/master/src/kudu/util/metrics.h).
@@ -64,7 +65,7 @@ public:
 
     // args are the parameters that are used to construct the object of MetricType
     template <typename MetricType, typename... Args>
-    ref_ptr<MetricType> find_or_create(const metric_prototype *prototype, Args&&... args);
+    ref_ptr<MetricType> find_or_create(const metric_prototype *prototype, Args &&... args);
 
 private:
     using metric_map = std::unordered_map<void *, metric_ptr>;
@@ -156,7 +157,7 @@ public:
         const string_view desc;
     };
 
-    const string_view &entity() const { return _args.entity; }
+    const string_view &entity_type() const { return _args.entity_type; }
 
     const string_view &name() const { return _args.name; }
 
@@ -165,7 +166,7 @@ public:
     const string_view &description() const { return _args.desc; }
 
 protected:
-    explicit metric_prototype(const ctor_args& args);
+    explicit metric_prototype(const ctor_args &args);
     virtual ~metric_prototype();
 
 private:
@@ -177,15 +178,15 @@ private:
 // metric_prototype_with<MetricType> can help to implement the prototype of each type of metric
 // to construct a metric object conveniently.
 template <typename MetricType>
-class metric_prototype_with: public metric_prototype
+class metric_prototype_with : public metric_prototype
 {
 public:
-    explicit metric_prototype_with(const ctor_args& args); 
+    explicit metric_prototype_with(const ctor_args &args);
     virtual ~metric_prototype_with();
 
-    // Creates a metric based on the instance of metric_entity.
+    // Construct a metric object based on the instance of metric_entity.
     template <typename... Args>
-    ref_ptr<MetricType> instantiate(const metric_entity_ptr &entity, Args&&... args);
+    ref_ptr<MetricType> instantiate(const metric_entity_ptr &entity, Args &&... args) const;
 
 private:
     DISALLOW_COPY_AND_ASSIGN(metric_prototype_with);
@@ -203,10 +204,10 @@ private:
 class metric : public ref_counter
 {
 protected:
-    explicit metric(const metric_prototype* prototype);
+    explicit metric(const metric_prototype *prototype);
     virtual ~metric();
 
-    const metric_prototype* const _prototype;
+    const metric_prototype *const _prototype;
 
 private:
     DISALLOW_COPY_AND_ASSIGN(metric);
