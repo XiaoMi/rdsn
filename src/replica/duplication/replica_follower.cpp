@@ -158,6 +158,11 @@ replica_follower::update_master_replica_config(error_code err,
 
     // since the request just specify one partition, the result size is single
     _master_replica_config = resp.partitions[0];
+    ddebug_replica(
+        "query master[{}] config successfully and update local config: remote={}, gpid={}",
+        master_replica_name(),
+        _master_replica_config.primary.to_string(),
+        _master_replica_config.pid.to_string());
     return ERR_OK;
 }
 
