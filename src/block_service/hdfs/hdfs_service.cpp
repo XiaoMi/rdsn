@@ -499,6 +499,12 @@ dsn::task_ptr hdfs_file_object::download(const download_request &req,
         size_t read_length = 0;
         resp.err =
             read_data_in_batches(req.remote_pos, req.remote_length, read_buffer, read_length);
+        // check md5
+        if (!utils::filesystem::verify_data(
+                req.output_local_name, read_buffer.c_str(), read_buffer.size(), req.md5)) {
+            resp.err = ERR_CORRUPTION;
+            resp.downloaded_size = 0;
+        }
         if (resp.err == ERR_OK) {
             bool write_succ = false;
             if (FLAGS_enable_direct_io) {

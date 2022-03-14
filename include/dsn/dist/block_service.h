@@ -240,6 +240,7 @@ struct download_request
     std::string output_local_name;
     uint64_t remote_pos;
     int64_t remote_length;
+    std::string md5;
 };
 /**
  * @brief The download_response struct
