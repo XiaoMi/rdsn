@@ -74,7 +74,7 @@ public:
 
     void mark_tracker_tasks_success(replica_follower *follower)
     {
-        follower->_tracker.set_success();
+        follower->_tracker.set_tasks_success();
     }
 
     error_code update_master_replica_config(replica_follower *follower,
