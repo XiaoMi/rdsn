@@ -38,6 +38,12 @@ metric_entity::attr_map metric_entity::attributes() const
     return _attrs;
 }
 
+metric_entity::metric_map metric_entity::metrics() const
+{
+    std::lock_guard<std::mutex> guard(_mtx);
+    return _metrics;
+}
+
 void metric_entity::set_attributes(attr_map &&attrs)
 {
     std::lock_guard<std::mutex> guard(_mtx);

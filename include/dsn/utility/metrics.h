@@ -58,18 +58,19 @@ class metric_entity : public ref_counter
 {
 public:
     using attr_map = std::unordered_map<std::string, std::string>;
+    using metric_map = std::unordered_map<void *, metric_ptr>;
 
     const std::string &id() const { return _id; }
 
     attr_map attributes() const;
+
+    metric_map metrics() const;
 
     // args are the parameters that are used to construct the object of MetricType
     template <typename MetricType, typename... Args>
     ref_ptr<MetricType> find_or_create(const metric_prototype *prototype, Args &&... args);
 
 private:
-    using metric_map = std::unordered_map<void *, metric_ptr>;
-
     friend class metric_registry;
     friend class ref_ptr<metric_entity>;
 
