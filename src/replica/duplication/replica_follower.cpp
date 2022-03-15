@@ -86,7 +86,7 @@ error_code replica_follower::duplicate_checkpoint()
     return ERR_TRY_AGAIN;
 }
 
-// ThreadPool: THREAD_POOL_REPLICATION_LONG
+// ThreadPool: THREAD_POOL_DEFAULT
 void replica_follower::async_duplicate_checkpoint_from_master_replica()
 {
     rpc_address meta_servers;
