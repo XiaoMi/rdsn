@@ -17,11 +17,8 @@
 
 #include <dsn/utility/metrics.h>
 
-#include <utility>
-
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/utility/casts.h>
 
 namespace dsn {
 
@@ -48,23 +45,6 @@ void metric_entity::set_attributes(attr_map &&attrs)
 {
     std::lock_guard<std::mutex> guard(_mtx);
     _attrs = std::move(attrs);
-}
-
-template <typename MetricType, typename... Args>
-ref_ptr<MetricType> metric_entity::find_or_create(const metric_prototype *prototype,
-                                                  Args &&... args)
-{
-    std::lock_guard<std::mutex> guard(_mtx);
-
-    metric_map::const_iterator iter = _metrics.find(reinterpret_cast<void *>(prototype));
-    if (iter != _metrics.end()) {
-        auto raw_ptr = down_cast<MetricType *>(iter->second.get());
-        return raw_ptr;
-    }
-
-    ref_ptr<MetricType> ptr(new MetricType(prototype, std::forward<Args>(args)...));
-    _metrics[reinterpret_cast<void *>(prototype)] = ptr;
-    return ptr;
 }
 
 metric_entity_ptr metric_entity_prototype::instantiate(const std::string &id,
@@ -118,25 +98,6 @@ metric_entity_ptr metric_registry::find_or_create_entity(const std::string &id,
 metric_prototype::metric_prototype(const ctor_args &args) : _args(args) {}
 
 metric_prototype::~metric_prototype() {}
-
-template <typename MetricType>
-metric_prototype_with<MetricType>::metric_prototype_with(const ctor_args &args)
-    : metric_prototype(args)
-{
-}
-
-template <typename MetricType>
-metric_prototype_with<MetricType>::~metric_prototype_with()
-{
-}
-
-template <typename MetricType>
-template <typename... Args>
-ref_ptr<MetricType> metric_prototype_with<MetricType>::instantiate(const metric_entity_ptr &entity,
-                                                                   Args &&... args) const
-{
-    return entity->find_or_create<MetricType>(this, std::forward<Args>(args)...);
-}
 
 metric::metric(const metric_prototype *prototype) : _prototype(prototype) {}
 

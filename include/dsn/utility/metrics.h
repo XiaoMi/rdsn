@@ -20,8 +20,10 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include <dsn/utility/autoref_ptr.h>
+#include <dsn/utility/casts.h>
 #include <dsn/utility/enum_helper.h>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/singleton.h>
@@ -58,7 +60,7 @@ class metric_entity : public ref_counter
 {
 public:
     using attr_map = std::unordered_map<std::string, std::string>;
-    using metric_map = std::unordered_map<void *, metric_ptr>;
+    using metric_map = std::unordered_map<const void *, metric_ptr>;
 
     const std::string &id() const { return _id; }
 
@@ -68,7 +70,20 @@ public:
 
     // args are the parameters that are used to construct the object of MetricType
     template <typename MetricType, typename... Args>
-    ref_ptr<MetricType> find_or_create(const metric_prototype *prototype, Args &&... args);
+    ref_ptr<MetricType> find_or_create(const metric_prototype *prototype, Args &&... args)
+    {
+        std::lock_guard<std::mutex> guard(_mtx);
+
+        metric_map::const_iterator iter = _metrics.find(reinterpret_cast<const void *>(prototype));
+        if (iter != _metrics.end()) {
+            auto raw_ptr = down_cast<MetricType *>(iter->second.get());
+            return raw_ptr;
+        }
+
+        ref_ptr<MetricType> ptr(new MetricType(prototype, std::forward<Args>(args)...));
+        _metrics[reinterpret_cast<const void *>(prototype)] = ptr;
+        return ptr;
+    }
 
 private:
     friend class metric_registry;
@@ -182,12 +197,15 @@ template <typename MetricType>
 class metric_prototype_with : public metric_prototype
 {
 public:
-    explicit metric_prototype_with(const ctor_args &args);
-    virtual ~metric_prototype_with();
+    explicit metric_prototype_with(const ctor_args &args) : metric_prototype(args) {}
+    virtual ~metric_prototype_with() = default;
 
     // Construct a metric object based on the instance of metric_entity.
     template <typename... Args>
-    ref_ptr<MetricType> instantiate(const metric_entity_ptr &entity, Args &&... args) const;
+    ref_ptr<MetricType> instantiate(const metric_entity_ptr &entity, Args &&... args) const
+    {
+        return entity->find_or_create<MetricType>(this, std::forward<Args>(args)...);
+    }
 
 private:
     DISALLOW_COPY_AND_ASSIGN(metric_prototype_with);

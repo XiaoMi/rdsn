@@ -24,18 +24,18 @@ namespace dsn {
 class my_gauge : public metric
 {
 public:
-    explicit my_gauge(const metric_prototype *prototype):metric(prototype),_value(0) {}
+    explicit my_gauge(const metric_prototype *prototype) : metric(prototype), _value(0) {}
 
-    my_gauge(const metric_prototype *prototype, int64_t value):metric(prototype), _value(value) {}
+    my_gauge(const metric_prototype *prototype, int64_t value) : metric(prototype), _value(value) {}
 
     virtual ~my_gauge() = default;
 
-    int64_t value() {
-        return _value;
-    }
+    int64_t value() { return _value; }
 
 private:
     int64_t _value;
+
+    DISALLOW_COPY_AND_ASSIGN(my_gauge);
 };
 
 using my_gauge_prototype = metric_prototype_with<my_gauge>;
@@ -43,18 +43,30 @@ using my_gauge_ptr = ref_ptr<my_gauge>;
 
 } // namespace dsn
 
-#define METRIC_DEFINE_my_gauge(entity_type, name, unit, desc, ...)                                  \
-    ::dsn::my_gauge_prototype METRIC_##name({#entity_type, #name, unit, desc, ## __VA_ARGS__})
+#define METRIC_DEFINE_my_gauge(entity_type, name, unit, desc, ...)                                 \
+    ::dsn::my_gauge_prototype METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 METRIC_DEFINE_entity(my_server);
 METRIC_DEFINE_entity(my_table);
 METRIC_DEFINE_entity(my_replica);
 
-METRIC_DEFINE_my_gauge(my_server, my_server_latency, dsn::metric_unit::kMicroSeconds, "a server-level latency for test");
-METRIC_DEFINE_my_gauge(my_server, my_server_duration, dsn::metric_unit::kSeconds, "a server-level duration for test");
+METRIC_DEFINE_my_gauge(my_server,
+                       my_server_latency,
+                       dsn::metric_unit::kMicroSeconds,
+                       "a server-level latency for test");
+METRIC_DEFINE_my_gauge(my_server,
+                       my_server_duration,
+                       dsn::metric_unit::kSeconds,
+                       "a server-level duration for test");
 
-METRIC_DEFINE_my_gauge(my_replica, my_replica_latency, dsn::metric_unit::kNanoSeconds, "a replica-level latency for test");
-METRIC_DEFINE_my_gauge(my_replica, my_replica_duration, dsn::metric_unit::kMilliSeconds, "a replica-level duration for test");
+METRIC_DEFINE_my_gauge(my_replica,
+                       my_replica_latency,
+                       dsn::metric_unit::kNanoSeconds,
+                       "a replica-level latency for test");
+METRIC_DEFINE_my_gauge(my_replica,
+                       my_replica_duration,
+                       dsn::metric_unit::kMilliSeconds,
+                       "a replica-level duration for test");
 
 namespace dsn {
 
@@ -148,7 +160,8 @@ TEST(metrics_test, recreate_entity)
 TEST(metrics_test, create_metric)
 {
     auto my_server_entity = METRIC_ENTITY_my_server.instantiate("my_server");
-    auto my_replica_entity = METRIC_ENTITY_my_replica.instantiate("my_replica", {{"table", "my_table"}, {"partition", "2"}});
+    auto my_replica_entity = METRIC_ENTITY_my_replica.instantiate(
+        "my_replica", {{"table", "my_table"}, {"partition", "2"}});
 
     // Test cases:
     // - create an metric without any argument by an entity
@@ -158,14 +171,13 @@ TEST(metrics_test, create_metric)
     struct test_case
     {
         my_gauge_prototype *prototype;
-        metric_entity *entity;
+        metric_entity_ptr entity;
         bool use_default_value;
         int64_t value;
-    } tests[] = {{&METRIC_my_server_latency, &my_server_entity, true, 0},
-                 {&METRIC_my_server_duration, &my_server_entity, false, 10},
-                 {&METRIC_my_replica_latency, &my_replica_entity, false, 100},
-                 {&METRIC_my_replica_duration, &my_replica_entity, true, 0}
-                  };
+    } tests[] = {{&METRIC_my_server_latency, my_server_entity, true, 0},
+                 {&METRIC_my_server_duration, my_server_entity, false, 10},
+                 {&METRIC_my_replica_latency, my_replica_entity, false, 100},
+                 {&METRIC_my_replica_duration, my_replica_entity, true, 0}};
 
     using entity_map = std::unordered_map<metric_entity *, metric_entity::metric_map>;
 
@@ -173,24 +185,25 @@ TEST(metrics_test, create_metric)
     for (const auto &test : tests) {
         my_gauge_ptr my_metric;
         if (test.use_default_value) {
-            my_metric = test.prototype->instantiate(*test.entity);
+            my_metric = test.prototype->instantiate(test.entity);
         } else {
-            my_metric = test.prototype->instantiate(*test.entity, test.value);
+            my_metric = test.prototype->instantiate(test.entity, test.value);
         }
 
         ASSERT_EQ(my_metric->value(), test.value);
 
-        auto iter = expected_entities.find(test.entity);
+        auto iter = expected_entities.find(test.entity.get());
         if (iter == expected_entities.end()) {
-            expected_entities[test.entity] = {{reinterpret_cast<void *>(test.prototype), my_metric}};
+            expected_entities[test.entity.get()] = {
+                {reinterpret_cast<const void *>(test.prototype), my_metric}};
         } else {
-            iter->second[reinterpret_cast<void *>(test.prototype)] = my_metric;
+            iter->second[reinterpret_cast<const void *>(test.prototype)] = my_metric;
         }
     }
 
     entity_map actual_entities;
     auto entities = metric_registry::instance().entities();
-    for (const auto &entity: entities) {
+    for (const auto &entity : entities) {
         if (expected_entities.find(entity.second.get()) != expected_entities.end()) {
             actual_entities[entity.second.get()] = entity.second->metrics();
         }
