@@ -159,9 +159,9 @@ TEST(metrics_test, recreate_entity)
 
 TEST(metrics_test, create_metric)
 {
-    auto my_server_entity = METRIC_ENTITY_my_server.instantiate("my_server");
-    auto my_replica_entity = METRIC_ENTITY_my_replica.instantiate(
-        "my_replica", {{"table", "my_table"}, {"partition", "2"}});
+    auto my_server_entity = METRIC_ENTITY_my_server.instantiate("server_3");
+    auto my_replica_entity =
+        METRIC_ENTITY_my_replica.instantiate("3.7", {{"table", "test_3"}, {"partition", "7"}});
 
     // Test cases:
     // - create an metric without any argument by an entity
@@ -209,6 +209,17 @@ TEST(metrics_test, create_metric)
     }
 
     ASSERT_EQ(actual_entities, expected_entities);
+}
+
+TEST(metrics_test, recreate_metric)
+{
+    auto my_server_entity = METRIC_ENTITY_my_server.instantiate("server_4");
+
+    auto my_metric = METRIC_my_server_latency.instantiate(my_server_entity, 5);
+    ASSERT_EQ(my_metric->value(), 5);
+
+    auto new_metric = METRIC_my_server_latency.instantiate(my_server_entity, 10);
+    ASSERT_EQ(my_metric->value(), 5);
 }
 
 } // namespace dsn
