@@ -415,6 +415,11 @@ void meta_duplication_service::check_follower_app_if_create_completed(
                                   break;
                               }
 
+                              if (partition.secondaries.size() <= 1) {
+                                  query_err = ERR_NOT_ENOUGH_MEMBER;
+                                  break;
+                              }
+
                               for (const auto &secondary : partition.secondaries) {
                                   if (secondary.is_invalid()) {
                                       query_err = ERR_INACTIVE_STATE;
