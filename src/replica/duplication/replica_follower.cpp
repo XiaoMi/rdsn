@@ -67,28 +67,22 @@ void replica_follower::init_master_info()
 error_code replica_follower::duplicate_checkpoint()
 {
     zauto_lock l(_lock);
-    if (_tracker.all_tasks_success()) {
-        _tracker.clear_tasks_state();
-        _duplicating_checkpoint = false;
-        return ERR_OK;
-    }
-
     if (_duplicating_checkpoint) {
         dwarn_replica("duplicate master[{}] checkpoint is running", master_replica_name());
         return ERR_BUSY;
     }
 
-    ddebug_replica("start duplicate master[{}] checkpoint and sleep 30s to try wait completed",
-                   master_replica_name());
+    ddebug_replica("start duplicate master[{}] checkpoint", master_replica_name());
     _duplicating_checkpoint = true;
-    async_duplicate_checkpoint_from_master_replica();
-
-    sleep(30);
+    tasking::enqueue(LPC_DUPLICATE_CHECKPOINT, &_tracker, [=]() mutable {
+        async_duplicate_checkpoint_from_master_replica();
+    });
+    _tracker.wait_outstanding_tasks();
     if (_tracker.all_tasks_success()) {
         _tracker.clear_tasks_state();
-        _duplicating_checkpoint = false;
         return ERR_OK;
     }
+    _duplicating_checkpoint = false;
     return ERR_TRY_AGAIN;
 }
 
@@ -112,18 +106,16 @@ void replica_follower::async_duplicate_checkpoint_from_master_replica()
               msg,
               &_tracker,
               [&](error_code err, configuration_query_by_index_response &&resp) mutable {
-                  tasking::enqueue(LPC_DUPLICATE_CHECKPOINT, &_tracker, [=]() mutable {
-                      FAIL_POINT_INJECT_F("duplicate_checkpoint_ok", [&](string_view s) -> void {
-                          _tracker.set_tasks_success();
-                          return;
-                      });
-
-                      FAIL_POINT_INJECT_F("duplicate_checkpoint_failed",
-                                          [&](string_view s) -> void { return; });
-                      if (update_master_replica_config(err, std::move(resp)) == ERR_OK) {
-                          copy_master_replica_checkpoint();
-                      }
+                  FAIL_POINT_INJECT_F("duplicate_checkpoint_ok", [&](string_view s) -> void {
+                      _tracker.set_tasks_success();
+                      return;
                   });
+
+                  FAIL_POINT_INJECT_F("duplicate_checkpoint_failed",
+                                      [&](string_view s) -> void { return; });
+                  if (update_master_replica_config(err, std::move(resp)) == ERR_OK) {
+                      copy_master_replica_checkpoint();
+                  }
               });
 }
 
