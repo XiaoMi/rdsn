@@ -60,7 +60,7 @@ class metric_entity : public ref_counter
 {
 public:
     using attr_map = std::unordered_map<std::string, std::string>;
-    using metric_map = std::unordered_map<const void *, metric_ptr>;
+    using metric_map = std::unordered_map<const metric_prototype *, metric_ptr>;
 
     const std::string &id() const { return _id; }
 
@@ -74,14 +74,14 @@ public:
     {
         std::lock_guard<std::mutex> guard(_mtx);
 
-        metric_map::const_iterator iter = _metrics.find(reinterpret_cast<const void *>(prototype));
+        metric_map::const_iterator iter = _metrics.find(prototype);
         if (iter != _metrics.end()) {
             auto raw_ptr = down_cast<MetricType *>(iter->second.get());
             return raw_ptr;
         }
 
         ref_ptr<MetricType> ptr(new MetricType(prototype, std::forward<Args>(args)...));
-        _metrics[reinterpret_cast<const void *>(prototype)] = ptr;
+        _metrics[prototype] = ptr;
         return ptr;
     }
 

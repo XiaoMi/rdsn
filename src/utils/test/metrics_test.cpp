@@ -194,10 +194,9 @@ TEST(metrics_test, create_metric)
 
         auto iter = expected_entities.find(test.entity.get());
         if (iter == expected_entities.end()) {
-            expected_entities[test.entity.get()] = {
-                {reinterpret_cast<const void *>(test.prototype), my_metric}};
+            expected_entities[test.entity.get()] = {{test.prototype, my_metric}};
         } else {
-            iter->second[reinterpret_cast<const void *>(test.prototype)] = my_metric;
+            iter->second[test.prototype] = my_metric;
         }
     }
 
