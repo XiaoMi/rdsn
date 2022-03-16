@@ -365,7 +365,7 @@ void meta_duplication_service::create_follower_app_for_duplication(
             } else {
                 derror_f("created follower app[{}.{}] to trigger duplicate checkpoint failed: "
                          "duplication_status = {}, create_err = {}, update_err = {}",
-                         get_current_cluster_name(),
+                         dup->follower_cluster_name,
                          dup->app_name,
                          duplication_status_to_string(dup->status()),
                          create_err.to_string(),
@@ -448,7 +448,7 @@ void meta_duplication_service::check_follower_app_if_create_completed(
                   } else {
                       derror_f("query follower app[{}.{}] replica configuration completed, result: "
                                "duplication_status = {}, query_err = {}, update_err = {}",
-                               get_current_cluster_name(),
+                               dup->follower_cluster_name,
                                dup->app_name,
                                duplication_status_to_string(dup->status()),
                                query_err.to_string(),
