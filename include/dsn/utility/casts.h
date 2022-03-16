@@ -25,7 +25,8 @@ namespace dsn {
 // Downcasting is to convert a base-class pointer(reference) to a derived-class
 // pointer(reference). As a usual approach, RTTI (dynamic_cast<>) is not efficient.
 // Instead, we can perform a compile-time assertion check whether one is derived
-// from another; then, just use static_cast<> to do the conversion faster.
+// from another; then, just use static_cast<> to do the conversion faster. RTTI is
+// also run in debug mode to do double-check.
 
 template <typename To, typename From>
 inline To down_cast(From *from)
