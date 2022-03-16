@@ -137,7 +137,7 @@ TEST_F(replica_follower_test, test_duplicate_checkpoint)
 
     auto follower = _mock_replica->get_replica_follower();
 
-    ASSERT_EQ(follower->duplicate_checkpoint(), ERR_CORRUPTION);
+    ASSERT_EQ(follower->duplicate_checkpoint(), ERR_TRY_AGAIN);
     ASSERT_FALSE(get_duplicating(follower));
 
     mark_tracker_tasks_success(follower);

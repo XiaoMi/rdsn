@@ -78,11 +78,11 @@ error_code replica_follower::duplicate_checkpoint()
         async_duplicate_checkpoint_from_master_replica();
     });
     _tracker.wait_outstanding_tasks();
+    _duplicating_checkpoint = false;
     if (_tracker.all_tasks_success()) {
         _tracker.clear_tasks_state();
         return ERR_OK;
     }
-    _duplicating_checkpoint = false;
     return ERR_TRY_AGAIN;
 }
 
