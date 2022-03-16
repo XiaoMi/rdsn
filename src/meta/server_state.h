@@ -313,6 +313,23 @@ private:
     bool check_max_replica_count_consistent(const std::shared_ptr<app_state> &app,
                                             Response &response) const;
 
+    void update_partition_max_replica_count(int partition_index,
+                                            configuration_set_max_replica_count_rpc rpc);
+
+    task_ptr update_partition_max_replica_count_on_remote(
+        const partition_configuration &new_partition_config,
+        configuration_set_max_replica_count_rpc rpc);
+    void on_update_partition_max_replica_count_on_remote_reply(
+        error_code ec,
+        const partition_configuration &new_partition_config,
+        configuration_set_max_replica_count_rpc rpc);
+    void
+    update_partition_max_replica_count_locally(const partition_configuration &new_partition_config,
+                                               app_state &app);
+    void update_next_partition_max_replica_count(const app_state &app,
+                                                 int32_t partition_index,
+                                                 configuration_set_max_replica_count_rpc rpc);
+
     // Used for `on_start_manual_compaction`
     bool parse_compaction_envs(start_manual_compact_rpc rpc,
                                std::vector<std::string> &keys,
