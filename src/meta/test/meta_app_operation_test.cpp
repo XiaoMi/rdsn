@@ -174,19 +174,20 @@ public:
             auto storage = _ms->get_remote_storage();
             dsn::task_tracker tracker;
             storage->get_data(
-                    partition_path,
-                    LPC_META_CALLBACK,
-                    [this, expected_pid = partition_config.pid, expected_max_replica_count](error_code ec,
-                        const blob &value) {
+                partition_path,
+                LPC_META_CALLBACK,
+                [ this, expected_pid = partition_config.pid, expected_max_replica_count ](
+                    error_code ec, const blob &value) {
                     ASSERT_EQ(ec, ERR_OK);
 
                     partition_configuration partition_config;
-                    dsn::json::json_forwarder<partition_configuration>::decode(value, partition_config);
+                    dsn::json::json_forwarder<partition_configuration>::decode(value,
+                                                                               partition_config);
 
                     ASSERT_EQ(partition_config.pid, expected_pid);
                     ASSERT_EQ(partition_config.max_replica_count, expected_max_replica_count);
-                    },
-                    &tracker);
+                },
+                &tracker);
             tracker.wait_outstanding_tasks();
         }
     }
@@ -648,7 +649,7 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
         const auto get_resp = get_max_replica_count(test.app_name);
         if (test.expected_err == ERR_APP_NOT_EXIST || test.expected_err == ERR_INCONSISTENT_STATE) {
             ASSERT_EQ(get_resp.err, test.expected_err);
-        } else {
+        } else if (test.expected_err != ERR_OK) {
             ASSERT_EQ(get_resp.err, ERR_OK);
         }
 
