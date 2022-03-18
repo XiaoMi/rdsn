@@ -20,10 +20,14 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include <dsn/utility/autoref_ptr.h>
+#include <dsn/utility/casts.h>
+#include <dsn/utility/enum_helper.h>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/singleton.h>
+#include <dsn/utility/string_view.h>
 
 // A metric library (for details pls see https://github.com/apache/incubator-pegasus/issues/922)
 // inspired by Kudu metrics (https://github.com/apache/kudu/blob/master/src/kudu/util/metrics.h).
@@ -48,14 +52,38 @@
 
 namespace dsn {
 
+class metric_prototype;
+class metric;
+using metric_ptr = ref_ptr<metric>;
+
 class metric_entity : public ref_counter
 {
 public:
     using attr_map = std::unordered_map<std::string, std::string>;
+    using metric_map = std::unordered_map<const metric_prototype *, metric_ptr>;
 
     const std::string &id() const { return _id; }
 
     attr_map attributes() const;
+
+    metric_map metrics() const;
+
+    // args are the parameters that are used to construct the object of MetricType
+    template <typename MetricType, typename... Args>
+    ref_ptr<MetricType> find_or_create(const metric_prototype *prototype, Args &&... args)
+    {
+        std::lock_guard<std::mutex> guard(_mtx);
+
+        metric_map::const_iterator iter = _metrics.find(prototype);
+        if (iter != _metrics.end()) {
+            auto raw_ptr = down_cast<MetricType *>(iter->second.get());
+            return raw_ptr;
+        }
+
+        ref_ptr<MetricType> ptr(new MetricType(prototype, std::forward<Args>(args)...));
+        _metrics[prototype] = ptr;
+        return ptr;
+    }
 
 private:
     friend class metric_registry;
@@ -71,6 +99,7 @@ private:
 
     mutable std::mutex _mtx;
     attr_map _attrs;
+    metric_map _metrics;
 
     DISALLOW_COPY_AND_ASSIGN(metric_entity);
 };
@@ -115,6 +144,92 @@ private:
     entity_map _entities;
 
     DISALLOW_COPY_AND_ASSIGN(metric_registry);
+};
+
+enum class metric_unit
+{
+    kNanoSeconds,
+    kMicroSeconds,
+    kMilliSeconds,
+    kSeconds,
+    kInvalidUnit,
+};
+
+ENUM_BEGIN(metric_unit, metric_unit::kInvalidUnit)
+ENUM_REG(metric_unit::kNanoSeconds)
+ENUM_REG(metric_unit::kMicroSeconds)
+ENUM_REG(metric_unit::kMilliSeconds)
+ENUM_REG(metric_unit::kSeconds)
+ENUM_END(metric_unit)
+
+class metric_prototype
+{
+public:
+    struct ctor_args
+    {
+        const string_view entity_type;
+        const string_view name;
+        const metric_unit unit;
+        const string_view desc;
+    };
+
+    string_view entity_type() const { return _args.entity_type; }
+
+    string_view name() const { return _args.name; }
+
+    metric_unit unit() const { return _args.unit; }
+
+    string_view description() const { return _args.desc; }
+
+protected:
+    explicit metric_prototype(const ctor_args &args);
+    virtual ~metric_prototype();
+
+private:
+    const ctor_args _args;
+
+    DISALLOW_COPY_AND_ASSIGN(metric_prototype);
+};
+
+// metric_prototype_with<MetricType> can help to implement the prototype of each type of metric
+// to construct a metric object conveniently.
+template <typename MetricType>
+class metric_prototype_with : public metric_prototype
+{
+public:
+    explicit metric_prototype_with(const ctor_args &args) : metric_prototype(args) {}
+    virtual ~metric_prototype_with() = default;
+
+    // Construct a metric object based on the instance of metric_entity.
+    template <typename... Args>
+    ref_ptr<MetricType> instantiate(const metric_entity_ptr &entity, Args &&... args) const
+    {
+        return entity->find_or_create<MetricType>(this, std::forward<Args>(args)...);
+    }
+
+private:
+    DISALLOW_COPY_AND_ASSIGN(metric_prototype_with);
+};
+
+// Base class for each type of metric.
+// Every metric class should inherit from this class.
+//
+// User object should hold a ref_ptr of a metric, while the entity will hold another ref_ptr.
+// The ref count of a metric may becomes 1, which means the metric is only held by the entity:
+// After a period of configurable time, if the ref count is still 1, the metric will be dropped
+// in that it's considered to be useless. During the period when the metric is retained, once
+// the same one is instantiated again, it will not be removed; whether the metric is instantiated,
+// however, its lastest value is visible.
+class metric : public ref_counter
+{
+protected:
+    explicit metric(const metric_prototype *prototype);
+    virtual ~metric() = default;
+
+    const metric_prototype *const _prototype;
+
+private:
+    DISALLOW_COPY_AND_ASSIGN(metric);
 };
 
 } // namespace dsn
