@@ -2033,11 +2033,10 @@ void replica_stub::open_replica(const app_info &app,
     }
 
     if (rep == nullptr) {
-        // NOTICE: if dir a.b.pegasus does not exist, or .app-info does not exist, but the ballot > 0
-        // or the last_committed_decree > 0, start replica will fail
+        // NOTICE: if dir a.b.pegasus does not exist, or .app-info does not exist, but the ballot >
+        // 0, or the last_committed_decree > 0, start replica will fail
         if ((req2 != nullptr) && (req2->info.is_stateful)) {
-            dassert_f(req2->config.ballot == 0 &&
-                          req2->config.last_committed_decree == 0,
+            dassert_f(req2->config.ballot == 0 && req2->config.last_committed_decree == 0,
                       "{}@{}: cannot load replica({}.{}), ballot = {}, "
                       "last_committed_decree = {}, but it does not existed!",
                       id.to_string(),

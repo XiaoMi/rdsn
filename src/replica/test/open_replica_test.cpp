@@ -31,8 +31,12 @@ public:
     open_replica_test() = default;
     ~open_replica_test() { dsn::utils::filesystem::remove_path("./tmp_dir"); }
 
-    std::unique_ptr<mock_replica> create_fake_replica(gpid gpid, app_info &app_info, ballot ballot, decree decree, partition_status::type status, int partition_num)
-    {   
+    std::unique_ptr<mock_replica> create_fake_replica(gpid gpid,
+                                                      app_info &app_info,
+                                                      ballot ballot, decree decree,
+                                                      partition_status::type status,
+                                                      int partition_num)
+    {
         auto r = make_unique<mock_replica>(stub.get(), gpid, app_info, "./");
         r->register_service();
 
@@ -86,7 +90,8 @@ public:
 
             _replica = create_fake_replica(gpid, app_info, 0, 0, tt.status, i);
             // stub->add_replica(_replica.get());
-            mock_mutation_log_shared_ptr shared_log_mock = new mock_mutation_log_shared("./tmp_dir");
+            mock_mutation_log_shared_ptr shared_log_mock =
+                new mock_mutation_log_shared("./tmp_dir");
             stub->set_log(shared_log_mock);
             partition_configuration config;
             config.pid = gpid;
