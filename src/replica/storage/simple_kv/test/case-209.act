@@ -94,6 +94,17 @@ config:{7,r2,[]}
 state:{{r2,pri,7,10,10}}
 
 # add secondary r1
+# will trigger learning in on_learn():
+#   _prepare_list.count() {=10} > 0 
+#   learn_start_decree {=15} > last_prepared_decree(10)
+#   learner state is newer than learnee, learn from scratch
+#
+#                      (1)                 (10)
+#   prepare_list :      |-------------------| 
+#   learn        :                                   |-->
+#                                                    (15)
+#
+#   set:simple_kv_close_fail=1 to inject failure when reopen the app
 client:replica_config:receiver=r2,type=add_secondary,node=r1
 state:{{r1,pot,7,15,15},{r2,pri,7,10,10}}
 wait:on_rpc_call:rpc_name=RPC_LEARN,from=r1,to=r2
