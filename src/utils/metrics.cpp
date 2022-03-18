@@ -17,8 +17,6 @@
 
 #include <dsn/utility/metrics.h>
 
-#include <utility>
-
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
 
@@ -35,6 +33,12 @@ metric_entity::attr_map metric_entity::attributes() const
 {
     std::lock_guard<std::mutex> guard(_mtx);
     return _attrs;
+}
+
+metric_entity::metric_map metric_entity::metrics() const
+{
+    std::lock_guard<std::mutex> guard(_mtx);
+    return _metrics;
 }
 
 void metric_entity::set_attributes(attr_map &&attrs)
@@ -90,5 +94,11 @@ metric_entity_ptr metric_registry::find_or_create_entity(const std::string &id,
 
     return entity;
 }
+
+metric_prototype::metric_prototype(const ctor_args &args) : _args(args) {}
+
+metric_prototype::~metric_prototype() {}
+
+metric::metric(const metric_prototype *prototype) : _prototype(prototype) {}
 
 } // namespace dsn
