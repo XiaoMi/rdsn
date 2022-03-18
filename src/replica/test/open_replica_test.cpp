@@ -31,24 +31,6 @@ public:
     open_replica_test() = default;
     ~open_replica_test() { dsn::utils::filesystem::remove_path("./tmp_dir"); }
 
-    std::unique_ptr<mock_replica> create_fake_replica(gpid gpid,
-                                                      app_info &app_info,
-                                                      ballot ballot, decree decree,
-                                                      partition_status::type status,
-                                                      int partition_num)
-    {
-        auto r = make_unique<mock_replica>(stub.get(), gpid, app_info, "./");
-        r->register_service();
-
-        replica_configuration config;
-        config.ballot = ballot;
-        config.pid = gpid;
-        config.status = status;
-        r->set_replica_config(config);
-        //_replicas[pid] = _replica;
-        return r;
-    }
-
     void test_open_replica()
     {
         app_info app_info;
@@ -56,40 +38,35 @@ public:
         app_info.is_stateful = true;
         app_info.max_replica_count = 3;
         app_info.partition_count = 8;
-        app_info.app_id = 5;
+        app_info.app_id = 1;
 
         struct test_data
         {
             ballot b;
-            partition_status::type status;
             decree last_committed_decree;
             bool is_in_dir_nodes;
             bool exec_failed;
         } tests[] = {
-            {0, partition_status::PS_PRIMARY, 0, true, true},
-            {0, partition_status::PS_PRIMARY, 0, false, false},
-            {5, partition_status::PS_PRIMARY, 5, true, true},
-            {5, partition_status::PS_PRIMARY, 5, false, true},
+            {0, 0, true, true},
+            {0, 0, false, false},
+            {5, 5, true, true},
+            {5, 5, false, true},
         };
         int i = 0;
-        // node_mapper *nodes;
         for (auto tt : tests) {
             gpid gpid(app_info.app_id, i);
             stub->_opening_replicas[gpid] = task_ptr(nullptr);
 
             dsn::rpc_address node;
             node.assign_ipv4("127.0.0.11", static_cast<uint16_t>(12321 + i + 1));
-            // get_node_state(nodes, node, true)->set_alive(true);
 
             if (!tt.is_in_dir_nodes) {
                 dir_node *node_disk = new dir_node("tag_" + std::to_string(i), "tmp_dir");
                 stub->_fs_manager._dir_nodes.emplace_back(node_disk);
                 stub->_fs_manager._available_data_dirs.emplace_back("tmp_dir");
-                // node_disk->holding_replicas[app_info.app_id].emplace(gpid);
             }
 
-            _replica = create_fake_replica(gpid, app_info, 0, 0, tt.status, i);
-            // stub->add_replica(_replica.get());
+            _replica->register_service();
             mock_mutation_log_shared_ptr shared_log_mock =
                 new mock_mutation_log_shared("./tmp_dir");
             stub->set_log(shared_log_mock);
@@ -117,7 +94,7 @@ public:
     }
 };
 
-TEST_F(open_replica_test, open_replica_test) { test_open_replica(); }
+TEST_F(open_replica_test, open_replica_add_decree_and_ballot_check) { test_open_replica(); }
 
 } // namespace replication
 } // namespace dsn
