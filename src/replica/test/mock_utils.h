@@ -105,8 +105,8 @@ public:
 
     void register_service()
     {
-       _app->register_storage_engine("replica",
-                                     replication_app_base::create<mock_replication_app_base>);
+        _app->register_storage_engine("replica",
+                                      replication_app_base::create<mock_replication_app_base>);
     }
 
     ~mock_replica() override

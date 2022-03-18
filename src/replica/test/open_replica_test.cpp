@@ -47,10 +47,7 @@ public:
             bool is_in_dir_nodes;
             bool exec_failed;
         } tests[] = {
-            {0, 0, true, true},
-            {0, 0, false, false},
-            {5, 5, true, true},
-            {5, 5, false, true},
+            {0, 0, true, true}, {0, 0, false, false}, {5, 5, true, true}, {5, 5, false, true},
         };
         int i = 0;
         for (auto tt : tests) {
