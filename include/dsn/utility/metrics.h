@@ -173,13 +173,13 @@ public:
         const string_view desc;
     };
 
-    const string_view &entity_type() const { return _args.entity_type; }
+    string_view entity_type() const { return _args.entity_type; }
 
-    const string_view &name() const { return _args.name; }
+    string_view name() const { return _args.name; }
 
     metric_unit unit() const { return _args.unit; }
 
-    const string_view &description() const { return _args.desc; }
+    string_view description() const { return _args.desc; }
 
 protected:
     explicit metric_prototype(const ctor_args &args);
@@ -224,7 +224,7 @@ class metric : public ref_counter
 {
 protected:
     explicit metric(const metric_prototype *prototype);
-    virtual ~metric();
+    virtual ~metric() = default;
 
     const metric_prototype *const _prototype;
 

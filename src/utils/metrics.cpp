@@ -101,6 +101,4 @@ metric_prototype::~metric_prototype() {}
 
 metric::metric(const metric_prototype *prototype) : _prototype(prototype) {}
 
-metric::~metric() {}
-
 } // namespace dsn
