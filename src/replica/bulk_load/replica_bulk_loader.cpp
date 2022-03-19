@@ -453,28 +453,41 @@ void replica_bulk_loader::download_sst_file(const std::string &remote_dir,
                                             dist::block_service::block_filesystem *fs)
 {
     uint64_t f_size = 0;
+    std::string f_md5;
     error_code ec = _stub->_block_service_manager.download_file(
-        remote_dir, local_dir, f_meta.name, f_meta.md5, fs, f_size);
+        remote_dir, local_dir, f_meta.name, fs, f_size, f_md5);
     const std::string &file_name = utils::filesystem::path_combine(local_dir, f_meta.name);
     bool verified = false;
     if (ec == ERR_PATH_ALREADY_EXIST) {
         // We are not sure if the file was cached by system. And we couldn't
         // afford the io overhead which is cased by reading file in verify_file(),
-        // so if file exist remove the files directly
-        derror_replica("file({}) exists, try to remove local file "
-                       "and redownload it",
-                       file_name);
-        if (!utils::filesystem::remove_path(file_name)) {
-            derror_replica("failed to remove file({})", file_name);
-            ec = ERR_FILE_OPERATION_FAILED;
+        // so if file exist we just verify file size
+        if (utils::filesystem::verify_file_size(file_name, f_meta.size)) {
+            // local file exist and is verified
+            ec = ERR_OK;
+            f_size = f_meta.size;
+            verified = true;
         } else {
-            ec = _stub->_block_service_manager.download_file(
-                remote_dir, local_dir, f_meta.name, f_meta.md5, fs, f_size);
+            derror_replica("file({}) exists, but not verified, try to remove local file "
+                           "and redownload it",
+                           file_name);
+            if (!utils::filesystem::remove_path(file_name)) {
+                derror_replica("failed to remove file({})", file_name);
+                ec = ERR_FILE_OPERATION_FAILED;
+            } else {
+                ec = _stub->_block_service_manager.download_file(
+                    remote_dir, local_dir, f_meta.name, fs, f_size, f_md5);
+            }
         }
     }
-    // Here we just verify the file size
-    if (ec == ERR_OK && !verified && !utils::filesystem::verify_file_size(file_name, f_meta.size)) {
-        ec = ERR_CORRUPTION;
+    // Here we verify md5 and file size, md5 was calculated
+    // from download buffer, file size is get from filesystem
+    if (ec == ERR_OK && !verified) {
+        if (!f_meta.md5.empty() && f_md5 != f_meta.md5) {
+            ec = ERR_CORRUPTION;
+        } else if (!utils::filesystem::verify_file_size(file_name, f_meta.size)) {
+            ec = ERR_CORRUPTION;
+        }
     }
     if (ec != ERR_OK) {
         {

@@ -112,13 +112,11 @@ static create_file_response create_block_file_sync(const std::string &remote_fil
     return ret;
 }
 
-static download_response download_block_file_sync(const std::string &local_file_path,
-                                                  const std::string &md5,
-                                                  block_file *bf,
-                                                  task_tracker *tracker)
+static download_response
+download_block_file_sync(const std::string &local_file_path, block_file *bf, task_tracker *tracker)
 {
     download_response ret;
-    bf->download(download_request{local_file_path, 0, -1, md5},
+    bf->download(download_request{local_file_path, 0, -1},
                  TASK_CODE_EXEC_INLINED,
                  [&ret](const download_response &resp) { ret = resp; },
                  tracker);
@@ -132,16 +130,17 @@ error_code block_service_manager::download_file(const std::string &remote_dir,
                                                 block_filesystem *fs,
                                                 /*out*/ uint64_t &download_file_size)
 {
-    return download_file(remote_dir, local_dir, file_name, "", fs, download_file_size);
+    std::string md5;
+    return download_file(remote_dir, local_dir, file_name, fs, download_file_size, md5);
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION, THREAD_POOL_DEFAULT
 error_code block_service_manager::download_file(const std::string &remote_dir,
                                                 const std::string &local_dir,
                                                 const std::string &file_name,
-                                                const std::string &md5,
                                                 block_filesystem *fs,
-                                                /*out*/ uint64_t &download_file_size)
+                                                /*out*/ uint64_t &download_file_size,
+                                                /*out*/ std::string &download_file_md5)
 {
     // local file exists
     const std::string local_file_name = utils::filesystem::path_combine(local_dir, file_name);
@@ -163,7 +162,7 @@ error_code block_service_manager::download_file(const std::string &remote_dir,
     }
     block_file_ptr bf = create_resp.file_handle;
 
-    download_response resp = download_block_file_sync(local_file_name, md5, bf.get(), &tracker);
+    download_response resp = download_block_file_sync(local_file_name, bf.get(), &tracker);
     if (resp.err != ERR_OK) {
         // during bulk load process, ERR_OBJECT_NOT_FOUND will be considered as a recoverable
         // error, however, if file damaged on remote file provider, bulk load should stop,
@@ -179,6 +178,7 @@ error_code block_service_manager::download_file(const std::string &remote_dir,
     ddebug_f(
         "download file({}) succeed, file_size = {}", local_file_name.c_str(), resp.downloaded_size);
     download_file_size = resp.downloaded_size;
+    download_file_md5 = resp.file_md5;
     return ERR_OK;
 }
 

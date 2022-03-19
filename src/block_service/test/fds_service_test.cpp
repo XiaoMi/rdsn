@@ -358,7 +358,7 @@ TEST_F(FDSClientTest, test_basic_operation)
             ASSERT_EQ(f1.md5, cf_resp.file_handle->get_md5sum());
 
             cf_resp.file_handle
-                ->download(download_request{local_file_for_download, 0, -1, ""},
+                ->download(download_request{local_file_for_download, 0, -1},
                            lpc_btest,
                            [&d_resp](const download_response &resp) { d_resp = resp; },
                            nullptr)
@@ -380,7 +380,7 @@ TEST_F(FDSClientTest, test_basic_operation)
         ASSERT_TRUE(cf_resp.file_handle->get_md5sum().empty());
 
         cf_resp.file_handle
-            ->download(download_request{local_file_for_download, 0, -1, ""},
+            ->download(download_request{local_file_for_download, 0, -1},
                        lpc_btest,
                        [&d_resp](const download_response &resp) { d_resp = resp; },
                        nullptr)
@@ -391,7 +391,7 @@ TEST_F(FDSClientTest, test_basic_operation)
 
         std::cout << "test partitial download " << std::endl;
         cf_resp.file_handle
-            ->download(download_request{local_file_for_download, 32, 32, ""},
+            ->download(download_request{local_file_for_download, 32, 32},
                        lpc_btest,
                        [&d_resp](const download_response &resp) { d_resp = resp; },
                        nullptr)
@@ -429,7 +429,7 @@ TEST_F(FDSClientTest, test_basic_operation)
 
         // now file handle has been synced from remote
         cf_resp.file_handle
-            ->download(download_request{"local_file", 0, -1, ""},
+            ->download(download_request{"local_file", 0, -1},
                        lpc_btest,
                        [&d_resp](const download_response &r) { d_resp = r; },
                        nullptr)
@@ -454,7 +454,7 @@ TEST_F(FDSClientTest, test_basic_operation)
         ASSERT_EQ(cf_resp.file_handle->get_md5sum(), f1.md5);
 
         cf_resp.file_handle
-            ->download(download_request{"test_dir/test_file.txt", 0, -1, ""},
+            ->download(download_request{"test_dir/test_file.txt", 0, -1},
                        lpc_btest,
                        [&d_resp](const download_response &r) { d_resp = r; },
                        nullptr)
@@ -464,7 +464,7 @@ TEST_F(FDSClientTest, test_basic_operation)
         ASSERT_EQ(0, d_resp.downloaded_size);
 
         cf_resp.file_handle
-            ->download(download_request{"/root/.profile", 0, -1, ""},
+            ->download(download_request{"/root/.profile", 0, -1},
                        lpc_btest,
                        [&d_resp](const download_response &r) { d_resp = r; },
                        nullptr)
@@ -774,7 +774,7 @@ TEST_F(FDSClientTest, test_concurrent_upload_download)
         for (unsigned int i = 0; i < total_files; ++i) {
             block_file_ptr p = block_files[i];
             dsn::task_ptr t =
-                p->download(download_request{filenames[i] + ".b", 0, -1, ""},
+                p->download(download_request{filenames[i] + ".b", 0, -1},
                             lpc_btest,
                             [&filenames, &filesize, &md5, i, p](const download_response &dr) {
                                 printf("file %s download finished\n", filenames[i].c_str());

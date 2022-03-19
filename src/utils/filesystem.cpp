@@ -865,10 +865,10 @@ bool verify_file_size(const std::string &fname, const int64_t &expected_fsize)
     return true;
 }
 
-bool verify_data(const std::string &fname,
-                 const char *data,
-                 const size_t data_size,
-                 const std::string &expected_md5)
+bool verify_data_md5(const std::string &fname,
+                     const char *data,
+                     const size_t data_size,
+                     const std::string &expected_md5)
 {
     std::string md5 = string_md5(data, data_size);
     if (md5 != expected_md5) {
