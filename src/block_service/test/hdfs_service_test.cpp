@@ -169,7 +169,7 @@ TEST_F(HDFSClientTest, test_basic_operation)
     ASSERT_EQ(test_file_size, cf_resp.file_handle->get_size());
     std::string local_file_for_download = "test_file_d";
     cf_resp.file_handle
-        ->download(download_request{local_file_for_download, 0, -1, ""},
+        ->download(download_request{local_file_for_download, 0, -1},
                    LPC_TEST_HDFS,
                    [&d_resp](const download_response &resp) { d_resp = resp; },
                    nullptr)
@@ -339,7 +339,7 @@ TEST_F(HDFSClientTest, test_concurrent_upload_download)
         for (int i = 0; i < total_files; ++i) {
             block_file_ptr p = block_files[i];
             dsn::task_ptr t = p->download(
-                download_request{downloaded_file_names[i], 0, -1, ""},
+                download_request{downloaded_file_names[i], 0, -1},
                 LPC_TEST_HDFS,
                 [&files_md5sum, &downloaded_file_names, &files_size, i, p](
                     const download_response &dr) {
