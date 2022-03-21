@@ -27,6 +27,11 @@
 namespace dsn {
 namespace replication {
 
+DSN_DEFINE_uint32("replication",
+                  duplicate_log_batch_kilobytes,
+                  100,
+                  "send mutation log batch KB size per rpc");
+
 /*static*/ constexpr int load_from_private_log::MAX_ALLOWED_BLOCK_REPEATS;
 /*static*/ constexpr int load_from_private_log::MAX_ALLOWED_FILE_REPEATS;
 
@@ -221,6 +226,11 @@ void load_from_private_log::replay_log_block()
     }
 
     _start_offset = static_cast<size_t>(_current_global_end_offset - _current->start_offset());
+    if (FLAGS_duplicate_log_batch_kilobytes > 0 &&
+        _mutation_batch.bytes() < (FLAGS_duplicate_log_batch_kilobytes << 10)) {
+        repeat();
+        return;
+    }
 
     // update last_decree even for empty batch.
     step_down_next_stage(_mutation_batch.last_decree(), _mutation_batch.move_all_mutations());
