@@ -24,15 +24,19 @@ namespace dsn {
 class my_gauge : public metric
 {
 public:
+    int64_t value() { return _value; }
+
+protected:
     explicit my_gauge(const metric_prototype *prototype) : metric(prototype), _value(0) {}
 
     my_gauge(const metric_prototype *prototype, int64_t value) : metric(prototype), _value(value) {}
 
     virtual ~my_gauge() = default;
 
-    int64_t value() { return _value; }
-
 private:
+    friend class metric_entity;
+    friend class ref_ptr<my_gauge>;
+
     int64_t _value;
 
     DISALLOW_COPY_AND_ASSIGN(my_gauge);
@@ -67,6 +71,16 @@ METRIC_DEFINE_my_gauge(my_replica,
                        my_replica_duration,
                        dsn::metric_unit::kMilliSeconds,
                        "a replica-level duration for test");
+
+METRIC_DEFINE_gauge_int64(my_server,
+                          test_gauge_int64,
+                          dsn::metric_unit::kMilliSeconds,
+                          "a server-level gauge of int64 type for test");
+
+METRIC_DEFINE_gauge_double(my_server,
+                           test_gauge_double,
+                           dsn::metric_unit::kSeconds,
+                           "a server-level gauge of double type for test");
 
 namespace dsn {
 
@@ -220,6 +234,48 @@ TEST(metrics_test, recreate_metric)
 
     auto new_metric = METRIC_my_server_latency.instantiate(my_server_entity, 10);
     ASSERT_EQ(my_metric->value(), 5);
+}
+
+TEST(metrics_test, gauge_int64)
+{
+
+    // Test cases:
+    // - create a gauge of int64 type without initial value, then increase
+    // - create a gauge of int64 type without initial value, then decrease
+    // - create a gauge of int64 type with initial value, then increase
+    // - create a gauge of int64 type with initial value, then decrease
+    struct test_case
+    {
+        std::string entity_id;
+        bool use_default_value;
+        int64_t initial_value;
+        int64_t new_value;
+    } tests[] = {{"server_5", true, 0, 5},
+                 {"server_6", true, 0, -5},
+                 {"server_7", false, 10, 100},
+                 {"server_8", false, 100, 10}};
+
+    using metric_map = std::unordered_map<std::string, metric_ptr>;
+
+    metric_map expected_metrics;
+    for (const auto &test : tests) {
+        auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
+
+        gauge_ptr my_metric;
+        if (test.use_default_value) {
+            my_metric = METRIC_test_gauge_int64.instantiate(my_server_entity);
+        } else {
+            my_metric = METRIC_test_gauge_int64.instantiate(my_server_entity, test.initial_value);
+        }
+
+        ASSERT_EQ(my_metric->value(), test.initial_value);
+
+        my_metric->set(test.new_value);
+        ASSERT_EQ(my_metric->value(), test.new_value);
+
+        auto metrics = my_server_entity.metrics();
+        ASSERT_EQ(static_cast<metric*>(metrics[&METRIC_DEFINE_gauge_int64].get()), my_metric.get());
+    }
 }
 
 } // namespace dsn

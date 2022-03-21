@@ -17,8 +17,10 @@
 
 #pragma once
 
+#include <atomic>
 #include <mutex>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -49,6 +51,12 @@
 
 // The following macros act as forward declarations for entity types and metric prototypes.
 #define METRIC_DECLARE_entity(name) extern ::dsn::metric_entity_prototype METRIC_ENTITY_##name
+
+#define METRIC_DEFINE_gauge_int64(entity_type, name, unit, desc, ...)                              \
+    dsn::gauge_prototype<int64_t> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
+
+#define METRIC_DEFINE_gauge_double(entity_type, name, unit, desc, ...)                             \
+    dsn::gauge_prototype<double> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 namespace dsn {
 
@@ -222,6 +230,9 @@ private:
 // however, its lastest value is visible.
 class metric : public ref_counter
 {
+public:
+    const metric_prototype* prototype() const { return _prototype; }
+
 protected:
     explicit metric(const metric_prototype *prototype);
     virtual ~metric() = default;
@@ -230,6 +241,53 @@ protected:
 
 private:
     DISALLOW_COPY_AND_ASSIGN(metric);
+};
+
+template <typename T>
+class gauge;
+
+template <typename T>
+using gauge_prototype = metric_prototype_with<gauge<T>>;
+
+template <typename T>
+using gauge_ptr = ref_ptr<gauge<T>>;
+
+// A gauge is an instantaneous measurement of a discrete value. It represents a single numerical
+// value that can arbitrarily go up and down. It's typically used for measured values like current
+// memory usage, the total capacity and available ratio of a disk, etc.
+template <typename T>
+class gauge : public metric
+{
+public:
+    T value() const {
+        return _value.load(std::memory_order_relaxed);
+    }
+
+    void set(const T &val) {
+        _value.store(val, std::memory_order_relaxed);
+    }
+
+protected:
+    gauge(const gauge_prototype<T> *prototype, const T &initial_val)
+        : metric(prototype), _value(initial_val) {}
+
+    template <typename = typename std::enable_if<std::is_integral<T>::value>::type>
+    gauge(const gauge_prototype<T> *prototype)
+        : metric(prototype), _value(0) {}
+
+    template <typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+    gauge(const gauge_prototype<T> *prototype)
+        : metric(prototype), _value(0.0) {}
+
+    virtual ~gauge() = default;
+
+private:
+    friend class metric_entity;
+    friend class gauge_ptr<T>;
+
+    std::atomic<T> _value;
+
+    DISALLOW_COPY_AND_ASSIGN(gauge);
 };
 
 } // namespace dsn
