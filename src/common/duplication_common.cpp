@@ -25,6 +25,11 @@
 namespace dsn {
 namespace replication {
 
+DSN_DEFINE_uint32("replication",
+                  duplicate_log_batch_kilobytes,
+                  100,
+                  "send mutation log batch KB size per rpc");
+
 const std::string duplication_constants::kDuplicationCheckpointRootDir /*NOLINT*/ = "duplication";
 const std::string duplication_constants::kClustersSectionName /*NOLINT*/ = "pegasus.clusters";
 const std::string duplication_constants::kDuplicationEnvMasterClusterKey /*NOLINT*/ =
