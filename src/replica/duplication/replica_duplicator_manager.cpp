@@ -34,7 +34,12 @@ replica_duplicator_manager::get_duplication_confirms_to_update() const
         duplication_progress p = duplicator->progress();
         if (p.last_decree != p.confirmed_decree ||
             (kv.second->status() == duplication_status::DS_PREPARE && p.checkpoint_has_prepared)) {
-            dcheck_gt_replica(p.last_decree, p.confirmed_decree);
+            if (p.last_decree < p.confirmed_decree) {
+                derror_replica("invalid decree state: p.last_decree({}) < p.confirmed_decree({})",
+                               p.last_decree,
+                               p.confirmed_decree);
+                continue;
+            }
             duplication_confirm_entry entry;
             entry.dupid = duplicator->id();
             entry.confirmed_decree = p.last_decree;
