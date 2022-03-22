@@ -43,20 +43,36 @@
 // To use the entity type, declare it at the top of any .h/.cpp file (not within any namespace):
 // METRIC_DECLARE_entity(my_entity);
 //
-// Instantiating the entity in whatever class represents the entity:
+// Instantiating the entity in whatever class represents it:
 // entity_instance = METRIC_ENTITY_my_entity.instantiate(my_entity_id, ...);
+//
+//
+// Example of defining and instantiating a metric
+// -----------------------------------------------------
+// Define an entity type at the top of your .cpp file (not within any namespace):
+// METRIC_DEFINE_gauge_int64(my_entity,
+//                           my_gauge_name,
+//                           dsn::metric_unit::kMilliSeconds,
+//                           "the description for my gauge");
+//
+// To use the metric prototype, declare it at the top of any .h/.cpp file (not within any
+// namespace):
+// METRIC_DECLARE_gauge_int64(my_gauge_name);
+//
+// Instantiating the metric in whatever class represents it with some initial arguments, if any:
+// metric_instance = METRIC_my_gauge_name.instantiate(entity_instance, ...);
 
-// Define a new entity type.
+// Convenience macros to define entity types and metric prototypes.
 #define METRIC_DEFINE_entity(name) ::dsn::metric_entity_prototype METRIC_ENTITY_##name(#name)
+#define METRIC_DEFINE_gauge_int64(entity_type, name, unit, desc, ...)                              \
+    ::dsn::gauge_prototype<int64_t> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
+#define METRIC_DEFINE_gauge_double(entity_type, name, unit, desc, ...)                             \
+    ::dsn::gauge_prototype<double> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 // The following macros act as forward declarations for entity types and metric prototypes.
 #define METRIC_DECLARE_entity(name) extern ::dsn::metric_entity_prototype METRIC_ENTITY_##name
-
-#define METRIC_DEFINE_gauge_int64(entity_type, name, unit, desc, ...)                              \
-    dsn::gauge_prototype<int64_t> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
-
-#define METRIC_DEFINE_gauge_double(entity_type, name, unit, desc, ...)                             \
-    dsn::gauge_prototype<double> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
+#define METRIC_DECLARE_gauge_int64(name) extern ::dsn::gauge_prototype<int64_t> METRIC_##name
+#define METRIC_DECLARE_gauge_double(name) extern ::dsn::gauge_prototype<double> METRIC_##name
 
 namespace dsn {
 
