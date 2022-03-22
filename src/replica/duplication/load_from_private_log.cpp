@@ -224,7 +224,7 @@ void load_from_private_log::replay_log_block()
         ddebug_replica("switch next plog file[{}]:{}", _current->index(), _current->path());
     }
 
-    if (_mutation_batch.bytes() < FLAGS_duplicate_log_batch_bytes) {
+    if (err.code() != ERR_HANDLE_EOF && _mutation_batch.bytes() < FLAGS_duplicate_log_batch_bytes) {
         repeat();
         return;
     }
