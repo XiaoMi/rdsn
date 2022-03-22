@@ -217,16 +217,13 @@ void load_from_private_log::replay_log_block()
 
     if (err.is_ok()) {
         _start_offset = static_cast<size_t>(_current_global_end_offset - _current->start_offset());
-    }
-
-    // if !err.is_ok() means that err.code() == ERR_HANDLE_EOF, try switch_to_next_log_file
-    if (switch_to_next_log_file()) {
+        if (_mutation_batch.bytes() < FLAGS_duplicate_log_batch_bytes) {
+            repeat();
+            return;
+        }
+    } else if (switch_to_next_log_file()) {
+        // if !err.is_ok() means that err.code() == ERR_HANDLE_EOF, try switch_to_next_log_file
         ddebug_replica("switch next plog file[{}]:{}", _current->index(), _current->path());
-    }
-
-    if (err.code() != ERR_HANDLE_EOF && _mutation_batch.bytes() < FLAGS_duplicate_log_batch_bytes) {
-        repeat();
-        return;
     }
 
     // update last_decree even for empty batch.
