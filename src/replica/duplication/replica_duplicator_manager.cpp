@@ -32,7 +32,8 @@ replica_duplicator_manager::get_duplication_confirms_to_update() const
     for (const auto &kv : _duplications) {
         replica_duplicator *duplicator = kv.second.get();
         duplication_progress p = duplicator->progress();
-        if (p.last_decree != p.confirmed_decree || p.checkpoint_has_prepared) {
+        if (p.last_decree != p.confirmed_decree ||
+            (kv.second->status() == duplication_status::DS_PREPARE && p.checkpoint_has_prepared)) {
             dcheck_gt_replica(p.last_decree, p.confirmed_decree);
             duplication_confirm_entry entry;
             entry.dupid = duplicator->id();
