@@ -20,6 +20,7 @@
 #include <atomic>
 #include <mutex>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -261,7 +262,7 @@ private:
 // A gauge is an instantaneous measurement of a discrete value. It represents a single numerical
 // value that can arbitrarily go up and down. It's typically used for measured values like current
 // memory usage, the total capacity and available ratio of a disk, etc.
-template <typename T>
+template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
 class gauge : public metric
 {
 public:
