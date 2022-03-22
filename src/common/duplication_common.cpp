@@ -27,7 +27,7 @@ namespace replication {
 
 DSN_DEFINE_uint32("replication",
                   duplicate_log_batch_kilobytes,
-                  10,
+                  4,
                   "send mutation log batch KB size per rpc");
 DSN_TAG_VARIABLE(duplicate_log_batch_kilobytes, FT_MUTABLE);
 

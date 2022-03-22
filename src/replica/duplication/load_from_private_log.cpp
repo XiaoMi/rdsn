@@ -185,7 +185,10 @@ void load_from_private_log::replay_log_block()
         //   1. skip this file, abandon the data, can be adopted by who allows minor data lost.
         //   2. fail-slow, retry reading this file until human interference.
         _err_block_repeats_num++;
-        derror_replica("jiahsuodebugERR-Repeat:{}, count={}", err.code(), _err_file_repeats_num);
+        derror_replica("jiahsuodebugERR-Repeat:{}, count={} >= {}",
+                       err.code(),
+                       _err_block_repeats_num,
+                       MAX_ALLOWED_BLOCK_REPEATS);
         if (_err_block_repeats_num >= MAX_ALLOWED_BLOCK_REPEATS) {
             derror_replica(
                 "loading mutation logs failed for {} times: [err: {}, file: {}, start_offset: {}]",
