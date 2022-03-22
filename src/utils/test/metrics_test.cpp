@@ -261,9 +261,9 @@ TEST(metrics_test, gauge_int64)
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
 
-        gauge_ptr my_metric;
+        gauge_ptr<int64_t> my_metric;
         if (test.use_default_value) {
-            my_metric = METRIC_test_gauge_int64.instantiate(my_server_entity);
+            my_metric = METRIC_test_gauge_int64.instantiate(my_server_entity, test.initial_value);
         } else {
             my_metric = METRIC_test_gauge_int64.instantiate(my_server_entity, test.initial_value);
         }
@@ -273,8 +273,8 @@ TEST(metrics_test, gauge_int64)
         my_metric->set(test.new_value);
         ASSERT_EQ(my_metric->value(), test.new_value);
 
-        auto metrics = my_server_entity.metrics();
-        ASSERT_EQ(static_cast<metric*>(metrics[&METRIC_DEFINE_gauge_int64].get()), my_metric.get());
+        auto metrics = my_server_entity->metrics();
+        ASSERT_EQ(static_cast<metric *>(metrics[&METRIC_test_gauge_int64].get()), my_metric.get());
     }
 }
 

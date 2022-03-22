@@ -231,7 +231,7 @@ private:
 class metric : public ref_counter
 {
 public:
-    const metric_prototype* prototype() const { return _prototype; }
+    const metric_prototype *prototype() const { return _prototype; }
 
 protected:
     explicit metric(const metric_prototype *prototype);
@@ -243,15 +243,6 @@ private:
     DISALLOW_COPY_AND_ASSIGN(metric);
 };
 
-template <typename T>
-class gauge;
-
-template <typename T>
-using gauge_prototype = metric_prototype_with<gauge<T>>;
-
-template <typename T>
-using gauge_ptr = ref_ptr<gauge<T>>;
-
 // A gauge is an instantaneous measurement of a discrete value. It represents a single numerical
 // value that can arbitrarily go up and down. It's typically used for measured values like current
 // memory usage, the total capacity and available ratio of a disk, etc.
@@ -259,35 +250,43 @@ template <typename T>
 class gauge : public metric
 {
 public:
-    T value() const {
-        return _value.load(std::memory_order_relaxed);
-    }
+    T value() const { return _value.load(std::memory_order_relaxed); }
 
-    void set(const T &val) {
-        _value.store(val, std::memory_order_relaxed);
-    }
+    void set(const T &val) { _value.store(val, std::memory_order_relaxed); }
 
 protected:
-    gauge(const gauge_prototype<T> *prototype, const T &initial_val)
-        : metric(prototype), _value(initial_val) {}
+    gauge(const metric_prototype *prototype, const T &initial_val)
+        : metric(prototype), _value(initial_val)
+    {
+    }
 
-    template <typename = typename std::enable_if<std::is_integral<T>::value>::type>
-    gauge(const gauge_prototype<T> *prototype)
-        : metric(prototype), _value(0) {}
-
-    template <typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
-    gauge(const gauge_prototype<T> *prototype)
-        : metric(prototype), _value(0.0) {}
+    gauge(const metric_prototype *prototype);
 
     virtual ~gauge() = default;
 
 private:
     friend class metric_entity;
-    friend class gauge_ptr<T>;
+    friend class ref_ptr<gauge<T>>;
 
     std::atomic<T> _value;
 
     DISALLOW_COPY_AND_ASSIGN(gauge);
 };
+
+template <>
+gauge<int64_t>::gauge(const metric_prototype *prototype) : gauge(prototype, 0)
+{
+}
+
+template <>
+gauge<double>::gauge(const metric_prototype *prototype) : gauge(prototype, 0.0)
+{
+}
+
+template <typename T>
+using gauge_ptr = ref_ptr<gauge<T>>;
+
+template <typename T>
+using gauge_prototype = metric_prototype_with<gauge<T>>;
 
 } // namespace dsn
