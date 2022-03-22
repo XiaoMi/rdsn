@@ -188,7 +188,11 @@ void meta_duplication_service::do_add_duplication(std::shared_ptr<app_state> &ap
                                                   duplication_info_s_ptr &dup,
                                                   duplication_add_rpc &rpc)
 {
-    dup->start();
+    const auto err = dup->start();
+    if (dsn_unlikely(err != ERR_OK)) {
+        derror_f("start dup[{}({})] failed: err = {}", app->app_name, dup->id, err.to_string());
+        return;
+    }
     blob value = dup->to_json_blob();
 
     std::queue<std::string> nodes({get_duplication_path(*app), std::to_string(dup->id)});
