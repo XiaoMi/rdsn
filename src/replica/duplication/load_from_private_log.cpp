@@ -227,7 +227,7 @@ void load_from_private_log::replay_log_block()
     }
 
     _start_offset = static_cast<size_t>(_current_global_end_offset - _current->start_offset());
-    if (_mutation_batch.bytes() < (FLAGS_duplicate_log_batch_kilobytes << 10)) {
+    if (_mutation_batch.bytes() < FLAGS_duplicate_log_batch_bytes) {
         repeat();
         return;
     }
