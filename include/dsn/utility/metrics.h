@@ -20,7 +20,6 @@
 #include <atomic>
 #include <mutex>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -62,7 +61,7 @@
 // Instantiating the metric in whatever class represents it with some initial arguments, if any:
 // metric_instance = METRIC_my_gauge_name.instantiate(entity_instance, ...);
 
-// Convenience macros to define entity types and metric prototypes.
+// Convenient macros are provided to define entity types and metric prototypes.
 #define METRIC_DEFINE_entity(name) ::dsn::metric_entity_prototype METRIC_ENTITY_##name(#name)
 #define METRIC_DEFINE_gauge_int64(entity_type, name, unit, desc, ...)                              \
     ::dsn::gauge_prototype<int64_t> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
