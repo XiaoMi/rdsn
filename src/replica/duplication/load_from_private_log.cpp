@@ -170,10 +170,13 @@ void load_from_private_log::replay_log_block()
                                    _start_offset,
                                    _current_global_end_offset);
     if (!err.is_ok()) {
-        derror_replica("jiashuodebugERR:{}", err.code());
-        if (err.code() == ERR_HANDLE_EOF && switch_to_next_log_file()) {
-            derror_replica("jiahsuodebugERR-Repeat:{}", err.code());
-            repeat();
+        if (err.code() == ERR_HANDLE_EOF) {
+            if (switch_to_next_log_file()) {
+                repeat();
+                return;
+            }
+            // update last_decree even for empty batch.
+            step_down_next_stage(_mutation_batch.last_decree(), _mutation_batch.move_all_mutations());
             return;
         }
 
@@ -185,10 +188,6 @@ void load_from_private_log::replay_log_block()
         //   1. skip this file, abandon the data, can be adopted by who allows minor data lost.
         //   2. fail-slow, retry reading this file until human interference.
         _err_block_repeats_num++;
-        derror_replica("jiahsuodebugERR-HHHH:{}, count={} >= {}",
-                       err.code(),
-                       _err_block_repeats_num,
-                       MAX_ALLOWED_BLOCK_REPEATS);
         if (_err_block_repeats_num >= MAX_ALLOWED_BLOCK_REPEATS) {
             derror_replica(
                 "loading mutation logs failed for {} times: [err: {}, file: {}, start_offset: {}]",
