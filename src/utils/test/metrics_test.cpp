@@ -255,15 +255,12 @@ TEST(metrics_test, gauge_int64)
                  {"server_7", false, 10, 100},
                  {"server_8", false, 100, 10}};
 
-    using metric_map = std::unordered_map<std::string, metric_ptr>;
-
-    metric_map expected_metrics;
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
 
         gauge_ptr<int64_t> my_metric;
         if (test.use_default_value) {
-            my_metric = METRIC_test_gauge_int64.instantiate(my_server_entity, test.initial_value);
+            my_metric = METRIC_test_gauge_int64.instantiate(my_server_entity);
         } else {
             my_metric = METRIC_test_gauge_int64.instantiate(my_server_entity, test.initial_value);
         }
@@ -275,6 +272,51 @@ TEST(metrics_test, gauge_int64)
 
         auto metrics = my_server_entity->metrics();
         ASSERT_EQ(static_cast<metric *>(metrics[&METRIC_test_gauge_int64].get()), my_metric.get());
+
+        ASSERT_EQ(my_metric->prototype(),
+                  static_cast<const metric_prototype *>(&METRIC_test_gauge_int64));
+    }
+}
+
+TEST(metrics_test, gauge_double)
+{
+
+    // Test cases:
+    // - create a gauge of double type without initial value, then increase
+    // - create a gauge of double type without initial value, then decrease
+    // - create a gauge of double type with initial value, then increase
+    // - create a gauge of double type with initial value, then decrease
+    struct test_case
+    {
+        std::string entity_id;
+        bool use_default_value;
+        double initial_value;
+        double new_value;
+    } tests[] = {{"server_9", true, 0.0, 5.278},
+                 {"server_10", true, 0.0, -5.278},
+                 {"server_11", false, 10.756, 100.128},
+                 {"server_12", false, 100.128, 10.756}};
+
+    for (const auto &test : tests) {
+        auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
+
+        gauge_ptr<double> my_metric;
+        if (test.use_default_value) {
+            my_metric = METRIC_test_gauge_double.instantiate(my_server_entity);
+        } else {
+            my_metric = METRIC_test_gauge_double.instantiate(my_server_entity, test.initial_value);
+        }
+
+        ASSERT_DOUBLE_EQ(my_metric->value(), test.initial_value);
+
+        my_metric->set(test.new_value);
+        ASSERT_DOUBLE_EQ(my_metric->value(), test.new_value);
+
+        auto metrics = my_server_entity->metrics();
+        ASSERT_EQ(static_cast<metric *>(metrics[&METRIC_test_gauge_double].get()), my_metric.get());
+
+        ASSERT_EQ(my_metric->prototype(),
+                  static_cast<const metric_prototype *>(&METRIC_test_gauge_double));
     }
 }
 
