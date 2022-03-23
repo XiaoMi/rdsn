@@ -216,6 +216,7 @@ void load_from_private_log::replay_log_block()
     }
 
     if (err.is_ok()) {
+        derror_replica("replay: read={}", _mutation_batch.last_decree());
         _start_offset = static_cast<size_t>(_current_global_end_offset - _current->start_offset());
         if (_mutation_batch.bytes() < FLAGS_duplicate_log_batch_bytes) {
             repeat();

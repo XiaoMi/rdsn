@@ -95,6 +95,7 @@ void ship_mutation::update_progress()
 
     // committed decree never decreases
     decree last_committed_decree = _replica->last_committed_decree();
+    derror_replica("update: commit={} vs send={}", last_committed_decree, _last_decree);
     dcheck_ge_replica(last_committed_decree, _last_decree);
 }
 
