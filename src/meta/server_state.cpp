@@ -3199,11 +3199,13 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
     auto &response = rpc.response();
 
     int32_t app_id = 0;
+    int32_t partition_count = 0;
+    std::shared_ptr<app_state> app;
 
     {
         zauto_read_lock l(_lock);
 
-        auto app = get_app_and_check_exist(app_name, response);
+        app = get_app_and_check_exist(app_name, response);
         if (app == nullptr) {
             response.old_max_replica_count = 0;
             dwarn_f("failed to set max_replica_count: app_name={}, error_code={}, hint_message={}",
@@ -3217,6 +3219,7 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
 
         if (!check_max_replica_count_consistent(app, response)) {
             response.old_max_replica_count = 0;
+            response.hint_message = fmt::format("app({}) does not exist", app_name);
             derror_f("failed to set max_replica_count: app_name={}, app_id={}, error_code={}, "
                      "hint_message={}",
                      app_name,
@@ -3227,6 +3230,20 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
         }
 
         response.old_max_replica_count = app->max_replica_count;
+
+        if (app->status != app_status::AS_AVAILABLE) {
+            response.err = ERR_INVALID_PARAMETERS;
+            response.hint_message = fmt::format("app({}) is not in available status", app_name);
+            derror_f("failed to set max_replica_count: app_name={}, app_id={}, error_code={}, "
+                     "hint_message={}",
+                     app_name,
+                     app_id,
+                     response.err.to_string(),
+                     response.hint_message);
+            return;
+        }
+
+        partition_count = app->partition_count;
     }
 
     auto level = _meta_svc->get_function_level();
@@ -3269,69 +3286,111 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
              response.old_max_replica_count,
              new_max_replica_count);
 
-    // update max_replica_count of each partition from index 0
-    tasking::enqueue(LPC_META_STATE_HIGH,
-                     tracker(),
-                     [this, rpc]() { update_partition_max_replica_count(0, rpc); },
-                     server_state::sStateHash);
+    do_update_max_replica_count(app, app_id, partition_count, rpc);
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void server_state::update_partition_max_replica_count(int32_t partition_index,
-                                                      configuration_set_max_replica_count_rpc rpc)
+void server_state::do_update_max_replica_count(std::shared_ptr<app_state> &app,
+                                               int32_t app_id,
+                                               int32_t partition_count,
+                                               configuration_set_max_replica_count_rpc rpc)
 {
-    const auto &app_name = rpc.request().app_name;
-    auto &response = rpc.response();
+    std::shared_ptr<std::vector<error_code>> results(new std::vector<error_code>(partition_count));
+    std::shared_ptr<std::atomic_int> updates_in_progress(new std::atomic_int(partition_count));
+    auto on_partition_updated = [this, app_id, partition_count, rpc, results, updates_in_progress](
+        error_code ec, int32_t partition_index) {
+        const auto &app_name = rpc.request().app_name;
+        const auto new_max_replica_count = rpc.request().max_replica_count;
 
-    zauto_write_lock l(_lock);
+        results->at(partition_index) = ec;
 
-    auto app = get_app_and_check_exist(app_name, response);
-    if (app == nullptr) {
-        response.hint_message +=
-            fmt::format(" while updating max_replica_count of partition {}", partition_index);
-        derror_f("failed to set max_replica_count: app_name={}, error_code={}, hint_message={}",
+        auto uncompleted = --(*updates_in_progress);
+        dassert_f(uncompleted >= 0,
+                  "the uncompleted number should be >= 0 while updating partition-level"
+                  "max_replica_count: uncompleted={}, app_name={}, app_id={}, "
+                  "partition_index={}, partition_count={}, new_max_replica_count={}",
+                  uncompleted,
+                  app_name,
+                  app_id,
+                  partition_index,
+                  partition_count,
+                  new_max_replica_count);
+
+        if (uncompleted > 0) {
+            return;
+        }
+
+        for (int32_t i = 0; i < partition_count; ++i) {
+            if (results->at(i) == ERR_OK) {
+                continue;
+            }
+
+            dassert_f(false,
+                      "An error that can't be handled occurs while updating partition-level"
+                      "max_replica_count: error_code={}, app_name={}, app_id={}, "
+                      "partition_index={}, partition_count={}, new_max_replica_count={}",
+                      ec.to_string(),
+                      app_name,
+                      app_id,
+                      i,
+                      partition_count,
+                      new_max_replica_count);
+        }
+
+        ddebug_f("all partitions have been changed to the new max_replica_count, ready to update "
+                 "the app-level max_replica_count: app_name={}, app_id={}, partition_count={}, "
+                 "new_max_replica_count={}",
                  app_name,
-                 response.err.to_string(),
-                 response.hint_message);
-        return;
-    }
-
-    const auto app_id = app->app_id;
-
-    dassert_f(app->is_stateful,
-              "don't support stateless apps currently: app_name={}, app_id={}",
-              app_name,
-              app_id);
-
-    const auto partition_count = static_cast<int>(app->partitions.size());
-    const auto new_max_replica_count = rpc.request().max_replica_count;
-    if (partition_index >= partition_count) {
-        dwarn_f("partition-level max_replica_count might have been decreased, "
-                "try to update app-level max_replica_count: app_name={}, app_id={}, "
-                "partition_index={}, partition_count={}, new_max_replica_count={}",
-                app_name,
-                app_id,
-                partition_index,
-                partition_count,
-                new_max_replica_count);
+                 app_id,
+                 partition_count,
+                 new_max_replica_count);
 
         // TODO: update app-level max_replica_count
+        auto &response = rpc.response();
         response.err = ERR_OK;
-        return;
+    };
+
+    const auto new_max_replica_count = rpc.request().max_replica_count;
+    update_all_partitions_max_replica_count(app, new_max_replica_count, on_partition_updated);
+}
+
+// ThreadPool: THREAD_POOL_META_STATE
+void server_state::update_all_partitions_max_replica_count(std::shared_ptr<app_state> &app,
+                                                           int32_t new_max_replica_count,
+                                                           partition_callback on_partition_updated)
+{
+    zauto_write_lock l(_lock);
+
+    for (int32_t i = 0; i < app->partition_count; ++i) {
+        update_partition_max_replica_count(app, i, new_max_replica_count, on_partition_updated);
     }
+}
+
+// ThreadPool: THREAD_POOL_META_STATE
+void server_state::update_partition_max_replica_count(std::shared_ptr<app_state> app,
+                                                      int32_t partition_index,
+                                                      int32_t new_max_replica_count,
+                                                      partition_callback on_partition_updated)
+{
+    dassert_f(partition_index < app->partition_count,
+              "partition_index should be < partition_count: app_name={}, app_id={}, "
+              "partition_index={}, partition_count={}, new_max_replica_count={}",
+              app->app_name,
+              app->app_id,
+              partition_index,
+              app->partition_count,
+              new_max_replica_count);
 
     const auto &old_partition_config = app->partitions[partition_index];
     const auto old_max_replica_count = old_partition_config.max_replica_count;
 
     if (new_max_replica_count == old_max_replica_count) {
-        dwarn_f("partition-level max_replica_count has been updated, continue to update the next "
-                "partition: app_name={}, app_id={}, partition_index={}, new_max_replica_count={}",
-                app_name,
-                app_id,
+        dwarn_f("partition-level max_replica_count has been updated: app_name={}, "
+                "app_id={}, partition_index={}, new_max_replica_count={}",
+                app->app_name,
+                app->app_id,
                 partition_index,
                 new_max_replica_count);
-
-        update_next_partition_max_replica_count(*app, partition_index, rpc);
         return;
     }
 
@@ -3340,18 +3399,20 @@ void server_state::update_partition_max_replica_count(int32_t partition_index,
         ddebug_f("have to wait until another request which is syncing with remote storage "
                  "is finished, then process the current request of updating max_replica_count: "
                  "app_name={}, app_id={}, partition_index={}, new_max_replica_count={}",
-                 app_name,
-                 app_id,
+                 app->app_name,
+                 app->app_id,
                  partition_index,
                  new_max_replica_count);
 
-        tasking::enqueue(LPC_META_STATE_HIGH,
-                         tracker(),
-                         [this, rpc, partition_index]() {
-                             update_partition_max_replica_count(partition_index, rpc);
-                         },
-                         server_state::sStateHash,
-                         std::chrono::milliseconds(100));
+        tasking::enqueue(
+            LPC_META_STATE_HIGH,
+            tracker(),
+            [this, app, partition_index, new_max_replica_count, on_partition_updated]() {
+                update_partition_max_replica_count(
+                    app, partition_index, new_max_replica_count, on_partition_updated);
+            },
+            server_state::sStateHash,
+            std::chrono::milliseconds(100));
         return;
     }
 
@@ -3359,8 +3420,8 @@ void server_state::update_partition_max_replica_count(int32_t partition_index,
               "invalid config status while updating max_replica_count: context.stage={}, "
               "app_name={}, app_id={}, partition_index={}, new_max_replica_count={}",
               enum_to_string(context.stage),
-              app_name,
-              app_id,
+              app->app_name,
+              app->app_id,
               partition_index,
               new_max_replica_count);
 
@@ -3371,74 +3432,56 @@ void server_state::update_partition_max_replica_count(int32_t partition_index,
     auto new_partition_config = old_partition_config;
     new_partition_config.max_replica_count = new_max_replica_count;
     ++(new_partition_config.ballot);
-    context.pending_sync_task =
-        update_partition_max_replica_count_on_remote(new_partition_config, rpc);
+    context.pending_sync_task = update_partition_max_replica_count_on_remote(
+        app, new_partition_config, on_partition_updated);
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
 task_ptr server_state::update_partition_max_replica_count_on_remote(
+    std::shared_ptr<app_state> app,
     const partition_configuration &new_partition_config,
-    configuration_set_max_replica_count_rpc rpc)
+    partition_callback on_partition_updated)
 {
     const auto &gpid = new_partition_config.pid;
-    const auto app_id = gpid.get_app_id();
     const auto partition_index = gpid.get_partition_index();
     const auto new_max_replica_count = new_partition_config.max_replica_count;
     const auto new_ballot = new_partition_config.ballot;
-    const auto &app_name = rpc.request().app_name;
 
-    auto level = _meta_svc->get_function_level();
+    const auto level = _meta_svc->get_function_level();
     if (level <= meta_function_level::fl_blind) {
         dwarn_f("have to wait until meta level becomes more than fl_blind, then process the "
                 "current request of updating max_replica_count: current_meta_level={}, "
                 "app_name={}, app_id={}, partition_index={}, new_max_replica_count={}, "
                 "new_ballot={}",
                 _meta_function_level_VALUES_TO_NAMES.find(level)->second,
-                app_name,
-                app_id,
+                app->app_name,
+                app->app_id,
                 partition_index,
                 new_max_replica_count,
                 new_ballot);
 
         // NOTICE: pending_sync_task should be reassigned
-        return tasking::enqueue(
-            LPC_META_STATE_HIGH,
-            tracker(),
-            [this, new_partition_config, rpc]() {
-                const auto &gpid = new_partition_config.pid;
-                const auto partition_index = gpid.get_partition_index();
+        return tasking::enqueue(LPC_META_STATE_HIGH,
+                                tracker(),
+                                [this, app, new_partition_config, on_partition_updated]() {
+                                    const auto &gpid = new_partition_config.pid;
+                                    const auto partition_index = gpid.get_partition_index();
 
-                const auto &app_name = rpc.request().app_name;
-                auto &response = rpc.response();
+                                    zauto_write_lock l(_lock);
 
-                zauto_write_lock l(_lock);
-
-                auto app = get_app_and_check_exist(app_name, response);
-                if (app == nullptr) {
-                    response.hint_message += fmt::format(
-                        " while ready to update max_replica_count of partition {} on remote",
-                        partition_index);
-                    derror_f("failed to set max_replica_count: app_name={}, app_id={}, "
-                             "error_code={}, hint_message={}",
-                             app_name,
-                             gpid.get_app_id(),
-                             response.err.to_string(),
-                             response.hint_message);
-                    return;
-                }
-
-                auto &context = app->helpers->contexts[partition_index];
-                context.pending_sync_task =
-                    update_partition_max_replica_count_on_remote(new_partition_config, rpc);
-            },
-            server_state::sStateHash,
-            std::chrono::seconds(1));
+                                    auto &context = app->helpers->contexts[partition_index];
+                                    context.pending_sync_task =
+                                        update_partition_max_replica_count_on_remote(
+                                            app, new_partition_config, on_partition_updated);
+                                },
+                                server_state::sStateHash,
+                                std::chrono::seconds(1));
     }
 
     ddebug_f("request for updating partition-level max_replica_count on remote storage: "
              "app_name={}, app_id={}, partition_id={}, new_max_replica_count={}, new_ballot={}",
-             app_name,
-             app_id,
+             app->app_name,
+             app->app_id,
              partition_index,
              new_max_replica_count,
              new_ballot);
@@ -3453,141 +3496,97 @@ task_ptr server_state::update_partition_max_replica_count_on_remote(
         std::bind(&server_state::on_update_partition_max_replica_count_on_remote_reply,
                   this,
                   std::placeholders::_1,
+                  app,
                   new_partition_config,
-                  rpc),
+                  on_partition_updated),
         tracker());
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
 void server_state::on_update_partition_max_replica_count_on_remote_reply(
     error_code ec,
+    std::shared_ptr<app_state> &app,
     const partition_configuration &new_partition_config,
-    configuration_set_max_replica_count_rpc rpc)
+    partition_callback on_partition_updated)
 {
     const auto &gpid = new_partition_config.pid;
-    const auto app_id = gpid.get_app_id();
     const auto partition_index = gpid.get_partition_index();
     const auto new_max_replica_count = new_partition_config.max_replica_count;
     const auto new_ballot = new_partition_config.ballot;
 
-    const auto &app_name = rpc.request().app_name;
-    auto &response = rpc.response();
+    zauto_write_lock l(_lock);
 
     ddebug_f("reply for updating partition-level max_replica_count on remote storage: "
              "error_code={}, app_name={}, app_id={}, partition_id={}, new_max_replica_count={}, "
              "new_ballot={}",
              ec.to_string(),
-             app_name,
-             app_id,
+             app->app_name,
+             app->app_id,
              partition_index,
              new_max_replica_count,
              new_ballot);
 
-    zauto_write_lock l(_lock);
-
-    auto app = get_app_and_check_exist(app_name, response);
-    if (app == nullptr) {
-        response.hint_message +=
-            fmt::format(" while replying for updating max_replica_count of partition {} on remote",
-                        partition_index);
-        derror_f("failed to set max_replica_count: app_name={}, app_id={}, error_code={}, "
-                 "hint_message={}",
-                 app_name,
-                 app_id,
-                 response.err.to_string(),
-                 response.hint_message);
-        return;
-    }
-
-    // if multiple threads exist in the thread pool, the check may failed
-    dassert_f(
-        app->status == app_status::AS_AVAILABLE || app->status == app_status::AS_DROPPING,
-        "invalid app_status (if app is removed, this task should be cancelled): app_status={}",
-        ::dsn::enum_to_string(app->status));
-
     auto &context = app->helpers->contexts[partition_index];
     if (ec == ERR_TIMEOUT) {
         // NOTICE: pending_sync_task need to be reassigned
-        context.pending_sync_task = tasking::enqueue(
-            LPC_META_STATE_HIGH,
-            tracker(),
-            [this, new_partition_config, rpc]() {
-                const auto &gpid = new_partition_config.pid;
-                const auto partition_index = gpid.get_partition_index();
+        context.pending_sync_task =
+            tasking::enqueue(LPC_META_STATE_HIGH,
+                             tracker(),
+                             [this, app, new_partition_config, on_partition_updated]() {
+                                 const auto &gpid = new_partition_config.pid;
+                                 const auto partition_index = gpid.get_partition_index();
 
-                const auto &app_name = rpc.request().app_name;
-                auto &response = rpc.response();
+                                 zauto_write_lock l(_lock);
 
-                zauto_write_lock l(_lock);
-
-                auto app = get_app_and_check_exist(app_name, response);
-                if (app == nullptr) {
-                    response.hint_message += fmt::format(
-                        " while timeout for updating max_replica_count of partition {} on remote",
-                        partition_index);
-                    derror_f("failed to set max_replica_count: app_name={}, app_id={}, "
-                             "error_code={}, hint_message={}",
-                             app_name,
-                             gpid.get_app_id(),
-                             response.err.to_string(),
-                             response.hint_message);
-                    return;
-                }
-
-                auto &context = app->helpers->contexts[partition_index];
-                context.pending_sync_task =
-                    update_partition_max_replica_count_on_remote(new_partition_config, rpc);
-            },
-            server_state::sStateHash,
-            std::chrono::seconds(1));
+                                 auto &context = app->helpers->contexts[partition_index];
+                                 context.pending_sync_task =
+                                     update_partition_max_replica_count_on_remote(
+                                         app, new_partition_config, on_partition_updated);
+                             },
+                             server_state::sStateHash,
+                             std::chrono::seconds(1));
         return;
     }
 
     if (ec != ERR_OK) {
-        dassert_f(false, "we can't handle this right now: error_code={}", ec.to_string());
+        on_partition_updated(ec, partition_index);
         return;
     }
 
-    update_partition_max_replica_count_locally(new_partition_config, *app);
+    update_partition_max_replica_count_locally(app, new_partition_config);
 
     context.pending_sync_task = nullptr;
     context.pending_sync_request.reset();
     context.stage = config_status::not_pending;
     context.msg = nullptr;
 
-    update_next_partition_max_replica_count(*app, partition_index, rpc);
+    on_partition_updated(ec, partition_index);
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
 void server_state::update_partition_max_replica_count_locally(
-    const partition_configuration &new_partition_config, app_state &app)
+    std::shared_ptr<app_state> &app, const partition_configuration &new_partition_config)
 {
     const auto &gpid = new_partition_config.pid;
-    const auto app_id = gpid.get_app_id();
     const auto partition_index = gpid.get_partition_index();
+    const auto new_max_replica_count = new_partition_config.max_replica_count;
+    const auto new_ballot = new_partition_config.ballot;
 
-    const auto &app_name = app.app_name;
-    auto &old_partition_config = app.partitions[gpid.get_partition_index()];
+    auto &old_partition_config = app->partitions[gpid.get_partition_index()];
+    const auto old_max_replica_count = old_partition_config.max_replica_count;
+    const auto old_ballot = old_partition_config.ballot;
 
-    if (app.is_stateful) {
-        const auto new_max_replica_count = new_partition_config.max_replica_count;
-        const auto new_ballot = new_partition_config.ballot;
-
-        const auto old_max_replica_count = old_partition_config.max_replica_count;
-        const auto old_ballot = old_partition_config.ballot;
-
-        dassert_f(old_ballot + 1 == new_ballot,
-                  "invalid ballot while updating local max_replica_count: app_name={}, app_id={}, "
-                  "partition_id={}, old_max_replica_count={}, new_max_replica_count={}, "
-                  "old_ballot={}, new_ballot={}",
-                  app_name,
-                  app_id,
-                  partition_index,
-                  old_max_replica_count,
-                  new_max_replica_count,
-                  old_ballot,
-                  new_ballot);
-    }
+    dassert_f(old_ballot + 1 == new_ballot,
+              "invalid ballot while updating local max_replica_count: app_name={}, app_id={}, "
+              "partition_id={}, old_max_replica_count={}, new_max_replica_count={}, "
+              "old_ballot={}, new_ballot={}",
+              app->app_name,
+              app->app_id,
+              partition_index,
+              old_max_replica_count,
+              new_max_replica_count,
+              old_ballot,
+              new_ballot);
 
     std::string old_config_str(boost::lexical_cast<std::string>(old_partition_config));
     std::string new_config_str(boost::lexical_cast<std::string>(new_partition_config));
@@ -3597,45 +3596,11 @@ void server_state::update_partition_max_replica_count_locally(
     ddebug_f("local partition-level max_replica_count has been changed successfully: ",
              "app_name={}, app_id={}, partition_id={}, old_partition_config={}, "
              "new_partition_config={}",
-             app_name,
-             app_id,
+             app->app_name,
+             app->app_id,
              partition_index,
              old_config_str,
              new_config_str);
-}
-
-// ThreadPool: THREAD_POOL_META_STATE
-void server_state::update_next_partition_max_replica_count(
-    const app_state &app, int32_t partition_index, configuration_set_max_replica_count_rpc rpc)
-{
-    const auto next_partition_index = partition_index + 1;
-    const auto partition_count = static_cast<int32_t>(app.partitions.size());
-
-    if (next_partition_index >= partition_count) {
-        const auto new_max_replica_count = rpc.request().max_replica_count;
-
-        ddebug_f("all partitions have been changed to the new max_replica_count, ready to update "
-                 "the app-level max_replica_count: app_name={}, app_id={}, partition_id={}, "
-                 "partition_count={}, old_max_replica_count={}, new_max_replica_count={}",
-                 app.app_name,
-                 app.app_id,
-                 partition_index,
-                 partition_count,
-                 app.max_replica_count,
-                 new_max_replica_count);
-
-        // TODO: update app-level max_replica_count
-        auto &response = rpc.response();
-        response.err = ERR_OK;
-        return;
-    }
-
-    tasking::enqueue(LPC_META_STATE_HIGH,
-                     tracker(),
-                     [this, rpc, next_partition_index]() {
-                         update_partition_max_replica_count(next_partition_index, rpc);
-                     },
-                     server_state::sStateHash);
 }
 
 } // namespace replication

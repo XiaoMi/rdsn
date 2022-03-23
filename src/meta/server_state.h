@@ -313,22 +313,30 @@ private:
     bool check_max_replica_count_consistent(const std::shared_ptr<app_state> &app,
                                             Response &response) const;
 
-    void update_partition_max_replica_count(int partition_index,
-                                            configuration_set_max_replica_count_rpc rpc);
-
+    using partition_callback = std::function<void(error_code, int32_t)>;
+    void do_update_max_replica_count(std::shared_ptr<app_state> &app,
+                                     int32_t app_id,
+                                     int32_t partition_count,
+                                     configuration_set_max_replica_count_rpc rpc);
+    void update_all_partitions_max_replica_count(std::shared_ptr<app_state> &app,
+                                                 int32_t new_max_replica_count,
+                                                 partition_callback on_partition_updated);
+    void update_partition_max_replica_count(std::shared_ptr<app_state> app,
+                                            int32_t partition_index,
+                                            int32_t new_max_replica_count,
+                                            partition_callback on_partition_updated);
     task_ptr update_partition_max_replica_count_on_remote(
+        std::shared_ptr<app_state> app,
         const partition_configuration &new_partition_config,
-        configuration_set_max_replica_count_rpc rpc);
+        partition_callback on_partition_updated);
     void on_update_partition_max_replica_count_on_remote_reply(
         error_code ec,
+        std::shared_ptr<app_state> &app,
         const partition_configuration &new_partition_config,
-        configuration_set_max_replica_count_rpc rpc);
+        partition_callback on_partition_updated);
     void
-    update_partition_max_replica_count_locally(const partition_configuration &new_partition_config,
-                                               app_state &app);
-    void update_next_partition_max_replica_count(const app_state &app,
-                                                 int32_t partition_index,
-                                                 configuration_set_max_replica_count_rpc rpc);
+    update_partition_max_replica_count_locally(std::shared_ptr<app_state> &app,
+                                               const partition_configuration &new_partition_config);
 
     // Used for `on_start_manual_compaction`
     bool parse_compaction_envs(start_manual_compact_rpc rpc,
