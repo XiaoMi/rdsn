@@ -221,7 +221,8 @@ void load_from_private_log::replay_log_block()
             repeat();
             return;
         }
-    } else {
+    } else { // !err.is_ok() means that err.code() == ERR_HANDLE_EOF, the current file read
+             // completed and try next file
         switch_to_next_log_file();
     }
     // update last_decree even for empty batch.

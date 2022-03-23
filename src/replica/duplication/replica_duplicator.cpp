@@ -49,7 +49,9 @@ replica_duplicator::replica_duplicator(const duplication_entry &ent, replica *r)
         "initialize replica_duplicator [dupid:{}, meta_confirmed_decree:{}]", id(), it->second);
     thread_pool(LPC_REPLICATION_LOW).task_tracker(tracker()).thread_hash(get_gpid().thread_hash());
 
-    prepare_dup();
+    if (_status == duplication_status::DS_PREPARE) {
+        prepare_dup();
+    }
 }
 
 void replica_duplicator::prepare_dup()
