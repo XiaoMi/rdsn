@@ -44,6 +44,10 @@ public:
     void update_duplication_map(const std::map<int32_t, duplication_entry> &new_dup_map)
     {
         if (_replica->status() != partition_status::PS_PRIMARY || new_dup_map.empty()) {
+            dwarn_replica("remove all duplication since status may not be primary(current={}) or "
+                          "dup is empty({})",
+                          enum_to_string(_replica->status()),
+                          new_dup_map.empty());
             remove_all_duplications();
             return;
         }
