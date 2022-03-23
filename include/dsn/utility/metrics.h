@@ -17,8 +17,10 @@
 
 #pragma once
 
+#include <atomic>
 #include <mutex>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -41,14 +43,36 @@
 // To use the entity type, declare it at the top of any .h/.cpp file (not within any namespace):
 // METRIC_DECLARE_entity(my_entity);
 //
-// Instantiating the entity in whatever class represents the entity:
+// Instantiating the entity in whatever class represents it:
 // entity_instance = METRIC_ENTITY_my_entity.instantiate(my_entity_id, ...);
+//
+//
+// Example of defining and instantiating a metric
+// -----------------------------------------------------
+// Define an entity type at the top of your .cpp file (not within any namespace):
+// METRIC_DEFINE_gauge_int64(my_entity,
+//                           my_gauge_name,
+//                           dsn::metric_unit::kMilliSeconds,
+//                           "the description for my gauge");
+//
+// To use the metric prototype, declare it at the top of any .h/.cpp file (not within any
+// namespace):
+// METRIC_DECLARE_gauge_int64(my_gauge_name);
+//
+// Instantiating the metric in whatever class represents it with some initial arguments, if any:
+// metric_instance = METRIC_my_gauge_name.instantiate(entity_instance, ...);
 
-// Define a new entity type.
+// Convenient macros are provided to define entity types and metric prototypes.
 #define METRIC_DEFINE_entity(name) ::dsn::metric_entity_prototype METRIC_ENTITY_##name(#name)
+#define METRIC_DEFINE_gauge_int64(entity_type, name, unit, desc, ...)                              \
+    ::dsn::gauge_prototype<int64_t> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
+#define METRIC_DEFINE_gauge_double(entity_type, name, unit, desc, ...)                             \
+    ::dsn::gauge_prototype<double> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 // The following macros act as forward declarations for entity types and metric prototypes.
 #define METRIC_DECLARE_entity(name) extern ::dsn::metric_entity_prototype METRIC_ENTITY_##name
+#define METRIC_DECLARE_gauge_int64(name) extern ::dsn::gauge_prototype<int64_t> METRIC_##name
+#define METRIC_DECLARE_gauge_double(name) extern ::dsn::gauge_prototype<double> METRIC_##name
 
 namespace dsn {
 
@@ -222,6 +246,9 @@ private:
 // however, its lastest value is visible.
 class metric : public ref_counter
 {
+public:
+    const metric_prototype *prototype() const { return _prototype; }
+
 protected:
     explicit metric(const metric_prototype *prototype);
     virtual ~metric() = default;
@@ -231,5 +258,51 @@ protected:
 private:
     DISALLOW_COPY_AND_ASSIGN(metric);
 };
+
+// A gauge is an instantaneous measurement of a discrete value. It represents a single numerical
+// value that can arbitrarily go up and down. It's typically used for measured values like current
+// memory usage, the total capacity and available ratio of a disk, etc.
+template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+class gauge : public metric
+{
+public:
+    T value() const { return _value.load(std::memory_order_relaxed); }
+
+    void set(const T &val) { _value.store(val, std::memory_order_relaxed); }
+
+protected:
+    gauge(const metric_prototype *prototype, const T &initial_val)
+        : metric(prototype), _value(initial_val)
+    {
+    }
+
+    gauge(const metric_prototype *prototype);
+
+    virtual ~gauge() = default;
+
+private:
+    friend class metric_entity;
+    friend class ref_ptr<gauge<T>>;
+
+    std::atomic<T> _value;
+
+    DISALLOW_COPY_AND_ASSIGN(gauge);
+};
+
+template <>
+gauge<int64_t>::gauge(const metric_prototype *prototype) : gauge(prototype, 0)
+{
+}
+
+template <>
+gauge<double>::gauge(const metric_prototype *prototype) : gauge(prototype, 0.0)
+{
+}
+
+template <typename T>
+using gauge_ptr = ref_ptr<gauge<T>>;
+
+template <typename T>
+using gauge_prototype = metric_prototype_with<gauge<T>>;
 
 } // namespace dsn
