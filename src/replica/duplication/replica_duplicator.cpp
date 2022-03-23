@@ -190,13 +190,6 @@ error_s replica_duplicator::update_progress(const duplication_progress &p)
     _progress.last_decree = std::max(_progress.last_decree, p.last_decree);
     _progress.checkpoint_has_prepared = _start_point_decree <= _replica->last_durable_decree();
 
-    // todo(test)
-    if (!_progress.checkpoint_has_prepared) {
-        derror_replica("jiashuodebug: prepare not _start_point_decree({}) vs last_durable_decree({})", _start_point_decree, _replica->last_durable_decree());
-    } else {
-        derror_replica("jiashuodebug: prepare ok _start_point_decree({}) vs last_durable_decree({})", _start_point_decree, _replica->last_durable_decree());
-    }
-
     if (_progress.confirmed_decree > _progress.last_decree) {
         return FMT_ERR(ERR_INVALID_STATE,
                        "last_decree({}) should always larger than confirmed_decree({})",

@@ -221,11 +221,8 @@ void load_from_private_log::replay_log_block()
             repeat();
             return;
         }
-    } else if (switch_to_next_log_file()) {
-        // if !err.is_ok() means that err.code() == ERR_HANDLE_EOF, try switch_to_next_log_file
-        ddebug_replica("switch next plog file[{}]:{}", _current->index(), _current->path());
     }
-
+    switch_to_next_log_file();
     // update last_decree even for empty batch.
     // case1: err.is_ok(err.code() != ERR_HANDLE_EOF), but _mutation_batch.bytes() >=
     // FLAGS_duplicate_log_batch_bytes
