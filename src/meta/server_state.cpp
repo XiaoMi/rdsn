@@ -3219,7 +3219,6 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
 
         if (!check_max_replica_count_consistent(app, response)) {
             response.old_max_replica_count = 0;
-            response.hint_message = fmt::format("app({}) does not exist", app_name);
             derror_f("failed to set max_replica_count: app_name={}, app_id={}, error_code={}, "
                      "hint_message={}",
                      app_name,
