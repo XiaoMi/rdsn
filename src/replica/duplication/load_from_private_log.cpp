@@ -221,8 +221,9 @@ void load_from_private_log::replay_log_block()
             repeat();
             return;
         }
+    } else {
+        switch_to_next_log_file();
     }
-    switch_to_next_log_file();
     // update last_decree even for empty batch.
     // case1: err.is_ok(err.code() != ERR_HANDLE_EOF), but _mutation_batch.bytes() >=
     // FLAGS_duplicate_log_batch_bytes
