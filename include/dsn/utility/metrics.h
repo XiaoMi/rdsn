@@ -74,17 +74,21 @@
 // it's not updated very frequently. `counter2` uses concurrent_long_adder as the underlying
 // implementation. It has higher performance while comsuming more memory if it's updated very
 // frequently. See also include/dsn/utility/long_adder.h for details.
-#define METRIC_DEFINE_counter(entity_type, name, unit, desc, ...)   \
-    ::dsn::counter_prototype<striped_long_adder> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
-#define METRIC_DEFINE_counter2(entity_type, name, unit, desc, ...)   \
-    ::dsn::counter_prototype<concurrent_long_adder> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
+#define METRIC_DEFINE_counter(entity_type, name, unit, desc, ...)                                  \
+    ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name(                             \
+        {#entity_type, #name, unit, desc, ##__VA_ARGS__})
+#define METRIC_DEFINE_counter2(entity_type, name, unit, desc, ...)                                 \
+    ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name(                          \
+        {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 // The following macros act as forward declarations for entity types and metric prototypes.
 #define METRIC_DECLARE_entity(name) extern ::dsn::metric_entity_prototype METRIC_ENTITY_##name
 #define METRIC_DECLARE_gauge_int64(name) extern ::dsn::gauge_prototype<int64_t> METRIC_##name
 #define METRIC_DECLARE_gauge_double(name) extern ::dsn::gauge_prototype<double> METRIC_##name
-#define METRIC_DECLARE_counter(name) extern ::dsn::counter_prototype<striped_long_adder> METRIC_##name
-#define METRIC_DECLARE_counter2(name) extern ::dsn::counter_prototype<concurrent_long_adder> METRIC_##name
+#define METRIC_DECLARE_counter(name)                                                               \
+    extern ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name
+#define METRIC_DECLARE_counter2(name)                                                              \
+    extern ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name
 
 namespace dsn {
 
@@ -332,10 +336,7 @@ public:
     void reset() { _adder.reset(); }
 
 protected:
-    counter(const metric_prototype *prototype)
-        : metric(prototype)
-    {
-    }
+    counter(const metric_prototype *prototype) : metric(prototype) {}
 
     virtual ~counter() = default;
 

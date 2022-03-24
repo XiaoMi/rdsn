@@ -336,7 +336,7 @@ void execute(int64_t num_threads, std::function<void(int)> runner)
 {
     std::vector<std::thread> threads;
     for (int64_t i = 0; i < num_threads; i++) {
-        threads.emplace_back([i] () { runner(i); });
+        threads.emplace_back([i, &runner]() { runner(i); });
     }
     for (auto &t : threads) {
         t.join();
@@ -344,7 +344,11 @@ void execute(int64_t num_threads, std::function<void(int)> runner)
 }
 
 template <typename Adder>
-int64_t run_counter_increment_by(::dsn::counter_ptr<Adder> &my_metric, int64_t base_value, int64_t num_operations, int64_t num_threads)
+void run_counter_increment_by(::dsn::counter_ptr<Adder> &my_metric,
+                              int64_t base_value,
+                              int64_t num_operations,
+                              int64_t num_threads,
+                              int64_t &result)
 {
     std::vector<int64_t> deltas;
     int64_t n = num_operations * num_threads;
@@ -352,53 +356,57 @@ int64_t run_counter_increment_by(::dsn::counter_ptr<Adder> &my_metric, int64_t b
 
     int64_t expected_value = base_value;
     for (int64_t i = 0; i < n; ++i) {
-        auto delta = static_cast<int64_t>(dsn::rand::next_u64(1e6));
+        auto delta = static_cast<int64_t>(dsn::rand::next_u64(1000000));
         if (delta % 3 == 0) {
             delta = -delta;
         }
-        my_metric->increment_by(delta);
         expected_value += delta;
         deltas.push_back(delta);
     }
 
-    execute(num_threads,
-            [num_operations, &my_metric, &deltas] (int tid) mutable {
-                for (int64_t i = 0; i < num_operations; ++i) {
-                    my_metric->increment_by(deltas[tid * num_operations + i]);
-                }
-            });
+    execute(num_threads, [num_operations, &my_metric, &deltas](int tid) mutable {
+        for (int64_t i = 0; i < num_operations; ++i) {
+            my_metric->increment_by(deltas[tid * num_operations + i]);
+        }
+    });
     ASSERT_EQ(my_metric->value(), expected_value);
-    return expected_value;
+    result = expected_value;
 }
 
 template <typename Adder>
-int64_t run_counter_increment(::dsn::counter_ptr<Adder> &my_metric, int64_t base_value, int64_t num_operations, int64_t num_threads)
+void run_counter_increment(::dsn::counter_ptr<Adder> &my_metric,
+                           int64_t base_value,
+                           int64_t num_operations,
+                           int64_t num_threads,
+                           int64_t &result)
 {
-    execute(num_threads,
-            [num_operations, &my_metric] () mutable {
-                for (int64_t i = 0; i < num_operations; ++i) {
-                    my_metric->increment();
-                }
-            });
+    execute(num_threads, [num_operations, &my_metric](int) mutable {
+        for (int64_t i = 0; i < num_operations; ++i) {
+            my_metric->increment();
+        }
+    });
 
     int64_t expected_value = base_value + num_operations * num_threads;
     ASSERT_EQ(my_metric->value(), expected_value);
-    return expected_value;
+    result = expected_value;
 }
 
 template <typename Adder>
-int64_t run_counter_decrement(::dsn::counter_ptr<Adder> &my_metric, int64_t base_value, int64_t num_operations, int64_t num_threads)
+void run_counter_decrement(::dsn::counter_ptr<Adder> &my_metric,
+                           int64_t base_value,
+                           int64_t num_operations,
+                           int64_t num_threads,
+                           int64_t &result)
 {
-    execute(num_threads,
-            [num_operations, &my_metric] () mutable {
-                for (int64_t i = 0; i < num_operations; ++i) {
-                    my_metric->decrement();
-                }
-            });
+    execute(num_threads, [num_operations, &my_metric](int) mutable {
+        for (int64_t i = 0; i < num_operations; ++i) {
+            my_metric->decrement();
+        }
+    });
 
     int64_t expected_value = base_value - num_operations * num_threads;
     ASSERT_EQ(my_metric->value(), expected_value);
-    return expected_value;
+    result = expected_value;
 }
 
 template <typename Adder>
@@ -406,27 +414,25 @@ void run_counter_cases(::dsn::counter_prototype<Adder> *prototype, int64_t num_t
 {
     // Test cases:
     // - test the counter with small-scale computations
-    // - test the counter with large-scale computations 
+    // - test the counter with large-scale computations
     struct test_case
     {
         std::string entity_id;
         int64_t increments_by;
         int64_t increments;
         int64_t decrements;
-    } tests[] = {{"server_9", 100, 1000, 1000},
-                 {"server_10", 1e6, 1e7, 1e7}};
+    } tests[] = {{"server_9", 100, 1000, 1000}, {"server_10", 1000000, 10000000, 10000000}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
 
         auto my_metric = prototype->instantiate(my_server_entity);
 
-        ASSERT_EQ(my_metric->value(), 0);
-
-        int64_t base_value = 0;
-        base_value = run_counter_increment_by(my_metric, base_value, num_threads);
-        base_value = run_counter_increment(my_metric, base_value, num_threads);
-        (void)run_counter_decrement(my_metric, base_value, num_threads);
+        int64_t value = 0;
+        ASSERT_EQ(my_metric->value(), value);
+        run_counter_increment_by(my_metric, value, test.increments_by, num_threads, value);
+        run_counter_increment(my_metric, value, test.increments, num_threads, value);
+        run_counter_decrement(my_metric, value, test.decrements, num_threads, value);
 
         my_metric->reset();
         ASSERT_EQ(my_metric->value(), 0);
