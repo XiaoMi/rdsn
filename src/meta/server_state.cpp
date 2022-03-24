@@ -3199,7 +3199,6 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
     auto &response = rpc.response();
 
     int32_t app_id = 0;
-    int32_t partition_count = 0;
     std::shared_ptr<app_state> app;
 
     {
@@ -3241,8 +3240,6 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
                      response.hint_message);
             return;
         }
-
-        partition_count = app->partition_count;
     }
 
     auto level = _meta_svc->get_function_level();
@@ -3285,41 +3282,45 @@ void server_state::set_max_replica_count(configuration_set_max_replica_count_rpc
              response.old_max_replica_count,
              new_max_replica_count);
 
-    do_update_max_replica_count(app, app_id, partition_count, rpc);
+    do_update_max_replica_count(app, rpc);
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
 void server_state::do_update_max_replica_count(std::shared_ptr<app_state> &app,
-                                               int32_t app_id,
-                                               int32_t partition_count,
                                                configuration_set_max_replica_count_rpc rpc)
 {
-    std::shared_ptr<std::vector<error_code>> results(new std::vector<error_code>(partition_count));
-    std::shared_ptr<std::atomic_int> updates_in_progress(new std::atomic_int(partition_count));
-    auto on_partition_updated = [this, app_id, partition_count, rpc, results, updates_in_progress](
-        error_code ec, int32_t partition_index) {
+    std::shared_ptr<std::vector<error_code>> results;
+    {
+        zauto_write_lock l(_lock);
+
+        results.reset(new std::vector<error_code>(app->partition_count));
+        app->helpers->partitions_in_progress.store(app->partition_count);
+    }
+
+    auto on_partition_updated = [this, app, rpc, results](error_code ec,
+                                                          int32_t partition_index) mutable {
         const auto &app_name = rpc.request().app_name;
         const auto new_max_replica_count = rpc.request().max_replica_count;
 
         results->at(partition_index) = ec;
 
-        auto uncompleted = --(*updates_in_progress);
+        auto uncompleted = --app->helpers->partitions_in_progress;
         dassert_f(uncompleted >= 0,
                   "the uncompleted number should be >= 0 while updating partition-level"
                   "max_replica_count: uncompleted={}, app_name={}, app_id={}, "
                   "partition_index={}, partition_count={}, new_max_replica_count={}",
                   uncompleted,
                   app_name,
-                  app_id,
+                  app->app_id,
                   partition_index,
-                  partition_count,
+                  app->partition_count,
                   new_max_replica_count);
 
         if (uncompleted > 0) {
             return;
         }
 
-        for (int32_t i = 0; i < partition_count; ++i) {
+        for (int32_t i = 0; i < app->partition_count; ++i) {
             if (results->at(i) == ERR_OK) {
                 continue;
             }
@@ -3330,9 +3331,9 @@ void server_state::do_update_max_replica_count(std::shared_ptr<app_state> &app,
                       "partition_index={}, partition_count={}, new_max_replica_count={}",
                       ec.to_string(),
                       app_name,
-                      app_id,
+                      app->app_id,
                       i,
-                      partition_count,
+                      app->partition_count,
                       new_max_replica_count);
         }
 
@@ -3340,8 +3341,8 @@ void server_state::do_update_max_replica_count(std::shared_ptr<app_state> &app,
                  "the app-level max_replica_count: app_name={}, app_id={}, partition_count={}, "
                  "new_max_replica_count={}",
                  app_name,
-                 app_id,
-                 partition_count,
+                 app->app_id,
+                 app->partition_count,
                  new_max_replica_count);
 
         // TODO: update app-level max_replica_count
@@ -3349,19 +3350,13 @@ void server_state::do_update_max_replica_count(std::shared_ptr<app_state> &app,
         response.err = ERR_OK;
     };
 
-    const auto new_max_replica_count = rpc.request().max_replica_count;
-    update_all_partitions_max_replica_count(app, new_max_replica_count, on_partition_updated);
-}
+    {
+        const auto new_max_replica_count = rpc.request().max_replica_count;
 
-// ThreadPool: THREAD_POOL_META_STATE
-void server_state::update_all_partitions_max_replica_count(std::shared_ptr<app_state> &app,
-                                                           int32_t new_max_replica_count,
-                                                           partition_callback on_partition_updated)
-{
-    zauto_write_lock l(_lock);
-
-    for (int32_t i = 0; i < app->partition_count; ++i) {
-        update_partition_max_replica_count(app, i, new_max_replica_count, on_partition_updated);
+        zauto_write_lock l(_lock);
+        for (int32_t i = 0; i < app->partition_count; ++i) {
+            update_partition_max_replica_count(app, i, new_max_replica_count, on_partition_updated);
+        }
     }
 }
 

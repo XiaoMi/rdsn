@@ -315,12 +315,7 @@ private:
 
     using partition_callback = std::function<void(error_code, int32_t)>;
     void do_update_max_replica_count(std::shared_ptr<app_state> &app,
-                                     int32_t app_id,
-                                     int32_t partition_count,
                                      configuration_set_max_replica_count_rpc rpc);
-    void update_all_partitions_max_replica_count(std::shared_ptr<app_state> &app,
-                                                 int32_t new_max_replica_count,
-                                                 partition_callback on_partition_updated);
     void update_partition_max_replica_count(std::shared_ptr<app_state> &app,
                                             int32_t partition_index,
                                             int32_t new_max_replica_count,
