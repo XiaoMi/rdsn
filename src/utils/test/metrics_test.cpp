@@ -16,6 +16,10 @@
 // under the License.
 
 #include <dsn/utility/metrics.h>
+#include <dsn/utility/rand.h>
+
+#include <thread>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -81,6 +85,16 @@ METRIC_DEFINE_gauge_double(my_server,
                            test_gauge_double,
                            dsn::metric_unit::kSeconds,
                            "a server-level gauge of double type for test");
+
+METRIC_DEFINE_counter(my_server,
+                      test_counter,
+                      dsn::metric_unit::kRequests,
+                      "a server-level counter for test");
+
+METRIC_DEFINE_counter2(my_server,
+                       test_counter2,
+                       dsn::metric_unit::kSeconds,
+                       "a server-level counter2 for test");
 
 namespace dsn {
 
@@ -238,7 +252,6 @@ TEST(metrics_test, recreate_metric)
 
 TEST(metrics_test, gauge_int64)
 {
-
     // Test cases:
     // - create a gauge of int64 type without initial value, then increase
     // - create a gauge of int64 type without initial value, then decrease
@@ -280,7 +293,6 @@ TEST(metrics_test, gauge_int64)
 
 TEST(metrics_test, gauge_double)
 {
-
     // Test cases:
     // - create a gauge of double type without initial value, then increase
     // - create a gauge of double type without initial value, then decrease
@@ -313,11 +325,134 @@ TEST(metrics_test, gauge_double)
         ASSERT_DOUBLE_EQ(my_metric->value(), test.new_value);
 
         auto metrics = my_server_entity->metrics();
-        ASSERT_EQ(static_cast<metric *>(metrics[&METRIC_test_gauge_double].get()), my_metric.get());
+        ASSERT_EQ(metrics[&METRIC_test_gauge_double].get(), static_cast<metric *>(my_metric.get()));
 
         ASSERT_EQ(my_metric->prototype(),
                   static_cast<const metric_prototype *>(&METRIC_test_gauge_double));
     }
+}
+
+void execute(int64_t num_threads, std::function<void(int)> runner)
+{
+    std::vector<std::thread> threads;
+    for (int64_t i = 0; i < num_threads; i++) {
+        threads.emplace_back([i] () { runner(i); });
+    }
+    for (auto &t : threads) {
+        t.join();
+    }
+}
+
+template <typename Adder>
+int64_t run_counter_increment_by(::dsn::counter_ptr<Adder> &my_metric, int64_t base_value, int64_t num_operations, int64_t num_threads)
+{
+    std::vector<int64_t> deltas;
+    int64_t n = num_operations * num_threads;
+    deltas.reserve(n);
+
+    int64_t expected_value = base_value;
+    for (int64_t i = 0; i < n; ++i) {
+        auto delta = static_cast<int64_t>(dsn::rand::next_u64(1e6));
+        if (delta % 3 == 0) {
+            delta = -delta;
+        }
+        my_metric->increment_by(delta);
+        expected_value += delta;
+        deltas.push_back(delta);
+    }
+
+    execute(num_threads,
+            [num_operations, &my_metric, &deltas] (int tid) mutable {
+                for (int64_t i = 0; i < num_operations; ++i) {
+                    my_metric->increment_by(deltas[tid * num_operations + i]);
+                }
+            });
+    ASSERT_EQ(my_metric->value(), expected_value);
+    return expected_value;
+}
+
+template <typename Adder>
+int64_t run_counter_increment(::dsn::counter_ptr<Adder> &my_metric, int64_t base_value, int64_t num_operations, int64_t num_threads)
+{
+    execute(num_threads,
+            [num_operations, &my_metric] () mutable {
+                for (int64_t i = 0; i < num_operations; ++i) {
+                    my_metric->increment();
+                }
+            });
+
+    int64_t expected_value = base_value + num_operations * num_threads;
+    ASSERT_EQ(my_metric->value(), expected_value);
+    return expected_value;
+}
+
+template <typename Adder>
+int64_t run_counter_decrement(::dsn::counter_ptr<Adder> &my_metric, int64_t base_value, int64_t num_operations, int64_t num_threads)
+{
+    execute(num_threads,
+            [num_operations, &my_metric] () mutable {
+                for (int64_t i = 0; i < num_operations; ++i) {
+                    my_metric->decrement();
+                }
+            });
+
+    int64_t expected_value = base_value - num_operations * num_threads;
+    ASSERT_EQ(my_metric->value(), expected_value);
+    return expected_value;
+}
+
+template <typename Adder>
+void run_counter_cases(::dsn::counter_prototype<Adder> *prototype, int64_t num_threads)
+{
+    // Test cases:
+    // - test the counter with small-scale computations
+    // - test the counter with large-scale computations 
+    struct test_case
+    {
+        std::string entity_id;
+        int64_t increments_by;
+        int64_t increments;
+        int64_t decrements;
+    } tests[] = {{"server_9", 100, 1000, 1000},
+                 {"server_10", 1e6, 1e7, 1e7}};
+
+    for (const auto &test : tests) {
+        auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
+
+        auto my_metric = prototype->instantiate(my_server_entity);
+
+        ASSERT_EQ(my_metric->value(), 0);
+
+        int64_t base_value = 0;
+        base_value = run_counter_increment_by(my_metric, base_value, num_threads);
+        base_value = run_counter_increment(my_metric, base_value, num_threads);
+        (void)run_counter_decrement(my_metric, base_value, num_threads);
+
+        my_metric->reset();
+        ASSERT_EQ(my_metric->value(), 0);
+
+        auto metrics = my_server_entity->metrics();
+        ASSERT_EQ(metrics[prototype].get(), static_cast<metric *>(my_metric.get()));
+
+        ASSERT_EQ(my_metric->prototype(), prototype);
+    }
+}
+
+template <typename Adder>
+void run_counter_cases(::dsn::counter_prototype<Adder> *prototype)
+{
+    // Do single-threaded tests
+    run_counter_cases(prototype, 1);
+
+    // Do multi-threaded tests
+    run_counter_cases(prototype, 4);
+}
+
+TEST(metrics_test, counter)
+{
+    // Test both kinds of counter
+    run_counter_cases<striped_long_adder>(&METRIC_test_counter);
+    run_counter_cases<concurrent_long_adder>(&METRIC_test_counter2);
 }
 
 } // namespace dsn
