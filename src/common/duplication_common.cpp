@@ -28,7 +28,7 @@ namespace replication {
 DSN_DEFINE_uint32("replication",
                   duplicate_log_batch_bytes,
                   4096,
-                  "send mutation log batch KB size per rpc");
+                  "send mutation log batch bytes size per rpc");
 DSN_TAG_VARIABLE(duplicate_log_batch_bytes, FT_MUTABLE);
 
 const std::string duplication_constants::kDuplicationCheckpointRootDir /*NOLINT*/ = "duplication";
