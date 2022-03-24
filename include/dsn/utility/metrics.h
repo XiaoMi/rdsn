@@ -322,7 +322,9 @@ using gauge_ptr = ref_ptr<gauge<T>>;
 template <typename T>
 using gauge_prototype = metric_prototype_with<gauge<T>>;
 
-// All Counter metrics start out at 0.
+// A counter in essence is a 64-bit integer that can be incremented and decremented. It can be
+// used to measure the number of tasks in queues, current number of running manual compacts,
+// etc. All counters start out at 0.
 template <typename Adder = striped_long_adder>
 class counter : public metric
 {
