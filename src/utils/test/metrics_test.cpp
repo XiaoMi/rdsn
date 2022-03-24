@@ -93,7 +93,7 @@ METRIC_DEFINE_counter(my_server,
 
 METRIC_DEFINE_counter2(my_server,
                        test_counter2,
-                       dsn::metric_unit::kSeconds,
+                       dsn::metric_unit::kRequests,
                        "a server-level counter2 for test");
 
 namespace dsn {
