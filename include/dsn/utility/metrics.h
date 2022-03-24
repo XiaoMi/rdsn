@@ -69,10 +69,10 @@
     ::dsn::gauge_prototype<int64_t> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
 #define METRIC_DEFINE_gauge_double(entity_type, name, unit, desc, ...)                             \
     ::dsn::gauge_prototype<double> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
-// There are 2 kinds of Counter. `counter` is the general type of Counter that are implemented
+// There are 2 kinds of counters. `counter` is the general type of Counter that are implemented
 // by striped_long_adder, which can achieve high performance while consuming less memory if
 // it's not updated very frequently. `counter2` uses concurrent_long_adder as the underlying
-// implementation. It has higher performance while comsuming more memory if it's updated very
+// implementation. It has higher performance while consuming more memory if it's updated very
 // frequently. See also include/dsn/utility/long_adder.h for details.
 #define METRIC_DEFINE_counter(entity_type, name, unit, desc, ...)                                  \
     ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name(                             \
