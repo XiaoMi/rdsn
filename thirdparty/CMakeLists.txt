@@ -153,8 +153,8 @@ if (COMPILER_SUPPORTS_FORMAT_OVERFLOW)
     set(ZOOKEEPER_CFLAGS -Wno-error=format-overflow)
 endif ()
 ExternalProject_Add(zookeeper
-        URL https://dlcdn.apache.org/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0.tar.gz
-        https://dlcdn.apache.org/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0.tar.gz
+        URL http://jfrog.sensorsdata.cn:80/artifactory/dragon-internal/inf/skv/apache-zookeeper-3.7.0.tar.gz
+        https://archive.apache.org/dist/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0.tar.gz
         URL_MD5 44c2a33e01931aed94ef7f3d39d0963e
         CONFIGURE_COMMAND cd zookeeper-jute && mvn compile && cd ../zookeeper-client/zookeeper-client-c && autoreconf -if && CFLAGS=${ZOOKEEPER_CFLAGS} ./configure --disable-shared --prefix=${TP_OUTPUT} --enable-debug --with-pic=yes --with-sasl=${TP_OUTPUT}
         BUILD_COMMAND cd zookeeper-client/zookeeper-client-c && make
