@@ -461,6 +461,38 @@ TEST(metrics_test, counter)
     run_counter_cases<concurrent_long_adder>(&METRIC_test_concurrent_counter);
 }
 
+template <typename Adder>
+void run_volatile_counter_fetch_and_reset(::dsn::volatile_counter_ptr<Adder> &my_metric,
+                                          int64_t num_operations,
+                                          int64_t num_threads)
+{
+    std::vector<int64_t> deltas;
+    int64_t n = num_operations * num_threads;
+    deltas.reserve(n);
+
+    int64_t expected_value = base_value;
+    for (int64_t i = 0; i < n; ++i) {
+        auto delta = static_cast<int64_t>(dsn::rand::next_u64(1000000));
+        if (delta % 3 == 0) {
+            delta = -delta;
+        }
+        expected_value += delta;
+        deltas.push_back(delta);
+    }
+
+    std::vector<int64_t> results(num_threads, 0);
+
+    ASSERT_EQ(my_metric->value(), 0);
+
+    execute(num_threads, [num_operations, &my_metric, &deltas](int tid) mutable {
+        for (int64_t i = 0; i < num_operations; ++i) {
+            my_metric->increment_by(deltas[tid * num_operations + i]);
+        }
+    });
+    ASSERT_EQ(my_metric->value(), expected_value);
+    result = expected_value;
+}
+
 TEST(metrics_test, volatile_counter)
 {
 }
