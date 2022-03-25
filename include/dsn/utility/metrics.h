@@ -27,6 +27,7 @@
 #include <dsn/utility/autoref_ptr.h>
 #include <dsn/utility/casts.h>
 #include <dsn/utility/enum_helper.h>
+#include <dsn/utility/long_adder.h>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/singleton.h>
 #include <dsn/utility/string_view.h>
@@ -68,11 +69,27 @@
     ::dsn::gauge_prototype<int64_t> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
 #define METRIC_DEFINE_gauge_double(entity_type, name, unit, desc, ...)                             \
     ::dsn::gauge_prototype<double> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
+// There are 2 kinds of counters:
+// - `counter` is the general type of counter that is implemented by striped_long_adder, which can
+//   achieve high performance while consuming less memory if it's not updated very frequently.
+// - `concurrent_counter` uses concurrent_long_adder as the underlying implementation. It has
+//   higher performance while consuming more memory if it's updated very frequently.
+// See also include/dsn/utility/long_adder.h for details.
+#define METRIC_DEFINE_counter(entity_type, name, unit, desc, ...)                                  \
+    ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name(                             \
+        {#entity_type, #name, unit, desc, ##__VA_ARGS__})
+#define METRIC_DEFINE_concurrent_counter(entity_type, name, unit, desc, ...)                       \
+    ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name(                          \
+        {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 // The following macros act as forward declarations for entity types and metric prototypes.
 #define METRIC_DECLARE_entity(name) extern ::dsn::metric_entity_prototype METRIC_ENTITY_##name
 #define METRIC_DECLARE_gauge_int64(name) extern ::dsn::gauge_prototype<int64_t> METRIC_##name
 #define METRIC_DECLARE_gauge_double(name) extern ::dsn::gauge_prototype<double> METRIC_##name
+#define METRIC_DECLARE_counter(name)                                                               \
+    extern ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name
+#define METRIC_DECLARE_concurrent_counter(name)                                                    \
+    extern ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name
 
 namespace dsn {
 
@@ -176,6 +193,7 @@ enum class metric_unit
     kMicroSeconds,
     kMilliSeconds,
     kSeconds,
+    kRequests,
     kInvalidUnit,
 };
 
@@ -304,5 +322,41 @@ using gauge_ptr = ref_ptr<gauge<T>>;
 
 template <typename T>
 using gauge_prototype = metric_prototype_with<gauge<T>>;
+
+// A counter in essence is a 64-bit integer that can be incremented and decremented. It can be
+// used to measure the number of tasks in queues, current number of running manual compacts,
+// etc. All counters start out at 0.
+template <typename Adder = striped_long_adder>
+class counter : public metric
+{
+public:
+    int64_t value() const { return _adder.value(); }
+
+    void increment_by(int64_t x) { _adder.increment_by(x); }
+    void increment() { _adder.increment(); }
+    void decrement() { _adder.decrement(); }
+
+    void reset() { _adder.reset(); }
+
+protected:
+    counter(const metric_prototype *prototype) : metric(prototype) {}
+
+    virtual ~counter() = default;
+
+private:
+    friend class metric_entity;
+    friend class ref_ptr<counter<Adder>>;
+
+    long_adder_wrapper<Adder> _adder;
+
+    DISALLOW_COPY_AND_ASSIGN(counter);
+};
+
+template <typename Adder = striped_long_adder>
+using counter_ptr = ref_ptr<counter<Adder>>;
+using concurrent_counter_ptr = counter_ptr<concurrent_long_adder>;
+
+template <typename Adder = striped_long_adder>
+using counter_prototype = metric_prototype_with<counter<Adder>>;
 
 } // namespace dsn
