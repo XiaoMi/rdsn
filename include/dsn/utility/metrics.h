@@ -81,6 +81,12 @@
 #define METRIC_DEFINE_concurrent_counter(entity_type, name, unit, desc, ...)                       \
     ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name(                          \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
+#define METRIC_DEFINE_volatile_counter(entity_type, name, unit, desc, ...)                         \
+    ::dsn::volatile_counter_prototype<::dsn::striped_long_adder> METRIC_##name(                    \
+        {#entity_type, #name, unit, desc, ##__VA_ARGS__})
+#define METRIC_DEFINE_concurrent_volatile_counter(entity_type, name, unit, desc, ...)              \
+    ::dsn::volatile_counter_prototype<::dsn::concurrent_long_adder> METRIC_##name(                 \
+        {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 // The following macros act as forward declarations for entity types and metric prototypes.
 #define METRIC_DECLARE_entity(name) extern ::dsn::metric_entity_prototype METRIC_ENTITY_##name
@@ -90,6 +96,10 @@
     extern ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name
 #define METRIC_DECLARE_concurrent_counter(name)                                                    \
     extern ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name
+#define METRIC_DECLARE_volatile_counter(name)                                                      \
+    extern ::dsn::volatile_counter_prototype<::dsn::striped_long_adder> METRIC_##name
+#define METRIC_DECLARE_concurrent_volatile_counter(name)                                           \
+    extern ::dsn::volatile_counter_prototype<::dsn::concurrent_long_adder> METRIC_##name
 
 namespace dsn {
 
@@ -343,11 +353,11 @@ protected:
 
     virtual ~counter() = default;
 
+    long_adder_wrapper<Adder> _adder;
+
 private:
     friend class metric_entity;
     friend class ref_ptr<counter<Adder>>;
-
-    long_adder_wrapper<Adder> _adder;
 
     DISALLOW_COPY_AND_ASSIGN(counter);
 };
@@ -358,5 +368,30 @@ using concurrent_counter_ptr = counter_ptr<concurrent_long_adder>;
 
 template <typename Adder = striped_long_adder>
 using counter_prototype = metric_prototype_with<counter<Adder>>;
+
+template <typename Adder = striped_long_adder>
+class volatile_counter : public counter<Adder>
+{
+public:
+    int64_t value() { return _adder.fetch_and_reset(); }
+
+protected:
+    volatile_counter(const metric_prototype *prototype) : metric(prototype) {}
+
+    virtual ~volatile_counter() = default;
+
+private:
+    friend class metric_entity;
+    friend class ref_ptr<volatile_counter<Adder>>;
+
+    DISALLOW_COPY_AND_ASSIGN(volatile_counter);
+};
+
+template <typename Adder = striped_long_adder>
+using volatile_counter_ptr = ref_ptr<volatile_counter<Adder>>;
+using concurrent_volatile_counter_ptr = volatile_counter_ptr<concurrent_long_adder>;
+
+template <typename Adder = striped_long_adder>
+using volatile_counter_prototype = metric_prototype_with<volatile_counter<Adder>>;
 
 } // namespace dsn

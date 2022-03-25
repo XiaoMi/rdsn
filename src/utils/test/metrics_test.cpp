@@ -461,4 +461,8 @@ TEST(metrics_test, counter)
     run_counter_cases<concurrent_long_adder>(&METRIC_test_concurrent_counter);
 }
 
+TEST(metrics_test, volatile_counter)
+{
+}
+
 } // namespace dsn
