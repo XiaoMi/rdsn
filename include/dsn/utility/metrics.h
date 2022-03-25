@@ -72,13 +72,13 @@
 // There are 2 kinds of counters:
 // - `counter` is the general type of counter that is implemented by striped_long_adder, which can
 //   achieve high performance while consuming less memory if it's not updated very frequently.
-// - `counter_concurrent` uses concurrent_long_adder as the underlying implementation. It has
+// - `concurrent_counter` uses concurrent_long_adder as the underlying implementation. It has
 //   higher performance while consuming more memory if it's updated very frequently.
 // See also include/dsn/utility/long_adder.h for details.
 #define METRIC_DEFINE_counter(entity_type, name, unit, desc, ...)                                  \
     ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name(                             \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
-#define METRIC_DEFINE_counter_concurrent(entity_type, name, unit, desc, ...)                       \
+#define METRIC_DEFINE_concurrent_counter(entity_type, name, unit, desc, ...)                       \
     ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name(                          \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
@@ -88,7 +88,7 @@
 #define METRIC_DECLARE_gauge_double(name) extern ::dsn::gauge_prototype<double> METRIC_##name
 #define METRIC_DECLARE_counter(name)                                                               \
     extern ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name
-#define METRIC_DECLARE_counter_concurrent(name)                                                    \
+#define METRIC_DECLARE_concurrent_counter(name)                                                    \
     extern ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name
 
 namespace dsn {
@@ -354,7 +354,7 @@ private:
 
 template <typename Adder = striped_long_adder>
 using counter_ptr = ref_ptr<counter<Adder>>;
-using counter_concurrent_ptr = counter_ptr<concurrent_long_adder>;
+using concurrent_counter_ptr = counter_ptr<concurrent_long_adder>;
 
 template <typename Adder = striped_long_adder>
 using counter_prototype = metric_prototype_with<counter<Adder>>;

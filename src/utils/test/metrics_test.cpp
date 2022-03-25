@@ -91,10 +91,10 @@ METRIC_DEFINE_counter(my_server,
                       dsn::metric_unit::kRequests,
                       "a server-level counter for test");
 
-METRIC_DEFINE_counter_concurrent(my_server,
-                                 test_counter_concurrent,
+METRIC_DEFINE_concurrent_counter(my_server,
+                                 test_concurrent_counter,
                                  dsn::metric_unit::kRequests,
-                                 "a server-level counter_concurrent for test");
+                                 "a server-level concurrent_counter for test");
 
 namespace dsn {
 
@@ -458,7 +458,7 @@ TEST(metrics_test, counter)
 {
     // Test both kinds of counter
     run_counter_cases<striped_long_adder>(&METRIC_test_counter);
-    run_counter_cases<concurrent_long_adder>(&METRIC_test_counter_concurrent);
+    run_counter_cases<concurrent_long_adder>(&METRIC_test_concurrent_counter);
 }
 
 } // namespace dsn
