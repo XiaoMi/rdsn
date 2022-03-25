@@ -69,15 +69,16 @@
     ::dsn::gauge_prototype<int64_t> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
 #define METRIC_DEFINE_gauge_double(entity_type, name, unit, desc, ...)                             \
     ::dsn::gauge_prototype<double> METRIC_##name({#entity_type, #name, unit, desc, ##__VA_ARGS__})
-// There are 2 kinds of counters. `counter` is the general type of counter that are implemented
-// by striped_long_adder, which can achieve high performance while consuming less memory if
-// it's not updated very frequently. `counter2` uses concurrent_long_adder as the underlying
-// implementation. It has higher performance while consuming more memory if it's updated very
-// frequently. See also include/dsn/utility/long_adder.h for details.
+// There are 2 kinds of counters:
+// - `counter` is the general type of counter that is implemented by striped_long_adder, which can
+//   achieve high performance while consuming less memory if it's not updated very frequently.
+// - `counter_concurrent` uses concurrent_long_adder as the underlying implementation. It has
+//   higher performance while consuming more memory if it's updated very frequently.
+// See also include/dsn/utility/long_adder.h for details.
 #define METRIC_DEFINE_counter(entity_type, name, unit, desc, ...)                                  \
     ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name(                             \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
-#define METRIC_DEFINE_counter2(entity_type, name, unit, desc, ...)                                 \
+#define METRIC_DEFINE_counter_concurrent(entity_type, name, unit, desc, ...)                       \
     ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name(                          \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
@@ -87,7 +88,7 @@
 #define METRIC_DECLARE_gauge_double(name) extern ::dsn::gauge_prototype<double> METRIC_##name
 #define METRIC_DECLARE_counter(name)                                                               \
     extern ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name
-#define METRIC_DECLARE_counter2(name)                                                              \
+#define METRIC_DECLARE_counter_concurrent(name)                                                    \
     extern ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name
 
 namespace dsn {
@@ -353,6 +354,7 @@ private:
 
 template <typename Adder = striped_long_adder>
 using counter_ptr = ref_ptr<counter<Adder>>;
+using counter_concurrent_ptr = counter_ptr<concurrent_long_adder>;
 
 template <typename Adder = striped_long_adder>
 using counter_prototype = metric_prototype_with<counter<Adder>>;
