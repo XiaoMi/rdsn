@@ -96,6 +96,16 @@ METRIC_DEFINE_concurrent_counter(my_server,
                                  dsn::metric_unit::kRequests,
                                  "a server-level concurrent_counter for test");
 
+METRIC_DEFINE_volatile_counter(my_server,
+                      test_volatile_counter,
+                      dsn::metric_unit::kRequests,
+                      "a server-level volatile_counter for test");
+
+METRIC_DEFINE_concurrent_volatile_counter(my_server,
+                                 test_concurrent_volatile_counter,
+                                 dsn::metric_unit::kRequests,
+                                 "a server-level concurrent_volatile_counter for test");
+
 namespace dsn {
 
 TEST(metrics_test, create_entity)
@@ -464,13 +474,14 @@ TEST(metrics_test, counter)
 template <typename Adder>
 void run_volatile_counter_fetch_and_reset(::dsn::volatile_counter_ptr<Adder> &my_metric,
                                           int64_t num_operations,
-                                          int64_t num_threads)
+                                          int64_t num_threads_increment_by,
+                                          int64_t num_threads_fetch_and_set)
 {
     std::vector<int64_t> deltas;
-    int64_t n = num_operations * num_threads;
+    int64_t n = num_operations * num_threads_increment_by;
     deltas.reserve(n);
 
-    int64_t expected_value = base_value;
+    int64_t expected_value = 0;
     for (int64_t i = 0; i < n; ++i) {
         auto delta = static_cast<int64_t>(dsn::rand::next_u64(1000000));
         if (delta % 3 == 0) {
@@ -480,21 +491,95 @@ void run_volatile_counter_fetch_and_reset(::dsn::volatile_counter_ptr<Adder> &my
         deltas.push_back(delta);
     }
 
-    std::vector<int64_t> results(num_threads, 0);
+    auto results = new_cacheline_aligned_int64_array(static_cast<uint32_t>(num_threads_fetch_and_set));
+    std::vector<std::atomic_bool> completed(num_threads_increment_by, std::atomic_bool(false));
 
     ASSERT_EQ(my_metric->value(), 0);
 
-    execute(num_threads, [num_operations, &my_metric, &deltas](int tid) mutable {
-        for (int64_t i = 0; i < num_operations; ++i) {
-            my_metric->increment_by(deltas[tid * num_operations + i]);
+    execute(num_threads_increment_by + num_threads_fetch_and_set, [num_operations, num_threads_increment_by, &my_metric, &deltas, &results, &completed](int tid) mutable {
+        if (tid < num_threads_increment_by) {
+            for (int64_t i = 0; i < num_operations; ++i) {
+                my_metric->increment_by(deltas[tid * num_operations + i]);
+            }
+            completed[tid].store(true);
+        } else {
+            bool done = false;
+            do {
+                int64_t i = 0;
+                for (; i < num_threads_increment_by && completed[i].load(); ++i) {}
+                if (i >= num_threads_increment_by) {
+                    done = true;
+                }
+
+                auto value = my_metric->value();
+                if (value == 0) {
+                    std::this_thread::yield();
+                } else {
+                    auto r = results.get();
+                    r[tid - num_threads_increment_by]._value += value;
+                }
+            } while(!done);
         }
     });
-    ASSERT_EQ(my_metric->value(), expected_value);
-    result = expected_value;
+
+    int64_t value = 0;
+    for (int64_t i = 0; i < num_threads_fetch_and_set; ++i) {
+        value += results.get()[i].load();
+    }
+    ASSERT_EQ(value, expected_value);
+    ASSERT_EQ(my_metric->value(), 0);
+}
+
+template <typename Adder>
+void run_volatile_counter_fetch_and_reset_cases(::dsn::volatile_counter_prototype<Adder> *prototype, 
+                                          int64_t num_threads_increment_by,
+                                          int64_t num_threads_fetch_and_set)
+{
+    // Test cases:
+    // - test the volatile counter with small-scale computations
+    // - test the volatile counter with large-scale computations
+    struct test_case
+    {
+        std::string entity_id;
+        int64_t num_operations;
+    } tests[] = {{"server_11", 10000}, {"server_12", 10000000}};
+
+    for (const auto &test : tests) {
+        auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
+
+        auto my_metric = prototype->instantiate(my_server_entity);
+
+        run_volatile_counter_fetch_and_reset(my_metric, test.num_operations,
+                num_threads_increment_by, num_threads_fetch_and_set);
+
+        auto metrics = my_server_entity->metrics();
+        ASSERT_EQ(metrics[prototype].get(), static_cast<metric *>(my_metric.get()));
+
+        ASSERT_EQ(my_metric->prototype(), prototype);
+    }
+}
+
+template <typename Adder>
+void run_volatile_counter_cases(::dsn::volatile_counter_prototype<Adder> *prototype)
+{
+    // Set with single thread and get with single thread
+    run_volatile_counter_fetch_and_reset_cases(prototype, 1, 1);
+
+    // Set with multiple threads and get with single thread 
+    run_volatile_counter_fetch_and_reset_cases(prototype, 2, 1);
+
+    // set with single thread and get with multiple threads
+    run_volatile_counter_fetch_and_reset_cases(prototype, 1, 2);
+
+    // set with multiple threads and get with multiple threads
+    run_volatile_counter_fetch_and_reset_cases(prototype, 4, 2);
 }
 
 TEST(metrics_test, volatile_counter)
 {
+    // Test both kinds of volatile counter
+    run_volatile_counter_fetch_and_reset_cases<striped_long_adder>(&METRIC_test_volatile_counter);
+    run_volatile_counter_fetch_and_reset_cases<concurrent_long_adder>(&METRIC_test_concurrent_volatile_counter);
 }
 
 } // namespace dsn
