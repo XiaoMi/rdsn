@@ -373,10 +373,10 @@ template <typename Adder = striped_long_adder>
 class volatile_counter : public counter<Adder>
 {
 public:
-    int64_t value() { return _adder.fetch_and_reset(); }
+    int64_t value() { return counter<Adder>::_adder.fetch_and_reset(); }
 
 protected:
-    volatile_counter(const metric_prototype *prototype) : metric(prototype) {}
+    volatile_counter(const metric_prototype *prototype) : counter<Adder>(prototype) {}
 
     virtual ~volatile_counter() = default;
 
