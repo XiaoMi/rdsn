@@ -493,10 +493,9 @@ void run_volatile_counter_fetch_and_reset(::dsn::volatile_counter_ptr<Adder> &my
 
     auto results =
         new_cacheline_aligned_int64_array(static_cast<uint32_t>(num_threads_fetch_and_set));
-    std::vector<std::atomic_bool> completed;
-    // completed.reserve(num_threads_increment_by);
+    std::vector<std::atomic_bool> completed(num_threads_increment_by);
     for (int64_t i = 0; i < num_threads_increment_by; ++i) {
-        completed.emplace_back(false);
+        completed[i].store(false);
     }
 
     ASSERT_EQ(my_metric->value(), 0);
@@ -587,8 +586,7 @@ TEST(metrics_test, volatile_counter)
 {
     // Test both kinds of volatile counter
     run_volatile_counter_cases<striped_long_adder>(&METRIC_test_volatile_counter);
-    run_volatile_counter_cases<concurrent_long_adder>(
-        &METRIC_test_concurrent_volatile_counter);
+    run_volatile_counter_cases<concurrent_long_adder>(&METRIC_test_concurrent_volatile_counter);
 }
 
 } // namespace dsn
