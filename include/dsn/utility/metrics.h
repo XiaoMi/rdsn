@@ -374,7 +374,7 @@ using counter_prototype = metric_prototype_with<counter<Adder>>;
 // The reason why the volatile counter is introduced is that sometimes "recent" counters are
 // needed, such as the number of recent failed beacons sent from replica server, the count of
 // updating configurations of partitions recently, etc. The "recent" can be considered to be
-// the accumulated count since it's fetched last.
+// the accumulated count since it has been fetched last.
 template <typename Adder = striped_long_adder>
 class volatile_counter : public counter<Adder>
 {
