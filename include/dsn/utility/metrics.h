@@ -369,11 +369,17 @@ using concurrent_counter_ptr = counter_ptr<concurrent_long_adder>;
 template <typename Adder = striped_long_adder>
 using counter_prototype = metric_prototype_with<counter<Adder>>;
 
+// A volatile counter is nearly the same as a counter, except that fetch_and_reset() is provided
+// to reset the counter atomically after its value is fetched.
+// The reason why the volatile counter is introduced is that sometimes "recent" counters are
+// needed, such as the number of recent failed beacons sent from replica server, the count of
+// updating configurations of partitions recently, etc. The "recent" can be considered to be
+// the accumulated count since it's fetched last.
 template <typename Adder = striped_long_adder>
 class volatile_counter : public counter<Adder>
 {
 public:
-    int64_t value() { return counter<Adder>::_adder.fetch_and_reset(); }
+    int64_t fetch_and_reset() { return counter<Adder>::_adder.fetch_and_reset(); }
 
 protected:
     volatile_counter(const metric_prototype *prototype) : counter<Adder>(prototype) {}

@@ -472,7 +472,7 @@ TEST(metrics_test, counter)
 }
 
 template <typename Adder>
-void run_volatile_counter_fetch_and_reset(::dsn::volatile_counter_ptr<Adder> &my_metric,
+void run_volatile_counter_fetch_and_reset(dsn::volatile_counter_ptr<Adder> &my_metric,
                                           int64_t num_operations,
                                           int64_t num_threads_increment_by,
                                           int64_t num_threads_fetch_and_set)
@@ -499,6 +499,7 @@ void run_volatile_counter_fetch_and_reset(::dsn::volatile_counter_ptr<Adder> &my
     }
 
     ASSERT_EQ(my_metric->value(), 0);
+    ASSERT_EQ(my_metric->fetch_and_reset(), 0);
 
     execute(num_threads_increment_by + num_threads_fetch_and_set,
             [num_operations, num_threads_increment_by, &my_metric, &deltas, &results, &completed](
@@ -515,11 +516,15 @@ void run_volatile_counter_fetch_and_reset(::dsn::volatile_counter_ptr<Adder> &my
                         for (; i < num_threads_increment_by && completed[i].load(); ++i) {
                         }
                         if (i >= num_threads_increment_by) {
+                            // All of the increment threads have finished, thus the loop can
+                            // be broken after the last time the value is fetched.
                             done = true;
                         }
 
-                        auto value = my_metric->value();
+                        auto value = my_metric->fetch_and_reset();
                         if (value == 0) {
+                            // If zero is fetched, it's likely that recently the counter is
+                            // not updated frequently. Thus yield and try for the next time.
                             std::this_thread::yield();
                         } else {
                             auto r = results.get();
@@ -535,10 +540,11 @@ void run_volatile_counter_fetch_and_reset(::dsn::volatile_counter_ptr<Adder> &my
     }
     ASSERT_EQ(value, expected_value);
     ASSERT_EQ(my_metric->value(), 0);
+    ASSERT_EQ(my_metric->fetch_and_reset(), 0);
 }
 
 template <typename Adder>
-void run_volatile_counter_fetch_and_reset_cases(::dsn::volatile_counter_prototype<Adder> *prototype,
+void run_volatile_counter_fetch_and_reset_cases(dsn::volatile_counter_prototype<Adder> *prototype,
                                                 int64_t num_threads_increment_by,
                                                 int64_t num_threads_fetch_and_set)
 {
@@ -549,7 +555,7 @@ void run_volatile_counter_fetch_and_reset_cases(::dsn::volatile_counter_prototyp
     {
         std::string entity_id;
         int64_t num_operations;
-    } tests[] = {{"server_11", 10000}, {"server_12", 10000000}};
+    } tests[] = {{"server_11", 5000}, {"server_12", 5000000}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
@@ -567,7 +573,7 @@ void run_volatile_counter_fetch_and_reset_cases(::dsn::volatile_counter_prototyp
 }
 
 template <typename Adder>
-void run_volatile_counter_cases(::dsn::volatile_counter_prototype<Adder> *prototype)
+void run_volatile_counter_cases(dsn::volatile_counter_prototype<Adder> *prototype)
 {
     // Set with single thread and get with single thread
     run_volatile_counter_fetch_and_reset_cases(prototype, 1, 1);
@@ -575,10 +581,10 @@ void run_volatile_counter_cases(::dsn::volatile_counter_prototype<Adder> *protot
     // Set with multiple threads and get with single thread
     run_volatile_counter_fetch_and_reset_cases(prototype, 2, 1);
 
-    // set with single thread and get with multiple threads
+    // Set with single thread and get with multiple threads
     run_volatile_counter_fetch_and_reset_cases(prototype, 1, 2);
 
-    // set with multiple threads and get with multiple threads
+    // Set with multiple threads and get with multiple threads
     run_volatile_counter_fetch_and_reset_cases(prototype, 4, 2);
 }
 
