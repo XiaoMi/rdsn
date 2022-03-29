@@ -80,6 +80,7 @@ public:
         req->app_name = app_name;
         req->__set_status(status);
 
+
         duplication_modify_rpc rpc(std::move(req), RPC_CM_MODIFY_DUPLICATION);
         dup_svc().modify_duplication(rpc);
         wait_all();
