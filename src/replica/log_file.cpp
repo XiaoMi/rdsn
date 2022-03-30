@@ -25,11 +25,14 @@
  */
 
 #include "log_file.h"
-#include "log_file_stream.h"
+
+#include <fcntl.h>
 
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/crc.h>
 #include <dsn/dist/fmt_logging.h>
+
+#include "log_file_stream.h"
 
 namespace dsn {
 namespace replication {
@@ -281,8 +284,7 @@ aio_task_ptr log_file::commit_log_blocks(log_appender &pending,
 
         for (int i = 0; i < block.data().size(); i++) {
             auto &blk = block.data()[i];
-            buffer_vector[buffer_idx].buffer =
-                reinterpret_cast<void *>(const_cast<char *>(blk.data()));
+            buffer_vector[buffer_idx].buffer = static_cast<void *>(const_cast<char *>(blk.data()));
             buffer_vector[buffer_idx].size = blk.length();
 
             // skip block header

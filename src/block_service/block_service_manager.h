@@ -28,8 +28,11 @@ namespace block_service {
 // a singleton for rDSN service_engine to register all blocks, this should be called only once
 class block_service_registry : public utils::singleton<block_service_registry>
 {
-public:
+private:
     block_service_registry();
+    ~block_service_registry() = default;
+
+    friend class utils::singleton<block_service_registry>;
 };
 
 // this should be shared within a service node
@@ -53,6 +56,13 @@ public:
     // NOTE: This function is not responsible for the correctness of the downloaded file.
     // The file may be half-downloaded or corrupted due to disk failure.
     // The users can compare checksums, and retry download if validation failed.
+    error_code download_file(const std::string &remote_dir,
+                             const std::string &local_dir,
+                             const std::string &file_name,
+                             block_filesystem *fs,
+                             /*out*/ uint64_t &download_file_size,
+                             /*out*/ std::string &download_file_md5);
+
     error_code download_file(const std::string &remote_dir,
                              const std::string &local_dir,
                              const std::string &file_name,

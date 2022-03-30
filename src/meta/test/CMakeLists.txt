@@ -34,7 +34,7 @@ set(MY_PROJ_LIBS
         crypto
         gtest
         ssl
-        )
+        hdfs)
 
 set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)
 

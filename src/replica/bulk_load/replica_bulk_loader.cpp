@@ -271,7 +271,8 @@ error_code replica_bulk_loader::do_bulk_load(const std::string &app_name,
         }
         break;
     case bulk_load_status::BLS_SUCCEED:
-        if (local_status == bulk_load_status::BLS_INGESTING) {
+        if (local_status == bulk_load_status::BLS_DOWNLOADED ||
+            local_status == bulk_load_status::BLS_INGESTING) {
             handle_bulk_load_succeed();
         } else if (local_status == bulk_load_status::BLS_SUCCEED ||
                    local_status == bulk_load_status::BLS_INVALID) {
@@ -303,8 +304,7 @@ replica_bulk_loader::validate_status(const bulk_load_status::type meta_status,
     case bulk_load_status::BLS_DOWNLOADING:
         if (local_status == bulk_load_status::BLS_FAILED ||
             local_status == bulk_load_status::BLS_PAUSING ||
-            local_status == bulk_load_status::BLS_CANCELED ||
-            local_status == bulk_load_status::BLS_SUCCEED) {
+            local_status == bulk_load_status::BLS_CANCELED) {
             err = ERR_INVALID_STATE;
         }
         break;
@@ -320,7 +320,8 @@ replica_bulk_loader::validate_status(const bulk_load_status::type meta_status,
         }
         break;
     case bulk_load_status::BLS_SUCCEED:
-        if (local_status != bulk_load_status::BLS_INGESTING &&
+        if (local_status != bulk_load_status::BLS_DOWNLOADED &&
+            local_status != bulk_load_status::BLS_INGESTING &&
             local_status != bulk_load_status::BLS_SUCCEED &&
             local_status != bulk_load_status::BLS_INVALID) {
             err = ERR_INVALID_STATE;
@@ -452,12 +453,16 @@ void replica_bulk_loader::download_sst_file(const std::string &remote_dir,
                                             dist::block_service::block_filesystem *fs)
 {
     uint64_t f_size = 0;
-    error_code ec =
-        _stub->_block_service_manager.download_file(remote_dir, local_dir, f_meta.name, fs, f_size);
+    std::string f_md5;
+    error_code ec = _stub->_block_service_manager.download_file(
+        remote_dir, local_dir, f_meta.name, fs, f_size, f_md5);
     const std::string &file_name = utils::filesystem::path_combine(local_dir, f_meta.name);
     bool verified = false;
     if (ec == ERR_PATH_ALREADY_EXIST) {
-        if (utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
+        // We are not sure if the file was cached by system. And we couldn't
+        // afford the io overhead which is cased by reading file in verify_file(),
+        // so if file exist we just verify file size
+        if (utils::filesystem::verify_file_size(file_name, f_meta.size)) {
             // local file exist and is verified
             ec = ERR_OK;
             f_size = f_meta.size;
@@ -471,13 +476,18 @@ void replica_bulk_loader::download_sst_file(const std::string &remote_dir,
                 ec = ERR_FILE_OPERATION_FAILED;
             } else {
                 ec = _stub->_block_service_manager.download_file(
-                    remote_dir, local_dir, f_meta.name, fs, f_size);
+                    remote_dir, local_dir, f_meta.name, fs, f_size, f_md5);
             }
         }
     }
-    if (ec == ERR_OK && !verified &&
-        !utils::filesystem::verify_file(file_name, f_meta.md5, f_meta.size)) {
-        ec = ERR_CORRUPTION;
+    // Here we verify md5 and file size, md5 was calculated
+    // from download buffer, file size is get from filesystem
+    if (ec == ERR_OK && !verified) {
+        if (!f_meta.md5.empty() && f_md5 != f_meta.md5) {
+            ec = ERR_CORRUPTION;
+        } else if (!utils::filesystem::verify_file_size(file_name, f_meta.size)) {
+            ec = ERR_CORRUPTION;
+        }
     }
     if (ec != ERR_OK) {
         {

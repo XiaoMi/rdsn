@@ -44,6 +44,9 @@
 #include <dsn/utils/time_utils.h>
 
 #include "common/replication_common.h"
+#include "common/bulk_load_common.h"
+#include "common/partition_split_common.h"
+#include "common/manual_compact.h"
 #include "meta/meta_rpc_types.h"
 
 namespace dsn {
@@ -1370,12 +1373,11 @@ dsn::error_code replication_ddl_client::query_restore(int32_t restore_app_id, bo
 }
 
 error_with<duplication_add_response>
-replication_ddl_client::add_dup(std::string app_name, std::string remote_cluster_name, bool freezed)
+replication_ddl_client::add_dup(std::string app_name, std::string remote_cluster_name)
 {
     auto req = make_unique<duplication_add_request>();
     req->app_name = std::move(app_name);
     req->remote_cluster_name = std::move(remote_cluster_name);
-    req->freezed = freezed;
     return call_rpc_sync(duplication_add_rpc(std::move(req), RPC_CM_ADD_DUPLICATION));
 }
 
@@ -1576,13 +1578,15 @@ error_with<start_bulk_load_response>
 replication_ddl_client::start_bulk_load(const std::string &app_name,
                                         const std::string &cluster_name,
                                         const std::string &file_provider_type,
-                                        const std::string &remote_root_path)
+                                        const std::string &remote_root_path,
+                                        const bool ingest_behind)
 {
     auto req = make_unique<start_bulk_load_request>();
     req->app_name = app_name;
     req->cluster_name = cluster_name;
     req->file_provider_type = file_provider_type;
     req->remote_root_path = remote_root_path;
+    req->ingest_behind = ingest_behind;
     return call_rpc_sync(start_bulk_load_rpc(std::move(req), RPC_CM_START_BULK_LOAD));
 }
 
@@ -1682,6 +1686,29 @@ replication_ddl_client::add_new_disk(const rpc_address &target_node, const std::
     std::map<rpc_address, error_with<add_new_disk_response>> resps;
     call_rpcs_sync(add_new_disk_rpcs, resps);
     return resps.begin()->second.get_value();
+}
+
+error_with<start_app_manual_compact_response> replication_ddl_client::start_app_manual_compact(
+    const std::string &app_name, bool bottommost, const int32_t level, const int32_t max_count)
+{
+    auto req = make_unique<start_app_manual_compact_request>();
+    req->app_name = app_name;
+    req->__set_trigger_time(dsn_now_s());
+    req->__set_target_level(level);
+    req->__set_bottommost(bottommost);
+    if (max_count > 0) {
+        req->__set_max_running_count(max_count);
+    }
+    return call_rpc_sync(start_manual_compact_rpc(std::move(req), RPC_CM_START_MANUAL_COMPACT));
+}
+
+error_with<query_app_manual_compact_response>
+replication_ddl_client::query_app_manual_compact(const std::string &app_name)
+{
+    auto req = make_unique<query_app_manual_compact_request>();
+    req->app_name = app_name;
+    return call_rpc_sync(
+        query_manual_compact_rpc(std::move(req), RPC_CM_QUERY_MANUAL_COMPACT_STATUS));
 }
 
 } // namespace replication

@@ -15,6 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#pragma once
+
 #include <dsn/cpp/json_helper.h>
 #include <dsn/dist/block_service.h>
 #include <dsn/tool-api/zlocks.h>
@@ -82,6 +84,8 @@ private:
                          const rpc_address &primary);
     void write_backup_info();
     void complete_current_backup();
+    void handle_replica_backup_failed(const backup_response &response, const gpid pid);
+    void retry_backup(const dsn::gpid pid);
 
     const std::string get_policy_name() const
     {
