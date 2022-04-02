@@ -65,9 +65,9 @@ public:
 
     duplication_info() = default;
 
-    error_code start(bool sync_checkpoint)
+    error_code start(bool is_duplicating_checkpoint)
     {
-        if (sync_checkpoint) {
+        if (is_duplicating_checkpoint) {
             return alter_status(duplication_status::DS_PREPARE);
         }
         dwarn_f("you now create duplication[{}[{}.{}]] without duplicating checkpoint",
