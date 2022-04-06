@@ -20,15 +20,19 @@ include "../dsn.layer2.thrift"
 
 namespace cpp dsn.replication
 
-//  - INIT  -> START
-//  - START -> PAUSE
-//  - START -> REMOVED
-//  - PAUSE -> START
-//  - PAUSE -> REMOVED
+//  - INIT  -> PREPARE
+//  - PREPARE -> APP
+//  - APP -> LOG
+//  NOTE: Just LOG and PAUSE can be transferred states to each other
+//  - LOG -> PAUSE
+//  - PAUSE -> LOG
+//  - ALL -> REMOVED
 enum duplication_status
 {
     DS_INIT = 0,
-    DS_START,
+    DS_PREPARE,// replica prepare latest checkpoint for follower
+    DS_APP,// follower start duplicate checkpoint
+    DS_LOG,// master start batch send plog to follower
     DS_PAUSE,
     DS_REMOVED,
 }
@@ -54,9 +58,6 @@ struct duplication_add_request
 {
     1:string  app_name;
     2:string  remote_cluster_name;
-
-    // True means to initialize the duplication in DS_PAUSE.
-    3:bool    freezed;
 }
 
 struct duplication_add_response
@@ -122,6 +123,7 @@ struct duplication_confirm_entry
 {
     1:i32       dupid;
     2:i64       confirmed_decree;
+    3:optional bool checkpoint_prepared = false;
 }
 
 // This is an internal RPC sent from replica server to meta.

@@ -17,14 +17,14 @@
 
 #include <dsn/dist/replication/replica_envs.h>
 #include <dsn/utility/defer.h>
-#include <dsn/utility/fail_point.h>
 #include <gtest/gtest.h>
+#include <dsn/utility/filesystem.h>
 #include "runtime/rpc/network.sim.h"
 
-#include "common/backup_utils.h"
+#include "common/backup_common.h"
 #include "replica_test_base.h"
+#include "replica/replica.h"
 #include "replica/replica_http_service.h"
-#include "common/backup_utils.h"
 
 namespace dsn {
 namespace replication {
@@ -45,7 +45,7 @@ public:
         FLAGS_enable_http_server = false;
         stub->install_perf_counters();
         mock_app_info();
-        _mock_replica = stub->generate_replica(_app_info, pid, partition_status::PS_PRIMARY, 1);
+        _mock_replica = stub->generate_replica_ptr(_app_info, pid, partition_status::PS_PRIMARY, 1);
 
         // set cold_backup_root manually.
         // `cold_backup_root` is set by configuration "replication.cold_backup_root",
@@ -77,6 +77,21 @@ public:
         _mock_replica->update_bool_envs(envs,
                                         replica_envs::SPLIT_VALIDATE_PARTITION_HASH,
                                         _mock_replica->_validate_partition_hash);
+    }
+
+    bool get_allow_ingest_behind() const { return _mock_replica->_allow_ingest_behind; }
+
+    void reset_allow_ingest_behind() { _mock_replica->_allow_ingest_behind = false; }
+
+    void update_allow_ingest_behind(bool old_value, bool set_in_map, std::string new_value)
+    {
+        _mock_replica->_allow_ingest_behind = old_value;
+        std::map<std::string, std::string> envs;
+        if (set_in_map) {
+            envs[replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND] = new_value;
+        }
+        _mock_replica->update_bool_envs(
+            envs, replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND, _mock_replica->_allow_ingest_behind);
     }
 
     void mock_app_info()
@@ -135,6 +150,31 @@ public:
 
         std::string remote_chkpt_dir;
         return _mock_replica->find_valid_checkpoint(req, remote_chkpt_dir);
+    }
+
+    void force_update_checkpointing(bool running)
+    {
+        _mock_replica->_is_manual_emergency_checkpointing = running;
+    }
+
+    bool is_checkpointing() { return _mock_replica->_is_manual_emergency_checkpointing; }
+
+    replica *call_clear_on_failure(replica_stub *stub,
+                                   replica *rep,
+                                   const std::string &path,
+                                   const gpid &gpid)
+    {
+        return replica::clear_on_failure(stub, rep, path, gpid);
+    }
+
+    bool has_gpid(gpid &gpid) const
+    {
+        for (const auto &node : stub->_fs_manager._dir_nodes) {
+            if (node->has(gpid)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 public:
@@ -266,6 +306,29 @@ TEST_F(replica_test, update_validate_partition_hash_test)
     }
 }
 
+TEST_F(replica_test, update_allow_ingest_behind_test)
+{
+    struct update_allow_ingest_behind_test
+    {
+        bool set_in_map;
+        bool old_value;
+        std::string new_value;
+        bool expected_value;
+    } tests[]{{true, false, "false", false},
+              {true, false, "true", true},
+              {true, true, "true", true},
+              {true, true, "false", false},
+              {false, false, "", false},
+              {false, true, "", false},
+              {true, true, "flase", true},
+              {true, false, "ture", false}};
+    for (const auto &test : tests) {
+        update_allow_ingest_behind(test.old_value, test.set_in_map, test.new_value);
+        ASSERT_EQ(get_allow_ingest_behind(), test.expected_value);
+        reset_allow_ingest_behind();
+    }
+}
+
 TEST_F(replica_test, test_replica_backup_and_restore)
 {
     test_on_cold_backup();
@@ -279,6 +342,71 @@ TEST_F(replica_test, test_replica_backup_and_restore_with_specific_path)
     test_on_cold_backup(user_specified_path);
     auto err = test_find_valid_checkpoint(user_specified_path);
     ASSERT_EQ(ERR_OK, err);
+}
+
+TEST_F(replica_test, test_trigger_manual_emergency_checkpoint)
+{
+    ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(100), ERR_OK);
+    ASSERT_TRUE(is_checkpointing());
+    _mock_replica->update_last_durable_decree(100);
+
+    // test no need start checkpoint because `old_decree` < `last_durable`
+    ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(100), ERR_OK);
+    ASSERT_FALSE(is_checkpointing());
+
+    // test has existed running task
+    force_update_checkpointing(true);
+    ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(101), ERR_BUSY);
+    ASSERT_TRUE(is_checkpointing());
+    // test running task completed
+    _mock_replica->tracker()->wait_outstanding_tasks();
+    ASSERT_FALSE(is_checkpointing());
+
+    // test exceed max concurrent count
+    ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(101), ERR_OK);
+    force_update_checkpointing(false);
+    FLAGS_max_concurrent_manual_emergency_checkpointing_count = 1;
+    ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(101), ERR_TRY_AGAIN);
+    ASSERT_FALSE(is_checkpointing());
+    _mock_replica->tracker()->wait_outstanding_tasks();
+}
+
+TEST_F(replica_test, test_query_last_checkpoint_info)
+{
+    // test no exist gpid
+    auto req = std::make_unique<learn_request>();
+    req->pid = gpid(100, 100);
+    query_last_checkpoint_info_rpc rpc =
+        query_last_checkpoint_info_rpc(std::move(req), RPC_QUERY_LAST_CHECKPOINT_INFO);
+    stub->on_query_last_checkpoint(rpc);
+    ASSERT_EQ(rpc.response().err, ERR_OBJECT_NOT_FOUND);
+
+    learn_response resp;
+    // last_checkpoint hasn't exist
+    _mock_replica->on_query_last_checkpoint(resp);
+    ASSERT_EQ(resp.err, ERR_PATH_NOT_FOUND);
+
+    // query ok
+    _mock_replica->update_last_durable_decree(100);
+    _mock_replica->set_last_committed_decree(200);
+    _mock_replica->on_query_last_checkpoint(resp);
+    ASSERT_EQ(resp.last_committed_decree, 200);
+    ASSERT_EQ(resp.base_local_dir, "./data/checkpoint.100");
+}
+
+TEST_F(replica_test, test_clear_on_failer)
+{
+    replica *rep =
+        stub->generate_replica(_app_info, pid, partition_status::PS_PRIMARY, 1, false, true);
+    auto path = stub->get_replica_dir(_app_info.app_type.c_str(), pid);
+    dsn::utils::filesystem::create_directory(path);
+    ASSERT_TRUE(dsn::utils::filesystem::path_exists(path));
+    ASSERT_TRUE(has_gpid(pid));
+
+    ASSERT_FALSE(call_clear_on_failure(stub.get(), rep, path, pid));
+
+    ASSERT_FALSE(dsn::utils::filesystem::path_exists(path));
+    ASSERT_FALSE(has_gpid(pid));
 }
 
 } // namespace replication

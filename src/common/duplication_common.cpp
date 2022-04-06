@@ -21,11 +21,22 @@
 #include <dsn/utility/singleton.h>
 #include <dsn/utils/time_utils.h>
 #include <nlohmann/json.hpp>
-#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace replication {
-DSN_DEFINE_string("replication", cluster_name, "", "name of this cluster");
+
+DSN_DEFINE_uint32("replication",
+                  duplicate_log_batch_bytes,
+                  4096,
+                  "send mutation log batch bytes size per rpc");
+DSN_TAG_VARIABLE(duplicate_log_batch_bytes, FT_MUTABLE);
+
+const std::string duplication_constants::kDuplicationCheckpointRootDir /*NOLINT*/ = "duplication";
+const std::string duplication_constants::kClustersSectionName /*NOLINT*/ = "pegasus.clusters";
+const std::string duplication_constants::kDuplicationEnvMasterClusterKey /*NOLINT*/ =
+    "duplication.master_cluster";
+const std::string duplication_constants::kDuplicationEnvMasterMetasKey /*NOLINT*/ =
+    "duplication.master_metas";
 
 /*extern*/ const char *duplication_status_to_string(duplication_status::type status)
 {
@@ -45,21 +56,32 @@ DSN_DEFINE_string("replication", cluster_name, "", "name of this cluster");
     return it->second;
 }
 
-/*extern*/ const char *get_current_cluster_name()
-{
-    dassert(strlen(FLAGS_cluster_name) != 0, "cluster_name is not set");
-    return FLAGS_cluster_name;
-}
-
 namespace internal {
 
 class duplication_group_registry : public utils::singleton<duplication_group_registry>
 {
-private:
-    std::map<std::string, uint8_t> _group;
-    std::set<uint8_t> _distinct_cids;
-
 public:
+    error_with<uint8_t> get_cluster_id(const std::string &cluster_name) const
+    {
+        if (cluster_name.empty()) {
+            return error_s::make(ERR_INVALID_PARAMETERS, "cluster_name is empty");
+        }
+        if (_group.empty()) {
+            return error_s::make(ERR_OBJECT_NOT_FOUND, "`duplication-group` is not configured");
+        }
+
+        auto it = _group.find(cluster_name);
+        if (it == _group.end()) {
+            return error_s::make(ERR_OBJECT_NOT_FOUND, "failed to get cluster id for ")
+                   << cluster_name.data();
+        }
+        return it->second;
+    }
+
+    const std::map<std::string, uint8_t> &get_duplication_group() { return _group; }
+    const std::set<uint8_t> &get_distinct_cluster_id_set() { return _distinct_cids; }
+
+private:
     duplication_group_registry()
     {
         std::vector<std::string> clusters;
@@ -82,26 +104,12 @@ public:
         dassert_f(_distinct_cids.size() == _group.size(),
                   "there might be duplicate cluster_id in configuration");
     }
+    ~duplication_group_registry() = default;
 
-    error_with<uint8_t> get_cluster_id(const std::string &cluster_name) const
-    {
-        if (cluster_name.empty()) {
-            return error_s::make(ERR_INVALID_PARAMETERS, "cluster_name is empty");
-        }
-        if (_group.empty()) {
-            return error_s::make(ERR_OBJECT_NOT_FOUND, "`duplication-group` is not configured");
-        }
+    std::map<std::string, uint8_t> _group;
+    std::set<uint8_t> _distinct_cids;
 
-        auto it = _group.find(cluster_name);
-        if (it == _group.end()) {
-            return error_s::make(ERR_OBJECT_NOT_FOUND, "failed to get cluster id for ")
-                   << cluster_name.data();
-        }
-        return it->second;
-    }
-
-    const std::map<std::string, uint8_t> &get_duplication_group() { return _group; }
-    const std::set<uint8_t> &get_distinct_cluster_id_set() { return _distinct_cids; }
+    friend class utils::singleton<duplication_group_registry>;
 };
 
 } // namespace internal

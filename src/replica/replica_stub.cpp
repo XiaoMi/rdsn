@@ -69,6 +69,12 @@ DSN_DEFINE_bool("replication",
                 true,
                 "true means ignore broken data disk when initialize");
 
+DSN_DEFINE_uint32("replication",
+                  max_concurrent_manual_emergency_checkpointing_count,
+                  10,
+                  "max concurrent manual emergency checkpoint running count");
+DSN_TAG_VARIABLE(max_concurrent_manual_emergency_checkpointing_count, FT_MUTABLE);
+
 bool replica_stub::s_not_exit_on_log_failure = false;
 
 replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
@@ -91,6 +97,7 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _learn_app_concurrent_count(0),
       _fs_manager(false),
       _bulk_load_downloading_count(0),
+      _manual_emergency_checkpointing_count(0),
       _is_running(false)
 {
 #ifdef DSN_ENABLE_GPERF
@@ -658,56 +665,28 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
 
         it->second->reset_prepare_list_after_replay();
 
-        decree smax = _log->max_decree(it->first);
         decree pmax = invalid_decree;
         decree pmax_commit = invalid_decree;
         if (it->second->private_log()) {
             pmax = it->second->private_log()->max_decree(it->first);
             pmax_commit = it->second->private_log()->max_commit_on_disk();
-
-            // possible when shared log is restarted
-            if (smax == 0) {
-                _log->update_max_decree(it->first, pmax);
-                smax = pmax;
-            }
-
-            else if (err == ERR_OK && pmax < smax) {
-                it->second->private_log()->flush();
-                pmax = it->second->private_log()->max_decree(it->first);
-            }
         }
 
-        ddebug("%s: load replica done, err = %s, durable = %" PRId64 ", committed = %" PRId64 ", "
-               "prepared = %" PRId64 ", ballot = %" PRId64 ", "
-               "valid_offset_in_plog = %" PRId64 ", max_decree_in_plog = %" PRId64
-               ", max_commit_on_disk_in_plog = %" PRId64 ", "
-               "valid_offset_in_slog = %" PRId64 ", max_decree_in_slog = %" PRId64 "",
-               it->second->name(),
-               err.to_string(),
-               it->second->last_durable_decree(),
-               it->second->last_committed_decree(),
-               it->second->max_prepared_decree(),
-               it->second->get_ballot(),
-               it->second->get_app()->init_info().init_offset_in_private_log,
-               pmax,
-               pmax_commit,
-               it->second->get_app()->init_info().init_offset_in_shared_log,
-               smax);
-
-        if (err == ERR_OK) {
-            if (smax != pmax) {
-                derror("%s: some shared log state must be lost, smax(%" PRId64 ") vs pmax(%" PRId64
-                       ")",
-                       it->second->name(),
-                       smax,
-                       pmax);
-                is_log_complete = false;
-            } else {
-                // just leave inactive_state_transient as its old value
-            }
-        } else {
-            it->second->set_inactive_state_transient(false);
-        }
+        ddebug_f(
+            "{}: load replica done, err = {}, durable = {}, committed = {}, "
+            "prepared = {}, ballot = {}, "
+            "valid_offset_in_plog = {}, max_decree_in_plog = {}, max_commit_on_disk_in_plog = {}, "
+            "valid_offset_in_slog = {}",
+            it->second->name(),
+            err.to_string(),
+            it->second->last_durable_decree(),
+            it->second->last_committed_decree(),
+            it->second->max_prepared_decree(),
+            it->second->get_ballot(),
+            it->second->get_app()->init_info().init_offset_in_private_log,
+            pmax,
+            pmax_commit,
+            it->second->get_app()->init_info().init_offset_in_shared_log);
     }
 
     // we will mark all replicas inactive not transient unless all logs are complete
@@ -1046,6 +1025,19 @@ void replica_stub::on_query_replica_info(query_replica_info_rpc rpc)
     resp.err = ERR_OK;
 }
 
+void replica_stub::on_query_last_checkpoint(query_last_checkpoint_info_rpc rpc)
+{
+    const learn_request &request = rpc.request();
+    learn_response &response = rpc.response();
+
+    replica_ptr rep = get_replica(request.pid);
+    if (rep != nullptr) {
+        rep->on_query_last_checkpoint(response);
+    } else {
+        response.err = ERR_OBJECT_NOT_FOUND;
+    }
+}
+
 // ThreadPool: THREAD_POOL_DEFAULT
 void replica_stub::on_query_disk_info(query_disk_info_rpc rpc)
 {
@@ -1253,19 +1245,6 @@ void replica_stub::on_learn(dsn::message_ex *msg)
     }
 }
 
-void replica_stub::on_copy_checkpoint(copy_checkpoint_rpc rpc)
-{
-    const replica_configuration &request = rpc.request();
-    learn_response &response = rpc.response();
-
-    replica_ptr rep = get_replica(request.pid);
-    if (rep != nullptr) {
-        rep->on_copy_checkpoint(request, response);
-    } else {
-        response.err = ERR_OBJECT_NOT_FOUND;
-    }
-}
-
 void replica_stub::on_learn_completion_notification(learn_completion_notification_rpc rpc)
 {
     const group_check_response &report = rpc.request();
@@ -1331,6 +1310,8 @@ void replica_stub::get_replica_info(replica_info &info, replica_ptr r)
     if (dsn::ERR_OK != err) {
         dwarn("get disk tag of %s failed: %s", r->dir().c_str(), err.to_string());
     }
+
+    info.__set_manual_compact_status(r->get_manual_compact_status());
 }
 
 void replica_stub::get_local_replicas(std::vector<replica_info> &replicas)
@@ -1942,10 +1923,11 @@ void replica_stub::on_disk_stat()
     ddebug("finish to update disk stat, time_used_ns = %" PRIu64, dsn_now_ns() - start);
 }
 
-::dsn::task_ptr replica_stub::begin_open_replica(const app_info &app,
-                                                 gpid id,
-                                                 std::shared_ptr<group_check_request> req,
-                                                 std::shared_ptr<configuration_update_request> req2)
+task_ptr replica_stub::begin_open_replica(
+    const app_info &app,
+    gpid id,
+    const std::shared_ptr<group_check_request> &group_check,
+    const std::shared_ptr<configuration_update_request> &configuration_update)
 {
     _replicas_lock.lock_write();
 
@@ -1987,8 +1969,8 @@ void replica_stub::on_disk_stat()
                    id.to_string());
 
             // open by add learner
-            if (req != nullptr) {
-                on_add_learner(*req);
+            if (group_check != nullptr) {
+                on_add_learner(*group_check);
             }
         } else {
             _replicas_lock.unlock_write();
@@ -1999,10 +1981,10 @@ void replica_stub::on_disk_stat()
         return nullptr;
     }
 
-    task_ptr task =
-        tasking::enqueue(LPC_OPEN_REPLICA,
-                         &_tracker,
-                         std::bind(&replica_stub::open_replica, this, app, id, req, req2));
+    task_ptr task = tasking::enqueue(
+        LPC_OPEN_REPLICA,
+        &_tracker,
+        std::bind(&replica_stub::open_replica, this, app, id, group_check, configuration_update));
 
     _opening_replicas[id] = task;
     _counter_replicas_opening_count->increment();
@@ -2012,10 +1994,11 @@ void replica_stub::on_disk_stat()
     return task;
 }
 
-void replica_stub::open_replica(const app_info &app,
-                                gpid id,
-                                std::shared_ptr<group_check_request> req,
-                                std::shared_ptr<configuration_update_request> req2)
+void replica_stub::open_replica(
+    const app_info &app,
+    gpid id,
+    const std::shared_ptr<group_check_request> &group_check,
+    const std::shared_ptr<configuration_update_request> &configuration_update)
 {
     std::string dir = get_replica_dir(app.app_type.c_str(), id, false);
     replica_ptr rep = nullptr;
@@ -2026,7 +2009,7 @@ void replica_stub::open_replica(const app_info &app,
         ddebug("%s@%s: start to load replica %s group check, dir = %s",
                id.to_string(),
                _primary_address_str,
-               req ? "with" : "without",
+               group_check ? "with" : "without",
                dir.c_str());
         rep = replica::load(this, dir.c_str());
 
@@ -2059,14 +2042,38 @@ void replica_stub::open_replica(const app_info &app,
     }
 
     if (rep == nullptr) {
+        // NOTICE: if dir a.b.pegasus does not exist, or .app-info does not exist, but the ballot >
+        // 0, or the last_committed_decree > 0, start replica will fail
+        if ((configuration_update != nullptr) && (configuration_update->info.is_stateful)) {
+            dassert_f(configuration_update->config.ballot == 0 &&
+                          configuration_update->config.last_committed_decree == 0,
+                      "{}@{}: cannot load replica({}.{}), ballot = {}, "
+                      "last_committed_decree = {}, but it does not existed!",
+                      id.to_string(),
+                      _primary_address_str,
+                      id.to_string(),
+                      app.app_type.c_str(),
+                      configuration_update->config.ballot,
+                      configuration_update->config.last_committed_decree);
+        }
+
         // NOTICE: only new_replica_group's assign_primary will execute this; if server restart when
         // download restore-data from cold backup media, the a.b.pegasus will move to
         // a.b.pegasus.timestamp.err when replica-server load all the replicas, so restore-flow will
         // do it again
 
         bool restore_if_necessary =
-            ((req2 != nullptr) && (req2->type == config_type::CT_ASSIGN_PRIMARY) &&
+            ((configuration_update != nullptr) &&
+             (configuration_update->type == config_type::CT_ASSIGN_PRIMARY) &&
              (app.envs.find(backup_restore_constant::POLICY_NAME) != app.envs.end()));
+
+        bool is_duplication_follower =
+            ((configuration_update != nullptr) &&
+             (configuration_update->type == config_type::CT_ASSIGN_PRIMARY) &&
+             (app.envs.find(duplication_constants::kDuplicationEnvMasterClusterKey) !=
+              app.envs.end()) &&
+             (app.envs.find(duplication_constants::kDuplicationEnvMasterMetasKey) !=
+              app.envs.end()));
 
         // NOTICE: when we don't need execute restore-process, we should remove a.b.pegasus
         // directory because it don't contain the valid data dir and also we need create a new
@@ -2078,7 +2085,7 @@ void replica_stub::open_replica(const app_info &app,
                 return;
             }
         }
-        rep = replica::newr(this, id, app, restore_if_necessary);
+        rep = replica::newr(this, id, app, restore_if_necessary, is_duplication_follower);
     }
 
     if (rep == nullptr) {
@@ -2106,16 +2113,20 @@ void replica_stub::open_replica(const app_info &app,
         _closed_replicas.erase(id);
     }
 
-    if (nullptr != req) {
-        rpc::call_one_way_typed(
-            _primary_address, RPC_LEARN_ADD_LEARNER, *req, req->config.pid.thread_hash());
-    } else if (nullptr != req2) {
-        rpc::call_one_way_typed(
-            _primary_address, RPC_CONFIG_PROPOSAL, *req2, req2->config.pid.thread_hash());
+    if (nullptr != group_check) {
+        rpc::call_one_way_typed(_primary_address,
+                                RPC_LEARN_ADD_LEARNER,
+                                *group_check,
+                                group_check->config.pid.thread_hash());
+    } else if (nullptr != configuration_update) {
+        rpc::call_one_way_typed(_primary_address,
+                                RPC_CONFIG_PROPOSAL,
+                                *configuration_update,
+                                configuration_update->config.pid.thread_hash());
     }
 }
 
-::dsn::task_ptr replica_stub::begin_close_replica(replica_ptr r)
+task_ptr replica_stub::begin_close_replica(replica_ptr r)
 {
     dassert_f(r->status() == partition_status::PS_ERROR ||
                   r->status() == partition_status::PS_INACTIVE ||
@@ -2224,8 +2235,9 @@ void replica_stub::open_service()
         RPC_QUERY_PN_DECREE, "query_decree", &replica_stub::on_query_decree);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_REPLICA_INFO, "query_replica_info", &replica_stub::on_query_replica_info);
-    register_rpc_handler_with_rpc_holder(
-        RPC_REPLICA_COPY_LAST_CHECKPOINT, "copy_checkpoint", &replica_stub::on_copy_checkpoint);
+    register_rpc_handler_with_rpc_holder(RPC_QUERY_LAST_CHECKPOINT_INFO,
+                                         "query_last_checkpoint_info",
+                                         &replica_stub::on_query_last_checkpoint);
     register_rpc_handler_with_rpc_holder(
         RPC_QUERY_DISK_INFO, "query_disk_info", &replica_stub::on_query_disk_info);
     register_rpc_handler_with_rpc_holder(
@@ -2800,7 +2812,7 @@ replica_ptr replica_stub::create_child_replica_if_not_found(gpid child_pid,
             dwarn_f("failed create child replica({}) because it is under close", child_pid);
             return nullptr;
         } else {
-            replica *rep = replica::newr(this, child_pid, *app, false, parent_dir);
+            replica *rep = replica::newr(this, child_pid, *app, false, false, parent_dir);
             if (rep != nullptr) {
                 auto pr = _replicas.insert(replicas::value_type(child_pid, rep));
                 dassert_f(pr.second, "child replica {} has been existed", rep->name());
@@ -2958,7 +2970,7 @@ void replica_stub::query_app_data_version(
 }
 
 void replica_stub::query_app_manual_compact_status(
-    int32_t app_id, std::unordered_map<gpid, manual_compaction_status> &status)
+    int32_t app_id, std::unordered_map<gpid, manual_compaction_status::type> &status)
 {
     zauto_read_lock l(_replicas_lock);
     for (auto it = _replicas.begin(); it != _replicas.end(); ++it) {

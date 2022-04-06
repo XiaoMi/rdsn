@@ -66,13 +66,8 @@ public:
         std::vector<std::string> mutations;
         int max_log_file_mb = 1;
 
-        mutation_log_ptr mlog = new mutation_log_private(_replica->dir(),
-                                                         max_log_file_mb,
-                                                         _replica->get_gpid(),
-                                                         _replica.get(),
-                                                         1024,
-                                                         512,
-                                                         10000);
+        mutation_log_ptr mlog = new mutation_log_private(
+            _replica->dir(), max_log_file_mb, _replica->get_gpid(), _replica.get());
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
         load.find_log_file_to_start({});
@@ -108,6 +103,9 @@ public:
         int last_commit_decree_start = 5;
         int decree_start = 10;
         {
+            DSN_DECLARE_bool(plog_force_flush);
+            auto reserved_plog_force_flush = FLAGS_plog_force_flush;
+            FLAGS_plog_force_flush = true;
             for (int i = decree_start; i <= num_entries + decree_start; i++) {
                 std::string msg = "hello!";
                 //  decree - last_commit_decree  = 1 by default
@@ -122,6 +120,7 @@ public:
             // commit the last entry
             mutation_ptr mu = create_test_mutation(decree_start + num_entries + 1, "hello!");
             mlog->append(mu, LPC_AIO_IMMEDIATE_CALLBACK, nullptr, nullptr, 0);
+            FLAGS_plog_force_flush = reserved_plog_force_flush;
 
             mlog->close();
         }
@@ -176,7 +175,7 @@ public:
         fail::setup();
         fail::cfg("open_read", "25%1*return()");
         fail::cfg("mutation_log_read_log_block", "25%1*return()");
-        fail::cfg("duplication_sync_complete", "off()");
+        fail::cfg("duplication_sync_complete", "void()");
         duplicator->run_pipeline();
         duplicator->wait_all();
         fail::teardown();
@@ -218,8 +217,8 @@ public:
         int try_cnt = 0;
         while (try_cnt < 5) {
             try_cnt++;
-            mlog = new mutation_log_private(
-                _replica->dir(), private_log_size_mb, id, _replica.get(), 1024, 512, 10000);
+            mlog =
+                new mutation_log_private(_replica->dir(), private_log_size_mb, id, _replica.get());
             error_code err = mlog->open(cb, nullptr, replay_condition);
             if (err == ERR_OK) {
                 break;
