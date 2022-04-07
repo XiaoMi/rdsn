@@ -163,12 +163,15 @@ ExternalProject_Add(zookeeper
         URL https://github.com/apache/zookeeper/archive/refs/tags/release-3.7.0.tar.gz
         https://github.com/apache/zookeeper/archive/refs/tags/release-3.7.0.tar.gz
         URL_MD5 c564fbf2877f611890522e4aa6e4eb24
-        CONFIGURE_COMMAND cd zookeeper-jute && mvn compile && cd ../zookeeper-client/zookeeper-client-c && autoreconf -if && CFLAGS=${ZOOKEEPER_CFLAGS} ./configure --disable-shared --prefix=${TP_OUTPUT} --enable-debug --with-pic=yes --with-sasl=${TP_OUTPUT}
-        BUILD_COMMAND cd zookeeper-client/zookeeper-client-c && make
-        INSTALL_COMMAND cd zookeeper-client/zookeeper-client-c && make install
+        PATCH_COMMAND ""
+        COMMAND cd zookeeper-jute && mvn compile && cd ../zookeeper-client/zookeeper-client-c && cmake -DCMAKE_BUILD_TYPE=release -DWANT_CPPUNIT=OFF -WITH_OPENSSL=OFF -DWITH_CYRUS_SASL=${TP_OUTPUT} -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
+        COMMAND cd zookeeper-client/zookeeper-client-c && make
+        COMMAND cp -R zookeeper-client/zookeeper-client-c/include/. ${TP_OUTPUT}/include/zookeeper && cp zookeeper-client/zookeeper-client-c/generated/zookeeper.jute.h ${TP_OUTPUT}/include/zookeeper && cp zookeeper-client/zookeeper-client-c/libzookeeper.a ${TP_OUTPUT}/lib && cp zookeeper-client/zookeeper-client-c/libhashtable.a ${TP_OUTPUT}/lib
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
         BUILD_IN_SOURCE 1
         )
-add_dependencies(zookeeper cyrus-sasl)
 
 ExternalProject_Add(libevent
         URL ${OSS_URL_PREFIX}/libevent-release-2.1.8-stable.tar.gz
@@ -360,36 +363,6 @@ ExternalProject_Add(rocksdb
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DPORTABLE=${ROCKSDB_PORTABLE}
         )
-
-if (NOT APPLE)
-# kerberos
-ExternalProject_Add(krb5
-        URL ${OSS_URL_PREFIX}/krb5-1.16.1.tar.gz
-        http://web.mit.edu/kerberos/dist/krb5/1.16/krb5-1.16.1.tar.gz
-        URL_MD5 848e9b80d6aaaa798e3f3df24b83c407
-        CONFIGURE_COMMAND cd src && ./configure --prefix=${TP_OUTPUT}
-        BUILD_COMMAND cd src && make
-        INSTALL_COMMAND cd src && make install
-        BUILD_IN_SOURCE 1
-        )
-
-# cyrus-sasl
-ExternalProject_Add(cyrus-sasl
-        URL ${OSS_URL_PREFIX}/cyrus-sasl-2.1.27.tar.gz
-        http://www.cyrusimap.org/releases/cyrus-sasl-2.1.27.tar.gz
-        URL_MD5 a33820c66e0622222c5aefafa1581083
-        CONFIGURE_COMMAND ./configure --prefix=${TP_OUTPUT}
-        --enable-gssapi=${TP_OUTPUT}
-        --enable-scram=no
-        --enable-digest=no
-        --enable-cram=no
-        --enable-otp=no
-        BUILD_COMMAND make
-        INSTALL_COMMAND make install
-        BUILD_IN_SOURCE 1
-        )
-add_dependencies(cyrus-sasl krb5)
-endif()
 
 ExternalProject_Add(http-parser
         URL ${OSS_URL_PREFIX}/http-parser-2.9.4.zip
