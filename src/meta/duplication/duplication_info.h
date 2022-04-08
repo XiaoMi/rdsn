@@ -65,7 +65,7 @@ public:
 
     duplication_info() = default;
 
-    error_code start(bool is_duplicating_checkpoint)
+    error_code start(bool is_duplicating_checkpoint = true)
     {
         if (is_duplicating_checkpoint) {
             return alter_status(duplication_status::DS_PREPARE);
