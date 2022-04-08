@@ -33,7 +33,7 @@ ZOOKEEPER_TAR_MD5_VALUE="8ffa97e7e6b0b2cf1d022e5156a7561a"
 
 if [ ! -f $ZOOKEEPER_TAR_NAME ]; then
     echo "Downloading zookeeper..."
-    download_url="https://downloads.apache.org/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0-bin.tar.gz"
+    download_url="https://pegasus-resource-package.oss-cn-beijing.aliyuncs.com/apache-zookeeper-3.7.0-bin.tar.gz"
     if ! wget -T 5 -t 1 $download_url; then
         echo "ERROR: download zookeeper failed"
         exit 1

@@ -108,6 +108,7 @@ ExternalProject_Add(gperftools
 set(HDFS_CLIENT_DIR "hadoop-hdfs-project/hadoop-hdfs-native-client")
 ExternalProject_Add(hadoop
         URL https://github.com/apache/hadoop/archive/refs/tags/rel/release-2.8.4.tar.gz
+        https://pegasus-resource-package.oss-cn-beijing.aliyuncs.com/hadoop-release-2.8.4.tar.gz
         URL_MD5 a1be737d4bff14923689619ab6545a96
         PATCH_COMMAND ""
         COMMAND cd ${HDFS_CLIENT_DIR} && mvn package -Pdist,native -DskipTests -Dmaven.javadoc.skip=true -Dtar
@@ -160,9 +161,9 @@ if (COMPILER_SUPPORTS_FORMAT_OVERFLOW)
     set(ZOOKEEPER_CFLAGS -Wno-error=format-overflow)
 endif ()
 ExternalProject_Add(zookeeper
-        URL https://github.com/apache/zookeeper/archive/refs/tags/release-3.7.0.tar.gz
-        https://github.com/apache/zookeeper/archive/refs/tags/release-3.7.0.tar.gz
-        URL_MD5 c564fbf2877f611890522e4aa6e4eb24
+        URL http://downloads.apache.org/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0.tar.gz
+        https://pegasus-resource-package.oss-cn-beijing.aliyuncs.com/apache-zookeeper-3.7.0.tar.gz
+        URL_MD5 44c2a33e01931aed94ef7f3d39d0963e
         PATCH_COMMAND ""
         COMMAND cd zookeeper-jute && mvn compile && cd ../zookeeper-client/zookeeper-client-c && cmake -DCMAKE_BUILD_TYPE=release -DWANT_CPPUNIT=OFF -WITH_OPENSSL=OFF -DWITH_CYRUS_SASL=${TP_OUTPUT} -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
         COMMAND cd zookeeper-client/zookeeper-client-c && make
@@ -231,6 +232,7 @@ ExternalProject_Add(fds
 # fmtlib >=6.x requires c++14 support, do not update this library for now
 ExternalProject_Add(fmt
         URL https://github.com/fmtlib/fmt/archive/refs/tags/5.3.0.tar.gz
+        https://pegasus-resource-package.oss-cn-beijing.aliyuncs.com/fmt-5.3.0.tar.gz
         URL_MD5 1015bf3ff2a140dfe03de50ee2469401
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
         -DCMAKE_BUILD_TYPE=release
@@ -332,6 +334,7 @@ message(STATUS "USE_JEMALLOC = ${USE_JEMALLOC}")
 
 ExternalProject_Add(jemalloc
         URL https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2
+        https://pegasus-resource-package.oss-cn-beijing.aliyuncs.com/jemalloc-5.2.1.tar.bz2
         URL_MD5 3d41fbf006e6ebffd489bdb304d009ae
         CONFIGURE_COMMAND ./configure --prefix=${TP_OUTPUT} --enable-cxx --enable-stats --enable-prof
         BUILD_COMMAND make
