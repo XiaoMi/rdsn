@@ -62,7 +62,7 @@ struct duplication_add_request
     // - if true, duplication start state=DS_PREPARE,
     // server will use nfs duplicate checkpoint to follower cluster,
     // - if false, duplication start state=DS_LOG,
-    // server will relay and send plog mutation to follower cluster derectly
+    // server will replay and send plog mutation to follower cluster derectly
     3:optional bool is_duplicating_checkpoint = true;
 }
 
