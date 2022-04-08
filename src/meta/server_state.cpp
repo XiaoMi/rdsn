@@ -3299,7 +3299,7 @@ void server_state::do_update_max_replica_count(std::shared_ptr<app_state> &app,
         results.reset(new std::vector<error_code>(app->partition_count));
         app->helpers->partitions_in_progress.store(app->partition_count);
 
-        set_max_replica_count_env_updating([&env_notifier] () { env_notifier.notify(); });
+        set_max_replica_count_env_updating(app, rpc, [&env_notifier]() { env_notifier.notify(); });
     }
     env_notifier.wait();
 
@@ -3353,7 +3353,7 @@ void server_state::do_update_max_replica_count(std::shared_ptr<app_state> &app,
 
         tasking::enqueue(LPC_META_STATE_HIGH,
                          tracker(),
-                         [this, app, rpc]() { update_app_max_replica_count(app, rpc); },
+                         [this, app, rpc]() mutable { update_app_max_replica_count(app, rpc); },
                          server_state::sStateHash);
     };
 
@@ -3368,9 +3368,10 @@ void server_state::do_update_max_replica_count(std::shared_ptr<app_state> &app,
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void server_state::set_max_replica_count_env_updating(std::shared_ptr<app_state> &app,
-                                                      configuration_set_max_replica_count_rpc rpc,
-                                                      max_replica_count_env_callback on_max_replica_count_env_updating)
+void server_state::set_max_replica_count_env_updating(
+    std::shared_ptr<app_state> &app,
+    configuration_set_max_replica_count_rpc rpc,
+    max_replica_count_env_callback on_max_replica_count_env_updating)
 {
     auto iter = app->envs.find(replica_envs::UPDATE_MAX_REPLICA_COUNT);
     if (iter != app->envs.end()) {
@@ -3381,7 +3382,7 @@ void server_state::set_max_replica_count_env_updating(std::shared_ptr<app_state>
             response.err = ERR_OPERATION_DISABLED;
             response.hint_message = fmt::format("max_replica_count of app({}) is being updated, "
                                                 "thus this request would be rejected",
-                                                app_name);
+                                                app->app_name);
             derror_f("failed to set max_replica_count: app_name={}, app_id={}, error_code={}, "
                      "hint_message={}",
                      app->app_name,
@@ -3392,20 +3393,22 @@ void server_state::set_max_replica_count_env_updating(std::shared_ptr<app_state>
         }
     }
 
+    const auto new_max_replica_count = rpc.request().max_replica_count;
+    const auto old_max_replica_count = rpc.response().old_max_replica_count;
+
     ddebug_f("ready to update local env of max_replica_count: app_name={}, app_id={}, "
              "old_max_replica_count={}, new_max_replica_count={}, {}={}",
              app->app_name,
              app->app_id,
-             app->max_replica_count,
+             old_max_replica_count,
              new_max_replica_count,
              replica_envs::UPDATE_MAX_REPLICA_COUNT,
              app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
 
     // Update local env first, since another thread that is trying to update max_replica_count
     // will be blocked by write lock.
-    const auto new_max_replica_count = rpc.request().max_replica_count;
-    app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT] = fmt::format("updating;{}",
-                                                                    new_max_replica_count);
+    app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT] =
+        fmt::format("updating;{}", new_max_replica_count);
     ddebug_f("local env of max_replica_count has been updated: app_name={}, app_id={}, "
              "new_max_replica_count={}, {}={}",
              app->app_name,
@@ -3416,28 +3419,32 @@ void server_state::set_max_replica_count_env_updating(std::shared_ptr<app_state>
 
     auto ainfo = *(reinterpret_cast<app_info *>(app.get()));
     auto app_path = get_app_path(*app);
-    do_update_app_info(app_path, ainfo, [this, app, new_max_replica_count, on_max_replica_count_env_updating](error_code ec) mutable {
-        zauto_read_lock l(_lock);
-        dassert_f(ec == ERR_OK,
-                  "An error that can't be handled occurs while updating app_info to "
-                  "remote storage for env of max_replica_count: error_code={}, "
-                  "app_name={}, app_id={}, new_max_replica_count={}, {}={}",
-                  ec.to_string(),
-                  app->app_name,
-                  app->app_id,
-                  new_max_replica_count,
-                  replica_envs::UPDATE_MAX_REPLICA_COUNT,
-                  app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
-        ddebug_f("app_info has been updated successfully to remote storage for env of "
-                 "max_replica_count: app_name={}, app_id={}, new_max_replica_count={}, {}={}",
-                 app->app_name,
-                 app->app_id,
-                 new_max_replica_count,
-                 replica_envs::UPDATE_MAX_REPLICA_COUNT,
-                 app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
+    do_update_app_info(
+        app_path,
+        ainfo,
+        [this, app, new_max_replica_count, on_max_replica_count_env_updating](
+            error_code ec) mutable {
+            zauto_read_lock l(_lock);
+            dassert_f(ec == ERR_OK,
+                      "An error that can't be handled occurs while updating app_info to "
+                      "remote storage for env of max_replica_count: error_code={}, "
+                      "app_name={}, app_id={}, new_max_replica_count={}, {}={}",
+                      ec.to_string(),
+                      app->app_name,
+                      app->app_id,
+                      new_max_replica_count,
+                      replica_envs::UPDATE_MAX_REPLICA_COUNT,
+                      app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
+            ddebug_f("app_info has been updated successfully to remote storage for env of "
+                     "max_replica_count: app_name={}, app_id={}, new_max_replica_count={}, {}={}",
+                     app->app_name,
+                     app->app_id,
+                     new_max_replica_count,
+                     replica_envs::UPDATE_MAX_REPLICA_COUNT,
+                     app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
 
-        on_max_replica_count_env_updating();
-    });
+            on_max_replica_count_env_updating();
+        });
 }
 
 void server_state::update_app_max_replica_count(std::shared_ptr<app_state> &app,
@@ -3449,7 +3456,7 @@ void server_state::update_app_max_replica_count(std::shared_ptr<app_state> &app,
     {
         zauto_write_lock l(_lock);
 
-        set_max_replica_count_env_done([&env_notifier] () { env_notifier.notify(); });
+        set_max_replica_count_env_done(app, rpc, [&env_notifier]() { env_notifier.notify(); });
     }
     env_notifier.wait();
 
@@ -3458,9 +3465,10 @@ void server_state::update_app_max_replica_count(std::shared_ptr<app_state> &app,
 }
 
 // ThreadPool: THREAD_POOL_META_STATE
-void server_state::set_max_replica_count_env_done(std::shared_ptr<app_state> &app,
-                                                  configuration_set_max_replica_count_rpc rpc,
-                                                  max_replica_count_env_callback on_max_replica_count_env_done)
+void server_state::set_max_replica_count_env_done(
+    std::shared_ptr<app_state> &app,
+    configuration_set_max_replica_count_rpc rpc,
+    max_replica_count_env_callback on_max_replica_count_env_done)
 {
     const auto new_max_replica_count = rpc.request().max_replica_count;
     const auto old_max_replica_count = rpc.response().old_max_replica_count;
@@ -3475,46 +3483,48 @@ void server_state::set_max_replica_count_env_done(std::shared_ptr<app_state> &ap
              app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
 
     auto ainfo = *(reinterpret_cast<app_info *>(app.get()));
-    ainfo.envs[replica_envs::UPDATE_MAX_REPLICA_COUNT] = fmt::format("done;{}",
-                                                                     new_max_replica_count);
+    ainfo.envs[replica_envs::UPDATE_MAX_REPLICA_COUNT] =
+        fmt::format("done;{}", new_max_replica_count);
     auto app_path = get_app_path(*app);
-    do_update_app_info(app_path, ainfo, [this, app, new_max_replica_count, on_max_replica_count_env_done](error_code ec) mutable {
-        zauto_write_lock l(_lock);
+    do_update_app_info(
+        app_path,
+        ainfo,
+        [this, app, new_max_replica_count, on_max_replica_count_env_done](error_code ec) mutable {
+            zauto_write_lock l(_lock);
 
-        dassert_f(ec == ERR_OK,
-                  "An error that can't be handled occurs while updating app_info to "
-                  "remote storage for env of max_replica_count: error_code={}, "
-                  "app_name={}, app_id={}, new_max_replica_count={}, {}={}",
-                  ec.to_string(),
-                  app->app_name,
-                  app->app_id,
-                  new_max_replica_count,
-                  replica_envs::UPDATE_MAX_REPLICA_COUNT,
-                  app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
+            dassert_f(ec == ERR_OK,
+                      "An error that can't be handled occurs while updating app_info to "
+                      "remote storage for env of max_replica_count: error_code={}, "
+                      "app_name={}, app_id={}, new_max_replica_count={}, {}={}",
+                      ec.to_string(),
+                      app->app_name,
+                      app->app_id,
+                      new_max_replica_count,
+                      replica_envs::UPDATE_MAX_REPLICA_COUNT,
+                      app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
 
-        ddebug_f("app_info has been updated successfully to remote storage for env of "
-                 "max_replica_count: app_name={}, app_id={}, new_max_replica_count={}, {}={}",
-                 app->app_name,
-                 app->app_id,
-                 new_max_replica_count,
-                 replica_envs::UPDATE_MAX_REPLICA_COUNT,
-                 app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
+            ddebug_f("app_info has been updated successfully to remote storage for env of "
+                     "max_replica_count: app_name={}, app_id={}, new_max_replica_count={}, {}={}",
+                     app->app_name,
+                     app->app_id,
+                     new_max_replica_count,
+                     replica_envs::UPDATE_MAX_REPLICA_COUNT,
+                     app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
 
-        // Update local env last, since another thread that is trying to update max_replica_count
-        // will be blocked until the whole process is finished.
-        const auto new_max_replica_count = rpc.request().max_replica_count;
-        app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT] = fmt::format("done;{}",
-                                                                        new_max_replica_count);
-        ddebug_f("local env of max_replica_count has been updated: app_name={}, app_id={}, "
-                 "new_max_replica_count={}, {}={}",
-                 app->app_name,
-                 app->app_id,
-                 new_max_replica_count,
-                 replica_envs::UPDATE_MAX_REPLICA_COUNT,
-                 app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
+            // Update local env last, since another thread that is trying to update
+            // max_replica_count will be blocked until the whole process is finished.
+            app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT] =
+                fmt::format("done;{}", new_max_replica_count);
+            ddebug_f("local env of max_replica_count has been updated: app_name={}, app_id={}, "
+                     "new_max_replica_count={}, {}={}",
+                     app->app_name,
+                     app->app_id,
+                     new_max_replica_count,
+                     replica_envs::UPDATE_MAX_REPLICA_COUNT,
+                     app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
 
-        on_max_replica_count_env_done();
-    });
+            on_max_replica_count_env_done();
+        });
 }
 
 // ThreadPool: THREAD_POOL_META_STATE

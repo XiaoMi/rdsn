@@ -317,14 +317,16 @@ private:
     void do_update_max_replica_count(std::shared_ptr<app_state> &app,
                                      configuration_set_max_replica_count_rpc rpc);
     using max_replica_count_env_callback = std::function<void()>;
-    void set_max_replica_count_env_updating(std::shared_ptr<app_state> &app,
-                                            configuration_set_max_replica_count_rpc rpc,
-                                            max_replica_count_env_callback on_max_replica_count_env_updating);
+    void set_max_replica_count_env_updating(
+        std::shared_ptr<app_state> &app,
+        configuration_set_max_replica_count_rpc rpc,
+        max_replica_count_env_callback on_max_replica_count_env_updating);
     void update_app_max_replica_count(std::shared_ptr<app_state> &app,
                                       configuration_set_max_replica_count_rpc rpc);
-    void set_max_replica_count_env_done(std::shared_ptr<app_state> &app,
-                                        configuration_set_max_replica_count_rpc rpc,
-                                        max_replica_count_env_callback on_max_replica_count_env_done);
+    void
+    set_max_replica_count_env_done(std::shared_ptr<app_state> &app,
+                                   configuration_set_max_replica_count_rpc rpc,
+                                   max_replica_count_env_callback on_max_replica_count_env_done);
     void update_partition_max_replica_count(std::shared_ptr<app_state> &app,
                                             int32_t partition_index,
                                             int32_t new_max_replica_count,
