@@ -637,13 +637,15 @@ void replica::update_deny_client(const std::map<std::string, std::string> &envs)
     std::vector<std::string> sub_sargs;
     utils::split_args(env_iter->second.c_str(), sub_sargs, '*', true);
     if (sub_sargs.size() != 2) {
-        _deny_client.reset();
         return;
     }
 
     _deny_client.response = (sub_sargs[0] == "reject");
     _deny_client.read = (sub_sargs[1] == "read" || sub_sargs[1] == "all");
     _deny_client.write = (sub_sargs[1] == "write" || sub_sargs[1] == "all");
+
+    ddebug_replica(
+        "switch replica.deny_client app env to: {} = {}", env_iter->first, env_iter->second);
 }
 
 void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
