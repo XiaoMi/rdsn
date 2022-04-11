@@ -174,7 +174,6 @@ void replica::init_state()
 {
     _inactive_is_transient = false;
     _is_initializing = false;
-    _deny_client_write = false;
     _prepare_list = dsn::make_unique<prepare_list>(
         this,
         0,
@@ -208,8 +207,8 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
-    if (_client_switcher.deny_client_read) {
-        if (_client_switcher.response_reject) {
+    if (_deny_client.read) {
+        if (_deny_client.response) {
             // return ERR_INVALID_STATE will trigger client update config immediately
             response_client_read(request, ERR_INVALID_STATE);
             return;

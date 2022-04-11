@@ -100,17 +100,22 @@ bool get_bool_envs(const std::map<std::string, std::string> &envs,
                    const std::string &name,
                    /*out*/ bool &value);
 
-struct client_switcher
+struct deny_client
 {
-    bool deny_client_write;
-    bool deny_client_read;
-    bool response_reject;
+    bool read;
+    bool write;
+    bool response;
 
     void reset()
     {
-        deny_client_read = false;
-        deny_client_write = false;
-        response_reject = false;
+        read = false;
+        write = false;
+        response = false;
+    }
+
+    bool operator==(const deny_client &rhs) const
+    {
+        return (write == rhs.write && read == rhs.read && response == rhs.response);
     }
 };
 
@@ -576,7 +581,7 @@ private:
 
     bool _inactive_is_transient; // upgrade to P/S is allowed only iff true
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
-    client_switcher _client_switcher;                        // if deny requests
+    deny_client _deny_client;    // if deny requests
     throttling_controller _write_qps_throttling_controller;  // throttling by requests-per-second
     throttling_controller _write_size_throttling_controller; // throttling by bytes-per-second
     throttling_controller _read_qps_throttling_controller;

@@ -53,8 +53,8 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
-    if (_client_switcher.deny_client_write) {
-        if (_client_switcher.response_reject) {
+    if (_deny_client.write) {
+        if (_deny_client.response) {
             // return ERR_INVALID_STATE will trigger client update config immediately
             response_client_write(request, ERR_INVALID_STATE);
             return;
