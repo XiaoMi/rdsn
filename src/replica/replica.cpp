@@ -208,6 +208,18 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
+    if (_deny_client.deny_client_read) {
+        if (_deny_client.response_reject) {
+            // return ERR_INVALID_STATE will trigger client update config immediately
+            response_client_read(request, ERR_INVALID_STATE);
+            return;
+        }
+        // Do not relay any message to the peer client to let it timeout, it's OK coz some users
+        // may retry immediately when they got a not success code which will make the server side
+        // pressure more and more heavy.
+        return;
+    }
+
     CHECK_REQUEST_IF_SPLITTING(read)
 
     if (status() == partition_status::PS_INACTIVE ||

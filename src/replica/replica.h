@@ -100,6 +100,13 @@ bool get_bool_envs(const std::map<std::string, std::string> &envs,
                    const std::string &name,
                    /*out*/ bool &value);
 
+struct deny_client
+{
+    bool deny_client_write;
+    bool deny_client_read;
+    bool response_reject;
+};
+
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
 public:
@@ -462,6 +469,9 @@ private:
     // update envs allow_ingest_behind and store new app_info into file
     void update_allow_ingest_behind(const std::map<std::string, std::string> &envs);
 
+    // update envs to deny client request
+    void update_deny_client(const std::map<std::string, std::string> &envs);
+
     void init_disk_tag();
 
     // store `info` into a file under `path` directory
@@ -559,7 +569,7 @@ private:
 
     bool _inactive_is_transient; // upgrade to P/S is allowed only iff true
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
-    bool _deny_client_write;     // if deny all write requests
+    deny_client _deny_client;    // if deny requests
     throttling_controller _write_qps_throttling_controller;  // throttling by requests-per-second
     throttling_controller _write_size_throttling_controller; // throttling by bytes-per-second
     throttling_controller _read_qps_throttling_controller;

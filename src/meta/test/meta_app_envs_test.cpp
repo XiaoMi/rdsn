@@ -140,7 +140,7 @@ TEST_F(meta_app_envs_test, update_app_envs_test)
          "",
          "200"},
         {replica_envs::BUSINESS_INFO, "300", ERR_OK, "", "300"},
-        {replica_envs::DENY_CLIENT_WRITE, "400", ERR_OK, "", "400"},
+        {replica_envs::DENY_CLIENT, "400", ERR_OK, "", "400"},
         {"not_exist_env",
          "500",
          ERR_INVALID_PARAMETERS,
