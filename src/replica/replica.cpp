@@ -208,8 +208,8 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
         return;
     }
 
-    if (_deny_client.deny_client_read) {
-        if (_deny_client.response_reject) {
+    if (_client_switcher.deny_client_read) {
+        if (_client_switcher.response_reject) {
             // return ERR_INVALID_STATE will trigger client update config immediately
             response_client_read(request, ERR_INVALID_STATE);
             return;
