@@ -313,11 +313,8 @@ private:
     bool check_max_replica_count_consistent(const std::shared_ptr<app_state> &app,
                                             Response &response) const;
 
-    using max_replica_count_env_callback = std::function<void()>;
-    void set_max_replica_count_env_updating(
-        std::shared_ptr<app_state> &app,
-        configuration_set_max_replica_count_rpc rpc,
-        max_replica_count_env_callback on_max_replica_count_env_updating);
+    void set_max_replica_count_env_updating(std::shared_ptr<app_state> &app,
+                                            configuration_set_max_replica_count_rpc rpc);
     using partition_callback = std::function<void(error_code, int32_t)>;
     void do_update_max_replica_count(std::shared_ptr<app_state> &app,
                                      configuration_set_max_replica_count_rpc rpc);
