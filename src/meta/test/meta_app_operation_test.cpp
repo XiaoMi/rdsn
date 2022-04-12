@@ -593,7 +593,6 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
     // - decrease with valid max_replica_count (= min_allowed_replica_count, and < alive_node_count)
     // - unchanged valid max_replica_count (= min_allowed_replica_count, and < alive_node_count)
     // - increase max_replica_count from 2 to 3
-    // - increase max_replica_count from 2 to 3 while there has ever been a finished update
     // - increase max_replica_count from 1 to 3
     // - decrease max_replica_count from 3 to 1
     struct test_case
@@ -649,7 +648,6 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
                  {APP_NAME, 3, 3, 2, 1, 3, 2, 3, "", ERR_OK},
                  {APP_NAME, 2, 2, 2, 1, 3, 2, 3, "", ERR_OK},
                  {APP_NAME, 2, 2, 3, 2, 3, 2, 3, "", ERR_OK},
-                 {APP_NAME, 2, 2, 3, 2, 3, 2, 3, "done;2", ERR_OK},
                  {APP_NAME, 1, 1, 3, 2, 3, 1, 3, "", ERR_OK},
                  {APP_NAME, 3, 3, 1, 2, 3, 1, 3, "", ERR_OK}};
 
