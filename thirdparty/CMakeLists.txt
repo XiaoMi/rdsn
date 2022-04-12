@@ -48,7 +48,7 @@ set(TP_OUTPUT ${PROJECT_SOURCE_DIR}/output)
 # LOG_DIR      = <STAMP_DIR>
 set_property(DIRECTORY PROPERTY EP_BASE ${TP_DIR}/build)
 
-set(OSS_URL_PREFIX "http://pegasus-thirdparties.oss-cn-beijing.aliyuncs.com")
+set(OSS_URL_PREFIX "http://pegasus-thirdparty-package.oss-cn-beijing.aliyuncs.com")
 
 message(STATUS "Setting up third-parties...")
 
@@ -107,8 +107,8 @@ ExternalProject_Add(gperftools
 
 set(HDFS_CLIENT_DIR "hadoop-hdfs-project/hadoop-hdfs-native-client")
 ExternalProject_Add(hadoop
-        URL https://github.com/apache/hadoop/archive/refs/tags/rel/release-2.8.4.tar.gz
-        https://pegasus-resource-package.oss-cn-beijing.aliyuncs.com/hadoop-release-2.8.4.tar.gz
+        URL ${OSS_URL_PREFIX}/hadoop-release-2.8.4.tar.gz
+        https://github.com/apache/hadoop/archive/refs/tags/rel/release-2.8.4.tar.gz
         URL_MD5 a1be737d4bff14923689619ab6545a96
         PATCH_COMMAND ""
         COMMAND cd ${HDFS_CLIENT_DIR} && mvn package -Pdist,native -DskipTests -Dmaven.javadoc.skip=true -Dtar
@@ -161,8 +161,8 @@ if (COMPILER_SUPPORTS_FORMAT_OVERFLOW)
     set(ZOOKEEPER_CFLAGS -Wno-error=format-overflow)
 endif ()
 ExternalProject_Add(zookeeper
-        URL http://downloads.apache.org/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0.tar.gz
-        https://pegasus-resource-package.oss-cn-beijing.aliyuncs.com/apache-zookeeper-3.7.0.tar.gz
+        URL ${OSS_URL_PREFIX}/apache-zookeeper-3.7.0.tar.gz
+        http://downloads.apache.org/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0.tar.gz
         URL_MD5 44c2a33e01931aed94ef7f3d39d0963e
         PATCH_COMMAND ""
         COMMAND cd zookeeper-jute && mvn compile && cd ../zookeeper-client/zookeeper-client-c && cmake -DCMAKE_BUILD_TYPE=release -DWANT_CPPUNIT=OFF -WITH_OPENSSL=OFF -DWITH_CYRUS_SASL=${TP_OUTPUT} -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
@@ -211,7 +211,8 @@ ExternalProject_Add(poco
         )
 
 ExternalProject_Add(fds
-        URL https://github.com/XiaoMi/galaxy-fds-sdk-cpp/archive/refs/tags/v1.0.0.tar.gz
+        URL ${OSS_URL_PREFIX}/fds-1.0.0.tar.gz
+        https://github.com/XiaoMi/galaxy-fds-sdk-cpp/archive/refs/tags/v1.0.0.tar.gz
         URL_MD5 f7e0f86534f7b15c2a9b349f5cb45503
         PATCH_COMMAND patch -p1 < ${TP_DIR}/fix_fds_for_macos.patch
         CMAKE_ARGS -DPOCO_INCLUDE=${TP_OUTPUT}/include
@@ -231,8 +232,8 @@ ExternalProject_Add(fds
 
 # fmtlib >=6.x requires c++14 support, do not update this library for now
 ExternalProject_Add(fmt
-        URL https://github.com/fmtlib/fmt/archive/refs/tags/5.3.0.tar.gz
-        https://pegasus-resource-package.oss-cn-beijing.aliyuncs.com/fmt-5.3.0.tar.gz
+        URL ${OSS_URL_PREFIX}/fmt-5.3.0.tar.gz
+        https://github.com/fmtlib/fmt/archive/refs/tags/5.3.0.tar.gz
         URL_MD5 1015bf3ff2a140dfe03de50ee2469401
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
         -DCMAKE_BUILD_TYPE=release
@@ -333,8 +334,8 @@ option(USE_JEMALLOC "use jemalloc" OFF)
 message(STATUS "USE_JEMALLOC = ${USE_JEMALLOC}")
 
 ExternalProject_Add(jemalloc
-        URL https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2
-        https://pegasus-resource-package.oss-cn-beijing.aliyuncs.com/jemalloc-5.2.1.tar.bz2
+        URL ${OSS_URL_PREFIX}/jemalloc-5.2.1.tar.bz2
+        https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2
         URL_MD5 3d41fbf006e6ebffd489bdb304d009ae
         CONFIGURE_COMMAND ./configure --prefix=${TP_OUTPUT} --enable-cxx --enable-stats --enable-prof
         BUILD_COMMAND make
