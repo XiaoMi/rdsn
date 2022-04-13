@@ -343,7 +343,7 @@ using gauge_prototype = metric_prototype_with<gauge<T>>;
 //
 // Sometimes "recent" counters are needed, such as the number of recent failed beacons sent from
 // replica server, the count of updating configurations of partitions recently, etc. The "recent"
-// can be considered to be the accumulated count since it has been fetched last.
+// count can be considered to be the accumulated count since it has been fetched last by value().
 //
 // In most cases, a general (i.e. non-volatile) counter is enough, which means it can also work
 // for "recent" counters. For example, in Prometheus, delta() can be used to compute "recent"
