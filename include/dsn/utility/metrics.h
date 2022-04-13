@@ -386,13 +386,16 @@ private:
 
 template <typename Adder = striped_long_adder, bool IsVolatile = false>
 using counter_ptr = ref_ptr<counter<Adder, IsVolatile>>;
-using concurrent_counter_ptr = counter_ptr<concurrent_long_adder>;
+
+template <bool IsVolatile = false>
+using concurrent_counter_ptr = counter_ptr<concurrent_long_adder, IsVolatile>;
 
 template <typename Adder = striped_long_adder, bool IsVolatile = false>
 using counter_prototype = metric_prototype_with<counter<Adder, IsVolatile>>;
 
 template <typename Adder = striped_long_adder>
 using volatile_counter_ptr = ref_ptr<counter<Adder, true>>;
+
 using concurrent_volatile_counter_ptr = counter_ptr<concurrent_long_adder, true>;
 
 template <typename Adder = striped_long_adder>
