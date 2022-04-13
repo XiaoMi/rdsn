@@ -472,13 +472,13 @@ TEST(metrics_test, counter)
 }
 
 template <typename Adder>
-void run_volatile_counter_fetch_and_reset(dsn::volatile_counter_ptr<Adder> &my_metric,
-                                          int64_t num_operations,
-                                          int64_t num_threads_increment_by,
-                                          int64_t num_threads_fetch_and_set)
+void run_volatile_counter_write_and_read(dsn::volatile_counter_ptr<Adder> &my_metric,
+                                         int64_t num_operations,
+                                         int64_t num_threads_write,
+                                         int64_t num_threads_read)
 {
     std::vector<int64_t> deltas;
-    int64_t n = num_operations * num_threads_increment_by;
+    int64_t n = num_operations * num_threads_write;
     deltas.reserve(n);
 
     int64_t expected_value = 0;
@@ -491,20 +491,18 @@ void run_volatile_counter_fetch_and_reset(dsn::volatile_counter_ptr<Adder> &my_m
         deltas.push_back(delta);
     }
 
-    auto results =
-        new_cacheline_aligned_int64_array(static_cast<uint32_t>(num_threads_fetch_and_set));
-    std::vector<std::atomic_bool> completed(num_threads_increment_by);
-    for (int64_t i = 0; i < num_threads_increment_by; ++i) {
+    auto results = new_cacheline_aligned_int64_array(static_cast<uint32_t>(num_threads_read));
+    std::vector<std::atomic_bool> completed(num_threads_write);
+    for (int64_t i = 0; i < num_threads_write; ++i) {
         completed[i].store(false);
     }
 
     ASSERT_EQ(my_metric->value(), 0);
-    ASSERT_EQ(my_metric->fetch_and_reset(), 0);
 
-    execute(num_threads_increment_by + num_threads_fetch_and_set,
-            [num_operations, num_threads_increment_by, &my_metric, &deltas, &results, &completed](
+    execute(num_threads_write + num_threads_read,
+            [num_operations, num_threads_write, &my_metric, &deltas, &results, &completed](
                 int tid) mutable {
-                if (tid < num_threads_increment_by) {
+                if (tid < num_threads_write) {
                     for (int64_t i = 0; i < num_operations; ++i) {
                         my_metric->increment_by(deltas[tid * num_operations + i]);
                     }
@@ -513,40 +511,39 @@ void run_volatile_counter_fetch_and_reset(dsn::volatile_counter_ptr<Adder> &my_m
                     bool done = false;
                     do {
                         int64_t i = 0;
-                        for (; i < num_threads_increment_by && completed[i].load(); ++i) {
+                        for (; i < num_threads_write && completed[i].load(); ++i) {
                         }
-                        if (i >= num_threads_increment_by) {
+                        if (i >= num_threads_write) {
                             // All of the increment threads have finished, thus the loop can
                             // be broken after the last time the value is fetched.
                             done = true;
                         }
 
-                        auto value = my_metric->fetch_and_reset();
+                        auto value = my_metric->value();
                         if (value == 0) {
                             // If zero is fetched, it's likely that recently the counter is
                             // not updated frequently. Thus yield and try for the next time.
                             std::this_thread::yield();
                         } else {
                             auto r = results.get();
-                            r[tid - num_threads_increment_by]._value += value;
+                            r[tid - num_threads_write]._value += value;
                         }
                     } while (!done);
                 }
             });
 
     int64_t value = 0;
-    for (int64_t i = 0; i < num_threads_fetch_and_set; ++i) {
+    for (int64_t i = 0; i < num_threads_read; ++i) {
         value += results.get()[i]._value.load();
     }
     ASSERT_EQ(value, expected_value);
     ASSERT_EQ(my_metric->value(), 0);
-    ASSERT_EQ(my_metric->fetch_and_reset(), 0);
 }
 
 template <typename Adder>
-void run_volatile_counter_fetch_and_reset_cases(dsn::volatile_counter_prototype<Adder> *prototype,
-                                                int64_t num_threads_increment_by,
-                                                int64_t num_threads_fetch_and_set)
+void run_volatile_counter_cases(dsn::volatile_counter_prototype<Adder> *prototype,
+                                int64_t num_threads_write,
+                                int64_t num_threads_read)
 {
     // Test cases:
     // - test the volatile counter with small-scale computations
@@ -562,8 +559,8 @@ void run_volatile_counter_fetch_and_reset_cases(dsn::volatile_counter_prototype<
 
         auto my_metric = prototype->instantiate(my_server_entity);
 
-        run_volatile_counter_fetch_and_reset(
-            my_metric, test.num_operations, num_threads_increment_by, num_threads_fetch_and_set);
+        run_volatile_counter_write_and_read(
+            my_metric, test.num_operations, num_threads_write, num_threads_read);
 
         auto metrics = my_server_entity->metrics();
         ASSERT_EQ(metrics[prototype].get(), static_cast<metric *>(my_metric.get()));
@@ -575,17 +572,17 @@ void run_volatile_counter_fetch_and_reset_cases(dsn::volatile_counter_prototype<
 template <typename Adder>
 void run_volatile_counter_cases(dsn::volatile_counter_prototype<Adder> *prototype)
 {
-    // Set with single thread and get with single thread
-    run_volatile_counter_fetch_and_reset_cases(prototype, 1, 1);
+    // Write with single thread and read with single thread
+    run_volatile_counter_cases(prototype, 1, 1);
 
-    // Set with multiple threads and get with single thread
-    run_volatile_counter_fetch_and_reset_cases(prototype, 2, 1);
+    // Write with multiple threads and read with single thread
+    run_volatile_counter_cases(prototype, 2, 1);
 
-    // Set with single thread and get with multiple threads
-    run_volatile_counter_fetch_and_reset_cases(prototype, 1, 2);
+    // Write with single thread and read with multiple threads
+    run_volatile_counter_cases(prototype, 1, 2);
 
-    // Set with multiple threads and get with multiple threads
-    run_volatile_counter_fetch_and_reset_cases(prototype, 4, 2);
+    // Write with multiple threads and read with multiple threads
+    run_volatile_counter_cases(prototype, 4, 2);
 }
 
 TEST(metrics_test, volatile_counter)

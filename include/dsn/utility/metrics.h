@@ -76,16 +76,16 @@
 //   higher performance while consuming more memory if it's updated very frequently.
 // See also include/dsn/utility/long_adder.h for details.
 #define METRIC_DEFINE_counter(entity_type, name, unit, desc, ...)                                  \
-    ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name(                             \
+    ::dsn::counter_prototype<::dsn::striped_long_adder, false> METRIC_##name(                      \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 #define METRIC_DEFINE_concurrent_counter(entity_type, name, unit, desc, ...)                       \
-    ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name(                          \
+    ::dsn::counter_prototype<::dsn::concurrent_long_adder, false> METRIC_##name(                   \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 #define METRIC_DEFINE_volatile_counter(entity_type, name, unit, desc, ...)                         \
-    ::dsn::volatile_counter_prototype<::dsn::striped_long_adder> METRIC_##name(                    \
+    ::dsn::counter_prototype<::dsn::striped_long_adder, true> METRIC_##name(                       \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 #define METRIC_DEFINE_concurrent_volatile_counter(entity_type, name, unit, desc, ...)              \
-    ::dsn::volatile_counter_prototype<::dsn::concurrent_long_adder> METRIC_##name(                 \
+    ::dsn::counter_prototype<::dsn::concurrent_long_adder, true> METRIC_##name(                    \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 // The following macros act as forward declarations for entity types and metric prototypes.
@@ -93,13 +93,13 @@
 #define METRIC_DECLARE_gauge_int64(name) extern ::dsn::gauge_prototype<int64_t> METRIC_##name
 #define METRIC_DECLARE_gauge_double(name) extern ::dsn::gauge_prototype<double> METRIC_##name
 #define METRIC_DECLARE_counter(name)                                                               \
-    extern ::dsn::counter_prototype<::dsn::striped_long_adder> METRIC_##name
+    extern ::dsn::counter_prototype<::dsn::striped_long_adder, false> METRIC_##name
 #define METRIC_DECLARE_concurrent_counter(name)                                                    \
-    extern ::dsn::counter_prototype<::dsn::concurrent_long_adder> METRIC_##name
+    extern ::dsn::counter_prototype<::dsn::concurrent_long_adder, false> METRIC_##name
 #define METRIC_DECLARE_volatile_counter(name)                                                      \
-    extern ::dsn::volatile_counter_prototype<::dsn::striped_long_adder> METRIC_##name
+    extern ::dsn::counter_prototype<::dsn::striped_long_adder, true> METRIC_##name
 #define METRIC_DECLARE_concurrent_volatile_counter(name)                                           \
-    extern ::dsn::volatile_counter_prototype<::dsn::concurrent_long_adder> METRIC_##name
+    extern ::dsn::counter_prototype<::dsn::concurrent_long_adder, true> METRIC_##name
 
 namespace dsn {
 
@@ -336,11 +336,33 @@ using gauge_prototype = metric_prototype_with<gauge<T>>;
 // A counter in essence is a 64-bit integer that can be incremented and decremented. It can be
 // used to measure the number of tasks in queues, current number of running manual compacts,
 // etc. All counters start out at 0.
-template <typename Adder = striped_long_adder>
+//
+// `IsVolatile` is false by default. Once it's specified as true, the counter will be volatile.
+// The value() function of a volatile counter will reset the counter atomically after its value
+// is fetched. A volatile counter can also be called as a "recent" counter.
+//
+// Sometimes "recent" counters are needed, such as the number of recent failed beacons sent from
+// replica server, the count of updating configurations of partitions recently, etc. The "recent"
+// can be considered to be the accumulated count since it has been fetched last.
+//
+// In most cases, a general (i.e. non-volatile) counter is enough, which means it can also work
+// for "recent" counters. For example, in Prometheus, delta() can be used to compute "recent"
+// count for a general counter. Therefore, just declare a counter as volatile when necessary.
+template <typename Adder = striped_long_adder, bool IsVolatile = false>
 class counter : public metric
 {
 public:
-    int64_t value() const { return _adder.value(); }
+    template <bool Volatile = IsVolatile, typename = typename std::enable_if<!Volatile>::type>
+    int64_t value() const
+    {
+        return _adder.value();
+    }
+
+    template <bool Volatile = IsVolatile, typename = typename std::enable_if<Volatile>::type>
+    int64_t value()
+    {
+        return _adder.fetch_and_reset();
+    }
 
     void increment_by(int64_t x) { _adder.increment_by(x); }
     void increment() { _adder.increment(); }
@@ -362,42 +384,18 @@ private:
     DISALLOW_COPY_AND_ASSIGN(counter);
 };
 
-template <typename Adder = striped_long_adder>
-using counter_ptr = ref_ptr<counter<Adder>>;
+template <typename Adder = striped_long_adder, bool IsVolatile = false>
+using counter_ptr = ref_ptr<counter<Adder, IsVolatile>>;
 using concurrent_counter_ptr = counter_ptr<concurrent_long_adder>;
 
-template <typename Adder = striped_long_adder>
-using counter_prototype = metric_prototype_with<counter<Adder>>;
-
-// A volatile counter is nearly the same as a counter, except that fetch_and_reset() is provided
-// to reset the counter atomically after its value is fetched.
-// The reason why the volatile counter is introduced is that sometimes "recent" counters are
-// needed, such as the number of recent failed beacons sent from replica server, the count of
-// updating configurations of partitions recently, etc. The "recent" can be considered to be
-// the accumulated count since it has been fetched last.
-template <typename Adder = striped_long_adder>
-class volatile_counter : public counter<Adder>
-{
-public:
-    int64_t fetch_and_reset() { return counter<Adder>::_adder.fetch_and_reset(); }
-
-protected:
-    volatile_counter(const metric_prototype *prototype) : counter<Adder>(prototype) {}
-
-    virtual ~volatile_counter() = default;
-
-private:
-    friend class metric_entity;
-    friend class ref_ptr<volatile_counter<Adder>>;
-
-    DISALLOW_COPY_AND_ASSIGN(volatile_counter);
-};
+template <typename Adder = striped_long_adder, bool IsVolatile = false>
+using counter_prototype = metric_prototype_with<counter<Adder, IsVolatile>>;
 
 template <typename Adder = striped_long_adder>
-using volatile_counter_ptr = ref_ptr<volatile_counter<Adder>>;
-using concurrent_volatile_counter_ptr = volatile_counter_ptr<concurrent_long_adder>;
+using volatile_counter_ptr = ref_ptr<counter<Adder, true>>;
+using concurrent_volatile_counter_ptr = counter_ptr<concurrent_long_adder, true>;
 
 template <typename Adder = striped_long_adder>
-using volatile_counter_prototype = metric_prototype_with<volatile_counter<Adder>>;
+using volatile_counter_prototype = metric_prototype_with<counter<Adder, true>>;
 
 } // namespace dsn
