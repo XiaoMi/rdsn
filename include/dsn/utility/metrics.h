@@ -76,16 +76,16 @@
 //   higher performance while consuming more memory if it's updated very frequently.
 // See also include/dsn/utility/long_adder.h for details.
 #define METRIC_DEFINE_counter(entity_type, name, unit, desc, ...)                                  \
-    ::dsn::counter_prototype<::dsn::striped_long_adder, false> METRIC_##name(                      \
+    dsn::counter_prototype<dsn::striped_long_adder, false> METRIC_##name(                          \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 #define METRIC_DEFINE_concurrent_counter(entity_type, name, unit, desc, ...)                       \
-    ::dsn::counter_prototype<::dsn::concurrent_long_adder, false> METRIC_##name(                   \
+    dsn::counter_prototype<dsn::concurrent_long_adder, false> METRIC_##name(                       \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 #define METRIC_DEFINE_volatile_counter(entity_type, name, unit, desc, ...)                         \
-    ::dsn::counter_prototype<::dsn::striped_long_adder, true> METRIC_##name(                       \
+    dsn::counter_prototype<dsn::striped_long_adder, true> METRIC_##name(                           \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 #define METRIC_DEFINE_concurrent_volatile_counter(entity_type, name, unit, desc, ...)              \
-    ::dsn::counter_prototype<::dsn::concurrent_long_adder, true> METRIC_##name(                    \
+    dsn::counter_prototype<dsn::concurrent_long_adder, true> METRIC_##name(                        \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 // The following macros act as forward declarations for entity types and metric prototypes.
@@ -93,13 +93,13 @@
 #define METRIC_DECLARE_gauge_int64(name) extern ::dsn::gauge_prototype<int64_t> METRIC_##name
 #define METRIC_DECLARE_gauge_double(name) extern ::dsn::gauge_prototype<double> METRIC_##name
 #define METRIC_DECLARE_counter(name)                                                               \
-    extern ::dsn::counter_prototype<::dsn::striped_long_adder, false> METRIC_##name
+    extern dsn::counter_prototype<dsn::striped_long_adder, false> METRIC_##name
 #define METRIC_DECLARE_concurrent_counter(name)                                                    \
-    extern ::dsn::counter_prototype<::dsn::concurrent_long_adder, false> METRIC_##name
+    extern dsn::counter_prototype<dsn::concurrent_long_adder, false> METRIC_##name
 #define METRIC_DECLARE_volatile_counter(name)                                                      \
-    extern ::dsn::counter_prototype<::dsn::striped_long_adder, true> METRIC_##name
+    extern dsn::counter_prototype<dsn::striped_long_adder, true> METRIC_##name
 #define METRIC_DECLARE_concurrent_volatile_counter(name)                                           \
-    extern ::dsn::counter_prototype<::dsn::concurrent_long_adder, true> METRIC_##name
+    extern dsn::counter_prototype<dsn::concurrent_long_adder, true> METRIC_##name
 
 namespace dsn {
 
@@ -347,7 +347,7 @@ using gauge_prototype = metric_prototype_with<gauge<T>>;
 //
 // In most cases, a general (i.e. non-volatile) counter is enough, which means it can also work
 // for "recent" counters. For example, in Prometheus, delta() can be used to compute "recent"
-// count for a general counter. Therefore, just declare a counter as volatile when necessary.
+// count for a general counter. Therefore, declare a counter as volatile only when necessary.
 template <typename Adder = striped_long_adder, bool IsVolatile = false>
 class counter : public metric
 {
@@ -375,11 +375,11 @@ protected:
 
     virtual ~counter() = default;
 
-    long_adder_wrapper<Adder> _adder;
-
 private:
     friend class metric_entity;
-    friend class ref_ptr<counter<Adder>>;
+    friend class ref_ptr<counter<Adder, IsVolatile>>;
+
+    long_adder_wrapper<Adder> _adder;
 
     DISALLOW_COPY_AND_ASSIGN(counter);
 };
