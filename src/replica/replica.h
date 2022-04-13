@@ -102,20 +102,21 @@ bool get_bool_envs(const std::map<std::string, std::string> &envs,
 
 struct deny_client
 {
-    bool read;
-    bool write;
-    bool response;
+    bool read{false};
+    bool write{false};
+    // deny client and trigger client update partition config by response `ERR_INVALID_STATE`
+    bool reconfig{false};
 
     void reset()
     {
         read = false;
         write = false;
-        response = false;
+        reconfig = false;
     }
 
     bool operator==(const deny_client &rhs) const
     {
-        return (write == rhs.write && read == rhs.read && response == rhs.response);
+        return (write == rhs.write && read == rhs.read && reconfig == rhs.reconfig);
     }
 };
 

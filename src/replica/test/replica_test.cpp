@@ -96,7 +96,6 @@ public:
 
     const deny_client &update_deny_client(const std::string &env_name, std::string env_value)
     {
-
         std::map<std::string, std::string> envs;
         envs[env_name] = std::move(env_value);
         _mock_replica->update_deny_client(envs);
@@ -426,12 +425,12 @@ TEST_F(replica_test, update_deny_client_test)
         std::string env_value;
         deny_client expected;
     } tests[]{{"invalid", "invalid", {false, false, false}},
-              {"replica.deny_client", "reject*all", {true, true, true}},
-              {"replica.deny_client", "reject*write", {false, true, true}},
-              {"replica.deny_client", "reject*read", {true, false, true}},
-              {"replica.deny_client", "delay*all", {true, true, false}},
-              {"replica.deny_client", "delay*write", {false, true, false}},
-              {"replica.deny_client", "delay*read", {true, false, false}}};
+              {"replica.deny_client_request", "reconfig*all", {true, true, true}},
+              {"replica.deny_client_request", "reconfig*write", {false, true, true}},
+              {"replica.deny_client_request", "reconfig*read", {true, false, true}},
+              {"replica.deny_client_request", "timeout*all", {true, true, false}},
+              {"replica.deny_client_request", "timeout*write", {false, true, false}},
+              {"replica.deny_client_request", "timeout*read", {true, false, false}}};
     for (const auto &test : tests) {
         ASSERT_EQ(update_deny_client(test.env_name, test.env_value), test.expected);
     }

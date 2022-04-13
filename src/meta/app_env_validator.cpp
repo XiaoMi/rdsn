@@ -51,15 +51,14 @@ bool check_deny_client(const std::string &env_value, std::string &hint_message)
     std::vector<std::string> sub_sargs;
     utils::split_args(env_value.c_str(), sub_sargs, '*', true);
 
-    std::string invalid_hint_message = "Invalid deny client args, valid include: reject*all, "
-                                       "reject*write, reject*read; delay*all, delay*write, "
-                                       "delay*read";
+    std::string invalid_hint_message = "Invalid deny client args, valid include: timeout*all, "
+                                       "timeout*write, timeout*read; reconfig*all, reconfig*write, "
+                                       "reconfig*read";
     if (sub_sargs.size() != 2) {
         hint_message = invalid_hint_message;
         return false;
     }
-    if (sub_sargs[0].empty() || sub_sargs[1].empty() ||
-        (sub_sargs[0] != "reject" && sub_sargs[0] != "delay") ||
+    if ((sub_sargs[0] != "timeout" && sub_sargs[0] != "reconfig") ||
         (sub_sargs[1] != "all" && sub_sargs[1] != "write" && sub_sargs[1] != "read")) {
         hint_message = invalid_hint_message;
         return false;
@@ -192,7 +191,7 @@ void app_env_validator::register_all_validators()
          std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND,
          std::bind(&check_bool_value, std::placeholders::_1, std::placeholders::_2)},
-        {replica_envs::DENY_CLIENT,
+        {replica_envs::DENY_CLIENT_REQUEST,
          std::bind(&check_deny_client, std::placeholders::_1, std::placeholders::_2)},
         // TODO(zhaoliwei): not implemented
         {replica_envs::BUSINESS_INFO, nullptr},

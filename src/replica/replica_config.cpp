@@ -628,7 +628,7 @@ void replica::update_allow_ingest_behind(const std::map<std::string, std::string
 
 void replica::update_deny_client(const std::map<std::string, std::string> &envs)
 {
-    auto env_iter = envs.find(replica_envs::DENY_CLIENT);
+    auto env_iter = envs.find(replica_envs::DENY_CLIENT_REQUEST);
     if (env_iter == envs.end()) {
         _deny_client.reset();
         return;
@@ -636,11 +636,9 @@ void replica::update_deny_client(const std::map<std::string, std::string> &envs)
 
     std::vector<std::string> sub_sargs;
     utils::split_args(env_iter->second.c_str(), sub_sargs, '*', true);
-    if (sub_sargs.size() != 2) {
-        return;
-    }
+    dcheck_eq_replica(sub_sargs.size(), 2);
 
-    _deny_client.response = (sub_sargs[0] == "reject");
+    _deny_client.reconfig = (sub_sargs[0] == "reconfig");
     _deny_client.read = (sub_sargs[1] == "read" || sub_sargs[1] == "all");
     _deny_client.write = (sub_sargs[1] == "write" || sub_sargs[1] == "all");
 }

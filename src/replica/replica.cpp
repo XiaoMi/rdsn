@@ -208,12 +208,12 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
     }
 
     if (_deny_client.read) {
-        if (_deny_client.response) {
+        if (_deny_client.reconfig) {
             // return ERR_INVALID_STATE will trigger client update config immediately
             response_client_read(request, ERR_INVALID_STATE);
             return;
         }
-        // Do not relay any message to the peer client to let it timeout, it's OK coz some users
+        // Do not reply any message to the peer client to let it timeout, it's OK coz some users
         // may retry immediately when they got a not success code which will make the server side
         // pressure more and more heavy.
         return;
