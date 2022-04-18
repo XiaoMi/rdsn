@@ -48,7 +48,7 @@ jobs:
 
   test:
     name: Test
-    needs: lint
+    # needs: lint   # TODO(yingchun): test, must revert when merge PR
     runs-on: self-hosted
     container:
       image: apache/pegasus:thirdparties-bin-ubuntu1804
