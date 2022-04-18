@@ -298,6 +298,18 @@ public:
 
     void set(const T &val) { _value.store(val, std::memory_order_relaxed); }
 
+    template <typename Int = T, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    void increment_by(Int x) { _value.fetch_add(x, std::memory_order_relaxed); }
+
+    template <typename Int = T, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    void decrement_by(Int x) { increment_by(-x); }
+
+    template <typename Int = T, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    void increment() { increment_by(1); }
+
+    template <typename Int = T, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    void decrement() { increment_by(-1); }
+
 protected:
     gauge(const metric_prototype *prototype, const T &initial_val)
         : metric(prototype), _value(initial_val)
@@ -333,9 +345,9 @@ using gauge_ptr = ref_ptr<gauge<T>>;
 template <typename T>
 using gauge_prototype = metric_prototype_with<gauge<T>>;
 
-// A counter in essence is a 64-bit integer that can be incremented and decremented. It can be
+// A counter in essence is a 64-bit integer that increases monotonically. It can be
 // used to measure the number of tasks in queues, current number of running manual compacts,
-// etc. All counters start out at 0.
+// etc. All counters start out at 0, and are non-negative since they are monotonic.
 //
 // `IsVolatile` is false by default. Once it's specified as true, the counter will be volatile.
 // The value() function of a volatile counter will reset the counter atomically after its value
@@ -366,7 +378,6 @@ public:
 
     void increment_by(int64_t x) { _adder.increment_by(x); }
     void increment() { _adder.increment(); }
-    void decrement() { _adder.decrement(); }
 
     void reset() { _adder.reset(); }
 
