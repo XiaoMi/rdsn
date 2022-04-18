@@ -298,17 +298,33 @@ public:
 
     void set(const T &val) { _value.store(val, std::memory_order_relaxed); }
 
-    template <typename Int = T, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
-    void increment_by(Int x) { _value.fetch_add(x, std::memory_order_relaxed); }
+    template <typename Int = T,
+              typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    void increment_by(Int x)
+    {
+        _value.fetch_add(x, std::memory_order_relaxed);
+    }
 
-    template <typename Int = T, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
-    void decrement_by(Int x) { increment_by(-x); }
+    template <typename Int = T,
+              typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    void decrement_by(Int x)
+    {
+        increment_by(-x);
+    }
 
-    template <typename Int = T, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
-    void increment() { increment_by(1); }
+    template <typename Int = T,
+              typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    void increment()
+    {
+        increment_by(1);
+    }
 
-    template <typename Int = T, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
-    void decrement() { increment_by(-1); }
+    template <typename Int = T,
+              typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    void decrement()
+    {
+        increment_by(-1);
+    }
 
 protected:
     gauge(const metric_prototype *prototype, const T &initial_val)

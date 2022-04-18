@@ -445,7 +445,8 @@ void run_gauge_increment_cases(dsn::gauge_prototype<int64_t> *prototype, int64_t
         int64_t decrements_by;
         int64_t increments;
         int64_t decrements;
-    } tests[] = {{"server_13", 100, 100, 1000, 1000}, {"server_14", 1000000, 1000000, 10000000, 10000000}};
+    } tests[] = {{"server_13", 100, 100, 1000, 1000},
+                 {"server_14", 1000000, 1000000, 10000000, 10000000}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
@@ -458,6 +459,10 @@ void run_gauge_increment_cases(dsn::gauge_prototype<int64_t> *prototype, int64_t
         run_increment_by<false>(my_metric, value, test.decrements_by, num_threads, value);
         run_increment(my_metric, value, test.increments, num_threads, value);
         run_decrement(my_metric, value, test.decrements, num_threads, value);
+
+        // Reset to 0 since this metric could be used again
+        my_metric->set(0);
+        ASSERT_EQ(my_metric->value(), 0);
     }
 }
 
@@ -470,10 +475,7 @@ void run_gauge_increment_cases(dsn::gauge_prototype<int64_t> *prototype)
     run_gauge_increment_cases(prototype, 4);
 }
 
-TEST(metrics_test, gauge_increment)
-{
-    run_gauge_increment_cases(&METRIC_test_gauge_int64);
-}
+TEST(metrics_test, gauge_increment) { run_gauge_increment_cases(&METRIC_test_gauge_int64); }
 
 template <typename Adder>
 void run_counter_cases(dsn::counter_prototype<Adder> *prototype, int64_t num_threads)
@@ -606,7 +608,7 @@ void run_volatile_counter_cases(dsn::volatile_counter_prototype<Adder> *prototyp
     {
         std::string entity_id;
         int64_t num_operations;
-    } tests[] = {{"server_11", 5000}, {"server_12", 5000000}};
+    } tests[] = {{"server_17", 5000}, {"server_18", 5000000}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
