@@ -4,12 +4,22 @@
 # it's recommended to create a PR against the ci-test branch to test if it works
 # as expected.
 
-name: pull_request
+name: Code Lint and Unit Test
 
 on:
   # run on each pull request
   pull_request:
     types: [ synchronize, opened, reopened ]
+    paths:
+      - .github/workflows/cpp_actions.yaml
+      - CMakeLists.txt
+      - bin
+      - compile_thrift.py
+      - include
+      - run.sh
+      - scripts
+      - src
+      - thirdparty
     branches:
       - master
       - 'v[0-9]+.*' # release branch
@@ -21,21 +31,6 @@ defaults:
     shell: bash
 
 jobs:
-  semantic_title:
-    name: Lint PR title
-    runs-on: ubuntu-latest
-    steps:
-      - uses: amannn/action-semantic-pull-request@v4.3.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  markdown-link-check:
-    name: Check Markdown links
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: gaurav-nelson/github-action-markdown-link-check@1.0.13
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -64,11 +59,14 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v18.7
       - name: Unpack prebuilt third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
+        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
+        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty')
         working-directory: thirdparty
         run: |
           mkdir build
@@ -98,11 +96,14 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v18.7
       - name: Unpack prebuilt third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
+        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
+        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty')
         working-directory: thirdparty
         run: |
           mkdir build
@@ -132,11 +133,14 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v18.7
       - name: Unpack prebuilt third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
+        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
+        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty')
         working-directory: thirdparty
         run: |
           mkdir build
@@ -166,11 +170,14 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v18.7
       - name: Unpack prebuilt third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
+        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
+        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty')
         working-directory: thirdparty
         run: |
           mkdir build
