@@ -18,7 +18,6 @@
 #include <dsn/utility/metrics.h>
 
 #include <dsn/c/api_utilities.h>
-#include <dsn/dist/fmt_logging.h>
 
 namespace dsn {
 
