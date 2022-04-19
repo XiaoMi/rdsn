@@ -295,7 +295,7 @@ private:
 // a disk, etc.
 //
 // Secondly, a gauge can be used as a counter that increases and decreases. In this scenario only
-// integral type is supported, and its typical usages are the number of tasks in queues, current
+// integral types are supported, and its typical usages are the number of tasks in queues, current
 // number of running manual compacts, etc.
 template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
 class gauge : public metric
