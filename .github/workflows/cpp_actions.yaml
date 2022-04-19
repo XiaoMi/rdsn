@@ -48,7 +48,7 @@ jobs:
 
   test:
     name: Test
-    # needs: lint   # TODO(yingchun): test, must revert when merge PR
+    needs: lint
     runs-on: self-hosted
     container:
       image: apache/pegasus:thirdparties-bin-ubuntu1804
@@ -85,7 +85,7 @@ jobs:
 
   test-with-sanitizer-address:
     name: Test With Sanitizer Address
-    # needs: lint   # TODO(yingchun): test, must revert when merge PR
+    needs: lint
     runs-on: self-hosted
     container:
       image: apache/pegasus:thirdparties-bin-ubuntu1804
@@ -122,7 +122,7 @@ jobs:
 
   test-with-sanitizer-leak:
     name: Test With Sanitizer Leak
-    # needs: lint   # TODO(yingchun): test, must revert when merge PR
+    needs: lint
     runs-on: self-hosted
     container:
       image: apache/pegasus:thirdparties-bin-ubuntu1804
@@ -159,7 +159,7 @@ jobs:
 
   test-with-sanitizer-undefined:
     name: Test With Sanitizer Undefined
-    # needs: lint   # TODO(yingchun): test, must revert when merge PR
+    needs: lint
     runs-on: self-hosted
     container:
       image: apache/pegasus:thirdparties-bin-ubuntu1804
