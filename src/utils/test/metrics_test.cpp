@@ -294,7 +294,7 @@ TEST(metrics_test, gauge_int64)
         ASSERT_EQ(my_metric->value(), test.new_value);
 
         auto metrics = my_server_entity->metrics();
-        ASSERT_EQ(static_cast<metric *>(metrics[&METRIC_test_gauge_int64].get()), my_metric.get());
+        ASSERT_EQ(metrics[&METRIC_test_gauge_int64].get(), static_cast<metric *>(my_metric.get()));
 
         ASSERT_EQ(my_metric->prototype(),
                   static_cast<const metric_prototype *>(&METRIC_test_gauge_int64));
@@ -353,12 +353,26 @@ void execute(int64_t num_threads, std::function<void(int)> runner)
     }
 }
 
-template <typename Adder>
-void run_counter_increment_by(::dsn::counter_ptr<Adder> &my_metric,
-                              int64_t base_value,
-                              int64_t num_operations,
-                              int64_t num_threads,
-                              int64_t &result)
+template <typename MetricPtr>
+void increment_by(std::integral_constant<bool, true>, MetricPtr &my_metric, int64_t x)
+{
+    my_metric->increment_by(x);
+}
+
+template <typename MetricPtr>
+void increment_by(std::integral_constant<bool, false>, MetricPtr &my_metric, int64_t x)
+{
+    // If x is positive, metric will be increased; otherwise, the metric will be decreased.
+    my_metric->decrement_by(-x);
+}
+
+template <bool IsIncrement, typename MetricPtr>
+void run_increment_by(MetricPtr &my_metric,
+                      int64_t base_value,
+                      int64_t num_operations,
+                      int64_t num_threads,
+                      int64_t &result,
+                      bool allow_negative = true)
 {
     std::vector<int64_t> deltas;
     int64_t n = num_operations * num_threads;
@@ -367,7 +381,7 @@ void run_counter_increment_by(::dsn::counter_ptr<Adder> &my_metric,
     int64_t expected_value = base_value;
     for (int64_t i = 0; i < n; ++i) {
         auto delta = static_cast<int64_t>(dsn::rand::next_u64(1000000));
-        if (delta % 3 == 0) {
+        if (allow_negative && delta % 3 == 0) {
             delta = -delta;
         }
         expected_value += delta;
@@ -376,19 +390,20 @@ void run_counter_increment_by(::dsn::counter_ptr<Adder> &my_metric,
 
     execute(num_threads, [num_operations, &my_metric, &deltas](int tid) mutable {
         for (int64_t i = 0; i < num_operations; ++i) {
-            my_metric->increment_by(deltas[tid * num_operations + i]);
+            auto delta = deltas[tid * num_operations + i];
+            increment_by(std::integral_constant<bool, IsIncrement>{}, my_metric, delta);
         }
     });
     ASSERT_EQ(my_metric->value(), expected_value);
     result = expected_value;
 }
 
-template <typename Adder>
-void run_counter_increment(::dsn::counter_ptr<Adder> &my_metric,
-                           int64_t base_value,
-                           int64_t num_operations,
-                           int64_t num_threads,
-                           int64_t &result)
+template <typename MetricPtr>
+void run_increment(MetricPtr &my_metric,
+                   int64_t base_value,
+                   int64_t num_operations,
+                   int64_t num_threads,
+                   int64_t &result)
 {
     execute(num_threads, [num_operations, &my_metric](int) mutable {
         for (int64_t i = 0; i < num_operations; ++i) {
@@ -401,12 +416,12 @@ void run_counter_increment(::dsn::counter_ptr<Adder> &my_metric,
     result = expected_value;
 }
 
-template <typename Adder>
-void run_counter_decrement(::dsn::counter_ptr<Adder> &my_metric,
-                           int64_t base_value,
-                           int64_t num_operations,
-                           int64_t num_threads,
-                           int64_t &result)
+template <typename MetricPtr>
+void run_decrement(MetricPtr &my_metric,
+                   int64_t base_value,
+                   int64_t num_operations,
+                   int64_t num_threads,
+                   int64_t &result)
 {
     execute(num_threads, [num_operations, &my_metric](int) mutable {
         for (int64_t i = 0; i < num_operations; ++i) {
@@ -419,8 +434,52 @@ void run_counter_decrement(::dsn::counter_ptr<Adder> &my_metric,
     result = expected_value;
 }
 
+void run_gauge_increment_cases(dsn::gauge_prototype<int64_t> *prototype, int64_t num_threads)
+{
+    // Test cases:
+    // - test the gauge with small-scale computations
+    // - test the gauge with large-scale computations
+    struct test_case
+    {
+        std::string entity_id;
+        int64_t increments_by;
+        int64_t decrements_by;
+        int64_t increments;
+        int64_t decrements;
+    } tests[] = {{"server_13", 100, 100, 1000, 1000},
+                 {"server_14", 1000000, 1000000, 10000000, 10000000}};
+
+    for (const auto &test : tests) {
+        auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
+
+        auto my_metric = prototype->instantiate(my_server_entity);
+
+        int64_t value = 0;
+        ASSERT_EQ(my_metric->value(), value);
+        run_increment_by<true>(my_metric, value, test.increments_by, num_threads, value);
+        run_increment_by<false>(my_metric, value, test.decrements_by, num_threads, value);
+        run_increment(my_metric, value, test.increments, num_threads, value);
+        run_decrement(my_metric, value, test.decrements, num_threads, value);
+
+        // Reset to 0 since this metric could be used again
+        my_metric->set(0);
+        ASSERT_EQ(my_metric->value(), 0);
+    }
+}
+
+void run_gauge_increment_cases(dsn::gauge_prototype<int64_t> *prototype)
+{
+    // Do single-threaded tests
+    run_gauge_increment_cases(prototype, 1);
+
+    // Do multi-threaded tests
+    run_gauge_increment_cases(prototype, 4);
+}
+
+TEST(metrics_test, gauge_increment) { run_gauge_increment_cases(&METRIC_test_gauge_int64); }
+
 template <typename Adder>
-void run_counter_cases(::dsn::counter_prototype<Adder> *prototype, int64_t num_threads)
+void run_counter_cases(dsn::counter_prototype<Adder> *prototype, int64_t num_threads)
 {
     // Test cases:
     // - test the counter with small-scale computations
@@ -430,8 +489,7 @@ void run_counter_cases(::dsn::counter_prototype<Adder> *prototype, int64_t num_t
         std::string entity_id;
         int64_t increments_by;
         int64_t increments;
-        int64_t decrements;
-    } tests[] = {{"server_9", 100, 1000, 1000}, {"server_10", 1000000, 10000000, 10000000}};
+    } tests[] = {{"server_15", 100, 1000}, {"server_16", 1000000, 10000000}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
@@ -440,9 +498,8 @@ void run_counter_cases(::dsn::counter_prototype<Adder> *prototype, int64_t num_t
 
         int64_t value = 0;
         ASSERT_EQ(my_metric->value(), value);
-        run_counter_increment_by(my_metric, value, test.increments_by, num_threads, value);
-        run_counter_increment(my_metric, value, test.increments, num_threads, value);
-        run_counter_decrement(my_metric, value, test.decrements, num_threads, value);
+        run_increment_by<true>(my_metric, value, test.increments_by, num_threads, value, false);
+        run_increment(my_metric, value, test.increments, num_threads, value);
 
         my_metric->reset();
         ASSERT_EQ(my_metric->value(), 0);
@@ -450,12 +507,12 @@ void run_counter_cases(::dsn::counter_prototype<Adder> *prototype, int64_t num_t
         auto metrics = my_server_entity->metrics();
         ASSERT_EQ(metrics[prototype].get(), static_cast<metric *>(my_metric.get()));
 
-        ASSERT_EQ(my_metric->prototype(), prototype);
+        ASSERT_EQ(my_metric->prototype(), static_cast<const metric_prototype *>(prototype));
     }
 }
 
 template <typename Adder>
-void run_counter_cases(::dsn::counter_prototype<Adder> *prototype)
+void run_counter_cases(dsn::counter_prototype<Adder> *prototype)
 {
     // Do single-threaded tests
     run_counter_cases(prototype, 1);
@@ -484,9 +541,6 @@ void run_volatile_counter_write_and_read(dsn::volatile_counter_ptr<Adder> &my_me
     int64_t expected_value = 0;
     for (int64_t i = 0; i < n; ++i) {
         auto delta = static_cast<int64_t>(dsn::rand::next_u64(1000000));
-        if (delta % 3 == 0) {
-            delta = -delta;
-        }
         expected_value += delta;
         deltas.push_back(delta);
     }
@@ -552,7 +606,7 @@ void run_volatile_counter_cases(dsn::volatile_counter_prototype<Adder> *prototyp
     {
         std::string entity_id;
         int64_t num_operations;
-    } tests[] = {{"server_11", 5000}, {"server_12", 5000000}};
+    } tests[] = {{"server_17", 5000}, {"server_18", 5000000}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
@@ -565,7 +619,7 @@ void run_volatile_counter_cases(dsn::volatile_counter_prototype<Adder> *prototyp
         auto metrics = my_server_entity->metrics();
         ASSERT_EQ(metrics[prototype].get(), static_cast<metric *>(my_metric.get()));
 
-        ASSERT_EQ(my_metric->prototype(), prototype);
+        ASSERT_EQ(my_metric->prototype(), static_cast<const metric_prototype *>(prototype));
     }
 }
 
