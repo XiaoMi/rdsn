@@ -371,7 +371,8 @@ void run_increment_by(MetricPtr &my_metric,
                       int64_t base_value,
                       int64_t num_operations,
                       int64_t num_threads,
-                      int64_t &result)
+                      int64_t &result,
+                      bool allow_negative = true)
 {
     std::vector<int64_t> deltas;
     int64_t n = num_operations * num_threads;
@@ -380,7 +381,7 @@ void run_increment_by(MetricPtr &my_metric,
     int64_t expected_value = base_value;
     for (int64_t i = 0; i < n; ++i) {
         auto delta = static_cast<int64_t>(dsn::rand::next_u64(1000000));
-        if (delta % 3 == 0) {
+        if (allow_negative && delta % 3 == 0) {
             delta = -delta;
         }
         expected_value += delta;
@@ -497,7 +498,7 @@ void run_counter_cases(dsn::counter_prototype<Adder> *prototype, int64_t num_thr
 
         int64_t value = 0;
         ASSERT_EQ(my_metric->value(), value);
-        run_increment_by<true>(my_metric, value, test.increments_by, num_threads, value);
+        run_increment_by<true>(my_metric, value, test.increments_by, num_threads, value, false);
         run_increment(my_metric, value, test.increments, num_threads, value);
 
         my_metric->reset();
@@ -540,9 +541,6 @@ void run_volatile_counter_write_and_read(dsn::volatile_counter_ptr<Adder> &my_me
     int64_t expected_value = 0;
     for (int64_t i = 0; i < n; ++i) {
         auto delta = static_cast<int64_t>(dsn::rand::next_u64(1000000));
-        if (delta % 3 == 0) {
-            delta = -delta;
-        }
         expected_value += delta;
         deltas.push_back(delta);
     }

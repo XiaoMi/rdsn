@@ -24,6 +24,8 @@
 #include <unordered_map>
 #include <utility>
 
+#include <dsn/c/api_utilities.h>
+#include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/autoref_ptr.h>
 #include <dsn/utility/casts.h>
 #include <dsn/utility/enum_helper.h>
@@ -370,9 +372,11 @@ using gauge_prototype = metric_prototype_with<gauge<T>>;
 
 // A counter in essence is a 64-bit integer that increases monotonically. It should be noted that
 // the counter does not support to decrease. If decrease is needed, please consider to use the
-// gauge instead. The counter can be typically used to measure the number of processed requests,
-// which in the future can be help to compute the QPS. All counters start out at 0, and are
-// non-negative since they are monotonic.
+// gauge instead.
+//
+// The counter can be typically used to measure the number of processed requests, which in the
+// future can be help to compute the QPS. All counters start out at 0, and are non-negative
+// since they are monotonic.
 //
 // `IsVolatile` is false by default. Once it's specified as true, the counter will be volatile.
 // The value() function of a volatile counter will reset the counter atomically after its value
@@ -401,8 +405,13 @@ public:
         return _adder.fetch_and_reset();
     }
 
-    // NOTICE: x MUST be positive number.
-    void increment_by(int64_t x) { _adder.increment_by(x); }
+    // NOTICE: x MUST be a non-negative integer.
+    void increment_by(int64_t x)
+    {
+        dassert_f(x >= 0, "delta({}) by increment for counter must be a non-negative integer", x);
+        _adder.increment_by(x);
+    }
+
     void increment() { _adder.increment(); }
 
     void reset() { _adder.reset(); }
