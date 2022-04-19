@@ -54,7 +54,24 @@ jobs:
 
   test:
     name: Test
-    needs: lint
     runs-on: ubuntu-latest
     steps:
       - run: 'echo "No build required" '
+
+  test-with-sanitizer-address:
+    name: Test With Sanitizer Address
+    runs-on: ubuntu-latest
+      steps:
+        - run: 'echo "No build required" '
+
+  test-with-sanitizer-leak:
+    name: Test With Sanitizer Leak
+    runs-on: ubuntu-latest
+      steps:
+        - run: 'echo "No build required" '
+
+  test-with-sanitizer-undefined:
+    name: Test With Sanitizer Undefined
+    runs-on: ubuntu-latest
+      steps:
+        - run: 'echo "No build required" '
