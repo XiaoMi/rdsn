@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 ---
-# There are 'paths' filters for ci-pull-request.yaml, 
+# There are 'paths' filters for .github/workflows/cpp_actions.yaml, 
 # it can be skipped, but lead CI pending, we add this
 # 'always pass' action to resolve it, see more details:
 # https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
