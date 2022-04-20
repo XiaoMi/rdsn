@@ -63,8 +63,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Get changed files
-        id: changed-files
         uses: tj-actions/changed-files@v18.7
+        with:
+          fetch-depth: 0
       - name: Unpack prebuilt third-parties
         if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
@@ -100,8 +101,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Get changed files
-        id: changed-files
         uses: tj-actions/changed-files@v18.7
+        with:
+          fetch-depth: 0
       - name: Unpack prebuilt third-parties
         if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
@@ -137,8 +139,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Get changed files
-        id: changed-files
         uses: tj-actions/changed-files@v18.7
+        with:
+          fetch-depth: 0
       - name: Unpack prebuilt third-parties
         if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
@@ -174,8 +177,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Get changed files
-        id: changed-files
         uses: tj-actions/changed-files@v18.7
+        with:
+          fetch-depth: 0
       - name: Unpack prebuilt third-parties
         if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
