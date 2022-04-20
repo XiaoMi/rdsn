@@ -228,6 +228,8 @@ public:
     error_with<query_app_manual_compact_response>
     query_app_manual_compact(const std::string &app_name);
 
+    error_code unlock_meta_op_status();
+
 private:
     bool static valid_app_char(int c);
 

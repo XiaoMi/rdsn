@@ -136,6 +136,15 @@ struct configuration_recovery_response
     2:string hint_message;
 }
 
+struct unlock_meta_op_status_request
+{
+}
+
+struct unlock_meta_op_status_response
+{
+    1:dsn.error_code err;
+}
+
 /////////////////// Tables Management ////////////////////
 
 struct create_app_options
