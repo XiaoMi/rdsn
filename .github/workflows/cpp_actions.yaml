@@ -11,7 +11,7 @@ on:
   pull_request:
     types: [ synchronize, opened, reopened ]
     paths:
-      # test - .github/workflows/cpp_actions.yaml
+      - .github/workflows/cpp_actions.yaml
       - CMakeLists.txt
       - bin/**
       - compile_thrift.py
