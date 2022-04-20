@@ -66,10 +66,10 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v18.7
       - name: Unpack prebuilt third-parties
-        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty') == false
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty')
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty')
         working-directory: thirdparty
         run: |
           mkdir build
@@ -103,10 +103,10 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v18.7
       - name: Unpack prebuilt third-parties
-        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty') == false
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty')
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty')
         working-directory: thirdparty
         run: |
           mkdir build
@@ -140,10 +140,10 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v18.7
       - name: Unpack prebuilt third-parties
-        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty') == false
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty')
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty')
         working-directory: thirdparty
         run: |
           mkdir build
@@ -177,10 +177,10 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v18.7
       - name: Unpack prebuilt third-parties
-        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty') == false
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(steps.changed-files.outputs.modified_files, 'thirdparty')
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty')
         working-directory: thirdparty
         run: |
           mkdir build
