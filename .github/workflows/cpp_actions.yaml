@@ -62,13 +62,17 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
-      - name: Get changed files
-        uses: tj-actions/changed-files@v18.7
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            thirdparty:
+              - 'thirdparty/**'
       - name: Unpack prebuilt third-parties
-        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
+        if: steps.changes.outputs.thirdparty == 'false'
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty')
+        if: steps.changes.outputs.thirdparty == 'true'
         working-directory: thirdparty
         run: |
           mkdir build
@@ -98,13 +102,17 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
-      - name: Get changed files
-        uses: tj-actions/changed-files@v18.7
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            thirdparty:
+              - 'thirdparty/**'
       - name: Unpack prebuilt third-parties
-        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
+        if: steps.changes.outputs.thirdparty == 'false'
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty')
+        if: steps.changes.outputs.thirdparty == 'true'
         working-directory: thirdparty
         run: |
           mkdir build
@@ -134,13 +142,17 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
-      - name: Get changed files
-        uses: tj-actions/changed-files@v18.7
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            thirdparty:
+              - 'thirdparty/**'
       - name: Unpack prebuilt third-parties
-        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
+        if: steps.changes.outputs.thirdparty == 'false'
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty')
+        if: steps.changes.outputs.thirdparty == 'true'
         working-directory: thirdparty
         run: |
           mkdir build
@@ -170,13 +182,17 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
-      - name: Get changed files
-        uses: tj-actions/changed-files@v18.7
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            thirdparty:
+              - 'thirdparty/**'
       - name: Unpack prebuilt third-parties
-        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty') == false
+        if: steps.changes.outputs.thirdparty == 'false'
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'thirdparty')
+        if: steps.changes.outputs.thirdparty == 'true'
         working-directory: thirdparty
         run: |
           mkdir build
