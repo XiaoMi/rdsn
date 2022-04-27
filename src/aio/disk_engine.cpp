@@ -125,11 +125,7 @@ aio_task *disk_file::on_write_completed(aio_task *wk, void *ctx, error_code err,
 
         if (err == ERR_OK) {
             size_t this_size = (size_t)wk->get_aio_context()->buffer_size;
-            dassert(size >= this_size,
-                    "written buffer size does not equal to input buffer's size: %lld vs %lld",
-                    size,
-                    this_size);
-
+            dcheck_ge(size, this_size);
             wk->enqueue(err, this_size);
             size -= this_size;
         } else {
