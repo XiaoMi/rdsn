@@ -24,15 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
 #pragma once
 
 #include <queue>
@@ -51,6 +42,8 @@ public:
         _name = name;
         _count = 0;
     }
+
+    virtual ~priority_queue() = default;
 
     virtual long enqueue(T obj, uint32_t priority)
     {
