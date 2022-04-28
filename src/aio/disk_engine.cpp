@@ -266,7 +266,7 @@ void disk_engine::complete_io(aio_task *aio, error_code err, uint64_t bytes)
 
         // write
         else {
-            uint32_t sz;
+            uint64_t sz;
             auto wk = df->on_write_completed(aio, (void *)&sz, err, (size_t)bytes);
             if (wk) {
                 process_write(wk, sz);
