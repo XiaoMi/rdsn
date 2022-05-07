@@ -69,6 +69,7 @@ class replica_backup_manager;
 class replica_bulk_loader;
 class replica_split_manager;
 class replica_disk_migrator;
+class replica_follower;
 
 class cold_backup_context;
 typedef dsn::ref_ptr<cold_backup_context> cold_backup_context_ptr;
@@ -77,15 +78,6 @@ struct cold_backup_metadata;
 namespace test {
 class test_checker;
 }
-
-enum manual_compaction_status
-{
-    kIdle = 0,
-    kQueuing,
-    kRunning,
-    kFinished
-};
-const char *manual_compaction_status_to_string(manual_compaction_status status);
 
 #define CHECK_REQUEST_IF_SPLITTING(op_type)                                                        \
     if (_validate_partition_hash) {                                                                \
@@ -122,6 +114,7 @@ public:
                          gpid gpid,
                          const app_info &app,
                          bool restore_if_necessary,
+                         bool is_duplication_follower,
                          const std::string &parent_dir = "");
 
     // return true when the mutation is valid for the current replica
@@ -165,7 +158,6 @@ public:
     void on_add_learner(const group_check_request &request);
     void on_remove(const replica_configuration &request);
     void on_group_check(const group_check_request &request, /*out*/ group_check_response &response);
-    void on_copy_checkpoint(const replica_configuration &request, /*out*/ learn_response &response);
 
     //
     //    messsages from liveness monitor
@@ -201,8 +193,11 @@ public:
     //
     // Duplication
     //
+    error_code trigger_manual_emergency_checkpoint(decree old_decree);
+    void on_query_last_checkpoint(learn_response &response);
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
-    bool is_duplicating() const { return _duplicating; }
+    bool is_duplication_master() const { return _is_duplication_master; }
+    bool is_duplication_follower() const { return _is_duplication_follower; }
 
     //
     // Backup
@@ -232,6 +227,8 @@ public:
     //
     replica_disk_migrator *disk_migrator() const { return _disk_migrator.get(); }
 
+    replica_follower *get_replica_follower() const { return _replica_follower.get(); };
+
     //
     // Statistics
     //
@@ -243,6 +240,9 @@ public:
     void set_disk_status(disk_status::type status) { _disk_status = status; }
     bool disk_space_insufficient() { return _disk_status == disk_status::SPACE_INSUFFICIENT; }
     disk_status::type get_disk_status() { return _disk_status; }
+    std::string get_replica_disk_tag() const { return _disk_tag; }
+
+    static const std::string kAppInfo;
 
 protected:
     // this method is marked protected to enable us to mock it in unit tests.
@@ -257,7 +257,12 @@ private:
     mutation_ptr new_mutation(decree decree);
 
     // initialization
-    replica(replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool need_restore);
+    replica(replica_stub *stub,
+            gpid gpid,
+            const app_info &app,
+            const char *dir,
+            bool need_restore,
+            bool is_duplication_follower = false);
     error_code initialize_on_new();
     error_code initialize_on_load();
     error_code init_app_and_prepare_list(bool create_new);
@@ -423,8 +428,7 @@ private:
     // now this remote commend will be used by `scripts/pegasus_manual_compact.sh`
     std::string query_manual_compact_state() const;
 
-    // Used for http interface
-    manual_compaction_status get_manual_compact_status() const;
+    manual_compaction_status::type get_manual_compact_status() const;
 
     void init_table_level_latency_counters();
 
@@ -474,6 +478,7 @@ private:
     friend class replica_duplicator_manager;
     friend class load_mutation;
     friend class replica_split_test;
+    friend class replica_test_base;
     friend class replica_test;
     friend class replica_backup_manager;
     friend class replica_bulk_loader;
@@ -481,6 +486,8 @@ private:
     friend class replica_disk_migrator;
     friend class replica_disk_test;
     friend class replica_disk_migrate_test;
+    friend class open_replica_test;
+    friend class replica_follower;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -489,8 +496,7 @@ private:
     uint64_t _last_checkpoint_generate_time_ms;
     uint64_t _next_checkpoint_interval_trigger_time_ms;
 
-    // prepare list
-    prepare_list *_prepare_list;
+    std::unique_ptr<prepare_list> _prepare_list;
 
     // private prepare log (may be empty, depending on config)
     mutation_log_ptr _private_log;
@@ -549,7 +555,7 @@ private:
 
     bool _inactive_is_transient; // upgrade to P/S is allowed only iff true
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
-    bool _deny_client_write;     // if deny all write requests
+    deny_client _deny_client;    // if deny requests
     throttling_controller _write_qps_throttling_controller;  // throttling by requests-per-second
     throttling_controller _write_size_throttling_controller; // throttling by bytes-per-second
     throttling_controller _read_qps_throttling_controller;
@@ -557,7 +563,9 @@ private:
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
-    bool _duplicating{false};
+    bool _is_manual_emergency_checkpointing{false};
+    bool _is_duplication_master{false};
+    bool _is_duplication_follower{false};
 
     // backup
     std::unique_ptr<replica_backup_manager> _backup_mgr;
@@ -574,6 +582,8 @@ private:
 
     // disk migrator
     std::unique_ptr<replica_disk_migrator> _disk_migrator;
+
+    std::unique_ptr<replica_follower> _replica_follower;
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;
@@ -599,8 +609,6 @@ private:
     disk_status::type _disk_status{disk_status::NORMAL};
 
     bool _allow_ingest_behind{false};
-
-    const static std::string kAppInfo;
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
 } // namespace replication

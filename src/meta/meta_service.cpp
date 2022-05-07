@@ -33,7 +33,7 @@
 #include <dsn/utility/extensible_object.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/dist/meta_state_service.h>
-#include <dsn/dist/replication/duplication_common.h>
+#include <dsn/dist/common.h>
 #include <dsn/dist/remote_command.h>
 #include <dsn/tool-api/command_manager.h>
 #include <algorithm> // for std::remove_if
@@ -51,6 +51,14 @@
 
 namespace dsn {
 namespace replication {
+
+DSN_DEFINE_uint64("meta_server",
+                  min_live_node_count_for_unfreeze,
+                  3,
+                  "minimum live node count without which the state is freezed");
+DSN_TAG_VARIABLE(min_live_node_count_for_unfreeze, FT_MUTABLE);
+DSN_DEFINE_validator(min_live_node_count_for_unfreeze,
+                     [](uint64_t min_live_node_count) -> bool { return min_live_node_count > 0; });
 
 meta_service::meta_service()
     : serverlet("meta_service"), _failure_detector(nullptr), _started(false), _recovering(false)
@@ -77,6 +85,8 @@ meta_service::meta_service()
         "replica server disconnect count in the recent period");
     _unalive_nodes_count.init_app_counter(
         "eon.meta_service", "unalive_nodes", COUNTER_TYPE_NUMBER, "current count of unalive nodes");
+    _alive_nodes_count.init_app_counter(
+        "eon.meta_service", "alive_nodes", COUNTER_TYPE_NUMBER, "current count of alive nodes");
 
     _access_controller = security::create_meta_access_controller();
 
@@ -99,7 +109,7 @@ void meta_service::stop()
 bool meta_service::check_freeze() const
 {
     zauto_lock l(_failure_detector->_lock);
-    if (_alive_set.size() < _meta_opts.min_live_node_count_for_unfreeze)
+    if (_alive_set.size() < FLAGS_min_live_node_count_for_unfreeze)
         return true;
     int total = _alive_set.size() + _dead_set.size();
     return _alive_set.size() * 100 < _node_live_percentage_threshold_for_update * total;
@@ -235,6 +245,7 @@ void meta_service::set_node_state(const std::vector<rpc_address> &nodes, bool is
 
     _recent_disconnect_count->add(is_alive ? 0 : nodes.size());
     _unalive_nodes_count->set(_dead_set.size());
+    _alive_nodes_count->set(_alive_set.size());
 
     if (!_started) {
         return;
@@ -327,6 +338,8 @@ void meta_service::start_service()
         if (_dead_set.find(kv.first) == _dead_set.end())
             _alive_set.insert(kv.first);
     }
+
+    _alive_nodes_count->set(_alive_set.size());
 
     for (const dsn::rpc_address &node : _alive_set) {
         // sync alive set and the failure_detector
@@ -535,6 +548,12 @@ void meta_service::register_rpc_handlers()
         RPC_CM_START_BACKUP_APP, "start_backup_app", &meta_service::on_start_backup_app);
     register_rpc_handler_with_rpc_holder(
         RPC_CM_QUERY_BACKUP_STATUS, "query_backup_status", &meta_service::on_query_backup_status);
+    register_rpc_handler_with_rpc_holder(RPC_CM_START_MANUAL_COMPACT,
+                                         "start_manual_compact",
+                                         &meta_service::on_start_manual_compact);
+    register_rpc_handler_with_rpc_holder(RPC_CM_QUERY_MANUAL_COMPACT_STATUS,
+                                         "query_manual_compact_status",
+                                         &meta_service::on_query_manual_compact_status);
 }
 
 int meta_service::check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address)
@@ -1206,6 +1225,32 @@ void meta_service::on_query_backup_status(query_backup_status_rpc rpc)
         return;
     }
     _backup_handler->query_backup_status(std::move(rpc));
+}
+
+size_t meta_service::get_alive_node_count() const
+{
+    zauto_lock l(_failure_detector->_lock);
+    return _alive_set.size();
+}
+
+void meta_service::on_start_manual_compact(start_manual_compact_rpc rpc)
+{
+    if (!check_status(rpc)) {
+        return;
+    }
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     nullptr,
+                     std::bind(&server_state::on_start_manual_compact, _state.get(), rpc));
+}
+
+void meta_service::on_query_manual_compact_status(query_manual_compact_rpc rpc)
+{
+    if (!check_status(rpc)) {
+        return;
+    }
+    tasking::enqueue(LPC_META_STATE_NORMAL,
+                     nullptr,
+                     std::bind(&server_state::on_query_manual_compact_status, _state.get(), rpc));
 }
 
 } // namespace replication

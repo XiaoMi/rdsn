@@ -82,8 +82,6 @@ void meta_options::initialize()
         "if live_node_count * 100 < total_node_count * node_live_percentage_threshold_for_update, "
         "then freeze the cluster; default is 65");
 
-    min_live_node_count_for_unfreeze = FLAGS_min_live_node_count_for_unfreeze;
-
     meta_function_level_on_start = meta_function_level::fl_invalid;
     const char *level_str = dsn_config_get_value_string(
         "meta_server", "meta_function_level_on_start", "steady", "meta function level on start");

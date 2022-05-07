@@ -36,6 +36,8 @@ namespace replication {
 /// Each app has an attribute called "duplicating" which indicates
 /// whether this app should prevent its unconfirmed WAL from being compacted.
 ///
+
+/// Ref-Issue: https://github.com/apache/incubator-pegasus/issues/892
 class meta_duplication_service
 {
 public:
@@ -78,7 +80,11 @@ private:
     void do_update_partition_confirmed(duplication_info_s_ptr &dup,
                                        duplication_sync_rpc &rpc,
                                        int32_t partition_idx,
-                                       int64_t confirmed_decree);
+                                       const duplication_confirm_entry &confirm_entry);
+
+    void create_follower_app_for_duplication(const std::shared_ptr<duplication_info> &dup,
+                                             const std::shared_ptr<app_state> &app);
+    void check_follower_app_if_create_completed(const std::shared_ptr<duplication_info> &dup);
 
     // Get zk path for duplication.
     std::string get_duplication_path(const app_state &app) const
@@ -97,8 +103,10 @@ private:
 
     // Create a new duplication from INIT state.
     // Thread-Safe
-    std::shared_ptr<duplication_info> new_dup_from_init(const std::string &remote_cluster_name,
-                                                        std::shared_ptr<app_state> &app) const;
+    std::shared_ptr<duplication_info>
+    new_dup_from_init(const std::string &follower_cluster_name,
+                      std::vector<rpc_address> &&follower_cluster_metas,
+                      std::shared_ptr<app_state> &app) const;
 
     // get lock to protect access of app table
     zrwlock_nr &app_lock() const { return _state->_lock; }
@@ -109,7 +117,7 @@ private:
     {
         for (const auto &kv : app->duplications) {
             const auto &dup = kv.second;
-            if (dup->is_valid()) {
+            if (!dup->is_invalid_status()) {
                 app->__set_duplicating(true);
                 return;
             }

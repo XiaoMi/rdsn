@@ -24,18 +24,14 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-#include <dsn/utility/filesystem.h>
-#include <queue>
-#include <dsn/tool-api/command_manager.h>
 #include "nfs_client_impl.h"
+
+#include <fcntl.h>
+
+#include <queue>
+
+#include <dsn/utility/filesystem.h>
+#include <dsn/tool-api/command_manager.h>
 
 namespace dsn {
 namespace service {
@@ -45,7 +41,19 @@ DSN_DEFINE_uint32("nfs",
                   nfs_copy_block_bytes,
                   4 * 1024 * 1024,
                   "max block size (bytes) for each network copy");
-DSN_DEFINE_int32("nfs", max_copy_rate_megabytes, 500, "max rate of copying from remote node(MB/s)");
+DSN_DEFINE_uint32(
+    "nfs",
+    max_copy_rate_megabytes_per_disk,
+    0,
+    "max rate per disk of copying from remote node(MB/s), zero means disable rate limiter");
+DSN_TAG_VARIABLE(max_copy_rate_megabytes_per_disk, FT_MUTABLE);
+// max_copy_rate_bytes should be zero or greater than nfs_copy_block_bytes which is the max
+// batch copy size once
+DSN_DEFINE_group_validator(max_copy_rate_megabytes_per_disk, [](std::string &message) -> bool {
+    return FLAGS_max_copy_rate_megabytes_per_disk == 0 ||
+           (FLAGS_max_copy_rate_megabytes_per_disk << 20) > FLAGS_nfs_copy_block_bytes;
+});
+
 DSN_DEFINE_int32("nfs",
                  max_concurrent_remote_copy_requests,
                  50,
@@ -105,13 +113,7 @@ nfs_client_impl::nfs_client_impl()
         COUNTER_TYPE_VOLATILE_NUMBER,
         "nfs client write fail count count in the recent period");
 
-    uint32_t max_copy_rate_bytes = FLAGS_max_copy_rate_megabytes << 20;
-    // max_copy_rate_bytes should be greater than nfs_copy_block_bytes which is the max batch copy
-    // size once
-    dassert(max_copy_rate_bytes > FLAGS_nfs_copy_block_bytes,
-            "max_copy_rate_bytes should be greater than nfs_copy_block_bytes");
-    _copy_token_bucket.reset(new TokenBucket(max_copy_rate_bytes, 1.5 * max_copy_rate_bytes));
-    current_max_copy_rate_megabytes = FLAGS_max_copy_rate_megabytes;
+    _copy_token_buckets = std::make_unique<utils::token_buckets>();
 
     register_cli_commands();
 }
@@ -132,6 +134,8 @@ void nfs_client_impl::begin_remote_copy(std::shared_ptr<remote_copy_request> &rc
     req->file_size_req.file_list = rci->files;
     req->file_size_req.source_dir = rci->source_dir;
     req->file_size_req.overwrite = rci->overwrite;
+    req->file_size_req.__set_source_disk_tag(rci->source_disk_tag);
+    req->file_size_req.__set_dest_disk_tag(rci->dest_disk_tag);
     req->nfs_task = nfs_task;
     req->is_finished = false;
 
@@ -269,8 +273,13 @@ void nfs_client_impl::continue_copy()
             zauto_lock l(req->lock);
             const user_request_ptr &ureq = req->file_ctx->user_req;
             if (req->is_valid) {
-                // todo(jiashuo1) use non-block api `consumeWithBorrowNonBlocking` or `consume`
-                _copy_token_bucket->consumeWithBorrowAndWait(req->size);
+                if (FLAGS_max_copy_rate_megabytes_per_disk > 0) {
+                    _copy_token_buckets->get_token_bucket(ureq->file_size_req.dest_disk_tag)
+                        ->consumeWithBorrowAndWait(
+                            req->size,
+                            FLAGS_max_copy_rate_megabytes_per_disk << 20,
+                            1.5 * (FLAGS_max_copy_rate_megabytes_per_disk << 20));
+                }
 
                 copy_request copy_req;
                 copy_req.source = ureq->file_size_req.source;
@@ -281,6 +290,7 @@ void nfs_client_impl::continue_copy()
                 copy_req.source_dir = ureq->file_size_req.source_dir;
                 copy_req.overwrite = ureq->file_size_req.overwrite;
                 copy_req.is_last = req->is_last;
+                copy_req.__set_source_disk_tag(ureq->file_size_req.source_disk_tag);
                 req->remote_copy_task =
                     async_nfs_copy(copy_req,
                                    [=](error_code err, copy_response &&resp) {
@@ -556,27 +566,21 @@ void nfs_client_impl::handle_completion(const user_request_ptr &req, error_code 
     req->nfs_task->enqueue(err, err == ERR_OK ? total_size : 0);
 }
 
+// todo(jiashuo1) just for compatibility with scripts, such as
+// https://github.com/apache/incubator-pegasus/blob/v2.3/scripts/pegasus_offline_node_list.sh
 void nfs_client_impl::register_cli_commands()
 {
-
     static std::once_flag flag;
     std::call_once(flag, [&]() {
         _nfs_max_copy_rate_megabytes_cmd = dsn::command_manager::instance().register_command(
-            {"nfs.max_copy_rate_megabytes"},
-            "nfs.max_copy_rate_megabytes [num | DEFAULT]",
-            "control the max rate(MB/s) to copy file from remote node",
-            [this](const std::vector<std::string> &args) {
+            {"nfs.max_copy_rate_megabytes_per_disk"},
+            "nfs.max_copy_rate_megabytes_per_disk [num]",
+            "control the max rate(MB/s) for one disk to copy file from remote node",
+            [](const std::vector<std::string> &args) {
                 std::string result("OK");
 
                 if (args.empty()) {
-                    return std::to_string(current_max_copy_rate_megabytes);
-                }
-
-                if (args[0] == "DEFAULT") {
-                    uint32_t max_copy_rate_bytes = FLAGS_max_copy_rate_megabytes << 20;
-                    _copy_token_bucket->reset(max_copy_rate_bytes, 1.5 * max_copy_rate_bytes);
-                    current_max_copy_rate_megabytes = FLAGS_max_copy_rate_megabytes;
-                    return result;
+                    return std::to_string(FLAGS_max_copy_rate_megabytes_per_disk);
                 }
 
                 int32_t max_copy_rate_megabytes = 0;
@@ -592,8 +596,7 @@ void nfs_client_impl::register_cli_commands()
                                  .append(std::to_string(FLAGS_nfs_copy_block_bytes));
                     return result;
                 }
-                _copy_token_bucket->reset(max_copy_rate_bytes, 1.5 * max_copy_rate_bytes);
-                current_max_copy_rate_megabytes = max_copy_rate_megabytes;
+                FLAGS_max_copy_rate_megabytes_per_disk = max_copy_rate_megabytes;
                 return result;
             });
     });

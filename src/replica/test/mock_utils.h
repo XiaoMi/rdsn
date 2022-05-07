@@ -46,11 +46,18 @@ public:
     error_code start(int, char **) override { return ERR_NOT_IMPLEMENTED; }
     error_code stop(bool) override { return ERR_NOT_IMPLEMENTED; }
     error_code sync_checkpoint() override { return ERR_OK; }
-    error_code async_checkpoint(bool) override { return ERR_NOT_IMPLEMENTED; }
-    error_code prepare_get_checkpoint(blob &) override { return ERR_NOT_IMPLEMENTED; }
-    error_code get_checkpoint(int64_t, const blob &, learn_state &) override
+    error_code async_checkpoint(bool) override
     {
-        return ERR_NOT_IMPLEMENTED;
+        _last_durable_decree = _expect_last_durable_decree;
+        return ERR_OK;
+    }
+    error_code prepare_get_checkpoint(blob &) override { return ERR_NOT_IMPLEMENTED; }
+    error_code get_checkpoint(int64_t learn_start,
+                              const dsn::blob &learn_request,
+                              dsn::replication::learn_state &state) override
+    {
+        state.to_decree_included = last_durable_decree();
+        return ERR_OK;
     }
     error_code storage_apply_checkpoint(chkpt_apply_mode, const learn_state &) override
     {
@@ -73,7 +80,7 @@ public:
     // we mock the followings
     void update_app_envs(const std::map<std::string, std::string> &envs) override { _envs = envs; }
     void query_app_envs(std::map<std::string, std::string> &out) override { out = _envs; }
-    decree last_durable_decree() const override { return 0; }
+    decree last_durable_decree() const override { return _last_durable_decree; }
 
     // TODO(heyuchen): implement this function in further pull request
     void set_partition_version(int32_t partition_version) override {}
@@ -83,24 +90,47 @@ public:
 
     uint32_t query_data_version() const { return 1; }
 
+    manual_compaction_status::type query_compact_status() const
+    {
+        return manual_compaction_status::IDLE;
+    }
+
+    void set_last_durable_decree(decree d) { _last_durable_decree = d; }
+
+    void set_expect_last_durable_decree(decree d) { _expect_last_durable_decree = d; }
+
 private:
     std::map<std::string, std::string> _envs;
     decree _decree = 5;
     ingestion_status::type _ingestion_status;
+    decree _last_durable_decree{0};
+    decree _expect_last_durable_decree{0};
 };
 
 class mock_replica : public replica
 {
 public:
-    mock_replica(replica_stub *stub, gpid gpid, const app_info &app, const char *dir)
-        : replica(stub, gpid, app, dir, false)
+    mock_replica(replica_stub *stub,
+                 gpid gpid,
+                 const app_info &app,
+                 const char *dir,
+                 bool need_restore = false,
+                 bool is_duplication_follower = false)
+        : replica(stub, gpid, app, dir, need_restore, is_duplication_follower)
     {
         _app = make_unique<replication::mock_replication_app_base>(this);
+    }
+
+    void register_service()
+    {
+        _app->register_storage_engine("replica",
+                                      replication_app_base::create<mock_replication_app_base>);
     }
 
     ~mock_replica() override
     {
         _config.status = partition_status::PS_INACTIVE;
+        _tracker.wait_outstanding_tasks();
         _app.reset(nullptr);
     }
 
@@ -109,13 +139,7 @@ public:
         utils::filesystem::remove_path(log_dir);
 
         _private_log =
-            new mutation_log_private(log_dir,
-                                     _options->log_private_file_size_mb,
-                                     get_gpid(),
-                                     this,
-                                     _options->log_private_batch_buffer_kb * 1024,
-                                     _options->log_private_batch_buffer_count,
-                                     _options->log_private_batch_buffer_flush_interval_ms);
+            new mutation_log_private(log_dir, _options->log_private_file_size_mb, get_gpid(), this);
 
         error_code err =
             _private_log->open(nullptr, [this](error_code err) { dcheck_eq_replica(err, ERR_OK); });
@@ -144,7 +168,7 @@ public:
     void set_replica_config(replica_configuration &config) { _config = config; }
     void set_partition_status(partition_status::type status) { _config.status = status; }
     void set_last_committed_decree(decree d) { _prepare_list->reset(d); }
-    prepare_list *get_plist() { return _prepare_list; }
+    prepare_list *get_plist() const { return _prepare_list.get(); }
     void prepare_list_truncate(decree d) { _prepare_list->truncate(d); }
     void prepare_list_commit_hard(decree d) { _prepare_list->commit(d, COMMIT_TO_DECREE_HARD); }
     decree get_app_last_committed_decree() { return _app->last_committed_decree(); }
@@ -187,6 +211,17 @@ public:
             return;
         }
         backup_context->complete_checkpoint();
+    }
+
+    void update_last_durable_decree(decree decree)
+    {
+        dynamic_cast<mock_replication_app_base *>(_app.get())->set_last_durable_decree(decree);
+    }
+
+    void update_expect_last_durable_decree(decree decree)
+    {
+        dynamic_cast<mock_replication_app_base *>(_app.get())
+            ->set_expect_last_durable_decree(decree);
     }
 
 private:
@@ -243,20 +278,44 @@ public:
     std::map<gpid, mock_replica *> mock_replicas;
 
     /// helper functions
-    mock_replica_ptr generate_replica(app_info info,
-                                      gpid pid,
-                                      partition_status::type status = partition_status::PS_INACTIVE,
-                                      ballot b = 5)
+    mock_replica_ptr
+    generate_replica_ptr(const app_info &info,
+                         gpid pid,
+                         partition_status::type status = partition_status::PS_INACTIVE,
+                         ballot b = 5,
+                         bool need_restore = false,
+                         bool is_duplication_follower = false)
     {
         replica_configuration config;
         config.ballot = b;
         config.pid = pid;
         config.status = status;
 
-        mock_replica_ptr rep = new mock_replica(this, pid, std::move(info), "./");
+        mock_replica_ptr rep =
+            new mock_replica(this, pid, info, "./", need_restore, is_duplication_follower);
         rep->set_replica_config(config);
         _replicas[pid] = rep;
 
+        return rep;
+    }
+
+    replica *generate_replica(const app_info &info,
+                              gpid pid,
+                              partition_status::type status = partition_status::PS_INACTIVE,
+                              ballot b = 5,
+                              bool need_restore = false,
+                              bool is_duplication_follower = false)
+    {
+        replica_configuration config;
+        config.ballot = b;
+        config.pid = pid;
+        config.status = status;
+
+        auto data_dirs = std::vector<std::string>{"./"};
+        auto data_dirs_tag = std::vector<std::string>{"tag"};
+        initialize_fs_manager(data_dirs, data_dirs_tag);
+        auto *rep = new mock_replica(this, pid, info, "./", need_restore, is_duplication_follower);
+        rep->set_replica_config(config);
         return rep;
     }
 
@@ -276,10 +335,10 @@ public:
             for (const gpid &pid : pids) {
                 // generate primary replica and secondary replica.
                 if (primary_count-- > 0) {
-                    add_replica(generate_replica(
+                    add_replica(generate_replica_ptr(
                         mock_app, pid, partition_status::PS_PRIMARY, mock_app.app_id));
                 } else if (secondary_count-- > 0) {
-                    add_replica(generate_replica(
+                    add_replica(generate_replica_ptr(
                         mock_app, pid, partition_status::PS_SECONDARY, mock_app.app_id));
                 }
             }
@@ -313,7 +372,7 @@ class mock_mutation_log_private : public mutation_log_private
 {
 public:
     mock_mutation_log_private(dsn::gpid pid, dsn::replication::replica *r)
-        : mutation_log_private("", 10, pid, r, 10, 10, 500)
+        : mutation_log_private("", 10, pid, r)
     {
     }
 

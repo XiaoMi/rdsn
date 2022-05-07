@@ -569,8 +569,6 @@ void replica::update_app_envs(const std::map<std::string, std::string> &envs)
 
 void replica::update_app_envs_internal(const std::map<std::string, std::string> &envs)
 {
-    update_bool_envs(envs, replica_envs::DENY_CLIENT_WRITE, _deny_client_write);
-
     update_bool_envs(envs, replica_envs::SPLIT_VALIDATE_PARTITION_HASH, _validate_partition_hash);
 
     update_throttle_envs(envs);
@@ -1086,7 +1084,7 @@ void replica::on_config_sync(const app_info &info,
         return;
 
     update_app_envs(info.envs);
-    _duplicating = info.duplicating;
+    _is_duplication_master = info.duplicating;
 
     if (status() == partition_status::PS_PRIMARY) {
         if (nullptr != _primary_states.reconfiguration_task) {

@@ -41,14 +41,15 @@ DSN_DEFINE_int32("replication",
                  5,
                  "concurrent bulk load downloading replica count");
 
-/*extern*/ const char *partition_status_to_string(partition_status::type status)
-{
-    auto it = _partition_status_VALUES_TO_NAMES.find(status);
-    dassert(it != _partition_status_VALUES_TO_NAMES.end(),
-            "unexpected type of partition_status: %d",
-            status);
-    return it->second;
-}
+/**
+ * Empty write is used for flushing WAL log entry which is submit asynchronously.
+ * Make sure it can work well if you diable it.
+ */
+DSN_DEFINE_bool("replication",
+                empty_write_disabled,
+                false,
+                "whether to disable empty write, default is false");
+DSN_TAG_VARIABLE(empty_write_disabled, FT_MUTABLE);
 
 replication_options::replication_options()
 {
@@ -56,7 +57,6 @@ replication_options::replication_options()
     verbose_client_log_on_start = false;
     verbose_commit_log_on_start = false;
     delay_for_fd_timeout_on_start = false;
-    empty_write_disabled = false;
     duplication_enabled = true;
 
     prepare_timeout_ms_for_secondaries = 1000;
@@ -90,9 +90,6 @@ replication_options::replication_options()
     fd_grace_seconds = 10;
 
     log_private_file_size_mb = 32;
-    log_private_batch_buffer_kb = 512;
-    log_private_batch_buffer_count = 512;
-    log_private_batch_buffer_flush_interval_ms = 10000;
     log_private_reserve_max_size_mb = 0;
     log_private_reserve_max_time_seconds = 0;
 
@@ -194,11 +191,6 @@ void replication_options::initialize()
                                   delay_for_fd_timeout_on_start,
                                   "whether to delay for beacon grace period to make failure "
                                   "detector timeout when starting the server, default is false");
-    empty_write_disabled =
-        dsn_config_get_value_bool("replication",
-                                  "empty_write_disabled",
-                                  empty_write_disabled,
-                                  "whether to disable empty write, default is false");
 
     duplication_enabled = dsn_config_get_value_bool(
         "replication", "duplication_enabled", duplication_enabled, "is duplication enabled");
@@ -321,21 +313,6 @@ void replication_options::initialize()
                                          "log_private_file_size_mb",
                                          log_private_file_size_mb,
                                          "private log maximum segment file size (MB)");
-    log_private_batch_buffer_kb =
-        (int)dsn_config_get_value_uint64("replication",
-                                         "log_private_batch_buffer_kb",
-                                         log_private_batch_buffer_kb,
-                                         "private log buffer size (KB) for batching incoming logs");
-    log_private_batch_buffer_count = (int)dsn_config_get_value_uint64(
-        "replication",
-        "log_private_batch_buffer_count",
-        log_private_batch_buffer_count,
-        "private log buffer max item count for batching incoming logs");
-    log_private_batch_buffer_flush_interval_ms =
-        (int)dsn_config_get_value_uint64("replication",
-                                         "log_private_batch_buffer_flush_interval_ms",
-                                         log_private_batch_buffer_flush_interval_ms,
-                                         "private log buffer flush interval in milli-seconds");
     // ATTENTION: only when log_private_reserve_max_size_mb and log_private_reserve_max_time_seconds
     // are both satisfied, the useless logs can be reserved.
     log_private_reserve_max_size_mb =
@@ -431,7 +408,7 @@ void replication_options::initialize()
 
     max_concurrent_bulk_load_downloading_count = FLAGS_max_concurrent_bulk_load_downloading_count;
 
-    replica_helper::load_meta_servers(meta_servers);
+    dassert_f(replica_helper::load_meta_servers(meta_servers), "invalid meta server config");
 
     sanity_check();
 }
@@ -479,7 +456,7 @@ void replication_options::sanity_check()
     }
 }
 
-void replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &servers,
+bool replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &servers,
                                        const char *section,
                                        const char *key)
 {
@@ -490,12 +467,16 @@ void replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &se
     for (auto &s : lv) {
         ::dsn::rpc_address addr;
         if (!addr.from_string_ipv4(s.c_str())) {
-            dassert(
-                false, "invalid address '%s' specified in config [%s].%s", s.c_str(), section, key);
+            derror_f("invalid address '{}' specified in config [{}].{}", s, section, key);
+            return false;
         }
         servers.push_back(addr);
     }
-    dassert(servers.size() > 0, "no meta server specified in config [%s].%s", section, key);
+    if (servers.empty()) {
+        derror_f("no meta server specified in config [{}].{}", section, key);
+        return false;
+    }
+    return true;
 }
 
 /*static*/ bool
@@ -610,17 +591,7 @@ replication_options::check_if_in_black_list(const std::vector<std::string> &blac
     return false;
 }
 
-const std::string backup_restore_constant::FORCE_RESTORE("restore.force_restore");
-const std::string backup_restore_constant::BLOCK_SERVICE_PROVIDER("restore.block_service_provider");
-const std::string backup_restore_constant::CLUSTER_NAME("restore.cluster_name");
-const std::string backup_restore_constant::POLICY_NAME("restore.policy_name");
-const std::string backup_restore_constant::APP_NAME("restore.app_name");
-const std::string backup_restore_constant::APP_ID("restore.app_id");
-const std::string backup_restore_constant::BACKUP_ID("restore.backup_id");
-const std::string backup_restore_constant::SKIP_BAD_PARTITION("restore.skip_bad_partition");
-const std::string backup_restore_constant::RESTORE_PATH("restore.restore_path");
-
-const std::string replica_envs::DENY_CLIENT_WRITE("replica.deny_client_write");
+const std::string replica_envs::DENY_CLIENT_REQUEST("replica.deny_client_request");
 const std::string replica_envs::WRITE_QPS_THROTTLING("replica.write_throttling");
 const std::string replica_envs::WRITE_SIZE_THROTTLING("replica.write_throttling_by_size");
 const uint64_t replica_envs::MIN_SLOW_QUERY_THRESHOLD_MS = 20;
@@ -656,17 +627,12 @@ const std::string replica_envs::BUSINESS_INFO("business.info");
 const std::string replica_envs::REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS(
     "replica_access_controller.allowed_users");
 const std::string replica_envs::READ_QPS_THROTTLING("replica.read_throttling");
+const std::string replica_envs::READ_SIZE_THROTTLING("replica.read_throttling_by_size");
 const std::string
     replica_envs::SPLIT_VALIDATE_PARTITION_HASH("replica.split.validate_partition_hash");
 const std::string replica_envs::USER_SPECIFIED_COMPACTION("user_specified_compaction");
 const std::string replica_envs::BACKUP_REQUEST_QPS_THROTTLING("replica.backup_request_throttling");
 const std::string replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND("rocksdb.allow_ingest_behind");
-
-const std::string bulk_load_constant::BULK_LOAD_INFO("bulk_load_info");
-const int32_t bulk_load_constant::BULK_LOAD_REQUEST_INTERVAL = 10;
-const std::string bulk_load_constant::BULK_LOAD_METADATA("bulk_load_metadata");
-const std::string bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR("bulk_load");
-const int32_t bulk_load_constant::PROGRESS_FINISHED = 100;
 
 } // namespace replication
 } // namespace dsn

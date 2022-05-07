@@ -24,17 +24,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     What is this file about?
- *
- * Revision history:
- *     xxxx-xx-xx, author, first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
-#ifndef _WIN32
-
 #include "coredump.h"
 #include <dsn/tool_api.h>
 #include <sys/types.h>
@@ -44,14 +33,11 @@
 namespace dsn {
 namespace utils {
 
-static std::string s_dump_dir;
 static void handle_core_dump(int);
 static void handle_term(int);
 
-void coredump::init(const char *dump_dir)
+void coredump::init()
 {
-    s_dump_dir = dump_dir;
-
     signal(SIGSEGV, handle_core_dump);
     signal(SIGTERM, handle_term);
 }
@@ -87,5 +73,3 @@ static void handle_term(int signal_id)
 }
 } // namespace utils
 } // namespace dsn
-
-#endif

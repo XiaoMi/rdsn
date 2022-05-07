@@ -4,6 +4,7 @@ set(DUPLICATION_SRC
         duplication/replica_duplicator_manager.cpp
         duplication/duplication_sync_timer.cpp
         duplication/replica_duplicator.cpp
+        duplication/replica_follower.cpp
         duplication/duplication_pipeline.cpp
         duplication/load_from_private_log.cpp
         duplication/mutation_batch.cpp
@@ -36,14 +37,22 @@ set(MY_PROJ_LIBS
     dsn_replication_common
     dsn.failure_detector
     dsn.block_service
+    dsn.block_service.local
+    dsn.block_service.fds
+    dsn.block_service.hdfs
     dsn_nfs
     dsn_dist_cmd
     dsn_http
     dsn_runtime
     dsn_aio
+    galaxy-fds-sdk-cpp
+    PocoNet
+    PocoFoundation
+    PocoNetSSL
+    PocoJSON
     )
 
-set(MY_BOOST_LIBS Boost::regex)
+set(MY_BOOST_LIBS Boost::filesystem Boost::regex)
 
 # Extra files that will be installed
 set(MY_BINPLACES "")

@@ -15,12 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include "app_env_validator.h"
+
 #include "common/replication_common.h"
 #include <fmt/format.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replica_envs.h>
-#include "app_env_validator.h"
+#include <dsn/utils/token_bucket_throttling_controller.h>
 
 namespace dsn {
 namespace replication {
@@ -39,6 +41,26 @@ bool check_slow_query(const std::string &env_value, std::string &hint_message)
         threshold < replica_envs::MIN_SLOW_QUERY_THRESHOLD_MS) {
         hint_message = fmt::format("Slow query threshold must be >= {}ms",
                                    replica_envs::MIN_SLOW_QUERY_THRESHOLD_MS);
+        return false;
+    }
+    return true;
+}
+
+bool check_deny_client(const std::string &env_value, std::string &hint_message)
+{
+    std::vector<std::string> sub_sargs;
+    utils::split_args(env_value.c_str(), sub_sargs, '*', true);
+
+    std::string invalid_hint_message = "Invalid deny client args, valid include: timeout*all, "
+                                       "timeout*write, timeout*read; reconfig*all, reconfig*write, "
+                                       "reconfig*read";
+    if (sub_sargs.size() != 2) {
+        hint_message = invalid_hint_message;
+        return false;
+    }
+    if ((sub_sargs[0] != "timeout" && sub_sargs[0] != "reconfig") ||
+        (sub_sargs[1] != "all" && sub_sargs[1] != "write" && sub_sargs[1] != "read")) {
+        hint_message = invalid_hint_message;
         return false;
     }
     return true;
@@ -156,9 +178,23 @@ void app_env_validator::register_all_validators()
          std::bind(&check_rocksdb_iteration, std::placeholders::_1, std::placeholders::_2)},
         {replica_envs::ROCKSDB_BLOCK_CACHE_ENABLED,
          std::bind(&check_bool_value, std::placeholders::_1, std::placeholders::_2)},
+        {replica_envs::READ_QPS_THROTTLING,
+         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)},
+        {replica_envs::READ_SIZE_THROTTLING,
+         std::bind(&utils::token_bucket_throttling_controller::validate,
+                   std::placeholders::_1,
+                   std::placeholders::_2)},
+        {replica_envs::SPLIT_VALIDATE_PARTITION_HASH,
+         std::bind(&check_bool_value, std::placeholders::_1, std::placeholders::_2)},
+        {replica_envs::USER_SPECIFIED_COMPACTION, nullptr},
+        {replica_envs::BACKUP_REQUEST_QPS_THROTTLING,
+         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)},
+        {replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND,
+         std::bind(&check_bool_value, std::placeholders::_1, std::placeholders::_2)},
+        {replica_envs::DENY_CLIENT_REQUEST,
+         std::bind(&check_deny_client, std::placeholders::_1, std::placeholders::_2)},
         // TODO(zhaoliwei): not implemented
         {replica_envs::BUSINESS_INFO, nullptr},
-        {replica_envs::DENY_CLIENT_WRITE, nullptr},
         {replica_envs::TABLE_LEVEL_DEFAULT_TTL, nullptr},
         {replica_envs::ROCKSDB_USAGE_SCENARIO, nullptr},
         {replica_envs::ROCKSDB_CHECKPOINT_RESERVE_MIN_COUNT, nullptr},
@@ -171,16 +207,7 @@ void app_env_validator::register_all_validators()
         {replica_envs::MANUAL_COMPACT_PERIODIC_TRIGGER_TIME, nullptr},
         {replica_envs::MANUAL_COMPACT_PERIODIC_TARGET_LEVEL, nullptr},
         {replica_envs::MANUAL_COMPACT_PERIODIC_BOTTOMMOST_LEVEL_COMPACTION, nullptr},
-        {replica_envs::REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS, nullptr},
-        {replica_envs::READ_QPS_THROTTLING,
-         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)},
-        {replica_envs::SPLIT_VALIDATE_PARTITION_HASH,
-         std::bind(&check_bool_value, std::placeholders::_1, std::placeholders::_2)},
-        {replica_envs::USER_SPECIFIED_COMPACTION, nullptr},
-        {replica_envs::BACKUP_REQUEST_QPS_THROTTLING,
-         std::bind(&check_throttling, std::placeholders::_1, std::placeholders::_2)},
-        {replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND,
-         std::bind(&check_bool_value, std::placeholders::_1, std::placeholders::_2)}};
+        {replica_envs::REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS, nullptr}};
 }
 
 } // namespace replication

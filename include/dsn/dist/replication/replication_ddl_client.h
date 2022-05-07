@@ -114,7 +114,7 @@ public:
                                 const std::string &outfile);
 
     error_with<duplication_add_response>
-    add_dup(std::string app_name, std::string remote_address, bool freezed);
+    add_dup(std::string app_name, std::string remote_address, bool is_duplicating_checkpoint);
 
     error_with<duplication_modify_response>
     change_dup_status(std::string app_name, int dupid, duplication_status::type status);
@@ -218,6 +218,15 @@ public:
 
     error_with<add_new_disk_response> add_new_disk(const rpc_address &target_node,
                                                    const std::string &disk_str);
+
+    error_with<start_app_manual_compact_response>
+    start_app_manual_compact(const std::string &app_name,
+                             bool bottommost = false,
+                             const int32_t level = -1,
+                             const int32_t max_count = 0);
+
+    error_with<query_app_manual_compact_response>
+    query_app_manual_compact(const std::string &app_name);
 
 private:
     bool static valid_app_char(int c);

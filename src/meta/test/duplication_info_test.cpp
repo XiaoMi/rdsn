@@ -35,40 +35,75 @@ namespace replication {
 class duplication_info_test : public testing::Test
 {
 public:
+    void force_update_status(duplication_info &dup, duplication_status::type status)
+    {
+        dup._status = status;
+    }
+
     static void test_alter_progress()
     {
-        duplication_info dup(
-            1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
-        ASSERT_FALSE(dup.alter_progress(1, 5));
 
-        dup.init_progress(1, invalid_decree);
-        ASSERT_TRUE(dup.alter_progress(1, 5));
-        ASSERT_EQ(dup._progress[1].volatile_decree, 5);
-        ASSERT_TRUE(dup._progress[1].is_altering);
+        duplication_info dup(1,
+                             1,
+                             "temp",
+                             2,
+                             0,
+                             "dsn://slave-cluster/temp",
+                             std::vector<rpc_address>(),
+                             "/meta_test/101/duplication/1");
+        duplication_confirm_entry entry;
+        ASSERT_FALSE(dup.alter_progress(0, entry));
+
+        dup.init_progress(0, invalid_decree);
+        entry.confirmed_decree = 5;
+        entry.checkpoint_prepared = true;
+        ASSERT_TRUE(dup.alter_progress(0, entry));
+        ASSERT_EQ(dup._progress[0].volatile_decree, 5);
+        ASSERT_TRUE(dup._progress[0].is_altering);
+        ASSERT_TRUE(dup._progress[0].checkpoint_prepared);
 
         // busy updating
-        ASSERT_FALSE(dup.alter_progress(1, 10));
-        ASSERT_EQ(dup._progress[1].volatile_decree, 5);
-        ASSERT_TRUE(dup._progress[1].is_altering);
+        entry.confirmed_decree = 10;
+        entry.checkpoint_prepared = false;
+        ASSERT_FALSE(dup.alter_progress(0, entry));
+        ASSERT_EQ(dup._progress[0].volatile_decree, 5);
+        ASSERT_TRUE(dup._progress[0].is_altering);
+        ASSERT_TRUE(dup._progress[0].checkpoint_prepared);
 
-        dup.persist_progress(1);
-        ASSERT_EQ(dup._progress[1].stored_decree, 5);
-        ASSERT_FALSE(dup._progress[1].is_altering);
+        dup.persist_progress(0);
+        ASSERT_EQ(dup._progress[0].stored_decree, 5);
+        ASSERT_FALSE(dup._progress[0].is_altering);
+        ASSERT_TRUE(dup._progress[0].checkpoint_prepared);
 
         // too frequent to update
-        ASSERT_FALSE(dup.alter_progress(1, 10));
+        dup.init_progress(1, invalid_decree);
+        ASSERT_TRUE(dup.alter_progress(1, entry));
+        ASSERT_TRUE(dup._progress[1].is_altering);
+        dup.persist_progress(1);
+
+        ASSERT_FALSE(dup.alter_progress(1, entry));
         ASSERT_FALSE(dup._progress[1].is_altering);
 
         dup._progress[1].last_progress_update_ms -=
             duplication_info::PROGRESS_UPDATE_PERIOD_MS + 100;
-        ASSERT_TRUE(dup.alter_progress(1, 15));
+
+        entry.confirmed_decree = 15;
+        entry.checkpoint_prepared = true;
+        ASSERT_TRUE(dup.alter_progress(1, entry));
         ASSERT_TRUE(dup._progress[1].is_altering);
+        ASSERT_TRUE(dup.all_checkpoint_has_prepared());
     }
 
     static void test_init_and_start()
     {
-        duplication_info dup(
-            1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+        duplication_info dup(1,
+                             1,
+                             "temp",
+                             4,
+                             0,
+                             "dsn://slave-cluster/temp",
+                             std::vector<rpc_address>(),
+                             "/meta_test/101/duplication/1");
         ASSERT_FALSE(dup.is_altering());
         ASSERT_EQ(dup._status, duplication_status::DS_INIT);
         ASSERT_EQ(dup._next_status, duplication_status::DS_INIT);
@@ -86,44 +121,57 @@ public:
         dup.start();
         ASSERT_TRUE(dup.is_altering());
         ASSERT_EQ(dup._status, duplication_status::DS_INIT);
-        ASSERT_EQ(dup._next_status, duplication_status::DS_START);
+        ASSERT_EQ(dup._next_status, duplication_status::DS_PREPARE);
     }
 
     static void test_persist_status()
     {
-        duplication_info dup(
-            1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+        duplication_info dup(1,
+                             1,
+                             "temp",
+                             4,
+                             0,
+                             "dsn://slave-cluster/temp",
+                             std::vector<rpc_address>(),
+                             "/meta_test/101/duplication/1");
         dup.start();
 
         dup.persist_status();
-        ASSERT_EQ(dup._status, duplication_status::DS_START);
+        ASSERT_EQ(dup._status, duplication_status::DS_PREPARE);
         ASSERT_EQ(dup._next_status, duplication_status::DS_INIT);
         ASSERT_FALSE(dup.is_altering());
     }
 
     static void test_encode_and_decode()
     {
-        duplication_info dup(
-            1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+        dsn_run_config("config-test.ini", false);
+        duplication_info dup(1,
+                             1,
+                             "temp",
+                             4,
+                             0,
+                             "slave-cluster",
+                             std::vector<rpc_address>(),
+                             "/meta_test/101/duplication/1");
         dup.start();
         dup.persist_status();
 
-        dup.alter_status(duplication_status::DS_PAUSE);
+        dup.alter_status(duplication_status::DS_APP);
         auto json = dup.to_json_blob();
         dup.persist_status();
 
         duplication_info::json_helper copy;
         ASSERT_TRUE(json::json_forwarder<duplication_info::json_helper>::decode(json, copy));
-        ASSERT_EQ(copy.status, duplication_status::DS_PAUSE);
+        ASSERT_EQ(copy.status, duplication_status::DS_APP);
         ASSERT_EQ(copy.create_timestamp_ms, dup.create_timestamp_ms);
-        ASSERT_EQ(copy.remote, dup.remote);
+        ASSERT_EQ(copy.remote, dup.follower_cluster_name);
 
-        auto dup_sptr =
-            duplication_info::decode_from_blob(1, 1, 4, "/meta_test/101/duplication/1", json);
+        auto dup_sptr = duplication_info::decode_from_blob(
+            1, 1, "temp", 4, "/meta_test/101/duplication/1", json);
         ASSERT_TRUE(dup_sptr->equals_to(dup)) << dup_sptr->to_string() << " " << dup.to_string();
 
-        blob new_json = blob::create_from_bytes(
-            boost::replace_all_copy(json.to_string(), "DS_PAUSE", "DS_FOO"));
+        blob new_json =
+            blob::create_from_bytes(boost::replace_all_copy(json.to_string(), "DS_APP", "DS_FOO"));
         ASSERT_FALSE(json::json_forwarder<duplication_info::json_helper>::decode(new_json, copy));
         ASSERT_EQ(copy.status, duplication_status::DS_REMOVED);
     }
@@ -131,7 +179,14 @@ public:
 
 TEST_F(duplication_info_test, alter_status_when_busy)
 {
-    duplication_info dup(1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
+    duplication_info dup(1,
+                         1,
+                         "temp",
+                         4,
+                         0,
+                         "dsn://slave-cluster/temp",
+                         std::vector<rpc_address>(),
+                         "/meta_test/101/duplication/1");
     dup.start();
 
     ASSERT_EQ(dup.alter_status(duplication_status::DS_PAUSE), ERR_BUSY);
@@ -141,43 +196,78 @@ TEST_F(duplication_info_test, alter_status)
 {
     struct TestData
     {
-        duplication_status::type from;
-        duplication_status::type to;
+        std::vector<duplication_status::type> from_list;
+        std::vector<duplication_status::type> to_list;
 
         error_code wec;
     } tests[] = {
-        {duplication_status::DS_PAUSE, duplication_status::DS_PAUSE, ERR_OK},
-        {duplication_status::DS_PAUSE, duplication_status::DS_START, ERR_OK},
-        {duplication_status::DS_PAUSE, duplication_status::DS_INIT, ERR_INVALID_PARAMETERS},
-        {duplication_status::DS_PAUSE, duplication_status::DS_REMOVED, ERR_OK},
-        {duplication_status::DS_START, duplication_status::DS_START, ERR_OK},
-        {duplication_status::DS_START, duplication_status::DS_PAUSE, ERR_OK},
-        {duplication_status::DS_START, duplication_status::DS_REMOVED, ERR_OK},
-        {duplication_status::DS_START, duplication_status::DS_INIT, ERR_INVALID_PARAMETERS},
+        {{duplication_status::DS_INIT, duplication_status::DS_PREPARE},
+         {duplication_status::DS_PREPARE},
+         ERR_OK},
+        {{duplication_status::DS_PREPARE, duplication_status::DS_APP},
+         {duplication_status::DS_APP},
+         ERR_OK},
+        {{duplication_status::DS_INIT,
+          duplication_status::DS_APP,
+          duplication_status::DS_PAUSE,
+          duplication_status::DS_LOG},
+         {duplication_status::DS_LOG},
+         ERR_OK},
+        {{duplication_status::DS_LOG, duplication_status::DS_PAUSE},
+         {duplication_status::DS_PAUSE},
+         ERR_OK},
 
-        // alter unavail dup
-        {duplication_status::DS_REMOVED, duplication_status::DS_INIT, ERR_OBJECT_NOT_FOUND},
-        {duplication_status::DS_REMOVED, duplication_status::DS_PAUSE, ERR_OBJECT_NOT_FOUND},
-        {duplication_status::DS_REMOVED, duplication_status::DS_START, ERR_OBJECT_NOT_FOUND},
+        {{duplication_status::DS_INIT,
+          duplication_status::DS_PREPARE,
+          duplication_status::DS_APP,
+          duplication_status::DS_PAUSE,
+          duplication_status::DS_LOG},
+         {duplication_status::DS_REMOVED},
+         ERR_OK},
 
-        // alter status same with the previous
-        {duplication_status::DS_REMOVED, duplication_status::DS_REMOVED, ERR_OBJECT_NOT_FOUND},
-        {duplication_status::DS_PAUSE, duplication_status::DS_PAUSE, ERR_OK},
-        {duplication_status::DS_START, duplication_status::DS_START, ERR_OK},
-    };
+        {{duplication_status::DS_PREPARE,
+          duplication_status::DS_APP,
+          duplication_status::DS_PAUSE,
+          duplication_status::DS_LOG},
+         {duplication_status::DS_INIT},
+         ERR_INVALID_PARAMETERS},
+
+        {{duplication_status::DS_REMOVED},
+         {duplication_status::DS_INIT,
+          duplication_status::DS_PREPARE,
+          duplication_status::DS_APP,
+          duplication_status::DS_PAUSE,
+          duplication_status::DS_LOG},
+         ERR_OBJECT_NOT_FOUND},
+
+        {{duplication_status::DS_INIT, duplication_status::DS_PREPARE, duplication_status::DS_APP},
+         {duplication_status::DS_PAUSE},
+         ERR_INVALID_PARAMETERS},
+
+        {{duplication_status::DS_PREPARE}, {duplication_status::DS_LOG}, ERR_INVALID_PARAMETERS},
+
+        {{duplication_status::DS_LOG},
+         {duplication_status::DS_INIT, duplication_status::DS_PREPARE, duplication_status::DS_APP},
+         ERR_INVALID_PARAMETERS}};
 
     for (auto tt : tests) {
-        duplication_info dup(
-            1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
-        dup.start();
-        dup.persist_status();
-
-        ASSERT_EQ(dup.alter_status(tt.from), ERR_OK);
-        if (dup.is_altering()) {
-            dup.persist_status();
+        duplication_info dup(1,
+                             1,
+                             "temp",
+                             4,
+                             0,
+                             "dsn://slave-cluster/temp",
+                             std::vector<rpc_address>(),
+                             "/meta_test/101/duplication/1");
+        for (const auto from : tt.from_list) {
+            force_update_status(dup, from);
+            for (const auto to : tt.to_list) {
+                ASSERT_EQ(dup.alter_status(to), tt.wec);
+                if (dup.is_altering()) {
+                    dup.persist_status();
+                }
+            }
         }
-
-        ASSERT_EQ(dup.alter_status(tt.to), tt.wec);
     }
 }
 
@@ -191,20 +281,27 @@ TEST_F(duplication_info_test, encode_and_decode) { test_encode_and_decode(); }
 
 TEST_F(duplication_info_test, is_valid)
 {
-    duplication_info dup(1, 1, 4, 0, "dsn://slave-cluster/temp", "/meta_test/101/duplication/1");
-    ASSERT_FALSE(dup.is_valid());
+    duplication_info dup(1,
+                         1,
+                         "temp",
+                         4,
+                         0,
+                         "dsn://slave-cluster/temp",
+                         std::vector<rpc_address>(),
+                         "/meta_test/101/duplication/1");
+    ASSERT_TRUE(dup.is_invalid_status());
 
     dup.start();
     dup.persist_status();
-    ASSERT_TRUE(dup.is_valid());
+    ASSERT_FALSE(dup.is_invalid_status());
 
-    ASSERT_EQ(dup.alter_status(duplication_status::DS_PAUSE), ERR_OK);
+    ASSERT_EQ(dup.alter_status(duplication_status::DS_APP), ERR_OK);
     dup.persist_status();
-    ASSERT_TRUE(dup.is_valid());
+    ASSERT_FALSE(dup.is_invalid_status());
 
     ASSERT_EQ(dup.alter_status(duplication_status::DS_REMOVED), ERR_OK);
     dup.persist_status();
-    ASSERT_FALSE(dup.is_valid());
+    ASSERT_TRUE(dup.is_invalid_status());
 }
 
 } // namespace replication

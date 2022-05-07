@@ -31,6 +31,10 @@
 
 namespace dsn {
 
+namespace utils {
+class latency_tracer;
+}
+
 enum aio_type
 {
     AIO_Invalid,
@@ -51,7 +55,7 @@ public:
     // filled by apps
     dsn_handle_t file;
     void *buffer;
-    uint32_t buffer_size;
+    uint64_t buffer_size;
     uint64_t file_offset;
 
     // filled by frameworks
@@ -102,6 +106,7 @@ public:
 
     std::vector<dsn_file_buffer_t> _unmerged_write_buffers;
     blob _merged_write_buffer_holder;
+    std::shared_ptr<dsn::utils::latency_tracer> _tracer;
 
 protected:
     void clear_non_trivial_on_task_end() override { _cb = nullptr; }
