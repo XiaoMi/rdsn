@@ -99,6 +99,7 @@ DSN_DECLARE_bool(reject_write_when_disk_insufficient);
 bool get_bool_envs(const std::map<std::string, std::string> &envs,
                    const std::string &name,
                    /*out*/ bool &value);
+
 struct deny_client
 {
     bool read{false};
