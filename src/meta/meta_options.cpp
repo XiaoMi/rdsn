@@ -39,14 +39,6 @@
 namespace dsn {
 namespace replication {
 
-DSN_DEFINE_uint64("meta_server",
-                  min_live_node_count_for_unfreeze,
-                  3,
-                  "minimum live node count without which the state is freezed");
-DSN_TAG_VARIABLE(min_live_node_count_for_unfreeze, FT_MUTABLE);
-DSN_DEFINE_validator(min_live_node_count_for_unfreeze,
-                     [](uint64_t min_live_node_count) -> bool { return min_live_node_count > 0; });
-
 std::string meta_options::concat_path_unix_style(const std::string &prefix,
                                                  const std::string &postfix)
 {

@@ -94,6 +94,14 @@ public:
             envs, replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND, _mock_replica->_allow_ingest_behind);
     }
 
+    const deny_client &update_deny_client(const std::string &env_name, std::string env_value)
+    {
+        std::map<std::string, std::string> envs;
+        envs[env_name] = std::move(env_value);
+        _mock_replica->update_deny_client(envs);
+        return _mock_replica->_deny_client;
+    }
+
     void mock_app_info()
     {
         _app_info.app_id = 2;

@@ -161,10 +161,18 @@ public:
 
     size_t get_alive_node_count() const;
 
-
     bool try_lock_meta_op_status(meta_op_status op_status);
     void unlock_meta_op_status();
     meta_op_status get_op_status() const { return _meta_op_status.load(); }
+
+    std::string get_meta_list_string() const
+    {
+        std::string metas;
+        for (const auto &node : _opts.meta_servers) {
+            metas = fmt::format("{}{},", metas, node.to_string());
+        }
+        return metas.substr(0, metas.length() - 1);
+    }
 
 private:
     void register_rpc_handlers();

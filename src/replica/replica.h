@@ -99,6 +99,25 @@ DSN_DECLARE_bool(reject_write_when_disk_insufficient);
 bool get_bool_envs(const std::map<std::string, std::string> &envs,
                    const std::string &name,
                    /*out*/ bool &value);
+struct deny_client
+{
+    bool read{false};
+    bool write{false};
+    // deny client and trigger client update partition config by response `ERR_INVALID_STATE`
+    bool reconfig{false};
+
+    void reset()
+    {
+        read = false;
+        write = false;
+        reconfig = false;
+    }
+
+    bool operator==(const deny_client &rhs) const
+    {
+        return (write == rhs.write && read == rhs.read && reconfig == rhs.reconfig);
+    }
+};
 
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
@@ -462,11 +481,18 @@ private:
     // update envs allow_ingest_behind and store new app_info into file
     void update_allow_ingest_behind(const std::map<std::string, std::string> &envs);
 
+    // update envs to deny client request
+    void update_deny_client(const std::map<std::string, std::string> &envs);
+
     void init_disk_tag();
 
     // store `info` into a file under `path` directory
     // path = "" means using the default directory (`_dir`/.app_info)
     error_code store_app_info(app_info &info, const std::string &path = "");
+
+    // clear replica if open failed
+    static replica *
+    clear_on_failure(replica_stub *stub, replica *rep, const std::string &path, const gpid &pid);
 
 private:
     friend class ::dsn::replication::test::test_checker;

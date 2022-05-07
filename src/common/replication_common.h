@@ -131,6 +131,5 @@ public:
 private:
     void sanity_check();
 };
-
 } // namespace replication
 } // namespace dsn

@@ -445,6 +445,7 @@ void replica_bulk_loader::download_files(const std::string &provider_name,
                 &replica_bulk_loader::download_sst_file, this, remote_dir, local_dir, f_meta, fs));
     }
 }
+
 // ThreadPool: THREAD_POOL_DEFAULT
 void replica_bulk_loader::download_sst_file(const std::string &remote_dir,
                                             const std::string &local_dir,
@@ -505,7 +506,6 @@ void replica_bulk_loader::download_sst_file(const std::string &remote_dir,
 }
 
 // ThreadPool: THREAD_POOL_DEFAULT
->>>>>>> pegasus
 // need to acquire write lock while calling it
 error_code replica_bulk_loader::parse_bulk_load_metadata(const std::string &fname)
 {

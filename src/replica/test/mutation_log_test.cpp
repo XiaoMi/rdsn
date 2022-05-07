@@ -517,7 +517,6 @@ TEST_F(mutation_log_test, reset_from)
 
     // create another set of logs
     mutation_log_ptr mlog = new mutation_log_private(_log_dir, 4, get_gpid(), _replica.get());
-
     EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
     for (int i = 0; i < 1000; i++) {
         mutation_ptr mu = create_test_mutation(2000 + i, "hello!");
@@ -547,7 +546,6 @@ TEST_F(mutation_log_test, reset_from_while_writing)
 {
     std::vector<mutation_ptr> expected;
     { // writing logs
-
         mutation_log_ptr mlog = new mutation_log_private(_log_dir, 4, get_gpid(), _replica.get());
         EXPECT_EQ(mlog->open(nullptr, nullptr), ERR_OK);
 
