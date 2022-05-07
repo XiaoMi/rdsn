@@ -24,6 +24,20 @@
 
 namespace dsn {
 namespace replication {
+
+DSN_DEFINE_uint32("replication",
+                  duplicate_log_batch_bytes,
+                  4096,
+                  "send mutation log batch bytes size per rpc");
+DSN_TAG_VARIABLE(duplicate_log_batch_bytes, FT_MUTABLE);
+
+const std::string duplication_constants::kDuplicationCheckpointRootDir /*NOLINT*/ = "duplication";
+const std::string duplication_constants::kClustersSectionName /*NOLINT*/ = "pegasus.clusters";
+const std::string duplication_constants::kDuplicationEnvMasterClusterKey /*NOLINT*/ =
+    "duplication.master_cluster";
+const std::string duplication_constants::kDuplicationEnvMasterMetasKey /*NOLINT*/ =
+    "duplication.master_metas";
+
 /*extern*/ const char *duplication_status_to_string(duplication_status::type status)
 {
     auto it = _duplication_status_VALUES_TO_NAMES.find(status);

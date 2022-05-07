@@ -114,7 +114,7 @@ public:
                                 const std::string &outfile);
 
     error_with<duplication_add_response>
-    add_dup(std::string app_name, std::string remote_address, bool freezed);
+    add_dup(std::string app_name, std::string remote_address, bool is_duplicating_checkpoint);
 
     error_with<duplication_modify_response>
     change_dup_status(std::string app_name, int dupid, duplication_status::type status);

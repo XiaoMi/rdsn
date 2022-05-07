@@ -27,6 +27,7 @@
 #include "replica.h"
 #include "mutation.h"
 #include "common/bulk_load_common.h"
+#include "dsn/dist/replication/duplication_common.h"
 #include <dsn/utils/latency_tracer.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -223,6 +224,8 @@ replication_app_base::replication_app_base(replica *replica) : replica_base(repl
     _dir_backup = utils::filesystem::path_combine(replica->dir(), "backup");
     _dir_bulk_load = utils::filesystem::path_combine(replica->dir(),
                                                      bulk_load_constant::BULK_LOAD_LOCAL_ROOT_DIR);
+    _dir_duplication = utils::filesystem::path_combine(
+        replica->dir(), duplication_constants::kDuplicationCheckpointRootDir);
     _last_committed_decree = 0;
     _replica = replica;
 }
@@ -232,7 +235,15 @@ bool replication_app_base::is_primary() const
     return _replica->status() == partition_status::PS_PRIMARY;
 }
 
-bool replication_app_base::is_duplicating() const { return _replica->is_duplicating(); }
+bool replication_app_base::is_duplication_master() const
+{
+    return _replica->is_duplication_master();
+}
+
+bool replication_app_base::is_duplication_follower() const
+{
+    return _replica->is_duplication_follower();
+}
 
 const ballot &replication_app_base::get_ballot() const { return _replica->get_ballot(); }
 

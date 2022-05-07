@@ -69,6 +69,7 @@ class replica_backup_manager;
 class replica_bulk_loader;
 class replica_split_manager;
 class replica_disk_migrator;
+class replica_follower;
 
 class cold_backup_context;
 typedef dsn::ref_ptr<cold_backup_context> cold_backup_context_ptr;
@@ -99,6 +100,26 @@ bool get_bool_envs(const std::map<std::string, std::string> &envs,
                    const std::string &name,
                    /*out*/ bool &value);
 
+struct deny_client
+{
+    bool read{false};
+    bool write{false};
+    // deny client and trigger client update partition config by response `ERR_INVALID_STATE`
+    bool reconfig{false};
+
+    void reset()
+    {
+        read = false;
+        write = false;
+        reconfig = false;
+    }
+
+    bool operator==(const deny_client &rhs) const
+    {
+        return (write == rhs.write && read == rhs.read && reconfig == rhs.reconfig);
+    }
+};
+
 class replica : public serverlet<replica>, public ref_counter, public replica_base
 {
 public:
@@ -113,6 +134,7 @@ public:
                          gpid gpid,
                          const app_info &app,
                          bool restore_if_necessary,
+                         bool is_duplication_follower,
                          const std::string &parent_dir = "");
 
     // return true when the mutation is valid for the current replica
@@ -191,8 +213,11 @@ public:
     //
     // Duplication
     //
+    error_code trigger_manual_emergency_checkpoint(decree old_decree);
+    void on_query_last_checkpoint(learn_response &response);
     replica_duplicator_manager *get_duplication_manager() const { return _duplication_mgr.get(); }
-    bool is_duplicating() const { return _duplicating; }
+    bool is_duplication_master() const { return _is_duplication_master; }
+    bool is_duplication_follower() const { return _is_duplication_follower; }
 
     //
     // Backup
@@ -222,6 +247,8 @@ public:
     //
     replica_disk_migrator *disk_migrator() const { return _disk_migrator.get(); }
 
+    replica_follower *get_replica_follower() const { return _replica_follower.get(); };
+
     //
     // Statistics
     //
@@ -250,7 +277,12 @@ private:
     mutation_ptr new_mutation(decree decree);
 
     // initialization
-    replica(replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool need_restore);
+    replica(replica_stub *stub,
+            gpid gpid,
+            const app_info &app,
+            const char *dir,
+            bool need_restore,
+            bool is_duplication_follower = false);
     error_code initialize_on_new();
     error_code initialize_on_load();
     error_code init_app_and_prepare_list(bool create_new);
@@ -450,11 +482,18 @@ private:
     // update envs allow_ingest_behind and store new app_info into file
     void update_allow_ingest_behind(const std::map<std::string, std::string> &envs);
 
+    // update envs to deny client request
+    void update_deny_client(const std::map<std::string, std::string> &envs);
+
     void init_disk_tag();
 
     // store `info` into a file under `path` directory
     // path = "" means using the default directory (`_dir`/.app_info)
     error_code store_app_info(app_info &info, const std::string &path = "");
+
+    // clear replica if open failed
+    static replica *
+    clear_on_failure(replica_stub *stub, replica *rep, const std::string &path, const gpid &pid);
 
 private:
     friend class ::dsn::replication::test::test_checker;
@@ -466,6 +505,7 @@ private:
     friend class replica_duplicator_manager;
     friend class load_mutation;
     friend class replica_split_test;
+    friend class replica_test_base;
     friend class replica_test;
     friend class replica_backup_manager;
     friend class replica_bulk_loader;
@@ -474,6 +514,7 @@ private:
     friend class replica_disk_test;
     friend class replica_disk_migrate_test;
     friend class open_replica_test;
+    friend class replica_follower;
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -541,7 +582,7 @@ private:
 
     bool _inactive_is_transient; // upgrade to P/S is allowed only iff true
     bool _is_initializing;       // when initializing, switching to primary need to update ballot
-    bool _deny_client_write;     // if deny all write requests
+    deny_client _deny_client;    // if deny requests
     throttling_controller _write_qps_throttling_controller;  // throttling by requests-per-second
     throttling_controller _write_size_throttling_controller; // throttling by bytes-per-second
     throttling_controller _read_qps_throttling_controller;
@@ -549,7 +590,9 @@ private:
 
     // duplication
     std::unique_ptr<replica_duplicator_manager> _duplication_mgr;
-    bool _duplicating{false};
+    bool _is_manual_emergency_checkpointing{false};
+    bool _is_duplication_master{false};
+    bool _is_duplication_follower{false};
 
     // backup
     std::unique_ptr<replica_backup_manager> _backup_mgr;
@@ -566,6 +609,8 @@ private:
 
     // disk migrator
     std::unique_ptr<replica_disk_migrator> _disk_migrator;
+
+    std::unique_ptr<replica_follower> _replica_follower;
 
     // perf counters
     perf_counter_wrapper _counter_private_log_size;

@@ -39,6 +39,7 @@
 #include "replica_stub.h"
 #include "duplication/replica_duplicator_manager.h"
 #include "split/replica_split_manager.h"
+#include "dsn/utility/fail_point.h"
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/chrono_literals.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -46,6 +47,13 @@
 
 namespace dsn {
 namespace replication {
+
+const std::string kCheckpointFolderPrefix /*NOLINT*/ = "checkpoint";
+
+static std::string checkpoint_folder(int64_t decree)
+{
+    return fmt::format("{}.{}", kCheckpointFolderPrefix, decree);
+}
 
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica::on_checkpoint_timer()
@@ -93,7 +101,7 @@ void replica::on_checkpoint_timer()
                                min_confirmed_decree,
                                last_durable_decree);
             }
-        } else if (is_duplicating()) {
+        } else if (is_duplication_master()) {
             // unsure if the logs can be dropped, because min_confirmed_decree
             // is currently unavailable
             ddebug_replica(
@@ -124,6 +132,46 @@ void replica::on_checkpoint_timer()
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
+error_code replica::trigger_manual_emergency_checkpoint(decree old_decree)
+{
+    _checker.only_one_thread_access();
+
+    if (_app == nullptr) {
+        derror_replica("app hasn't been init or has been released");
+        return ERR_LOCAL_APP_FAILURE;
+    }
+
+    if (old_decree <= _app->last_durable_decree()) {
+        ddebug_replica("checkpoint has been completed: old = {} vs latest = {}",
+                       old_decree,
+                       _app->last_durable_decree());
+        _is_manual_emergency_checkpointing = false;
+        _stub->_manual_emergency_checkpointing_count == 0
+            ? 0
+            : (--_stub->_manual_emergency_checkpointing_count);
+        return ERR_OK;
+    }
+
+    if (_is_manual_emergency_checkpointing) {
+        dwarn_replica("replica is checkpointing, last_durable_decree = {}",
+                      _app->last_durable_decree());
+        return ERR_BUSY;
+    }
+
+    if (++_stub->_manual_emergency_checkpointing_count >
+        FLAGS_max_concurrent_manual_emergency_checkpointing_count) {
+        dwarn_replica("please try again later because checkpointing exceed max running count[{}]",
+                      FLAGS_max_concurrent_manual_emergency_checkpointing_count);
+        --_stub->_manual_emergency_checkpointing_count;
+        return ERR_TRY_AGAIN;
+    }
+
+    init_checkpoint(true);
+    _is_manual_emergency_checkpointing = true;
+    return ERR_OK;
+}
+
+// ThreadPool: THREAD_POOL_REPLICATION
 void replica::init_checkpoint(bool is_emergency)
 {
     // only applicable to primary and secondary replicas
@@ -150,6 +198,35 @@ void replica::init_checkpoint(bool is_emergency)
         _stub->_counter_recent_trigger_emergency_checkpoint_count->increment();
 }
 
+// ThreadPool: THREAD_POOL_REPLICATION
+void replica::on_query_last_checkpoint(/*out*/ learn_response &response)
+{
+    _checker.only_one_thread_access();
+
+    if (_app->last_durable_decree() == 0) {
+        response.err = ERR_PATH_NOT_FOUND;
+        return;
+    }
+
+    blob placeholder;
+    int err = _app->get_checkpoint(0, placeholder, response.state);
+    if (err != 0) {
+        response.err = ERR_GET_LEARN_STATE_FAILED;
+    } else {
+        response.err = ERR_OK;
+        response.last_committed_decree = last_committed_decree();
+        // for example: base_local_dir = "./data" + "checkpoint.1024" = "./data/checkpoint.1024"
+        response.base_local_dir = utils::filesystem::path_combine(
+            _app->data_dir(), checkpoint_folder(response.state.to_decree_included));
+        response.address = _stub->_primary_address;
+        for (auto &file : response.state.files) {
+            // response.state.files contain file absolute path， for example:
+            // "./data/checkpoint.1024/1.sst" use `substr` to get the file name: 1.sst
+            file = file.substr(response.base_local_dir.length() + 1);
+        }
+    }
+}
+
 // run in background thread
 error_code replica::background_async_checkpoint(bool is_emergency)
 {
@@ -172,7 +249,18 @@ error_code replica::background_async_checkpoint(bool is_emergency)
                    _app->last_durable_decree());
             update_last_checkpoint_generate_time();
         }
-    } else if (err == ERR_TRY_AGAIN) {
+
+        if (_is_manual_emergency_checkpointing) {
+            _is_manual_emergency_checkpointing = false;
+            _stub->_manual_emergency_checkpointing_count == 0
+                ? 0
+                : (--_stub->_manual_emergency_checkpointing_count);
+        }
+
+        return err;
+    }
+
+    if (err == ERR_TRY_AGAIN) {
         // already triggered memory flushing on async_checkpoint(), then try again later.
         ddebug("%s: call app.async_checkpoint() returns ERR_TRY_AGAIN, time_used_ns = %" PRIu64
                ", schedule later checkpoint after 10 seconds",
@@ -183,7 +271,16 @@ error_code replica::background_async_checkpoint(bool is_emergency)
                          [this] { init_checkpoint(false); },
                          get_gpid().thread_hash(),
                          std::chrono::seconds(10));
-    } else if (err == ERR_WRONG_TIMING) {
+        return err;
+    }
+
+    if (_is_manual_emergency_checkpointing) {
+        _is_manual_emergency_checkpointing = false;
+        _stub->_manual_emergency_checkpointing_count == 0
+            ? 0
+            : (--_stub->_manual_emergency_checkpointing_count);
+    }
+    if (err == ERR_WRONG_TIMING) {
         // do nothing
         ddebug("%s: call app.async_checkpoint() returns ERR_WRONG_TIMING, time_used_ns = %" PRIu64
                ", just ignore",

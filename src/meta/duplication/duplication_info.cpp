@@ -34,8 +34,10 @@ namespace replication {
     static const std::map<std::string, duplication_status::type>
         _duplication_status_NAMES_TO_VALUES = {
             {"DS_INIT", duplication_status::DS_INIT},
+            {"DS_PREPARE", duplication_status::DS_PREPARE},
+            {"DS_APP", duplication_status::DS_APP},
+            {"DS_LOG", duplication_status::DS_LOG},
             {"DS_PAUSE", duplication_status::DS_PAUSE},
-            {"DS_START", duplication_status::DS_START},
             {"DS_REMOVED", duplication_status::DS_REMOVED},
         };
 
@@ -89,11 +91,11 @@ error_code duplication_info::alter_status(duplication_status::type to_status,
         return ERR_BUSY;
     }
 
-    if (!is_valid()) {
+    if (_status == duplication_status::DS_REMOVED) {
         return ERR_OBJECT_NOT_FOUND;
     }
 
-    if (to_status == duplication_status::DS_INIT) {
+    if (!is_valid_alteration(to_status)) {
         return ERR_INVALID_PARAMETERS;
     }
 
@@ -117,7 +119,8 @@ void duplication_info::init_progress(int partition_index, decree d)
     p.is_inited = true;
 }
 
-bool duplication_info::alter_progress(int partition_index, decree d)
+bool duplication_info::alter_progress(int partition_index,
+                                      const duplication_confirm_entry &confirm_entry)
 {
     zauto_write_lock l(_lock);
 
@@ -128,8 +131,10 @@ bool duplication_info::alter_progress(int partition_index, decree d)
     if (p.is_altering) {
         return false;
     }
-    if (p.volatile_decree < d) {
-        p.volatile_decree = d;
+
+    p.checkpoint_prepared = confirm_entry.checkpoint_prepared;
+    if (p.volatile_decree < confirm_entry.confirmed_decree) {
+        p.volatile_decree = confirm_entry.confirmed_decree;
     }
     if (p.volatile_decree != p.stored_decree) {
         // progress update is not supposed to be too frequent.
@@ -156,9 +161,10 @@ void duplication_info::persist_status()
 {
     zauto_write_lock l(_lock);
 
-    dassert_dup(_is_altering,
-                this,
-                "impossible, callers never write a duplication that is not altering to meta store");
+    if (!_is_altering) {
+        derror_dup(this, "callers never write a duplication that is not altering to meta store");
+        return;
+    }
     ddebug_dup(this,
                "change duplication status from {} to {} successfully [app_id: {}]",
                duplication_status_to_string(_status),
@@ -180,7 +186,7 @@ blob duplication_info::to_json_blob() const
 {
     json_helper copy;
     copy.create_timestamp_ms = create_timestamp_ms;
-    copy.remote = remote;
+    copy.remote = follower_cluster_name;
     copy.status = _next_status;
     copy.fail_mode = _next_fail_mode;
     return json::json_forwarder<json_helper>::encode(copy);
@@ -197,6 +203,7 @@ void duplication_info::report_progress_if_time_up()
 
 duplication_info_s_ptr duplication_info::decode_from_blob(dupid_t dup_id,
                                                           int32_t app_id,
+                                                          const std::string &app_name,
                                                           int32_t partition_count,
                                                           std::string store_path,
                                                           const blob &json)
@@ -205,11 +212,19 @@ duplication_info_s_ptr duplication_info::decode_from_blob(dupid_t dup_id,
     if (!json::json_forwarder<json_helper>::decode(json, info)) {
         return nullptr;
     }
+    std::vector<rpc_address> meta_list;
+    if (!dsn::replication::replica_helper::load_meta_servers(
+            meta_list, duplication_constants::kClustersSectionName.c_str(), info.remote.c_str())) {
+        return nullptr;
+    }
+
     auto dup = std::make_shared<duplication_info>(dup_id,
                                                   app_id,
+                                                  app_name,
                                                   partition_count,
                                                   info.create_timestamp_ms,
                                                   std::move(info.remote),
+                                                  std::move(meta_list),
                                                   std::move(store_path));
     dup->_status = info.status;
     dup->_fail_mode = info.fail_mode;

@@ -37,7 +37,20 @@ namespace replication {
 class replica_duplicator_test : public duplication_test_base
 {
 public:
-    replica_duplicator_test() { _replica->init_private_log(_log_dir); }
+    replica_duplicator_test()
+    {
+        _replica->set_partition_status(partition_status::PS_PRIMARY);
+        _replica->init_private_log(_log_dir);
+    }
+
+    mock_replica *replica() { return _replica.get(); }
+
+    decree last_durable_decree() const { return _replica->last_durable_decree(); }
+
+    decree log_dup_start_decree(const std::unique_ptr<replica_duplicator> &dup) const
+    {
+        return dup->_start_point_decree;
+    }
 
     void test_new_duplicator()
     {
@@ -74,17 +87,17 @@ public:
             _replica->init_private_log(mlog);
             auto duplicator = create_test_duplicator();
 
-            duplicator->update_status_if_needed(duplication_status::DS_START);
-            ASSERT_EQ(duplicator->_status, duplication_status::DS_START);
+            duplicator->update_status_if_needed(duplication_status::DS_LOG);
+            ASSERT_EQ(duplicator->_status, duplication_status::DS_LOG);
             auto expected_env = duplicator->_ship->_mutation_duplicator->_env;
             ASSERT_EQ(duplicator->tracker(), expected_env.__conf.tracker);
             ASSERT_EQ(duplicator->get_gpid().thread_hash(), expected_env.__conf.thread_hash);
 
             // corner cases: next_status is INIT
             duplicator->update_status_if_needed(duplication_status::DS_INIT);
-            ASSERT_EQ(duplicator->_status, duplication_status::DS_START);
-            duplicator->update_status_if_needed(duplication_status::DS_START);
-            ASSERT_EQ(duplicator->_status, duplication_status::DS_START);
+            ASSERT_EQ(duplicator->_status, duplication_status::DS_LOG);
+            duplicator->update_status_if_needed(duplication_status::DS_LOG);
+            ASSERT_EQ(duplicator->_status, duplication_status::DS_LOG);
 
             duplicator->update_status_if_needed(duplication_status::DS_PAUSE);
             ASSERT_TRUE(duplicator->paused());
@@ -130,6 +143,22 @@ TEST_F(replica_duplicator_test, duplication_progress)
     ASSERT_EQ(duplicator->update_progress(duplicator->progress().set_confirmed_decree(12)),
               error_s::make(ERR_INVALID_STATE,
                             "last_decree(10) should always larger than confirmed_decree(12)"));
+
+    auto duplicator_for_checkpoint = create_test_duplicator(invalid_decree, 100);
+    ASSERT_FALSE(duplicator_for_checkpoint->progress().checkpoint_has_prepared);
+
+    replica()->update_last_durable_decree(101);
+    duplicator_for_checkpoint->update_progress(duplicator->progress());
+    ASSERT_TRUE(duplicator_for_checkpoint->progress().checkpoint_has_prepared);
+}
+
+TEST_F(replica_duplicator_test, prapre_dup)
+{
+    auto duplicator = create_test_duplicator(invalid_decree, 100);
+    replica()->update_expect_last_durable_decree(100);
+    duplicator->prepare_dup();
+    wait_all(duplicator);
+    ASSERT_EQ(last_durable_decree(), log_dup_start_decree(duplicator));
 }
 
 } // namespace replication

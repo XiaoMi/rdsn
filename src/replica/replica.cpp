@@ -29,6 +29,7 @@
 #include "mutation_log.h"
 #include "replica_stub.h"
 #include "duplication/replica_duplicator_manager.h"
+#include "duplication/replica_follower.h"
 #include "backup/replica_backup_manager.h"
 #include "backup/cold_backup_context.h"
 #include "bulk_load/replica_bulk_loader.h"
@@ -52,8 +53,12 @@ namespace replication {
 
 const std::string replica::kAppInfo = ".app-info";
 
-replica::replica(
-    replica_stub *stub, gpid gpid, const app_info &app, const char *dir, bool need_restore)
+replica::replica(replica_stub *stub,
+                 gpid gpid,
+                 const app_info &app,
+                 const char *dir,
+                 bool need_restore,
+                 bool is_duplication_follower)
     : serverlet<replica>("replica"),
       replica_base(gpid, fmt::format("{}@{}", gpid, stub->_primary_address_str), app.app_name),
       _app_info(app),
@@ -68,7 +73,9 @@ replica::replica(
       _restore_progress(0),
       _restore_status(ERR_OK),
       _duplication_mgr(new replica_duplicator_manager(this)),
-      _duplicating(app.duplicating),
+      // todo(jiashuo1): app.duplicating need rename
+      _is_duplication_master(app.duplicating),
+      _is_duplication_follower(is_duplication_follower),
       _backup_mgr(new replica_backup_manager(this))
 {
     dassert(_app_info.app_type != "", "");
@@ -81,6 +88,7 @@ replica::replica(
     _bulk_loader = make_unique<replica_bulk_loader>(this);
     _split_mgr = make_unique<replica_split_manager>(this);
     _disk_migrator = make_unique<replica_disk_migrator>(this);
+    _replica_follower = make_unique<replica_follower>(this);
 
     std::string counter_str = fmt::format("private.log.size(MB)@{}", gpid);
     _counter_private_log_size.init_app_counter(
@@ -166,7 +174,6 @@ void replica::init_state()
 {
     _inactive_is_transient = false;
     _is_initializing = false;
-    _deny_client_write = false;
     _prepare_list = dsn::make_unique<prepare_list>(
         this,
         0,
@@ -197,6 +204,18 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
 {
     if (!_access_controller->allowed(request)) {
         response_client_read(request, ERR_ACL_DENY);
+        return;
+    }
+
+    if (_deny_client.read) {
+        if (_deny_client.reconfig) {
+            // return ERR_INVALID_STATE will trigger client update config immediately
+            response_client_read(request, ERR_INVALID_STATE);
+            return;
+        }
+        // Do not reply any message to the peer client to let it timeout, it's OK coz some users
+        // may retry immediately when they got a not success code which will make the server side
+        // pressure more and more heavy.
         return;
     }
 
@@ -421,6 +440,7 @@ void replica::close()
 {
     dassert_replica(status() == partition_status::PS_ERROR ||
                         status() == partition_status::PS_INACTIVE ||
+                        _disk_migrator->status() == disk_migration_status::IDLE ||
                         _disk_migrator->status() >= disk_migration_status::MOVED,
                     "invalid state(partition_status={}, migration_status={}) when calling "
                     "replica close",

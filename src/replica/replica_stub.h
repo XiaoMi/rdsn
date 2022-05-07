@@ -47,12 +47,14 @@
 namespace dsn {
 namespace replication {
 
+DSN_DECLARE_uint32(max_concurrent_manual_emergency_checkpointing_count);
+
 typedef rpc_holder<group_check_response, learn_notify_response> learn_completion_notification_rpc;
 typedef rpc_holder<group_check_request, group_check_response> group_check_rpc;
 typedef rpc_holder<query_replica_decree_request, query_replica_decree_response>
     query_replica_decree_rpc;
 typedef rpc_holder<query_replica_info_request, query_replica_info_response> query_replica_info_rpc;
-typedef rpc_holder<replica_configuration, learn_response> copy_checkpoint_rpc;
+typedef rpc_holder<learn_request, learn_response> query_last_checkpoint_info_rpc;
 typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;
 typedef rpc_holder<replica_disk_migrate_request, replica_disk_migrate_response>
     replica_disk_migrate_rpc;
@@ -227,6 +229,9 @@ public:
 
     void on_add_new_disk(add_new_disk_rpc rpc);
 
+    // query last checkpoint info for follower in duplication process
+    void on_query_last_checkpoint(query_last_checkpoint_info_rpc rpc);
+
 private:
     enum replica_node_state
     {
@@ -252,15 +257,15 @@ private:
                                      const configuration_update_request &config);
     void on_node_query_reply_scatter2(replica_stub_ptr this_, gpid id);
     void remove_replica_on_meta_server(const app_info &info, const partition_configuration &config);
-    ::dsn::task_ptr begin_open_replica(const app_info &app,
-                                       gpid id,
-                                       std::shared_ptr<group_check_request> req,
-                                       std::shared_ptr<configuration_update_request> req2);
+    task_ptr begin_open_replica(const app_info &app,
+                                gpid id,
+                                const std::shared_ptr<group_check_request> &req,
+                                const std::shared_ptr<configuration_update_request> &req2);
     void open_replica(const app_info &app,
                       gpid id,
-                      std::shared_ptr<group_check_request> req,
-                      std::shared_ptr<configuration_update_request> req2);
-    ::dsn::task_ptr begin_close_replica(replica_ptr r);
+                      const std::shared_ptr<group_check_request> &req,
+                      const std::shared_ptr<configuration_update_request> &req2);
+    task_ptr begin_close_replica(replica_ptr r);
     void close_replica(replica_ptr r);
     void notify_replica_state_update(const replica_configuration &config, bool is_closing);
     void trigger_checkpoint(replica_ptr r, bool is_emergency);
@@ -328,6 +333,8 @@ private:
     friend class replica_disk_migrate_test;
     friend class replica_stub_test_base;
     friend class open_replica_test;
+    friend class replica_follower;
+    friend class replica_follower_test;
 
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>
@@ -404,8 +411,11 @@ private:
     // write body size exceed this threshold will be logged and reject, 0 means no check
     uint64_t _max_allowed_write_size;
 
-    // replica count exectuting bulk load downloading concurrently
+    // replica count executing bulk load downloading concurrently
     std::atomic_int _bulk_load_downloading_count;
+
+    // replica count executing emergency checkpoint concurrently
+    std::atomic_int _manual_emergency_checkpointing_count;
 
     bool _is_running;
 
