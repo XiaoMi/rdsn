@@ -26,6 +26,7 @@
 
 #include <gtest/gtest.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/dist/common.h>
 #include <dsn/utils/time_utils.h>
 
 #include "meta/server_load_balancer.h"
@@ -36,6 +37,7 @@
 
 #include "meta_service_test_app.h"
 #include "meta_test_base.h"
+#include "dsn/utility/fail_point.h"
 
 namespace dsn {
 namespace replication {
@@ -52,7 +54,6 @@ public:
         auto req = make_unique<duplication_add_request>();
         req->app_name = app_name;
         req->remote_cluster_name = remote_cluster;
-        req->freezed = freezed;
 
         duplication_add_rpc rpc(std::move(req), RPC_CM_ADD_DUPLICATION);
         dup_svc().add_duplication(rpc);
@@ -122,6 +123,28 @@ public:
         wait_all();
     }
 
+    void create_follower_app_for_duplication(const std::shared_ptr<duplication_info> &dup,
+                                             const std::shared_ptr<app_state> &app)
+    {
+        dup_svc().create_follower_app_for_duplication(dup, app);
+    }
+
+    void check_follower_app_if_create_completed(const std::shared_ptr<duplication_info> &dup)
+    {
+        dup_svc().check_follower_app_if_create_completed(dup);
+    }
+
+    duplication_status::type next_status(const std::shared_ptr<duplication_info> &dup) const
+    {
+        return dup->_next_status;
+    }
+
+    void force_update_dup_status(const std::shared_ptr<duplication_info> &dup,
+                                 duplication_status::type to_status)
+    {
+        dup->_status = to_status;
+    }
+
     /// === Tests ===
 
     void test_new_dup_from_init()
@@ -133,7 +156,8 @@ public:
 
         int last_dup = 0;
         for (int i = 0; i < 1000; i++) {
-            auto dup = dup_svc().new_dup_from_init(remote_cluster_address, app);
+            auto dup = dup_svc().new_dup_from_init(
+                remote_cluster_address, std::vector<rpc_address>(), app);
 
             ASSERT_GT(dup->id, 0);
             ASSERT_FALSE(dup->is_altering());
@@ -174,13 +198,17 @@ public:
             auto dup = app->duplications[resp.dupid];
             duplication_sync_rpc rpc(make_unique<duplication_sync_request>(),
                                      RPC_CM_DUPLICATION_SYNC);
-            dup_svc().do_update_partition_confirmed(dup, rpc, 1, 1000);
+            duplication_confirm_entry entry;
+            entry.confirmed_decree = 1000;
+            dup_svc().do_update_partition_confirmed(dup, rpc, 1, entry);
             wait_all();
 
-            dup_svc().do_update_partition_confirmed(dup, rpc, 2, 2000);
+            entry.confirmed_decree = 2000;
+            dup_svc().do_update_partition_confirmed(dup, rpc, 2, entry);
             wait_all();
 
-            dup_svc().do_update_partition_confirmed(dup, rpc, 4, 4000);
+            entry.confirmed_decree = 1000;
+            dup_svc().do_update_partition_confirmed(dup, rpc, 4, entry);
             wait_all();
         }
 
@@ -343,35 +371,12 @@ public:
                 auto dup = app->duplications[resp.dupid];
                 ASSERT_TRUE(dup != nullptr);
                 ASSERT_EQ(dup->app_id, app->app_id);
-                ASSERT_EQ(dup->_status, duplication_status::DS_START);
-                ASSERT_EQ(dup->remote, ok_remote);
+                ASSERT_EQ(dup->_status, duplication_status::DS_PREPARE);
+                ASSERT_EQ(dup->follower_cluster_name, ok_remote);
                 ASSERT_EQ(resp.dupid, dup->id);
                 ASSERT_EQ(app->duplicating, true);
             }
         }
-    }
-
-    void test_add_duplication_freezed()
-    {
-        std::string test_app = "test-app";
-
-        create_app(test_app);
-        auto app = find_app(test_app);
-
-        auto test_dup = create_dup(test_app, "slave-cluster", true);
-        ASSERT_EQ(test_dup.err, ERR_OK);
-        ASSERT_TRUE(app->duplications[test_dup.dupid] != nullptr);
-        auto dup = app->duplications[test_dup.dupid];
-        ASSERT_EQ(dup->_status, duplication_status::DS_PAUSE);
-
-        // reset meta server states
-        SetUp();
-
-        // ensure dup is still paused after meta fail-over.
-        recover_from_meta_state();
-        app = find_app(test_app);
-        dup = app->duplications[test_dup.dupid];
-        ASSERT_EQ(dup->_status, duplication_status::DS_PAUSE);
     }
 };
 
@@ -406,7 +411,7 @@ TEST_F(meta_duplication_service_test, dup_op_upon_unavail_app)
     for (auto tt : tests) {
         ASSERT_EQ(query_dup_info(tt.app).err, tt.wec);
         ASSERT_EQ(create_dup(tt.app).err, tt.wec);
-        ASSERT_EQ(change_dup_status(tt.app, test_dup, duplication_status::DS_PAUSE).err, tt.wec);
+        ASSERT_EQ(change_dup_status(tt.app, test_dup, duplication_status::DS_REMOVED).err, tt.wec);
     }
 }
 
@@ -431,7 +436,7 @@ TEST_F(meta_duplication_service_test, dont_create_if_existed)
         ASSERT_EQ(resp.entry_list.size(), 1);
 
         const auto &duplication_entry = resp.entry_list.back();
-        ASSERT_EQ(duplication_entry.status, duplication_status::DS_START);
+        ASSERT_EQ(duplication_entry.status, duplication_status::DS_PREPARE);
         ASSERT_EQ(duplication_entry.dupid, dupid);
     }
 }
@@ -443,6 +448,8 @@ TEST_F(meta_duplication_service_test, change_duplication_status)
     create_app(test_app);
     auto app = find_app(test_app);
     dupid_t test_dup = create_dup(test_app).dupid;
+    change_dup_status(test_app, test_dup, duplication_status::DS_APP);
+    change_dup_status(test_app, test_dup, duplication_status::DS_LOG);
 
     struct TestData
     {
@@ -452,13 +459,13 @@ TEST_F(meta_duplication_service_test, change_duplication_status)
 
         error_code wec;
     } tests[] = {
-        {test_app, test_dup + 1, duplication_status::DS_INIT, ERR_OBJECT_NOT_FOUND},
+        {test_app, test_dup + 1, duplication_status::DS_REMOVED, ERR_OBJECT_NOT_FOUND},
 
         // ok test
         {test_app, test_dup, duplication_status::DS_PAUSE, ERR_OK}, // start->pause
         {test_app, test_dup, duplication_status::DS_PAUSE, ERR_OK}, // pause->pause
-        {test_app, test_dup, duplication_status::DS_START, ERR_OK}, // pause->start
-        {test_app, test_dup, duplication_status::DS_START, ERR_OK}, // start->start
+        {test_app, test_dup, duplication_status::DS_LOG, ERR_OK},   // pause->start
+        {test_app, test_dup, duplication_status::DS_LOG, ERR_OK},   // start->start
     };
 
     for (auto tt : tests) {
@@ -507,7 +514,7 @@ TEST_F(meta_duplication_service_test, remove_dup)
 
 TEST_F(meta_duplication_service_test, duplication_sync)
 {
-    std::vector<rpc_address> server_nodes = generate_node_list(3);
+    std::vector<rpc_address> server_nodes = ensure_enough_alive_nodes(3);
     rpc_address node = server_nodes[0];
 
     std::string test_app = "test_app_0";
@@ -549,9 +556,9 @@ TEST_F(meta_duplication_service_test, duplication_sync)
         ASSERT_EQ(resp.dup_map.size(), 1);
         ASSERT_EQ(resp.dup_map[app->app_id].size(), 1);
         ASSERT_EQ(resp.dup_map[app->app_id][dupid].dupid, dupid);
-        ASSERT_EQ(resp.dup_map[app->app_id][dupid].status, duplication_status::DS_START);
+        ASSERT_EQ(resp.dup_map[app->app_id][dupid].status, duplication_status::DS_PREPARE);
         ASSERT_EQ(resp.dup_map[app->app_id][dupid].create_ts, dup->create_timestamp_ms);
-        ASSERT_EQ(resp.dup_map[app->app_id][dupid].remote, dup->remote);
+        ASSERT_EQ(resp.dup_map[app->app_id][dupid].remote, dup->follower_cluster_name);
         ASSERT_EQ(resp.dup_map[app->app_id][dupid].fail_mode, dup->fail_mode());
 
         auto progress_map = resp.dup_map[app->app_id][dupid].progress;
@@ -628,7 +635,7 @@ TEST_F(meta_duplication_service_test, query_duplication_info)
     auto resp = query_dup_info(test_app);
     ASSERT_EQ(resp.err, ERR_OK);
     ASSERT_EQ(resp.entry_list.size(), 1);
-    ASSERT_EQ(resp.entry_list.back().status, duplication_status::DS_PAUSE);
+    ASSERT_EQ(resp.entry_list.back().status, duplication_status::DS_PREPARE);
     ASSERT_EQ(resp.entry_list.back().dupid, test_dup);
     ASSERT_EQ(resp.appid, app->app_id);
 
@@ -664,7 +671,7 @@ TEST_F(meta_duplication_service_test, re_add_duplication)
 
     auto dup_list = query_dup_info(test_app).entry_list;
     ASSERT_EQ(dup_list.size(), 1);
-    ASSERT_EQ(dup_list.begin()->status, duplication_status::DS_START);
+    ASSERT_EQ(dup_list.begin()->status, duplication_status::DS_PREPARE);
     ASSERT_EQ(dup_list.begin()->dupid, test_dup_2.dupid);
 
     // reset meta server states
@@ -675,8 +682,6 @@ TEST_F(meta_duplication_service_test, re_add_duplication)
     ASSERT_TRUE(app->duplications.find(test_dup.dupid) == app->duplications.end());
     ASSERT_EQ(app->duplications.size(), 1);
 }
-
-TEST_F(meta_duplication_service_test, add_duplication_freezed) { test_add_duplication_freezed(); }
 
 TEST_F(meta_duplication_service_test, recover_from_corrupted_meta_data)
 {
@@ -710,7 +715,7 @@ TEST_F(meta_duplication_service_test, query_duplication_handler)
               std::string() + R"({"1":{"create_ts":")" + ts_buf + R"(","dupid":)" +
                   std::to_string(dup->id) +
                   R"(,"fail_mode":"FAIL_SLOW")"
-                  R"(,"remote":"slave-cluster","status":"DS_START"},"appid":2})");
+                  R"(,"remote":"slave-cluster","status":"DS_PREPARE"},"appid":2})");
 }
 
 TEST_F(meta_duplication_service_test, fail_mode)
@@ -722,20 +727,22 @@ TEST_F(meta_duplication_service_test, fail_mode)
     auto dup_add_resp = create_dup(test_app);
     auto dup = app->duplications[dup_add_resp.dupid];
     ASSERT_EQ(dup->fail_mode(), duplication_fail_mode::FAIL_SLOW);
-    ASSERT_EQ(dup->status(), duplication_status::DS_START);
+    ASSERT_EQ(dup->status(), duplication_status::DS_PREPARE);
 
     auto resp = update_fail_mode(test_app, dup->id, duplication_fail_mode::FAIL_SKIP);
     ASSERT_EQ(resp.err, ERR_OK);
     ASSERT_EQ(dup->fail_mode(), duplication_fail_mode::FAIL_SKIP);
-    ASSERT_EQ(dup->status(), duplication_status::DS_START);
+    ASSERT_EQ(dup->status(), duplication_status::DS_PREPARE);
 
     // change nothing
     resp = update_fail_mode(test_app, dup->id, duplication_fail_mode::FAIL_SKIP);
     ASSERT_EQ(resp.err, ERR_OK);
     ASSERT_EQ(dup->fail_mode(), duplication_fail_mode::FAIL_SKIP);
-    ASSERT_EQ(dup->status(), duplication_status::DS_START);
+    ASSERT_EQ(dup->status(), duplication_status::DS_PREPARE);
 
     // change status but fail mode not changed
+    change_dup_status(test_app, dup->id, duplication_status::DS_APP);
+    change_dup_status(test_app, dup->id, duplication_status::DS_LOG);
     resp = change_dup_status(test_app, dup->id, duplication_status::DS_PAUSE);
     ASSERT_EQ(resp.err, ERR_OK);
     ASSERT_EQ(dup->fail_mode(), duplication_fail_mode::FAIL_SKIP);
@@ -758,6 +765,103 @@ TEST_F(meta_duplication_service_test, fail_mode)
     app = find_app(test_app);
     dup = app->duplications[dup->id];
     ASSERT_EQ(dup->fail_mode(), duplication_fail_mode::FAIL_SKIP);
+}
+
+TEST_F(meta_duplication_service_test, create_follower_app_for_duplication)
+{
+    struct test_case
+    {
+        std::string fail_cfg_name;
+        std::string fail_cfg_action;
+        bool is_altering;
+        duplication_status::type cur_status;
+        duplication_status::type next_status;
+    } test_cases[] = {{"update_app_request_ok",
+                       "void()",
+                       false,
+                       duplication_status::DS_APP,
+                       duplication_status::DS_INIT},
+                      // the case just `palace holder`, actually
+                      // `trigger_follower_duplicate_checkpoint` is failed by default in unit test
+                      {"update_dup_status_failed",
+                       "off()",
+                       false,
+                       duplication_status::DS_PREPARE,
+                       duplication_status::DS_INIT},
+                      {"persist_dup_status_failed",
+                       "return()",
+                       true,
+                       duplication_status::DS_PREPARE,
+                       duplication_status::DS_APP}};
+
+    for (const auto &test : test_cases) {
+        std::string test_app = test.fail_cfg_name;
+        create_app(test_app);
+        auto app = find_app(test_app);
+
+        auto dup_add_resp = create_dup(test_app);
+        auto dup = app->duplications[dup_add_resp.dupid];
+
+        fail::setup();
+        fail::cfg(test.fail_cfg_name, test.fail_cfg_action);
+        create_follower_app_for_duplication(dup, app);
+        wait_all();
+        fail::teardown();
+        ASSERT_EQ(dup->is_altering(), test.is_altering);
+        ASSERT_EQ(next_status(dup), test.next_status);
+        ASSERT_EQ(dup->status(), test.cur_status);
+    }
+}
+
+TEST_F(meta_duplication_service_test, check_follower_app_if_create_completed)
+{
+    struct test_case
+    {
+        std::vector<std::string> fail_cfg_name;
+        std::vector<std::string> fail_cfg_action;
+        bool is_altering;
+        duplication_status::type cur_status;
+        duplication_status::type next_status;
+    } test_cases[] = {{{"create_app_ok"},
+                       {"void()"},
+                       false,
+                       duplication_status::DS_LOG,
+                       duplication_status::DS_INIT},
+                      // the case just `palace holder`, actually
+                      // `check_follower_app_if_create_completed` is failed by default in unit test
+                      {{"create_app_failed"},
+                       {"off()"},
+                       false,
+                       duplication_status::DS_APP,
+                       duplication_status::DS_INIT},
+                      {{"create_app_ok", "persist_dup_status_failed"},
+                       {"void()", "return()"},
+                       true,
+                       duplication_status::DS_APP,
+                       duplication_status::DS_LOG}};
+
+    for (const auto &test : test_cases) {
+        std::string test_app =
+            fmt::format("{}{}", test.fail_cfg_name[0], test.fail_cfg_name.size());
+        create_app(test_app);
+        auto app = find_app(test_app);
+
+        auto dup_add_resp = create_dup(test_app);
+        auto dup = app->duplications[dup_add_resp.dupid];
+        // 'check_follower_app_if_create_completed' must execute under duplication_status::DS_APP,
+        // so force update it
+        force_update_dup_status(dup, duplication_status::DS_APP);
+        fail::setup();
+        for (int i = 0; i < test.fail_cfg_name.size(); i++) {
+            fail::cfg(test.fail_cfg_name[i], test.fail_cfg_action[i]);
+        }
+        check_follower_app_if_create_completed(dup);
+        wait_all();
+        fail::teardown();
+        ASSERT_EQ(dup->is_altering(), test.is_altering);
+        ASSERT_EQ(next_status(dup), test.next_status);
+        ASSERT_EQ(dup->status(), test.cur_status);
+    }
 }
 
 } // namespace replication

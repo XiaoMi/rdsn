@@ -28,8 +28,44 @@ message(STATUS "ENABLE_GCOV = ${ENABLE_GCOV}")
 option(ENABLE_GPERF "Enable gperftools (for tcmalloc)" ON)
 message(STATUS "ENABLE_GPERF = ${ENABLE_GPERF}")
 
+option(USE_JEMALLOC "Use jemalloc" OFF)
+message(STATUS "USE_JEMALLOC = ${USE_JEMALLOC}")
+
+if(ENABLE_GPERF AND USE_JEMALLOC)
+    message(FATAL_ERROR "cannot enable both gperftools and jemalloc simultaneously")
+endif()
+
+if(USE_JEMALLOC)
+    set(JEMALLOC_LIB_TYPE "SHARED")
+endif()
+
 # ================================================================== #
 
+# Helper function to add preprocesor definition of FILE_BASENAME
+# to pass the filename without directory path for debugging use.
+#
+# Note that in header files this is not consistent with
+# __FILE__ and __LINE__ since FILE_BASENAME will be the
+# compilation unit source file name (.c/.cpp).
+#
+# Example:
+#
+#   define_file_basename_for_sources(my_target)
+#
+# Will add -DFILE_BASENAME="filename" for each source file depended on
+# by my_target, where filename is the name of the file.
+#
+function(define_file_basename_for_sources targetname)
+    get_target_property(source_files "${targetname}" SOURCES)
+    foreach(sourcefile ${source_files})
+        # Add the FILE_BASENAME=filename compile definition to the list.
+        get_filename_component(basename "${sourcefile}" NAME)
+        # Set the updated compile definitions on the source file.
+        set_property(
+            SOURCE "${sourcefile}" APPEND
+            PROPERTY COMPILE_DEFINITIONS "__FILENAME__=\"${basename}\"")
+    endforeach()
+endfunction()
 
 # Install this target into ${CMAKE_INSTALL_PREFIX}/lib
 function(dsn_install_library)
@@ -129,6 +165,7 @@ function(dsn_add_project)
         set(MY_PROJ_LIBS ${MY_PROJ_LIBS} ${DEFAULT_THIRDPARTY_LIBS} ${MY_BOOST_LIBS} ${DSN_SYSTEM_LIBS})
     endif()
     ms_add_project("${MY_PROJ_TYPE}" "${MY_PROJ_NAME}" "${MY_PROJ_SRC}" "${MY_PROJ_LIBS}" "${MY_BINPLACES}")
+    define_file_basename_for_sources(${MY_PROJ_NAME})
 endfunction(dsn_add_project)
 
 function(dsn_add_static_library)
@@ -223,8 +260,8 @@ function(dsn_setup_compiler_flags)
     # add sanitizer check
     if(DEFINED SANITIZER)
         if(NOT (("${COMPILER_FAMILY}" STREQUAL "clang") OR
-        ("${COMPILER_FAMILY}" STREQUAL "gcc" AND "${COMPILER_VERSION}" VERSION_GREATER "4.8")))
-            message(SEND_ERROR "Cannot use sanitizer without clang or gcc >= 4.8")
+        ("${COMPILER_FAMILY}" STREQUAL "gcc" AND "${COMPILER_VERSION}" VERSION_GREATER "5.4.0")))
+            message(SEND_ERROR "Cannot use sanitizer without clang or gcc >= 5.4.0")
         endif()
 
         message(STATUS "Running cmake with sanitizer=${SANITIZER}")
@@ -256,8 +293,10 @@ function(dsn_setup_system_libs)
 
     set(DSN_SYSTEM_LIBS "")
 
-    find_package(RT REQUIRED)
-    set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${RT_LIBRARIES})
+    if (NOT APPLE)
+        find_package(RT REQUIRED)
+        set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${RT_LIBRARIES})
+    endif()
 
     find_package(DL REQUIRED)
     set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${DL_LIBRARIES})
@@ -265,10 +304,23 @@ function(dsn_setup_system_libs)
     # for md5 calculation
     find_package(OpenSSL REQUIRED)
     set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+    if (APPLE)
+        include_directories(SYSTEM ${OPENSSL_ROOT_DIR}/include)
+        link_directories("${OPENSSL_ROOT_DIR}/lib")
+    endif()
 
-    if(ENABLE_GPERF)
-        set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} tcmalloc_and_profiler)
-        add_definitions(-DDSN_ENABLE_GPERF)
+    if (NOT APPLE)
+        if(ENABLE_GPERF)
+            set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} tcmalloc_and_profiler)
+            add_definitions(-DDSN_ENABLE_GPERF)
+        endif()
+    endif()
+
+    if(USE_JEMALLOC)
+        find_package(Jemalloc REQUIRED)
+        # also use cpu profiler provided by gperftools
+        set(DSN_SYSTEM_LIBS ${DSN_SYSTEM_LIBS} JeMalloc::JeMalloc profiler)
+        add_definitions(-DDSN_USE_JEMALLOC)
     endif()
 
     set(DSN_SYSTEM_LIBS
@@ -310,6 +362,9 @@ function(dsn_setup_thirdparty_libs)
     find_package(snappy)
     find_package(zstd)
     find_package(lz4)
+    if(USE_JEMALLOC)
+        find_package(Jemalloc REQUIRED)
+    endif()
     find_package(RocksDB REQUIRED)
 
     # libhdfs
@@ -318,12 +373,12 @@ function(dsn_setup_thirdparty_libs)
     link_libraries(${JAVA_JVM_LIBRARY})
 
     link_directories(${DSN_THIRDPARTY_ROOT}/lib)
-    link_directories(${DSN_THIRDPARTY_ROOT}/lib64)
+    if (NOT APPLE)
+        link_directories(${DSN_THIRDPARTY_ROOT}/lib64)
+    endif()
 endfunction(dsn_setup_thirdparty_libs)
 
 function(dsn_common_setup)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(notdir $(abspath $<))\"'" CACHE STRING "" FORCE)
-
     if(NOT (UNIX))
         message(FATAL_ERROR "Only Unix are supported.")
     endif()

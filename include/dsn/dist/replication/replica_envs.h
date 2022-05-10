@@ -35,7 +35,7 @@ namespace replication {
 class replica_envs
 {
 public:
-    static const std::string DENY_CLIENT_WRITE;
+    static const std::string DENY_CLIENT_REQUEST;
     static const std::string WRITE_QPS_THROTTLING;
     static const std::string WRITE_SIZE_THROTTLING;
     static const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS;
@@ -57,9 +57,11 @@ public:
     static const std::string BUSINESS_INFO;
     static const std::string REPLICA_ACCESS_CONTROLLER_ALLOWED_USERS;
     static const std::string READ_QPS_THROTTLING;
+    static const std::string READ_SIZE_THROTTLING;
     static const std::string BACKUP_REQUEST_QPS_THROTTLING;
     static const std::string SPLIT_VALIDATE_PARTITION_HASH;
     static const std::string USER_SPECIFIED_COMPACTION;
+    static const std::string ROCKSDB_ALLOW_INGEST_BEHIND;
 };
 
 } // namespace replication

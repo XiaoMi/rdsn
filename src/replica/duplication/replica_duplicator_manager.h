@@ -30,6 +30,8 @@ namespace replication {
 
 /// replica_duplicator_manager manages the set of duplications on this replica.
 /// \see duplication_sync_timer
+
+/// Ref-Issue: https://github.com/apache/incubator-pegasus/issues/892
 class replica_duplicator_manager : public replica_base
 {
 public:
@@ -92,6 +94,8 @@ private:
         if (_duplications.empty())
             return;
 
+        dwarn_replica("remove all duplication, replica status = {}",
+                      enum_to_string(_replica->status()));
         _duplications.clear();
     }
 

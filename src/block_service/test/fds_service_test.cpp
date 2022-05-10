@@ -15,15 +15,18 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include "block_service/fds/fds_service.h"
+
+#include <fcntl.h>
+
+#include <array>
+#include <fstream>
 #include <gtest/gtest.h>
+#include <memory>
 
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
 #include <dsn/dist/block_service.h>
-#include <memory>
-#include <fstream>
-
-#include "block_service/fds/fds_service.h"
 
 using namespace dsn;
 using namespace dsn::dist::block_service;
@@ -362,6 +365,7 @@ TEST_F(FDSClientTest, test_basic_operation)
                 ->wait();
             ASSERT_EQ(dsn::ERR_OK, d_resp.err);
             ASSERT_EQ(cf_resp.file_handle->get_size(), d_resp.downloaded_size);
+            ASSERT_EQ(cf_resp.file_handle->get_md5sum(), d_resp.file_md5);
             file_eq_compare(f1.filename, local_file_for_download);
         }
 

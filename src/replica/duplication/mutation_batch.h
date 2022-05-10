@@ -22,6 +22,7 @@
 
 #include "replica/mutation.h"
 #include "replica/prepare_list.h"
+
 namespace dsn {
 namespace replication {
 
@@ -52,6 +53,8 @@ public:
 
     error_s add(mutation_ptr mu);
 
+    void add_mutation_if_valid(mutation_ptr &, decree start_decree);
+
     mutation_tuple_set move_all_mutations();
 
     decree last_decree() const;
@@ -63,6 +66,8 @@ public:
 
     size_t size() const { return _loaded_mutations.size(); }
 
+    uint64_t bytes() const { return _total_bytes; }
+
 private:
     friend class replica_duplicator_test;
     friend class mutation_batch_test;
@@ -70,12 +75,11 @@ private:
     std::unique_ptr<prepare_list> _mutation_buffer;
     mutation_tuple_set _loaded_mutations;
     decree _start_decree{invalid_decree};
+    uint64_t _total_bytes{0};
 };
 
 using mutation_batch_u_ptr = std::unique_ptr<mutation_batch>;
 
 /// Extract mutations into mutation_tuple_set if they are not WRITE_EMPTY.
-extern void add_mutation_if_valid(mutation_ptr &, mutation_tuple_set &, decree start_decree);
-
 } // namespace replication
 } // namespace dsn

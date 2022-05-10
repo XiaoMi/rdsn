@@ -41,10 +41,6 @@
 #include <dsn/utility/link.h>
 #include <dsn/utils/latency_tracer.h>
 
-#ifndef __linux__
-#pragma warning(disable : 4201)
-#endif
-
 namespace dsn {
 namespace replication {
 
@@ -148,7 +144,7 @@ public:
     // used by pending mutation queue only
     mutation *next;
 
-    std::shared_ptr<dsn::utils::latency_tracer> tracer;
+    std::shared_ptr<dsn::utils::latency_tracer> _tracer;
 
     void set_is_sync_to_child(bool sync_to_child) { _is_sync_to_child = sync_to_child; }
     bool is_sync_to_child() { return _is_sync_to_child; }
@@ -244,7 +240,3 @@ private:
 };
 }
 } // namespace
-
-#ifndef __linux__
-#pragma warning(default : 4201)
-#endif

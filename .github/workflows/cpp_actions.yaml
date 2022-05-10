@@ -4,34 +4,41 @@
 # it's recommended to create a PR against the ci-test branch to test if it works
 # as expected.
 
-name: pull_request
+name: Code Lint and Unit Test
 
 on:
   # run on each pull request
   pull_request:
     types: [ synchronize, opened, reopened ]
+    paths:
+      - .github/workflows/cpp_actions.yaml
+      - CMakeLists.txt
+      - bin/**
+      - compile_thrift.py
+      - include/**
+      - run.sh
+      - scripts/**
+      - src/**
+      - thirdparty/**
     branches:
       - master
       - 'v[0-9]+.*' # release branch
       - ci-test # testing branch for github action
+      - '*dev' # developing branch
+
+  # for manually triggering workflow
+  workflow_dispatch:
 
 defaults:
   run:
     shell: bash
 
 jobs:
-  markdown-link-check:
-    name: Check Markdown links
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: gaurav-nelson/github-action-markdown-link-check@1.0.12
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
     container:
-      image: apachepegasus/clang-format-3.9
+      image: apache/pegasus:clang-format-3.9
     steps:
       - uses: actions/checkout@v2
         with:
@@ -44,7 +51,7 @@ jobs:
     needs: lint
     runs-on: self-hosted
     container:
-      image: registry.cn-beijing.aliyuncs.com/apachepegasus/thirdparties-bin:ubuntu1804
+      image: apache/pegasus:thirdparties-bin-ubuntu1804
       env:
         CCACHE_DIR: /tmp/ccache/pegasus
         CCACHE_MAXSIZE: 10G
@@ -55,11 +62,17 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            thirdparty:
+              - 'thirdparty/**'
       - name: Unpack prebuilt third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
+        if: steps.changes.outputs.thirdparty == 'false'
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
+        if: steps.changes.outputs.thirdparty == 'true'
         working-directory: thirdparty
         run: |
           mkdir build
@@ -70,6 +83,7 @@ jobs:
       - name: Unit Testing
         run: |
           export LD_LIBRARY_PATH=`pwd`/thirdparty/output/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server          
+          ulimit -s unlimited
           ./run.sh test --skip_thirdparty
 
   test-with-sanitizer-address:
@@ -77,7 +91,7 @@ jobs:
     needs: lint
     runs-on: self-hosted
     container:
-      image: registry.cn-beijing.aliyuncs.com/apachepegasus/thirdparties-bin:ubuntu1804
+      image: apache/pegasus:thirdparties-bin-ubuntu1804
       env:
         CCACHE_DIR: /tmp/ccache/pegasus
         CCACHE_MAXSIZE: 10G
@@ -88,11 +102,17 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            thirdparty:
+              - 'thirdparty/**'
       - name: Unpack prebuilt third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
+        if: steps.changes.outputs.thirdparty == 'false'
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
+        if: steps.changes.outputs.thirdparty == 'true'
         working-directory: thirdparty
         run: |
           mkdir build
@@ -103,6 +123,7 @@ jobs:
       - name: Unit Testing
         run: |
           export LD_LIBRARY_PATH=`pwd`/thirdparty/output/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server          
+          ulimit -s unlimited
           ./run.sh test --sanitizer address --skip_thirdparty --disable_gperf
 
   test-with-sanitizer-leak:
@@ -110,7 +131,7 @@ jobs:
     needs: lint
     runs-on: self-hosted
     container:
-      image: registry.cn-beijing.aliyuncs.com/apachepegasus/thirdparties-bin:ubuntu1804
+      image: apache/pegasus:thirdparties-bin-ubuntu1804
       env:
         CCACHE_DIR: /tmp/ccache/pegasus
         CCACHE_MAXSIZE: 10G
@@ -121,11 +142,17 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            thirdparty:
+              - 'thirdparty/**'
       - name: Unpack prebuilt third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
+        if: steps.changes.outputs.thirdparty == 'false'
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
+        if: steps.changes.outputs.thirdparty == 'true'
         working-directory: thirdparty
         run: |
           mkdir build
@@ -136,6 +163,7 @@ jobs:
       - name: Unit Testing
         run: |
           export LD_LIBRARY_PATH=`pwd`/thirdparty/output/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server          
+          ulimit -s unlimited
           ./run.sh test --sanitizer leak --skip_thirdparty --disable_gperf
 
   test-with-sanitizer-undefined:
@@ -143,7 +171,7 @@ jobs:
     needs: lint
     runs-on: self-hosted
     container:
-      image: registry.cn-beijing.aliyuncs.com/apachepegasus/thirdparties-bin:ubuntu1804
+      image: apache/pegasus:thirdparties-bin-ubuntu1804
       env:
         CCACHE_DIR: /tmp/ccache/pegasus
         CCACHE_MAXSIZE: 10G
@@ -154,11 +182,17 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/pegasus --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            thirdparty:
+              - 'thirdparty/**'
       - name: Unpack prebuilt third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified') == false
+        if: steps.changes.outputs.thirdparty == 'false'
         run: unzip /root/thirdparties-bin.zip -d ./thirdparty
       - name: Rebuild third-parties
-        if: contains(github.event.pull_request.labels.*.name, 'thirdparty-modified')
+        if: steps.changes.outputs.thirdparty == 'true'
         working-directory: thirdparty
         run: |
           mkdir build
@@ -169,4 +203,5 @@ jobs:
       - name: Unit Testing
         run: |
           export LD_LIBRARY_PATH=`pwd`/thirdparty/output/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server          
+          ulimit -s unlimited
           ./run.sh test --sanitizer undefined --skip_thirdparty --disable_gperf

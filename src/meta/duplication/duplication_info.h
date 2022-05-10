@@ -22,6 +22,7 @@
 #include <dsn/dist/replication/duplication_common.h>
 #include <dsn/cpp/json_helper.h>
 #include <dsn/tool-api/zlocks.h>
+#include <dsn/dist/fmt_logging.h>
 
 #include <utility>
 #include <fmt/format.h>
@@ -42,13 +43,18 @@ public:
     /// \see duplication_info::decode_from_blob
     duplication_info(dupid_t dupid,
                      int32_t appid,
+                     std::string app_name,
                      int32_t partition_count,
                      uint64_t create_now_ms,
-                     std::string remote_cluster_name,
+                     std::string follower_cluster_name,
+                     std::vector<rpc_address> &&follower_cluster_metas,
                      std::string meta_store_path)
         : id(dupid),
           app_id(appid),
-          remote(std::move(remote_cluster_name)),
+          app_name(std::move(app_name)),
+          partition_count(partition_count),
+          follower_cluster_name(std::move(follower_cluster_name)),
+          follower_cluster_metas(std::move(follower_cluster_metas)),
           store_path(std::move(meta_store_path)),
           create_timestamp_ms(create_now_ms)
     {
@@ -57,13 +63,16 @@ public:
         }
     }
 
-    duplication_info() = default;
-
-    void start()
+    error_code start(bool is_duplicating_checkpoint = true)
     {
-        zauto_write_lock l(_lock);
-        _is_altering = true;
-        _next_status = duplication_status::DS_START;
+        if (is_duplicating_checkpoint) {
+            return alter_status(duplication_status::DS_PREPARE);
+        }
+        dwarn_f("you now create duplication[{}[{}.{}]] without duplicating checkpoint",
+                id,
+                follower_cluster_name,
+                app_name);
+        return alter_status(duplication_status::DS_LOG);
     }
 
     // error will be returned if this state transition is not allowed.
@@ -79,15 +88,29 @@ public:
     duplication_fail_mode::type fail_mode() const { return _fail_mode; }
 
     // if this duplication is in valid status.
-    bool is_valid() const { return is_duplication_status_valid(_status); }
+    bool is_invalid_status() const { return is_duplication_status_invalid(_status); }
+
+    bool is_valid_alteration(duplication_status::type to_status) const
+    {
+        return to_status == _status || (to_status == duplication_status::DS_PREPARE &&
+                                        _status == duplication_status::DS_INIT) ||
+               (to_status == duplication_status::DS_APP &&
+                _status == duplication_status::DS_PREPARE) ||
+               (to_status == duplication_status::DS_LOG &&
+                (_status == duplication_status::DS_PAUSE || _status == duplication_status::DS_APP ||
+                 _status == duplication_status::DS_INIT)) ||
+               (to_status == duplication_status::DS_PAUSE &&
+                _status == duplication_status::DS_LOG) ||
+               (to_status == duplication_status::DS_REMOVED);
+    };
 
     ///
     /// alter_progress -> persist_progress
     ///
 
-    // Returns: false if `d` is not supposed to be persisted,
-    //          maybe because meta storage is busy or `d` is stale.
-    bool alter_progress(int partition_index, decree d);
+    // Returns: false if `confirm_entry` is not supposed to be persisted,
+    //          maybe because meta storage is busy or `confirm_entry` is stale.
+    bool alter_progress(int partition_index, const duplication_confirm_entry &confirm_entry);
 
     void persist_progress(int partition_index);
 
@@ -100,6 +123,7 @@ public:
     /// \see meta_duplication_service::recover_from_meta_state
     static duplication_info_s_ptr decode_from_blob(dupid_t dup_id,
                                                    int32_t app_id,
+                                                   const std::string &app_name,
                                                    int32_t partition_count,
                                                    std::string store_path,
                                                    const blob &json);
@@ -114,7 +138,7 @@ public:
         duplication_entry entry;
         entry.dupid = id;
         entry.create_ts = create_timestamp_ms;
-        entry.remote = remote;
+        entry.remote = follower_cluster_name;
         entry.status = _status;
         entry.__set_fail_mode(_fail_mode);
         entry.__isset.progress = true;
@@ -125,6 +149,22 @@ public:
             entry.progress[kv.first] = kv.second.stored_decree;
         }
         return entry;
+    }
+
+    bool all_checkpoint_has_prepared()
+    {
+        int prepared = 0;
+        bool completed =
+            std::all_of(_progress.begin(),
+                        _progress.end(),
+                        [&](std::pair<int, partition_progress> item) -> bool {
+                            prepared = item.second.checkpoint_prepared ? prepared + 1 : prepared;
+                            return item.second.checkpoint_prepared;
+                        });
+        if (!completed) {
+            dwarn_f("replica checkpoint still running: {}/{}", prepared, _progress.size());
+        }
+        return completed;
     }
 
     void report_progress_if_time_up();
@@ -158,6 +198,7 @@ private:
         bool is_altering{false};
         uint64_t last_progress_update_ms{0};
         bool is_inited{false};
+        bool checkpoint_prepared{false};
     };
 
     // partition_idx => progress
@@ -183,7 +224,11 @@ private:
 public:
     const dupid_t id{0};
     const int32_t app_id{0};
-    const std::string remote;
+    const std::string app_name;
+    const int32_t partition_count{0};
+
+    const std::string follower_cluster_name;
+    const std::vector<rpc_address> follower_cluster_metas;
     const std::string store_path; // store path on meta service = get_duplication_path(app, dupid)
     const uint64_t create_timestamp_ms{0}; // the time when this dup is created.
 };

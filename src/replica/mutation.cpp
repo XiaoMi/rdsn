@@ -46,6 +46,7 @@ DSN_DEFINE_uint64("replication",
                   abnormal_write_trace_latency_threshold,
                   1000 * 1000 * 1000, // 1s
                   "latency trace will be logged when exceed the write latency threshold");
+DSN_TAG_VARIABLE(abnormal_write_trace_latency_threshold, FT_MUTABLE);
 
 std::atomic<uint64_t> mutation::s_tid(0);
 
@@ -60,10 +61,8 @@ mutation::mutation()
     _create_ts_ns = dsn_now_ns();
     _tid = ++s_tid;
     _is_sync_to_child = false;
-    tracer =
-        std::make_shared<dsn::utils::latency_tracer>(fmt::format("{}[{}]", "mutation", _tid),
-                                                     false,
-                                                     FLAGS_abnormal_write_trace_latency_threshold);
+    _tracer = std::make_shared<dsn::utils::latency_tracer>(
+        false, "mutation", FLAGS_abnormal_write_trace_latency_threshold);
 }
 
 mutation_ptr mutation::copy_no_reply(const mutation_ptr &old_mu)
@@ -147,9 +146,6 @@ void mutation::copy_from(mutation_ptr &old)
 
 void mutation::add_client_request(task_code code, dsn::message_ex *request)
 {
-    if (request != nullptr) {
-        ADD_CUSTOM_POINT(tracer, request->header->id);
-    }
     data.updates.push_back(mutation_update());
     mutation_update &update = data.updates.back();
     _appro_data_bytes += 32; // approximate code size
