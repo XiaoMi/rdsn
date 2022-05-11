@@ -39,7 +39,7 @@ DEFINE_TASK_CODE_AIO(LPC_AIO_TEST, TASK_PRIORITY_COMMON, THREAD_POOL_TEST_SERVER
 TEST(core, aio)
 {
     fail::setup();
-    fail::cfg("aio_pwrite_incomplete", "off()");
+    fail::cfg("aio_pwrite_incomplete", "void()");
     const char *buffer = "hello, world";
     int len = (int)strlen(buffer);
 
@@ -78,7 +78,7 @@ TEST(core, aio)
     tasks.clear();
     std::unique_ptr<dsn_file_buffer_t[]> buffers(new dsn_file_buffer_t[100]);
     for (int i = 0; i < 10; i++) {
-        buffers[i].buffer = reinterpret_cast<void *>(const_cast<char *>(buffer));
+        buffers[i].buffer = static_cast<void *>(const_cast<char *>(buffer));
         buffers[i].size = len;
     }
     for (int i = 0; i < 10; i++) {
@@ -148,7 +148,7 @@ TEST(core, aio_share)
 TEST(core, operation_failed)
 {
     fail::setup();
-    fail::cfg("aio_pwrite_incomplete", "off()");
+    fail::cfg("aio_pwrite_incomplete", "void()");
 
     auto fp = file::open("tmp_test_file", O_WRONLY, 0600);
     EXPECT_TRUE(fp == nullptr);

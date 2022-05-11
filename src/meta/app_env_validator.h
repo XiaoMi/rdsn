@@ -17,6 +17,9 @@
 
 #pragma once
 
+#include <functional>
+#include <map>
+#include <string>
 #include <dsn/utility/singleton.h>
 
 namespace dsn {
@@ -29,16 +32,20 @@ bool validate_app_env(const std::string &env_name,
 class app_env_validator : public utils::singleton<app_env_validator>
 {
 public:
-    app_env_validator() { register_all_validators(); }
     bool validate_app_env(const std::string &env_name,
                           const std::string &env_value,
                           std::string &hint_message);
 
 private:
+    app_env_validator() { register_all_validators(); }
+    ~app_env_validator() = default;
+
     void register_all_validators();
 
     using validator_func = std::function<bool(const std::string &, std::string &)>;
-    std::map<const std::string, validator_func> _validator_funcs;
+    std::map<std::string, validator_func> _validator_funcs;
+
+    friend class utils::singleton<app_env_validator>;
 };
 
 } // namespace replication

@@ -33,6 +33,7 @@
 namespace dsn {
 namespace security {
 DSN_DECLARE_bool(enable_auth);
+DSN_DECLARE_bool(enable_zookeeper_kerberos);
 
 #define KRB5_RETURN_NOT_OK(err, msg)                                                               \
     do {                                                                                           \
@@ -53,8 +54,9 @@ DSN_DEFINE_string("security", service_name, "", "service name");
 // will not pass.
 error_s check_configuration()
 {
-    dassert(FLAGS_enable_auth,
-            "There is no need to check configuration if FLAGS_enable_auth is not true");
+    dassert(FLAGS_enable_auth || FLAGS_enable_zookeeper_kerberos,
+            "There is no need to check configuration if FLAGS_enable_auth"
+            " and FLAGS_enable_zookeeper_kerberos both are not true");
 
     if (0 == strlen(FLAGS_krb5_keytab) || !utils::filesystem::file_exists(FLAGS_krb5_keytab)) {
         return error_s::make(ERR_INVALID_PARAMETERS,
@@ -76,14 +78,13 @@ error_s check_configuration()
 class kinit_context : public utils::singleton<kinit_context>
 {
 public:
-    ~kinit_context();
-
     // implementation of 'kinit -k -t <keytab_file> <principal>'
     error_s kinit();
     const std::string &username() const { return _user_name; }
 
 private:
     kinit_context() = default;
+    ~kinit_context();
 
     // init kerberos context
     void init_krb5_ctx();

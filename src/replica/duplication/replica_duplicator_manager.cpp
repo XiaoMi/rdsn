@@ -32,11 +32,18 @@ replica_duplicator_manager::get_duplication_confirms_to_update() const
     for (const auto &kv : _duplications) {
         replica_duplicator *duplicator = kv.second.get();
         duplication_progress p = duplicator->progress();
-        if (p.last_decree != p.confirmed_decree) {
-            dcheck_gt_replica(p.last_decree, p.confirmed_decree);
+        if (p.last_decree != p.confirmed_decree ||
+            (kv.second->status() == duplication_status::DS_PREPARE && p.checkpoint_has_prepared)) {
+            if (p.last_decree < p.confirmed_decree) {
+                derror_replica("invalid decree state: p.last_decree({}) < p.confirmed_decree({})",
+                               p.last_decree,
+                               p.confirmed_decree);
+                continue;
+            }
             duplication_confirm_entry entry;
             entry.dupid = duplicator->id();
             entry.confirmed_decree = p.last_decree;
+            entry.__set_checkpoint_prepared(p.checkpoint_has_prepared);
             updates.emplace_back(entry);
         }
     }
@@ -59,7 +66,7 @@ void replica_duplicator_manager::sync_duplication(const duplication_entry &ent)
 
     replica_duplicator_u_ptr &dup = _duplications[dupid];
     if (dup == nullptr) {
-        if (is_duplication_status_valid(next_status)) {
+        if (!is_duplication_status_invalid(next_status)) {
             dup = make_unique<replica_duplicator>(ent, _replica);
         } else {
             derror_replica("illegal duplication status: {}",
@@ -104,7 +111,6 @@ void replica_duplicator_manager::remove_non_existed_duplications(
     const std::map<dupid_t, duplication_entry> &new_dup_map)
 {
     zauto_lock l(_lock);
-
     std::vector<dupid_t> removal_set;
     for (auto &pair : _duplications) {
         dupid_t cur_dupid = pair.first;

@@ -29,6 +29,8 @@ namespace replication {
 class duplication_progress
 {
 public:
+    // check if checkpoint has catch up with `_start_point_decree`
+    bool checkpoint_has_prepared{false};
     // the maximum decree that's been persisted in meta server
     decree confirmed_decree{invalid_decree};
 
@@ -101,13 +103,15 @@ public:
     // Thread-safe
     error_s update_progress(const duplication_progress &p);
 
-    void start_dup();
+    void prepare_dup();
+
+    void start_dup_log();
 
     // Pausing duplication will clear all the internal volatile states, thus
     // when next time it restarts, the states will be reinitialized like the
     // server being restarted.
     // It is useful when something went wrong internally.
-    void pause_dup();
+    void pause_dup_log();
 
     // Holds its own tracker, so that other tasks
     // won't be effected when this duplication is removed.
@@ -126,7 +130,10 @@ public:
     // For metric "dup.pending_mutations_count"
     uint64_t get_pending_mutations_count() const;
 
+    duplication_status::type status() const { return _status; };
+
 private:
+    friend class duplication_test_base;
     friend class replica_duplicator_test;
     friend class duplication_sync_timer_test;
     friend class load_from_private_log_test;
@@ -142,6 +149,7 @@ private:
     replica_stub *_stub;
     dsn::task_tracker _tracker;
 
+    decree _start_point_decree = invalid_decree;
     duplication_status::type _status{duplication_status::DS_INIT};
     std::atomic<duplication_fail_mode::type> _fail_mode{duplication_fail_mode::FAIL_SLOW};
 

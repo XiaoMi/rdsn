@@ -56,6 +56,7 @@
 namespace dsn {
 namespace security {
 DSN_DECLARE_bool(enable_auth);
+DSN_DECLARE_bool(enable_zookeeper_kerberos);
 } // namespace security
 } // namespace dsn
 //
@@ -406,10 +407,7 @@ bool run(const char *config_file,
     }
     spec.data_dir = cdir;
 
-    // setup coredump dir
-    spec.dir_coredump = ::dsn::utils::filesystem::path_combine(cdir, "coredumps");
-    dsn::utils::filesystem::create_directory(spec.dir_coredump);
-    ::dsn::utils::coredump::init(spec.dir_coredump.c_str());
+    ::dsn::utils::coredump::init();
 
     // setup log dir
     spec.dir_log = ::dsn::utils::filesystem::path_combine(cdir, "log");
@@ -468,6 +466,15 @@ bool run(const char *config_file,
     // init security if FLAGS_enable_auth == true
     if (dsn::security::FLAGS_enable_auth) {
         if (!dsn::security::init(is_server)) {
+            return false;
+        }
+        // if FLAGS_enable_auth is false but FLAGS_enable_zookeeper_kerberos, we should init
+        // kerberos for it separately
+        // include two steps:
+        // 1) apply kerberos ticket and keep it valid
+        // 2) complete sasl init for client(use FLAGS_sasl_plugin_path)
+    } else if (dsn::security::FLAGS_enable_zookeeper_kerberos && app_list == "meta") {
+        if (!dsn::security::init_for_zookeeper_client()) {
             return false;
         }
     }

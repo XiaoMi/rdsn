@@ -21,14 +21,17 @@ set(MY_PROJ_LIBS
     dsn_http
     dsn_runtime
     dsn_aio
-    zookeeper_mt
+    zookeeper
     galaxy-fds-sdk-cpp
     PocoNet
     PocoFoundation
     PocoNetSSL
     PocoJSON
     crypto
+    hdfs
     )
+
+set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)
 
 # Extra files that will be installed
 set(MY_BINPLACES "")

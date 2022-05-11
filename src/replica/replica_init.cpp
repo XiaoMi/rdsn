@@ -29,6 +29,7 @@
 #include "mutation_log.h"
 #include "replica_stub.h"
 #include "backup/replica_backup_manager.h"
+#include "duplication/replica_follower.h"
 #include <dsn/utility/factory_store.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/replication/replication_app_base.h>
@@ -56,11 +57,8 @@ error_code replica::initialize_on_new()
         return ERR_FILE_OPERATION_FAILED;
     }
 
-    replica_app_info info((app_info *)&_app_info);
-    std::string path = utils::filesystem::path_combine(_dir, ".app-info");
-    auto err = info.store(path.c_str());
+    auto err = store_app_info(_app_info);
     if (err != ERR_OK) {
-        derror("save app-info to %s failed, err = %s", path.c_str(), err.to_string());
         dsn::utils::filesystem::remove_path(_dir);
         return err;
     }
@@ -72,6 +70,7 @@ error_code replica::initialize_on_new()
                                   gpid gpid,
                                   const app_info &app,
                                   bool restore_if_necessary,
+                                  bool is_duplication_follower,
                                   const std::string &parent_dir)
 {
     std::string dir;
@@ -80,35 +79,46 @@ error_code replica::initialize_on_new()
     } else {
         dir = stub->get_child_dir(app.app_type.c_str(), gpid, parent_dir);
     }
-    replica *rep = new replica(stub, gpid, app, dir.c_str(), restore_if_necessary);
+    replica *rep =
+        new replica(stub, gpid, app, dir.c_str(), restore_if_necessary, is_duplication_follower);
     error_code err;
     if (restore_if_necessary && (err = rep->restore_checkpoint()) != dsn::ERR_OK) {
-        derror("try to restore replica %s failed, error(%s)", rep->name(), err.to_string());
-        rep->close();
-        delete rep;
-        rep = nullptr;
+        derror_f("{}: try to restore replica failed, error({})", rep->name(), err.to_string());
+        return clear_on_failure(stub, rep, dir, gpid);
+    }
 
-        // clear work on failure
-        utils::filesystem::remove_path(dir);
-        stub->_fs_manager.remove_replica(gpid);
-        return nullptr;
+    if (is_duplication_follower &&
+        (err = rep->get_replica_follower()->duplicate_checkpoint()) != dsn::ERR_OK) {
+        derror_f("{}: try to duplicate replica checkpoint failed, error({}) and please check "
+                 "previous detail error log",
+                 rep->name(),
+                 err.to_string());
+        return clear_on_failure(stub, rep, dir, gpid);
     }
 
     err = rep->initialize_on_new();
     if (err == ERR_OK) {
-        dinfo("%s: new replica succeed", rep->name());
+        dinfo_f("{}: new replica succeed", rep->name());
         return rep;
     } else {
-        derror("%s: new replica failed, err = %s", rep->name(), err.to_string());
-        rep->close();
-        delete rep;
-        rep = nullptr;
-
-        // clear work on failure
-        utils::filesystem::remove_path(dir);
-        stub->_fs_manager.remove_replica(gpid);
-        return nullptr;
+        derror_f("{}: new replica failed, err = {}", rep->name(), err.to_string());
+        return clear_on_failure(stub, rep, dir, gpid);
     }
+}
+
+/* static */ replica *replica::clear_on_failure(replica_stub *stub,
+                                                replica *rep,
+                                                const std::string &path,
+                                                const gpid &pid)
+{
+    rep->close();
+    delete rep;
+    rep = nullptr;
+
+    // clear work on failure
+    utils::filesystem::remove_path(path);
+    stub->_fs_manager.remove_replica(pid);
+    return nullptr;
 }
 
 error_code replica::initialize_on_load()
@@ -149,8 +159,8 @@ error_code replica::initialize_on_load()
 
     dsn::app_info info;
     replica_app_info info2(&info);
-    std::string path = utils::filesystem::path_combine(dir, ".app-info");
-    auto err = info2.load(path.c_str());
+    std::string path = utils::filesystem::path_combine(dir, kAppInfo);
+    auto err = info2.load(path);
     if (ERR_OK != err) {
         derror("load app-info from %s failed, err = %s", path.c_str(), err.to_string());
         return nullptr;
@@ -236,14 +246,8 @@ error_code replica::init_app_and_prepare_list(bool create_new)
             _config.ballot = _app->init_info().init_ballot;
             _prepare_list->reset(_app->last_committed_decree());
 
-            _private_log =
-                new mutation_log_private(log_dir,
-                                         _options->log_private_file_size_mb,
-                                         get_gpid(),
-                                         this,
-                                         _options->log_private_batch_buffer_kb * 1024,
-                                         _options->log_private_batch_buffer_count,
-                                         _options->log_private_batch_buffer_flush_interval_ms);
+            _private_log = new mutation_log_private(
+                log_dir, _options->log_private_file_size_mb, get_gpid(), this);
             ddebug("%s: plog_dir = %s", name(), log_dir.c_str());
 
             // sync valid_start_offset between app and logs
@@ -335,14 +339,8 @@ error_code replica::init_app_and_prepare_list(bool create_new)
                 dassert(false, "Fail to create directory %s.", log_dir.c_str());
             }
 
-            _private_log =
-                new mutation_log_private(log_dir,
-                                         _options->log_private_file_size_mb,
-                                         get_gpid(),
-                                         this,
-                                         _options->log_private_batch_buffer_kb * 1024,
-                                         _options->log_private_batch_buffer_count,
-                                         _options->log_private_batch_buffer_flush_interval_ms);
+            _private_log = new mutation_log_private(
+                log_dir, _options->log_private_file_size_mb, get_gpid(), this);
             ddebug("%s: plog_dir = %s", name(), log_dir.c_str());
 
             err = _private_log->open(nullptr, [this](error_code err) {
@@ -475,5 +473,6 @@ void replica::reset_prepare_list_after_replay()
     // align the prepare list and the app
     _prepare_list->truncate(_app->last_committed_decree());
 }
-}
-} // namespace
+
+} // namespace replication
+} // namespace dsn

@@ -15,8 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "hdfs_service.h"
-
 #include <algorithm>
 #include <fstream>
 
@@ -31,6 +29,9 @@
 #include <dsn/utility/TokenBucket.h>
 #include <dsn/utility/utils.h>
 
+#include "hdfs_service.h"
+#include "block_service/directio_writable_file.h"
+
 namespace dsn {
 namespace dist {
 namespace block_service {
@@ -43,8 +44,11 @@ DSN_DEFINE_uint64("replication",
                   "hdfs read batch size, the default value is 64MB");
 DSN_TAG_VARIABLE(hdfs_read_batch_size_bytes, FT_MUTABLE);
 
-DSN_DEFINE_uint32("replication", hdfs_read_limit_rate_megabytes, 200, "hdfs read limit(MB/s)");
-DSN_TAG_VARIABLE(hdfs_read_limit_rate_megabytes, FT_MUTABLE);
+DSN_DEFINE_uint32("replication", hdfs_read_limit_rate_mb_per_sec, 200, "hdfs read limit(MB/s)");
+DSN_TAG_VARIABLE(hdfs_read_limit_rate_mb_per_sec, FT_MUTABLE);
+
+DSN_DEFINE_uint32("replication", hdfs_write_limit_rate_mb_per_sec, 200, "hdfs write limit(MB/s)");
+DSN_TAG_VARIABLE(hdfs_write_limit_rate_mb_per_sec, FT_MUTABLE);
 
 DSN_DEFINE_uint64("replication",
                   hdfs_write_batch_size_bytes,
@@ -52,7 +56,13 @@ DSN_DEFINE_uint64("replication",
                   "hdfs write batch size, the default value is 64MB");
 DSN_TAG_VARIABLE(hdfs_write_batch_size_bytes, FT_MUTABLE);
 
-hdfs_service::hdfs_service() { _read_token_bucket.reset(new folly::DynamicTokenBucket()); }
+DSN_DECLARE_bool(enable_direct_io);
+
+hdfs_service::hdfs_service()
+{
+    _read_token_bucket.reset(new folly::DynamicTokenBucket());
+    _write_token_bucket.reset(new folly::DynamicTokenBucket());
+}
 
 hdfs_service::~hdfs_service()
 {
@@ -295,6 +305,10 @@ error_code hdfs_file_object::write_data_in_batches(const char *data,
     uint64_t write_len = 0;
     while (cur_pos < data_size) {
         write_len = std::min(data_size - cur_pos, FLAGS_hdfs_write_batch_size_bytes);
+        const uint64_t rate = FLAGS_hdfs_write_limit_rate_mb_per_sec << 20;
+        const uint64_t burst_size = std::max(2 * rate, write_len);
+        _service->_write_token_bucket->consumeWithBorrowAndWait(write_len, rate, burst_size);
+
         tSize num_written_bytes = hdfsWrite(_service->get_fs(),
                                             write_file,
                                             (void *)(data + cur_pos),
@@ -408,11 +422,11 @@ error_code hdfs_file_object::read_data_in_batches(uint64_t start_pos,
     uint64_t read_size = 0;
     bool read_success = true;
     while (cur_pos < start_pos + data_length) {
-        const uint64_t rate = FLAGS_hdfs_read_limit_rate_megabytes << 20;
+        const uint64_t rate = FLAGS_hdfs_read_limit_rate_mb_per_sec << 20;
         read_size = std::min(start_pos + data_length - cur_pos, FLAGS_hdfs_read_batch_size_bytes);
         // burst size should not be less than consume size
-        _service->_read_token_bucket->consumeWithBorrowAndWait(
-            read_size, rate, std::max(2 * rate, read_size));
+        const uint64_t burst_size = std::max(2 * rate, read_size);
+        _service->_read_token_bucket->consumeWithBorrowAndWait(read_size, rate, burst_size);
 
         tSize num_read_bytes = hdfsPread(_service->get_fs(),
                                          read_file,
@@ -486,13 +500,35 @@ dsn::task_ptr hdfs_file_object::download(const download_request &req,
         resp.err =
             read_data_in_batches(req.remote_pos, req.remote_length, read_buffer, read_length);
         if (resp.err == ERR_OK) {
-            std::ofstream out(req.output_local_name,
-                              std::ios::binary | std::ios::out | std::ios::trunc);
-            if (out.is_open()) {
-                out.write(read_buffer.c_str(), read_length);
-                out.close();
-                resp.downloaded_size = read_length;
+            bool write_succ = false;
+            if (FLAGS_enable_direct_io) {
+                auto dio_file = std::make_unique<direct_io_writable_file>(req.output_local_name);
+                do {
+                    if (!dio_file->initialize()) {
+                        break;
+                    }
+                    bool wr_ret = dio_file->write(read_buffer.c_str(), read_length);
+                    if (!wr_ret) {
+                        break;
+                    }
+                    if (dio_file->finalize()) {
+                        resp.downloaded_size = read_length;
+                        resp.file_md5 = utils::string_md5(read_buffer.c_str(), read_length);
+                        write_succ = true;
+                    }
+                } while (0);
             } else {
+                std::ofstream out(req.output_local_name,
+                                  std::ios::binary | std::ios::out | std::ios::trunc);
+                if (out.is_open()) {
+                    out.write(read_buffer.c_str(), read_length);
+                    out.close();
+                    resp.downloaded_size = read_length;
+                    resp.file_md5 = utils::string_md5(read_buffer.c_str(), read_length);
+                    write_succ = true;
+                }
+            }
+            if (!write_succ) {
                 derror_f("HDFS download failed: fail to open localfile {} when download {}, "
                          "error: {}",
                          req.output_local_name,

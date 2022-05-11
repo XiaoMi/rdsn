@@ -22,7 +22,7 @@ ROOT=`pwd`
 REPORT_DIR=$ROOT/test_reports
 BUILD_DIR="$ROOT/builder"
 GCOV_DIR="$ROOT/gcov_report"
-TIME=`date --rfc-3339=seconds`
+TIME=`date '+%Y-%m-%d %H:%M:%S'`
 
 echo "C_COMPILER=$C_COMPILER"
 echo "CXX_COMPILER=$CXX_COMPILER"
@@ -87,6 +87,14 @@ else
     echo "DISABLE_GPERF=NO"
 fi
 
+if [ "$USE_JEMALLOC" == "YES" ]
+then
+    echo "USE_JEMALLOC=YES"
+    CMAKE_OPTIONS="$CMAKE_OPTIONS -DUSE_JEMALLOC=ON"
+else
+    echo "USE_JEMALLOC=NO"
+fi
+
 if [ ! -z "$SANITIZER" ]
 then
     echo "SANITIZER=$SANITIZER"
@@ -122,7 +130,7 @@ then
     mkdir -p $BUILD_DIR
     cd $BUILD_DIR
     echo "$CMAKE_OPTIONS" >CMAKE_OPTIONS
-    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_DIR/output $CMAKE_OPTIONS
+    cmake .. -DOPENSSL_ROOT_DIR=$MACOS_OPENSSL_ROOT_DIR -DCMAKE_INSTALL_PREFIX=$BUILD_DIR/output $CMAKE_OPTIONS
     if [ $? -ne 0 ]
     then
         echo "ERROR: cmake failed"

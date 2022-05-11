@@ -50,6 +50,19 @@
 namespace dsn {
 namespace replication {
 
+bool get_bool_envs(const std::map<std::string, std::string> &envs,
+                   const std::string &name,
+                   bool &value)
+{
+    auto iter = envs.find(name);
+    if (iter != envs.end()) {
+        if (!buf2bool(iter->second, value)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void replica::on_config_proposal(configuration_update_request &proposal)
 {
     _checker.only_one_thread_access();
@@ -556,13 +569,15 @@ void replica::update_app_envs(const std::map<std::string, std::string> &envs)
 
 void replica::update_app_envs_internal(const std::map<std::string, std::string> &envs)
 {
-    update_bool_envs(envs, replica_envs::DENY_CLIENT_WRITE, _deny_client_write);
-
     update_bool_envs(envs, replica_envs::SPLIT_VALIDATE_PARTITION_HASH, _validate_partition_hash);
 
     update_throttle_envs(envs);
 
     update_ac_allowed_users(envs);
+
+    update_allow_ingest_behind(envs);
+
+    update_deny_client(envs);
 }
 
 void replica::update_bool_envs(const std::map<std::string, std::string> &envs,
@@ -570,12 +585,9 @@ void replica::update_bool_envs(const std::map<std::string, std::string> &envs,
                                bool &value)
 {
     bool new_value = false;
-    auto iter = envs.find(name);
-    if (iter != envs.end()) {
-        if (!buf2bool(iter->second, new_value)) {
-            dwarn_replica("invalid value of env {}: \"{}\"", name, iter->second);
-            return;
-        }
+    if (!get_bool_envs(envs, name, new_value)) {
+        dwarn_replica("invalid value of env {}", name);
+        return;
     }
     if (new_value != value) {
         ddebug_replica("switch env[{}] from {} to {}", name, value, new_value);
@@ -592,6 +604,43 @@ void replica::update_ac_allowed_users(const std::map<std::string, std::string> &
     }
 
     _access_controller->update(allowed_users);
+}
+
+void replica::update_allow_ingest_behind(const std::map<std::string, std::string> &envs)
+{
+    bool new_value = false;
+    if (!get_bool_envs(envs, replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND, new_value)) {
+        return;
+    }
+    if (new_value != _allow_ingest_behind) {
+        auto info = _app_info;
+        info.envs = envs;
+        if (store_app_info(info) != ERR_OK) {
+            return;
+        }
+        ddebug_replica("switch env[{}] from {} to {}",
+                       replica_envs::ROCKSDB_ALLOW_INGEST_BEHIND,
+                       _allow_ingest_behind,
+                       new_value);
+        _allow_ingest_behind = new_value;
+    }
+}
+
+void replica::update_deny_client(const std::map<std::string, std::string> &envs)
+{
+    auto env_iter = envs.find(replica_envs::DENY_CLIENT_REQUEST);
+    if (env_iter == envs.end()) {
+        _deny_client.reset();
+        return;
+    }
+
+    std::vector<std::string> sub_sargs;
+    utils::split_args(env_iter->second.c_str(), sub_sargs, '*', true);
+    dcheck_eq_replica(sub_sargs.size(), 2);
+
+    _deny_client.reconfig = (sub_sargs[0] == "reconfig");
+    _deny_client.read = (sub_sargs[1] == "read" || sub_sargs[1] == "all");
+    _deny_client.write = (sub_sargs[1] == "write" || sub_sargs[1] == "all");
 }
 
 void replica::query_app_envs(/*out*/ std::map<std::string, std::string> &envs)
@@ -1054,7 +1103,7 @@ void replica::on_config_sync(const app_info &info,
         return;
 
     update_app_envs(info.envs);
-    _duplicating = info.duplicating;
+    _is_duplication_master = info.duplicating;
 
     if (status() == partition_status::PS_PRIMARY) {
         if (nullptr != _primary_states.reconfiguration_task) {

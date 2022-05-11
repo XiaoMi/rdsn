@@ -22,9 +22,12 @@
 #include <dsn/cpp/rpc_holder.h>
 #include <dsn/utility/errors.h>
 #include <dsn/dist/replication/replication_types.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace replication {
+
+DSN_DECLARE_uint32(duplicate_log_batch_bytes);
 
 typedef rpc_holder<duplication_modify_request, duplication_modify_response> duplication_modify_rpc;
 typedef rpc_holder<duplication_add_request, duplication_add_response> duplication_add_rpc;
@@ -37,16 +40,10 @@ extern const char *duplication_status_to_string(duplication_status::type status)
 
 extern const char *duplication_fail_mode_to_string(duplication_fail_mode::type);
 
-inline bool is_duplication_status_valid(duplication_status::type status)
+inline bool is_duplication_status_invalid(duplication_status::type status)
 {
-    return status == duplication_status::DS_PAUSE || status == duplication_status::DS_START;
+    return status == duplication_status::DS_INIT || status == duplication_status::DS_REMOVED;
 }
-
-/// Returns the cluster name (i.e, "onebox") if it's configured under
-/// "replication" section:
-///    [replication]
-///      cluster_name = "onebox"
-extern const char *get_current_cluster_name();
 
 /// Returns the cluster id of url specified in the duplication-group section
 /// of your configuration, for example:
@@ -75,6 +72,15 @@ inline bool is_cluster_id_configured(uint8_t cid)
 {
     return get_distinct_cluster_id_set().find(cid) != get_distinct_cluster_id_set().end();
 }
+
+struct duplication_constants
+{
+    const static std::string kDuplicationCheckpointRootDir;
+    const static std::string kClustersSectionName;
+    // These will fill into app env and mark one app as a "follower app" and record master info
+    const static std::string kDuplicationEnvMasterClusterKey;
+    const static std::string kDuplicationEnvMasterMetasKey;
+};
 
 } // namespace replication
 } // namespace dsn

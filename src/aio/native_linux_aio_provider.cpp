@@ -25,12 +25,16 @@
  */
 
 #include "native_linux_aio_provider.h"
+
+#include <fcntl.h>
+
 #include "runtime/service_engine.h"
 
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/fail_point.h>
+#include <dsn/utils/latency_tracer.h>
 
 namespace dsn {
 
@@ -68,16 +72,16 @@ error_code native_linux_aio_provider::flush(dsn_handle_t fh)
 }
 
 error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
-                                            /*out*/ uint32_t *processed_bytes)
+                                            /*out*/ uint64_t *processed_bytes)
 {
     dsn::error_code resp = ERR_OK;
-    uint32_t buffer_offset = 0;
+    uint64_t buffer_offset = 0;
     do {
         // ret is the written data size
-        uint32_t ret = pwrite(static_cast<int>((ssize_t)aio_ctx.file),
-                              (char *)aio_ctx.buffer + buffer_offset,
-                              aio_ctx.buffer_size - buffer_offset,
-                              aio_ctx.file_offset + buffer_offset);
+        auto ret = pwrite(static_cast<int>((ssize_t)aio_ctx.file),
+                          (char *)aio_ctx.buffer + buffer_offset,
+                          aio_ctx.buffer_size - buffer_offset,
+                          aio_ctx.file_offset + buffer_offset);
         if (dsn_unlikely(ret < 0)) {
             if (errno == EINTR) {
                 dwarn_f("write failed with errno={} and will retry it.", strerror(errno));
@@ -89,7 +93,7 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
         }
 
         // mock the `ret` to reproduce the `write incomplete` case in the first write
-        FAIL_POINT_INJECT_VOID_F("aio_pwrite_incomplete", [&]() -> void {
+        FAIL_POINT_INJECT_NOT_RETURN_F("aio_pwrite_incomplete", [&](string_view s) -> void {
             if (dsn_unlikely(buffer_offset == 0)) {
                 --ret;
             }
@@ -110,7 +114,7 @@ error_code native_linux_aio_provider::write(const aio_context &aio_ctx,
 }
 
 error_code native_linux_aio_provider::read(const aio_context &aio_ctx,
-                                           /*out*/ uint32_t *processed_bytes)
+                                           /*out*/ uint64_t *processed_bytes)
 {
     ssize_t ret = pread(static_cast<int>((ssize_t)aio_ctx.file),
                         aio_ctx.buffer,
@@ -122,7 +126,7 @@ error_code native_linux_aio_provider::read(const aio_context &aio_ctx,
     if (ret == 0) {
         return ERR_HANDLE_EOF;
     }
-    *processed_bytes = static_cast<uint32_t>(ret);
+    *processed_bytes = static_cast<uint64_t>(ret);
     return ERR_OK;
 }
 
@@ -134,15 +138,17 @@ void native_linux_aio_provider::submit_aio_task(aio_task *aio_tsk)
         return;
     }
 
+    ADD_POINT(aio_tsk->_tracer);
     tasking::enqueue(
         aio_tsk->code(), aio_tsk->tracker(), [=]() { aio_internal(aio_tsk); }, aio_tsk->hash());
 }
 
 error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk)
 {
+    ADD_POINT(aio_tsk->_tracer);
     aio_context *aio_ctx = aio_tsk->get_aio_context();
     error_code err = ERR_UNKNOWN;
-    uint32_t processed_bytes = 0;
+    uint64_t processed_bytes = 0;
     switch (aio_ctx->type) {
     case AIO_Read:
         err = read(*aio_ctx, &processed_bytes);
@@ -153,6 +159,8 @@ error_code native_linux_aio_provider::aio_internal(aio_task *aio_tsk)
     default:
         return err;
     }
+
+    ADD_CUSTOM_POINT(aio_tsk->_tracer, "completed");
 
     complete_io(aio_tsk, err, processed_bytes);
     return err;
