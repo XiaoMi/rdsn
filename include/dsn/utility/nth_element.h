@@ -40,13 +40,8 @@ public:
     using container_type = typename std::vector<T>;
     using size_type = typename container_type::size_type;
 
-    stl_nth_element_finder(size_type array_size,
-                       const Compare &comp = Compare())
-        : _array_size(array_size),
-          _array(array_size, T{}),
-          _nths(),
-          _elements(),
-          _comp(comp)
+    stl_nth_element_finder(size_type array_size, const Compare &comp = Compare())
+        : _array_size(array_size), _array(array_size, T{}), _nths(), _elements(), _comp(comp)
     {
     }
 
@@ -55,29 +50,27 @@ public:
     {
         _nths = nths;
         for (const auto &nth : _nths) {
-            dassert_f(nth >= 0 && nth < _array_size,
-                      "nth should be in the range [0, {})",
-                      _array_size);
+            dassert_f(
+                nth >= 0 && nth < _array_size, "nth should be in the range [0, {})", _array_size);
         }
         std::sort(_nths.begin(), _nths.end());
 
         _elements.assign(nths.size(), T{});
     }
 
-    void set(size_type index, const T &value)
+    void set_value(size_type index, const T &value)
     {
+        dassert_f(
+            index >= 0 && index < _array_size, "index should be in the range [0, {})", _array_size);
         _array[index] = value;
     }
 
     const container_type &operator()()
     {
         auto begin_iter = _array.begin();
-        for (size_type i = 0; i < _nths.size(); ) {
+        for (size_type i = 0; i < _nths.size();) {
             auto nth_iter = _array.begin() + _nths[i];
-            std::nth_element(begin_iter,
-                             nth_iter,
-                             _array.end(),
-                             _comp);
+            std::nth_element(begin_iter, nth_iter, _array.end(), _comp);
             _elements[i] = *nth_iter;
 
             // Identical "nth" numbers should be processed.

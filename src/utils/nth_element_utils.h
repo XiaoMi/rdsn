@@ -31,8 +31,6 @@
 #include <dsn/utility/process_utils.h>
 #include <dsn/utility/rand.h>
 
-#include "perf_counter/perf_counter_atomic.h"
-
 namespace dsn {
 
 template <typename T,
@@ -63,8 +61,7 @@ public:
 
     ~nth_element_case_generator() = default;
 
-    void operator()(container_type &array,
-                    container_type &elements)
+    void operator()(container_type &array, container_type &elements)
     {
         array.clear();
         elements.clear();
