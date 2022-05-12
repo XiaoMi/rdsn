@@ -31,8 +31,7 @@
 
 namespace dsn {
 
-// The finder supports to find multiple nth elements at a time, based on `nth_element`
-// function of STL.
+// The finder supports to find multiple nth elements at a time, based on nth_element() of STL.
 template <typename T,
           typename Compare = std::less<T>,
           typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>

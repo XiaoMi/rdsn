@@ -93,6 +93,15 @@ TEST(nth_element_test, basic_int64) { run_basic_int64_cases<stl_nth_element_find
 template <typename NthElementFinder>
 void run_generated_int64_cases()
 {
+    // Test cases:
+    // - generate empty array with empty nth list
+    // - generate an array of only one element with the nth list of only one element
+    // - generate an array of 2 elements with the nth list of 2 elements
+    // - generate an array of 5000 elements with the nth list of 8 elements, at range size 2
+    // - generate an array of 5000 elements with the nth list of 8 elements, at range size 5
+    // - generate an array of 5000 elements with the nth list of 8 elements, at range size 10
+    // - generate an array of 5000 elements with the nth list of 8 elements, at range size 100
+    // - generate an array of 5000 elements with the nth list of 8 elements, at range size 10000
     struct test_case
     {
         typename NthElementFinder::size_type array_size;
@@ -102,8 +111,11 @@ void run_generated_int64_cases()
     } tests[] = {{0, 0, 2, {}},
                  {1, 0, 2, {0}},
                  {2, 0, 2, {0, 1}},
-                 {5000, 0, 2, {2499, 2999, 3499, 3999, 4499, 4999}},
-                 {5000, 0, 5, {2499, 2999, 3499, 3999, 4499, 4999}}};
+                 {5000, 0, 2, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
+                 {5000, 0, 5, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
+                 {5000, 0, 10, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
+                 {5000, 0, 100, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
+                 {5000, 0, 10000, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}}};
 
     for (const auto &test : tests) {
         integral_nth_element_case_generator<int64_t> generator(
@@ -147,20 +159,46 @@ void run_floating_cases(const typename NthElementFinder::container_type &array,
 template <typename NthElementFinder>
 void run_basic_double_cases()
 {
+    // Test cases:
+    // - both the array and the nth list are empty
+    // - the array has only one element, and the nth list is empty
+    // - the array has only one element, and the nth list has only one element
+    // - the array has only 2 identical elements, and the nth list has only one element
+    // - the array has only 2 identical elements, and the nth list has both elements
+    // - the array has only 2 ordered elements, and the nth list has only one element
+    // - the array has only 2 ordered elements, and the nth list has both elements
+    // - the array has only 2 unordered elements, and the nth list has only one element
+    // - the array has only 2 unordered elements, and the nth list has both elements
+    // - the array contains identical elements, and the nth list has only one element
+    // - the array contains identical elements, and the nth list has all elements
+    // - all elements in the array are identical, and the nth list has 2 elements
+    // - all elements in the array are identical, and the nth list has all elements
+    // - each element in the array is different from others, and the nth list has 3 elements
+    // - each element in the array is different from others, and the nth list has all elements
     struct test_case
     {
         typename NthElementFinder::container_type array;
         std::vector<typename NthElementFinder::size_type> nths;
         typename NthElementFinder::container_type expected_elements;
     } tests[] = {{{}, {}, {}},
-                 {{1.23}, {0}, {1.23}},
                  {{1.23}, {}, {}},
+                 {{1.23}, {0}, {1.23}},
                  {{1.23, 1.23}, {1}, {1.23}},
+                 {{1.23, 1.23}, {0, 1}, {1.23, 1.23}},
                  {{1.23, 2.34}, {1}, {2.34}},
+                 {{1.23, 2.34}, {0, 1}, {1.23, 2.34}},
                  {{2.34, 1.23}, {1}, {2.34}},
-                 {{2.34, 1.23, 2.34, 2.34}, {2}, {2.34}},
+                 {{2.34, 1.23}, {0, 1}, {1.23, 2.34}},
+                 {{2.34, 1.23, 2.34, 3.56, 2.34}, {2}, {2.34}},
+                 {{2.34, 1.23, 2.34, 3.56, 2.34}, {0, 1, 2, 3, 4}, {1.23, 2.34, 2.34, 2.34, 3.56}},
                  {{2.34, 2.34, 2.34, 2.34, 2.34, 2.34}, {2, 3}, {2.34, 2.34}},
-                 {{5.678, 6.789, 2.345, 8.901, 1.234, 7.89}, {3, 4, 5}, {6.789, 7.89, 8.901}}};
+                 {{2.34, 2.34, 2.34, 2.34, 2.34, 2.34},
+                  {0, 1, 2, 3, 4, 5},
+                  {2.34, 2.34, 2.34, 2.34, 2.34, 2.34}},
+                 {{5.67, 6.78, 2.34, 8.90, 1.23, 7.89}, {3, 4, 5}, {6.78, 7.89, 8.90}},
+                 {{5.67, 6.78, 2.34, 8.90, 1.23, 7.89},
+                  {0, 1, 2, 3, 4, 5},
+                  {1.23, 2.34, 5.67, 6.78, 7.89, 8.90}}};
 
     for (const auto &test : tests) {
         run_floating_cases<NthElementFinder>(test.array, test.nths, test.expected_elements);
@@ -172,17 +210,29 @@ TEST(nth_element_test, basic_double) { run_basic_double_cases<stl_nth_element_fi
 template <typename NthElementFinder>
 void run_generated_double_cases()
 {
+    // Test cases:
+    // - generate empty array with empty nth list
+    // - generate an array of only one element with the nth list of only one element
+    // - generate an array of 2 elements with the nth list of 2 elements
+    // - generate an array of 5000 elements with the nth list of 8 elements, at range size 2
+    // - generate an array of 5000 elements with the nth list of 8 elements, at range size 5
+    // - generate an array of 5000 elements with the nth list of 8 elements, at range size 10
+    // - generate an array of 5000 elements with the nth list of 8 elements, at range size 100
+    // - generate an array of 5000 elements with the nth list of 8 elements, at range size 10000
     struct test_case
     {
         typename NthElementFinder::size_type array_size;
         double initial_value;
         uint64_t range_size;
         std::vector<typename NthElementFinder::size_type> nths;
-    } tests[] = {{0, 0.0, 10, {}},
-                 {1, 0.0, 10, {0}},
-                 {2, 0.0, 10, {0, 1}},
-                 {5000, 0.0, 10, {2499, 2999, 3499, 3999, 4499, 4999}},
-                 {5000, 0.0, 10000, {2499, 2999, 3499, 3999, 4499, 4999}}};
+    } tests[] = {{0, 0.0, 2, {}},
+                 {1, 0.0, 2, {0}},
+                 {2, 0.0, 2, {0, 1}},
+                 {5000, 0.0, 2, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
+                 {5000, 0.0, 5, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
+                 {5000, 0.0, 10, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
+                 {5000, 0.0, 100, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
+                 {5000, 0.0, 10000, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}}};
 
     for (const auto &test : tests) {
         floating_nth_element_case_generator<double> generator(
