@@ -46,20 +46,42 @@ void run_integral_cases(const typename NthElementFinder::container_type &array,
 template <typename NthElementFinder>
 void run_basic_int64_cases()
 {
+    // Test cases:
+    // - both the array and the nth list are empty
+    // - the array has only one element, and the nth list is empty
+    // - the array has only one element, and the nth list has only one element
+    // - the array has only 2 identical elements, and the nth list has only one element
+    // - the array has only 2 identical elements, and the nth list has both elements
+    // - the array has only 2 ordered elements, and the nth list has only one element
+    // - the array has only 2 ordered elements, and the nth list has both elements
+    // - the array has only 2 unordered elements, and the nth list has only one element
+    // - the array has only 2 unordered elements, and the nth list has both elements
+    // - the array contains identical elements, and the nth list has only one element
+    // - the array contains identical elements, and the nth list has all elements
+    // - all elements in the array are identical, and the nth list has 2 elements
+    // - all elements in the array are identical, and the nth list has all elements
+    // - each element in the array is different from others, and the nth list has 3 elements
+    // - each element in the array is different from others, and the nth list has all elements
     struct test_case
     {
         typename NthElementFinder::container_type array;
         std::vector<typename NthElementFinder::size_type> nths;
         typename NthElementFinder::container_type expected_elements;
     } tests[] = {{{}, {}, {}},
-                 {{1}, {0}, {1}},
                  {{1}, {}, {}},
+                 {{1}, {0}, {1}},
                  {{1, 1}, {1}, {1}},
+                 {{1, 1}, {0, 1}, {1, 1}},
                  {{1, 2}, {1}, {2}},
+                 {{1, 2}, {0, 1}, {1, 2}},
                  {{2, 1}, {1}, {2}},
-                 {{2, 1, 2, 2}, {2}, {2}},
+                 {{2, 1}, {0, 1}, {1, 2}},
+                 {{2, 1, 2, 3, 2}, {2}, {2}},
+                 {{2, 1, 2, 3, 2}, {0, 1, 2, 3, 4}, {1, 2, 2, 2, 3}},
                  {{2, 2, 2, 2, 2, 2}, {2, 3}, {2, 2}},
-                 {{5, 6, 2, 8, 1, 7}, {3, 4, 5}, {6, 7, 8}}};
+                 {{2, 2, 2, 2, 2, 2}, {0, 1, 2, 3, 4, 5}, {2, 2, 2, 2, 2, 2}},
+                 {{5, 6, 2, 8, 1, 7}, {3, 4, 5}, {6, 7, 8}},
+                 {{5, 6, 2, 8, 1, 7}, {0, 1, 2, 3, 4, 5}, {1, 2, 5, 6, 7, 8}}};
 
     for (const auto &test : tests) {
         run_integral_cases<NthElementFinder>(test.array, test.nths, test.expected_elements);

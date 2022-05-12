@@ -31,6 +31,8 @@
 
 namespace dsn {
 
+// The finder supports to find multiple nth elements at a time, based on `nth_element`
+// function of STL.
 template <typename T,
           typename Compare = std::less<T>,
           typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
@@ -45,6 +47,10 @@ public:
     {
     }
 
+    // Set with specified nth list. Notice that the nth list of the parameter must be ordered
+    // even if it will be sorted in the function. Later the elements returned by `operator()`
+    // will be in the order corresponding to the sorted nth list.
+    //
     // It is allowed that there are identical "nth" numbers in the list.
     void set_nths(const std::vector<size_type> &nths)
     {
@@ -58,6 +64,7 @@ public:
         _elements.assign(nths.size(), T{});
     }
 
+    // Set the element at the given index of the array with specified value.
     void set_value(size_type index, const T &value)
     {
         dassert_f(
@@ -65,6 +72,7 @@ public:
         _array[index] = value;
     }
 
+    // Return multiple nth elements in the order of sorted nth list.
     const container_type &operator()()
     {
         auto begin_iter = _array.begin();
