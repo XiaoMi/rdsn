@@ -19,4 +19,5 @@ else()
 endif()
 
 add_subdirectory(long_adder_bench)
+add_subdirectory(nth_element_bench)
 add_subdirectory(test)
