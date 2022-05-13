@@ -91,7 +91,7 @@ void run_bench(size_t num_operations,
                uint64_t range_size,
                const std::vector<size_t> &nths)
 {
-    auto get_nths = [](size_t num) -> std::vector<size_t> {
+    auto get_perf_counter_nths = [](size_t num) -> std::vector<size_t> {
         return {static_cast<size_t>(num * 0.5),
                 static_cast<size_t>(num * 0.9),
                 static_cast<size_t>(num * 0.95),
@@ -105,9 +105,15 @@ void run_bench(size_t num_operations,
     std::map<std::string, int64_t> exec_time_map = {{"perf_counter_nth_element", 0},
                                                     {"stl_nth_element", 0}};
     for (size_t i = 0; i < num_operations; ++i) {
-        auto nths = get_nths(array_size);
+        std::vector<size_t> real_nths;
+        if (nths.empty()) {
+            real_nths = get_perf_counter_nths(array_size);
+        } else {
+            real_nths = nths;
+        }
+
         dsn::integral_nth_element_case_generator<int64_t> generator(
-            array_size, 0, range_size, nths);
+            array_size, 0, range_size, real_nths);
 
         std::vector<int64_t> array;
         std::vector<int64_t> expected_elements;
@@ -115,16 +121,22 @@ void run_bench(size_t num_operations,
 
         fmt::print("expected_elements: {}\n", fmt::join(expected_elements, " "));
 
-        perf_counter_finder.load_data(array);
-        exec_time_map["perf_counter_nth_element"] +=
-            run_nth_element<dsn::perf_counter_nth_element_finder>(expected_elements,
-                                                                  perf_counter_finder);
+        if (nths.empty()) {
+            perf_counter_finder.load_data(array);
+            exec_time_map["perf_counter_nth_element"] +=
+                run_nth_element<dsn::perf_counter_nth_element_finder>(expected_elements,
+                                                                      perf_counter_finder);
+        }
 
         exec_time_map["stl_nth_element"] +=
             run_stl_nth_element(array, expected_elements, stl_finder);
     }
 
     for (const auto &t : exec_time_map) {
+        if (t.second == 0) {
+            continue;
+        }
+
         std::chrono::nanoseconds nano(t.second);
         auto duration_s = std::chrono::duration_cast<std::chrono::duration<double>>(nano).count();
         fmt::print(stdout,
