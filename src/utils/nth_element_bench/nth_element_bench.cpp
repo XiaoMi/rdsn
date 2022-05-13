@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <map>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -29,6 +30,7 @@
 #include <dsn/utility/nth_element.h>
 #include <dsn/utility/smart_pointers.h>
 #include <dsn/utility/string_conv.h>
+#include <dsn/utility/strings.h>
 
 #include "utils/nth_element_utils.h"
 
@@ -40,15 +42,15 @@ void print_usage(const char *cmd)
     fmt::print(stderr, "    <num_operations>       the number of operations\n");
     fmt::print(stderr, "    <array_size>           the size of array for each operation\n");
     fmt::print(stderr,
-               "    <range_size>           the size of range for each operation to "
+               "    <range_size>           the size of range for each operation to \n"
                "                           generate the integers randomly\n");
     fmt::print(stderr,
                "    [nths]                 the nth list for each operation, separated by \n"
                "                           comma(,) if more than one element, e.g., \n"
                "                           \"2,5\" means finding 2nd and 5th elements;\n"
-               "                           if this arg is missing, nth list of "
-               "                           perf_counter_number_percentile_atomic will be "
-               "                           used\n, that is, P50, P90, P95, P99 and P999");
+               "                           if this arg is missing, nth list of \n"
+               "                           perf_counter_number_percentile_atomic will be \n"
+               "                           used, that is, P50, P90, P95, P99 and P999\n");
 }
 
 template <typename NthElementFinder>
@@ -128,6 +130,7 @@ void run_bench(size_t num_operations,
                                                                       perf_counter_finder);
         }
 
+        stl_finder.set_nths(real_nths);
         exec_time_map["stl_nth_element"] +=
             run_stl_nth_element(array, expected_elements, stl_finder);
     }
@@ -150,7 +153,7 @@ void run_bench(size_t num_operations,
 
 int main(int argc, char **argv)
 {
-    if (argc < 5) {
+    if (argc < 4) {
         print_usage(argv[0]);
         ::exit(-1);
     }
@@ -198,7 +201,31 @@ int main(int argc, char **argv)
         ::exit(-1);
     }
 
-    run_bench(num_operations, array_size, range_size, std::vector<size_t>());
+    std::vector<size_t> nths;
+    if (argc >= 5) {
+        std::vector<std::string> nth_strs;
+        dsn::utils::split_args(argv[4], nth_strs, ',');
+        for (const auto &s : nth_strs) {
+            size_t nth;
+            if (!dsn::buf2uint64(s, nth)) {
+                fmt::print(stderr, "Invalid nth number: {}\n\n", s);
+
+                print_usage(argv[0]);
+                ::exit(-1);
+            }
+
+            if (nth >= array_size) {
+                fmt::print(stderr, "nth({}) should be < array_size({})\n\n", array_size);
+
+                print_usage(argv[0]);
+                ::exit(-1);
+            }
+
+            nths.push_back(nth);
+        }
+    }
+
+    run_bench(num_operations, array_size, range_size, nths);
 
     return 0;
 }
