@@ -26,10 +26,11 @@
 
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
-#include <dsn/utility/nth_element.h>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/process_utils.h>
 #include <dsn/utility/rand.h>
+
+#include "perf_counter/perf_counter_atomic.h"
 
 namespace dsn {
 
@@ -116,5 +117,47 @@ public:
 template <typename T, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
 using floating_nth_element_case_generator =
     nth_element_case_generator<T, floating_rand_generator<T>>;
+
+class perf_counter_nth_element_finder
+{
+public:
+    using container_type = typename std::vector<int64_t>;
+    using size_type = typename container_type::size_type;
+
+    perf_counter_nth_element_finder()
+        : _perf_counter("benchmark",
+                        "perf_counter_number_percentile_atomic",
+                        "nth_element",
+                        COUNTER_TYPE_NUMBER_PERCENTILES,
+                        "nth_element implementation by perf_counter_number_percentile_atomic",
+                        false),
+          _elements(COUNTER_PERCENTILE_COUNT, int64_t())
+    {
+    }
+
+    void load_data(const container_type &array)
+    {
+        _perf_counter._tail.store(0, std::memory_order_relaxed);
+        for (const auto &e : array) {
+            _perf_counter.set(e);
+        }
+    }
+
+    const container_type &operator()()
+    {
+        _perf_counter.calc(
+            boost::make_shared<dsn::perf_counter_number_percentile_atomic::compute_context>());
+        std::copy(_perf_counter._results,
+                  _perf_counter._results + COUNTER_PERCENTILE_COUNT,
+                  _elements.begin());
+        return _elements;
+    }
+
+private:
+    dsn::perf_counter_number_percentile_atomic _perf_counter;
+    std::vector<int64_t> _elements;
+
+    DISALLOW_COPY_AND_ASSIGN(perf_counter_nth_element_finder);
+};
 
 } // namespace dsn
