@@ -33,6 +33,8 @@
 
 namespace dsn {
 
+// The generator is used to produce the test cases randomly for unit tests and benchmarks
+// of nth element.
 template <typename T,
           typename Rand,
           typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>

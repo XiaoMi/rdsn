@@ -46,9 +46,11 @@ public:
     {
     }
 
-    // Set with specified nth list. Notice that the nth list of the parameter must be ordered
-    // even if it will be sorted in the function. Later the elements returned by `operator()`
-    // will be in the order corresponding to the sorted nth list.
+    // Set with specified nth list. This method allows nth list to be updated dynamically.
+    //
+    // Notice that the nth list of the parameter must be ordered even if it will be sorted
+    // in the function. Later the elements returned by `operator()` will be in the order
+    // corresponding to the sorted nth list.
     //
     // It is allowed that there are identical "nth" numbers in the list.
     void set_nths(const std::vector<size_type> &nths)
