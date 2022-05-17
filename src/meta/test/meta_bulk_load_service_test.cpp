@@ -502,7 +502,7 @@ TEST_F(bulk_load_service_test, start_bulk_load_succeed)
     fail::setup();
     fail::cfg("meta_check_bulk_load_request_params", "return()");
     fail::cfg("meta_bulk_load_partition_bulk_load", "return()");
-    FLAGS_concurrent_bulk_load = false;
+    FLAGS_enable_concurrent_bulk_load = false;
 
     auto resp = start_bulk_load(APP_NAME);
     ASSERT_EQ(resp.err, ERR_OK);
