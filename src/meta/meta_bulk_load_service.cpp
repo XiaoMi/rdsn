@@ -1914,7 +1914,8 @@ void bulk_load_service::do_continue_app_bulk_load(
     const int32_t same_count = pinfo_map.size() - different_count;
     const int32_t invalid_count = partition_count - pinfo_map.size();
 
-    if (!_meta_svc->try_lock_meta_op_status(meta_op_status::BULKLOAD)) {
+    if (!FLAGS_enable_concurrent_bulk_load &&
+        !_meta_svc->try_lock_meta_op_status(meta_op_status::BULKLOAD)) {
         derror_f("fatal, the op status of meta server must be meta_op_status::FREE");
         return;
     }
