@@ -53,18 +53,25 @@ void run_basic_int64_cases()
     // - both the array and the nth list are empty
     // - the array has only one element, and the nth list is empty
     // - the array has only one element, and the nth list has only one element
+    // - the array has only one element, and the nth list has duplicate elements
     // - the array has only 2 identical elements, and the nth list has only one element
     // - the array has only 2 identical elements, and the nth list has both elements
+    // - the array has only 2 identical elements, and the nth list has duplicat elements
     // - the array has only 2 ordered elements, and the nth list has only one element
     // - the array has only 2 ordered elements, and the nth list has both elements
+    // - the array has only 2 ordered elements, and the nth list has duplicat elements
     // - the array has only 2 unordered elements, and the nth list has only one element
     // - the array has only 2 unordered elements, and the nth list has both elements
+    // - the array has only 2 unordered elements, and the nth list has duplicat elements
     // - the array contains identical elements, and the nth list has only one element
     // - the array contains identical elements, and the nth list has all elements
+    // - the array contains identical elements, and the nth list has duplicat elements
     // - all elements in the array are identical, and the nth list has 2 elements
     // - all elements in the array are identical, and the nth list has all elements
+    // - all elements in the array are identical, and the nth list has duplicat elements
     // - each element in the array is different from others, and the nth list has 3 elements
     // - each element in the array is different from others, and the nth list has all elements
+    // - each element in the array is different from others, and the nth list has duplicat elements
     struct test_case
     {
         typename NthElementFinder::container_type array;
@@ -73,18 +80,25 @@ void run_basic_int64_cases()
     } tests[] = {{{}, {}, {}},
                  {{1}, {}, {}},
                  {{1}, {0}, {1}},
+                 {{1}, {0, 0}, {1, 1}},
                  {{1, 1}, {1}, {1}},
                  {{1, 1}, {0, 1}, {1, 1}},
+                 {{1, 1}, {1, 1}, {1, 1}},
                  {{1, 2}, {1}, {2}},
                  {{1, 2}, {0, 1}, {1, 2}},
+                 {{1, 2}, {1, 1}, {2, 2}},
                  {{2, 1}, {1}, {2}},
                  {{2, 1}, {0, 1}, {1, 2}},
+                 {{2, 1}, {0, 0}, {1, 1}},
                  {{2, 1, 2, 3, 2}, {2}, {2}},
                  {{2, 1, 2, 3, 2}, {0, 1, 2, 3, 4}, {1, 2, 2, 2, 3}},
+                 {{2, 1, 2, 3, 2}, {0, 0, 2, 2, 3, 3}, {1, 1, 2, 2, 2, 2}},
                  {{2, 2, 2, 2, 2, 2}, {2, 3}, {2, 2}},
                  {{2, 2, 2, 2, 2, 2}, {0, 1, 2, 3, 4, 5}, {2, 2, 2, 2, 2, 2}},
+                 {{2, 2, 2, 2, 2, 2}, {1, 1, 2, 2, 5, 5}, {2, 2, 2, 2, 2, 2}},
                  {{5, 6, 2, 8, 1, 7}, {3, 4, 5}, {6, 7, 8}},
-                 {{5, 6, 2, 8, 1, 7}, {0, 1, 2, 3, 4, 5}, {1, 2, 5, 6, 7, 8}}};
+                 {{5, 6, 2, 8, 1, 7}, {0, 1, 2, 3, 4, 5}, {1, 2, 5, 6, 7, 8}},
+                 {{5, 6, 2, 8, 1, 7}, {0, 0, 2, 2, 5, 5}, {1, 1, 5, 5, 8, 8}}};
 
     for (const auto &test : tests) {
         run_integral_cases<NthElementFinder>(test.array, test.nths, test.expected_elements);
@@ -118,7 +132,8 @@ void run_generated_int64_cases()
                  {5000, 0, 5, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
                  {5000, 0, 10, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
                  {5000, 0, 100, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
-                 {5000, 0, 10000, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}}};
+                 {5000, 0, 10000, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
+                 {5000, 0, 10000, {999, 999, 2999, 2999, 3999, 3999, 4999, 4999}}};
 
     for (const auto &test : tests) {
         integral_nth_element_case_generator<int64_t> generator(
@@ -169,16 +184,22 @@ void run_basic_double_cases()
     // - both the array and the nth list are empty
     // - the array has only one element, and the nth list is empty
     // - the array has only one element, and the nth list has only one element
+    // - the array has only one element, and the nth list has duplicate elements
     // - the array has only 2 identical elements, and the nth list has only one element
     // - the array has only 2 identical elements, and the nth list has both elements
+    // - the array has only 2 identical elements, and the nth list has duplicat elements
     // - the array has only 2 ordered elements, and the nth list has only one element
     // - the array has only 2 ordered elements, and the nth list has both elements
+    // - the array has only 2 ordered elements, and the nth list has duplicat elements
     // - the array has only 2 unordered elements, and the nth list has only one element
     // - the array has only 2 unordered elements, and the nth list has both elements
+    // - the array has only 2 unordered elements, and the nth list has duplicat elements
     // - the array contains identical elements, and the nth list has only one element
     // - the array contains identical elements, and the nth list has all elements
+    // - the array contains identical elements, and the nth list has duplicat elements
     // - all elements in the array are identical, and the nth list has 2 elements
     // - all elements in the array are identical, and the nth list has all elements
+    // - all elements in the array are identical, and the nth list has duplicat elements
     // - each element in the array is different from others, and the nth list has 3 elements
     // - each element in the array is different from others, and the nth list has all elements
     struct test_case
@@ -186,25 +207,37 @@ void run_basic_double_cases()
         typename NthElementFinder::container_type array;
         typename NthElementFinder::nth_container_type nths;
         typename NthElementFinder::container_type expected_elements;
-    } tests[] = {{{}, {}, {}},
-                 {{1.23}, {}, {}},
-                 {{1.23}, {0}, {1.23}},
-                 {{1.23, 1.23}, {1}, {1.23}},
-                 {{1.23, 1.23}, {0, 1}, {1.23, 1.23}},
-                 {{1.23, 2.34}, {1}, {2.34}},
-                 {{1.23, 2.34}, {0, 1}, {1.23, 2.34}},
-                 {{2.34, 1.23}, {1}, {2.34}},
-                 {{2.34, 1.23}, {0, 1}, {1.23, 2.34}},
-                 {{2.34, 1.23, 2.34, 3.56, 2.34}, {2}, {2.34}},
-                 {{2.34, 1.23, 2.34, 3.56, 2.34}, {0, 1, 2, 3, 4}, {1.23, 2.34, 2.34, 2.34, 3.56}},
-                 {{2.34, 2.34, 2.34, 2.34, 2.34, 2.34}, {2, 3}, {2.34, 2.34}},
-                 {{2.34, 2.34, 2.34, 2.34, 2.34, 2.34},
-                  {0, 1, 2, 3, 4, 5},
-                  {2.34, 2.34, 2.34, 2.34, 2.34, 2.34}},
-                 {{5.67, 6.78, 2.34, 8.90, 1.23, 7.89}, {3, 4, 5}, {6.78, 7.89, 8.90}},
-                 {{5.67, 6.78, 2.34, 8.90, 1.23, 7.89},
-                  {0, 1, 2, 3, 4, 5},
-                  {1.23, 2.34, 5.67, 6.78, 7.89, 8.90}}};
+    } tests[] = {
+        {{}, {}, {}},
+        {{1.23}, {}, {}},
+        {{1.23}, {0}, {1.23}},
+        {{1.23}, {0, 0}, {1.23, 1.23}},
+        {{1.23, 1.23}, {1}, {1.23}},
+        {{1.23, 1.23}, {0, 1}, {1.23, 1.23}},
+        {{1.23, 1.23}, {1, 1}, {1.23, 1.23}},
+        {{1.23, 2.34}, {1}, {2.34}},
+        {{1.23, 2.34}, {0, 1}, {1.23, 2.34}},
+        {{1.23, 2.34}, {1, 1}, {2.34, 2.34}},
+        {{2.34, 1.23}, {1}, {2.34}},
+        {{2.34, 1.23}, {0, 1}, {1.23, 2.34}},
+        {{2.34, 1.23}, {0, 0}, {1.23, 1.23}},
+        {{2.34, 1.23, 2.34, 3.56, 2.34}, {2}, {2.34}},
+        {{2.34, 1.23, 2.34, 3.56, 2.34}, {0, 1, 2, 3, 4}, {1.23, 2.34, 2.34, 2.34, 3.56}},
+        {{2.34, 1.23, 2.34, 3.56, 2.34}, {0, 0, 2, 2, 3, 3}, {1.23, 1.23, 2.34, 2.34, 2.34, 2.34}},
+        {{2.34, 2.34, 2.34, 2.34, 2.34, 2.34}, {2, 3}, {2.34, 2.34}},
+        {{2.34, 2.34, 2.34, 2.34, 2.34, 2.34},
+         {0, 1, 2, 3, 4, 5},
+         {2.34, 2.34, 2.34, 2.34, 2.34, 2.34}},
+        {{2.34, 2.34, 2.34, 2.34, 2.34, 2.34},
+         {1, 1, 2, 2, 5, 5},
+         {2.34, 2.34, 2.34, 2.34, 2.34, 2.34}},
+        {{5.67, 6.78, 2.34, 8.90, 1.23, 7.89}, {3, 4, 5}, {6.78, 7.89, 8.90}},
+        {{5.67, 6.78, 2.34, 8.90, 1.23, 7.89},
+         {0, 1, 2, 3, 4, 5},
+         {1.23, 2.34, 5.67, 6.78, 7.89, 8.90}},
+        {{5.67, 6.78, 2.34, 8.90, 1.23, 7.89},
+         {0, 0, 2, 2, 5, 5},
+         {1.23, 1.23, 5.67, 5.67, 8.90, 8.90}}};
 
     for (const auto &test : tests) {
         run_floating_cases<NthElementFinder>(test.array, test.nths, test.expected_elements);
@@ -238,7 +271,8 @@ void run_generated_double_cases()
                  {5000, 0.0, 5, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
                  {5000, 0.0, 10, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
                  {5000, 0.0, 100, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
-                 {5000, 0.0, 10000, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}}};
+                 {5000, 0.0, 10000, {999, 1999, 2499, 2999, 3499, 3999, 4499, 4999}},
+                 {5000, 0.0, 10000, {999, 999, 2999, 2999, 3999, 3999, 4999, 4999}}};
 
     for (const auto &test : tests) {
         floating_nth_element_case_generator<double> generator(
