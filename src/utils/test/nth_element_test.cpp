@@ -24,26 +24,29 @@
 
 namespace dsn {
 
-template <typename NthElementFinder>
+template <typename NthElementFinder,
+          typename = typename std::enable_if<
+              std::is_integral<typename NthElementFinder::value_type>::value>::type>
 void run_integral_cases(const typename NthElementFinder::container_type &array,
-                        const std::vector<typename NthElementFinder::size_type> &nths,
+                        const typename NthElementFinder::nth_container_type &nths,
                         const typename NthElementFinder::container_type &expected_elements)
 {
     fmt::print("array:    {}\n", fmt::join(array, " "));
     fmt::print("nths:     {}\n", fmt::join(nths, " "));
 
-    NthElementFinder finder(array.size());
-    finder.set_nths(nths);
-    for (typename NthElementFinder::size_type i = 0; i < array.size(); ++i) {
-        finder.set_value(i, array[i]);
-    }
+    auto container = array;
 
-    const auto &actual_elements = finder();
-    ASSERT_EQ(actual_elements, expected_elements);
-    fmt::print("elements: {}\n", fmt::join(actual_elements, " "));
+    NthElementFinder finder;
+    finder.set_nths(nths);
+    finder(container.begin(), container.begin(), container.end());
+
+    ASSERT_EQ(finder.elements(), expected_elements);
+    fmt::print("elements: {}\n", fmt::join(finder.elements(), " "));
 }
 
-template <typename NthElementFinder>
+template <typename NthElementFinder,
+          typename = typename std::enable_if<
+              std::is_integral<typename NthElementFinder::value_type>::value>::type>
 void run_basic_int64_cases()
 {
     // Test cases:
@@ -65,7 +68,7 @@ void run_basic_int64_cases()
     struct test_case
     {
         typename NthElementFinder::container_type array;
-        std::vector<typename NthElementFinder::size_type> nths;
+        typename NthElementFinder::nth_container_type nths;
         typename NthElementFinder::container_type expected_elements;
     } tests[] = {{{}, {}, {}},
                  {{1}, {}, {}},
@@ -107,7 +110,7 @@ void run_generated_int64_cases()
         typename NthElementFinder::size_type array_size;
         int64_t initial_value;
         uint64_t range_size;
-        std::vector<typename NthElementFinder::size_type> nths;
+        typename NthElementFinder::nth_container_type nths;
     } tests[] = {{0, 0, 2, {}},
                  {1, 0, 2, {0}},
                  {2, 0, 2, {0, 1}},
@@ -134,29 +137,32 @@ TEST(nth_element_test, generated_int64)
     run_generated_int64_cases<stl_nth_element_finder<int64_t>>();
 }
 
-template <typename NthElementFinder>
+template <typename NthElementFinder,
+          typename = typename std::enable_if<
+              std::is_floating_point<typename NthElementFinder::value_type>::value>::type>
 void run_floating_cases(const typename NthElementFinder::container_type &array,
-                        const std::vector<typename NthElementFinder::size_type> &nths,
+                        const typename NthElementFinder::nth_container_type &nths,
                         const typename NthElementFinder::container_type &expected_elements)
 {
     fmt::print("array:    {}\n", fmt::join(array, " "));
     fmt::print("nths:     {}\n", fmt::join(nths, " "));
 
-    NthElementFinder finder(array.size());
-    finder.set_nths(nths);
-    for (typename NthElementFinder::size_type i = 0; i < array.size(); ++i) {
-        finder.set_value(i, array[i]);
-    }
+    auto container = array;
 
-    const auto &actual_elements = finder();
-    ASSERT_EQ(actual_elements.size(), expected_elements.size());
-    for (typename NthElementFinder::size_type i = 0; i < actual_elements.size(); ++i) {
-        ASSERT_DOUBLE_EQ(actual_elements[i], expected_elements[i]);
+    NthElementFinder finder;
+    finder.set_nths(nths);
+    finder(container.begin(), container.begin(), container.end());
+
+    ASSERT_EQ(finder.elements().size(), expected_elements.size());
+    for (typename NthElementFinder::size_type i = 0; i < finder.elements().size(); ++i) {
+        ASSERT_DOUBLE_EQ(finder.elements()[i], expected_elements[i]);
     }
-    fmt::print("elements: {}\n", fmt::join(actual_elements, " "));
+    fmt::print("elements: {}\n", fmt::join(finder.elements(), " "));
 }
 
-template <typename NthElementFinder>
+template <typename NthElementFinder,
+          typename = typename std::enable_if<
+              std::is_floating_point<typename NthElementFinder::value_type>::value>::type>
 void run_basic_double_cases()
 {
     // Test cases:
@@ -178,7 +184,7 @@ void run_basic_double_cases()
     struct test_case
     {
         typename NthElementFinder::container_type array;
-        std::vector<typename NthElementFinder::size_type> nths;
+        typename NthElementFinder::nth_container_type nths;
         typename NthElementFinder::container_type expected_elements;
     } tests[] = {{{}, {}, {}},
                  {{1.23}, {}, {}},
@@ -224,7 +230,7 @@ void run_generated_double_cases()
         typename NthElementFinder::size_type array_size;
         double initial_value;
         uint64_t range_size;
-        std::vector<typename NthElementFinder::size_type> nths;
+        typename NthElementFinder::nth_container_type nths;
     } tests[] = {{0, 0.0, 2, {}},
                  {1, 0.0, 2, {0}},
                  {2, 0.0, 2, {0, 1}},

@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <map>
 #include <string>
 #include <utility>
@@ -54,15 +55,17 @@ void print_usage(const char *cmd)
 }
 
 template <typename NthElementFinder>
-int64_t run_nth_element(const std::vector<int64_t> &expected_elements, NthElementFinder &finder)
+int64_t run_nth_element(const std::vector<int64_t> &expected_elements,
+                        NthElementFinder &finder,
+                        std::function<void()> exec)
 {
-    uint64_t start = dsn_now_ns();
-    const auto &actual_elements = finder();
-    uint64_t end = dsn_now_ns();
+    auto start = dsn_now_ns();
+    exec();
+    auto end = dsn_now_ns();
 
-    if (actual_elements != expected_elements) {
+    if (finder.elements() != expected_elements) {
         fmt::print("actual_elements != expected_elements\nactual_elements = {}\n",
-                   fmt::join(actual_elements, " "));
+                   fmt::join(finder.elements(), " "));
         ::exit(-1);
     }
 
@@ -73,19 +76,25 @@ int64_t run_stl_nth_element(const std::vector<int64_t> &array,
                             const std::vector<int64_t> &expected_elements,
                             dsn::stl_nth_element_finder<int64_t> &finder)
 {
-    std::vector<std::atomic<int64_t>> container(array.size());
+    std::vector<std::atomic<int64_t>> source(array.size());
     for (size_t i = 0; i < array.size(); ++i) {
-        container[i].store(array[i], std::memory_order_relaxed);
+        source[i].store(array[i], std::memory_order_relaxed);
     }
 
-    uint64_t start = dsn_now_ns();
-    for (size_t i = 0; i < container.size(); ++i) {
-        finder.set_value(i, container[i].load(std::memory_order_relaxed));
+    // Simulate the process that the data are read from the container of atomic integers,
+    // such as the percentile of metrics. In this scenario, computation time should be taken
+    // into consideration.
+    std::vector<int64_t> container(array.size());
+    auto start = dsn_now_ns();
+    for (size_t i = 0; i < source.size(); ++i) {
+        container[i] = source[i].load(std::memory_order_relaxed);
     }
-    uint64_t end = dsn_now_ns();
+    auto end = dsn_now_ns();
 
     return static_cast<int64_t>(end - start) +
-           run_nth_element<dsn::stl_nth_element_finder<int64_t>>(expected_elements, finder);
+           run_nth_element(expected_elements, finder, [&finder, &container]() {
+               finder(container.begin(), container.begin(), container.end());
+           });
 }
 
 void run_bench(size_t num_operations,
@@ -102,7 +111,7 @@ void run_bench(size_t num_operations,
     };
 
     dsn::perf_counter_nth_element_finder perf_counter_finder;
-    dsn::stl_nth_element_finder<int64_t> stl_finder(array_size);
+    dsn::stl_nth_element_finder<int64_t> stl_finder;
 
     std::map<std::string, int64_t> exec_time_map = {{"perf_counter_nth_element", 0},
                                                     {"stl_nth_element", 0}};
@@ -121,13 +130,16 @@ void run_bench(size_t num_operations,
         std::vector<int64_t> expected_elements;
         generator(array, expected_elements);
 
-        fmt::print("expected_elements: {}\n", fmt::join(expected_elements, " "));
+        // fmt::print("expected_elements: {}\n", fmt::join(expected_elements, " "));
 
+        // Once `nths` is empty, the comparison between stl_nth_element_finder and
+        // perf_counter_nth_element_finder will be launched.
         if (nths.empty()) {
             perf_counter_finder.load_data(array);
             exec_time_map["perf_counter_nth_element"] +=
-                run_nth_element<dsn::perf_counter_nth_element_finder>(expected_elements,
-                                                                      perf_counter_finder);
+                run_nth_element(expected_elements, perf_counter_finder, [&perf_counter_finder]() {
+                    perf_counter_finder();
+                });
         }
 
         stl_finder.set_nths(real_nths);

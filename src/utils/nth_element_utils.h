@@ -42,13 +42,15 @@ template <typename T,
 class nth_element_case_generator
 {
 public:
-    using container_type = typename std::vector<T>;
+    using value_type = T;
+    using container_type = typename std::vector<value_type>;
     using size_type = typename container_type::size_type;
+    using nth_container_type = typename std::vector<size_type>;
 
     nth_element_case_generator(size_type array_size,
-                               T initial_value,
+                               value_type initial_value,
                                uint64_t range_size,
-                               const std::vector<size_type> &nths)
+                               const nth_container_type &nths)
         : _array_size(array_size),
           _initial_value(initial_value),
           _range_size(range_size),
@@ -84,9 +86,9 @@ public:
 
 private:
     const size_type _array_size;
-    const T _initial_value;
+    const value_type _initial_value;
     const uint64_t _range_size;
-    std::vector<size_type> _nths;
+    nth_container_type _nths;
     const Rand _rand;
 
     DISALLOW_COPY_AND_ASSIGN(nth_element_case_generator);
@@ -118,6 +120,7 @@ template <typename T, typename = typename std::enable_if<std::is_floating_point<
 using floating_nth_element_case_generator =
     nth_element_case_generator<T, floating_rand_generator<T>>;
 
+// Finder class based on perf_counter in comparison with other finders for multiple nth elements.
 class perf_counter_nth_element_finder
 {
 public:
@@ -143,19 +146,20 @@ public:
         }
     }
 
-    const container_type &operator()()
+    void operator()()
     {
         _perf_counter.calc(
             boost::make_shared<dsn::perf_counter_number_percentile_atomic::compute_context>());
         std::copy(_perf_counter._results,
                   _perf_counter._results + COUNTER_PERCENTILE_COUNT,
                   _elements.begin());
-        return _elements;
     }
+
+    const container_type &elements() { return _elements; }
 
 private:
     dsn::perf_counter_number_percentile_atomic _perf_counter;
-    std::vector<int64_t> _elements;
+    container_type _elements;
 
     DISALLOW_COPY_AND_ASSIGN(perf_counter_nth_element_finder);
 };
