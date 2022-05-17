@@ -74,9 +74,8 @@ public:
     void
     operator()(RandomAccessIterator begin, RandomAccessIterator first, RandomAccessIterator last)
     {
-        size_type i = 0;
-        for (auto iter = _nths.begin(); iter != _nths.end(); ++iter) {
-            auto nth_iter = begin + *iter;
+        for (size_type i = 0; i < _nths.size();) {
+            auto nth_iter = begin + _nths[i];
             dassert_f(nth_iter >= first && nth_iter < last, "Invalid iterators for nth_element()");
             std::nth_element(first, nth_iter, last, _comp);
             _elements[i] = *nth_iter;
