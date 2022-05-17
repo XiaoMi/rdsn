@@ -40,6 +40,12 @@ DSN_DEFINE_bool("meta_server",
                 "verify files according to metadata before ingest");
 DSN_TAG_VARIABLE(bulk_load_verify_before_ingest, FT_MUTABLE);
 
+DSN_DEFINE_bool("meta_server",
+                concurrent_bulk_load,
+                false,
+                "different app can execute bulk load at the same time if this value is true");
+DSN_TAG_VARIABLE(concurrent_bulk_load, FT_MUTABLE);
+
 bulk_load_service::bulk_load_service(meta_service *meta_svc, const std::string &bulk_load_dir)
     : _meta_svc(meta_svc), _state(meta_svc->get_server_state()), _bulk_load_root(bulk_load_dir)
 {
@@ -68,7 +74,8 @@ void bulk_load_service::on_start_bulk_load(start_bulk_load_rpc rpc)
     auto &response = rpc.response();
     response.err = ERR_OK;
 
-    if (!_meta_svc->try_lock_meta_op_status(meta_op_status::BULKLOAD)) {
+    if (!FLAGS_concurrent_bulk_load &&
+        !_meta_svc->try_lock_meta_op_status(meta_op_status::BULKLOAD)) {
         response.hint_msg = "meta server is busy now, please wait";
         derror_f("{}", response.hint_msg);
         response.err = ERR_BUSY;
