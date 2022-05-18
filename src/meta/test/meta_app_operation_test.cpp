@@ -231,6 +231,36 @@ public:
         }
     }
 
+    void verify_app_max_replica_count(const std::string &app_name,
+                                      int32_t expected_max_replica_count)
+    {
+        auto app = find_app(app_name);
+        dassert_f(app != nullptr, "app({}) does not exist", app_name);
+
+        // verify local max_replica_count of the app
+        ASSERT_EQ(app->max_replica_count, expected_max_replica_count);
+
+        // verify remote max_replica_count of the app 
+        auto app_path = _ss->get_app_path(*app);
+        dsn::task_tracker tracker;
+        _ms->get_remote_storage()->get_data(
+            app_path,
+            LPC_META_CALLBACK,
+            [ this, app, expected_max_replica_count ](
+                error_code ec, const blob &value) {
+                ASSERT_EQ(ec, ERR_OK);
+
+                app_info ainfo;
+                dsn::json::json_forwarder<app_info>::decode(value, ainfo);
+
+                ASSERT_EQ(ainfo.app_name, app->app_name);
+                ASSERT_EQ(ainfo.app_id, app->app_id);
+                ASSERT_EQ(ainfo.max_replica_count, expected_max_replica_count);
+            },
+            &tracker);
+        tracker.wait_outstanding_tasks();
+    }
+
     const std::string APP_NAME = "app_operation_test";
     const std::string OLD_APP_NAME = "old_app_operation";
 };
