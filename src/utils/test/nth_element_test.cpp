@@ -31,9 +31,6 @@ void run_integral_cases(const typename NthElementFinder::container_type &array,
                         const typename NthElementFinder::nth_container_type &nths,
                         const typename NthElementFinder::container_type &expected_elements)
 {
-    fmt::print("array:    {}\n", fmt::join(array, " "));
-    fmt::print("nths:     {}\n", fmt::join(nths, " "));
-
     auto container = array;
 
     NthElementFinder finder;
@@ -41,7 +38,6 @@ void run_integral_cases(const typename NthElementFinder::container_type &array,
     finder(container.begin(), container.begin(), container.end());
 
     ASSERT_EQ(finder.elements(), expected_elements);
-    fmt::print("elements: {}\n", fmt::join(finder.elements(), " "));
 }
 
 template <typename NthElementFinder,
@@ -119,6 +115,7 @@ void run_generated_int64_cases()
     // - generate an array of 5000 elements with the nth list of 8 elements, at range size 10
     // - generate an array of 5000 elements with the nth list of 8 elements, at range size 100
     // - generate an array of 5000 elements with the nth list of 8 elements, at range size 10000
+    // - generate an array of 5000 elements with duplicate nth elements, at range size 10000
     struct test_case
     {
         typename NthElementFinder::size_type array_size;
@@ -159,9 +156,6 @@ void run_floating_cases(const typename NthElementFinder::container_type &array,
                         const typename NthElementFinder::nth_container_type &nths,
                         const typename NthElementFinder::container_type &expected_elements)
 {
-    fmt::print("array:    {}\n", fmt::join(array, " "));
-    fmt::print("nths:     {}\n", fmt::join(nths, " "));
-
     auto container = array;
 
     NthElementFinder finder;
@@ -172,7 +166,6 @@ void run_floating_cases(const typename NthElementFinder::container_type &array,
     for (typename NthElementFinder::size_type i = 0; i < finder.elements().size(); ++i) {
         ASSERT_DOUBLE_EQ(finder.elements()[i], expected_elements[i]);
     }
-    fmt::print("elements: {}\n", fmt::join(finder.elements(), " "));
 }
 
 template <typename NthElementFinder,
@@ -258,6 +251,7 @@ void run_generated_double_cases()
     // - generate an array of 5000 elements with the nth list of 8 elements, at range size 10
     // - generate an array of 5000 elements with the nth list of 8 elements, at range size 100
     // - generate an array of 5000 elements with the nth list of 8 elements, at range size 10000
+    // - generate an array of 5000 elements with duplicate nth elements, at range size 10000
     struct test_case
     {
         typename NthElementFinder::size_type array_size;

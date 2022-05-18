@@ -64,8 +64,10 @@ int64_t run_nth_element(const std::vector<int64_t> &expected_elements,
     auto end = dsn_now_ns();
 
     if (finder.elements() != expected_elements) {
-        fmt::print("actual_elements != expected_elements\nactual_elements = {}\n",
-                   fmt::join(finder.elements(), " "));
+        fmt::print(
+            "actual_elements != expected_elements\nactual_elements = {}\nexpected_elements: {}\n",
+            fmt::join(finder.elements(), " "),
+            fmt::join(expected_elements, " "));
         ::exit(-1);
     }
 
@@ -129,8 +131,6 @@ void run_bench(size_t num_operations,
         std::vector<int64_t> array;
         std::vector<int64_t> expected_elements;
         generator(array, expected_elements);
-
-        // fmt::print("expected_elements: {}\n", fmt::join(expected_elements, " "));
 
         // Once `nths` is empty, the comparison between stl_nth_element_finder and
         // perf_counter_nth_element_finder will be launched.
