@@ -20,7 +20,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include "utils/nth_element_utils.h"
+#include "nth_element_utils.h"
 
 namespace dsn {
 

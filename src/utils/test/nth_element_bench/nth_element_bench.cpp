@@ -33,7 +33,7 @@
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/strings.h>
 
-#include "utils/nth_element_utils.h"
+#include "utils/test/nth_element_utils.h"
 
 void print_usage(const char *cmd)
 {
