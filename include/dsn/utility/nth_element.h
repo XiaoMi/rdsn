@@ -25,44 +25,58 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/ports.h>
 
 namespace dsn {
 
-// The finder helps to find multiple nth elements of a sequence container (e.g., std::vector)
+// The finder helps to find multiple nth elements of a sequence container (e.g. std::vector)
 // at a time, based on nth_element() of STL.
-template <typename T,
-          typename Compare = std::less<T>,
-          typename ContainerType = typename std::vector<T>>
+template <typename T, typename Compare = std::less<T>>
 class stl_nth_element_finder
 {
 public:
     using value_type = T;
-    using container_type = ContainerType;
+    using container_type = std::vector<value_type>;
     using size_type = typename container_type::size_type;
     using nth_container_type = std::vector<size_type>;
 
     stl_nth_element_finder(const Compare &comp = Compare()) : _nths(), _elements(), _comp(comp) {}
 
     // Set with specified nth indexes. An nth index is typically an index of the sequence
-    // container. This method allows nth indexes to be updated dynamically.
+    // container (std::vector). This method allows nth indexes to be updated dynamically.
     //
-    // Notice that the indexes in `nths` list must be ordered, even if it will be sorted
-    // in this function. Later the elements returned by `elements()` will be in the order
-    // corresponding to the sorted nth indexes, which is also returned by `nths()`.
+    // There are 2 reasons why both `_nths` and `_elements` are put into the sequence container:
     //
-    // It is allowed that there are identical indexes in `nths` list, since it's also a
-    // sequence container.
+    // (1) The users of stl_nth_element_finder, such as the metric of percentile, may pass
+    // duplicate nth indexes to `_nths`. For example, suppose that the sampled window size is
+    // 100, both P99 and P999 will have the same nth element -- namely 99th element. Thus it's
+    // will be convenient for users if `nths` can contain duplicate elements.
+    //
+    // The sequence container can contain duplicate elements, even if all elements in the container
+    // are sorted. Therefore, there may be identical indexes in `nths`.
+    //
+    // (2) The sequence container is more cache-friendly. While an nth element is selected, it's
+    // cache-friendly to write it into `_elements`. After all nth elements are collected into
+    // `_elements`, scanning them (`elements()`) is also cache-friendly, even if there are many
+    // nth indexes in `_nths`. In contrast to this, access directly to the nth element in array
+    // will not be cache-friendly especially when the array is large.
+    //
+    // Notice that the indexes in `nths` list must be ordered. After `operator()` is executed,
+    // the elements returned by `elements()` will be in the order corresponding to the sorted
+    // nth indexes.
     void set_nths(const nth_container_type &nths)
     {
         _nths = nths;
-        std::sort(_nths.begin(), _nths.end());
+        dassert_f(std::is_sorted(_nths.begin(), _nths.end()),
+                  "nth indexes({}) is not sorted",
+                  fmt::join(_nths, " "));
+
         _elements.assign(_nths.size(), value_type{});
     }
-
-    const nth_container_type &nths() { return _nths; }
 
     // Find the multiple nth elements.
     //
@@ -80,7 +94,7 @@ public:
             std::nth_element(first, nth_iter, last, _comp);
             _elements[i] = *nth_iter;
 
-            // Identical nth indexes should be processed.
+            // Identical nth indexes should be processed. See `set_nths()` for details.
             for (++i; i < _nths.size() && _nths[i] == _nths[i - 1]; ++i) {
                 _elements[i] = *nth_iter;
             }

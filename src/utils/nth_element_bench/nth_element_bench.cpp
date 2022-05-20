@@ -78,19 +78,9 @@ int64_t run_stl_nth_element(const std::vector<int64_t> &array,
                             const std::vector<int64_t> &expected_elements,
                             dsn::stl_nth_element_finder<int64_t> &finder)
 {
-    std::vector<std::atomic<int64_t>> source(array.size());
-    for (size_t i = 0; i < array.size(); ++i) {
-        source[i].store(array[i], std::memory_order_relaxed);
-    }
-
-    // Simulate the process that the data are read from the container of atomic integers,
-    // such as the percentile of metrics. In this scenario, computation time should be taken
-    // into consideration.
-    std::vector<int64_t> container(array.size());
     auto start = dsn_now_ns();
-    for (size_t i = 0; i < source.size(); ++i) {
-        container[i] = source[i].load(std::memory_order_relaxed);
-    }
+    std::vector<int64_t> container(array.size());
+    std::copy(array.begin(), array.end(), container.begin());
     auto end = dsn_now_ns();
 
     return static_cast<int64_t>(end - start) +
