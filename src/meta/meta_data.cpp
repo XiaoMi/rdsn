@@ -43,11 +43,23 @@
 namespace dsn {
 namespace replication {
 
+// `max_reserved_dropped_replicas` represents max reserved number allowed for dropped replicas,`
+// which means, once the number of alive replicas reaches max_replica_count, all of the dropped
+// replicas will be eliminated.
+//
+// Previously the total number of alive and dropped replicas is restricted by a cluster-level
+// option `max_replicas_in_group` and a static variable `MAX_REPLICA_COUNT_IN_GRROUP`. Both of
+// them have the same default value 4, which means 3 alive replicas and 1 dropped replica. The
+// default value is used by unit tests. Thus the default value of `max_reserved_dropped_replicas`
+// is set to 1 to so that the unit tests can be passed.
+//
+// Notice that since `max_replicas_in_group` is set to 3 for production environments at present,
+// `max_reserved_dropped_replicas` should be set to 0 for production.
 DSN_DEFINE_uint32("meta_server",
-                  max_reserved_number_of_dropped_replicas,
+                  max_reserved_dropped_replicas,
                   1,
                   "max reserved number allowed for dropped replicas");
-DSN_TAG_VARIABLE(max_reserved_number_of_dropped_replicas, FT_MUTABLE);
+DSN_TAG_VARIABLE(max_reserved_dropped_replicas, FT_MUTABLE);
 
 void when_update_replicas(config_type::type t, const std::function<void(bool)> &func)
 {
@@ -309,7 +321,7 @@ void config_context::check_size()
     // when add learner, it is possible that replica_count > max_replica_count, so we
     // need to remove things from dropped only when it's not empty.
     while (replica_count(*config_owner) + dropped.size() >
-               config_owner->max_replica_count + FLAGS_max_reserved_number_of_dropped_replicas &&
+               config_owner->max_replica_count + FLAGS_max_reserved_dropped_replicas &&
            !dropped.empty()) {
         dropped.erase(dropped.begin());
         prefered_dropped = (int)dropped.size() - 1;
