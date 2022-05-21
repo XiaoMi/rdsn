@@ -155,7 +155,7 @@ public:
                   _elements.begin());
     }
 
-    const container_type &elements() { return _elements; }
+    const container_type &elements() const { return _elements; }
 
 private:
     dsn::perf_counter_number_percentile_atomic _perf_counter;
