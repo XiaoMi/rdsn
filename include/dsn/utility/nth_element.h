@@ -103,7 +103,7 @@ public:
         }
     }
 
-    const container_type &elements() { return _elements; }
+    const container_type &elements() const { return _elements; }
 
 private:
     nth_container_type _nths;
