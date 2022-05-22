@@ -74,7 +74,7 @@ public:
     // Generate an out-of-order `array` sized `_array_size`, and put nth elements of sorted
     // `array` to `elements` in the order of `_nths` which must be sorted.
     //
-    // The process is:
+    // The process has 2 stages:
     // (1) Generate a sorted `array` from _initial_value. Always generate next element by current
     // element plus _rand(_range_size). Once the index of an element belongs to nth indexes, it
     // will be appended to `elements`.
