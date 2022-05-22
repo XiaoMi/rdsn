@@ -24,6 +24,8 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/ports.h>
@@ -35,7 +37,7 @@
 namespace dsn {
 
 // The generator is used to produce the test cases randomly for unit tests and benchmarks
-// of nth element.
+// of nth elements.
 template <typename T,
           typename Rand,
           typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
@@ -57,15 +59,26 @@ public:
           _nths(nths),
           _rand(Rand())
     {
+        dassert_f(std::is_sorted(_nths.begin(), _nths.end()),
+                  "nth indexes({}) is not sorted",
+                  fmt::join(_nths, " "));
+
         for (const auto &nth : _nths) {
             dassert_f(
                 nth >= 0 && nth < _array_size, "nth should be in the range [0, {})", _array_size);
         }
-        std::sort(_nths.begin(), _nths.end());
     }
 
     ~nth_element_case_generator() = default;
 
+    // Generate an out-of-order `array` sized `_array_size`, and put nth elements of sorted
+    // `array` to `elements` in the order of `_nths` which must be sorted.
+    //
+    // The process is:
+    // (1) Generate a sorted `array` from _initial_value. Always generate next element by current
+    // element plus _rand(_range_size). Once the index of an element belongs to nth indexes, it
+    // will be appended to `elements`.
+    // (2) After the sorted `array` is generated, it will be shuffled to be out-of-order.
     void operator()(container_type &array, container_type &elements)
     {
         array.clear();
@@ -88,7 +101,7 @@ private:
     const size_type _array_size;
     const value_type _initial_value;
     const uint64_t _range_size;
-    nth_container_type _nths;
+    const nth_container_type _nths;
     const Rand _rand;
 
     DISALLOW_COPY_AND_ASSIGN(nth_element_case_generator);

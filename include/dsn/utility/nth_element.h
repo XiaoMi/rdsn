@@ -66,8 +66,7 @@ public:
     // will not be cache-friendly especially when the array is large.
     //
     // Notice that the indexes in `nths` list must be ordered. After `operator()` is executed,
-    // the elements returned by `elements()` will be in the order corresponding to the sorted
-    // nth indexes.
+    // the elements returned by `elements()` will be in the order of the sorted nth indexes.
     void set_nths(const nth_container_type &nths)
     {
         _nths = nths;

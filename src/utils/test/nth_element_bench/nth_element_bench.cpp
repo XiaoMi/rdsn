@@ -37,21 +37,19 @@
 
 void print_usage(const char *cmd)
 {
-    fmt::print(stderr, "USAGE: {} <num_operations> <array_size> [nths]\n", cmd);
-    fmt::print(stderr, "Run a simple benchmark that executes all sorts of nth_element_finder.\n\n");
+    fmt::print("USAGE: {} <num_operations> <array_size> [nths]\n", cmd);
+    fmt::print("Run a simple benchmark that executes all sorts of nth_element_finder.\n\n");
 
-    fmt::print(stderr, "    <num_operations>       the number of operations\n");
-    fmt::print(stderr, "    <array_size>           the size of array for each operation\n");
-    fmt::print(stderr,
-               "    <range_size>           the size of range for each operation to \n"
-               "                           generate the integers randomly\n");
-    fmt::print(stderr,
-               "    [nths]                 the nth list for each operation, separated by \n"
+    fmt::print("    <num_operations>       the number of operations.\n");
+    fmt::print("    <array_size>           the size of array for each operation.\n");
+    fmt::print("    <range_size>           the size of range for each operation to \n"
+               "                           generate the integers randomly.\n");
+    fmt::print("    [nths]                 the nth list for each operation, separated by \n"
                "                           comma(,) if more than one element, e.g., \n"
                "                           \"2,5\" means finding 2nd and 5th elements;\n"
                "                           if this arg is missing, nth list of \n"
                "                           perf_counter_number_percentile_atomic will be \n"
-               "                           used, that is, P50, P90, P95, P99 and P999\n");
+               "                           used, that is, P50, P90, P95, P99 and P999.\n");
 }
 
 template <typename NthElementFinder>
@@ -144,8 +142,7 @@ void run_bench(size_t num_operations,
 
         std::chrono::nanoseconds nano(t.second);
         auto duration_s = std::chrono::duration_cast<std::chrono::duration<double>>(nano).count();
-        fmt::print(stdout,
-                   "Running {} operations of {} with each array {} elements took {} seconds.\n",
+        fmt::print("Running {} operations of {} with each array {} elements took {} seconds.\n",
                    num_operations,
                    t.first,
                    array_size,
