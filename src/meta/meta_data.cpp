@@ -67,7 +67,7 @@ namespace replication {
 // If `max_reserved_dropped_replicas` is set to 1, there is at most one dropped replicas reserved;
 // If it's set to 0, however, none of dropped replicas can be reserved.
 //
-// Thus the default value of `max_reserved_dropped_replicas` is set to 1 to so that the unit tests
+// Thus the default value of `max_reserved_dropped_replicas` is set to 1 so that the unit tests
 // can be passed. For production environments, it should be set to 0 to be consistent with
 // `max_replicas_in_group`, which also means, once the number of alive replicas reaches
 // max_replica_count, at most one dropped replica can be reserved and others will be eliminated.
