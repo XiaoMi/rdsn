@@ -47,7 +47,7 @@ public:
     stl_nth_element_finder(const Compare &comp = Compare()) : _nths(), _elements(), _comp(comp) {}
 
     // Set with specified nth indexes. An nth index is typically an index of the sequence
-    // container (std::vector). This method allows nth indexes to be updated dynamically.
+    // container (e.g. std::vector). This method allows nth indexes to be updated dynamically.
     //
     // There are 2 reasons why both `_nths` and `_elements` are put into the sequence container:
     //
