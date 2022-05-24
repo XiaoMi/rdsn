@@ -766,5 +766,20 @@ TEST_F(meta_app_operation_test, set_max_replica_count)
     }
 }
 
+TEST_F(meta_app_operation_test, recover_from_max_replica_count_env)
+{
+    const uint32_t partition_count = 4;
+    create_app(APP_NAME, partition_count);
+
+    const int32_t new_max_replica_count = 5;
+    const auto env = fmt::format("updating;{}", new_max_replica_count);
+    set_max_replica_count_env(APP_NAME, env);
+
+    _ss->recover_from_max_replica_count_env();
+
+    verify_all_partitions_max_replica_count(APP_NAME, new_max_replica_count);
+    verify_app_max_replica_count(APP_NAME, new_max_replica_count);
+}
+
 } // namespace replication
 } // namespace dsn
