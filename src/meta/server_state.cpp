@@ -3486,13 +3486,11 @@ void server_state::update_app_max_replica_count(std::shared_ptr<app_state> &app,
         app->envs.erase(replica_envs::UPDATE_MAX_REPLICA_COUNT);
         ddebug_f("both remote and local app-level max_replica_count have been updated "
                  "successfully: app_name={}, app_id={}, old_max_replica_count={}, "
-                 "new_max_replica_count={}, {}={}",
+                 "new_max_replica_count={}",
                  app->app_name,
                  app->app_id,
                  old_max_replica_count,
-                 new_max_replica_count,
-                 replica_envs::UPDATE_MAX_REPLICA_COUNT,
-                 app->envs[replica_envs::UPDATE_MAX_REPLICA_COUNT]);
+                 new_max_replica_count);
 
         auto &response = rpc.response();
         response.err = ERR_OK;
