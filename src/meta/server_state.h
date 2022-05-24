@@ -338,8 +338,12 @@ private:
     update_partition_max_replica_count_locally(std::shared_ptr<app_state> &app,
                                                const partition_configuration &new_partition_config);
 
-    void recover_all_partitions_max_replica_count(std::pair<std::shared_ptr<app_state> &app, int32_t max_replica_count, dsn::task_tracker &tracker);
-    void recover_app_max_replica_count(std::pair<std::shared_ptr<app_state> &app, int32_t max_replica_count, dsn::task_tracker &tracker);
+    void recover_all_partitions_max_replica_count(std::shared_ptr<app_state> &app,
+                                                  int32_t max_replica_count,
+                                                  dsn::task_tracker &tracker);
+    void recover_app_max_replica_count(std::shared_ptr<app_state> &app,
+                                       int32_t max_replica_count,
+                                       dsn::task_tracker &tracker);
 
     // Used for `on_start_manual_compaction`
     bool parse_compaction_envs(start_manual_compact_rpc rpc,
