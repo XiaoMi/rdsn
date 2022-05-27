@@ -278,15 +278,15 @@ header:
     - 'src/zookeeper/zookeeper_session.h'
     - 'src/zookeeper/lock_struct.cpp'
     - 'src/zookeeper/zookeeper_session_mgr.cpp'
-    - 'src/common/consensus.thrift
+    - 'src/common/consensus.thrift'
     - 'src/common/replication_common.cpp'
     - 'src/common/test/duplication_common_test.cpp'
     - 'src/common/test/main.cpp'
     - 'src/common/fs_manager.cpp'
-    - 'src/common/metadata.thrift
-    - 'src/common/meta_admin.thrift
+    - 'src/common/metadata.thrift'
+    - 'src/common/meta_admin.thrift'
     - 'src/common/replication_common.h'
-    - 'src/common/replica_admin.thrift
+    - 'src/common/replica_admin.thrift'
     - 'src/http/http_message_parser.cpp'
     - 'src/http/http_message_parser.h'
     - 'src/replica/replica_context.h'
