@@ -20,6 +20,7 @@ header:
     copyright-owner: Apache Software Foundation
 
   paths-ignore:
+    # Copyright (c) 2015 Microsoft Corporation
     - 'include/dsn/service_api_cpp.h'
     - 'include/dsn/toollet/fault_injector.h'
     - 'include/dsn/toollet/tracer.h'
@@ -353,5 +354,29 @@ header:
     - 'src/perf_counter/perf_counters.cpp'
     - 'src/perf_counter/test/perf_counters_test.cpp'
     - 'src/perf_counter/test/perf_counter_test.cpp'
+    # Copyright (c) Facebook, Inc
+    - 'include/dsn/utility/TokenBucket.h'
+    - 'src/utils/test/TokenBucketTest.cpp'
+    - 'src/utils/test/TokenBucketTest.h'
+    # https://github.com/preshing/cpp11-on-multicore/blob/master/LICENSE
+    - 'include/dsn/utility/hpc_locks/autoreseteventcondvar.h'
+    - 'include/dsn/utility/hpc_locks/rwlock.h'
+    - 'include/dsn/utility/hpc_locks/autoresetevent.h'
+    - 'include/dsn/utility/hpc_locks/sema.h'
+    - 'include/dsn/utility/hpc_locks/bitfield.h'
+    - 'include/dsn/utility/hpc_locks/benaphore.h'
+    # Copyright (c) 2012 The Chromium Authors
+    - 'src/runtime/build_config.h'
+    - 'src/utils/test/autoref_ptr_test.cpp'
+    # Copyright 2017 The Abseil Authors
+    - 'include/dsn/utility/absl/base/internal/invoke.h'
+    - 'include/dsn/utility/absl/utility/utility.h'
+    - 'include/dsn/utility/smart_pointers.h'
+    - 'include/dsn/utility/string_view.h'
+    - 'src/utils/test/memutil_test.cpp'
+    - 'src/utils/test/string_view_test.cpp'
+    - 'src/utils/test/smart_pointers_test.cpp'
+    - 'src/utils/memutil.h'
+    - 'src/utils/string_view.cpp'
 
   comment: on-failure
