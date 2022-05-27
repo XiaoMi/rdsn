@@ -35,17 +35,17 @@ jobs:
         uses: apache/skywalking-eyes@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # needed only when you want License-Eye to comment on the pull request.
-        # with:
+        with:
             # Optional: set the log level. The default value is `info`.
             # log: debug
             # Optional: set the config file. The default value is `.licenserc.yaml`.
             # config: .licenserc.yaml
-#          mode: fix
-#      - name: Apply Changes
-#        uses: EndBug/add-and-commit@v4
-#          with:
-#            author_name: License Bot
-#            author_email: license_bot@github.com
-#            message: 'Automatic application of license header'
-#            env:
-#              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          mode: fix
+      - name: Apply Changes
+        uses: EndBug/add-and-commit@v4
+          with:
+            author_name: License Bot
+            author_email: license_bot@github.com
+            message: 'Automatic application of license header'
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
