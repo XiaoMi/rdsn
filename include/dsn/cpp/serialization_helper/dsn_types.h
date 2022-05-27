@@ -17,7 +17,6 @@
  * under the License.
  */
 
-
 #pragma once
 
 #include <dsn/cpp/serialization.h>
