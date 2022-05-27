@@ -102,7 +102,46 @@
 
 // This is a NOP if CACHELINE_SIZE is not defined.
 #ifdef CACHELINE_SIZE
+static_assert((CACHELINE_SIZE & (CACHELINE_SIZE - 1)) == 0,
+        "Cache line size must be a power of 2 number of bytes");
 #define CACHELINE_ALIGNED __attribute__((aligned(CACHELINE_SIZE)))
 #else
 #define CACHELINE_ALIGNED
 #endif
+
+#include <memory>
+#include <new>
+
+#include <dsn/dist/fmt_logging.h>
+
+namespace dsn {
+
+extern void *cacheline_aligned_alloc(size_t size);
+
+extern void cacheline_aligned_free(void *mem_block);
+
+template <typename T>
+using cacheline_aligned_ptr =
+    typename std::unique_ptr<T, std::function<void(void *)>>;
+
+template <typename T>
+cacheline_aligned_ptr<T> cacheline_aligned_alloc_array(size_t len) {
+    void *buffer = cacheline_aligned_alloc(sizeof(T) * len);
+
+    T *array = new (buffer) T[len];
+    for (size_t i = 0; i < len; ++i) {
+        T *elem = &(array[i]);
+        dassert_f(
+            (reinterpret_cast<const uintptr_t>(elem) & (sizeof(T) - 1)) == 0,
+            "unaligned addr: array={}, length={}, index={}, elem={}, mask={}",
+            fmt::ptr(array),
+            len,
+            i,
+            fmt::ptr(elem),
+            sizeof(T) - 1);
+    }
+
+    return cacheline_aligned_ptr<T>(array, cacheline_aligned_free);
+}
+
+} // namespace dsn

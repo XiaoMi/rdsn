@@ -18,7 +18,9 @@
 #pragma once
 
 #include <atomic>
+#include <bitset>
 #include <mutex>
+#include <set>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -30,6 +32,7 @@
 #include <dsn/utility/casts.h>
 #include <dsn/utility/enum_helper.h>
 #include <dsn/utility/long_adder.h>
+#include <dsn/utility/nth_element.h>
 #include <dsn/utility/ports.h>
 #include <dsn/utility/singleton.h>
 #include <dsn/utility/string_view.h>
@@ -446,5 +449,53 @@ using concurrent_volatile_counter_ptr = counter_ptr<concurrent_long_adder, true>
 
 template <typename Adder = striped_long_adder>
 using volatile_counter_prototype = metric_prototype_with<counter<Adder, true>>;
+
+enum class kth_percentile_type : size_t {
+    P50,
+    P90,
+    P95,
+    P99,
+    P999,
+    COUNT,
+    INVALID
+};
+
+ENUM_BEGIN(kth_percentile_type, kth_percentile_type::INVALID)
+ENUM_REG(P50)
+ENUM_REG(P90)
+ENUM_REG(P95)
+ENUM_REG(P99)
+ENUM_REG(P999)
+ENUM_END(kth_percentile_type)
+
+const std::vector<double> kKthDecimals = {0.5, 0.9, 0.95, 0.99, 0.999};
+
+template <typename T, typename NthElementFinder = stl_nth_element_finder<T>, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+class percentile: public metric
+{
+public:
+    using value_type = T;
+    using container_type = std::vector<value_type>;
+    using percent_container_type = std::unordered_map<uint32_t, double>;
+    using nth_container_type = NthElementFinder::nth_container_type;
+
+protected:
+    percentile(const metric_prototype *prototype, size_t sample_size, const std::set<kth_percentile_type> &kth_percentiles) : metric(prototype), _kth_percentile_bitset(), _nth_elements(static_cast<size_t>(kth_percentile_type::COUNT)), _samples(cacheline_aligned_alloc_array<T>(sample_size)), _nth_element_finder() {
+        for (const auto &kth : kth_percentiles) {
+            _kth_percentile_bitset.set(static_cast<size_t>(kth));
+        }
+    }
+
+    virtual ~percentile() = default;
+
+private:
+    friend class metric_entity;
+    friend class ref_ptr<percentile<value_type, NthElementFinder>>;
+
+    std::bitset<static_cast<size_t>(kth_percentile_type::COUNT)> _kth_percentile_bitset;
+    std::vector<std::atomic<T>> _nth_elements;
+    cacheline_aligned_ptr<T> _samples;
+    NthElementFinder _nth_element_finder;
+};
 
 } // namespace dsn
