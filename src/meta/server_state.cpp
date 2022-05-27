@@ -3753,7 +3753,7 @@ void server_state::recover_from_max_replica_count_env()
 
             std::vector<std::string> args;
             utils::split_args(iter->second.c_str(), args, ';');
-            if (args[0] != "updating") {
+            if (args.empty() || args[0] != "updating") {
                 continue;
             }
 
@@ -3766,7 +3766,7 @@ void server_state::recover_from_max_replica_count_env()
                           app->app_name,
                           app->app_id,
                           app->max_replica_count,
-                          iter->first,
+                          replica_envs::UPDATE_MAX_REPLICA_COUNT,
                           iter->second);
             }
 
