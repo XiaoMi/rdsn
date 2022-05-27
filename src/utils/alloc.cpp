@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include <dsn/utility/ports.h>
+#include <dsn/utility/alloc.h>
 
 #include <cstdlib>
 
@@ -23,7 +23,8 @@
 
 namespace dsn {
 
-/* extern */ void *cacheline_aligned_alloc(size_t size) {
+/* extern */ void *cacheline_aligned_alloc(size_t size)
+{
 #ifdef CACHELINE_SIZE
     void *buffer = nullptr;
     int err = posix_memalign(&buffer, CACHELINE_SIZE, size);
@@ -42,8 +43,6 @@ namespace dsn {
 #endif
 }
 
-/* extern */ void cacheline_aligned_free(void *mem_block) {
-    free(mem_block);
-}
+/* extern */ void cacheline_aligned_free(void *mem_block) { free(mem_block); }
 
 } // namespace dsn
