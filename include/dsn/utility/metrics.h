@@ -483,6 +483,8 @@ std::set<kth_percentile_type> get_all_kth_percentile_types()
 }
 const std::set<kth_percentile_type> kAllKthPercentileTypes = get_all_kth_percentile_types();
 
+const size_t kDefaultSampleSize = 5000;
+
 template <typename T,
           typename NthElementFinder = stl_nth_element_finder<T>,
           typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
@@ -490,8 +492,6 @@ class percentile : public metric
 {
 public:
     using value_type = T;
-    using size_type = typename NthElementFinder::size_type;
-    using nth_container_type = typename NthElementFinder::nth_container_type;
 
     void set(const value_type &val)
     {
@@ -515,9 +515,11 @@ public:
     }
 
 protected:
+    using size_type = typename NthElementFinder::size_type;
+
     percentile(const metric_prototype *prototype,
                const std::set<kth_percentile_type> &kth_percentiles = kAllKthPercentileTypes,
-               size_type sample_size = 5000)
+               size_type sample_size = kDefaultSampleSize)
         : metric(prototype),
           _sample_size(sample_size),
           _reached_sample_size(false),
@@ -541,6 +543,8 @@ protected:
     virtual ~percentile() = default;
 
 private:
+    using nth_container_type = typename NthElementFinder::nth_container_type;
+
     friend class metric_entity;
     friend class ref_ptr<percentile<value_type, NthElementFinder>>;
 
