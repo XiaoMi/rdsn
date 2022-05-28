@@ -473,7 +473,8 @@ ENUM_END(kth_percentile_type)
 
 const std::vector<double> kKthDecimals = {0.5, 0.9, 0.95, 0.99, 0.999};
 
-std::set<kth_percentile_type> get_all_kth_percentile_types() {
+std::set<kth_percentile_type> get_all_kth_percentile_types()
+{
     std::set<kth_percentile_type> all_types;
     for (size_t i = 0; i < static_cast<size_t>(kth_percentile_type::COUNT); ++i) {
         all_types.insert(static_cast<kth_percentile_type>(i));
@@ -492,15 +493,20 @@ public:
     using size_type = typename NthElementFinder::size_type;
     using nth_container_type = typename NthElementFinder::nth_container_type;
 
-    void set(const value_type &val) {
+    void set(const value_type &val)
+    {
         auto count = _tail.fetch_add(1, std::memory_order_relaxed);
         _samples[count % _sample_size] = val;
     }
 
     value_type get(kth_percentile_type type) const
     {
-        dassert_f(type < kth_percentile_type::COUNT, "{} should be < {}", type, kth_percentile_type::COUNT);
-        dassert_f(_kth_percentile_bitset.test(static_cast<size_t>(type)), "{} is not observed", type);
+        dassert_f(type < kth_percentile_type::COUNT,
+                  "{} should be < {}",
+                  type,
+                  kth_percentile_type::COUNT);
+        dassert_f(
+            _kth_percentile_bitset.test(static_cast<size_t>(type)), "{} is not observed", type);
         return _full_nth_elements[static_cast<size_t>(type)].load(std::memory_order_relaxed);
     }
 
@@ -534,7 +540,8 @@ private:
     friend class metric_entity;
     friend class ref_ptr<percentile<value_type, NthElementFinder>>;
 
-    void find_nth_elements() {
+    void find_nth_elements()
+    {
         size_type real_sample_size = std::min(static_cast<size_type>(_tail.load()), _sample_size);
         if (real_sample_size < _sample_size) {
             if (_reached_sample_size) {
@@ -542,7 +549,6 @@ private:
             }
             set_real_nths(real_sample_size);
         } else if (!_reached_sample_size) {
-, static_cast<uint64_t>(_sample_size)
             set_real_nths(real_sample_size);
             _reached_sample_size = true;
         }
@@ -560,7 +566,8 @@ private:
         }
     }
 
-    void set_real_nths(size_type real_sample_size) {
+    void set_real_nths(size_type real_sample_size)
+    {
         nth_container_type nths;
         for (size_t i = 0; i < static_cast<size_t>(kth_percentile_type::COUNT); ++i) {
             if (!_kth_percentile_bitset.test(i)) {
