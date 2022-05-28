@@ -499,15 +499,19 @@ public:
         _samples[count % _sample_size] = val;
     }
 
-    value_type get(kth_percentile_type type) const
+    bool get(kth_percentile_type type, value_type &val) const
     {
         dassert_f(type < kth_percentile_type::COUNT,
                   "{} should be < {}",
                   type,
                   kth_percentile_type::COUNT);
-        dassert_f(
-            _kth_percentile_bitset.test(static_cast<size_t>(type)), "{} is not observed", type);
-        return _full_nth_elements[static_cast<size_t>(type)].load(std::memory_order_relaxed);
+
+        if (!_kth_percentile_bitset.test(static_cast<size_t>(type))) {
+            return false;
+        }
+
+        val = _full_nth_elements[static_cast<size_t>(type)].load(std::memory_order_relaxed);
+        return true;
     }
 
 protected:
