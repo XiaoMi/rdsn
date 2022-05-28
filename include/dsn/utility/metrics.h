@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <bitset>
 #include <mutex>
@@ -472,6 +473,15 @@ ENUM_END(kth_percentile_type)
 
 const std::vector<double> kKthDecimals = {0.5, 0.9, 0.95, 0.99, 0.999};
 
+std::set<kth_percentile_type> get_all_kth_percentile_types() {
+    std::set<kth_percentile_type> all_types;
+    for (size_t i = 0; i < static_cast<size_t>(kth_percentile_type::COUNT); ++i) {
+        all_types.insert(static_cast<kth_percentile_type>(i));
+    }
+    return all_types;
+}
+const std::set<kth_percentile_type> kAllKthPercentileTypes = get_all_kth_percentile_types();
+
 template <typename T,
           typename NthElementFinder = stl_nth_element_finder<T>,
           typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
@@ -479,21 +489,42 @@ class percentile : public metric
 {
 public:
     using value_type = T;
-    using container_type = std::vector<value_type>;
+    using size_type = typename NthElementFinder::size_type;
     using nth_container_type = typename NthElementFinder::nth_container_type;
+
+    void set(const value_type &val) {
+        auto count = _tail.fetch_add(1, std::memory_order_relaxed);
+        _samples[count % _sample_size] = val;
+    }
+
+    value_type get(kth_percentile_type type) const
+    {
+        dassert_f(type < kth_percentile_type::COUNT, "{} should be < {}", type, kth_percentile_type::COUNT);
+        dassert_f(_kth_percentile_bitset.test(static_cast<size_t>(type)), "{} is not observed", type);
+        return _full_nth_elements[static_cast<size_t>(type)].load(std::memory_order_relaxed);
+    }
 
 protected:
     percentile(const metric_prototype *prototype,
-               size_t sample_size,
-               const std::set<kth_percentile_type> &kth_percentiles)
+               const std::set<kth_percentile_type> &kth_percentiles = kAllKthPercentileTypes,
+               size_type sample_size = 5000)
         : metric(prototype),
+          _sample_size(sample_size),
+          _reached_sample_size(false),
+          _samples(cacheline_aligned_alloc_array<value_type>(sample_size)),
+          _tail(0),
           _kth_percentile_bitset(),
-          _nth_elements(static_cast<size_t>(kth_percentile_type::COUNT)),
-          _samples(cacheline_aligned_alloc_array<T>(sample_size)),
+          _full_nth_elements(static_cast<size_t>(kth_percentile_type::COUNT)),
           _nth_element_finder()
     {
+        std::fill(_samples.get(), _samples.get() + _sample_size, value_type{});
+
         for (const auto &kth : kth_percentiles) {
             _kth_percentile_bitset.set(static_cast<size_t>(kth));
+        }
+
+        for (size_type i = 0; i < _full_nth_elements.size(); ++i) {
+            _full_nth_elements[i].store(value_type{}, std::memory_order_relaxed);
         }
     }
 
@@ -503,9 +534,51 @@ private:
     friend class metric_entity;
     friend class ref_ptr<percentile<value_type, NthElementFinder>>;
 
+    void find_nth_elements() {
+        size_type real_sample_size = std::min(static_cast<size_type>(_tail.load()), _sample_size);
+        if (real_sample_size < _sample_size) {
+            if (_reached_sample_size) {
+                _reached_sample_size = false;
+            }
+            set_real_nths(real_sample_size);
+        } else if (!_reached_sample_size) {
+, static_cast<uint64_t>(_sample_size)
+            set_real_nths(real_sample_size);
+            _reached_sample_size = true;
+        }
+
+        std::vector<T> array(real_sample_size);
+        std::copy(_samples.get(), _samples.get() + real_sample_size, array.begin());
+        _nth_element_finder(array.begin(), array.begin(), array.end());
+
+        const auto &elements = _nth_element_finder.elements();
+        for (size_t i = 0, next = 0; i < static_cast<size_t>(kth_percentile_type::COUNT); ++i) {
+            if (!_kth_percentile_bitset.test(i)) {
+                continue;
+            }
+            _full_nth_elements[i].store(elements[next++], std::memory_order_relaxed);
+        }
+    }
+
+    void set_real_nths(size_type real_sample_size) {
+        nth_container_type nths;
+        for (size_t i = 0; i < static_cast<size_t>(kth_percentile_type::COUNT); ++i) {
+            if (!_kth_percentile_bitset.test(i)) {
+                continue;
+            }
+
+            auto decimal = kKthDecimals[i];
+            nths.push_back(static_cast<size_type>(real_sample_size * decimal));
+        }
+        _nth_element_finder.set_nths(nths);
+    }
+
+    const size_type _sample_size;
+    bool _reached_sample_size;
+    cacheline_aligned_ptr<value_type> _samples;
+    std::atomic<uint64_t> _tail; // use unsigned int to avoid running out of bound
     std::bitset<static_cast<size_t>(kth_percentile_type::COUNT)> _kth_percentile_bitset;
-    std::vector<std::atomic<T>> _nth_elements;
-    cacheline_aligned_ptr<T> _samples;
+    std::vector<std::atomic<value_type>> _full_nth_elements;
     NthElementFinder _nth_element_finder;
 };
 

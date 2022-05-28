@@ -28,6 +28,8 @@
 
 namespace dsn {
 
+#ifdef CACHELINE_SIZE
+
 extern void *cacheline_aligned_alloc(size_t size);
 
 extern void cacheline_aligned_free(void *mem_block);
@@ -44,15 +46,19 @@ cacheline_aligned_ptr<T> cacheline_aligned_alloc_array(size_t len)
     for (size_t i = 0; i < len; ++i) {
         T *elem = &(array[i]);
         dassert_f((reinterpret_cast<const uintptr_t>(elem) & (sizeof(T) - 1)) == 0,
-                  "unaligned addr: array={}, length={}, index={}, elem={}, mask={}",
+                  "unaligned array element for cache line: array={}, length={}, index={}, elem={}, elem_size={}, mask={}, cacheline_size={}",
                   fmt::ptr(array),
                   len,
                   i,
                   fmt::ptr(elem),
-                  sizeof(T) - 1);
+                  sizeof(T),
+                  sizeof(T) - 1,
+                  CACHELINE_SIZE);
     }
 
     return cacheline_aligned_ptr<T>(array, cacheline_aligned_free);
 }
+
+#endif
 
 } // namespace dsn

@@ -23,9 +23,10 @@
 
 namespace dsn {
 
+#ifdef CACHELINE_SIZE
+
 /* extern */ void *cacheline_aligned_alloc(size_t size)
 {
-#ifdef CACHELINE_SIZE
     void *buffer = nullptr;
     int err = posix_memalign(&buffer, CACHELINE_SIZE, size);
 
@@ -37,12 +38,18 @@ namespace dsn {
     // Thus making an assertion here is enough.
     dassert_f(err == 0, "error calling posix_memalign: {}", utils::safe_strerror(err).c_str());
 
+    dassert_f((reinterpret_cast<const uintptr_t>(buffer) & (CACHELINE_SIZE - 1)) == 0,
+              "unaligned cache line: addr={}, size={}, cacheline_size={}, mask={}",
+              fmt::ptr(buffer),
+              size,
+              CACHELINE_SIZE,
+              CACHELINE_SIZE - 1);
+
     return buffer;
-#else
-    return malloc(size);
-#endif
 }
 
 /* extern */ void cacheline_aligned_free(void *mem_block) { free(mem_block); }
+
+#endif
 
 } // namespace dsn
