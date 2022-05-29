@@ -39,4 +39,4 @@ jobs:
             # Optional: set the log level. The default value is `info`.
             # log: debug
             # Optional: set the config file. The default value is `.licenserc.yaml`.
-            # config: .licenserc.yaml
+          config: .licenserc.yaml

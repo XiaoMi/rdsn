@@ -459,5 +459,7 @@ header:
     - 'thirdparty/fix_fds_for_macos.patch'
     - 'thirdparty/fix_s2_for_aarch64.patch'
     - 'thirdparty/fix_thrift_for_cpp11.patch'
+    # should be empty, or ignore all comment lines
+    - 'src/utils/test/config-empty.ini'
 
   comment: on-failure
