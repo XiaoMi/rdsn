@@ -20,12 +20,16 @@
 #include <algorithm>
 #include <atomic>
 #include <bitset>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
+
+#include <boost/asio/deadline_timer.hpp>
 
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
@@ -95,6 +99,14 @@
     dsn::counter_prototype<dsn::concurrent_long_adder, true> METRIC_##name(                        \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
+// percentile
+#define METRIC_DEFINE_percentile_int64(entity_type, name, unit, desc, ...)                                  \
+    dsn::percentile_prototype<int64_t> METRIC_##name(                          \
+        {#entity_type, #name, unit, desc, ##__VA_ARGS__})
+#define METRIC_DEFINE_percentile_double(entity_type, name, unit, desc, ...)                                  \
+    dsn::floating_percentile_prototype<double> METRIC_##name(                          \
+        {#entity_type, #name, unit, desc, ##__VA_ARGS__})
+
 // The following macros act as forward declarations for entity types and metric prototypes.
 #define METRIC_DECLARE_entity(name) extern ::dsn::metric_entity_prototype METRIC_ENTITY_##name
 #define METRIC_DECLARE_gauge_int64(name) extern ::dsn::gauge_prototype<int64_t> METRIC_##name
@@ -107,6 +119,10 @@
     extern dsn::counter_prototype<dsn::striped_long_adder, true> METRIC_##name
 #define METRIC_DECLARE_concurrent_volatile_counter(name)                                           \
     extern dsn::counter_prototype<dsn::concurrent_long_adder, true> METRIC_##name
+#define METRIC_DECLARE_percentile_int64(name)                                                               \
+    extern dsn::percentile_prototype<int64_t> METRIC_##name
+#define METRIC_DECLARE_percentile_double(name)                                                               \
+    extern dsn::percentile_prototype<double> METRIC_##name
 
 namespace dsn {
 
@@ -398,13 +414,15 @@ template <typename Adder = striped_long_adder, bool IsVolatile = false>
 class counter : public metric
 {
 public:
-    template <bool Volatile = IsVolatile, typename = typename std::enable_if<!Volatile>::type>
+    template <bool Volatile = IsVolatile,
+              typename = typename std::enable_if<!Volatile && !IsVolatile>::type>
     int64_t value() const
     {
         return _adder.value();
     }
 
-    template <bool Volatile = IsVolatile, typename = typename std::enable_if<Volatile>::type>
+    template <bool Volatile = IsVolatile,
+              typename = typename std::enable_if<Volatile && IsVolatile>::type>
     int64_t value()
     {
         return _adder.fetch_and_reset();
@@ -483,7 +501,19 @@ std::set<kth_percentile_type> get_all_kth_percentile_types()
 }
 const std::set<kth_percentile_type> kAllKthPercentileTypes = get_all_kth_percentile_types();
 
-const size_t kDefaultSampleSize = 5000;
+class percentile_timer
+{
+public:
+    using exec_fn = std::function<void()>;
+
+    percentile_timer(uint64_t interval_seconds, exec_fn exec);
+    ~percentile_timer();
+
+private:
+    const uint64_t _interval_seconds;
+    const exec_fn _exec;
+    std::unique_ptr<boost::asio::deadline_timer> _timer;
+};
 
 template <typename T,
           typename NthElementFinder = stl_nth_element_finder<T>,
@@ -492,6 +522,7 @@ class percentile : public metric
 {
 public:
     using value_type = T;
+    using size_type = typename NthElementFinder::size_type;
 
     void set(const value_type &val)
     {
@@ -502,7 +533,7 @@ public:
     bool get(kth_percentile_type type, value_type &val) const
     {
         dassert_f(type < kth_percentile_type::COUNT,
-                  "{} should be < {}",
+                  "kth_percentile_type {} should be < {}",
                   type,
                   kth_percentile_type::COUNT);
 
@@ -514,12 +545,14 @@ public:
         return true;
     }
 
-protected:
-    using size_type = typename NthElementFinder::size_type;
+    static const size_type kDefaultSampleSize = 5000;
 
+protected:
     percentile(const metric_prototype *prototype,
                const std::set<kth_percentile_type> &kth_percentiles = kAllKthPercentileTypes,
-               size_type sample_size = kDefaultSampleSize)
+               size_type sample_size = kDefaultSampleSize,
+               bool use_timer = true,
+               uint64_t interval_seconds = 10000)
         : metric(prototype),
           _sample_size(sample_size),
           _reached_sample_size(false),
@@ -527,7 +560,8 @@ protected:
           _tail(0),
           _kth_percentile_bitset(),
           _full_nth_elements(static_cast<size_t>(kth_percentile_type::COUNT)),
-          _nth_element_finder()
+          _nth_element_finder(),
+          _timer()
     {
         std::fill(_samples.get(), _samples.get() + _sample_size, value_type{});
 
@@ -538,6 +572,11 @@ protected:
         for (size_type i = 0; i < _full_nth_elements.size(); ++i) {
             _full_nth_elements[i].store(value_type{}, std::memory_order_relaxed);
         }
+
+        if (!use_timer) {
+            return;
+        }
+        _timer.reset(new percentile_timer(interval_seconds, std::bind(&percentile<value_type, NthElementFinder>::find_nth_elements, this)));
     }
 
     virtual ~percentile() = default;
@@ -595,6 +634,33 @@ private:
     std::bitset<static_cast<size_t>(kth_percentile_type::COUNT)> _kth_percentile_bitset;
     std::vector<std::atomic<value_type>> _full_nth_elements;
     NthElementFinder _nth_element_finder;
+
+    std::unique_ptr<percentile_timer> _timer;
 };
+
+template <typename T,
+          typename NthElementFinder = stl_nth_element_finder<T>,
+          typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+using percentile_ptr = ref_ptr<percentile<T, NthElementFinder>>;
+
+template <typename T,
+          typename NthElementFinder = stl_nth_element_finder<T>,
+          typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+using percentile_prototype = metric_prototype_with<percentile<T, NthElementFinder>>;
+
+template <typename T,
+          typename NthElementFinder = floating_stl_nth_element_finder<T>,
+          typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+using floating_percentile = percentile<T, NthElementFinder>;
+
+template <typename T,
+          typename NthElementFinder = floating_stl_nth_element_finder<T>,
+          typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+using floating_percentile_ptr = ref_ptr<floating_percentile<T, NthElementFinder>>;
+
+template <typename T,
+          typename NthElementFinder = floating_stl_nth_element_finder<T>,
+          typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+using floating_percentile_prototype = metric_prototype_with<floating_percentile<T, NthElementFinder>>;
 
 } // namespace dsn
