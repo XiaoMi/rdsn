@@ -110,17 +110,17 @@ percentile_timer::percentile_timer(uint64_t interval_ms, exec_fn exec)
 {
     dassert(_interval_ms > 0, "interval should not be 0");
 
-    // Generate an initial interval randomly in case that all percentiles are computed 
+    // Generate an initial interval randomly in case that all percentiles are computed
     // at the same time.
     uint64_t initial_interval_ms = 0;
     if (_interval_ms < 1000) {
-        initial_interval_ms = (rand::next_u64() % _interval_ms + 10) * 1000;
+        initial_interval_ms = rand::next_u64() % _interval_ms + 10;
     } else {
         uint64_t interval_seconds = _interval_ms / 1000;
         initial_interval_ms = (rand::next_u64() % interval_seconds + 1) * 1000;
     }
 
-    _timer->expires_from_now(boost::posix_time::microseconds(initial_interval_ms);
+    _timer->expires_from_now(boost::posix_time::microseconds(initial_interval_ms));
     _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
 }
 
