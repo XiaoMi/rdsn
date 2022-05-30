@@ -103,12 +103,24 @@ metric_prototype::~metric_prototype() {}
 
 metric::metric(const metric_prototype *prototype) : _prototype(prototype) {}
 
-percentile_timer::percentile_timer(uint64_t interval_seconds, exec_fn exec)
-    : _interval_seconds(interval_seconds),
+percentile_timer::percentile_timer(uint64_t interval_ms, exec_fn exec)
+    : _interval_ms(interval_ms),
       _exec(exec),
       _timer(new boost::asio::deadline_timer(tools::shared_io_service::instance().ios))
 {
-    _timer->expires_from_now(boost::posix_time::seconds(rand::next_u64() % _interval_seconds + 1));
+    dassert(_interval_ms > 0, "interval should not be 0");
+
+    // Generate an initial interval randomly in case that all percentiles are computed 
+    // at the same time.
+    uint64_t initial_interval_ms = 0;
+    if (_interval_ms < 1000) {
+        initial_interval_ms = (rand::next_u64() % _interval_ms + 10) * 1000;
+    } else {
+        uint64_t interval_seconds = _interval_ms / 1000;
+        initial_interval_ms = (rand::next_u64() % interval_seconds + 1) * 1000;
+    }
+
+    _timer->expires_from_now(boost::posix_time::microseconds(initial_interval_ms);
     _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
 }
 
@@ -121,7 +133,7 @@ void percentile_timer::on_timer(const boost::system::error_code &ec)
     if (!ec) {
         _exec();
 
-        _timer->expires_from_now(boost::posix_time::seconds(_interval_seconds));
+        _timer->expires_from_now(boost::posix_time::microseconds(_interval_ms));
         _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
         return;
     }

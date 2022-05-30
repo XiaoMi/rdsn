@@ -506,13 +506,13 @@ class percentile_timer
 public:
     using exec_fn = std::function<void()>;
 
-    percentile_timer(uint64_t interval_seconds, exec_fn exec);
+    percentile_timer(uint64_t interval_ms, exec_fn exec);
     ~percentile_timer();
 
 private:
     void on_timer(const boost::system::error_code &ec);
 
-    const uint64_t _interval_seconds;
+    const uint64_t _interval_ms;
     const exec_fn _exec;
     std::unique_ptr<boost::asio::deadline_timer> _timer;
 };
@@ -553,8 +553,7 @@ protected:
     percentile(const metric_prototype *prototype,
                const std::set<kth_percentile_type> &kth_percentiles = kAllKthPercentileTypes,
                size_type sample_size = kDefaultSampleSize,
-               bool use_timer = true,
-               uint64_t interval_seconds = 10000)
+               uint64_t interval_ms = 10000)
         : metric(prototype),
           _sample_size(sample_size),
           _reached_sample_size(false),
@@ -575,11 +574,13 @@ protected:
             _full_nth_elements[i].store(value_type{}, std::memory_order_relaxed);
         }
 
-        if (!use_timer) {
+        if (interval_ms == 0) {
+            // Timer is disabled. This is only used in tests.
             return;
         }
+
         _timer.reset(new percentile_timer(
-            interval_seconds,
+            interval_ms,
             std::bind(&percentile<value_type, NthElementFinder>::find_nth_elements, this)));
     }
 
