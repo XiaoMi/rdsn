@@ -100,11 +100,11 @@
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 // percentile
-#define METRIC_DEFINE_percentile_int64(entity_type, name, unit, desc, ...)                                  \
-    dsn::percentile_prototype<int64_t> METRIC_##name(                          \
+#define METRIC_DEFINE_percentile_int64(entity_type, name, unit, desc, ...)                         \
+    dsn::percentile_prototype<int64_t> METRIC_##name(                                              \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
-#define METRIC_DEFINE_percentile_double(entity_type, name, unit, desc, ...)                                  \
-    dsn::floating_percentile_prototype<double> METRIC_##name(                          \
+#define METRIC_DEFINE_percentile_double(entity_type, name, unit, desc, ...)                        \
+    dsn::floating_percentile_prototype<double> METRIC_##name(                                      \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
 // The following macros act as forward declarations for entity types and metric prototypes.
@@ -119,9 +119,9 @@
     extern dsn::counter_prototype<dsn::striped_long_adder, true> METRIC_##name
 #define METRIC_DECLARE_concurrent_volatile_counter(name)                                           \
     extern dsn::counter_prototype<dsn::concurrent_long_adder, true> METRIC_##name
-#define METRIC_DECLARE_percentile_int64(name)                                                               \
+#define METRIC_DECLARE_percentile_int64(name)                                                      \
     extern dsn::percentile_prototype<int64_t> METRIC_##name
-#define METRIC_DECLARE_percentile_double(name)                                                               \
+#define METRIC_DECLARE_percentile_double(name)                                                     \
     extern dsn::percentile_prototype<double> METRIC_##name
 
 namespace dsn {
@@ -510,6 +510,8 @@ public:
     ~percentile_timer();
 
 private:
+    void on_timer(const boost::system::error_code &ec);
+
     const uint64_t _interval_seconds;
     const exec_fn _exec;
     std::unique_ptr<boost::asio::deadline_timer> _timer;
@@ -576,7 +578,9 @@ protected:
         if (!use_timer) {
             return;
         }
-        _timer.reset(new percentile_timer(interval_seconds, std::bind(&percentile<value_type, NthElementFinder>::find_nth_elements, this)));
+        _timer.reset(new percentile_timer(
+            interval_seconds,
+            std::bind(&percentile<value_type, NthElementFinder>::find_nth_elements, this)));
     }
 
     virtual ~percentile() = default;
@@ -661,6 +665,7 @@ using floating_percentile_ptr = ref_ptr<floating_percentile<T, NthElementFinder>
 template <typename T,
           typename NthElementFinder = floating_stl_nth_element_finder<T>,
           typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
-using floating_percentile_prototype = metric_prototype_with<floating_percentile<T, NthElementFinder>>;
+using floating_percentile_prototype =
+    metric_prototype_with<floating_percentile<T, NthElementFinder>>;
 
 } // namespace dsn

@@ -104,18 +104,15 @@ metric_prototype::~metric_prototype() {}
 metric::metric(const metric_prototype *prototype) : _prototype(prototype) {}
 
 percentile_timer::percentile_timer(uint64_t interval_seconds, exec_fn exec)
-    : _interval_seconds(interval_seconds), _exec(exec), 
-      _timer(new boost::asio::deadline_timer(tools::shared_io_service::instance().ios));
+    : _interval_seconds(interval_seconds),
+      _exec(exec),
+      _timer(new boost::asio::deadline_timer(tools::shared_io_service::instance().ios))
 {
-    _timer->expires_from_now(
-        boost::posix_time::seconds(rand::next_u64() % _interval_seconds + 1));
+    _timer->expires_from_now(boost::posix_time::seconds(rand::next_u64() % _interval_seconds + 1));
     _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
 }
 
-~percentile_timer::percentile_timer()
-{
-    _timer->cancel();
-}
+percentile_timer::~percentile_timer() { _timer->cancel(); }
 
 void percentile_timer::on_timer(const boost::system::error_code &ec)
 {
@@ -124,16 +121,14 @@ void percentile_timer::on_timer(const boost::system::error_code &ec)
     if (!ec) {
         _exec();
 
-        _timer->expires_from_now(
-            boost::posix_time::seconds(interval_seconds));
-        _timer->async_wait(std::bind(&percentile_timer::on_timer,
-                                     this,
-                                     std::placeholders::_1));
+        _timer->expires_from_now(boost::posix_time::seconds(_interval_seconds));
+        _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
         return;
     }
 
     dassert_f(ec == boost::system::errc::operation_canceled,
-              "failed to exec on_timer with an error that cannot be handled: {}", ec.message());
+              "failed to exec on_timer with an error that cannot be handled: {}",
+              ec.message());
 }
 
 } // namespace dsn
