@@ -491,7 +491,8 @@ ENUM_END(kth_percentile_type)
 
 const std::vector<double> kKthDecimals = {0.5, 0.9, 0.95, 0.99, 0.999};
 
-inline size_t kth_percentile_to_nth_index(size_t size, size_t kth_index) {
+inline size_t kth_percentile_to_nth_index(size_t size, size_t kth_index)
+{
     auto decimal = kKthDecimals[kth_index];
     // Since the kth percentile is the value that is greater than k percent of the data values after
     // ranking them (https://people.richland.edu/james/ictcm/2001/descriptive/helpposition.html),
@@ -499,8 +500,9 @@ inline size_t kth_percentile_to_nth_index(size_t size, size_t kth_index) {
     return static_cast<size_t>(size * decimal);
 }
 
-inline size_t kth_percentile_to_nth_index(size_t size, kth_percentile_type type) {
-    reutrn kth_percentile_to_nth_index(size, static_cast<size_t>(type));
+inline size_t kth_percentile_to_nth_index(size_t size, kth_percentile_type type)
+{
+    return kth_percentile_to_nth_index(size, static_cast<size_t>(type));
 }
 
 std::set<kth_percentile_type> get_all_kth_percentile_types()
@@ -543,15 +545,15 @@ public:
     void set(const value_type &val)
     {
         auto count = _tail.fetch_add(1, std::memory_order_relaxed);
-        _samples[count % _sample_size] = val;
+        _samples.get()[count % _sample_size] = val;
     }
 
     bool get(kth_percentile_type type, value_type &val) const
     {
         dassert_f(type < kth_percentile_type::COUNT,
                   "kth_percentile_type {} should be < {}",
-                  type,
-                  kth_percentile_type::COUNT);
+                  static_cast<size_t>(type),
+                  static_cast<size_t>(kth_percentile_type::COUNT));
 
         if (!_kth_percentile_bitset.test(static_cast<size_t>(type))) {
             return false;

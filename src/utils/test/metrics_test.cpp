@@ -110,9 +110,9 @@ METRIC_DEFINE_concurrent_volatile_counter(my_server,
                                           "a server-level concurrent_volatile_counter for test");
 
 METRIC_DEFINE_percentile_int64(my_server,
-                          test_percentile_int64,
-                          dsn::metric_unit::kNanoSeconds,
-                          "a server-level percentile of int64 type for test");
+                               test_percentile_int64,
+                               dsn::metric_unit::kNanoSeconds,
+                               "a server-level percentile of int64 type for test");
 
 namespace dsn {
 
@@ -658,22 +658,25 @@ TEST(metrics_test, volatile_counter)
 // set() test beyond sample size 5000
 
 template <typename T>
-void run_integral_percentile(
-        const metric_entity_ptr &my_entity,
-        const percentile_prototype<T> &prototype,
-        const std::vector<T> &data,
-        size_t num_preload,
-        uint64_t interval_ms,
-        uint64_t exec_ms,
-        const std::set<kth_percentile_type> &kth_percentiles,
-        size_t sample_size,
-        size_t num_threads,
-        const std::vector<T> &expected_elements)
+void run_integral_percentile(const metric_entity_ptr &my_entity,
+                             const percentile_prototype<T> &prototype,
+                             const std::vector<T> &data,
+                             size_t num_preload,
+                             uint64_t interval_ms,
+                             uint64_t exec_ms,
+                             const std::set<kth_percentile_type> &kth_percentiles,
+                             size_t sample_size,
+                             size_t num_threads,
+                             const std::vector<T> &expected_elements)
 {
     dassert_f(num_threads > 0, "Invalid num_threads({})", num_threads);
-    dassert_f(data.size() <= sample_size && data.size() % num_threads == 0, "Invalid arguments, data_size={}, sample_size={}, num_threads={}", data.size(), sample_size, num_threads);
+    dassert_f(data.size() <= sample_size && data.size() % num_threads == 0,
+              "Invalid arguments, data_size={}, sample_size={}, num_threads={}",
+              data.size(),
+              sample_size,
+              num_threads);
 
-    auto my_metric = prototype.instantiate(my_entity, interval_m, kth_percentiles, sample_size);
+    auto my_metric = prototype.instantiate(my_entity, interval_ms, kth_percentiles, sample_size);
 
     // Preload zero in current thread.
     for (size_t i = 0; i < num_preload; ++i) {
@@ -682,11 +685,12 @@ void run_integral_percentile(
 
     // Load other data in each spawned thread evenly.
     const size_t num_operations = data.size() / num_threads;
-    execute(static_cast<int64_t>(num_threads), [num_operations, &my_metric, &data](int64_t tid) mutable {
-            for (size_t i = 0; i < num_operations; ++i) {
-                my_metric->set(data[static_cast<size_t>(tid) * num_operations + i]);
-            }
-    });
+    execute(static_cast<int64_t>(num_threads),
+            [num_operations, &my_metric, &data](int64_t tid) mutable {
+                for (size_t i = 0; i < num_operations; ++i) {
+                    my_metric->set(data[static_cast<size_t>(tid) * num_operations + i]);
+                }
+            });
 
     // Wait a while in order to finish computing all percentiles.
     auto initial_interval_ms = percentile_timer::get_initial_interval_ms(interval_ms);
@@ -709,8 +713,7 @@ void run_integral_percentile(
     auto metrics = my_entity->metrics();
     ASSERT_EQ(metrics[&prototype].get(), static_cast<metric *>(my_metric.get()));
 
-    ASSERT_EQ(my_metric->prototype(),
-              static_cast<const metric_prototype *>(&prototype));
+    ASSERT_EQ(my_metric->prototype(), static_cast<const metric_prototype *>(&prototype));
 }
 
 TEST(metrics_test, percentile_int64)
@@ -728,7 +731,7 @@ TEST(metrics_test, percentile_int64)
         size_t data_size;
         value_type initial_value;
         uint64_t range_size;
-        size_t num_preload,
+        size_t num_preload;
         uint64_t interval_ms;
         uint64_t exec_ms;
         const std::set<kth_percentile_type> kth_percentiles;
@@ -737,8 +740,26 @@ TEST(metrics_test, percentile_int64)
     } tests[] = {{"server_19", 0, 0, 2, 0, 1, 10, {}, 1, 1},
                  {"server_20", 1, 0, 2, 0, 1, 10, {}, 1, 1},
                  {"server_21", 1, 0, 2, 0, 1, 10, {kth_percentile_type::P90}, 2, 1},
-                 {"server_22", 2, 0, 2, 0, 1, 10, {kth_percentile_type::P50, kth_percentile_type::P99}, 2, 1},
-                 {"server_23", 5000, 0, 5, 0, 1, 10, {kth_percentile_type::P50, kth_percentile_type::P99}, 2, 1}};
+                 {"server_22",
+                  2,
+                  0,
+                  2,
+                  0,
+                  1,
+                  10,
+                  {kth_percentile_type::P50, kth_percentile_type::P99},
+                  2,
+                  1},
+                 {"server_23",
+                  5000,
+                  0,
+                  5,
+                  0,
+                  1,
+                  10,
+                  {kth_percentile_type::P50, kth_percentile_type::P99},
+                  2,
+                  1}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
@@ -753,6 +774,7 @@ TEST(metrics_test, percentile_int64)
         run_integral_percentile(my_server_entity,
                                 METRIC_test_percentile_int64,
                                 data,
+                                test.num_preload,
                                 test.interval_ms,
                                 test.exec_ms,
                                 test.kth_percentiles,

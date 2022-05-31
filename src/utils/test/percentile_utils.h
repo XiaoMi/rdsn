@@ -34,7 +34,8 @@ namespace dsn {
 // percentile. This is implemented by converting kth percentiles to nth indexes, and calling
 // nth_element_case_generator to generate data and nth elements.
 template <typename NthElementCaseGenerator,
-          typename = typename std::enable_if<std::is_arithmetic<typename NthElementCaseGenerator::value_type>::value>::type>
+          typename = typename std::enable_if<
+              std::is_arithmetic<typename NthElementCaseGenerator::value_type>::value>::type>
 class percentile_case_generator
 {
 public:
@@ -44,9 +45,9 @@ public:
     using nth_container_type = typename NthElementCaseGenerator::nth_container_type;
 
     percentile_case_generator(size_type data_size,
-                               value_type initial_value,
-                               uint64_t range_size,
-                               const std::set<kth_percentile_type> &kth_percentiles)
+                              value_type initial_value,
+                              uint64_t range_size,
+                              const std::set<kth_percentile_type> &kth_percentiles)
         : _nth_element_gen()
     {
         nth_container_type nths;
@@ -57,7 +58,8 @@ public:
             nths.push_back(nth);
         }
 
-        _nth_element_gen.reset(new NthElementCaseGenerator(data_size, initial_value, range_size, nths));
+        _nth_element_gen.reset(
+            new NthElementCaseGenerator(data_size, initial_value, range_size, nths));
     }
 
     ~percentile_case_generator() = default;
@@ -66,7 +68,7 @@ public:
     // and nth elements. See nth_element_case_generator for detailed implementations.
     void operator()(container_type &data, container_type &elements)
     {
-        _nth_element_gen(samples, elements);
+        (*_nth_element_gen)(data, elements);
     }
 
 private:
