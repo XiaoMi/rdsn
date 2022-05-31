@@ -18,6 +18,7 @@
 #include <dsn/utility/metrics.h>
 #include <dsn/utility/rand.h>
 
+#include <chrono>
 #include <thread>
 #include <vector>
 
@@ -105,6 +106,11 @@ METRIC_DEFINE_concurrent_volatile_counter(my_server,
                                           test_concurrent_volatile_counter,
                                           dsn::metric_unit::kRequests,
                                           "a server-level concurrent_volatile_counter for test");
+
+METRIC_DEFINE_percentile_int64(my_server,
+                          test_percentile_int64,
+                          dsn::metric_unit::kNanoSeconds,
+                          "a server-level percentile of int64 type for test");
 
 namespace dsn {
 
@@ -345,7 +351,7 @@ TEST(metrics_test, gauge_double)
 void execute(int64_t num_threads, std::function<void(int)> runner)
 {
     std::vector<std::thread> threads;
-    for (int64_t i = 0; i < num_threads; i++) {
+    for (int64_t i = 0; i < num_threads; ++i) {
         threads.emplace_back([i, &runner]() { runner(i); });
     }
     for (auto &t : threads) {
@@ -388,7 +394,7 @@ void run_increment_by(MetricPtr &my_metric,
         deltas.push_back(delta);
     }
 
-    execute(num_threads, [num_operations, &my_metric, &deltas](int tid) mutable {
+    execute(num_threads, [num_operations, &my_metric, &deltas](int64_t tid) mutable {
         for (int64_t i = 0; i < num_operations; ++i) {
             auto delta = deltas[tid * num_operations + i];
             increment_by(std::integral_constant<bool, IsIncrement>{}, my_metric, delta);
@@ -555,7 +561,7 @@ void run_volatile_counter_write_and_read(dsn::volatile_counter_ptr<Adder> &my_me
 
     execute(num_threads_write + num_threads_read,
             [num_operations, num_threads_write, &my_metric, &deltas, &results, &completed](
-                int tid) mutable {
+                int64_t tid) mutable {
                 if (tid < num_threads_write) {
                     for (int64_t i = 0; i < num_operations; ++i) {
                         my_metric->increment_by(deltas[tid * num_operations + i]);
@@ -644,6 +650,114 @@ TEST(metrics_test, volatile_counter)
     // Test both kinds of volatile counter
     run_volatile_counter_cases<striped_long_adder>(&METRIC_test_volatile_counter);
     run_volatile_counter_cases<concurrent_long_adder>(&METRIC_test_concurrent_volatile_counter);
+}
+
+// multiple thread set percentile
+// set() test beyond sample size 5000
+
+template <typename T>
+void run_integral_percentile(
+        const metric_entity_ptr &my_entity,
+        const percentile_prototype<T> &prototype,
+        const std::vector<T> &data,
+        size_t num_preload,
+        uint64_t interval_ms,
+        uint64_t exec_ms,
+        const std::set<kth_percentile_type> &kth_percentiles,
+        size_t sample_size,
+        size_t num_threads,
+        const std::vector<T> &expected_elements)
+{
+    dassert_f(num_threads > 0, "Invalid num_threads({})", num_threads);
+    dassert_f(data.size() <= sample_size && data.size() % num_threads == 0, "Invalid arguments, data_size={}, sample_size={}, num_threads={}", data.size(), sample_size, num_threads);
+
+    auto my_metric = prototype.instantiate(my_entity, interval_m, kth_percentiles, sample_size);
+
+    // Preload zero in current thread.
+    for (size_t i = 0; i < num_preload; ++i) {
+        my_metric->set(0);
+    }
+
+    // Load other data in each spawned thread evenly.
+    const size_t num_operations = data.size() / num_threads;
+    execute(static_cast<int64_t>(num_threads), [num_operations, &my_metric, &data](int64_t tid) mutable {
+            for (size_t i = 0; i < num_operations; ++i) {
+                my_metric->set(data[static_cast<size_t>(tid) * num_operations + i]);
+            }
+    });
+
+    // Wait a while in order to finish computing all percentiles.
+    auto initial_interval_ms = percentile_timer::get_initial_interval_ms(interval_ms);
+    std::this_thread::sleep_for(std::chrono::microseconds(initial_interval_ms + exec_ms));
+
+    // Compare actual elements of kth percentiles with the expected ones
+    std::vector<T> actual_elements;
+    for (const auto &kth : kAllKthPercentileTypes) {
+        T value;
+        if (kth_percentiles.find(kth) == kth_percentiles.end()) {
+            ASSERT_FALSE(my_metric->get(kth, value));
+            ASSERT_EQ(value, 0);
+        } else {
+            ASSERT_TRUE(my_metric->get(kth, value));
+            actual_elements.push_back(value);
+        }
+    }
+    ASSERT_EQ(actual_elements, expected_elements);
+
+    auto metrics = my_entity->metrics();
+    ASSERT_EQ(metrics[&prototype].get(), static_cast<metric *>(my_metric.get()));
+
+    ASSERT_EQ(my_metric->prototype(),
+              static_cast<const metric_prototype *>(&prototype));
+}
+
+TEST(metrics_test, percentile_int64)
+{
+    using value_type = int64_t;
+
+    // Test cases:
+    // - create a gauge of int64 type without initial value, then increase
+    // - create a gauge of int64 type without initial value, then decrease
+    // - create a gauge of int64 type with initial value, then increase
+    // - create a gauge of int64 type with initial value, then decrease
+    struct test_case
+    {
+        std::string entity_id;
+        size_t data_size;
+        value_type initial_value;
+        uint64_t range_size;
+        size_t num_preload,
+        uint64_t interval_ms;
+        uint64_t exec_ms;
+        const std::set<kth_percentile_type> kth_percentiles;
+        size_t sample_size;
+        size_t num_threads;
+    } tests[] = {{"server_19", 0, 0, 2, 0, 1, 10, {}, 1, 1},
+                 {"server_20", 1, 0, 2, 0, 1, 10, {}, 1, 1},
+                 {"server_21", 1, 0, 2, 0, 1, 10, {kth_percentile_type::P90}, 2, 1},
+                 {"server_22", 2, 0, 2, 0, 1, 10, {kth_percentile_type::P50, kth_percentile_type::P99}, 2, 1},
+                 {"server_23", 5000, 0, 5, 0, 1, 10, {kth_percentile_type::P50, kth_percentile_type::P99}, 2, 1}};
+
+    for (const auto &test : tests) {
+        auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
+
+        integral_percentile_case_generator<value_type> generator(
+            test.data_size, test.initial_value, test.range_size, test.kth_percentiles);
+
+        std::vector<value_type> data;
+        std::vector<value_type> expected_elements;
+        generator(data, expected_elements);
+
+        run_integral_percentile(my_server_entity,
+                                METRIC_test_percentile_int64,
+                                data,
+                                test.interval_ms,
+                                test.exec_ms,
+                                test.kth_percentiles,
+                                test.sample_size,
+                                test.num_threads,
+                                expected_elements);
+    }
 }
 
 } // namespace dsn

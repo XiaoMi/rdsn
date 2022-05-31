@@ -491,6 +491,18 @@ ENUM_END(kth_percentile_type)
 
 const std::vector<double> kKthDecimals = {0.5, 0.9, 0.95, 0.99, 0.999};
 
+inline size_t kth_percentile_to_nth_index(size_t size, size_t kth_index) {
+    auto decimal = kKthDecimals[kth_index];
+    // Since the kth percentile is the value that is greater than k percent of the data values after
+    // ranking them (https://people.richland.edu/james/ictcm/2001/descriptive/helpposition.html),
+    // compute the nth index by size * decimal rather than size * decimal - 1.
+    return static_cast<size_t>(size * decimal);
+}
+
+inline size_t kth_percentile_to_nth_index(size_t size, kth_percentile_type type) {
+    reutrn kth_percentile_to_nth_index(size, static_cast<size_t>(type));
+}
+
 std::set<kth_percentile_type> get_all_kth_percentile_types()
 {
     std::set<kth_percentile_type> all_types;
@@ -505,6 +517,8 @@ class percentile_timer
 {
 public:
     using exec_fn = std::function<void()>;
+
+    static uint64_t get_initial_interval_ms(uint64_t interval_ms);
 
     percentile_timer(uint64_t interval_ms, exec_fn exec);
     ~percentile_timer();
@@ -551,9 +565,9 @@ public:
 
 protected:
     percentile(const metric_prototype *prototype,
+               uint64_t interval_ms = 10000,
                const std::set<kth_percentile_type> &kth_percentiles = kAllKthPercentileTypes,
-               size_type sample_size = kDefaultSampleSize,
-               uint64_t interval_ms = 10000)
+               size_type sample_size = kDefaultSampleSize)
         : metric(prototype),
           _sample_size(sample_size),
           _reached_sample_size(false),
@@ -564,6 +578,8 @@ protected:
           _nth_element_finder(),
           _timer()
     {
+        dassert(sample_size > 0, "sample_sizes should be > 0");
+        dassert(_samples, "_samples should be valid pointer");
         std::fill(_samples.get(), _samples.get() + _sample_size, value_type{});
 
         for (const auto &kth : kth_percentiles) {
@@ -575,7 +591,7 @@ protected:
         }
 
         if (interval_ms == 0) {
-            // Timer is disabled. This is only used in tests.
+            // Timer is disabled. Set interval_ms to 0 only for tests.
             return;
         }
 
@@ -626,8 +642,9 @@ private:
                 continue;
             }
 
-            auto decimal = kKthDecimals[i];
-            nths.push_back(static_cast<size_type>(real_sample_size * decimal));
+            auto size = static_cast<size_t>(real_sample_size);
+            auto nth = static_cast<size_type>(kth_percentile_to_nth_index(size, i));
+            nths.push_back(nth);
         }
         _nth_element_finder.set_nths(nths);
     }

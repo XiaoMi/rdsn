@@ -41,6 +41,9 @@ template <typename T>
 cacheline_aligned_ptr<T> cacheline_aligned_alloc_array(size_t len)
 {
     void *buffer = cacheline_aligned_alloc(sizeof(T) * len);
+    if (buffer == nullptr) {
+        return cacheline_aligned_ptr<T>(nullptr, cacheline_aligned_free);
+    }
 
     T *array = new (buffer) T[len];
     for (size_t i = 0; i < len; ++i) {
