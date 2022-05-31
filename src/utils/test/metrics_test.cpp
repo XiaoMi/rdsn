@@ -694,7 +694,8 @@ void run_integral_percentile(const metric_entity_ptr &my_entity,
 
     // Wait a while in order to finish computing all percentiles.
     auto initial_interval_ms = percentile_timer::get_initial_interval_ms(interval_ms);
-    std::this_thread::sleep_for(std::chrono::microseconds(initial_interval_ms + exec_ms));
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(initial_interval_ms + interval_ms + exec_ms));
 
     // Compare actual elements of kth percentiles with the expected ones
     std::vector<T> actual_elements;
@@ -737,15 +738,15 @@ TEST(metrics_test, percentile_int64)
         const std::set<kth_percentile_type> kth_percentiles;
         size_t sample_size;
         size_t num_threads;
-    } tests[] = {{"server_19", 0, 0, 2, 0, 1, 10, {}, 1, 1},
-                 {"server_20", 1, 0, 2, 0, 1, 10, {}, 1, 1},
-                 {"server_21", 1, 0, 2, 0, 1, 10, {kth_percentile_type::P90}, 2, 1},
+    } tests[] = {{"server_19", 0, 0, 2, 0, 50, 10, {}, 1, 1},
+                 {"server_20", 1, 0, 2, 0, 50, 10, {}, 1, 1},
+                 {"server_21", 1, 0, 2, 0, 50, 10, {kth_percentile_type::P90}, 2, 1},
                  {"server_22",
                   2,
                   0,
                   2,
                   0,
-                  1,
+                  50,
                   10,
                   {kth_percentile_type::P50, kth_percentile_type::P99},
                   2,
@@ -755,10 +756,10 @@ TEST(metrics_test, percentile_int64)
                   0,
                   5,
                   0,
-                  1,
+                  50,
                   10,
                   {kth_percentile_type::P50, kth_percentile_type::P99},
-                  2,
+                  5000,
                   1}};
 
     for (const auto &test : tests) {

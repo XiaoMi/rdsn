@@ -110,7 +110,7 @@ uint64_t percentile_timer::get_initial_interval_ms(uint64_t interval_ms)
     // Generate an initial interval randomly in case that all percentiles are computed
     // at the same time.
     if (interval_ms < 1000) {
-        return rand::next_u64() % interval_ms + 10;
+        return rand::next_u64() % interval_ms + 50;
     } else {
         uint64_t interval_seconds = interval_ms / 1000;
         return (rand::next_u64() % interval_seconds + 1) * 1000;
@@ -124,7 +124,7 @@ percentile_timer::percentile_timer(uint64_t interval_ms, exec_fn exec)
 {
     auto initial_interval_ms = get_initial_interval_ms(_interval_ms);
 
-    _timer->expires_from_now(boost::posix_time::microseconds(initial_interval_ms));
+    _timer->expires_from_now(boost::posix_time::milliseconds(initial_interval_ms));
     _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
 }
 
@@ -137,7 +137,7 @@ void percentile_timer::on_timer(const boost::system::error_code &ec)
     if (!ec) {
         _exec();
 
-        _timer->expires_from_now(boost::posix_time::microseconds(_interval_ms));
+        _timer->expires_from_now(boost::posix_time::milliseconds(_interval_ms));
         _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
         return;
     }

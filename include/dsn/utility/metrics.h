@@ -555,12 +555,8 @@ public:
                   static_cast<size_t>(type),
                   static_cast<size_t>(kth_percentile_type::COUNT));
 
-        if (!_kth_percentile_bitset.test(static_cast<size_t>(type))) {
-            return false;
-        }
-
         val = _full_nth_elements[static_cast<size_t>(type)].load(std::memory_order_relaxed);
-        return true;
+        return _kth_percentile_bitset.test(static_cast<size_t>(type));
     }
 
     static const size_type kDefaultSampleSize = 5000;
@@ -572,7 +568,7 @@ protected:
                size_type sample_size = kDefaultSampleSize)
         : metric(prototype),
           _sample_size(sample_size),
-          _reached_sample_size(false),
+          _last_real_sample_size(0),
           _samples(cacheline_aligned_alloc_array<value_type>(sample_size)),
           _tail(0),
           _kth_percentile_bitset(),
@@ -613,14 +609,13 @@ private:
     void find_nth_elements()
     {
         size_type real_sample_size = std::min(static_cast<size_type>(_tail.load()), _sample_size);
-        if (real_sample_size < _sample_size) {
-            if (_reached_sample_size) {
-                _reached_sample_size = false;
-            }
+        if (real_sample_size == 0) {
+            return;
+        }
+
+        if (real_sample_size != _last_real_sample_size) {
             set_real_nths(real_sample_size);
-        } else if (!_reached_sample_size) {
-            set_real_nths(real_sample_size);
-            _reached_sample_size = true;
+            _last_real_sample_size = real_sample_size;
         }
 
         std::vector<T> array(real_sample_size);
@@ -648,11 +643,12 @@ private:
             auto nth = static_cast<size_type>(kth_percentile_to_nth_index(size, i));
             nths.push_back(nth);
         }
+
         _nth_element_finder.set_nths(nths);
     }
 
     const size_type _sample_size;
-    bool _reached_sample_size;
+    size_type _last_real_sample_size;
     cacheline_aligned_ptr<value_type> _samples;
     std::atomic<uint64_t> _tail; // use unsigned int to avoid running out of bound
     std::bitset<static_cast<size_t>(kth_percentile_type::COUNT)> _kth_percentile_bitset;
