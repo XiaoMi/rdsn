@@ -24,6 +24,8 @@
 
 #include <gtest/gtest.h>
 
+#include "percentile_utils.h"
+
 namespace dsn {
 
 class my_gauge : public metric
