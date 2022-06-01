@@ -775,26 +775,8 @@ TEST(metrics_test, percentile_int64)
                   {kth_percentile_type::P50, kth_percentile_type::P99},
                   5000,
                   4},
-                 {"server_25",
-                  5000,
-                  0,
-                  5,
-                  0,
-                  50,
-                  10,
-                  kAllKthPercentileTypes,
-                  5000,
-                  4},
-                 {"server_26",
-                  5000,
-                  0,
-                  5,
-                  5,
-                  50,
-                  10,
-                  kAllKthPercentileTypes,
-                  5000,
-                  4}};
+                 {"server_25", 5000, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 5000, 4},
+                 {"server_26", 5000, 0, 5, 5, 50, 10, kAllKthPercentileTypes, 5000, 4}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
