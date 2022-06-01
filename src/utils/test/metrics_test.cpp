@@ -654,20 +654,18 @@ TEST(metrics_test, volatile_counter)
     run_volatile_counter_cases<concurrent_long_adder>(&METRIC_test_concurrent_volatile_counter);
 }
 
-// multiple thread set percentile
-// set() test beyond sample size 5000
-
-template <typename T>
-void run_integral_percentile(const metric_entity_ptr &my_entity,
-                             const percentile_prototype<T> &prototype,
-                             const std::vector<T> &data,
-                             size_t num_preload,
-                             uint64_t interval_ms,
-                             uint64_t exec_ms,
-                             const std::set<kth_percentile_type> &kth_percentiles,
-                             size_t sample_size,
-                             size_t num_threads,
-                             const std::vector<T> &expected_elements)
+template <typename T, typename Checker>
+void run_percentile(const metric_entity_ptr &my_entity,
+                    const percentile_prototype<T> &prototype,
+                    const std::vector<T> &data,
+                    size_t num_preload,
+                    uint64_t interval_ms,
+                    uint64_t exec_ms,
+                    const std::set<kth_percentile_type> &kth_percentiles,
+                    size_t sample_size,
+                    size_t num_threads,
+                    const std::vector<T> &expected_elements,
+                    Checker checker)
 {
     dassert_f(num_threads > 0, "Invalid num_threads({})", num_threads);
     dassert_f(data.size() <= sample_size && data.size() % num_threads == 0,
@@ -703,13 +701,14 @@ void run_integral_percentile(const metric_entity_ptr &my_entity,
         T value;
         if (kth_percentiles.find(kth) == kth_percentiles.end()) {
             ASSERT_FALSE(my_metric->get(kth, value));
-            ASSERT_EQ(value, 0);
+            checker(value, 0);
         } else {
             ASSERT_TRUE(my_metric->get(kth, value));
             actual_elements.push_back(value);
         }
     }
-    ASSERT_EQ(actual_elements, expected_elements);
+    fmt::print("expected_elements: {}\n", fmt::join(expected_elements, " "));
+    checker(actual_elements, expected_elements);
 
     auto metrics = my_entity->metrics();
     ASSERT_EQ(metrics[&prototype].get(), static_cast<metric *>(my_metric.get()));
@@ -717,22 +716,44 @@ void run_integral_percentile(const metric_entity_ptr &my_entity,
     ASSERT_EQ(my_metric->prototype(), static_cast<const metric_prototype *>(&prototype));
 }
 
+template <typename T>
+class integral_checker
+{
+public:
+    void operator()(const T &actual_element, const T &expected_element) const
+    {
+        ASSERT_EQ(actual_element, expected_element);
+    }
+
+    void operator()(const std::vector<T> &actual_elements,
+                    const std::vector<T> &expected_elements) const
+    {
+        ASSERT_EQ(actual_elements, expected_elements);
+    }
+};
+
 TEST(metrics_test, percentile_int64)
 {
     using value_type = int64_t;
-    const std::set<kth_percentile_type> p50_p99 = {kth_percentile_type::P50, kth_percentile_type::P99};
+    const std::set<kth_percentile_type> p50_p99 = {kth_percentile_type::P50,
+                                                   kth_percentile_type::P99};
 
     // Test cases:
     // - input none of sample with none of kth percentile
     // - input 1 sample with none of kth percentile
     // - input 1 sample with 1 kth percentile, capacity of 2
     // - input 2 samples with 2 kth percentiles
+    // - input 10 samples with 2 kth percentiles
     // - input 10 samples with 2 kth percentiles by 2 threads
+    // - preload 5 samples input 10 samples with 2 kth percentiles by 2 threads
+    // - input 10 samples with all kth percentiles by 2 threads
+    // - preload 5 samples input 10 samples with all kth percentiles by 2 threads
+    // - input 10 samples with all kth percentiles by 2 threads, capacity of 20
     // - input 2000 samples with 2 kth percentiles, capacity of 5000
     // - input 2000 samples with 2 kth percentiles by 4 threads, capacity of 5000
-    // - preload 5 and input 2000 samples with 2 kth percentiles by 4 threads, capacity of 5000
     // - input 5000 samples with 2 kth percentiles
     // - input 5000 samples with 2 kth percentiles by 4 threads
+    // - preload 5 samples and input 5000 samples with 2 kth percentiles by 4 threads
     // - input 5000 samples with all kth percentiles by 4 threads
     // - preload 5 samples and input 5000 samples with all kth percentiles by 4 threads
     struct test_case
@@ -750,69 +771,20 @@ TEST(metrics_test, percentile_int64)
     } tests[] = {{"server_19", 0, 0, 2, 0, 50, 10, {}, 1, 1},
                  {"server_20", 1, 0, 2, 0, 50, 10, {}, 1, 1},
                  {"server_21", 1, 0, 2, 0, 50, 10, {kth_percentile_type::P90}, 2, 1},
-                 {"server_22",
-                  2,
-                  0,
-                  2,
-                  0,
-                  50,
-                  10,
-                  p50_and_p99,
-                  2,
-                  1},
-                 {"server_23", 10, 0, 2, 0, 50, 10, p50_and_p99, 10, 2},
-                 {"server_24",
-                  2000,
-                  0,
-                  5,
-                  0,
-                  50,
-                  10,
-                  p50_p99,
-                  5000,
-                  1},
-                 {"server_25",
-                  2000,
-                  0,
-                  5,
-                  0,
-                  50,
-                  10,
-                  p50_p99,
-                  5000,
-                  4},
-                 {"server_26",
-                  2000,
-                  0,
-                  5,
-                  5,
-                  50,
-                  10,
-                  p50_p99,
-                  5000,
-                  4},
-                 {"server_27",
-                  5000,
-                  0,
-                  5,
-                  0,
-                  50,
-                  10,
-                  p50_p99,
-                  5000,
-                  1},
-                 {"server_28",
-                  5000,
-                  0,
-                  5,
-                  0,
-                  50,
-                  10,
-                  p50_p99,
-                  5000,
-                  4},
-                 {"server_29", 5000, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 5000, 4},
-                 {"server_30", 5000, 0, 5, 5, 50, 10, kAllKthPercentileTypes, 5000, 4}};
+                 {"server_22", 2, 0, 2, 0, 50, 10, p50_p99, 2, 1},
+                 {"server_23", 10, 0, 2, 0, 50, 10, p50_p99, 10, 1},
+                 {"server_24", 10, 0, 2, 0, 50, 10, p50_p99, 10, 2},
+                 {"server_25", 10, 0, 2, 5, 50, 10, p50_p99, 10, 2},
+                 {"server_26", 10, 0, 2, 0, 50, 10, kAllKthPercentileTypes, 10, 2},
+                 {"server_27", 10, 0, 2, 5, 50, 10, kAllKthPercentileTypes, 10, 2},
+                 {"server_28", 10, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 20, 2},
+                 {"server_29", 2000, 0, 5, 0, 50, 10, p50_p99, 5000, 1},
+                 {"server_30", 2000, 0, 5, 0, 50, 10, p50_p99, 5000, 4},
+                 {"server_31", 5000, 0, 5, 0, 50, 10, p50_p99, 5000, 1},
+                 {"server_32", 5000, 0, 5, 0, 50, 10, p50_p99, 5000, 4},
+                 {"server_33", 5000, 0, 5, 5, 50, 10, p50_p99, 5000, 4},
+                 {"server_34", 5000, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 5000, 4},
+                 {"server_35", 5000, 0, 5, 5, 50, 10, kAllKthPercentileTypes, 5000, 4}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
@@ -824,16 +796,17 @@ TEST(metrics_test, percentile_int64)
         std::vector<value_type> expected_elements;
         generator(data, expected_elements);
 
-        run_integral_percentile(my_server_entity,
-                                METRIC_test_percentile_int64,
-                                data,
-                                test.num_preload,
-                                test.interval_ms,
-                                test.exec_ms,
-                                test.kth_percentiles,
-                                test.sample_size,
-                                test.num_threads,
-                                expected_elements);
+        run_percentile(my_server_entity,
+                       METRIC_test_percentile_int64,
+                       data,
+                       test.num_preload,
+                       test.interval_ms,
+                       test.exec_ms,
+                       test.kth_percentiles,
+                       test.sample_size,
+                       test.num_threads,
+                       expected_elements,
+                       integral_checker<value_type>());
     }
 }
 
