@@ -622,7 +622,7 @@ protected:
             std::bind(&percentile<value_type, NthElementFinder>::find_nth_elements, this)));
     }
 
-    virtual ~percentile() { _timer->cancel(); }
+    virtual ~percentile() = default;
 
 private:
     using nth_container_type = typename NthElementFinder::nth_container_type;
