@@ -720,12 +720,17 @@ void run_integral_percentile(const metric_entity_ptr &my_entity,
 TEST(metrics_test, percentile_int64)
 {
     using value_type = int64_t;
+    const std::set<kth_percentile_type> p50_p99 = {kth_percentile_type::P50, kth_percentile_type::P99};
 
     // Test cases:
     // - input none of sample with none of kth percentile
     // - input 1 sample with none of kth percentile
-    // - input 1 sample with 1 kth percentile
+    // - input 1 sample with 1 kth percentile, capacity of 2
     // - input 2 samples with 2 kth percentiles
+    // - input 10 samples with 2 kth percentiles by 2 threads
+    // - input 2000 samples with 2 kth percentiles, capacity of 5000
+    // - input 2000 samples with 2 kth percentiles by 4 threads, capacity of 5000
+    // - preload 5 and input 2000 samples with 2 kth percentiles by 4 threads, capacity of 5000
     // - input 5000 samples with 2 kth percentiles
     // - input 5000 samples with 2 kth percentiles by 4 threads
     // - input 5000 samples with all kth percentiles by 4 threads
@@ -752,31 +757,62 @@ TEST(metrics_test, percentile_int64)
                   0,
                   50,
                   10,
-                  {kth_percentile_type::P50, kth_percentile_type::P99},
+                  p50_and_p99,
                   2,
                   1},
-                 {"server_23",
-                  5000,
+                 {"server_23", 10, 0, 2, 0, 50, 10, p50_and_p99, 10, 2},
+                 {"server_24",
+                  2000,
                   0,
                   5,
                   0,
                   50,
                   10,
-                  {kth_percentile_type::P50, kth_percentile_type::P99},
+                  p50_p99,
                   5000,
                   1},
-                 {"server_24",
+                 {"server_25",
+                  2000,
+                  0,
+                  5,
+                  0,
+                  50,
+                  10,
+                  p50_p99,
+                  5000,
+                  4},
+                 {"server_26",
+                  2000,
+                  0,
+                  5,
+                  5,
+                  50,
+                  10,
+                  p50_p99,
+                  5000,
+                  4},
+                 {"server_27",
                   5000,
                   0,
                   5,
                   0,
                   50,
                   10,
-                  {kth_percentile_type::P50, kth_percentile_type::P99},
+                  p50_p99,
+                  5000,
+                  1},
+                 {"server_28",
+                  5000,
+                  0,
+                  5,
+                  0,
+                  50,
+                  10,
+                  p50_p99,
                   5000,
                   4},
-                 {"server_25", 5000, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 5000, 4},
-                 {"server_26", 5000, 0, 5, 5, 50, 10, kAllKthPercentileTypes, 5000, 4}};
+                 {"server_29", 5000, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 5000, 4},
+                 {"server_30", 5000, 0, 5, 5, 50, 10, kAllKthPercentileTypes, 5000, 4}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
