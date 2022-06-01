@@ -589,14 +589,14 @@ protected:
                const std::set<kth_percentile_type> &kth_percentiles = kAllKthPercentileTypes,
                size_type sample_size = kDefaultSampleSize)
         : metric(prototype),
+          _timer(),
           _sample_size(sample_size),
           _last_real_sample_size(0),
           _samples(cacheline_aligned_alloc_array<value_type>(sample_size)),
           _tail(0),
           _kth_percentile_bitset(),
           _full_nth_elements(static_cast<size_t>(kth_percentile_type::COUNT)),
-          _nth_element_finder(),
-          _timer()
+          _nth_element_finder()
     {
         dassert(sample_size > 0, "sample_sizes should be > 0");
         dassert(_samples, "_samples should be valid pointer");
@@ -673,6 +673,8 @@ private:
         _nth_element_finder.set_nths(nths);
     }
 
+    std::unique_ptr<percentile_timer> _timer;
+
     const size_type _sample_size;
     size_type _last_real_sample_size;
     cacheline_aligned_ptr<value_type> _samples;
@@ -680,8 +682,6 @@ private:
     std::bitset<static_cast<size_t>(kth_percentile_type::COUNT)> _kth_percentile_bitset;
     std::vector<std::atomic<value_type>> _full_nth_elements;
     NthElementFinder _nth_element_finder;
-
-    std::unique_ptr<percentile_timer> _timer;
 };
 
 template <typename T,
