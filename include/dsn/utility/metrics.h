@@ -25,10 +25,13 @@
 #include <mutex>
 #include <set>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
+#include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 
 #include <dsn/c/api_utilities.h>
@@ -125,6 +128,20 @@
     extern dsn::floating_percentile_prototype<double> METRIC_##name
 
 namespace dsn {
+
+class metrics_io_service : public utils::singleton<metrics_io_service>
+{
+public:
+    boost::asio::io_service ios;
+
+private:
+    friend class utils::singleton<metrics_io_service>;
+
+    metrics_io_service();
+    ~metrics_io_service();
+
+    std::vector<std::unique_ptr<std::thread>> _workers;
+};
 
 class metric_prototype;
 class metric;

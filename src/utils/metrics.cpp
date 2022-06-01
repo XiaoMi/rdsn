@@ -17,12 +17,6 @@
 
 #include <dsn/utility/metrics.h>
 
-#include <memory>
-#include <thread>
-#include <vector>
-
-#include <boost/asio.hpp>
-
 #include <dsn/c/api_utilities.h>
 #include <dsn/utility/flags.h>
 #include <dsn/utility/rand.h>
@@ -39,35 +33,24 @@ DSN_DEFINE_uint32("pegasus.server",
 DSN_DEFINE_validator(metrics_timer_worker_count,
                      [](uint32_t worker_count) -> bool { return worker_count > 0; });
 
-class metrics_io_service : public utils::singleton<metrics_io_service>
+metrics_io_service::metrics_io_service()
 {
-public:
-    boost::asio::io_service ios;
-
-private:
-    friend class utils::singleton<metrics_io_service>;
-
-    metrics_io_service()
-    {
-        _workers.reserve(FLAGS_metrics_timer_worker_count);
-        for (uint32_t i = 0; i < FLAGS_metrics_timer_worker_count; ++i) {
-            _workers.emplace_back(new std::thread([this]() {
-                boost::asio::io_service::work work(ios);
-                ios.run();
-            }));
-        }
+    _workers.reserve(FLAGS_metrics_timer_worker_count);
+    for (uint32_t i = 0; i < FLAGS_metrics_timer_worker_count; ++i) {
+        _workers.emplace_back(new std::thread([this]() {
+            boost::asio::io_service::work work(ios);
+            ios.run();
+        }));
     }
+}
 
-    ~metrics_io_service()
-    {
-        ios.stop();
-        for (const auto &worker : _workers) {
-            worker->join();
-        }
+metrics_io_service::~metrics_io_service()
+{
+    ios.stop();
+    for (const auto &worker : _workers) {
+        worker->join();
     }
-
-    std::vector<std::unique_ptr<std::thread>> _workers;
-};
+}
 
 metric_entity::metric_entity(const std::string &id, attr_map &&attrs)
     : _id(id), _attrs(std::move(attrs))
