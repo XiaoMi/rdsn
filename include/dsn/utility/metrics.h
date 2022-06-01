@@ -529,8 +529,6 @@ public:
     percentile_timer(uint64_t interval_ms, exec_fn exec);
     ~percentile_timer() = default;
 
-    void cancel();
-
 private:
     void on_timer(const boost::system::error_code &ec);
 

@@ -17,12 +17,57 @@
 
 #include <dsn/utility/metrics.h>
 
-#include <dsn/c/api_utilities.h>
-#include <dsn/utility/rand.h>
+#include <memory>
+#include <thread>
+#include <vector>
 
-#include "shared_io_service.h"
+#include <boost/asio.hpp>
+
+#include <dsn/c/api_utilities.h>
+#include <dsn/utility/flags.h>
+#include <dsn/utility/rand.h>
+#include <dsn/utility/singleton.h>
 
 namespace dsn {
+
+// Default value for metrics_timer_worker_count is set to 3, two of which are used for computing
+// percentiles. And another one thread is used to collect all metrics for monitoring systems.
+DSN_DEFINE_uint32("pegasus.server",
+                  metrics_timer_worker_count,
+                  3,
+                  "the number of threads for timer service of metrics");
+DSN_DEFINE_validator(metrics_timer_worker_count,
+                     [](uint32_t worker_count) -> bool { return worker_count > 0; });
+
+class metrics_io_service : public utils::singleton<metrics_io_service>
+{
+public:
+    boost::asio::io_service ios;
+
+private:
+    friend class utils::singleton<metrics_io_service>;
+
+    metrics_io_service()
+    {
+        _workers.reserve(FLAGS_metrics_timer_worker_count);
+        for (uint32_t i = 0; i < FLAGS_metrics_timer_worker_count; ++i) {
+            _workers.emplace_back(new std::thread([this]() {
+                boost::asio::io_service::work work(ios);
+                ios.run();
+            }));
+        }
+    }
+
+    ~metrics_io_service()
+    {
+        ios.stop();
+        for (const auto &worker : _workers) {
+            worker->join();
+        }
+    }
+
+    std::vector<std::unique_ptr<std::thread>> _workers;
+};
 
 metric_entity::metric_entity(const std::string &id, attr_map &&attrs)
     : _id(id), _attrs(std::move(attrs))
@@ -120,15 +165,13 @@ uint64_t percentile_timer::get_initial_interval_ms(uint64_t interval_ms)
 percentile_timer::percentile_timer(uint64_t interval_ms, exec_fn exec)
     : _interval_ms(interval_ms),
       _exec(exec),
-      _timer(new boost::asio::deadline_timer(tools::shared_io_service::instance().ios))
+      _timer(new boost::asio::deadline_timer(metrics_io_service::instance().ios))
 {
     auto initial_interval_ms = get_initial_interval_ms(_interval_ms);
 
     _timer->expires_from_now(boost::posix_time::milliseconds(initial_interval_ms));
     _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
 }
-
-void percentile_timer::cancel() { _timer->cancel(); }
 
 void percentile_timer::on_timer(const boost::system::error_code &ec)
 {
