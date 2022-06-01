@@ -99,7 +99,7 @@
     dsn::counter_prototype<dsn::concurrent_long_adder, true> METRIC_##name(                        \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
 
-// percentile
+// The percentile supports both integral and floating types.
 #define METRIC_DEFINE_percentile_int64(entity_type, name, unit, desc, ...)                         \
     dsn::percentile_prototype<int64_t> METRIC_##name(                                              \
         {#entity_type, #name, unit, desc, ##__VA_ARGS__})
@@ -122,7 +122,7 @@
 #define METRIC_DECLARE_percentile_int64(name)                                                      \
     extern dsn::percentile_prototype<int64_t> METRIC_##name
 #define METRIC_DECLARE_percentile_double(name)                                                     \
-    extern dsn::percentile_prototype<double> METRIC_##name
+    extern dsn::floating_percentile_prototype<double> METRIC_##name
 
 namespace dsn {
 
@@ -470,6 +470,9 @@ using concurrent_volatile_counter_ptr = counter_ptr<concurrent_long_adder, true>
 template <typename Adder = striped_long_adder>
 using volatile_counter_prototype = metric_prototype_with<counter<Adder, true>>;
 
+// All supported kinds of kth percentiles. User can configure required kth percentiles for
+// each percentile. Only configured kth percentiles will be computed. This can reduce CPU
+// consumption.
 enum class kth_percentile_type : size_t
 {
     P50,
@@ -481,7 +484,7 @@ enum class kth_percentile_type : size_t
     INVALID
 };
 
-// Support to load from configuration files.
+// Support to load from configuration files for percentiles.
 ENUM_BEGIN(kth_percentile_type, kth_percentile_type::INVALID)
 ENUM_REG(kth_percentile_type::P50)
 ENUM_REG(kth_percentile_type::P90)
@@ -534,6 +537,18 @@ private:
     std::unique_ptr<boost::asio::deadline_timer> _timer;
 };
 
+// The percentile is a metric type that samples observations. The size of samples has an upper
+// bound. Once the maximum size is reached, the earliest observations will be overwritten.
+// On the other hand, kth percentiles, such as P50, P90, P95, P99, P999, will be calculated
+// periodically over all samples. The kth percentiles which are calculated are configurable
+// provided that they are of valid kth_percentile_type (i.e. in kAllKthPercentileTypes).
+//
+// The most common usage of percentile is latency, such as server-level and replica-level
+// latencies. For example, if P99 latency is 10 ms, it means the latencies of 99% requests
+// are less than 10 ms.
+//
+// The percentile is implemented by the finder for nth elements. Each kth percentile is firstly
+// converted to nth index; then, find the element corresponding to the nth index.
 template <typename T,
           typename NthElementFinder = stl_nth_element_finder<T>,
           typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
@@ -549,6 +564,8 @@ public:
         _samples.get()[count % _sample_size] = val;
     }
 
+    // If `type` is not configured, it will return false with zero value stored in `val`;
+    // otherwise, it will always return true with the value corresponding to `type`.
     bool get(kth_percentile_type type, value_type &val) const
     {
         dassert_f(type < kth_percentile_type::COUNT,
@@ -614,18 +631,22 @@ private:
     {
         size_type real_sample_size = std::min(static_cast<size_type>(_tail.load()), _sample_size);
         if (real_sample_size == 0) {
+            // No need to find since there has not been any sample yet.
             return;
         }
 
+        // If the size of samples changes, the nth indexs should be updated.
         if (real_sample_size != _last_real_sample_size) {
             set_real_nths(real_sample_size);
             _last_real_sample_size = real_sample_size;
         }
 
+        // Find nth elements.
         std::vector<T> array(real_sample_size);
         std::copy(_samples.get(), _samples.get() + real_sample_size, array.begin());
         _nth_element_finder(array.begin(), array.begin(), array.end());
 
+        // Store nth elements.
         const auto &elements = _nth_element_finder.elements();
         for (size_t i = 0, next = 0; i < static_cast<size_t>(kth_percentile_type::COUNT); ++i) {
             if (!_kth_percentile_bitset.test(i)) {
