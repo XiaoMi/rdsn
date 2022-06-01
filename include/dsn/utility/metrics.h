@@ -539,6 +539,7 @@ private:
 
 // The percentile is a metric type that samples observations. The size of samples has an upper
 // bound. Once the maximum size is reached, the earliest observations will be overwritten.
+//
 // On the other hand, kth percentiles, such as P50, P90, P95, P99, P999, will be calculated
 // periodically over all samples. The kth percentiles which are calculated are configurable
 // provided that they are of valid kth_percentile_type (i.e. in kAllKthPercentileTypes).
