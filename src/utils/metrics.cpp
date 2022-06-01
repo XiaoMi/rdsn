@@ -128,7 +128,7 @@ percentile_timer::percentile_timer(uint64_t interval_ms, exec_fn exec)
     _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
 }
 
-percentile_timer::~percentile_timer() { _timer->cancel(); }
+void percentile_timer::cancel() { _timer->cancel(); }
 
 void percentile_timer::on_timer(const boost::system::error_code &ec)
 {
