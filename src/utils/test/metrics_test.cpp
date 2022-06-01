@@ -697,7 +697,7 @@ void run_integral_percentile(const metric_entity_ptr &my_entity,
     std::this_thread::sleep_for(
         std::chrono::milliseconds(initial_interval_ms + interval_ms + exec_ms));
 
-    // Compare actual elements of kth percentiles with the expected ones
+    // Compare actual elements of kth percentiles with the expected ones.
     std::vector<T> actual_elements;
     for (const auto &kth : kAllKthPercentileTypes) {
         T value;
@@ -722,10 +722,14 @@ TEST(metrics_test, percentile_int64)
     using value_type = int64_t;
 
     // Test cases:
-    // - create a gauge of int64 type without initial value, then increase
-    // - create a gauge of int64 type without initial value, then decrease
-    // - create a gauge of int64 type with initial value, then increase
-    // - create a gauge of int64 type with initial value, then decrease
+    // - input none of sample with none of kth percentile
+    // - input 1 sample with none of kth percentile
+    // - input 1 sample with 1 kth percentile
+    // - input 2 samples with 2 kth percentiles
+    // - input 5000 samples with 2 kth percentiles
+    // - input 5000 samples with 2 kth percentiles by 4 threads
+    // - input 5000 samples with all kth percentiles by 4 threads
+    // - preload 5 samples and input 5000 samples with all kth percentiles by 4 threads
     struct test_case
     {
         std::string entity_id;
@@ -760,7 +764,37 @@ TEST(metrics_test, percentile_int64)
                   10,
                   {kth_percentile_type::P50, kth_percentile_type::P99},
                   5000,
-                  1}};
+                  1},
+                 {"server_24",
+                  5000,
+                  0,
+                  5,
+                  0,
+                  50,
+                  10,
+                  {kth_percentile_type::P50, kth_percentile_type::P99},
+                  5000,
+                  4},
+                 {"server_25",
+                  5000,
+                  0,
+                  5,
+                  0,
+                  50,
+                  10,
+                  kAllKthPercentileTypes,
+                  5000,
+                  4},
+                 {"server_26",
+                  5000,
+                  0,
+                  5,
+                  5,
+                  50,
+                  10,
+                  kAllKthPercentileTypes,
+                  5000,
+                  4}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);

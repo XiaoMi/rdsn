@@ -481,6 +481,7 @@ enum class kth_percentile_type : size_t
     INVALID
 };
 
+// Support to load from configuration files.
 ENUM_BEGIN(kth_percentile_type, kth_percentile_type::INVALID)
 ENUM_REG(kth_percentile_type::P50)
 ENUM_REG(kth_percentile_type::P90)
@@ -562,6 +563,9 @@ public:
     static const size_type kDefaultSampleSize = 5000;
 
 protected:
+    // interval_ms is the interval between the computations for percentiles. Its unit is
+    // milliseconds. It's suggested that interval_ms should be near the period between pulls
+    // from or pushes to the monitoring system.
     percentile(const metric_prototype *prototype,
                uint64_t interval_ms = 10000,
                const std::set<kth_percentile_type> &kth_percentiles = kAllKthPercentileTypes,
