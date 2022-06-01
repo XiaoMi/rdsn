@@ -17,10 +17,6 @@
  * under the License.
  */
 
-// Copyright (c) 2017-present, Xiaomi, Inc.  All rights reserved.
-// This source code is licensed under the Apache License Version 2.0, which
-// can be found in the LICENSE file in the root directory of this source tree.
-
 #include <dsn/dist/remote_command.h>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/cpp/rpc_holder.h>

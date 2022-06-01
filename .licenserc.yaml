@@ -369,7 +369,6 @@ header:
     - 'src/runtime/build_config.h'
     - 'src/utils/test/autoref_ptr_test.cpp'
     - 'include/dsn/utility/safe_strerror_posix.h'
-    - '.licenserc.yaml'
     - 'src/runtime/build_config.h'
     - 'src/utils/test/autoref_ptr_test.cpp'
     - 'src/utils/safe_strerror_posix.cpp'
