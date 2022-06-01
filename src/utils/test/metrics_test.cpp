@@ -114,6 +114,11 @@ METRIC_DEFINE_percentile_int64(my_server,
                                dsn::metric_unit::kNanoSeconds,
                                "a server-level percentile of int64 type for test");
 
+METRIC_DEFINE_percentile_double(my_server,
+                                test_percentile_double,
+                                dsn::metric_unit::kNanoSeconds,
+                                "a server-level percentile of double type for test");
+
 namespace dsn {
 
 TEST(metrics_test, create_entity)
@@ -654,9 +659,9 @@ TEST(metrics_test, volatile_counter)
     run_volatile_counter_cases<concurrent_long_adder>(&METRIC_test_concurrent_volatile_counter);
 }
 
-template <typename T, typename Checker>
+template <typename T, typename Prototype, typename Checker>
 void run_percentile(const metric_entity_ptr &my_entity,
-                    const percentile_prototype<T> &prototype,
+                    const Prototype &prototype,
                     const std::vector<T> &data,
                     size_t num_preload,
                     uint64_t interval_ms,
@@ -695,7 +700,7 @@ void run_percentile(const metric_entity_ptr &my_entity,
     std::this_thread::sleep_for(
         std::chrono::milliseconds(initial_interval_ms + interval_ms + exec_ms));
 
-    // Compare actual elements of kth percentiles with the expected ones.
+    // Check if actual elements of kth percentiles are equal to the expected ones.
     std::vector<T> actual_elements;
     for (const auto &kth : kAllKthPercentileTypes) {
         T value;
@@ -707,34 +712,20 @@ void run_percentile(const metric_entity_ptr &my_entity,
             actual_elements.push_back(value);
         }
     }
-    fmt::print("expected_elements: {}\n", fmt::join(expected_elements, " "));
     checker(actual_elements, expected_elements);
 
+    // Check if this percentile is included in the entity.
     auto metrics = my_entity->metrics();
     ASSERT_EQ(metrics[&prototype].get(), static_cast<metric *>(my_metric.get()));
 
+    // Check if the prototype is referenced by this percentile.
     ASSERT_EQ(my_metric->prototype(), static_cast<const metric_prototype *>(&prototype));
 }
 
-template <typename T>
-class integral_checker
+template <typename T, typename Prototype, typename CaseGenerator, typename Checker>
+void run_percentile_cases(const Prototype &prototype)
 {
-public:
-    void operator()(const T &actual_element, const T &expected_element) const
-    {
-        ASSERT_EQ(actual_element, expected_element);
-    }
-
-    void operator()(const std::vector<T> &actual_elements,
-                    const std::vector<T> &expected_elements) const
-    {
-        ASSERT_EQ(actual_elements, expected_elements);
-    }
-};
-
-TEST(metrics_test, percentile_int64)
-{
-    using value_type = int64_t;
+    using value_type = T;
     const std::set<kth_percentile_type> p50_p99 = {kth_percentile_type::P50,
                                                    kth_percentile_type::P99};
 
@@ -789,25 +780,78 @@ TEST(metrics_test, percentile_int64)
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
 
-        integral_percentile_case_generator<value_type> generator(
+        CaseGenerator generator(
             test.data_size, test.initial_value, test.range_size, test.kth_percentiles);
 
         std::vector<value_type> data;
         std::vector<value_type> expected_elements;
         generator(data, expected_elements);
 
-        run_percentile(my_server_entity,
-                       METRIC_test_percentile_int64,
-                       data,
-                       test.num_preload,
-                       test.interval_ms,
-                       test.exec_ms,
-                       test.kth_percentiles,
-                       test.sample_size,
-                       test.num_threads,
-                       expected_elements,
-                       integral_checker<value_type>());
+        run_percentile<value_type, Prototype, Checker>(my_server_entity,
+                                                       prototype,
+                                                       data,
+                                                       test.num_preload,
+                                                       test.interval_ms,
+                                                       test.exec_ms,
+                                                       test.kth_percentiles,
+                                                       test.sample_size,
+                                                       test.num_threads,
+                                                       expected_elements,
+                                                       Checker());
     }
+}
+
+template <typename T>
+class integral_checker
+{
+public:
+    void operator()(const T &actual_element, const T &expected_element) const
+    {
+        ASSERT_EQ(actual_element, expected_element);
+    }
+
+    void operator()(const std::vector<T> &actual_elements,
+                    const std::vector<T> &expected_elements) const
+    {
+        ASSERT_EQ(actual_elements, expected_elements);
+    }
+};
+
+TEST(metrics_test, percentile_int64)
+{
+    using value_type = int64_t;
+    run_percentile_cases<value_type,
+                         percentile_prototype<value_type>,
+                         integral_percentile_case_generator<value_type>,
+                         integral_checker<value_type>>(METRIC_test_percentile_int64);
+}
+
+template <typename T>
+class floating_checker
+{
+public:
+    void operator()(const T &actual_element, const T &expected_element) const
+    {
+        ASSERT_DOUBLE_EQ(actual_element, expected_element);
+    }
+
+    void operator()(const std::vector<T> &actual_elements,
+                    const std::vector<T> &expected_elements) const
+    {
+        ASSERT_EQ(actual_elements.size(), expected_elements.size());
+        for (size_t i = 0; i < expected_elements.size(); ++i) {
+            ASSERT_DOUBLE_EQ(actual_elements[i], expected_elements[i]);
+        }
+    }
+};
+
+TEST(metrics_test, percentile_double)
+{
+    using value_type = double;
+    run_percentile_cases<value_type,
+                         floating_percentile_prototype<value_type>,
+                         floating_percentile_case_generator<value_type>,
+                         floating_checker<value_type>>(METRIC_test_percentile_double);
 }
 
 } // namespace dsn
