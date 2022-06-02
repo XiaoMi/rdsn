@@ -415,6 +415,14 @@ template <typename Adder = striped_long_adder, bool IsVolatile = false>
 class counter : public metric
 {
 public:
+    // To decide which member function should be called by template parameter, the parameter
+    // should be one of the class template parameters in case that the parameter is needed to
+    // be written each time the member function is called.
+    //
+    // Using class template parameter to decide which member function should be called, another
+    // function template parameter with the same meaning should be introduced, since the class
+    // template parameter cannot be used as a function template parameter again and will lead
+    // to Compilation error.
     template <bool Volatile = IsVolatile,
               typename = typename std::enable_if<!Volatile && !IsVolatile>::type>
     int64_t value() const
