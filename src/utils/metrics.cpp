@@ -22,6 +22,8 @@
 #include <dsn/utility/rand.h>
 #include <dsn/utility/singleton.h>
 
+#include "shared_io_service.h"
+
 namespace dsn {
 
 // Default value for metrics_timer_worker_count is set to 3, two of which are used for computing
@@ -95,7 +97,7 @@ metric_entity_prototype::metric_entity_prototype(const char *name) : _name(name)
 
 metric_entity_prototype::~metric_entity_prototype() {}
 
-metric_registry::metric_registry() {}
+metric_registry::metric_registry() { tools::shared_io_service::instance(); }
 
 metric_registry::~metric_registry() {}
 
@@ -148,7 +150,7 @@ uint64_t percentile_timer::get_initial_interval_ms(uint64_t interval_ms)
 percentile_timer::percentile_timer(uint64_t interval_ms, exec_fn exec)
     : _interval_ms(interval_ms),
       _exec(exec),
-      _timer(new boost::asio::deadline_timer(metrics_io_service::instance().ios))
+      _timer(new boost::asio::deadline_timer(tools::shared_io_service::instance().ios))
 {
     auto initial_interval_ms = get_initial_interval_ms(_interval_ms);
 
