@@ -18,41 +18,11 @@
 #include <dsn/utility/metrics.h>
 
 #include <dsn/c/api_utilities.h>
-#include <dsn/utility/flags.h>
 #include <dsn/utility/rand.h>
-#include <dsn/utility/singleton.h>
 
 #include "shared_io_service.h"
 
 namespace dsn {
-
-// Default value for metrics_timer_worker_count is set to 3, two of which are used for computing
-// percentiles. And another one thread is used to collect all metrics for monitoring systems.
-DSN_DEFINE_uint32("pegasus.server",
-                  metrics_timer_worker_count,
-                  3,
-                  "the number of threads for timer service of metrics");
-DSN_DEFINE_validator(metrics_timer_worker_count,
-                     [](uint32_t worker_count) -> bool { return worker_count > 0; });
-
-metrics_io_service::metrics_io_service()
-{
-    _workers.reserve(FLAGS_metrics_timer_worker_count);
-    for (uint32_t i = 0; i < FLAGS_metrics_timer_worker_count; ++i) {
-        _workers.emplace_back(new std::thread([this]() {
-            boost::asio::io_service::work work(ios);
-            ios.run();
-        }));
-    }
-}
-
-metrics_io_service::~metrics_io_service()
-{
-    ios.stop();
-    for (const auto &worker : _workers) {
-        worker->join();
-    }
-}
 
 metric_entity::metric_entity(const std::string &id, attr_map &&attrs)
     : _id(id), _attrs(std::move(attrs))
@@ -97,7 +67,15 @@ metric_entity_prototype::metric_entity_prototype(const char *name) : _name(name)
 
 metric_entity_prototype::~metric_entity_prototype() {}
 
-metric_registry::metric_registry() { tools::shared_io_service::instance(); }
+metric_registry::metric_registry()
+{
+    // We should ensure that metric_registry is destructed before shared_io_service is destructed.
+    // Once shared_io_service is destructed before metric_registry is destructed,
+    // boost::asio::io_service needed by metrics in metric_registry such as percentile_timer will
+    // be released firstly, then will lead to heap-use-after-free error since percentiles in
+    // metric_registry are still running but the resources they needed have been released.
+    tools::shared_io_service::instance();
+}
 
 metric_registry::~metric_registry() {}
 
