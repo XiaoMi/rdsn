@@ -35,7 +35,6 @@
 
 #pragma once
 
-#include <memory>
 #include <thread>
 #include <vector>
 
@@ -60,7 +59,7 @@ private:
     shared_io_service();
     ~shared_io_service();
 
-    std::vector<std::unique_ptr<std::thread>> _workers;
+    std::vector<std::thread> _workers;
 };
 
 } // namespace tools

@@ -17,14 +17,14 @@
 
 #pragma once
 
-#include <dsn/utility/ports.h>
-
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <new>
 
 #include <dsn/c/api_utilities.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/ports.h>
 
 namespace dsn {
 
@@ -41,26 +41,42 @@ template <typename T>
 cacheline_aligned_ptr<T> cacheline_aligned_alloc_array(size_t len)
 {
     void *buffer = cacheline_aligned_alloc(sizeof(T) * len);
-    if (buffer == nullptr) {
-        return cacheline_aligned_ptr<T>(nullptr, cacheline_aligned_free);
+    if (dsn_unlikely(buffer == nullptr)) {
+        return cacheline_aligned_ptr<T>(nullptr, [](void *) {});
     }
 
     T *array = new (buffer) T[len];
-    for (size_t i = 0; i < len; ++i) {
-        T *elem = &(array[i]);
-        dassert_f((reinterpret_cast<const uintptr_t>(elem) & (sizeof(T) - 1)) == 0,
-                  "unaligned array element for cache line: array={}, length={}, index={}, elem={}, "
-                  "elem_size={}, mask={}, cacheline_size={}",
-                  fmt::ptr(array),
-                  len,
-                  i,
-                  fmt::ptr(elem),
-                  sizeof(T),
-                  sizeof(T) - 1,
-                  CACHELINE_SIZE);
+
+#ifndef NDEBUG
+    if (sizeof(T) <= CACHELINE_SIZE && (sizeof(T) & (sizeof(T) - 1)) == 0) {
+        for (size_t i = 0; i < len; ++i) {
+            T *elem = &(array[i]);
+            dassert_f((reinterpret_cast<const uintptr_t>(elem) & (sizeof(T) - 1)) == 0,
+                      "unaligned array element for cache line: array={}, length={}, index={}, "
+                      "elem={}, elem_size={}, mask={}, cacheline_size={}",
+                      fmt::ptr(array),
+                      len,
+                      i,
+                      fmt::ptr(elem),
+                      sizeof(T),
+                      sizeof(T) - 1,
+                      CACHELINE_SIZE);
+        }
     }
+#endif
 
     return cacheline_aligned_ptr<T>(array, cacheline_aligned_free);
+}
+
+template <typename T>
+cacheline_aligned_ptr<T> cacheline_aligned_alloc_array(size_t len, const T &val)
+{
+    auto array = cacheline_aligned_alloc_array<T>(len);
+    if (array) {
+        std::fill(array.get(), array.get() + len, val);
+    }
+
+    return array;
 }
 
 #endif

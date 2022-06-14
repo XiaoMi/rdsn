@@ -27,11 +27,13 @@ namespace dsn {
 
 /* extern */ void *cacheline_aligned_alloc(size_t size)
 {
-    if (size == 0) {
+    if (dsn_unlikely(size == 0)) {
         return nullptr;
     }
 
     void *buffer = nullptr;
+    // CACHELINE_SIZE must be a power of 2 and a multiple of sizeof(void *), which have been
+    // checked statically at compile time when CACHELINE_SIZE is defined as macro.
     int err = posix_memalign(&buffer, CACHELINE_SIZE, size);
 
     // Generally there are 2 possible errors for posix_memalign as below:
@@ -41,18 +43,6 @@ namespace dsn {
     //     There is insufficient memory available with the requested alignment.
     // Thus making an assertion here is enough.
     dassert_f(err == 0, "error calling posix_memalign: {}", utils::safe_strerror(err).c_str());
-
-    dassert_f(buffer != nullptr,
-              "allocated nullptr by posix_memalign: addr={}, size={}, cacheline_size={}",
-              fmt::ptr(buffer),
-              size,
-              CACHELINE_SIZE);
-    dassert_f((reinterpret_cast<const uintptr_t>(buffer) & (CACHELINE_SIZE - 1)) == 0,
-              "unaligned cache line: addr={}, size={}, cacheline_size={}, mask={}",
-              fmt::ptr(buffer),
-              size,
-              CACHELINE_SIZE,
-              CACHELINE_SIZE - 1);
 
     return buffer;
 }

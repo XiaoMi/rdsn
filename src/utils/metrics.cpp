@@ -111,46 +111,41 @@ metric_prototype::~metric_prototype() {}
 
 metric::metric(const metric_prototype *prototype) : _prototype(prototype) {}
 
-uint64_t percentile_timer::get_initial_interval_ms(uint64_t interval_ms)
+uint64_t percentile_timer::generate_initial_delay_ms(uint64_t interval_ms)
 {
-    dassert(interval_ms > 0, "interval should not be 0");
+    dcheck_gt(interval_ms, 0);
 
-    // Generate an initial interval randomly in case that all percentiles are computed
-    // at the same time.
     if (interval_ms < 1000) {
         return rand::next_u64() % interval_ms + 50;
-    } else {
-        uint64_t interval_seconds = interval_ms / 1000;
-        return (rand::next_u64() % interval_seconds + 1) * 1000;
     }
+
+    uint64_t interval_seconds = interval_ms / 1000;
+    return (rand::next_u64() % interval_seconds + 1) * 1000 + rand::next_u64() % 1000;
 }
 
 percentile_timer::percentile_timer(uint64_t interval_ms, exec_fn exec)
-    : _interval_ms(interval_ms),
+    : _initial_delay_ms(generate_initial_delay_ms(interval_ms)),
+      _interval_ms(interval_ms),
       _exec(exec),
       _timer(new boost::asio::deadline_timer(tools::shared_io_service::instance().ios))
 {
-    auto initial_interval_ms = get_initial_interval_ms(_interval_ms);
-
-    _timer->expires_from_now(boost::posix_time::milliseconds(initial_interval_ms));
+    _timer->expires_from_now(boost::posix_time::milliseconds(_initial_delay_ms));
     _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
 }
 
 void percentile_timer::on_timer(const boost::system::error_code &ec)
 {
-    // as the callback is not in tls context, so the log system calls like ddebug, dassert will
-    // cause a lock
-    if (!ec) {
-        _exec();
-
-        _timer->expires_from_now(boost::posix_time::milliseconds(_interval_ms));
-        _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
+    if (dsn_unlikely(!!ec)) {
+        dassert_f(ec == boost::system::errc::operation_canceled,
+                  "failed to exec on_timer with an error that cannot be handled: {}",
+                  ec.message());
         return;
     }
 
-    dassert_f(ec == boost::system::errc::operation_canceled,
-              "failed to exec on_timer with an error that cannot be handled: {}",
-              ec.message());
+    _exec();
+
+    _timer->expires_from_now(boost::posix_time::milliseconds(_interval_ms));
+    _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
 }
 
 } // namespace dsn

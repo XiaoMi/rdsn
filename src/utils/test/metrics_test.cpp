@@ -696,9 +696,8 @@ void run_percentile(const metric_entity_ptr &my_entity,
             });
 
     // Wait a while in order to finish computing all percentiles.
-    auto initial_interval_ms = percentile_timer::get_initial_interval_ms(interval_ms);
     std::this_thread::sleep_for(
-        std::chrono::milliseconds(initial_interval_ms + interval_ms + exec_ms));
+        std::chrono::milliseconds(my_metric->get_initial_delay_ms() + interval_ms + exec_ms));
 
     // Check if actual elements of kth percentiles are equal to the expected ones.
     std::vector<T> actual_elements;
@@ -726,27 +725,52 @@ template <typename T, typename Prototype, typename CaseGenerator, typename Check
 void run_percentile_cases(const Prototype &prototype)
 {
     using value_type = T;
-    const std::set<kth_percentile_type> p50_p99 = {kth_percentile_type::P50,
-                                                   kth_percentile_type::P99};
+    const auto p50 = kth_percentile_type::P50;
+    const auto p90 = kth_percentile_type::P90;
+    const auto p99 = kth_percentile_type::P99;
 
     // Test cases:
     // - input none of sample with none of kth percentile
     // - input 1 sample with none of kth percentile
+    // - input 1 sample with 1 kth percentile
+    // - input 1 sample with 2 kth percentiles
+    // - input 1 sample with all kth percentiles
     // - input 1 sample with 1 kth percentile, capacity of 2
+    // - input 1 sample with 2 kth percentiles, capacity of 2
+    // - input 1 sample with all kth percentiles, capacity of 2
+    // - input 2 samples with 1 kth percentile
     // - input 2 samples with 2 kth percentiles
-    // - input 10 samples with 2 kth percentiles
-    // - input 10 samples with 2 kth percentiles by 2 threads
-    // - preload 5 samples input 10 samples with 2 kth percentiles by 2 threads
-    // - input 10 samples with all kth percentiles by 2 threads
-    // - preload 5 samples input 10 samples with all kth percentiles by 2 threads
-    // - input 10 samples with all kth percentiles by 2 threads, capacity of 20
-    // - input 2000 samples with 2 kth percentiles, capacity of 5000
-    // - input 2000 samples with 2 kth percentiles by 4 threads, capacity of 5000
-    // - input 5000 samples with 2 kth percentiles
-    // - input 5000 samples with 2 kth percentiles by 4 threads
-    // - preload 5 samples and input 5000 samples with 2 kth percentiles by 4 threads
-    // - input 5000 samples with all kth percentiles by 4 threads
-    // - preload 5 samples and input 5000 samples with all kth percentiles by 4 threads
+    // - input 2 samples with all kth percentiles
+    // - input 10 samples with 1 kth percentile, capacity of 16
+    // - input 10 samples with 2 kth percentiles, capacity of 16
+    // - input 10 samples with all kth percentiles, capacity of 16
+    // - input 10 samples with 1 kth percentile by 2 threads, capacity of 16
+    // - input 10 samples with 2 kth percentiles by 2 threads, capacity of 16
+    // - input 10 samples with all kth percentiles by 2 threads, capacity of 16
+    // - input 16 samples with 1 kth percentile
+    // - input 16 samples with 2 kth percentiles
+    // - input 16 samples with all kth percentiles
+    // - input 16 samples with 1 kth percentile by 2 threads
+    // - input 16 samples with 2 kth percentiles by 2 threads
+    // - input 16 samples with all kth percentiles by 2 threads
+    // - preload 5 samples and input 16 samples with 1 kth percentile by 2 threads
+    // - preload 5 samples and input 16 samples with 2 kth percentiles by 2 threads
+    // - preload 5 samples and input 16 samples with all kth percentiles by 2 threads
+    // - input 2000 samples with 1 kth percentile, capacity of 4096
+    // - input 2000 samples with 2 kth percentiles, capacity of 4096
+    // - input 2000 samples with all kth percentiles, capacity of 4096
+    // - input 2000 samples with 1 kth percentile by 4 threads, capacity of 4096
+    // - input 2000 samples with 2 kth percentiles by 4 threads, capacity of 4096
+    // - input 2000 samples with all kth percentiles by 4 threads, capacity of 4096
+    // - input 4096 samples with 1 kth percentile, capacity of 4096
+    // - input 4096 samples with 2 kth percentiles, capacity of 4096
+    // - input 4096 samples with all kth percentiles, capacity of 4096
+    // - input 4096 samples with 1 kth percentile by 4 threads, capacity of 4096
+    // - input 4096 samples with 2 kth percentiles by 4 threads, capacity of 4096
+    // - input 4096 samples with all kth percentiles by 4 threads, capacity of 4096
+    // - preload 5 input 4096 samples with 1 kth percentile by 4 threads, capacity of 4096
+    // - preload 5 input 4096 samples with 2 kth percentiles by 4 threads, capacity of 4096
+    // - preload 5 input 4096 samples with all kth percentiles by 4 threads, capacity of 4096
     struct test_case
     {
         std::string entity_id;
@@ -761,21 +785,45 @@ void run_percentile_cases(const Prototype &prototype)
         size_t num_threads;
     } tests[] = {{"server_19", 0, 0, 2, 0, 50, 10, {}, 1, 1},
                  {"server_20", 1, 0, 2, 0, 50, 10, {}, 1, 1},
-                 {"server_21", 1, 0, 2, 0, 50, 10, {kth_percentile_type::P90}, 2, 1},
-                 {"server_22", 2, 0, 2, 0, 50, 10, p50_p99, 2, 1},
-                 {"server_23", 10, 0, 2, 0, 50, 10, p50_p99, 10, 1},
-                 {"server_24", 10, 0, 2, 0, 50, 10, p50_p99, 10, 2},
-                 {"server_25", 10, 0, 2, 5, 50, 10, p50_p99, 10, 2},
-                 {"server_26", 10, 0, 2, 0, 50, 10, kAllKthPercentileTypes, 10, 2},
-                 {"server_27", 10, 0, 2, 5, 50, 10, kAllKthPercentileTypes, 10, 2},
-                 {"server_28", 10, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 20, 2},
-                 {"server_29", 2000, 0, 5, 0, 50, 10, p50_p99, 5000, 1},
-                 {"server_30", 2000, 0, 5, 0, 50, 10, p50_p99, 5000, 4},
-                 {"server_31", 5000, 0, 5, 0, 50, 10, p50_p99, 5000, 1},
-                 {"server_32", 5000, 0, 5, 0, 50, 10, p50_p99, 5000, 4},
-                 {"server_33", 5000, 0, 5, 5, 50, 10, p50_p99, 5000, 4},
-                 {"server_34", 5000, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 5000, 4},
-                 {"server_35", 5000, 0, 5, 5, 50, 10, kAllKthPercentileTypes, 5000, 4}};
+                 {"server_21", 1, 0, 2, 0, 50, 10, {p90}, 1, 1},
+                 {"server_22", 1, 0, 2, 0, 50, 10, {p50, p99}, 1, 1},
+                 {"server_23", 1, 0, 2, 0, 50, 10, kAllKthPercentileTypes, 1, 1},
+                 {"server_24", 1, 0, 2, 0, 50, 10, {p90}, 2, 1},
+                 {"server_25", 1, 0, 2, 0, 50, 10, {p50, p99}, 2, 1},
+                 {"server_26", 1, 0, 2, 0, 50, 10, kAllKthPercentileTypes, 2, 1},
+                 {"server_27", 2, 0, 2, 0, 50, 10, {p90}, 2, 1},
+                 {"server_28", 2, 0, 2, 0, 50, 10, {p50, p99}, 2, 1},
+                 {"server_29", 2, 0, 2, 0, 50, 10, kAllKthPercentileTypes, 2, 1},
+                 {"server_30", 10, 0, 2, 0, 50, 10, {p90}, 16, 1},
+                 {"server_31", 10, 0, 2, 0, 50, 10, {p50, p99}, 16, 1},
+                 {"server_32", 10, 0, 2, 0, 50, 10, kAllKthPercentileTypes, 16, 1},
+                 {"server_33", 10, 0, 2, 0, 50, 10, {p90}, 16, 2},
+                 {"server_34", 10, 0, 2, 0, 50, 10, {p50, p99}, 16, 2},
+                 {"server_35", 10, 0, 2, 0, 50, 10, kAllKthPercentileTypes, 16, 2},
+                 {"server_36", 16, 0, 2, 0, 50, 10, {p90}, 16, 1},
+                 {"server_37", 16, 0, 2, 0, 50, 10, {p50, p99}, 16, 1},
+                 {"server_38", 16, 0, 2, 0, 50, 10, kAllKthPercentileTypes, 16, 1},
+                 {"server_39", 16, 0, 2, 0, 50, 10, {p90}, 16, 2},
+                 {"server_40", 16, 0, 2, 0, 50, 10, {p50, p99}, 16, 2},
+                 {"server_41", 16, 0, 2, 0, 50, 10, kAllKthPercentileTypes, 16, 2},
+                 {"server_42", 16, 0, 2, 5, 50, 10, {p90}, 16, 2},
+                 {"server_43", 16, 0, 2, 5, 50, 10, {p50, p99}, 16, 2},
+                 {"server_44", 16, 0, 2, 5, 50, 10, kAllKthPercentileTypes, 16, 2},
+                 {"server_45", 2000, 0, 5, 0, 50, 10, {p90}, 4096, 1},
+                 {"server_46", 2000, 0, 5, 0, 50, 10, {p50, p99}, 4096, 1},
+                 {"server_47", 2000, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 4096, 1},
+                 {"server_48", 2000, 0, 5, 0, 50, 10, {p90}, 4096, 4},
+                 {"server_49", 2000, 0, 5, 0, 50, 10, {p50, p99}, 4096, 4},
+                 {"server_50", 2000, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 4096, 4},
+                 {"server_51", 4096, 0, 5, 0, 50, 10, {p90}, 4096, 1},
+                 {"server_52", 4096, 0, 5, 0, 50, 10, {p50, p99}, 4096, 1},
+                 {"server_53", 4096, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 4096, 1},
+                 {"server_54", 4096, 0, 5, 0, 50, 10, {p90}, 4096, 4},
+                 {"server_55", 4096, 0, 5, 0, 50, 10, {p50, p99}, 4096, 4},
+                 {"server_56", 4096, 0, 5, 0, 50, 10, kAllKthPercentileTypes, 4096, 4},
+                 {"server_57", 4096, 0, 5, 5, 50, 10, {p90}, 4096, 4},
+                 {"server_58", 4096, 0, 5, 5, 50, 10, {p50, p99}, 4096, 4},
+                 {"server_59", 4096, 0, 5, 5, 50, 10, kAllKthPercentileTypes, 4096, 4}};
 
     for (const auto &test : tests) {
         auto my_server_entity = METRIC_ENTITY_my_server.instantiate(test.entity_id);
