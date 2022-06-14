@@ -227,8 +227,8 @@ public:
             _ms->get_remote_storage()->get_data(
                 partition_path,
                 LPC_META_CALLBACK,
-                [ expected_pid = partition_config.pid, expected_max_replica_count ](
-                    error_code ec, const blob &value) {
+                [ expected_pid = partition_config.pid,
+                  expected_max_replica_count ](error_code ec, const blob &value) {
                     ASSERT_EQ(ec, ERR_OK);
 
                     partition_configuration partition_config;
