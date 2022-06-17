@@ -102,6 +102,9 @@
 
 // This is a NOP if CACHELINE_SIZE is not defined.
 #ifdef CACHELINE_SIZE
+static_assert((CACHELINE_SIZE & (CACHELINE_SIZE - 1)) == 0 &&
+                  (CACHELINE_SIZE & (sizeof(void *) - 1)) == 0,
+              "CACHELINE_SIZE must be a power of 2 and a multiple of sizeof(void *)");
 #define CACHELINE_ALIGNED __attribute__((aligned(CACHELINE_SIZE)))
 #else
 #define CACHELINE_ALIGNED
