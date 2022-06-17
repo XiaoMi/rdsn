@@ -18,6 +18,9 @@
 #include <dsn/utility/metrics.h>
 
 #include <dsn/c/api_utilities.h>
+#include <dsn/utility/rand.h>
+
+#include "shared_io_service.h"
 
 namespace dsn {
 
@@ -64,7 +67,15 @@ metric_entity_prototype::metric_entity_prototype(const char *name) : _name(name)
 
 metric_entity_prototype::~metric_entity_prototype() {}
 
-metric_registry::metric_registry() {}
+metric_registry::metric_registry()
+{
+    // We should ensure that metric_registry is destructed before shared_io_service is destructed.
+    // Once shared_io_service is destructed before metric_registry is destructed,
+    // boost::asio::io_service needed by metrics in metric_registry such as percentile_timer will
+    // be released firstly, then will lead to heap-use-after-free error since percentiles in
+    // metric_registry are still running but the resources they needed have been released.
+    tools::shared_io_service::instance();
+}
 
 metric_registry::~metric_registry() {}
 
@@ -99,5 +110,42 @@ metric_prototype::metric_prototype(const ctor_args &args) : _args(args) {}
 metric_prototype::~metric_prototype() {}
 
 metric::metric(const metric_prototype *prototype) : _prototype(prototype) {}
+
+uint64_t percentile_timer::generate_initial_delay_ms(uint64_t interval_ms)
+{
+    dcheck_gt(interval_ms, 0);
+
+    if (interval_ms < 1000) {
+        return rand::next_u64() % interval_ms + 50;
+    }
+
+    uint64_t interval_seconds = interval_ms / 1000;
+    return (rand::next_u64() % interval_seconds + 1) * 1000 + rand::next_u64() % 1000;
+}
+
+percentile_timer::percentile_timer(uint64_t interval_ms, exec_fn exec)
+    : _initial_delay_ms(generate_initial_delay_ms(interval_ms)),
+      _interval_ms(interval_ms),
+      _exec(exec),
+      _timer(new boost::asio::deadline_timer(tools::shared_io_service::instance().ios))
+{
+    _timer->expires_from_now(boost::posix_time::milliseconds(_initial_delay_ms));
+    _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
+}
+
+void percentile_timer::on_timer(const boost::system::error_code &ec)
+{
+    if (dsn_unlikely(!!ec)) {
+        dassert_f(ec == boost::system::errc::operation_canceled,
+                  "failed to exec on_timer with an error that cannot be handled: {}",
+                  ec.message());
+        return;
+    }
+
+    _exec();
+
+    _timer->expires_from_now(boost::posix_time::milliseconds(_interval_ms));
+    _timer->async_wait(std::bind(&percentile_timer::on_timer, this, std::placeholders::_1));
+}
 
 } // namespace dsn
