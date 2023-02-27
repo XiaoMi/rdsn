@@ -863,8 +863,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
                 // case 1 and case 2, just continue uploading
                 //(when case2, we stop uploading when it change to secondary)
             } else {
-                set_backup_context_cancel();
-                clear_cold_backup_state();
+                cancel_all_cold_backups();
             }
             break;
         case partition_status::PS_SECONDARY:
@@ -873,8 +872,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
             // only load balance will occur primary -> secondary
             // and we just stop upload and release the cold_backup_state, and let new primary to
             // upload
-            set_backup_context_cancel();
-            clear_cold_backup_state();
+            cancel_all_cold_backups();
             break;
         case partition_status::PS_POTENTIAL_SECONDARY:
             dassert(false, "invalid execution path");
@@ -892,8 +890,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
             // if secondary upgrade to primary, we must cancel & clear cold_backup_state, because
             // new-primary must check whether backup is already completed by previous-primary
 
-            set_backup_context_cancel();
-            clear_cold_backup_state();
+            cancel_all_cold_backups();
         }
         switch (config.status) {
         case partition_status::PS_PRIMARY:
@@ -970,8 +967,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
     case partition_status::PS_INACTIVE:
         if (config.status != partition_status::PS_PRIMARY || !_inactive_is_transient) {
             // except for case 1, we need stop uploading backup checkpoint
-            set_backup_context_cancel();
-            clear_cold_backup_state();
+            cancel_all_cold_backups();
         }
         switch (config.status) {
         case partition_status::PS_PRIMARY:
