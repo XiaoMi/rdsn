@@ -138,6 +138,7 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
             ADD_POINT(mu->_tracer);
         }
     }
+
     lf->commit_log_blocks( // forces a new line for params
         *pending,
         LPC_WRITE_REPLICATION_LOG_SHARED,
@@ -167,7 +168,7 @@ void mutation_log_shared::commit_pending_mutations(log_file_ptr &lf,
                 }
 
                 if (_write_size_counter) {
-                    (*_write_size_counter)->add(sz);
+                    (*_write_size_counter)->set(sz);
                 }
             } else {
                 derror("write shared log failed, err = %s", err.to_string());

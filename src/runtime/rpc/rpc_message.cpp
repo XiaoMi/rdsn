@@ -30,6 +30,7 @@
 #include <dsn/tool-api/network.h>
 #include <dsn/tool-api/message_parser.h>
 #include <cctype>
+#include <dsn/dist/fmt_logging.h>
 
 #include "runtime/task/task_engine.h"
 
@@ -45,6 +46,8 @@ message_ex::message_ex()
       local_rpc_code(::dsn::TASK_CODE_INVALID),
       hdr_format(NET_HDR_INVALID),
       send_retry_count(0),
+      start_time_ns(dsn_now_ns()),
+      drop_for_timeout(false),
       _rw_index(-1),
       _rw_offset(0),
       _rw_committed(true),

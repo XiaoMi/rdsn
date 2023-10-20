@@ -44,6 +44,15 @@ DSN_DEFINE_bool("replication",
                 "reject client write requests if disk status is space insufficient");
 DSN_TAG_VARIABLE(reject_write_when_disk_insufficient, FT_MUTABLE);
 
+DSN_DEFINE_bool("replication",
+                drop_timeout_request_before_prepare,
+                true,
+                "drop client write requests "
+                "if the duration from "
+                "receive to init prepare is "
+                "larger than client timeout");
+DSN_TAG_VARIABLE(drop_timeout_request_before_prepare, FT_MUTABLE);
+
 void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
 {
     _checker.only_one_thread_access();
@@ -155,6 +164,26 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
 
     dinfo("%s: got write request from %s", name(), request->header->from_address.to_string());
     auto mu = _primary_states.write_queue.add_work(request->rpc_code(), request, this);
+
+    if (mu && FLAGS_drop_timeout_request_before_prepare) {
+        mu->mark_timeout_request();
+        _stub->_counter_recent_write_request_dropped_count->add(mu->timeout_request_count());
+        if (mu->timeout_request_count() != 0) {
+            derror_replica("jiashuo_debug_only: drop {} request", mu->timeout_request_count());
+        }
+        if (mu->timeout_request_count() == mu->data.updates.size()) {
+            dwarn_replica("directly response timeout since all requests are timeout, "
+                          "total_count(drop_count)={}",
+                          mu->timeout_request_count());
+            for (const auto &client_request : mu->client_requests) {
+                response_client_write(
+                    client_request,
+                    ERR_TIMEOUT); // origin here may have memory leak, must loop to response
+            }
+            return;
+        }
+    }
+
     if (mu) {
         init_prepare(mu, false);
     }
@@ -348,6 +377,8 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
                   msg,
                   &_tracker,
                   [=](error_code err, dsn::message_ex *request, dsn::message_ex *reply) {
+                      _stub->_counter_prepare_request_data_size->set(request->body_size() +
+                                                                     request->header->hdr_length);
                       on_prepare_reply(std::make_pair(mu, rconfig.status), err, request, reply);
                   },
                   get_gpid().thread_hash());
@@ -636,12 +667,12 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
     ADD_CUSTOM_POINT(send_prepare_tracer, resp.err.to_string());
 
     if (resp.err == ERR_OK) {
-        dinfo("%s: mutation %s on_prepare_reply from %s, appro_data_bytes = %d, "
+        dinfo("%s: mutation %s on_prepare_reply from %s, prepare_data_size = %d, "
               "target_status = %s, err = %s",
               name(),
               mu->name(),
               node.to_string(),
-              mu->appro_data_bytes(),
+              request->body_size(),
               enum_to_string(target_status),
               resp.err.to_string());
     } else {
@@ -650,7 +681,7 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
                name(),
                mu->name(),
                node.to_string(),
-               mu->appro_data_bytes(),
+               request->body_size(),
                enum_to_string(target_status),
                resp.err.to_string());
     }

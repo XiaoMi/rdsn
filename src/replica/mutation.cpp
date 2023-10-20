@@ -61,6 +61,7 @@ mutation::mutation()
     _create_ts_ns = dsn_now_ns();
     _tid = ++s_tid;
     _is_sync_to_child = false;
+    _timeout_request_count = 0;
     _tracer = std::make_shared<dsn::utils::latency_tracer>(
         false, "mutation", FLAGS_abnormal_write_trace_latency_threshold);
 }
@@ -154,7 +155,7 @@ void mutation::add_client_request(task_code code, dsn::message_ex *request)
         update.code = code;
         update.serialization_type =
             (dsn_msg_serialize_format)request->header->context.u.serialize_format;
-        update.__set_start_time_ns(dsn_now_ns());
+        update.__set_start_time_ns(request->start_time_ns);
         request->add_ref(); // released on dctor
 
         void *ptr;
@@ -179,46 +180,64 @@ void mutation::write_to(const std::function<void(const blob &)> &inserter) const
 {
     binary_writer writer(1024);
     write_mutation_header(writer, data.header);
-    writer.write_pod(static_cast<int>(data.updates.size()));
-    for (const mutation_update &update : data.updates) {
+    writer.write_pod(static_cast<int>(data.updates.size() - timeout_request_count()));
+    for (int i = 0; i < data.updates.size(); i++) {
+        // filter to drop timeout request
+        if (client_requests[i] && client_requests[i]->drop_for_timeout) {
+            continue;
+        }
+
         // write task_code as string to make it cross-process compatible.
         // avoid memory copy, equal to writer.write(std::string)
-        const char *cstr = update.code.to_string();
+        const char *cstr = data.updates[i].code.to_string();
         int len = static_cast<int>(strlen(cstr));
         writer.write_pod(len);
         if (len > 0)
             writer.write(cstr, len);
 
-        writer.write_pod(static_cast<int>(update.serialization_type));
+        writer.write_pod(static_cast<int>(data.updates[i].serialization_type));
 
-        writer.write_pod(static_cast<int>(update.data.length()));
+        writer.write_pod(static_cast<int>(data.updates[i].data.length()));
     }
     inserter(writer.get_buffer());
-    for (const mutation_update &update : data.updates) {
-        inserter(update.data);
+    for (int i = 0; i < data.updates.size(); i++) {
+        // filter to drop timeout request
+        if (client_requests[i] && client_requests[i]->drop_for_timeout) {
+            continue;
+        }
+        inserter(data.updates[i].data);
     }
 }
 
 void mutation::write_to(binary_writer &writer, dsn::message_ex * /*to*/) const
 {
     write_mutation_header(writer, data.header);
-    writer.write_pod(static_cast<int>(data.updates.size()));
-    for (const mutation_update &update : data.updates) {
+    writer.write_pod(static_cast<int>(data.updates.size() - timeout_request_count()));
+    for (int i = 0; i < data.updates.size(); i++) {
+        // filter to drop timeout request
+        if (client_requests[i] && client_requests[i]->drop_for_timeout) {
+            continue;
+        }
+
         // write task_code as string to make it cross-process compatible.
         // avoid memory copy, equal to writer.write(std::string)
-        const char *cstr = update.code.to_string();
+        const char *cstr = data.updates[i].code.to_string();
         int len = static_cast<int>(strlen(cstr));
         writer.write_pod(len);
         if (len > 0)
             writer.write(cstr, len);
 
-        writer.write_pod(static_cast<int>(update.serialization_type));
+        writer.write_pod(static_cast<int>(data.updates[i].serialization_type));
 
-        writer.write_pod(static_cast<int>(update.data.length()));
+        writer.write_pod(static_cast<int>(data.updates[i].data.length()));
     }
     // TODO(qinzuoyan): directly append buffer to message to avoid memory copy
-    for (const mutation_update &update : data.updates) {
-        writer.write(update.data.data(), update.data.length());
+    for (int i = 0; i < data.updates.size(); i++) {
+        // filter to drop timeout request
+        if (client_requests[i] && client_requests[i]->drop_for_timeout) {
+            continue;
+        }
+        writer.write(data.updates[i].data.data(), data.updates[i].data.length());
     }
 }
 
@@ -333,6 +352,19 @@ void mutation::wait_log_task() const
 {
     if (_log_task != nullptr) {
         _log_task->wait();
+    }
+}
+void mutation::mark_timeout_request()
+{
+    for (const auto &client_request : client_requests) {
+        if (!client_request) {
+            continue;
+        }
+        if (dsn_now_ns() - client_request->start_time_ns >=
+            client_request->header->client.timeout_ms * 1000000L) {
+            client_request->drop_for_timeout = true;
+            _timeout_request_count++;
+        }
     }
 }
 

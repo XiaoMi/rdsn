@@ -261,11 +261,10 @@ void replica_stub::install_perf_counters()
 
     _counter_shared_log_size.init_app_counter(
         "eon.replica_stub", "shared.log.size(MB)", COUNTER_TYPE_NUMBER, "shared log size(MB)");
-    _counter_shared_log_recent_write_size.init_app_counter(
-        "eon.replica_stub",
-        "shared.log.recent.write.size",
-        COUNTER_TYPE_VOLATILE_NUMBER,
-        "shared log write size in the recent period");
+    _counter_shared_log_write_batch_size.init_app_counter("eon.replica_stub",
+                                                          "js_debug_write_slog_batch_size",
+                                                          COUNTER_TYPE_NUMBER_PERCENTILES,
+                                                          "write_slog_batch_size");
     _counter_recent_trigger_emergency_checkpoint_count.init_app_counter(
         "eon.replica_stub",
         "recent.trigger.emergency.checkpoint.count",
@@ -469,6 +468,19 @@ void replica_stub::install_perf_counters()
         "replicas.splitting.recent.split.fail.count",
         COUNTER_TYPE_VOLATILE_NUMBER,
         "splitting fail count in the recent period");
+
+    _counter_recent_write_request_dropped_count.init_app_counter(
+        "eon.replica_stub",
+        "js_debug_recent_write_request_dropped_count_for_timeout",
+        COUNTER_TYPE_VOLATILE_NUMBER,
+        "write size exceed threshold count in the recent period" // todo
+        );
+
+    _counter_prepare_request_data_size.init_app_counter("eon.replica_stub",
+                                                        "js_debug_send_prepare_request_size",
+                                                        COUNTER_TYPE_NUMBER_PERCENTILES,
+                                                        "write_mutation_request_size" // todo
+                                                        );
 }
 
 void replica_stub::initialize(bool clear /* = false*/)
@@ -525,7 +537,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     _log = new mutation_log_shared(_options.slog_dir,
                                    _options.log_shared_file_size_mb,
                                    _options.log_shared_force_flush,
-                                   &_counter_shared_log_recent_write_size);
+                                   &_counter_shared_log_write_batch_size);
     ddebug("slog_dir = %s", _options.slog_dir.c_str());
 
     // init rps
@@ -653,7 +665,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
         _log = new mutation_log_shared(_options.slog_dir,
                                        _options.log_shared_file_size_mb,
                                        _options.log_shared_force_flush,
-                                       &_counter_shared_log_recent_write_size);
+                                       &_counter_shared_log_write_batch_size);
         auto lerr = _log->open(nullptr, [this](error_code err) { this->handle_log_failure(err); });
         dassert(lerr == ERR_OK, "restart log service must succeed");
     }
