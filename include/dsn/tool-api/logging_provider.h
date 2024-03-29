@@ -57,7 +57,7 @@ public:
 public:
     logging_provider(const char *) {}
 
-    virtual ~logging_provider(void) {}
+    virtual ~logging_provider() {}
 
     // singleton
     static logging_provider *instance();
@@ -65,18 +65,11 @@ public:
     // not thread-safe
     static void set_logger(logging_provider *logger);
 
-    virtual void dsn_logv(const char *file,
-                          const char *function,
-                          const int line,
-                          dsn_log_level_t log_level,
-                          const char *fmt,
-                          va_list args) = 0;
-
     virtual void dsn_log(const char *file,
                          const char *function,
                          const int line,
                          dsn_log_level_t log_level,
-                         const char *str) = 0;
+                         fmt::string_view str) = 0;
 
     virtual void flush() = 0;
 
