@@ -26,7 +26,6 @@ GTEST_API_ int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);
 
-    command_manager_module_init();
     // init logging
     dsn_log_init("dsn::tools::simple_logger", "./", nullptr);
 
